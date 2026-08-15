@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Диалог — тренажёр переговоров</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A4%9D%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- ============ HEADER ============ -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">🤝</span>
+        <div>
+          <div class="brand-name">Диалог</div>
+          <div class="brand-sub" data-i18n="tagline">тренажёр переговоров</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="lang-toggle" id="langToggle">
+          <button data-lang="ru" class="active">RU</button>
+          <button data-lang="en">EN</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============ SCREEN: HOME / SCENARIO SELECT ============ -->
+    <section id="screen-home" class="screen active">
+      <div class="hero">
+        <h1 data-i18n="heroTitle">Учитесь договариваться — в безопасной песочнице</h1>
+        <p class="hero-sub" data-i18n="heroSub">
+          Ведите живой диалог с ИИ-оппонентом. Исход зависит от вашей стратегии, формулировок и аргументов.
+          Каждая реплика анализируется по методам Гарварда, SPIN и BATNA.
+        </p>
+        <div class="hero-chips">
+          <span class="chip">🎯 <span data-i18n="chipInterests">Скрытые интересы</span></span>
+          <span class="chip">📊 <span data-i18n="chipCriteria">Объективные критерии</span></span>
+          <span class="chip">❓ SPIN</span>
+          <span class="chip">🛡️ BATNA</span>
+          <span class="chip">📈 <span data-i18n="chipDebrief">Разбор и коучинг</span></span>
+        </div>
+      </div>
+
+      <h2 class="section-title" data-i18n="chooseScenario">Выберите сценарий</h2>
+      <div id="scenarioGrid" class="scenario-grid"></div>
+
+      <div class="method-note">
+        <h3 data-i18n="howTitle">Как это работает</h3>
+        <div class="method-cards">
+          <div class="method-card">
+            <span class="method-ico">🗣️</span>
+            <b data-i18n="how1t">Пишите свободно</b>
+            <p data-i18n="how1p">Вводите реплики своими словами. Движок распознаёт применённые техники в реальном времени.</p>
+          </div>
+          <div class="method-card">
+            <span class="method-ico">🎚️</span>
+            <b data-i18n="how2t">Следите за метриками</b>
+            <p data-i18n="how2p">Доверие, Напряжение, Информация и Рычаг реагируют на ваши формулировки.</p>
+          </div>
+          <div class="method-card">
+            <span class="method-ico">🏁</span>
+            <b data-i18n="how3t">Закройте сделку</b>
+            <p data-i18n="how3p">Договоритесь в зоне возможного соглашения (ZOPA) — и получите разбор с оценкой.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: NEGOTIATION ============ -->
+    <section id="screen-game" class="screen">
+      <div class="game-layout">
+
+        <!-- LEFT: opponent + meters + briefing -->
+        <aside class="game-side">
+          <div class="opp-card">
+            <div class="opp-avatar" id="oppAvatar">🧑‍💼</div>
+            <div>
+              <div class="opp-name" id="oppName">—</div>
+              <div class="opp-persona" id="oppPersona">—</div>
+            </div>
+          </div>
+
+          <div class="offer-board">
+            <div class="offer-box">
+              <span class="offer-label" data-i18n="theirOffer">Их предложение</span>
+              <span class="offer-val" id="offerOpp">—</span>
+            </div>
+            <div class="offer-arrow">⇄</div>
+            <div class="offer-box">
+              <span class="offer-label" data-i18n="yourTarget">Ваша цель</span>
+              <span class="offer-val target" id="playerTarget">—</span>
+            </div>
+          </div>
+
+          <div class="meters">
+            <div class="meter" data-meter="trust">
+              <div class="meter-head"><span data-i18n="mTrust">Доверие</span><span class="meter-num" id="mTrustN">40</span></div>
+              <div class="meter-bar"><div class="meter-fill trust" id="mTrust"></div></div>
+            </div>
+            <div class="meter" data-meter="tension">
+              <div class="meter-head"><span data-i18n="mTension">Напряжение</span><span class="meter-num" id="mTensionN">25</span></div>
+              <div class="meter-bar"><div class="meter-fill tension" id="mTension"></div></div>
+            </div>
+            <div class="meter" data-meter="info">
+              <div class="meter-head"><span data-i18n="mInfo">Информация</span><span class="meter-num" id="mInfoN">0</span></div>
+              <div class="meter-bar"><div class="meter-fill info" id="mInfo"></div></div>
+            </div>
+            <div class="meter" data-meter="leverage">
+              <div class="meter-head"><span data-i18n="mLeverage">Рычаг</span><span class="meter-num" id="mLeverageN">0</span></div>
+              <div class="meter-bar"><div class="meter-fill leverage" id="mLeverage"></div></div>
+            </div>
+          </div>
+
+          <div class="briefing" id="briefing"></div>
+          <div class="batna-box">
+            <span class="batna-label">🛡️ BATNA</span>
+            <span id="batnaNote">—</span>
+          </div>
+
+          <div class="interests-tracker">
+            <div class="it-head"><span data-i18n="interestsFound">Раскрытые интересы</span> <span id="interestsCount">0/0</span></div>
+            <div class="it-dots" id="interestDots"></div>
+          </div>
+
+          <button class="btn-ghost" id="quitBtn" data-i18n="quit">← Выйти</button>
+        </aside>
+
+        <!-- RIGHT: chat -->
+        <main class="chat-panel">
+          <div class="chat-head">
+            <div class="turn-badge"><span data-i18n="turn">Ход</span> <span id="turnNum">0</span>/<span id="turnMax">12</span></div>
+            <button class="btn-hint" id="hintBtn">💡 <span data-i18n="hint">Подсказка</span></button>
+          </div>
+          <div class="chat-log" id="chatLog"></div>
+          <div class="composer">
+            <div class="detected" id="detected"></div>
+            <div class="composer-row">
+              <textarea id="inputBox" rows="2" data-i18n-ph="placeholder"
+                placeholder="Напишите реплику своими словами…"></textarea>
+              <button id="sendBtn" class="btn-send">➤</button>
+            </div>
+            <div class="quick-moves" id="quickMoves"></div>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- ============ SCREEN: DEBRIEF ============ -->
+    <section id="screen-debrief" class="screen">
+      <div class="debrief">
+        <div class="grade-hero">
+          <div class="grade-ring" id="gradeRing">
+            <span class="grade-letter" id="gradeLetter">—</span>
+            <span class="grade-score" id="gradeScore">0</span>
+          </div>
+          <div class="grade-meta">
+            <h2 id="debriefTitle" data-i18n="debriefTitle">Разбор переговоров</h2>
+            <div class="deal-outcome" id="dealOutcome">—</div>
+          </div>
+        </div>
+
+        <div class="score-breakdown">
+          <div class="sb-item">
+            <div class="sb-head"><span data-i18n="sbEconomic">Экономика сделки</span><span id="sbEconomicN">0</span></div>
+            <div class="sb-bar"><div class="sb-fill" id="sbEconomic"></div></div>
+          </div>
+          <div class="sb-item">
+            <div class="sb-head"><span data-i18n="sbRelationship">Отношения</span><span id="sbRelationshipN">0</span></div>
+            <div class="sb-bar"><div class="sb-fill rel" id="sbRelationship"></div></div>
+          </div>
+          <div class="sb-item">
+            <div class="sb-head"><span data-i18n="sbTechnique">Техника переговоров</span><span id="sbTechniqueN">0</span></div>
+            <div class="sb-bar"><div class="sb-fill tech" id="sbTechnique"></div></div>
+          </div>
+        </div>
+
+        <div class="debrief-stats" id="debriefStats"></div>
+
+        <div class="coaching">
+          <h3 data-i18n="coaching">Рекомендации коуча</h3>
+          <ul id="tipsList"></ul>
+        </div>
+
+        <div class="debrief-actions">
+          <button class="btn-primary" id="retryBtn" data-i18n="retry">↻ Пройти снова</button>
+          <button class="btn-ghost" id="homeBtn" data-i18n="toHome">К сценариям</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span>Диалог · Negotiation Skills Simulator</span>
+      <span class="foot-dim" data-i18n="footMethod">Гарвардский метод · SPIN · BATNA</span>
+    </footer>
+  </div>
+
+  <script src="/i18n.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

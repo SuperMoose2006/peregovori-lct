@@ -1,0 +1,25 @@
+{
+  "name": "dialog-negotiation-simulator",
+  "version": "1.0.0",
+  "description": "Диалог — interactive negotiation-skills simulator where the outcome depends on your strategy, wording and arguments (Harvard method, SPIN, BATNA).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test/engine.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "negotiation",
+    "simulator",
+    "training",
+    "harvard-method",
+    "spin",
+    "batna",
+    "edtech"
+  ],
+  "license": "MIT",
+  "author": "LCT team"
+}

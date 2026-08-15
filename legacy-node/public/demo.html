@@ -1,0 +1,625 @@
+<title>Диалог — Negotiation Simulator</title>
+<style>
+  :root {
+    --ground: #F3EEE3; --panel: #FBF8F1; --panel-2: #EFE8D9;
+    --ink: #241E16; --ink-dim: #6B6152; --ink-faint: #9A8F7C;
+    --line: #E0D7C5; --line-2: #CFC4AD;
+    --brass: #B07C2E; --brass-soft: #C0883C;
+    --trust: #2E9E6E; --tension: #D2564B; --info: #3F72D8; --leverage: #7C68C8;
+    --shadow: 0 10px 40px rgba(60,45,20,.12);
+    --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --r: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #14110D; --panel: #1D1913; --panel-2: #262019;
+      --ink: #ECE4D5; --ink-dim: #A99E8A; --ink-faint: #7A6F5C;
+      --line: #2E2820; --line-2: #40382C;
+      --brass: #D4A24E; --brass-soft: #C0883C;
+      --trust: #46C08A; --tension: #E0665A; --info: #6C97EC; --leverage: #9987DA;
+      --shadow: 0 12px 44px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #F3EEE3; --panel: #FBF8F1; --panel-2: #EFE8D9;
+    --ink: #241E16; --ink-dim: #6B6152; --ink-faint: #9A8F7C;
+    --line: #E0D7C5; --line-2: #CFC4AD;
+    --brass: #B07C2E; --trust: #2E9E6E; --tension: #D2564B; --info: #3F72D8; --leverage: #7C68C8;
+    --shadow: 0 10px 40px rgba(60,45,20,.12);
+  }
+  :root[data-theme="dark"] {
+    --ground: #14110D; --panel: #1D1913; --panel-2: #262019;
+    --ink: #ECE4D5; --ink-dim: #A99E8A; --ink-faint: #7A6F5C;
+    --line: #2E2820; --line-2: #40382C;
+    --brass: #D4A24E; --trust: #46C08A; --tension: #E0665A; --info: #6C97EC; --leverage: #9987DA;
+    --shadow: 0 12px 44px rgba(0,0,0,.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: var(--sans); line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+  h1, h2, h3, .serif { font-family: var(--serif); }
+  ::selection { background: var(--brass); color: var(--ground); }
+
+  /* ---------- Top bar ---------- */
+  .top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px; max-width: 1120px; margin: 0 auto;
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; }
+  .brand .mark { font-family: var(--serif); font-size: 26px; font-weight: 700; letter-spacing: .2px; }
+  .brand .mark .dot { color: var(--brass); }
+  .brand .sub { font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-faint); }
+  .controls { display: flex; gap: 8px; }
+  .seg { display: flex; border: 1px solid var(--line-2); border-radius: 9px; overflow: hidden; }
+  .seg button { padding: 6px 12px; font-size: 12.5px; font-weight: 600; color: var(--ink-dim); }
+  .seg button.on { background: var(--brass); color: #fff; }
+  :root[data-theme="dark"] .seg button.on, @media (prefers-color-scheme: dark) { }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 40px 0 26px; }
+  .eyebrow { font-size: 12.5px; letter-spacing: 3px; text-transform: uppercase; color: var(--brass); margin-bottom: 18px; }
+  .hero h1 { font-size: clamp(34px, 5.5vw, 58px); line-height: 1.04; margin: 0; text-wrap: balance; font-weight: 700; letter-spacing: -.5px; }
+  .hero h1 em { font-style: italic; color: var(--brass); }
+  .hero p.lead { max-width: 60ch; margin: 22px 0 0; font-size: 18px; color: var(--ink-dim); }
+  .rule { height: 1px; background: linear-gradient(90deg, var(--line-2), transparent); margin: 30px 0; }
+  .principles { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13.5px; color: var(--ink-dim); }
+  .principles b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Scenario picker ---------- */
+  .pick-head { font-size: 12.5px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-faint); margin: 34px 0 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+    padding: 20px; cursor: pointer; transition: transform .18s, border-color .18s, box-shadow .18s;
+    display: flex; flex-direction: column; gap: 9px; text-align: left; position: relative;
+  }
+  .card:hover { transform: translateY(-3px); border-color: var(--brass); box-shadow: var(--shadow); }
+  .card .ic { font-size: 26px; }
+  .card .ct { font-family: var(--serif); font-size: 19px; font-weight: 600; }
+  .card .cr { font-size: 13px; color: var(--ink-dim); flex: 1; }
+  .card .cf { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+  .diff { display: flex; gap: 4px; }
+  .diff i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+  .diff i.on { background: var(--brass); }
+  .go { font-size: 12.5px; font-weight: 700; color: var(--brass); }
+
+  /* ---------- Table (game) ---------- */
+  .screen { display: none; }
+  .screen.on { display: block; animation: fade .4s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+  .table { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 20px 0 40px; align-items: start; }
+  .side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
+
+  .opp { display: flex; gap: 13px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; }
+  .opp .face { font-size: 34px; width: 52px; height: 52px; display: grid; place-items: center; background: var(--panel-2); border-radius: 11px; }
+  .opp .nm { font-family: var(--serif); font-weight: 600; font-size: 16px; }
+  .opp .ps { font-size: 12px; color: var(--ink-dim); }
+
+  .offers { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 13px; }
+  .ob { text-align: center; }
+  .ob .l { font-size: 10.5px; letter-spacing: .5px; text-transform: uppercase; color: var(--ink-faint); }
+  .ob .v { font-family: var(--serif); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ob .v.tg { color: var(--brass); }
+  .ar { color: var(--ink-faint); }
+
+  .meters { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+  .m .mh { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-dim); margin-bottom: 5px; }
+  .m .mh b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .track { height: 7px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+  .fill { height: 100%; width: 40%; border-radius: 5px; transition: width .55s cubic-bezier(.4,0,.2,1); }
+  .fill.trust { background: var(--trust); } .fill.tension { background: var(--tension); }
+  .fill.info { background: var(--info); } .fill.lev { background: var(--leverage); }
+
+  .brief { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--brass); border-radius: 10px; padding: 12px 13px; font-size: 12.5px; color: var(--ink-dim); }
+  .batna { font-size: 12px; color: var(--ink-dim); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+  .batna b { color: var(--leverage); display: block; margin-bottom: 3px; letter-spacing: .3px; }
+  .quit { border: 1px solid var(--line-2); border-radius: 10px; padding: 9px; font-size: 13px; color: var(--ink-dim); transition: .15s; }
+  .quit:hover { border-color: var(--brass); color: var(--ink); }
+
+  /* chat */
+  .chat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-height: 540px; overflow: hidden; }
+  .chat .ch { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+  .turn { font-size: 12.5px; color: var(--ink-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .hintb { font-size: 12.5px; color: var(--ink-dim); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 11px; transition: .15s; }
+  .hintb:hover { border-color: var(--brass); color: var(--ink); }
+  .log { flex: 1; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 13px; max-height: 50vh; }
+  .msg { max-width: 84%; display: flex; flex-direction: column; gap: 5px; animation: pop .3s ease; }
+  @keyframes pop { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
+  .msg.opp { align-self: flex-start; } .msg.me { align-self: flex-end; align-items: flex-end; }
+  .bub { padding: 11px 14px; border-radius: 13px; font-size: 14.5px; }
+  .msg.opp .bub { background: var(--panel-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg.me .bub { background: var(--brass); color: #fff; border-bottom-right-radius: 4px; }
+  :root[data-theme="dark"] .msg.me .bub { color: #1a1509; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-dim); }
+  .tag.spin { border-color: color-mix(in srgb, var(--info) 45%, transparent); color: var(--info); }
+  .tag.criteria, .tag.anchor, .tag.offer { border-color: color-mix(in srgb, var(--brass) 55%, transparent); color: var(--brass); }
+  .tag.batna { border-color: color-mix(in srgb, var(--leverage) 45%, transparent); color: var(--leverage); }
+  .tag.empathy, .tag.interests, .tag.tradeoff, .tag.rapport, .tag.accept { border-color: color-mix(in srgb, var(--trust) 45%, transparent); color: var(--trust); }
+  .tag.threat, .tag.hostile { border-color: color-mix(in srgb, var(--tension) 50%, transparent); color: var(--tension); }
+  .arg { font-size: 10.5px; color: var(--ink-faint); }
+  .arg b { color: var(--ink-dim); }
+  .deltas { display: inline-flex; gap: 6px; }
+  .deltas span { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 5px; font-variant-numeric: tabular-nums; }
+  .up { background: color-mix(in srgb, var(--trust) 18%, transparent); color: var(--trust); }
+  .dn { background: color-mix(in srgb, var(--tension) 18%, transparent); color: var(--tension); }
+  .sys { align-self: center; font-size: 12px; color: var(--ink-faint); }
+  .hintbub { align-self: center; max-width: 90%; font-size: 13px; color: var(--brass); background: color-mix(in srgb, var(--brass) 10%, transparent); border: 1px solid color-mix(in srgb, var(--brass) 30%, transparent); border-radius: 11px; padding: 9px 14px; }
+
+  .compose { border-top: 1px solid var(--line); padding: 12px 14px; }
+  .live { min-height: 0; display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
+  .crow { display: flex; gap: 9px; align-items: flex-end; }
+  textarea { flex: 1; resize: none; background: var(--ground); border: 1px solid var(--line-2); border-radius: 11px; padding: 11px 13px; color: var(--ink); font-size: 14.5px; font-family: inherit; }
+  textarea:focus { outline: none; border-color: var(--brass); }
+  .send { width: 44px; height: 44px; border-radius: 11px; background: var(--brass); color: #fff; font-size: 17px; flex-shrink: 0; transition: .15s; }
+  :root[data-theme="dark"] .send { color: #1a1509; }
+  .send:hover { filter: brightness(1.08); }
+  .send:disabled { opacity: .5; cursor: default; }
+  .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+  .quick button { font-size: 11.5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-dim); transition: .15s; }
+  .quick button:hover { border-color: var(--brass); color: var(--ink); }
+
+  /* debrief */
+  .debrief { max-width: 720px; margin: 0 auto; padding: 34px 0 50px; }
+  .gh { display: flex; align-items: center; gap: 26px; margin-bottom: 30px; }
+  .ring { width: 128px; height: 128px; border-radius: 50%; display: grid; place-items: center; position: relative; flex-shrink: 0; background: conic-gradient(var(--gc, var(--brass)) calc(var(--p,0)*1%), var(--panel-2) 0); }
+  .ring::after { content: ''; position: absolute; inset: 11px; background: var(--ground); border-radius: 50%; }
+  .ring .gl { position: relative; z-index: 1; font-family: var(--serif); font-size: 44px; font-weight: 700; color: var(--gc, var(--brass)); line-height: 1; }
+  .ring .gs { position: relative; z-index: 1; font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .gh h2 { margin: 0; font-size: 26px; }
+  .gh .oc { margin-top: 7px; color: var(--ink-dim); font-size: 15px; }
+  .gh .oc b { color: var(--ink); }
+  .sb { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+  .sbi .sbh { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; }
+  .sbi .sbh b { font-variant-numeric: tabular-nums; }
+  .sbt { height: 9px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+  .sbf { height: 100%; width: 0; border-radius: 5px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px; margin-bottom: 22px; }
+  .st { background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 13px; text-align: center; }
+  .st .n { font-family: var(--serif); font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .st .l { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+  .coach { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; margin-bottom: 22px; }
+  .coach h3 { margin: 0 0 13px; font-size: 17px; }
+  .coach ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .coach li { display: flex; gap: 9px; font-size: 13.5px; color: var(--ink-dim); }
+  .coach li::before { content: '—'; color: var(--brass); flex-shrink: 0; }
+  .dacts { display: flex; gap: 11px; }
+  .primary { flex: 1; padding: 13px; border-radius: 11px; background: var(--brass); color: #fff; font-weight: 700; font-size: 15px; transition: .15s; }
+  :root[data-theme="dark"] .primary { color: #1a1509; }
+  .primary:hover { filter: brightness(1.08); }
+  .dacts .quit { flex: 1; }
+
+  .foot { border-top: 1px solid var(--line); padding: 18px 22px; max-width: 1120px; margin: 40px auto 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-faint); }
+
+  @media (max-width: 860px) {
+    .table { grid-template-columns: 1fr; }
+    .side { position: static; }
+    .gh { flex-direction: column; text-align: center; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="top">
+  <div class="brand">
+    <span class="mark">Диалог<span class="dot">.</span></span>
+    <span class="sub" id="tagline">negotiation dojo</span>
+  </div>
+  <div class="controls">
+    <div class="seg" id="lang"><button data-l="ru" class="on">RU</button><button data-l="en">EN</button></div>
+    <div class="seg" id="theme"><button data-t="dark">◐</button></div>
+  </div>
+</div>
+
+<!-- HOME -->
+<section class="screen on" id="s-home">
+  <div class="wrap">
+    <div class="hero">
+      <div class="eyebrow" id="eyebrow">Гарвардский метод · SPIN · BATNA</div>
+      <h1 id="h1"></h1>
+      <p class="lead" id="lead"></p>
+      <div class="rule"></div>
+      <div class="principles" id="principles"></div>
+    </div>
+    <div class="pick-head" id="pickhead">Выберите оппонента за столом</div>
+    <div class="cards" id="cards"></div>
+  </div>
+</section>
+
+<!-- GAME -->
+<section class="screen" id="s-game">
+  <div class="wrap">
+    <div class="table">
+      <aside class="side">
+        <div class="opp"><div class="face" id="face">🧑‍💼</div><div><div class="nm" id="oppN"></div><div class="ps" id="oppP"></div></div></div>
+        <div class="offers">
+          <div class="ob"><div class="l" id="lOpp">их цена</div><div class="v" id="oOpp">—</div></div>
+          <div class="ar">⇄</div>
+          <div class="ob"><div class="l" id="lTgt">ваша цель</div><div class="v tg" id="oTgt">—</div></div>
+        </div>
+        <div class="meters" id="meters"></div>
+        <div class="brief" id="brief"></div>
+        <div class="batna"><b>🛡 BATNA</b><span id="batna"></span></div>
+        <button class="quit" id="quit">← <span id="quitL">выйти</span></button>
+      </aside>
+      <main class="chat">
+        <div class="ch"><div class="turn"><span id="turnL">ход</span> <span id="tn">0</span>/<span id="tmx">12</span></div><button class="hintb" id="hint">💡 <span id="hintL">подсказка</span></button></div>
+        <div class="log" id="log"></div>
+        <div class="compose">
+          <div class="live" id="live"></div>
+          <div class="crow"><textarea id="inp" rows="2"></textarea><button class="send" id="send">➤</button></div>
+          <div class="quick" id="quick"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- DEBRIEF -->
+<section class="screen" id="s-deb">
+  <div class="wrap"><div class="debrief">
+    <div class="gh">
+      <div class="ring" id="ring"><span class="gl" id="gl">—</span><span class="gs" id="gs">0/100</span></div>
+      <div><h2 id="debT">Разбор переговоров</h2><div class="oc" id="oc"></div></div>
+    </div>
+    <div class="sb" id="sb"></div>
+    <div class="stats" id="stats"></div>
+    <div class="coach"><h3 id="coachT">Рекомендации коуча</h3><ul id="tips"></ul></div>
+    <div class="dacts"><button class="primary" id="retry">↻ <span id="retryL">Пройти снова</span></button><button class="quit" id="home"></button></div>
+  </div></div>
+</section>
+
+<div class="foot"><span>Диалог · Negotiation Skills Simulator</span><span id="footR">исход зависит от вашей стратегии</span></div>
+
+<script>
+"use strict";
+/* ================= Self-contained negotiation engine (ported & tested) ================= */
+const SCEN = [
+  { id:'supplier', icon:'📦', face:'👩‍💼', diff:2, dir:'low',
+    title:{ru:'Контракт с поставщиком',en:'Supplier Contract'},
+    role:{ru:'Вы — менеджер по закупкам: снизить цену, не потеряв надёжного поставщика.',en:'You are a buyer: cut the price without losing a reliable supplier.'},
+    cp:{nm:{ru:'Ирина, глава продаж',en:'Irina, Head of Sales'},ps:{ru:'Опытная, ценит отношения, не любит давление.',en:'Experienced, relationship-oriented, dislikes pressure.'},style:'relationship'},
+    unit:{ru:' ₽',en:''}, open:100, floor:84, target:86, resv:92,
+    batna:{ru:'Другой поставщик по 95, но с риском качества.',en:'Alternative supplier at 95, with quality risk.'},
+    interests:{ru:['Стабильная загрузка','Предоплата / денежный поток','Долгосрочный контракт'],en:['Stable utilization','Upfront payment / cash flow','Long-term contract']},
+    tradeoffs:{ru:['годовой контракт','предоплату 30%'],en:['an annual contract','30% upfront']},
+    brief:{ru:'Цель: ≤86. Красная линия: 92. У поставщика скрытые интересы — вскройте их вопросами.',en:'Goal ≤86. Red line 92. The supplier has hidden interests — surface them with questions.'} },
+  { id:'salary', icon:'💼', face:'🧔‍♂️', diff:3, dir:'high',
+    title:{ru:'Переговоры о зарплате',en:'Salary Negotiation'},
+    role:{ru:'У вас есть оффер: повысить компенсацию, не отпугнув работодателя.',en:'You have an offer: raise the package without scaring off the employer.'},
+    cp:{nm:{ru:'Дмитрий, директор',en:'Dmitry, Director'},ps:{ru:'Прагматичен, уважает рыночные данные.',en:'Pragmatic, respects market data.'},style:'analytical'},
+    unit:{ru:'k',en:'k'}, open:180, floor:240, target:230, resv:195,
+    batna:{ru:'Второй оффер на 210, но проект слабее.',en:'A second offer at 210, weaker project.'},
+    interests:{ru:['Удержать бюджет','Быстро закрыть позицию','Обосновать вилку финансам'],en:['Keep the budget','Close the role fast','Justify the band to finance']},
+    tradeoffs:{ru:['пересмотр через 6 мес по KPI','подписной бонус'],en:['a 6-month KPI review','a signing bonus']},
+    brief:{ru:'Цель: ≥230k. Красная линия: 195. Опирайтесь на рыночные данные, а не эмоции.',en:'Goal ≥230k. Red line 195. Anchor on market data, not emotion.'} },
+  { id:'conflict', icon:'🤝', face:'😤', diff:4, dir:'low',
+    title:{ru:'Конфликт между отделами',en:'Cross-team Conflict'},
+    role:{ru:'Вы — тимлид: смежный отдел сорвал сроки и обвиняет вас. Договоритесь, сохранив отношения.',en:'You are a lead: a partner team missed a deadline and blames you. Agree while keeping the relationship.'},
+    cp:{nm:{ru:'Алексей, смежный отдел',en:'Alexey, Partner Lead'},ps:{ru:'Под давлением, раздражён, склонен обвинять.',en:'Under pressure, irritated, prone to blame.'},style:'tough'},
+    unit:{ru:' дн',en:'d'}, open:20, floor:6, target:5, resv:12,
+    batna:{ru:'Эскалация к директору — но испортит отношения.',en:'Escalate to the director — but it hurts the relationship.'},
+    interests:{ru:['Не выглядеть виноватым','Реальная нехватка людей','Сохранить лицо'],en:['Not look at fault','A real staffing shortage','Save face']},
+    tradeoffs:{ru:['совместный статус руководству','временно поделиться ресурсом'],en:['a joint status update','sharing a resource temporarily']},
+    brief:{ru:'Деньги ни при чём — важны эмоции. Отделите человека от проблемы, признайте его давление.',en:'Not about money — about emotion. Separate the person from the problem, acknowledge his pressure.'} },
+  { id:'investor', icon:'🚀', face:'👩‍💻', diff:5, dir:'low',
+    title:{ru:'Раунд с инвестором',en:'Investor Term Sheet'},
+    role:{ru:'Вы — фаундер: инвестор хочет большую долю и жёсткие условия.',en:'You are a founder: the investor wants a big stake and tough terms.'},
+    cp:{nm:{ru:'Марина, партнёр фонда',en:'Marina, VC Partner'},ps:{ru:'Аналитична, жёстка на цифрах, уважает сильную BATNA.',en:'Analytical, hard on numbers, respects a strong BATNA.'},style:'analytical'},
+    unit:{ru:'%',en:'%'}, open:30, floor:18, target:15, resv:24,
+    batna:{ru:'Второй фонд обсуждает 20% — реальный рычаг.',en:'A second fund is discussing 20% — real leverage.'},
+    interests:{ru:['Мотивированный фаундер','Место в совете','Скорость закрытия'],en:['A motivated founder','A board seat','Speed of closing']},
+    tradeoffs:{ru:['место в совете','транши по метрикам'],en:['a board seat','milestone tranches']},
+    brief:{ru:'Сильная BATNA — козырь, но применяйте её аккуратно с объективными критериями.',en:'A strong BATNA is your trump card — wield it carefully with objective criteria.'} },
+];
+
+const LEX = {
+  spinSituation:['как сейчас','как у вас','какой у вас','сколько','как часто','как устроен','расскажите о','что вы используете','какой процесс','how do you currently','how many','how often','what is your current','tell me about your','what process'],
+  spinProblem:['сложно','проблема','мешает','не устраивает','трудно','узкое место','с какими сложностями','что вас беспокоит','болит','difficult','problem','challenge','frustrat','bottleneck','pain','struggl','concerns you'],
+  spinImplication:['к чему это приводит','чем это грозит','сколько вы теряете','если так продолжится','как это влияет','во что обходится','какие последствия','what happens if','how does that affect','what does that cost','impact of','consequence','if this continues'],
+  spinNeedPayoff:['было бы полезно','что если бы','насколько важно','помогло бы вам','какая ценность','если бы мы решили','would it help','how valuable','what if you could','would that be useful'],
+  interestsProbe:['почему для вас','почему именно','почему это','что для вас важн','что важнее','зачем вам','какая цель','что стоит за','что вами движет','ради чего','ваш интерес','что для вас критично','что вас беспокоит','why is that important','why exactly','what matters to you','what matters most','the real reason','what you care about','important to you'],
+  acknowledge:['понимаю','я вас слышу','вы правы','справедливо','логично','разделяю','ценю','правильно ли я понял','если я верно понял','то есть вы','я вижу, что','i understand','i hear you','that makes sense','fair point','i appreciate','if i understand','i can see that'],
+  objectiveCriteria:['рыночная цена','по рынку','стандарт','бенчмарк','независимая оценка','данные показывают','исследование','отраслев','практика рынка','объективн','прецедент','индекс','market rate','market price','benchmark','industry standard','the data','research shows','independent','objective','precedent','comparable'],
+  batna:['другой поставщик','другое предложение','альтернатив','конкурент','у нас есть варианты','можем уйти','рассматриваем других','запасной вариант','без сделки','второй оффер','второй фонд','other supplier','another offer','alternative','competitor','we have options','walk away','elsewhere','other vendors','fallback','best alternative'],
+  threat:['ультиматум','иначе','в последний раз','мое последнее слово','либо','или мы уходим','вы обязаны','у вас нет выбора','немедленно','требую','иначе разрываем','take it or leave it','final offer','or else','you have no choice','i demand','non-negotiable'],
+  hostile:['вы не понимаете','это глупо','смешно','вы обманываете','некомпетентн','вы врете','абсурд','вы издеваетесь','позор','ridiculous','incompetent','you are lying','this is a joke','absurd','stupid'],
+  concession:['готовы уступить','можем снизить','пойдем навстречу','сделаем скидку','уступим','согласны на','можем добавить','идем на','we can lower','we can offer','we can come down','i can give you','discount'],
+  tradeoff:['если вы, то мы','взамен','в обмен','при условии','пакет','если добавите','давайте свяжем','тогда мы','в ответ на','если мы дадим','если мы','если пойдём навстречу','сможете подвинуться','сможете ли вы','if you, then we','in exchange','in return','provided that','if we give','if we offer','can you move on','would you move','then we would','in exchange for'],
+  anchor:['наша цена','мы предлагаем','исходная','стартуем с','позиция такова','we propose','our price is','starting point','our position is'],
+  rationale:['потому что','так как','поскольку','причина в том','это позволит','за счет','because','since','the reason','this allows','so that','which means'],
+  rapport:['рад встрече','приятно познакомиться','как ваши дела','спасибо за встречу','nice to meet','good to see you','thanks for taking the time'],
+  accept:['по рукам','договорились','принимаю','мы согласны','заключаем','подписываем','меня устраивает','сделка','we have a deal','i accept','we agree','let us sign','i can live with','that works for us','deal at','deal on'],
+};
+const norm = s => (s||'').toLowerCase().replace(/ё/g,'е').replace(/[^\p{L}\p{N}\s%.,?!\-]/gu,' ').replace(/\s+/g,' ').trim();
+const has = (t,a) => a.some(w => t.includes(w));
+const cnt = (t,a) => a.reduce((n,w)=>n+(t.includes(w)?1:0),0);
+const MONEY = /(?:^|[^\d])(\d{1,3}(?:[ .,]\d{3})*(?:[.,]\d+)?)/;
+function extractNum(t){ const m=t.match(MONEY); if(!m) return null; const v=parseFloat(m[1].replace(/ /g,'').replace(',','.')); return isFinite(v)?v:null; }
+
+function analyze(raw){
+  const t = norm(raw); const moves = new Set(); const tags = [];
+  const addT=(k,l)=>tags.push({k,l}); const q=t.includes('?');
+  let spin=null;
+  if(has(t,LEX.spinNeedPayoff)){spin='need-payoff';moves.add('spin_needpayoff');addT('spin','SPIN · Need-payoff');}
+  else if(has(t,LEX.spinImplication)){spin='implication';moves.add('spin_implication');addT('spin','SPIN · Implication');}
+  else if(has(t,LEX.spinProblem)){spin='problem';moves.add('spin_problem');addT('spin','SPIN · Problem');}
+  else if(has(t,LEX.spinSituation)){spin='situation';moves.add('spin_situation');addT('spin','SPIN · Situation');}
+  if(has(t,LEX.interestsProbe)){moves.add('interests_probe');addT('interests','Интерес / Interest');}
+  if(has(t,LEX.acknowledge)){moves.add('acknowledge');addT('empathy','Активное слушание');}
+  if(has(t,LEX.objectiveCriteria)){moves.add('objective_criteria');addT('criteria','Объективный критерий');}
+  if(has(t,LEX.batna)){moves.add('batna');addT('batna','BATNA / рычаг');}
+  if(has(t,LEX.tradeoff)){moves.add('tradeoff');addT('tradeoff','Размен');}
+  if(has(t,LEX.threat)){moves.add('threat');addT('threat','Давление');}
+  if(has(t,LEX.hostile)){moves.add('hostile');addT('hostile','Грубость');}
+  if(has(t,LEX.concession)){moves.add('concession');addT('concession','Уступка');}
+  if(has(t,LEX.anchor)){moves.add('anchor');addT('anchor','Якорь');}
+  if(has(t,LEX.accept)){moves.add('accept');addT('accept','Закрытие');}
+  if(has(t,LEX.rapport)){moves.add('rapport');addT('rapport','Контакт');}
+  const number = extractNum(t);
+  if(number!==null && !moves.has('accept') && !q){moves.add('offer');addT('offer','Оффер / число');}
+  if(q && !spin && !moves.has('interests_probe')){moves.add('open_question');addT('spin','Открытый вопрос');}
+  if(moves.size===0) moves.add('statement');
+  const words = t.split(' ').filter(Boolean).length;
+  let arg=20; arg+=Math.min(20,cnt(t,LEX.rationale)*12);
+  if(moves.has('objective_criteria'))arg+=18; if(spin)arg+=14; if(moves.has('interests_probe'))arg+=12;
+  if(moves.has('acknowledge'))arg+=10; if(moves.has('tradeoff'))arg+=10; if(number!==null)arg+=6;
+  if(words>=12&&words<=60)arg+=8; if(words<4)arg-=15; if(moves.has('hostile'))arg-=30;
+  if(moves.has('threat')&&!moves.has('objective_criteria')&&!moves.has('batna'))arg-=12;
+  arg=Math.max(0,Math.min(100,Math.round(arg)));
+  const pr=['accept','hostile','threat','tradeoff','objective_criteria','batna','interests_probe','spin_needpayoff','spin_implication','spin_problem','spin_situation','acknowledge','concession','offer','anchor','open_question','rapport','statement'];
+  const primary=pr.find(p=>moves.has(p))||'statement';
+  return { moves:[...moves], primary, number, arg, spin, tags };
+}
+
+const clamp=(v,lo=0,hi=100)=>Math.max(lo,Math.min(hi,v));
+function newSess(sc,lang){ return { sc, lang, lowerBetter: sc.dir==='low', turn:0, maxTurns:12,
+  st:{trust:40,tension:25,info:0,leverage:sc.dir==='high'?12:11,offerOpp:sc.open,offerPlayer:null,interests:[],tradeoffs:[],deal:null,status:'active'},
+  met:{moveCounts:{},argSum:0,argN:0,threats:0,hostiles:0,empathy:0,crit:0,spin:new Set(),probes:0} }; }
+function flex(s){ const x=s.st; const raw=0.45*(x.trust/100)+0.3*(x.info/100)+0.25*(clamp(x.leverage)/100)-0.5*(x.tension/100); return clamp(raw,0,1); }
+function concede(s,f){ const x=s.st; x.offerOpp=Math.round((x.offerOpp+(s.sc.floor-x.offerOpp)*f)*100)/100; }
+function acceptable(s,n){ return s.lowerBetter ? n>=s.sc.floor-0.001 : n<=s.sc.floor+0.001; }
+
+function applyMove(s,a){
+  const x=s.st, m=s.met, sc=s.sc, style=sc.cp.style;
+  const b={trust:x.trust,tension:x.tension,info:x.info,leverage:x.leverage,offerOpp:x.offerOpp};
+  m.moveCounts[a.primary]=(m.moveCounts[a.primary]||0)+1; m.argSum+=a.arg; m.argN++; if(a.spin)m.spin.add(a.spin);
+  const H=k=>a.moves.includes(k); let reaction='neutral'; let cf=0;
+  if(H('acknowledge')){x.trust=clamp(x.trust+8);x.tension=clamp(x.tension-10);m.empathy++;reaction='warmed';}
+  if(a.spin||H('interests_probe')){
+    const gb=(a.spin==='implication'||a.spin==='need-payoff')?22:14; const g=gb+(H('interests_probe')?10:0);
+    if(x.interests.length<sc.interests[s.lang].length && x.trust>30) x.interests.push(x.interests.length);
+    x.info=clamp(x.info+g); x.trust=clamp(x.trust+4); x.tension=clamp(x.tension-3);
+    if(H('interests_probe'))m.probes++; if(reaction!=='warmed')reaction='opened_up';
+  }
+  if(H('objective_criteria')){x.leverage=clamp(x.leverage+16);x.trust=clamp(x.trust+3);m.crit++;if(style==='analytical')x.leverage=clamp(x.leverage+6);reaction='persuaded';}
+  if(H('batna')){const bk=H('objective_criteria')||a.arg>55;x.leverage=clamp(x.leverage+(bk?18:10));x.tension=clamp(x.tension+(bk?4:14));if(style==='relationship')x.tension=clamp(x.tension+6);reaction='pressured';}
+  if(H('tradeoff')){x.trust=clamp(x.trust+6);x.tension=clamp(x.tension-4);cf+=0.12+0.18*(x.info/100);if(x.tradeoffs.length<sc.tradeoffs[s.lang].length)x.tradeoffs.push(x.tradeoffs.length);reaction='collaborated';}
+  if(H('threat')){m.threats++;x.tension=clamp(x.tension+22);x.trust=clamp(x.trust-14);x.leverage=clamp(x.leverage+6);if(style==='tough')x.tension=clamp(x.tension+8);reaction='hardened';}
+  if(H('hostile')){m.hostiles++;x.tension=clamp(x.tension+26);x.trust=clamp(x.trust-22);reaction='offended';}
+  if(H('rapport')){x.trust=clamp(x.trust+5);x.tension=clamp(x.tension-4);}
+  if(a.number!==null&&(H('offer')||H('anchor')||H('concession')||H('accept')||H('tradeoff')))x.offerPlayer=a.number;
+  const fl=flex(s); cf+=0.10+0.34*fl;
+  if(H('objective_criteria'))cf+=0.12; if(a.spin||H('interests_probe'))cf+=0.05; if(H('acknowledge'))cf+=0.03;
+  if(H('threat')&&x.leverage>45&&x.tension<80)cf+=0.06;
+  if(x.offerPlayer!==null){const gap=s.lowerBetter?x.offerOpp-x.offerPlayer:x.offerPlayer-x.offerOpp;if(gap>0)cf+=Math.min(0.08,gap*0.01);}
+  if(x.tension>75)cf*=0.25; else if(x.tension>55)cf*=0.6; cf=clamp(cf,0,0.7);
+  if(cf>0.01)concede(s,cf);
+  let closed=false;
+  if(H('accept')){
+    let meeting;
+    if(x.offerPlayer!==null){const w=0.3+0.45*fl;meeting=x.offerOpp+(x.offerPlayer-x.offerOpp)*w;
+      meeting=s.lowerBetter?Math.max(meeting,sc.floor):Math.min(meeting,sc.floor);meeting=Math.round(meeting*100)/100;}
+    else meeting=x.offerOpp;
+    if(acceptable(s,meeting)){x.deal=meeting;x.status='agreement';closed=true;} else reaction='not_yet';
+  }
+  if(x.tension>=100||x.trust<=3){x.status='breakdown';closed=true;reaction='walked_out';}
+  const d={trust:x.trust-b.trust,tension:x.tension-b.tension,info:x.info-b.info,leverage:x.leverage-b.leverage};
+  return {reaction,deltas:d,closed};
+}
+
+const LINES={ru:{
+  warmed:['Приятно, что вы это понимаете. Тогда по делу.','Спасибо, редко кто слышит нашу сторону.'],
+  opened_up:['Хороший вопрос… Честно, для нас критично {i}.','Раз спросили — нас правда беспокоит {i}.'],
+  persuaded:['С такими данными спорить сложно. Сейчас {o}{u}.','Цифры говорят сами за себя. Пусть {o}{u}.'],
+  pressured:['Слышал про ваши альтернативы. Но без ультиматумов — {o}{u}.','Понимаю, у вас есть варианты. Обсудим, {o}{u}.'],
+  collaborated:['Вот это интересно. Тогда {o}{u} — реально.','Такой размен подходит. Значит {o}{u}.'],
+  hardened:['Давление не поможет. Позиция прежняя — {o}{u}.','В таком тоне двигаться сложно. Остаюсь на {o}{u}.'],
+  offended:['Я бы попросил без перехода на личности.','Так мы ни о чём не договоримся.'],
+  neutral:['Хорошо, понял. Пока моё предложение — {o}{u}.','Принято. На данный момент — {o}{u}.'],
+  not_yet:['Пока рано жать руки — {o}{u} моё текущее.','Ещё не сходимся. Сейчас {o}{u}.'],
+  walked_out:['Наверное, стоит взять паузу. На этом остановимся.','Продолжать в таком ключе бессмысленно. Всего доброго.'],
+  agreement:['По рукам! Договорились на {d}{u}. Рад иметь с вами дело.','Отлично, фиксируем {d}{u}. Было приятно.'] },
+en:{
+  warmed:["I appreciate that you get it. To business.","Thanks — few people hear our side."],
+  opened_up:["Good question… honestly, {i} is critical for us.","Since you ask — we really care about {i}."],
+  persuaded:["Hard to argue with that data. {o}{u} now.","The numbers speak for themselves. {o}{u}."],
+  pressured:["I hear you have alternatives. But no ultimatums — {o}{u}.","I know you have options. Let's talk, {o}{u}."],
+  collaborated:["Now that's interesting. Then {o}{u} is doable.","That trade works. So {o}{u}."],
+  hardened:["Pressure won't help. My position stands — {o}{u}.","I can't move in that tone. Staying at {o}{u}."],
+  offended:["I'd ask you to keep it professional.","This isn't going anywhere like that."],
+  neutral:["Understood. For now my offer is {o}{u}.","Noted. At this point — {o}{u}."],
+  not_yet:["Too early to shake hands — {o}{u}.","We're not there yet. Right now {o}{u}."],
+  walked_out:["Maybe we should take a break. Let's stop here.","No point continuing like this. Good day."],
+  agreement:["Deal! {d}{u} it is. A pleasure.","Great, we lock {d}{u}. Good negotiating."] }};
+function line(s,reaction,closed){
+  const x=s.st,u=s.sc.unit[s.lang],bank=LINES[s.lang]; let key=reaction;
+  if(closed&&x.status==='agreement')key='agreement'; if(closed&&x.status==='breakdown')key='walked_out';
+  const arr=bank[key]||bank.neutral; const l=arr[(s.turn+x.interests.length)%arr.length];
+  const ilist=s.sc.interests[s.lang]; const li=x.interests.length?ilist[x.interests[x.interests.length-1]]:ilist[0];
+  return l.replace('{o}',x.offerOpp).replace('{d}',x.deal!=null?x.deal:x.offerOpp).replace('{u}',u).replace('{i}',(li||'').toLowerCase());
+}
+function score(s){
+  const sc=s.sc,x=s.st,m=s.met,lang=s.lang,u=sc.unit[lang]; let eco=0,dealT;
+  if(x.status==='agreement'&&x.deal!=null){const r=sc.resv,t=sc.target;eco=clamp(Math.round(((x.deal-r)/(t-r))*100));dealT=x.deal+u;}
+  else if(x.status==='breakdown'){eco=0;dealT=lang==='ru'?'Сделка сорвалась':'Deal broke down';}
+  else {eco=10;dealT=lang==='ru'?'Без соглашения':'No agreement';}
+  const rel=clamp(Math.round(x.trust-x.tension*0.6+30));
+  const spinC=m.spin.size,avgArg=m.argN?m.argSum/m.argN:0; let tech=0;
+  tech+=Math.min(24,spinC*8); tech+=m.crit>0?16:0; tech+=m.probes>0?14:0;
+  tech+=x.interests.length>=sc.interests[lang].length?12:x.interests.length*4;
+  tech+=x.tradeoffs.length>0?12:0; tech+=m.empathy>0?8:0; tech+=Math.round(avgArg/100*14);
+  tech-=m.hostiles*12; tech-=Math.max(0,m.threats-1)*6; tech=clamp(Math.round(tech));
+  const overall=clamp(Math.round(0.4*eco+0.25*rel+0.35*tech));
+  const grade=overall>=85?'A':overall>=70?'B':overall>=55?'C':overall>=40?'D':'F';
+  const tips=[]; const T=(ru,en)=>tips.push(lang==='ru'?ru:en);
+  if(spinC<2)T('Задавайте больше вопросов по SPIN (Проблема → Последствия), чтобы вскрыть боль второй стороны.','Ask more SPIN questions (Problem → Implication) to surface their pain.');
+  if(m.crit===0)T('Опирайтесь на объективные критерии — это легитимный рычаг по Гарвардскому методу.','Anchor on objective criteria — legitimate leverage per the Harvard method.');
+  if(x.interests.length<sc.interests[lang].length)T('Вы вскрыли не все скрытые интересы. За позициями всегда стоят интересы.','You didn\'t surface every hidden interest. Behind positions lie interests.');
+  if(x.tradeoffs.length===0)T('Создавайте ценность разменом по нескольким вопросам, а не только торгом по цене.','Create value by trading across issues, not just price haggling.');
+  if(m.empathy===0)T('Используйте активное слушание — отражайте слова оппонента, снижая напряжение.','Use active listening — paraphrase them to lower tension.');
+  if(m.threats>1||m.hostiles>0)T('Меньше давления: напряжение замораживает уступки.','Less pressure: tension freezes concessions.');
+  if(tips.length===0)T('Отличная работа — чистое применение принципиальных переговоров.','Excellent — clean principled negotiation.');
+  return {overall,grade,eco,rel,tech,dealT,status:x.status,iF:x.interests.length,iT:sc.interests[lang].length,spin:spinC,crit:m.crit,empathy:m.empathy,threats:m.threats,tradeoffs:x.tradeoffs.length,avgArg:Math.round(avgArg),tips};
+}
+
+/* ================= UI ================= */
+const UI={ru:{tagline:'переговорный додзё',eyebrow:'Гарвардский метод · SPIN · BATNA',
+  h1:'Учитесь <em>договариваться</em> — за столом, а не по учебнику.',
+  lead:'Живой диалог с ИИ-оппонентом, у которого есть скрытые интересы, красная линия и характер. Исход зависит от вашей стратегии, формулировок и аргументов — каждая реплика разбирается в реальном времени.',
+  principles:['<b>Позиции ≠ интересы</b> — вскрывайте вопросами','<b>Объективные критерии</b> вместо давления','<b>BATNA</b> как рычаг','<b>Размен</b> создаёт ценность'],
+  pickhead:'Выберите оппонента за столом',lOpp:'их цена',lTgt:'ваша цель',turnL:'ход',hintL:'подсказка',quitL:'выйти',
+  meters:{trust:'Доверие',tension:'Напряжение',info:'Информация',leverage:'Рычаг'},
+  ph:'Ваша реплика своими словами…',debT:'Разбор переговоров',coachT:'Рекомендации коуча',retryL:'Пройти снова',home:'К сценариям',footR:'исход зависит от вашей стратегии',
+  outcome:{agreement:'Соглашение достигнуто',breakdown:'Переговоры сорваны',active:'Без соглашения'},
+  sb:{eco:'Экономика сделки',rel:'Отношения',tech:'Техника переговоров'},
+  stat:{spin:'этапов SPIN',crit:'критериев',empathy:'слушания',interests:'интересов',tradeoffs:'разменов',threats:'угроз',arg:'аргументация'},
+  quick:[{l:'❓ Вопрос SPIN',t:'Расскажите, как сейчас устроен процесс и с какими сложностями вы сталкиваетесь?'},{l:'🎯 Интерес',t:'А что для вас важнее всего в этой сделке и почему именно это?'},{l:'📊 Критерий',t:'По рыночным данным справедливое значение иное, потому что это отраслевой стандарт.'},{l:'🤝 Эмпатия',t:'Я вас понимаю и ценю вашу позицию. Давайте найдём решение для обеих сторон.'},{l:'🔄 Размен',t:'Если мы пойдём навстречу по срокам и объёму, сможете подвинуться в ответ?'}],
+  hints:{info:'Вы почти не знаете, что движет оппонентом. Спросите: «Что для вас важнее всего и почему?»',tension:'Напряжение высокое — уступки заморожены. Признайте: «Понимаю, откуда вы идёте…»',crit:'Подкрепите позицию объективным критерием — сошлитесь на рыночные данные.',trade:'Вы знаете их интересы — предложите размен.',close:'Хорошая траектория. Назовите число и предложите зафиксировать сделку.'} },
+en:{tagline:'negotiation dojo',eyebrow:'Harvard method · SPIN · BATNA',
+  h1:'Learn to <em>negotiate</em> — at the table, not from a textbook.',
+  lead:'A live dialogue with an AI counterpart who has hidden interests, a red line and a personality. The outcome depends on your strategy, wording and arguments — every line is analyzed in real time.',
+  principles:['<b>Positions ≠ interests</b> — surface them with questions','<b>Objective criteria</b> over pressure','<b>BATNA</b> as leverage','<b>Trade-offs</b> create value'],
+  pickhead:'Choose your counterpart',lOpp:'their offer',lTgt:'your target',turnL:'turn',hintL:'hint',quitL:'leave',
+  meters:{trust:'Trust',tension:'Tension',info:'Information',leverage:'Leverage'},
+  ph:'Your line, in your own words…',debT:'Negotiation debrief',coachT:'Coach recommendations',retryL:'Try again',home:'To scenarios',footR:'the outcome depends on your strategy',
+  outcome:{agreement:'Agreement reached',breakdown:'Talks broke down',active:'No agreement'},
+  sb:{eco:'Deal economics',rel:'Relationship',tech:'Negotiation technique'},
+  stat:{spin:'SPIN stages',crit:'criteria',empathy:'listening',interests:'interests',tradeoffs:'trade-offs',threats:'threats',arg:'argumentation'},
+  quick:[{l:'❓ SPIN question',t:'Tell me how this process works for you today and what difficulties you run into?'},{l:'🎯 Interest',t:'What matters most to you in this deal, and why exactly that?'},{l:'📊 Criterion',t:'Market data puts the fair value elsewhere, because that is the industry standard.'},{l:'🤝 Empathy',t:'I understand you and appreciate your position. Let us find a solution for both sides.'},{l:'🔄 Trade-off',t:'If we move on timing and volume, could you move in return?'}],
+  hints:{info:'You barely know what drives them. Ask: "What matters most to you, and why?"',tension:'Tension is high — concessions are frozen. Acknowledge: "I understand where you\'re coming from…"',crit:'Back your position with an objective criterion — cite market data.',trade:'You know their interests — propose a trade.',close:'Good trajectory. Name a number and propose to lock the deal.'} }};
+
+let lang='ru', theme=null, sess=null, curScen=null, busy=false;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const t=()=>UI[lang];
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on'); window.scrollTo({top:0,behavior:'smooth'}); }
+
+function renderHome(){
+  const T=t();
+  $('tagline').textContent=T.tagline; $('eyebrow').textContent=T.eyebrow;
+  $('h1').innerHTML=T.h1; $('lead').textContent=T.lead;
+  $('principles').innerHTML=T.principles.map(p=>`<span>${p}</span>`).join('');
+  $('pickhead').textContent=T.pickhead; $('footR').textContent=T.footR;
+  $('cards').innerHTML='';
+  SCEN.forEach(sc=>{
+    const d=Array.from({length:5},(_,i)=>`<i class="${i<sc.diff?'on':''}"></i>`).join('');
+    const c=document.createElement('button'); c.className='card';
+    c.innerHTML=`<div class="ic">${sc.icon}</div><div class="ct">${esc(sc.title[lang])}</div><div class="cr">${esc(sc.role[lang])}</div><div class="cf"><div class="diff">${d}</div><div class="go">${lang==='ru'?'Начать →':'Start →'}</div></div>`;
+    c.onclick=()=>start(sc); $('cards').appendChild(c);
+  });
+}
+function start(sc){
+  curScen=sc; sess=newSess(sc,lang); busy=false; const T=t();
+  $('oppN').textContent=sc.cp.nm[lang]; $('oppP').textContent=sc.cp.ps[lang]; $('face').textContent=sc.face;
+  $('oTgt').textContent=sc.target+sc.unit[lang]; $('brief').textContent=sc.brief[lang]; $('batna').textContent=sc.batna[lang];
+  $('lOpp').textContent=T.lOpp; $('lTgt').textContent=T.lTgt; $('turnL').textContent=T.turnL; $('hintL').textContent=T.hintL; $('quitL').textContent=T.quitL;
+  $('inp').placeholder=T.ph; $('tmx').textContent=sess.maxTurns;
+  $('meters').innerHTML=['trust','tension','info','leverage'].map(k=>`<div class="m"><div class="mh"><span>${T.meters[k]}</span><b id="mn_${k}">0</b></div><div class="track"><div class="fill ${k==='leverage'?'lev':k}" id="mf_${k}"></div></div></div>`).join('');
+  $('quick').innerHTML=''; T.quick.forEach(q=>{const b=document.createElement('button');b.textContent=q.l;b.onclick=()=>{$('inp').value=q.t;$('inp').focus();live();};$('quick').appendChild(b);});
+  $('log').innerHTML=''; $('live').innerHTML=''; $('inp').value='';
+  sync();
+  const g=lang==='ru'?`Здравствуйте. Я ${sc.cp.nm.ru}. Наше стартовое предложение — ${sess.st.offerOpp}${sc.unit.ru}. С чего начнём?`:`Hello. I'm ${sc.cp.nm.en}. Our opening position is ${sess.st.offerOpp}${sc.unit.en}. Where shall we start?`;
+  oppMsg(g); show('s-game'); $('inp').focus();
+}
+function sync(){
+  const x=sess.st;
+  const set=(k,v)=>{$('mf_'+k).style.width=clamp(v)+'%';$('mn_'+k).textContent=Math.round(v);};
+  set('trust',x.trust);set('tension',x.tension);set('info',x.info);set('leverage',flex(sess)*100);
+  $('oOpp').textContent=x.offerOpp+curScen.unit[lang]; $('tn').textContent=sess.turn;
+}
+function oppMsg(txt){const m=document.createElement('div');m.className='msg opp';m.innerHTML=`<div class="bub">${esc(txt)}</div>`;$('log').appendChild(m);scroll_();}
+function meMsg(txt,a,d){
+  const m=document.createElement('div');m.className='msg me';
+  const tags=(a.tags||[]).map(g=>`<span class="tag ${g.k}">${esc(g.l)}</span>`).join('');
+  const L=lang==='ru'?{trust:'Дов',tension:'Напр',info:'Инфо',leverage:'Рыч'}:{trust:'Trust',tension:'Tens',info:'Info',leverage:'Lev'};
+  const parts=[];const push=(lb,v,inv)=>{if(Math.abs(v)<0.5)return;const up=inv?v<0:v>0;parts.push(`<span class="${up?'up':'dn'}">${lb} ${v>0?'+':''}${Math.round(v)}</span>`);};
+  push(L.trust,d.trust);push(L.tension,d.tension,true);push(L.info,d.info);push(L.leverage,d.leverage);
+  m.innerHTML=`<div class="bub">${esc(txt)}</div><div class="tags">${tags}<span class="arg"><b>${a.arg}</b>/100 ${lang==='ru'?'аргум.':'arg.'}</span></div>${parts.length?`<div class="deltas">${parts.join('')}</div>`:''}`;
+  $('log').appendChild(m);scroll_();
+}
+function scroll_(){const l=$('log');l.scrollTop=l.scrollHeight;}
+function live(){
+  const x=norm($('inp').value);const h=[];const add=(c,k,l)=>{if(c)h.push(`<span class="tag ${k}">${l}</span>`);};
+  add(x.includes('?'),'spin','❓');
+  add(has(x,LEX.rationale),'criteria','↳ arg');
+  add(has(x,LEX.objectiveCriteria),'criteria','📊');
+  add(has(x,LEX.batna),'batna','🛡');
+  add(has(x,LEX.acknowledge)||has(x,LEX.interestsProbe),'empathy','🤝');
+  add(has(x,LEX.tradeoff),'tradeoff','🔄');
+  $('live').innerHTML=h.slice(0,5).join('');
+}
+async function sendMsg(){
+  if(busy||!sess||sess.st.status!=='active')return;
+  const txt=$('inp').value.trim(); if(!txt)return;
+  busy=true;$('send').disabled=true;$('inp').value='';$('live').innerHTML='';
+  const a=analyze(txt); sess.turn++;
+  const r=applyMove(sess,a);
+  let timeout=false;
+  if(sess.st.status==='active'&&sess.turn>=sess.maxTurns){sess.st.status='breakdown';r.closed=true;timeout=true;}
+  meMsg(txt,a,r.deltas);
+  await wait(360); sync();
+  let reply=line(sess,r.reaction,r.closed);
+  if(timeout)reply=lang==='ru'?'У нас вышло время на сегодня. Договориться так и не удалось.':"We're out of time for today. We couldn't reach agreement.";
+  oppMsg(reply);
+  if(r.closed){ await wait(650); debrief(score(sess)); }
+  busy=false;$('send').disabled=false; if(sess.st.status==='active')$('inp').focus();
+}
+function hint(){
+  if(!sess||sess.st.status!=='active')return; const x=sess.st,H=t().hints; let h;
+  if(x.info<40)h=H.info; else if(x.tension>60)h=H.tension; else if(sess.met.crit===0)h=H.crit;
+  else if(x.tradeoffs.length===0&&x.info>40)h=H.trade; else h=H.close;
+  const m=document.createElement('div');m.className='hintbub';m.textContent='💡 '+h;$('log').appendChild(m);scroll_();
+}
+function debrief(d){
+  const T=t(); const gc={A:'var(--trust)',B:'var(--info)',C:'var(--brass)',D:'#d98a3c',F:'var(--tension)'};
+  const ring=$('ring'); ring.style.setProperty('--p',d.overall); ring.style.setProperty('--gc',gc[d.grade]||'var(--brass)');
+  $('gl').textContent=d.grade; $('gs').textContent=d.overall+'/100';
+  $('debT').textContent=T.debT; $('coachT').textContent=T.coachT; $('retryL').textContent=T.retryL; $('home').textContent=T.home;
+  $('oc').innerHTML=`${T.outcome[d.status]||''} · <b>${esc(d.dealT)}</b>`;
+  const bars=[['eco',d.eco,'var(--brass)'],['rel',d.rel,'var(--trust)'],['tech',d.tech,'var(--leverage)']];
+  $('sb').innerHTML=bars.map(([k,v,c])=>`<div class="sbi"><div class="sbh"><span>${T.sb[k]}</span><b>${v}</b></div><div class="sbt"><div class="sbf" style="background:${c}" id="sbf_${k}"></div></div></div>`).join('');
+  requestAnimationFrame(()=>bars.forEach(([k,v])=>{$('sbf_'+k).style.width=v+'%';}));
+  const S=T.stat;
+  const cells=[[`${d.spin}/3`,S.spin],[d.crit,S.crit],[d.empathy,S.empathy],[`${d.iF}/${d.iT}`,S.interests],[d.tradeoffs,S.tradeoffs],[d.threats,S.threats],[d.avgArg,S.arg]];
+  $('stats').innerHTML=cells.map(([n,l])=>`<div class="st"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  $('tips').innerHTML=d.tips.map(x=>`<li>${esc(x)}</li>`).join('');
+  show('s-deb');
+}
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* theme */
+function applyTheme(){
+  const root=document.documentElement;
+  if(theme)root.setAttribute('data-theme',theme); else root.removeAttribute('data-theme');
+  const dark = theme? theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  $('theme').querySelector('button').textContent = dark? '☀' : '◐';
+}
+$('theme').onclick=()=>{ const cur = theme || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); theme = cur==='dark'?'light':'dark'; applyTheme(); };
+$('lang').onclick=e=>{const b=e.target.closest('button[data-l]');if(!b)return;lang=b.dataset.l;$('lang').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderHome();if(curScen&&$('s-game').classList.contains('on'))start(curScen);};
+$('send').onclick=sendMsg;
+$('inp').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+$('inp').addEventListener('input',live);
+$('hint').onclick=hint;
+$('quit').onclick=()=>show('s-home');
+$('home').onclick=()=>show('s-home');
+$('retry').onclick=()=>curScen&&start(curScen);
+applyTheme(); renderHome();
+</script>
