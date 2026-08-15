@@ -51,7 +51,7 @@ test("greeting → opponent turns → debrief over the protocol", async () => {
   for (let i = 0; i < 13 && !debrief; i++) {
     const before = messages.length;
     server.send({ type: "turn", text: "Расскажите, что для вас важнее всего в этой сделке и почему?" });
-    const opp = await waitFor((m, ) => messages.indexOf(m) >= before && m.type === "opponent");
+    const opp = await waitFor((m) => messages.indexOf(m) >= before && m.type === "opponent");
     assert.equal(opp.type, "opponent");
     if (opp.type === "opponent") {
       assert.equal(typeof opp.analysis.arg_quality, "number");
@@ -59,9 +59,13 @@ test("greeting → opponent turns → debrief over the protocol", async () => {
       assert.ok(Array.isArray(opp.analysis.tags));
       assert.equal(typeof opp.deltas.trust, "number");
       assert.ok(opp.state.turn >= 1);
+      // Once the session closes, the server emits a debrief shortly after.
+      if (opp.state.status !== "active") {
+        debrief = await waitFor((m) => m.type === "debrief");
+        break;
+      }
     }
     debrief = messages.find((m) => m.type === "debrief") ?? null;
-    if (debrief) break;
   }
 
   assert.ok(debrief, "a debrief should eventually be produced");

@@ -1,6 +1,6 @@
 // Debrief.tsx — post-negotiation report: grade ring (A–F), three score bars
 // (economic / relationship / technique), stat cells, coaching tips, retry/home.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Debrief as DebriefData } from "../types";
 import type { Strings } from "../i18n";
 
@@ -58,7 +58,7 @@ export function Debrief({ t, d, onRetry, onHome }: Props) {
                 {
                   ["--p" as string]: grown ? d.overall : 0,
                   ["--gc" as string]: gc,
-                } as React.CSSProperties
+                } as CSSProperties
               }
             >
               <span className="gl" style={{ color: gc }}>

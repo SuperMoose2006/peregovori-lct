@@ -12,8 +12,11 @@ internals), so this file stays stable as the engine evolves.
 from __future__ import annotations
 
 import inspect
+import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app import engine
 from app.session import store
@@ -143,3 +146,18 @@ async def ws(websocket: WebSocket) -> None:
             await websocket.send_json({"type": "error", "message": str(exc)})
         except Exception:
             pass
+
+
+# ---- Production: serve the built SPA (single-process deploy) -----------------
+# In dev the Vite server serves the frontend and proxies /ws here, so this mount
+# is a no-op until `frontend/dist` exists. API/WS routes above always win.
+_DIST = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
+if os.path.isdir(_DIST):
+    app.mount("/assets", StaticFiles(directory=os.path.join(_DIST, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    def spa(full_path: str):  # SPA fallback for client-side routes
+        candidate = os.path.join(_DIST, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(os.path.join(_DIST, "index.html"))

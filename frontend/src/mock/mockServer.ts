@@ -10,8 +10,6 @@ import {
   scoreSession, stateView, toAnalysis, type Session,
 } from "./engine";
 
-const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
 export class MockServer implements Transport {
   private onMessage: ServerMsgHandler;
   private session: Session | null = null;

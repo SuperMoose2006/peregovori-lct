@@ -129,7 +129,7 @@ export function createTransport(
     early.length = 0;
   };
 
-  const useWs = (ws: WsTransport) => {
+  const useWs = (ws: Transport) => {
     if (decided) return;
     decided = true;
     inner = ws;
