@@ -1,0 +1,286 @@
+"""techniques.py — faithful Python port of legacy-node/engine/techniques.js.
+
+Heuristic, bilingual (RU/EN) analyzer that classifies a free-text player
+utterance into negotiation "moves" and scores its argumentation quality.
+
+Deliberately transparent (rule-based): runs offline, deterministically, and is
+auditable for a training tool. Grounded in Harvard principled negotiation,
+SPIN questioning, and BATNA.
+"""
+
+from __future__ import annotations
+
+import math
+import re
+from dataclasses import dataclass, field
+from typing import Optional
+
+
+def _js_round(x: float) -> int:
+    """Replicate JS Math.round (round half toward +infinity)."""
+    return math.floor(x + 0.5)
+
+
+def norm(s: Optional[str]) -> str:
+    s = (s or "").lower().replace("ё", "е")
+    out = []
+    for ch in s:
+        if ch.isalnum() or ch.isspace() or ch in "%.,?!-":
+            out.append(ch)
+        else:
+            out.append(" ")
+    s = "".join(out)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _has(t: str, arr: list[str]) -> bool:
+    return any(w in t for w in arr)
+
+
+def _count_matches(t: str, arr: list[str]) -> int:
+    return sum(1 for w in arr if w in t)
+
+
+# ---- Lexicons (RU + EN) -----------------------------------------------------
+
+LEX: dict[str, list[str]] = {
+    "question": ["?"],
+    "spinSituation": [
+        "как сейчас", "как у вас", "какой у вас", "сколько", "как часто", "кто у вас",
+        "как устроен", "расскажите о", "что вы используете", "какой процесс",
+        "how do you currently", "how many", "how often", "what is your current",
+        "who handles", "tell me about your", "what process",
+    ],
+    "spinProblem": [
+        "сложно", "проблема", "мешает", "не устраивает", "трудно", "узкое место",
+        "с какими сложностями", "что не устраивает", "что вас беспокоит", "болит",
+        "difficult", "problem", "challenge", "frustrat", "bottleneck", "pain",
+        "what concerns you", "struggl",
+    ],
+    "spinImplication": [
+        "к чему это приводит", "чем это грозит", "сколько вы теряете", "если так продолжится",
+        "как это влияет", "во что обходится", "какие последствия",
+        "what happens if", "how does that affect", "what does that cost", "impact of",
+        "consequence", "if this continues",
+    ],
+    "spinNeedPayoff": [
+        "было бы полезно", "что если бы", "насколько важно", "помогло бы вам",
+        "какая ценность", "если бы мы решили", "это бы вам дало",
+        "would it help", "how valuable", "what if you could", "would that be useful",
+        "benefit of solving",
+    ],
+    "interestsProbe": [
+        "почему для вас", "почему именно", "почему это", "что для вас важн", "что важнее",
+        "зачем вам", "какая цель", "что стоит за", "что вами движет", "ради чего",
+        "ваш интерес", "что вы хотите получить", "что для вас критично", "что вас беспокоит",
+        "why is that important", "why exactly", "what matters to you", "what matters most",
+        "what are you trying to", "your underlying", "the real reason", "what you care about",
+        "what is important to you",
+    ],
+    "acknowledge": [
+        "понимаю", "я вас слышу", "вы правы", "справедливо", "логично", "разделяю",
+        "ценю", "спасибо, что", "правильно ли я понял", "если я верно понял",
+        "то есть вы", "звучит так", "я вижу, что",
+        "i understand", "i hear you", "that makes sense", "fair point", "i appreciate",
+        "if i understand", "so you are saying", "i can see that", "let me make sure",
+    ],
+    "objectiveCriteria": [
+        "рыночная цена", "по рынку", "стандарт", "бенчмарк", "независимая оценка",
+        "данные показывают", "исследование", "прайс", "отраслев", "практика рынка",
+        "объективн", "прецедент", "регламент", "индекс", "котировк", "официальн",
+        "market rate", "market price", "benchmark", "industry standard", "the data",
+        "research shows", "independent", "objective", "precedent", "comparable",
+    ],
+    "batna": [
+        "другой поставщик", "другое предложение", "альтернатив", "конкурент", "у нас есть варианты",
+        "можем уйти", "рассматриваем других", "запасной вариант", "без сделки", "найдем другого",
+        "other supplier", "another offer", "alternative", "competitor", "we have options",
+        "walk away", "elsewhere", "other vendors", "fallback", "best alternative",
+    ],
+    "threat": [
+        "ультиматум", "иначе", "в последний раз", "мое последнее слово", "либо", "или мы уходим",
+        "вы обязаны", "у вас нет выбора", "немедленно", "требую", "иначе разрываем",
+        "это неприемлемо и точка", "take it or leave it", "final offer", "or else",
+        "you have no choice", "i demand", "right now or", "non-negotiable",
+    ],
+    "hostile": [
+        "вы не понимаете", "это глупо", "смешно", "вы обманываете", "некомпетентн",
+        "вы врете", "абсурд", "вы издеваетесь", "позор",
+        "ridiculous", "you people", "incompetent", "you are lying", "this is a joke",
+        "absurd", "stupid",
+    ],
+    "concession": [
+        "готовы уступить", "можем снизить", "пойдем навстречу", "сделаем скидку", "уступим",
+        "согласны на", "ок, давайте", "можем добавить", "идем на",
+        "we can lower", "we can offer", "we can come down", "i can give you", "concede",
+        "meet you", "discount", "we can throw in",
+    ],
+    "tradeoff": [
+        "если вы, то мы", "взамен", "в обмен", "при условии", "пакет", "если добавите",
+        "давайте свяжем", "обменяем", "тогда мы", "в ответ на", "если мы дадим", "если мы",
+        "если пойдём навстречу", "сможете подвинуться", "сможете ли вы", "готовы ли вы взамен",
+        "if you, then we", "in exchange", "in return", "provided that", "package",
+        "we could trade", "link", "as long as you", "if we give", "if we offer you",
+        "can you move on", "would you move", "then we would", "in exchange for",
+    ],
+    "anchor": [
+        "наша цена", "мы предлагаем", "исходная", "стартуем с", "позиция такова",
+        "we propose", "our price is", "starting point", "our position is", "we are asking",
+    ],
+    "rationale": [
+        "потому что", "так как", "поскольку", "причина в том", "это позволит", "за счет",
+        "because", "since", "the reason", "this allows", "so that", "which means",
+    ],
+    "rapport": [
+        "рад встрече", "приятно познакомиться", "как ваши дела", "спасибо за встречу",
+        "nice to meet", "good to see you", "thanks for taking the time", "how are you",
+    ],
+    "accept": [
+        "по рукам", "договорились", "принимаю", "мы согласны", "заключаем", "подписываем",
+        "меня устраивает", "сделка", "we have a deal", "i accept", "we agree", "done deal",
+        "let us sign", "i can live with", "that works for us",
+    ],
+}
+
+# A monetary figure in the message ("we can do 85", "цена 92")
+MONEY_RE = re.compile(
+    r"(?:^|[^\d])(\d{1,3}(?:[ .,]\d{3})*(?:[.,]\d+)?)(?:\s*(?:%|руб|k|к|тыс|тысяч|млн|usd|\$|€|eur))?",
+    re.IGNORECASE,
+)
+
+
+def extract_number(text: str) -> Optional[float]:
+    m = MONEY_RE.search(text)
+    if not m:
+        return None
+    raw = m.group(1).replace(" ", "").replace(",", ".", 1)
+    try:
+        val = float(raw)
+    except ValueError:
+        return None
+    return val if math.isfinite(val) else None
+
+
+@dataclass
+class Analysis:
+    moves: list[str]
+    primary: str
+    number: Optional[float]
+    arg_quality: int
+    spin: Optional[str]
+    tags: list[dict[str, str]]
+    flags: dict[str, bool]
+    words: int
+
+
+def analyze(raw_text: Optional[str]) -> Analysis:
+    t = norm(raw_text)
+    moves: list[str] = []
+    tags: list[dict[str, str]] = []
+
+    def add_move(k: str) -> None:
+        if k not in moves:
+            moves.append(k)
+
+    def add_tag(key: str, label: str) -> None:
+        tags.append({"key": key, "label": label})
+
+    is_question = "?" in t
+
+    # SPIN detection (order = specificity)
+    spin: Optional[str] = None
+    if _has(t, LEX["spinNeedPayoff"]):
+        spin = "need-payoff"; add_move("spin_needpayoff"); add_tag("spin", "SPIN · Need-payoff")
+    elif _has(t, LEX["spinImplication"]):
+        spin = "implication"; add_move("spin_implication"); add_tag("spin", "SPIN · Implication")
+    elif _has(t, LEX["spinProblem"]):
+        spin = "problem"; add_move("spin_problem"); add_tag("spin", "SPIN · Problem")
+    elif _has(t, LEX["spinSituation"]):
+        spin = "situation"; add_move("spin_situation"); add_tag("spin", "SPIN · Situation")
+
+    if _has(t, LEX["interestsProbe"]):
+        add_move("interests_probe"); add_tag("interests", "Probing interests")
+    if _has(t, LEX["acknowledge"]):
+        add_move("acknowledge"); add_tag("empathy", "Active listening")
+    if _has(t, LEX["objectiveCriteria"]):
+        add_move("objective_criteria"); add_tag("criteria", "Objective criteria")
+    if _has(t, LEX["batna"]):
+        add_move("batna"); add_tag("batna", "BATNA / leverage")
+    if _has(t, LEX["tradeoff"]):
+        add_move("tradeoff"); add_tag("tradeoff", "Trade-off (value creation)")
+    if _has(t, LEX["threat"]):
+        add_move("threat"); add_tag("threat", "Pressure / ultimatum")
+    if _has(t, LEX["hostile"]):
+        add_move("hostile"); add_tag("hostile", "Hostile tone")
+    if _has(t, LEX["concession"]):
+        add_move("concession"); add_tag("concession", "Concession")
+    if _has(t, LEX["anchor"]):
+        add_move("anchor"); add_tag("anchor", "Anchoring")
+    if _has(t, LEX["accept"]):
+        add_move("accept"); add_tag("accept", "Closing / accept")
+    if _has(t, LEX["rapport"]):
+        add_move("rapport"); add_tag("rapport", "Rapport")
+
+    number = extract_number(t)
+    if number is not None and "accept" not in moves:
+        # A bare number is an offer/counter unless it's clearly a question stat.
+        if not is_question:
+            add_move("offer"); add_tag("offer", "Offer / number")
+
+    if is_question and spin is None and "interests_probe" not in moves:
+        add_move("open_question"); add_tag("question", "Open question")
+
+    # Fallback: plain statement
+    if not moves:
+        add_move("statement")
+
+    # --- Argumentation quality -------------------------------------------------
+    words = len([w for w in t.split(" ") if w])
+    arg = 20
+    arg += min(20, _count_matches(t, LEX["rationale"]) * 12)
+    if "objective_criteria" in moves:
+        arg += 18
+    if spin:
+        arg += 14
+    if "interests_probe" in moves:
+        arg += 12
+    if "acknowledge" in moves:
+        arg += 10
+    if "tradeoff" in moves:
+        arg += 10
+    if number is not None:
+        arg += 6
+    if 12 <= words <= 60:
+        arg += 8  # substantive but not rambling
+    if words < 4:
+        arg -= 15
+    if "hostile" in moves:
+        arg -= 30
+    if "threat" in moves and "objective_criteria" not in moves and "batna" not in moves:
+        arg -= 12
+    arg = max(0, min(100, _js_round(arg)))
+
+    # Primary move — priority ordering for opponent reaction.
+    priority = [
+        "accept", "hostile", "threat", "tradeoff", "objective_criteria", "batna",
+        "interests_probe", "spin_needpayoff", "spin_implication", "spin_problem",
+        "spin_situation", "acknowledge", "concession", "offer", "anchor",
+        "open_question", "rapport", "statement",
+    ]
+    primary = next((p for p in priority if p in moves), "statement")
+
+    return Analysis(
+        moves=list(moves),
+        primary=primary,
+        number=number,
+        arg_quality=arg,
+        spin=spin,
+        tags=tags,
+        flags={
+            "hostile": "hostile" in moves,
+            "threat": "threat" in moves,
+            "question": is_question,
+        },
+        words=words,
+    )

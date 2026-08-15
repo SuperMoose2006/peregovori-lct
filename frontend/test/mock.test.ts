@@ -1,0 +1,88 @@
+// mock.test.ts — exercises the MockServer over the full turn protocol, proving
+// the mock path (and thus the UI's end-to-end demo path) works headlessly.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { MockServer } from "../src/mock/mockServer";
+import type { ServerMsg } from "../src/types";
+
+// A tiny promise-based harness over the message stream.
+function harness() {
+  const messages: ServerMsg[] = [];
+  let waiter: { pred: (m: ServerMsg) => boolean; resolve: (m: ServerMsg) => void } | null = null;
+  const server = new MockServer((m) => {
+    messages.push(m);
+    if (waiter && waiter.pred(m)) {
+      const w = waiter;
+      waiter = null;
+      w.resolve(m);
+    }
+  });
+  const waitFor = (pred: (m: ServerMsg) => boolean, ms = 4000) =>
+    new Promise<ServerMsg>((resolve, reject) => {
+      const found = messages.find(pred);
+      if (found) return resolve(found);
+      const timer = setTimeout(() => reject(new Error("timeout waiting for message")), ms);
+      waiter = {
+        pred,
+        resolve: (m) => {
+          clearTimeout(timer);
+          resolve(m);
+        },
+      };
+    });
+  return { server, messages, waitFor };
+}
+
+test("greeting → opponent turns → debrief over the protocol", async () => {
+  const { server, messages, waitFor } = harness();
+
+  server.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice" });
+  const greeting = await waitFor((m) => m.type === "greeting");
+  assert.equal(greeting.type, "greeting");
+  if (greeting.type === "greeting") {
+    assert.equal(greeting.scenario.id, "supplier");
+    assert.equal(greeting.state.turn, 0);
+    assert.equal(greeting.state.status, "active");
+    assert.ok(greeting.text.length > 0);
+  }
+
+  // Drive turns until the negotiation closes (agreement or timeout breakdown).
+  let debrief: ServerMsg | null = null;
+  for (let i = 0; i < 13 && !debrief; i++) {
+    const before = messages.length;
+    server.send({ type: "turn", text: "Расскажите, что для вас важнее всего в этой сделке и почему?" });
+    const opp = await waitFor((m, ) => messages.indexOf(m) >= before && m.type === "opponent");
+    assert.equal(opp.type, "opponent");
+    if (opp.type === "opponent") {
+      assert.equal(typeof opp.analysis.arg_quality, "number");
+      assert.ok(opp.analysis.arg_quality >= 0 && opp.analysis.arg_quality <= 100);
+      assert.ok(Array.isArray(opp.analysis.tags));
+      assert.equal(typeof opp.deltas.trust, "number");
+      assert.ok(opp.state.turn >= 1);
+    }
+    debrief = messages.find((m) => m.type === "debrief") ?? null;
+    if (debrief) break;
+  }
+
+  assert.ok(debrief, "a debrief should eventually be produced");
+  if (debrief && debrief.type === "debrief") {
+    const d = debrief.debrief;
+    assert.match(d.grade, /^[ABCDF]$/);
+    assert.ok(d.overall >= 0 && d.overall <= 100);
+    assert.ok(d.tips.length > 0);
+    assert.equal(d.overall, Math.round(0.4 * d.economic + 0.25 * d.relationship + 0.35 * d.technique));
+  }
+
+  server.close();
+});
+
+test("hint request returns a hint message", async () => {
+  const { server, waitFor } = harness();
+  server.send({ type: "start", scenarioId: "salary", lang: "en", mode: "practice" });
+  await waitFor((m) => m.type === "greeting");
+  server.send({ type: "hint" });
+  const hint = await waitFor((m) => m.type === "hint");
+  assert.equal(hint.type, "hint");
+  if (hint.type === "hint") assert.ok(hint.text.length > 0);
+  server.close();
+});

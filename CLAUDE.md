@@ -134,11 +134,11 @@ legacy-node/                  # старый zero-dep прототип — ка�
 
 ```bash
 # backend
-cd backend && uvicorn app.main:app --reload         # :8000
+cd backend && uvicorn app.main:app --reload         # :8010
 NEGO_AI=cli uvicorn app.main:app --reload           # локально через claude CLI
 pytest                                               # тесты движка
 # frontend
-cd frontend && npm run dev                           # :5173, проксирует /ws на :8000
+cd frontend && npm run dev                           # :5173, проксирует /ws на :8010
 ```
 
 ## ✍️ Конвенции
