@@ -75,6 +75,7 @@
   | `off` | шаблонные реплики движка | офлайн-фолбэк, тесты |
   | `cli` (по умолч. локально) | обёртка над `claude` CLI (`claude -p`, `--effort low`) | разработка без API-ключа |
   | `sdk` | Claude Agent SDK (`claude-agent-sdk`, thinking off, `setting_sources=[]`) | «правильный» Claude-клиент по подписке; те же rate-limits |
+  | `tmux` | `claude -p` в персистентной tmux-сессии (file-based, без TUI-скрейпинга) | наблюдаемый Claude: `tmux attach -t nego-ai`; латентность как у `cli` |
   | `api` | `ChatAnthropic` | продакшен (`ANTHROPIC_API_KEY`) |
   | `openai` | `ChatOpenAI` (по умолч. `gpt-5-nano` — самый дешёвый) | дешёвый прод (`OPENAI_API_KEY`), модель через `NEGO_MODEL`/`NEGO_OPENAI_MODEL` |
   - Секреты — в `backend/.env` (gitignored, автозагрузка в `main.py`), не в командной строке.

@@ -21,8 +21,12 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
+import shutil
 import subprocess
 import tempfile
+import threading
+import time
 from typing import Optional
 
 # Output cap (chars) — mirrors legacy sanitize; keeps a reply to a couple lines.
@@ -338,6 +342,89 @@ class SdkBackend:
         return f"sdk — unavailable ({self._reason}); returns None"
 
 
+class TmuxBackend:
+    """Drives `claude -p` inside a persistent tmux session — same engine as
+    CliBackend, but every call runs in one long-lived, ATTACHABLE session you can
+    watch live: `tmux attach -t nego-ai`. Each call is file-based (prompt in,
+    reply out, done-marker) — no fragile TUI screen-scraping. Calls are serialized
+    (one shell). Graceful None on any problem → engine templated fallback.
+
+    Note: this does not beat CliBackend on latency (a warm session doesn't help —
+    the cost is per-call agent+thinking, not boot); its value is observability.
+    """
+
+    _lock = threading.Lock()
+    _counter = 0
+
+    def __init__(self) -> None:
+        self.session = os.environ.get("NEGO_TMUX_SESSION", "nego-ai")
+        self._reason: Optional[str] = None
+        if not shutil.which("tmux") or not shutil.which("claude"):
+            self._reason = "tmux or claude not found in PATH"
+
+    @property
+    def available(self) -> bool:
+        return self._reason is None
+
+    def _ensure_session(self) -> bool:
+        if subprocess.run(["tmux", "has-session", "-t", self.session],
+                          capture_output=True).returncode == 0:
+            return True
+        return subprocess.run(
+            ["tmux", "new-session", "-d", "-s", self.session, "-x", "220", "-y", "50"],
+            capture_output=True).returncode == 0
+
+    def generate(self, system: str, user: str, raw: bool = False) -> Optional[str]:
+        if not self.available:
+            return None
+        with self._lock:
+            if not self._ensure_session():
+                return None
+            TmuxBackend._counter += 1
+            n = TmuxBackend._counter
+            d = tempfile.mkdtemp(prefix="nego-tmux-")
+            sysf, usrf = os.path.join(d, "sys.txt"), os.path.join(d, "usr.txt")
+            outf, errf, donef, runf = (os.path.join(d, f) for f in ("out.txt", "err.txt", "done", "run.sh"))
+            try:
+                with open(sysf, "w", encoding="utf-8") as f: f.write(system)
+                with open(usrf, "w", encoding="utf-8") as f: f.write(user)
+                model = re.sub(r"[^a-zA-Z0-9._-]", "", _model())
+                effort = "" if raw else "--effort low"
+                # A script file avoids send-keys quoting and the system-prompt-file
+                # flag question: system is passed via "$(cat …)", user via stdin.
+                script = (
+                    f'cd {shlex.quote(_cli_cwd())}\n'
+                    f'claude -p --model {model} --setting-sources "" --output-format text '
+                    f'--system-prompt "$(cat {shlex.quote(sysf)})" {effort} '
+                    f'< {shlex.quote(usrf)} > {shlex.quote(outf)} 2> {shlex.quote(errf)}\n'
+                    f'touch {shlex.quote(donef)}\n'
+                )
+                with open(runf, "w", encoding="utf-8") as f: f.write(script)
+                subprocess.run(["tmux", "send-keys", "-t", self.session, "-l", f"sh {shlex.quote(runf)}"])
+                subprocess.run(["tmux", "send-keys", "-t", self.session, "Enter"])
+
+                timeout = max(_timeout(), 90.0) if raw else min(_timeout(), 18.0)
+                deadline = time.monotonic() + timeout + 5  # +boot slack
+                while time.monotonic() < deadline:
+                    if os.path.exists(donef):
+                        break
+                    time.sleep(0.15)
+                if not os.path.exists(donef):
+                    return None
+                with open(outf, encoding="utf-8") as f:
+                    out = f.read().strip()
+                return (out or None) if raw else sanitize(out)
+            except Exception:
+                return None
+            finally:
+                shutil.rmtree(d, ignore_errors=True)
+
+    def describe_mode(self) -> str:
+        if self.available:
+            return f'tmux — `claude -p` in tmux session "{self.session}" (attach: tmux attach -t {self.session})'
+        return f"tmux — unavailable ({self._reason}); returns None"
+
+
 def get_chat_backend():
     """Return the backend selected by env NEGO_AI (default 'off').
 
@@ -346,6 +433,8 @@ def get_chat_backend():
     mode = os.environ.get("NEGO_AI", "off").strip().lower()
     if mode == "cli":
         return CliBackend()
+    if mode == "tmux":
+        return TmuxBackend()
     if mode == "sdk":
         return SdkBackend()
     if mode == "api":
