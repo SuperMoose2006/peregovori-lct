@@ -404,98 +404,503 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
 # Dialogue generation (templated, in-character).
 # -----------------------------------------------------------------------------
 
-LINES: dict[str, dict[str, list[str]]] = {
+# Templated reaction banks. Each reaction maps to a dict with a shared "base"
+# bank (5-6 neutral-but-in-character lines, always present) plus OPTIONAL
+# per-persona-style variants keyed by counterpart.style ("relationship" /
+# "tough" / "analytical"). render_line pools the style variants (when the active
+# persona has them) in FRONT of the base so a warm sales head, a blunt hard
+# bargainer and a dry numbers person sound different for the SAME reaction, while
+# the base guarantees a fallback and extra variety. Placeholders are unchanged:
+# {offer}{unit}, {deal}{unit}, {interest}. Everything here is pure text — no
+# state — so render_line stays a pure, reproducible function (what-if replay).
+LINES: dict[str, dict[str, dict[str, list[str]]]] = {
     "ru": {
-        "warmed": [
-            "Приятно, что вы это понимаете. Тогда давайте по делу.",
-            "Спасибо, редко кто слышит нашу сторону. Продолжим.",
-        ],
-        "opened_up": [
-            "Хороший вопрос… Честно говоря, для нас критично {interest}.",
-            "Раз уж вы спросили — нас правда беспокоит {interest}.",
-        ],
-        "persuaded": [
-            "С такими данными спорить сложно. Могу подвинуться — сейчас {offer}{unit}.",
-            "Ладно, цифры говорят сами за себя. Пусть будет {offer}{unit}.",
-        ],
-        "pressured": [
-            "Слышал про ваши альтернативы. Но давайте без ультиматумов — {offer}{unit}.",
-            "Понимаю, что у вас есть варианты. Готов обсуждать, {offer}{unit}.",
-        ],
-        "collaborated": [
-            "Вот это уже интересно. Если так, то {offer}{unit} — реально.",
-            "Такой размен нам подходит. Тогда {offer}{unit}.",
-        ],
-        "hardened": [
-            "Давление здесь не поможет. Моя позиция прежняя — {offer}{unit}.",
-            "В таком тоне мне сложно двигаться. Остаюсь на {offer}{unit}.",
-        ],
-        "offended": [
-            "Я бы попросил без перехода на личности.",
-            "Так мы точно ни о чём не договоримся.",
-        ],
-        "neutral": [
-            "Хорошо, я вас понял. Пока моё предложение — {offer}{unit}.",
-            "Принято. На данный момент — {offer}{unit}.",
-        ],
-        "not_yet": [
-            "Пока рано пожимать руки — {offer}{unit} моё текущее предложение.",
-            "Ещё не сходимся. Сейчас у меня {offer}{unit}.",
-        ],
-        "walked_out": [
-            "Знаете, наверное, нам стоит взять паузу. На этом остановимся.",
-            "Боюсь, продолжать в таком ключе бессмысленно. Всего доброго.",
-        ],
-        "agreement": [
-            "По рукам! Договорились на {deal}{unit}. Рад иметь с вами дело.",
-            "Отлично, фиксируем {deal}{unit}. Было приятно вести переговоры.",
-        ],
+        "warmed": {
+            "base": [
+                "Приятно, что вы это понимаете. Тогда давайте по делу.",
+                "Спасибо, редко кто слышит нашу сторону. Продолжим.",
+                "Вот с этого и стоило начинать — так гораздо проще разговаривать.",
+                "Хорошо, что мы друг друга слышим. Идём дальше.",
+                "Уже теплее. С таким настроем и договориться реально.",
+                "Ценю, что вы вникаете в нашу ситуацию. Продолжайте.",
+            ],
+            "relationship": [
+                "Как приятно иметь дело с понимающим человеком. Давайте всё решим по-хорошему.",
+                "Вот за это я и люблю нормальные переговоры. Спасибо, что услышали.",
+            ],
+            "tough": [
+                "Ладно, уже без наездов. Так и быть, продолжим.",
+                "Хорошо, хоть по-деловому заговорили. Дальше.",
+            ],
+            "analytical": [
+                "Разумно. Раз мы сходимся по фактам — двигаемся дальше.",
+                "Логично. С таким подходом можно работать.",
+            ],
+        },
+        "opened_up": {
+            "base": [
+                "Хороший вопрос… Честно говоря, для нас критично {interest}.",
+                "Раз уж вы спросили — нас правда беспокоит {interest}.",
+                "Скажу как есть: больше всего нас волнует {interest}.",
+                "Если по-честному, то главный вопрос для нас — {interest}.",
+                "Тут вы попали в точку. Для нас важно именно {interest}.",
+                "Не буду скрывать: за этим стоит {interest}.",
+            ],
+            "relationship": [
+                "Раз уж по-доброму спрашиваете — по-человечески нам важно {interest}.",
+                "Вам скажу откровенно: для нас это про {interest}.",
+            ],
+            "tough": [
+                "Ладно. Коротко: нам нужно {interest}. Вот и весь секрет.",
+                "Скажу прямо, без обёртки: дело в {interest}.",
+            ],
+            "analytical": [
+                "Если разложить по сути — ключевой фактор для нас {interest}.",
+                "По факту всё упирается в {interest}.",
+            ],
+        },
+        "persuaded": {
+            "base": [
+                "С такими данными спорить сложно. Могу подвинуться — сейчас {offer}{unit}.",
+                "Ладно, цифры говорят сами за себя. Пусть будет {offer}{unit}.",
+                "Аргумент принят. Готов пересмотреть — {offer}{unit}.",
+                "Убедили. Тогда моё предложение {offer}{unit}.",
+                "Против фактов не пойду. Сдвигаюсь к {offer}{unit}.",
+                "Справедливо. Пойду вам навстречу — {offer}{unit}.",
+            ],
+            "relationship": [
+                "Вы меня по-хорошему убедили. Так и быть, {offer}{unit}.",
+                "Ради нормальных отношений подвинусь — {offer}{unit}.",
+            ],
+            "tough": [
+                "Ладно. Цифра бьёт — {offer}{unit}. Дальше.",
+                "Принято, крыть нечем. {offer}{unit}.",
+            ],
+            "analytical": [
+                "Расчёт корректный. Пересчитал — {offer}{unit}.",
+                "Данные сходятся. По ним получается {offer}{unit}.",
+            ],
+        },
+        "pressured": {
+            "base": [
+                "Слышал про ваши альтернативы. Но давайте без ультиматумов — {offer}{unit}.",
+                "Понимаю, что у вас есть варианты. Готов обсуждать, {offer}{unit}.",
+                "Рычаг у вас есть, не спорю. И всё же {offer}{unit}.",
+                "Давайте не мериться силами. По цене — {offer}{unit}.",
+                "Ваши козыри вижу. Но моя цифра пока {offer}{unit}.",
+                "Угрозы лишние, у нас и так есть о чём говорить. {offer}{unit}.",
+            ],
+            "relationship": [
+                "Зачем же так резко? Мы ведь по-хорошему можем. {offer}{unit}.",
+                "Не надо давить, я и так к вам расположена. {offer}{unit}.",
+            ],
+            "tough": [
+                "Давите? Давите. Меня этим не сдвинуть. {offer}{unit}.",
+                "Альтернативы — это ваше дело. Моё — {offer}{unit}.",
+            ],
+            "analytical": [
+                "Ваша BATNA — это тоже цифра, давайте её и обсудим. Пока {offer}{unit}.",
+                "Хорошо, сравним варианты по фактам. У меня {offer}{unit}.",
+            ],
+        },
+        "collaborated": {
+            "base": [
+                "Вот это уже интересно. Если так, то {offer}{unit} — реально.",
+                "Такой размен нам подходит. Тогда {offer}{unit}.",
+                "О, это меняет дело. Давайте под это {offer}{unit}.",
+                "Если вы про это всерьёз — я готов на {offer}{unit}.",
+                "Хороший пакет. При таком раскладе {offer}{unit}.",
+                "Вот теперь мы создаём ценность, а не делим её. {offer}{unit}.",
+            ],
+            "relationship": [
+                "Вот это по-партнёрски! На таких условиях с радостью — {offer}{unit}.",
+                "Люблю, когда ищут общий интерес. Тогда {offer}{unit}.",
+            ],
+            "tough": [
+                "Годится. Даёте это — беру {offer}{unit}. Почти по рукам.",
+                "Вот это конкретика. За такое — {offer}{unit}.",
+            ],
+            "analytical": [
+                "Сходится: ваша уступка компенсирует мою. Тогда {offer}{unit}.",
+                "По балансу выгод это работает. {offer}{unit}.",
+            ],
+        },
+        "hardened": {
+            "base": [
+                "Давление здесь не поможет. Моя позиция прежняя — {offer}{unit}.",
+                "В таком тоне мне сложно двигаться. Остаюсь на {offer}{unit}.",
+                "Так вопрос не решается. Цифра прежняя — {offer}{unit}.",
+                "Нет. На угрозы я не реагирую. {offer}{unit}.",
+                "Это только всё портит. Я на {offer}{unit} и остаюсь.",
+                "Чем сильнее давите, тем меньше желания двигаться. {offer}{unit}.",
+            ],
+            "relationship": [
+                "Мне неприятен такой напор. Так я уступать не готова — {offer}{unit}.",
+                "Жаль, что вы так. По-хорошему было бы проще. {offer}{unit}.",
+            ],
+            "tough": [
+                "Не пройдёт. {offer}{unit}, и точка.",
+                "Меня на испуг не возьмёшь. {offer}{unit}.",
+            ],
+            "analytical": [
+                "Эмоции — не аргумент. Пока цифры прежние: {offer}{unit}.",
+                "Без фактов это просто давление. {offer}{unit}.",
+            ],
+        },
+        "offended": {
+            "base": [
+                "Я бы попросил без перехода на личности.",
+                "Так мы точно ни о чём не договоримся.",
+                "Это уже лишнее. Давайте держаться в рамках.",
+                "Не надо так со мной разговаривать.",
+                "Подобный тон я терпеть не обязан.",
+                "Ещё одно такое слово — и разговор закончен.",
+            ],
+            "relationship": [
+                "Мне правда обидно это слышать. Я так не привыкла.",
+                "Зачем же так? Я ведь к вам со всей душой.",
+            ],
+            "tough": [
+                "Полегче. Ещё раз так — и разошлись.",
+                "Аккуратнее в выражениях со мной.",
+            ],
+            "analytical": [
+                "Эмоции оставим за скобками, это непродуктивно.",
+                "Переход на личности к сути отношения не имеет.",
+            ],
+        },
+        "neutral": {
+            "base": [
+                "Хорошо, я вас понял. Пока моё предложение — {offer}{unit}.",
+                "Принято. На данный момент — {offer}{unit}.",
+                "Ясно. Пока остаёмся на {offer}{unit}.",
+                "Понял вас. Моя цифра сейчас — {offer}{unit}.",
+                "Ок, услышал. Пока что {offer}{unit}.",
+                "Давайте зафиксируем: сейчас на столе {offer}{unit}.",
+            ],
+            "relationship": [
+                "Хорошо, пока пусть будет {offer}{unit}, а там посмотрим.",
+                "Понимаю вас. Пока остановимся на {offer}{unit}.",
+            ],
+            "tough": [
+                "Так. Пока {offer}{unit}. Что дальше?",
+                "Ясно. {offer}{unit}. Не тянем.",
+            ],
+            "analytical": [
+                "Фиксирую: текущая цифра {offer}{unit}.",
+                "По состоянию на сейчас — {offer}{unit}.",
+            ],
+        },
+        "not_yet": {
+            "base": [
+                "Пока рано пожимать руки — {offer}{unit} моё текущее предложение.",
+                "Ещё не сходимся. Сейчас у меня {offer}{unit}.",
+                "Рановато. До {offer}{unit} я дошёл, дальше пока нет.",
+                "Не спешите. Пока это {offer}{unit}.",
+                "Мы близко, но ещё не там. {offer}{unit}.",
+                "Руку жать пока не за что — {offer}{unit}.",
+            ],
+            "relationship": [
+                "Не будем спешить, хорошо? Пока {offer}{unit}.",
+                "Мне бы хотелось договориться, но пока рано — {offer}{unit}.",
+            ],
+            "tough": [
+                "Нет. Пока нет. {offer}{unit}.",
+                "Рано. {offer}{unit}, и не торопите.",
+            ],
+            "analytical": [
+                "По цифрам мы ещё не сошлись: {offer}{unit}.",
+                "Разрыв пока есть. {offer}{unit}.",
+            ],
+        },
+        "walked_out": {
+            "base": [
+                "Знаете, наверное, нам стоит взять паузу. На этом остановимся.",
+                "Боюсь, продолжать в таком ключе бессмысленно. Всего доброго.",
+                "Пожалуй, на сегодня достаточно. Я выхожу.",
+                "Так дела не делаются. Разговор окончен.",
+                "Мы зашли в тупик. Дальше нет смысла.",
+                "Всё, я не готов это продолжать. До свидания.",
+            ],
+            "relationship": [
+                "Мне жаль, но так я больше не могу. Давайте на этом закончим.",
+                "Обидно, что так вышло. Всего вам доброго.",
+            ],
+            "tough": [
+                "Всё, хватит. Я закончил.",
+                "Разговор окончен. Ищите другого.",
+            ],
+            "analytical": [
+                "Дальнейший разговор непродуктивен. Закрываем.",
+                "Смысла продолжать нет. Расходимся.",
+            ],
+        },
+        "agreement": {
+            "base": [
+                "По рукам! Договорились на {deal}{unit}. Рад иметь с вами дело.",
+                "Отлично, фиксируем {deal}{unit}. Было приятно вести переговоры.",
+                "Идёт! {deal}{unit} — и по рукам.",
+                "Договорились на {deal}{unit}. Хорошая работа с обеих сторон.",
+                "Пусть будет {deal}{unit}. Ударили по рукам.",
+                "Согласен, {deal}{unit}. Оформляем.",
+            ],
+            "relationship": [
+                "Вот и славно! {deal}{unit} — и работаем дальше. Рада сделке.",
+                "По рукам, {deal}{unit}! Приятно, когда всё по-человечески.",
+            ],
+            "tough": [
+                "Идёт. {deal}{unit}. По рукам, не будем тянуть.",
+                "Ок, {deal}{unit}. Договорились.",
+            ],
+            "analytical": [
+                "Цифра сходится: {deal}{unit}. Фиксируем в договоре.",
+                "{deal}{unit} — по расчётам всех устраивает. Договорились.",
+            ],
+        },
     },
     "en": {
-        "warmed": [
-            "I appreciate that you get it. Let's get to business.",
-            "Thanks — few people hear our side. Go on.",
-        ],
-        "opened_up": [
-            "Good question… Honestly, what matters to us is {interest}.",
-            "Since you ask — we really care about {interest}.",
-        ],
-        "persuaded": [
-            "Hard to argue with those numbers. I can move — {offer}{unit} now.",
-            "Fair, the data speaks for itself. Let's say {offer}{unit}.",
-        ],
-        "pressured": [
-            "I hear you have alternatives. But no ultimatums — {offer}{unit}.",
-            "I know you have options. Happy to talk, {offer}{unit}.",
-        ],
-        "collaborated": [
-            "Now that's interesting. On those terms, {offer}{unit} is doable.",
-            "That trade works for us. Then {offer}{unit}.",
-        ],
-        "hardened": [
-            "Pressure won't help here. My position stands — {offer}{unit}.",
-            "I can't move in that tone. Staying at {offer}{unit}.",
-        ],
-        "offended": [
-            "I'd ask you to keep this professional.",
-            "This isn't going anywhere like that.",
-        ],
-        "neutral": [
-            "Understood. For now my offer is {offer}{unit}.",
-            "Noted. At this point — {offer}{unit}.",
-        ],
-        "not_yet": [
-            "Too early to shake hands — {offer}{unit} is where I am.",
-            "We're not there yet. Right now I'm at {offer}{unit}.",
-        ],
-        "walked_out": [
-            "You know, maybe we should take a break. Let's stop here.",
-            "I'm afraid there's no point continuing like this. Good day.",
-        ],
-        "agreement": [
-            "Deal! {deal}{unit} it is. A pleasure doing business.",
-            "Great, we lock {deal}{unit}. Good negotiating with you.",
-        ],
+        "warmed": {
+            "base": [
+                "I appreciate that you get it. Let's get to business.",
+                "Thanks — few people hear our side. Go on.",
+                "That's the right way to start. Much easier to talk like this.",
+                "Good, we're hearing each other. Let's move on.",
+                "That's warmer already. With that attitude we can make a deal.",
+                "I appreciate you engaging with our situation. Please continue.",
+            ],
+            "relationship": [
+                "It's a pleasure dealing with someone who understands. Let's sort this out the good way.",
+                "This is why I like a civil negotiation. Thanks for listening.",
+            ],
+            "tough": [
+                "Alright, no more jabs. Fine, let's keep going.",
+                "Good, now you're talking business. Next.",
+            ],
+            "analytical": [
+                "Reasonable. Since we agree on the facts, let's move on.",
+                "Logical. I can work with that approach.",
+            ],
+        },
+        "opened_up": {
+            "base": [
+                "Good question… Honestly, what matters to us is {interest}.",
+                "Since you ask — we really care about {interest}.",
+                "I'll be straight: what worries us most is {interest}.",
+                "Honestly, the real issue for us is {interest}.",
+                "You've hit it. For us it's exactly {interest}.",
+                "I won't hide it: behind this is {interest}.",
+            ],
+            "relationship": [
+                "Since you ask so kindly — on a human level, {interest} matters to us.",
+                "I'll be open with you: for us this is about {interest}.",
+            ],
+            "tough": [
+                "Fine. Short version: we need {interest}. That's the whole story.",
+                "I'll say it plainly: it comes down to {interest}.",
+            ],
+            "analytical": [
+                "If we break it down — the key factor for us is {interest}.",
+                "In effect it all reduces to {interest}.",
+            ],
+        },
+        "persuaded": {
+            "base": [
+                "Hard to argue with those numbers. I can move — {offer}{unit} now.",
+                "Fair, the data speaks for itself. Let's say {offer}{unit}.",
+                "Point taken. I'm willing to revise — {offer}{unit}.",
+                "You've convinced me. Then my offer is {offer}{unit}.",
+                "I won't argue against facts. Moving to {offer}{unit}.",
+                "That's fair. I'll meet you — {offer}{unit}.",
+            ],
+            "relationship": [
+                "You've won me over the decent way. Alright, {offer}{unit}.",
+                "For the sake of a good relationship I'll move — {offer}{unit}.",
+            ],
+            "tough": [
+                "Fine. The number lands — {offer}{unit}. Next.",
+                "Taken, nothing to add. {offer}{unit}.",
+            ],
+            "analytical": [
+                "The math checks out. Recalculated — {offer}{unit}.",
+                "The data lines up. It comes to {offer}{unit}.",
+            ],
+        },
+        "pressured": {
+            "base": [
+                "I hear you have alternatives. But no ultimatums — {offer}{unit}.",
+                "I know you have options. Happy to talk, {offer}{unit}.",
+                "You've got leverage, I won't deny it. Still, {offer}{unit}.",
+                "Let's not measure muscle. On price — {offer}{unit}.",
+                "I see your cards. But my number is still {offer}{unit}.",
+                "Threats are unnecessary, we have plenty to discuss. {offer}{unit}.",
+            ],
+            "relationship": [
+                "Why so sharp? We can do this the friendly way. {offer}{unit}.",
+                "No need to push, I'm already on your side. {offer}{unit}.",
+            ],
+            "tough": [
+                "Push all you like. It won't move me. {offer}{unit}.",
+                "Your alternatives are your business. Mine is {offer}{unit}.",
+            ],
+            "analytical": [
+                "Your BATNA is a number too — let's discuss that. For now {offer}{unit}.",
+                "Fine, let's compare options on the facts. I'm at {offer}{unit}.",
+            ],
+        },
+        "collaborated": {
+            "base": [
+                "Now that's interesting. On those terms, {offer}{unit} is doable.",
+                "That trade works for us. Then {offer}{unit}.",
+                "That changes things. Under that, {offer}{unit}.",
+                "If you mean that seriously — I can do {offer}{unit}.",
+                "Good package. In that case {offer}{unit}.",
+                "Now we're creating value, not just splitting it. {offer}{unit}.",
+            ],
+            "relationship": [
+                "Now that's a partnership! On those terms, gladly — {offer}{unit}.",
+                "I love it when we find the shared interest. Then {offer}{unit}.",
+            ],
+            "tough": [
+                "Works. You give that, I take {offer}{unit}. Almost a deal.",
+                "Now that's concrete. For that — {offer}{unit}.",
+            ],
+            "analytical": [
+                "It nets out: your concession offsets mine. Then {offer}{unit}.",
+                "On the balance of value, that works. {offer}{unit}.",
+            ],
+        },
+        "hardened": {
+            "base": [
+                "Pressure won't help here. My position stands — {offer}{unit}.",
+                "I can't move in that tone. Staying at {offer}{unit}.",
+                "That's not how this gets solved. Number stands — {offer}{unit}.",
+                "No. I don't respond to threats. {offer}{unit}.",
+                "This only makes it worse. I'm staying at {offer}{unit}.",
+                "The harder you push, the less I want to move. {offer}{unit}.",
+            ],
+            "relationship": [
+                "I don't like this pressure. I won't concede like this — {offer}{unit}.",
+                "A shame you're taking this tack. It'd be easier the nice way. {offer}{unit}.",
+            ],
+            "tough": [
+                "Not happening. {offer}{unit}, period.",
+                "You won't scare me. {offer}{unit}.",
+            ],
+            "analytical": [
+                "Emotion isn't an argument. Numbers stand: {offer}{unit}.",
+                "Without facts this is just noise. {offer}{unit}.",
+            ],
+        },
+        "offended": {
+            "base": [
+                "I'd ask you to keep this professional.",
+                "This isn't going anywhere like that.",
+                "That's out of line. Let's stay within bounds.",
+                "Don't talk to me like that.",
+                "I don't have to put up with that tone.",
+                "One more remark like that and we're done.",
+            ],
+            "relationship": [
+                "That genuinely hurts to hear. I'm not used to this.",
+                "Why be like that? I've been nothing but fair with you.",
+            ],
+            "tough": [
+                "Easy. One more like that and we're through.",
+                "Watch your tone with me.",
+            ],
+            "analytical": [
+                "Let's leave emotion out of it, it's unproductive.",
+                "Personal attacks have no bearing on the substance.",
+            ],
+        },
+        "neutral": {
+            "base": [
+                "Understood. For now my offer is {offer}{unit}.",
+                "Noted. At this point — {offer}{unit}.",
+                "Clear. We're staying at {offer}{unit} for now.",
+                "Got it. My number right now is {offer}{unit}.",
+                "Okay, heard you. For now {offer}{unit}.",
+                "Let's log it: {offer}{unit} is on the table.",
+            ],
+            "relationship": [
+                "Alright, let's leave it at {offer}{unit} for now and see.",
+                "I hear you. Let's rest at {offer}{unit}.",
+            ],
+            "tough": [
+                "Right. {offer}{unit} for now. What's next?",
+                "Clear. {offer}{unit}. Let's not drag this.",
+            ],
+            "analytical": [
+                "Logged: current figure {offer}{unit}.",
+                "As of now — {offer}{unit}.",
+            ],
+        },
+        "not_yet": {
+            "base": [
+                "Too early to shake hands — {offer}{unit} is where I am.",
+                "We're not there yet. Right now I'm at {offer}{unit}.",
+                "Bit soon. I've come to {offer}{unit}, no further yet.",
+                "No rush. For now it's {offer}{unit}.",
+                "We're close, but not there. {offer}{unit}.",
+                "Nothing to shake on yet — {offer}{unit}.",
+            ],
+            "relationship": [
+                "Let's not rush it, okay? For now {offer}{unit}.",
+                "I'd like to get there, but it's early — {offer}{unit}.",
+            ],
+            "tough": [
+                "No. Not yet. {offer}{unit}.",
+                "Too soon. {offer}{unit}, and don't rush me.",
+            ],
+            "analytical": [
+                "On the numbers we haven't converged: {offer}{unit}.",
+                "There's still a gap. {offer}{unit}.",
+            ],
+        },
+        "walked_out": {
+            "base": [
+                "You know, maybe we should take a break. Let's stop here.",
+                "I'm afraid there's no point continuing like this. Good day.",
+                "That's enough for today. I'm out.",
+                "This isn't how business is done. We're finished.",
+                "We've hit a wall. No sense going on.",
+                "That's it, I'm not continuing this. Goodbye.",
+            ],
+            "relationship": [
+                "I'm sorry, but I can't do this anymore. Let's end here.",
+                "It pains me it came to this. All the best to you.",
+            ],
+            "tough": [
+                "That's it. I'm done.",
+                "This conversation is over. Find someone else.",
+            ],
+            "analytical": [
+                "Continuing is unproductive. We're closing this.",
+                "No point going further. We're done here.",
+            ],
+        },
+        "agreement": {
+            "base": [
+                "Deal! {deal}{unit} it is. A pleasure doing business.",
+                "Great, we lock {deal}{unit}. Good negotiating with you.",
+                "Done! {deal}{unit} — let's shake on it.",
+                "Agreed at {deal}{unit}. Good work on both sides.",
+                "Let's call it {deal}{unit}. Hands on it.",
+                "I'm in at {deal}{unit}. Let's paper it.",
+            ],
+            "relationship": [
+                "Wonderful! {deal}{unit} — and let's keep working together. Glad we did this.",
+                "Deal, {deal}{unit}! It's nice when it's done the human way.",
+            ],
+            "tough": [
+                "Done. {deal}{unit}. Shake on it, let's not drag it.",
+                "Okay, {deal}{unit}. We've got a deal.",
+            ],
+            "analytical": [
+                "The number works: {deal}{unit}. Let's put it in the contract.",
+                "{deal}{unit} — it pencils out for everyone. Agreed.",
+            ],
+        },
     },
 }
 
@@ -504,19 +909,46 @@ def _pick(arr: list[str], seed: int) -> str:
     return arr[seed % len(arr)]
 
 
+def _line_seed(sess: Session) -> int:
+    """A deterministic seed that changes across turns AND as the game develops,
+    so a single game doesn't cycle the same reaction line. Pure function of
+    session state (no time/random) → what-if replay stays reproducible. The
+    coprime-ish weights spread consecutive turns across the whole bank instead of
+    stepping +1, and progress signals (interests/tradeoffs/terms) reshuffle the
+    pick so identical consecutive reactions rarely repeat verbatim."""
+    s = sess.state
+    return (
+        sess.turn * 7
+        + len(s.interests_found) * 3
+        + len(s.tradeoffs_used) * 5
+        + len(s.terms_conceded) * 11
+    )
+
+
+def _reaction_bank(lang: str, key: str, style: str) -> list[str]:
+    """Pool the persona-style variants (if this persona has any for this
+    reaction) in front of the shared base bank. Style-appropriate lines get
+    picked first for low seeds, and the base always supplies a fallback and extra
+    variety so no reaction ever loops between just two lines."""
+    entry = LINES[lang].get(key) or LINES[lang]["neutral"]
+    base = entry["base"]
+    variants = entry.get(style)
+    return (variants + base) if variants else base
+
+
 def render_line(sess: Session, reaction: str, closed: bool) -> str:
     sc = by_id(sess.scenario_id)
     s = sess.state
     lang = sess.lang
     unit = sc.headline.unit[lang]
-    bank = LINES[lang]
+    style = sc.counterpart.style
     key = reaction
     if closed and s.status == "agreement":
         key = "agreement"
     if closed and s.status == "breakdown":
         key = "walked_out"
-    arr = bank.get(key) or bank["neutral"]
-    line = _pick(arr, sess.turn + len(s.interests_found))
+    arr = _reaction_bank(lang, key, style)
+    line = _pick(arr, _line_seed(sess))
     interest_list = sc.hidden_interests[lang]
     if s.interests_found:
         last_interest = interest_list[s.interests_found[-1]]

@@ -295,3 +295,42 @@ def test_technique_floor_caps_grade_at_C_when_method_ignored():
     d = engine.score_session(sess)
     if d["technique"] < 45:
         assert d["grade"] in ("C", "D", "F"), f"low technique but grade {d['grade']}"
+
+
+# ---- Templated opponent voice: determinism + persona branching --------------
+
+def test_render_line_is_deterministic():
+    """render_line must be a pure function of session state — same state in,
+    same line out (guards the what-if replay's reproducibility)."""
+    sess = engine.create_session("supplier", "ru")
+    sess.turn = 4
+    a = engine.render_line(sess, "persuaded", False)
+    b = engine.render_line(sess, "persuaded", False)
+    assert a == b
+
+
+def test_render_line_varies_within_a_game():
+    """A reaction that recurs across turns should not loop between two lines —
+    the seed spreads consecutive turns across the expanded bank."""
+    sess = engine.create_session("supplier", "ru")
+    seen = set()
+    for t in range(1, 9):
+        sess.turn = t
+        seen.add(engine.render_line(sess, "neutral", False))
+    assert len(seen) >= 4, f"expected varied lines, got {len(seen)}: {seen}"
+
+
+def test_persona_styles_produce_different_voices():
+    """A relationship persona (Ирина/supplier) and a tough persona
+    (Алексей/conflict) must not sound identical for the same reaction where
+    style variants exist. 'warmed' has no placeholders, so any difference is
+    purely persona voice, not different offer numbers."""
+    rel = engine.create_session("supplier", "ru")   # style=relationship
+    tough = engine.create_session("conflict", "ru")  # style=tough
+    rel.turn = tough.turn = 0  # seed 0 → first pooled (style-variant) line
+    assert engine.render_line(rel, "warmed", False) != engine.render_line(tough, "warmed", False)
+    # And in English too (parity).
+    rel_en = engine.create_session("supplier", "en")
+    tough_en = engine.create_session("conflict", "en")
+    rel_en.turn = tough_en.turn = 0
+    assert engine.render_line(rel_en, "warmed", False) != engine.render_line(tough_en, "warmed", False)
