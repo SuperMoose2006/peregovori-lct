@@ -141,6 +141,21 @@ class TurnMsg(BaseModel):
     text: str
 
 
+class WhatIfMsg(BaseModel):
+    """REST body for the deterministic "А что если…" replay.
+
+    The client (holding a finished game's transcript) sends the player's actual
+    lines in order plus ONE turn to branch and an alternative line. The server
+    re-runs that pivotal turn both ways on fresh deterministic sessions and
+    returns the divergence — no LLM, so it's instant and reproducible.
+    """
+    scenarioId: str
+    lang: Lang = "ru"
+    moves: list[str] = Field(default_factory=list)  # player's actual lines, in order
+    turnIndex: int                                   # 0-based move to replace
+    altText: str                                     # the "what if I'd said…" line
+
+
 class HintMsg(BaseModel):
     type: Literal["hint"] = "hint"
 

@@ -32,7 +32,7 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -44,7 +44,7 @@ from app.ai.chat_models import describe_mode
 from app.ai.judge import judge_turn, judge_enabled
 from app import views
 from app.protocol import (
-    StartMsg, TurnMsg, ScenarioView, StateView,
+    StartMsg, TurnMsg, ScenarioView, StateView, WhatIfMsg,
 )
 
 app = FastAPI(title="Диалог — Negotiation Simulator API")
@@ -76,6 +76,61 @@ def campaigns(lang: str = "ru") -> dict:
     from app.engine.campaigns import CAMPAIGNS
     lang = "en" if lang == "en" else "ru"
     return {"campaigns": [views.campaign_view(c, lang).model_dump() for c in CAMPAIGNS]}
+
+
+# ---- "А что если…" deterministic what-if replay -----------------------------
+# The engine is a pure function of (scenario, ordered moves): identical inputs
+# give byte-identical state. So we can re-run one pivotal turn with a BETTER line
+# and show exactly how the future diverges. No LLM here — the templated
+# render_line keeps it instant and reproducible (NEGO_AI=off style), regardless
+# of the configured AI backend.
+
+MAX_WHATIF_MOVES = 24     # cap replay length (a game is <= 12 turns anyway)
+MAX_WHATIF_TEXT = 800     # mirror the WS turn cap on player text
+
+
+def _whatif_branch(scenario_id: str, lang: str, prefix: list[str], branch_text: str) -> dict:
+    """Replay `prefix` on a FRESH session, then apply one `branch_text` move and
+    capture the outcome. Replaying from scratch per branch guarantees the two
+    branches share no state — determinism by construction.
+
+    The per-turn sequence mirrors the WS loop exactly (increment turn → analyze →
+    apply_move) so a branch that re-uses the original text reproduces the real
+    play bit-for-bit, including render_line's turn-seeded line pick."""
+    sess = engine.create_session(scenario_id, lang)
+    for t in prefix:
+        sess.turn += 1
+        engine.apply_move(sess, engine.analyze(t), t)
+    sess.turn += 1
+    analysis = engine.analyze(branch_text)
+    result = engine.apply_move(sess, analysis, branch_text)
+    line = engine.render_line(sess, result.reaction, result.closed)
+    return {
+        "text": branch_text,
+        "analysis": views.analysis_view(analysis).model_dump(),
+        "deltas": views.deltas_view(result).model_dump(),
+        "state": views.state_view(sess).model_dump(),
+        "opponent_line": line,
+    }
+
+
+@app.post("/api/whatif")
+def whatif(body: WhatIfMsg) -> dict:
+    lang = "en" if body.lang == "en" else "ru"
+    if engine.by_id(body.scenarioId) is None:
+        raise HTTPException(status_code=400, detail="unknown scenario")
+
+    # Truncate player text like the live turn loop does (defensive, deterministic).
+    moves = [(m or "")[:MAX_WHATIF_TEXT] for m in body.moves][:MAX_WHATIF_MOVES]
+    alt_text = (body.altText or "")[:MAX_WHATIF_TEXT]
+
+    if not (0 <= body.turnIndex < len(moves)):
+        raise HTTPException(status_code=400, detail="turnIndex out of range")
+
+    prefix = moves[: body.turnIndex]          # moves 0..turnIndex-1 (shared pre-turn state)
+    original = _whatif_branch(body.scenarioId, lang, prefix, moves[body.turnIndex])
+    alternative = _whatif_branch(body.scenarioId, lang, prefix, alt_text)
+    return {"turnIndex": body.turnIndex, "original": original, "alternative": alternative}
 
 
 async def _opponent_line(sess, result, templated: str) -> str:
