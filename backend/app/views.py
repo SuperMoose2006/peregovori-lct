@@ -166,14 +166,21 @@ def build_facts(sess: "engine.Session", result: "engine.MoveResult") -> dict:
     """Assemble the decoupled facts dict the AI layer consumes (fallback added by caller)."""
     sc = engine.by_id(sess.scenario_id)
     lang = sess.lang
+    # Interests the player has ALREADY uncovered — the opponent may speak to these
+    # (it must not volunteer the ones still hidden). This closes the loop between
+    # the judge's understanding and the opponent's actual words.
+    ilist = sc.hidden_interests[lang]
+    revealed = [ilist[i] for i in sess.state.interests_found if 0 <= i < len(ilist)]
     return {
         "lang": lang,
         "persona_name": sc.counterpart.name[lang],
         "persona_desc": sc.counterpart.persona[lang],
+        "style": sc.counterpart.style,          # relationship | tough | analytical
         "offer_opp": sess.state.offer_opp,
         "unit": sc.headline.unit[lang],
         "mood": _mood(result.reaction, lang),
         "status": sess.state.status,
+        "revealed_interests": revealed,
         "player_text": _last_player_text(sess),
     }
 

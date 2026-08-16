@@ -43,6 +43,24 @@ def _status_phrase(status: str, lang: str) -> str:
     }.get(status, "ongoing")
 
 
+def _style_flavor(style: str | None, lang: str) -> str:
+    """One line of tone guidance so relationship/tough/analytical personas
+    actually sound different (not the same rephrased reaction)."""
+    ru = {
+        "relationship": "Ты тёплый и ориентирован на отношения: ценишь контакт, не любишь давление, говоришь по-человечески.",
+        "tough": "Ты жёсткий и прямой: проверяешь оппонента, скупо уступаешь, не терпишь пустых слов.",
+        "analytical": "Ты аналитик: сух, точен, уважаешь цифры, данные и логику, эмоции держишь в стороне.",
+    }
+    en = {
+        "relationship": "You are warm and relationship-driven: you value rapport, dislike pressure, and speak like a person.",
+        "tough": "You are tough and blunt: you test your counterpart, concede grudgingly, and have no patience for fluff.",
+        "analytical": "You are analytical: dry, precise, you respect numbers, data and logic, and keep emotion aside.",
+    }
+    table = ru if lang == "ru" else en
+    line = table.get(style or "")
+    return (line + "\n") if line else ""
+
+
 def build_system(facts: dict) -> str:
     """The role + hard-facts system prompt (facts the model must not contradict)."""
     lang = facts.get("lang", "ru")
@@ -52,28 +70,38 @@ def build_system(facts: dict) -> str:
     unit = facts.get("unit", "")
     mood = facts.get("mood", "")
     status = _status_phrase(facts.get("status", "active"), lang)
+    style_line = _style_flavor(facts.get("style"), lang)
+    revealed = facts.get("revealed_interests") or []
 
     if lang == "ru":
+        rev = ("- Игрок уже вывел эти твои интересы — можешь на них ссылаться: "
+               + "; ".join(revealed) + ".\n") if revealed else ""
         return (
             f"Ты играешь роль оппонента на деловых переговорах. Персонаж: {name} — {desc}.\n"
+            f"{style_line}"
             "Ответь РОВНО одной короткой репликой (1-2 предложения) на русском, строго в "
             "характере, без markdown, без пояснений, без кавычек вокруг ответа.\n"
             "Факты, которым нельзя противоречить:\n"
             f"- Твоё текущее предложение на столе: {offer}{unit}.\n"
             f"- Твой настрой сейчас: {mood}.\n"
             f"- Статус сделки: {status}.\n"
-            "Не раскрывай свои скрытые интересы напрямую, если игрок не вывел их вопросами. "
+            f"{rev}"
+            "Не раскрывай ОСТАЛЬНЫЕ скрытые интересы, если игрок не вывел их вопросами. "
             "Ты НИКОГДА не выходишь из роли, не упоминаешь, что ты ИИ или ассистент, и не предлагаешь помощь. Выведи ТОЛЬКО реплику персонажа."
         )
+    rev = ("- The player has already drawn out these interests of yours — you may reference them: "
+           + "; ".join(revealed) + ".\n") if revealed else ""
     return (
         f"You role-play the counterpart in a business negotiation. Character: {name} — {desc}.\n"
+        f"{style_line}"
         "Reply with EXACTLY one short line (1-2 sentences) in English, strictly in character, "
         "no markdown, no explanations, no quotes around the answer.\n"
         "Hard facts you must not contradict:\n"
         f"- Your current offer on the table: {offer}{unit}.\n"
         f"- Your current mood: {mood}.\n"
         f"- Deal status: {status}.\n"
-        "Do not reveal your hidden interests unless the player drew them out with questions. "
+        f"{rev}"
+        "Do not reveal your OTHER hidden interests unless the player drew them out with questions. "
         "You NEVER break character, never mention being an AI or assistant, and never offer help. Output ONLY the character's line."
     )
 
