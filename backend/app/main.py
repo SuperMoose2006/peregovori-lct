@@ -41,6 +41,7 @@ from app import engine
 from app.session import store
 from app.ai.graph import run_opponent_sync
 from app.ai.chat_models import describe_mode
+from app.ai.judge import judge_turn, judge_enabled
 from app import views
 from app.protocol import (
     StartMsg, TurnMsg, ScenarioView, StateView,
@@ -155,7 +156,18 @@ async def ws(websocket: WebSocket) -> None:
                 text = (data.text or "")[:800]
                 analysis = engine.analyze(text)
                 sess.turn += 1
-                result = engine.apply_move(sess, analysis)
+
+                # Semantic judge (option C): score the line by MEANING and match
+                # the interest it targets. Off by default; engine still owns state.
+                judge = None
+                if judge_enabled():
+                    try:
+                        ctx, interests = views.judge_context(sess)
+                        judge = await asyncio.to_thread(judge_turn, ctx, text, lang, interests)
+                    except Exception:
+                        judge = None
+
+                result = engine.apply_move(sess, analysis, judge=judge)
 
                 timeout = False
                 if sess.state.status == "active" and sess.turn >= sess.max_turns:
@@ -163,18 +175,21 @@ async def ws(websocket: WebSocket) -> None:
                     result.closed = True
                     timeout = True
 
-                sess.log.append({"role": "player", "text": text})
+                sess.log.append({"role": "player", "text": text, "judge": judge})
                 templated = engine.render_line(sess, result.reaction, result.closed)
                 reply = views.timeout_line(lang) if timeout else await _opponent_line(sess, result, templated)
                 sess.log.append({"role": "opp", "text": reply})
 
-                await websocket.send_json({
+                opp_payload = {
                     "type": "opponent",
                     "text": reply,
                     "analysis": views.analysis_view(analysis).model_dump(),
                     "deltas": views.deltas_view(result).model_dump(),
                     "state": views.state_view(sess).model_dump(),
-                })
+                }
+                if judge and judge.get("note"):  # live per-turn coaching
+                    opp_payload["coach"] = judge["note"]
+                await websocket.send_json(opp_payload)
                 if result.closed:
                     await websocket.send_json({
                         "type": "debrief",

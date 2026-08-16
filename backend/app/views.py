@@ -114,6 +114,19 @@ def _last_player_text(sess: "engine.Session") -> str:
     return ""
 
 
+def judge_context(sess: "engine.Session") -> tuple[str, list[str]]:
+    """Context + hidden-interest list the semantic judge needs to score a turn
+    and identify which interest a question targets."""
+    sc = engine.by_id(sess.scenario_id)
+    lang = sess.lang
+    unit = sc.headline.unit[lang]
+    who = "Оппонент" if lang == "ru" else "Counterpart"
+    cur = "Текущее предложение оппонента" if lang == "ru" else "Opponent's current offer"
+    ctx = (f"{sc.role[lang]} {who}: {sc.counterpart.name[lang]} — {sc.counterpart.persona[lang]}. "
+           f"{cur}: {sess.state.offer_opp}{unit}.")
+    return ctx, list(sc.hidden_interests[lang])
+
+
 def build_facts(sess: "engine.Session", result: "engine.MoveResult") -> dict:
     """Assemble the decoupled facts dict the AI layer consumes (fallback added by caller)."""
     sc = engine.by_id(sess.scenario_id)

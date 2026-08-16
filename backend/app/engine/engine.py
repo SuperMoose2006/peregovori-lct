@@ -156,13 +156,24 @@ def _acceptable(sess: Session, number: float) -> bool:
     return number <= sc.opponent_reservation + 0.001
 
 
-def apply_move(sess: Session, analysis: Analysis, raw_text: str = "") -> MoveResult:
+def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
+               judge: dict | None = None) -> MoveResult:
     """The reactive core. Given the analyzed utterance, update meters, possibly
-    move the opponent's offer, and choose a reply."""
+    move the opponent's offer, and choose a reply.
+
+    Optional `judge` (semantic AI judgement, CLAUDE.md option C) refines two
+    things while the engine keeps owning all state/scoring: it overrides the
+    keyword arg-quality with a meaning-based score, and reveals the interest the
+    question ACTUALLY targeted instead of the next one in list order. When judge
+    is None the behaviour is exactly the deterministic keyword path (offline)."""
     sc = by_id(sess.scenario_id)
     s = sess.state
     m = sess.metrics
     style = sc.counterpart.style
+
+    # Semantic judge overrides keyword arg-quality (resists buzzword spam).
+    if judge is not None and judge.get("arg_score") is not None:
+        analysis.arg_quality = int(judge["arg_score"])
 
     before = {
         "trust": s.trust,
@@ -193,16 +204,28 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "") -> MoveRes
         reaction = "warmed"
 
     # --- SPIN & interest probing: uncover hidden interests. --------------------
-    if analysis.spin or has("interests_probe"):
+    judge_interest = judge.get("interest_targeted") if judge else None
+    if analysis.spin or has("interests_probe") or judge_interest is not None:
+        total = len(sc.hidden_interests[sess.lang])
+        revealed = False
+        if s.trust > 30:
+            if judge_interest is not None and 0 <= judge_interest < total and judge_interest not in s.interests_found:
+                # Reveal the interest the question ACTUALLY targeted (semantic).
+                s.interests_found.append(judge_interest)
+                revealed = True
+            elif judge is None and len(s.interests_found) < total:
+                # Offline fallback: reveal next in order (deterministic).
+                s.interests_found.append(len(s.interests_found))
+                revealed = True
         gain_base = 22 if analysis.spin in ("implication", "need-payoff") else 14
         gain = gain_base + (10 if has("interests_probe") else 0)
-        total = len(sc.hidden_interests[sess.lang])
-        if len(s.interests_found) < total and s.trust > 30:
-            s.interests_found.append(len(s.interests_found))
+        # With the judge on, a vague question that hit no real interest earns little.
+        if judge is not None and not revealed:
+            gain = min(gain, 5)
         s.info = clamp(s.info + gain)
         s.trust = clamp(s.trust + 4)
         s.tension = clamp(s.tension - 3)
-        if has("interests_probe"):
+        if has("interests_probe") or judge_interest is not None:
             m.interest_probes += 1
         reaction = "warmed" if reaction == "warmed" else "opened_up"
 
