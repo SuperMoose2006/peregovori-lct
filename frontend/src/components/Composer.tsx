@@ -11,11 +11,16 @@ interface Props {
   onSend: (text: string) => void;
   onHint: () => void;
   hintEnabled: boolean;
+  // showChips=false (exam mode) suppresses the live technique preview so the
+  // player gets no read on how their line is being classified.
+  showChips: boolean;
 }
 
-export function Composer({ disabled, placeholder, quickMoves, onSend, onHint, hintEnabled }: Props) {
+export function Composer({
+  disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips,
+}: Props) {
   const [text, setText] = useState("");
-  const chips = previewChips(text);
+  const chips = showChips ? previewChips(text) : [];
 
   const submit = () => {
     const t = text.trim();
@@ -26,13 +31,15 @@ export function Composer({ disabled, placeholder, quickMoves, onSend, onHint, hi
 
   return (
     <div className="compose">
-      <div className="live">
-        {chips.map((c, i) => (
-          <span className={`tag ${c.key}`} key={i}>
-            {c.label}
-          </span>
-        ))}
-      </div>
+      {showChips ? (
+        <div className="live">
+          {chips.map((c, i) => (
+            <span className={`tag ${c.key}`} key={i}>
+              {c.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div className="crow">
         <textarea
           rows={2}

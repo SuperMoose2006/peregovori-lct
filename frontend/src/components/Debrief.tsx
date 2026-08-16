@@ -1,7 +1,7 @@
 // Debrief.tsx — post-negotiation report: grade ring (A–F), three score bars
 // (economic / relationship / technique), stat cells, coaching tips, retry/home.
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Debrief as DebriefData } from "../types";
+import type { Debrief as DebriefData, Mode } from "../types";
 import type { Strings } from "../i18n";
 
 const GRADE_COLOR: Record<string, string> = {
@@ -15,12 +15,16 @@ const GRADE_COLOR: Record<string, string> = {
 interface Props {
   t: Strings;
   d: DebriefData;
+  mode: Mode;
+  scenarioTitle?: string;
   onRetry: () => void;
   onHome: () => void;
 }
 
-export function Debrief({ t, d, onRetry, onHome }: Props) {
+export function Debrief({ t, d, mode, scenarioTitle, onRetry, onHome }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
+  // Exam reads like a certificate: same score/stats/tips, ceremonial framing.
+  const exam = mode === "exam";
   // Animate the bars in from 0 after mount.
   const [grown, setGrown] = useState(false);
   const raf = useRef<number>();
@@ -50,7 +54,7 @@ export function Debrief({ t, d, onRetry, onHome }: Props) {
   return (
     <section className="screen">
       <div className="wrap">
-        <div className="debrief">
+        <div className={exam ? "debrief cert" : "debrief"}>
           <div className="gh">
             <div
               className="ring"
@@ -67,7 +71,13 @@ export function Debrief({ t, d, onRetry, onHome }: Props) {
               <span className="gs">{d.overall}/100</span>
             </div>
             <div>
-              <h2>{t.debriefTitle}</h2>
+              {exam ? <div className="cert-eyebrow">🏆 {t.exam.eyebrow}</div> : null}
+              <h2>{exam ? t.exam.resultTitle : t.debriefTitle}</h2>
+              {exam && scenarioTitle ? (
+                <div className="cert-scenario">
+                  {t.exam.scenarioLabel}: <b>{scenarioTitle}</b>
+                </div>
+              ) : null}
               <div className="oc">
                 {t.outcome[d.status]} · <b>{d.deal_text}</b>
               </div>

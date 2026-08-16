@@ -10,9 +10,11 @@ interface Props {
   log: ChatEntry[];
   metersShort: MeterLabels;
   argLabel: string;
+  // exam mode withholds per-turn technique badges + arg score + meter deltas.
+  exam?: boolean;
 }
 
-export function Chat({ log, metersShort, argLabel }: Props) {
+export function Chat({ log, metersShort, argLabel, exam }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -37,8 +39,8 @@ export function Chat({ log, metersShort, argLabel }: Props) {
         return (
           <div className="msg me" key={e.id}>
             <div className="bub">{e.text}</div>
-            {e.analysis ? <TagRow analysis={e.analysis} argLabel={argLabel} /> : null}
-            {e.deltas ? <DeltaRow deltas={e.deltas} labels={metersShort} /> : null}
+            {!exam && e.analysis ? <TagRow analysis={e.analysis} argLabel={argLabel} /> : null}
+            {!exam && e.deltas ? <DeltaRow deltas={e.deltas} labels={metersShort} /> : null}
           </div>
         );
       })}

@@ -1,13 +1,13 @@
-// ScenarioPicker.tsx — mode picker (Практика + Своя сделка wired; Кампания/Экзамен
-// shown as "soon" cards). For library modes it lists scenario cards; for "custom"
-// it swaps in the free-text situation input (CustomSituation).
+// ScenarioPicker.tsx — mode picker (Практика · Своя сделка · Экзамен wired;
+// Кампания shown as a "soon" card). For library modes it lists scenario cards;
+// for "custom" it swaps in the free-text situation input (CustomSituation).
 import type { Lang, Mode } from "../types";
 import type { Strings } from "../i18n";
 import { catalog } from "../data/scenarios";
 import { CustomSituation } from "./CustomSituation";
 
 const MODES: Mode[] = ["practice", "campaign", "custom", "exam"];
-const WIRED: Record<Mode, boolean> = { practice: true, campaign: false, custom: true, exam: false };
+const WIRED: Record<Mode, boolean> = { practice: true, campaign: false, custom: true, exam: true };
 
 interface Props {
   t: Strings;

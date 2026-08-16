@@ -27,6 +27,9 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
   const finished = !!st && st.status !== "active";
   const iFound = st?.interests_found ?? 0;
   const iTotal = st?.interests_total ?? 0;
+  // Exam is an assessment: all live coaching feedback (meters, interests tracker,
+  // technique chips/badges, meter deltas, hint) is withheld until the debrief.
+  const exam = mode === "exam";
 
   return (
     <section className="screen">
@@ -53,9 +56,9 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
               </div>
             </div>
 
-            {st ? <Meters state={st} labels={t.meters} /> : null}
+            {st && !exam ? <Meters state={st} labels={t.meters} /> : null}
 
-            {iTotal > 0 ? (
+            {iTotal > 0 && !exam ? (
               <div className="interests-line">
                 <span>{t.interests}:</span>
                 <span className="pips">
@@ -87,14 +90,15 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
                 {kind === null ? <span className="conn">{t.connecting}</span> : null}
               </div>
             </div>
-            <Chat log={log} metersShort={t.metersShort} argLabel={t.argLabel} />
+            <Chat log={log} metersShort={t.metersShort} argLabel={t.argLabel} exam={exam} />
             <Composer
               disabled={busy || finished || !st}
               placeholder={t.placeholder}
               quickMoves={t.quickMoves}
               onSend={onSend}
               onHint={onHint}
-              hintEnabled={mode !== "exam"}
+              hintEnabled={!exam}
+              showChips={!exam}
             />
           </main>
         </div>

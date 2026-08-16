@@ -122,6 +122,42 @@ test("custom mode: situation → synthesized scenario → greeting → opponent"
   server.close();
 });
 
+test("exam mode: greeting → opponent → debrief over the same protocol path", async () => {
+  // Экзамен is an assessment overlay on the same engine: the mock path must
+  // still run the full loop. (Feedback is hidden in the UI layer, not here —
+  // the protocol still carries analysis/deltas; the components withhold them.)
+  const { server, messages, waitFor } = harness();
+
+  server.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "exam" });
+  const greeting = await waitFor((m) => m.type === "greeting");
+  assert.equal(greeting.type, "greeting");
+  if (greeting.type === "greeting") {
+    assert.equal(greeting.scenario.id, "supplier");
+    assert.equal(greeting.state.status, "active");
+    assert.ok(greeting.scenario.title.length > 0); // needed for the certificate line
+  }
+
+  let debrief: ServerMsg | null = null;
+  for (let i = 0; i < 13 && !debrief; i++) {
+    const before = messages.length;
+    server.send({ type: "turn", text: "Что для вас важнее всего в этой сделке и почему именно это?" });
+    const opp = await waitFor((m) => messages.indexOf(m) >= before && m.type === "opponent");
+    assert.equal(opp.type, "opponent");
+    if (opp.type === "opponent" && opp.state.status !== "active") {
+      debrief = await waitFor((m) => m.type === "debrief");
+      break;
+    }
+    debrief = messages.find((m) => m.type === "debrief") ?? null;
+  }
+
+  assert.ok(debrief, "exam mode should still reach a debrief");
+  if (debrief && debrief.type === "debrief") {
+    assert.match(debrief.debrief.grade, /^[ABCDF]$/);
+    assert.ok(debrief.debrief.tips.length > 0); // coach tips shown after the exam
+  }
+  server.close();
+});
+
 test("hint request returns a hint message", async () => {
   const { server, waitFor } = harness();
   server.send({ type: "start", scenarioId: "salary", lang: "en", mode: "practice" });

@@ -184,7 +184,14 @@ export default function App() {
       )}
 
       {screen === "debrief" && nego.debrief && (
-        <Debrief t={t} d={nego.debrief} onRetry={retry} onHome={goHome} />
+        <Debrief
+          t={t}
+          d={nego.debrief}
+          mode={mode}
+          scenarioTitle={nego.scenario?.title}
+          onRetry={retry}
+          onHome={goHome}
+        />
       )}
 
       <div className="foot">

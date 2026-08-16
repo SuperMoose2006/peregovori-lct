@@ -48,6 +48,12 @@ export interface Strings {
     errorHead: string;
     retry: string;
   };
+  // exam mode ("Экзамен") — assessment framing
+  exam: {
+    eyebrow: string; // small "Certificate" kicker above the result
+    resultTitle: string; // "Exam result"
+    scenarioLabel: string; // "Scenario"
+  };
   // debrief
   debriefTitle: string;
   coachTitle: string;
@@ -113,6 +119,11 @@ export const I18N: Record<Lang, Strings> = {
       generatingSub: "ИИ проектирует персону, скрытые интересы и зону торга под вашу ситуацию.",
       errorHead: "Не удалось сгенерировать сценарий",
       retry: "Попробовать снова",
+    },
+    exam: {
+      eyebrow: "Сертификат · экзамен",
+      resultTitle: "Результат экзамена",
+      scenarioLabel: "Сценарий",
     },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
@@ -198,6 +209,11 @@ export const I18N: Record<Lang, Strings> = {
       generatingSub: "The AI is designing a persona, hidden interests and a bargaining zone for your situation.",
       errorHead: "Couldn't generate a scenario",
       retry: "Try again",
+    },
+    exam: {
+      eyebrow: "Certificate · exam",
+      resultTitle: "Exam result",
+      scenarioLabel: "Scenario",
     },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",
