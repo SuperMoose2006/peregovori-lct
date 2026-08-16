@@ -10,6 +10,9 @@ export type ChatEntry =
   | { id: number; kind: "opp"; text: string; streaming?: boolean }
   | { id: number; kind: "me"; text: string; analysis?: Analysis; deltas?: Deltas }
   | { id: number; kind: "hint"; text: string }
+  // coach: the semantic judge's per-turn nudge, threaded under the exchange.
+  // Rendered by Chat (hidden in exam mode) — the hook stays modality/mode-agnostic.
+  | { id: number; kind: "coach"; text: string }
   | { id: number; kind: "sys"; text: string };
 
 export interface NegotiationState {
@@ -146,6 +149,11 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
         log[log.length - 1] = { id: last.id, kind: "opp", text: msg.text };
       } else {
         log.push({ id: nextId(), kind: "opp", text: msg.text });
+      }
+      // The judge's coaching (if any) rides under the exchange. Chat decides
+      // whether to show it (exam withholds all live feedback).
+      if (msg.coach && msg.coach.trim()) {
+        log.push({ id: nextId(), kind: "coach", text: msg.coach.trim() });
       }
       return { ...prev, state: msg.state, busy: false, log };
     }

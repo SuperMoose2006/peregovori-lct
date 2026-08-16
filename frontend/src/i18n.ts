@@ -28,11 +28,29 @@ export interface Strings {
   yourTarget: string;
   meters: MeterLabels;
   metersShort: MeterLabels;
+  // one-line explanations shown on meter hover/focus (accessible tooltips)
+  meterInfo: MeterLabels;
+  // deal-tracker (price scale) labels
+  tracker: {
+    target: string;
+    redline: string;
+    theirOffer: string;
+    yourOffer: string;
+    opening: string;
+    history: string;
+  };
   turn: string;
   hint: string;
   quit: string;
   interests: string;
+  interestToast: string; // celebratory toast when a hidden interest is uncovered
+  coachLabel: string; // inline "coach" tag on the judge's per-turn nudge
   batna: string;
+  // retention (localStorage profile): streak chip, card best-grade, debrief record
+  streakLabel: string; // "🔥 {n}-day streak" ({n} substituted)
+  notPlayed: string; // empty best-grade state on a scenario card
+  personalBest: string; // debrief: "Personal best"
+  newRecord: string; // debrief: "new record!" when the best is beaten
   placeholder: string;
   send: string;
   argLabel: string;
@@ -118,11 +136,31 @@ export const I18N: Record<Lang, Strings> = {
     yourTarget: "ваша цель",
     meters: { trust: "Доверие", tension: "Напряжение", info: "Информация", leverage: "Рычаг" },
     metersShort: { trust: "Дов", tension: "Напр", info: "Инфо", leverage: "Рыч" },
+    meterInfo: {
+      trust: "Доверие: растёт от эмпатии и честной аргументации, падает от давления и угроз.",
+      tension: "Напряжение: растёт от давления, угроз и грубости; спадает, когда вы признаёте интересы.",
+      info: "Информация: растёт, когда вы вскрываете скрытые интересы вопросами (SPIN).",
+      leverage: "Рычаг: растёт от BATNA и объективных критериев, а не от эмоций.",
+    },
+    tracker: {
+      target: "цель",
+      redline: "красная линия",
+      theirOffer: "их цена",
+      yourOffer: "ваша цена",
+      opening: "старт",
+      history: "динамика их цены",
+    },
     turn: "ход",
     hint: "подсказка",
     quit: "выйти",
     interests: "Раскрытые интересы",
+    interestToast: "Вы вскрыли интерес",
+    coachLabel: "тренер",
     batna: "BATNA",
+    streakLabel: "🔥 {n} дн. подряд",
+    notPlayed: "не пройдено",
+    personalBest: "Личный рекорд",
+    newRecord: "новый рекорд!",
     placeholder: "Ваша реплика своими словами…",
     send: "Отправить",
     argLabel: "аргум.",
@@ -186,24 +224,15 @@ export const I18N: Record<Lang, Strings> = {
       arg: "аргументация",
     },
     footRight: "исход зависит от вашей стратегии",
+    // Stems, not finished moves: the chip drops a sentence STARTER into the box
+    // that the player must complete in their own words (a full worked example
+    // lives behind the 💡 hint). Leaving the scoring to the player, not the chip.
     quickMoves: [
-      {
-        label: "❓ Вопрос SPIN",
-        text: "Расскажите, как сейчас устроен процесс и с какими сложностями вы сталкиваетесь?",
-      },
-      { label: "🎯 Интерес", text: "А что для вас важнее всего в этой сделке и почему именно это?" },
-      {
-        label: "📊 Критерий",
-        text: "По рыночным данным справедливое значение иное, потому что это отраслевой стандарт.",
-      },
-      {
-        label: "🤝 Эмпатия",
-        text: "Я вас понимаю и ценю вашу позицию. Давайте найдём решение для обеих сторон.",
-      },
-      {
-        label: "🔄 Размен",
-        text: "Если мы пойдём навстречу по срокам и объёму, сможете подвинуться в ответ?",
-      },
+      { label: "❓ Вопрос SPIN", text: "Расскажите, как сейчас устроен " },
+      { label: "🎯 Интерес", text: "Почему для вас важно именно " },
+      { label: "📊 Критерий", text: "По рыночным данным справедливая величина — " },
+      { label: "🤝 Эмпатия", text: "Я понимаю, что для вас важно " },
+      { label: "🔄 Размен", text: "Если мы пойдём навстречу по срокам, сможете ли вы " },
     ],
   },
   en: {
@@ -231,11 +260,31 @@ export const I18N: Record<Lang, Strings> = {
     yourTarget: "your target",
     meters: { trust: "Trust", tension: "Tension", info: "Information", leverage: "Leverage" },
     metersShort: { trust: "Trust", tension: "Tens", info: "Info", leverage: "Lev" },
+    meterInfo: {
+      trust: "Trust: rises with empathy and fair arguments, falls under pressure and threats.",
+      tension: "Tension: rises with pressure, threats and rudeness; eases when you acknowledge interests.",
+      info: "Information: grows as you surface the counterpart's hidden interests with questions (SPIN).",
+      leverage: "Leverage: grows from BATNA and objective criteria, not from emotion.",
+    },
+    tracker: {
+      target: "target",
+      redline: "red line",
+      theirOffer: "their offer",
+      yourOffer: "your offer",
+      opening: "opening",
+      history: "their price over time",
+    },
     turn: "turn",
     hint: "hint",
     quit: "leave",
     interests: "Interests uncovered",
+    interestToast: "Interest uncovered",
+    coachLabel: "coach",
     batna: "BATNA",
+    streakLabel: "🔥 {n}-day streak",
+    notPlayed: "not played",
+    personalBest: "Personal best",
+    newRecord: "new record!",
     placeholder: "Your line, in your own words…",
     send: "Send",
     argLabel: "arg.",
@@ -299,21 +348,14 @@ export const I18N: Record<Lang, Strings> = {
       arg: "argumentation",
     },
     footRight: "the outcome depends on your strategy",
+    // Stems, not finished moves — the player completes each in their own words
+    // (the full worked example stays behind the 💡 hint button).
     quickMoves: [
-      {
-        label: "❓ SPIN question",
-        text: "Tell me how this process works for you today and what difficulties you run into?",
-      },
-      { label: "🎯 Interest", text: "What matters most to you in this deal, and why exactly that?" },
-      {
-        label: "📊 Criterion",
-        text: "Market data puts the fair value elsewhere, because that is the industry standard.",
-      },
-      {
-        label: "🤝 Empathy",
-        text: "I understand you and appreciate your position. Let us find a solution for both sides.",
-      },
-      { label: "🔄 Trade-off", text: "If we move on timing and volume, could you move in return?" },
+      { label: "❓ SPIN question", text: "Tell me how you currently handle " },
+      { label: "🎯 Interest", text: "Why does it matter to you that " },
+      { label: "📊 Criterion", text: "By market data, the fair value is " },
+      { label: "🤝 Empathy", text: "I understand that what matters to you is " },
+      { label: "🔄 Trade-off", text: "If we move on timing, could you " },
     ],
   },
 };

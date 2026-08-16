@@ -108,7 +108,8 @@ export type ClientMsg =
 export type ServerMsg =
   | { type: "greeting"; sessionId: string; scenario: ScenarioView; state: StateView; text: string }
   | { type: "opponent_delta"; chunk: string }
-  | { type: "opponent"; text: string; analysis: Analysis; deltas: Deltas; state: StateView }
+  // coach: optional per-turn coaching from the semantic judge (hidden in exam mode)
+  | { type: "opponent"; text: string; analysis: Analysis; deltas: Deltas; state: StateView; coach?: string }
   | { type: "debrief"; debrief: Debrief }
   | { type: "hint"; text: string }
   | { type: "error"; message: string };

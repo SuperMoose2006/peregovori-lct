@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Debrief as DebriefData, Mode } from "../types";
 import type { Strings } from "../i18n";
+import type { RecordResult } from "../lib/progress";
 
 const GRADE_COLOR: Record<string, string> = {
   A: "var(--trust)",
@@ -17,6 +18,9 @@ interface Props {
   d: DebriefData;
   mode: Mode;
   scenarioTitle?: string;
+  // This run's personal-best outcome (from the retention profile) — null if not
+  // yet recorded. Drives the "Личный рекорд" line + the "new record!" flourish.
+  record?: RecordResult | null;
   onRetry: () => void;
   onHome: () => void;
   // Campaign mode: the primary action advances the arc instead of replaying.
@@ -24,7 +28,7 @@ interface Props {
   nextLabel?: string;
 }
 
-export function Debrief({ t, d, mode, scenarioTitle, onRetry, onHome, onNext, nextLabel }: Props) {
+export function Debrief({ t, d, mode, scenarioTitle, record, onRetry, onHome, onNext, nextLabel }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
   // Exam reads like a certificate: same score/stats/tips, ceremonial framing.
   const exam = mode === "exam";
@@ -84,6 +88,21 @@ export function Debrief({ t, d, mode, scenarioTitle, onRetry, onHome, onNext, ne
               <div className="oc">
                 {t.outcome[d.status]} · <b>{d.deal_text}</b>
               </div>
+              {record && record.record.bestGrade ? (
+                <div className={`pb${record.improved ? " beat" : ""}`}>
+                  <span className="pb-l">
+                    {t.personalBest}: <b>{record.record.bestGrade} ({record.record.bestScore})</b>
+                  </span>
+                  {record.improved ? (
+                    <span className="pb-new">
+                      ▲ {t.newRecord}
+                      {record.prevBest && record.prevBest.grade
+                        ? ` +${Math.max(0, record.record.bestScore - record.prevBest.score)}`
+                        : ""}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
 

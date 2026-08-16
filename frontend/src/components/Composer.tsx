@@ -1,6 +1,6 @@
 // Composer.tsx — message composer: textarea with live technique preview,
 // quick-move chips, hint button, send.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { QuickMove } from "../i18n";
 import { previewChips } from "../lib/techniques";
 
@@ -20,6 +20,7 @@ export function Composer({
   disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips,
 }: Props) {
   const [text, setText] = useState("");
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const chips = showChips ? previewChips(text) : [];
 
   const submit = () => {
@@ -27,6 +28,18 @@ export function Composer({
     if (!t || disabled) return;
     onSend(t);
     setText("");
+  };
+
+  // Chips are sentence STARTERS: seed the box with the stem and hand the player
+  // the caret at the end so they finish the thought (never a complete move).
+  const insertStem = (stem: string) => {
+    setText(stem);
+    requestAnimationFrame(() => {
+      const el = taRef.current;
+      if (!el) return;
+      el.focus();
+      el.selectionStart = el.selectionEnd = el.value.length;
+    });
   };
 
   return (
@@ -42,6 +55,7 @@ export function Composer({
       ) : null}
       <div className="crow">
         <textarea
+          ref={taRef}
           rows={2}
           value={text}
           placeholder={placeholder}
@@ -64,7 +78,7 @@ export function Composer({
           </button>
         ) : null}
         {quickMoves.map((q, i) => (
-          <button key={i} onClick={() => setText(q.text)}>
+          <button key={i} onClick={() => insertStem(q.text)}>
             {q.label}
           </button>
         ))}

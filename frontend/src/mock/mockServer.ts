@@ -128,12 +128,15 @@ export class MockServer implements Transport {
       await this.delay(70);
     }
     // then the authoritative opponent message carrying analysis/deltas/state.
+    // coach: a short per-turn nudge (stands in for the backend's semantic judge)
+    // so the demo exercises the live-coaching UI. Hidden client-side in exam mode.
     this.emit({
       type: "opponent",
       text: reply,
       analysis: toAnalysis(raw, text),
       deltas: result.deltas,
       state: stateView(s),
+      coach: timeout ? undefined : coachLine(raw.primary, s.lang),
     });
 
     if (result.closed) {
@@ -150,6 +153,45 @@ export class MockServer implements Transport {
     }
     this.emit({ type: "hint", text: hintText(s) });
   }
+}
+
+// A short coaching nudge keyed to the player's primary move (mock stand-in for
+// the backend's semantic judge). Undefined = nothing worth saying this turn.
+function coachLine(primary: string, lang: Lang): string | undefined {
+  const ru: Record<string, string> = {
+    hostile: "Грубость рушит доверие — вернитесь к сути и объективным критериям.",
+    threat: "Ультиматум повышает напряжение. Обоснуйте позицию критерием или BATNA.",
+    tradeoff: "Хороший размен — свяжите уступку с ответным шагом другой стороны.",
+    objective_criteria: "Сильно: объективный критерий убеждает лучше давления.",
+    batna: "BATNA как рычаг — но подавайте её спокойно, не как угрозу.",
+    interests_probe: "Отлично — вы копаете к интересам за позицией.",
+    spin_needpayoff: "Вопрос на ценность — подведите оппонента к выгоде решения.",
+    spin_implication: "Хорошо: вы раскрываете последствия проблемы.",
+    spin_problem: "Вы нащупали проблему — дальше усильте её последствиями.",
+    spin_situation: "Ситуационный вопрос собран — переходите к проблемам.",
+    acknowledge: "Активное слушание снижает напряжение — так и держите.",
+    offer: "Число названо — подкрепите его обоснованием, а не только позицией.",
+    open_question: "Открытый вопрос — хорошо; направьте его к скрытым интересам.",
+    statement: "Задайте вопрос: вскрывайте интересы, а не только заявляйте позицию.",
+  };
+  const en: Record<string, string> = {
+    hostile: "Hostility burns trust — return to substance and objective criteria.",
+    threat: "An ultimatum raises tension. Anchor your stance in a criterion or BATNA.",
+    tradeoff: "Nice trade — tie your concession to a matching move from them.",
+    objective_criteria: "Strong: an objective criterion persuades better than pressure.",
+    batna: "BATNA is leverage — but present it calmly, not as a threat.",
+    interests_probe: "Good — you're digging toward the interest behind the position.",
+    spin_needpayoff: "A need-payoff question — lead them to the value of solving it.",
+    spin_implication: "Good: you're surfacing the consequences of the problem.",
+    spin_problem: "You found a problem — now amplify it with its implications.",
+    spin_situation: "Situation mapped — move on to the problems.",
+    acknowledge: "Active listening eases tension — keep it up.",
+    offer: "A number's on the table — back it with rationale, not just a stance.",
+    open_question: "Open question — good; steer it toward hidden interests.",
+    statement: "Ask a question: surface interests, don't just assert a position.",
+  };
+  const table = lang === "ru" ? ru : en;
+  return table[primary];
 }
 
 // Split a reply into word-group chunks for a streaming feel.

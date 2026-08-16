@@ -8,6 +8,7 @@ import { ScenarioPicker } from "./components/ScenarioPicker";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
+import { loadProfile, recordDebrief, saveProfile, type Grade, type Profile, type RecordResult } from "./lib/progress";
 
 type Screen = "home" | "generating" | "game" | "debrief" | "campaign_done";
 type Theme = "light" | "dark" | null;
@@ -29,6 +30,12 @@ export default function App() {
   // Dedupe recording a stage result: each debrief is a fresh object, so identity
   // tells one stage's debrief from the next (and from a reset).
   const recordedDebrief = useRef<DebriefData | null>(null);
+  // Retention profile (localStorage): best grades, attempts, day streak. Loaded
+  // once; each debrief folds in a result and re-persists. `lastRecord` carries
+  // the just-finished run's personal-best delta to the Debrief screen.
+  const [profile, setProfile] = useState<Profile>(() => loadProfile());
+  const [lastRecord, setLastRecord] = useState<RecordResult | null>(null);
+  const recordedProgress = useRef<DebriefData | null>(null);
 
   const nego = useNegotiation(lang);
   const t = I18N[lang];
@@ -48,6 +55,21 @@ export default function App() {
   useEffect(() => {
     if (nego.debrief) setScreen("debrief");
   }, [nego.debrief]);
+
+  // Record every finished negotiation into the retention profile (any mode):
+  // best-only-if-improved, attempts++, day streak. Deduped per debrief object.
+  // Read fresh from storage before writing so the update is idempotent even if
+  // React batching replays this effect.
+  useEffect(() => {
+    if (!nego.debrief) return;
+    if (recordedProgress.current === nego.debrief) return;
+    recordedProgress.current = nego.debrief;
+    const scenarioId = nego.scenario?.id ?? currentScenario ?? "custom";
+    const res = recordDebrief(loadProfile(), scenarioId, nego.debrief.grade as Grade, nego.debrief.overall);
+    saveProfile(res.profile);
+    setProfile(res.profile);
+    setLastRecord(res);
+  }, [nego.debrief, nego.scenario, currentScenario]);
 
   // Custom mode: while generating, the scenario is designed server-side (or by
   // the mock synth). The greeting's arrival drops us into the game; an error
@@ -191,7 +213,12 @@ export default function App() {
         <section className="screen">
           <div className="wrap">
             <div className="hero">
-              <div className="eyebrow">{t.eyebrow}</div>
+              <div className="eyebrow">
+                {t.eyebrow}
+                {profile.streak > 0 ? (
+                  <span className="streak">{t.streakLabel.replace("{n}", String(profile.streak))}</span>
+                ) : null}
+              </div>
               <h1 dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
               <p className="lead">{t.heroLead}</p>
               <div className="rule" />
@@ -214,6 +241,7 @@ export default function App() {
               campaign={campaign}
               campaignProgress={progress}
               onBeginStage={beginStage}
+              profile={profile}
             />
           </div>
         </section>
@@ -265,6 +293,7 @@ export default function App() {
           d={nego.debrief}
           mode={mode}
           scenarioTitle={nego.scenario?.title}
+          record={lastRecord}
           onRetry={retry}
           onHome={goHome}
           onNext={mode === "campaign" ? nextAct : undefined}

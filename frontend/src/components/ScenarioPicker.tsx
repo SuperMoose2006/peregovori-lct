@@ -4,8 +4,17 @@
 import type { CampaignView, Lang, Mode } from "../types";
 import type { Strings } from "../i18n";
 import { catalog } from "../data/scenarios";
+import { getRecord, type Profile } from "../lib/progress";
 import { CustomSituation } from "./CustomSituation";
 import { CampaignArc, type CampaignProgress } from "./CampaignScreen";
+
+const GRADE_COLOR: Record<string, string> = {
+  A: "var(--trust)",
+  B: "var(--info)",
+  C: "var(--brass)",
+  D: "#d98a3c",
+  F: "var(--tension)",
+};
 
 const MODES: Mode[] = ["practice", "campaign", "custom", "exam"];
 const WIRED: Record<Mode, boolean> = { practice: true, campaign: true, custom: true, exam: true };
@@ -25,12 +34,29 @@ interface Props {
   campaign: CampaignView | null;
   campaignProgress: CampaignProgress;
   onBeginStage: () => void;
+  // retention profile → best-grade badges on scenario cards
+  profile: Profile;
+}
+
+// Best-grade chip in a card's difficulty-row: the letter + best score in brass
+// when the player has cleared it, a subtle "—" when they haven't. This is the
+// at-a-glance "beat your record" hook on the scenario shelf.
+function BestChip({ t, profile, id }: { t: Strings; profile: Profile; id: string }) {
+  const r = getRecord(profile, id);
+  if (!r || !r.bestGrade) {
+    return <span className="best empty" title={t.notPlayed}>—</span>;
+  }
+  return (
+    <span className="best" style={{ color: GRADE_COLOR[r.bestGrade] || "var(--brass)" }}>
+      {r.bestGrade} · {r.bestScore}
+    </span>
+  );
 }
 
 export function ScenarioPicker({
   t, lang, mode, onSelectMode, onStart,
   situation, customError, onSituationChange, onStartCustom,
-  campaign, campaignProgress, onBeginStage,
+  campaign, campaignProgress, onBeginStage, profile,
 }: Props) {
   const rows = catalog(lang);
   return (
@@ -76,10 +102,13 @@ export function ScenarioPicker({
                 <div className="ct">{sc.title}</div>
                 <div className="cr">{sc.role}</div>
                 <div className="cf">
-                  <div className="diff">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <i className={i < sc.difficulty ? "on" : ""} key={i} />
-                    ))}
+                  <div className="cf-l">
+                    <div className="diff">
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <i className={i < sc.difficulty ? "on" : ""} key={i} />
+                      ))}
+                    </div>
+                    <BestChip t={t} profile={profile} id={sc.id} />
                   </div>
                   <div className="go">{lang === "ru" ? "Начать →" : "Start →"}</div>
                 </div>

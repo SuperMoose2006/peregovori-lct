@@ -1,7 +1,7 @@
 // Chat.tsx — the negotiation chat log: opponent/player bubbles, technique tag
 // badges + argumentation score on player lines, per-turn meter delta flashes,
 // streaming opponent text, hint bubbles.
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Analysis, Deltas } from "../types";
 import type { MeterLabels } from "../i18n";
@@ -10,12 +10,16 @@ interface Props {
   log: ChatEntry[];
   metersShort: MeterLabels;
   argLabel: string;
-  // exam mode withholds per-turn technique badges + arg score + meter deltas.
+  // exam mode withholds per-turn technique badges + arg score + meter deltas +
+  // the judge's live coach line (exam gives its feedback only at the debrief).
   exam?: boolean;
+  coachLabel: string;
 }
 
-export function Chat({ log, metersShort, argLabel, exam }: Props) {
+export function Chat({ log, metersShort, argLabel, exam, coachLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  // Coach lines are dismissible — the player can wave off a nudge they've read.
+  const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   useEffect(() => {
     const el = ref.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -26,6 +30,21 @@ export function Chat({ log, metersShort, argLabel, exam }: Props) {
       {log.map((e) => {
         if (e.kind === "hint") return <div className="hintbub" key={e.id}>💡 {e.text}</div>;
         if (e.kind === "sys") return <div className="sys" key={e.id}>{e.text}</div>;
+        if (e.kind === "coach") {
+          if (exam || dismissed.has(e.id)) return null;
+          return (
+            <div className="coachline" key={e.id}>
+              <span className="coachline-b">💡 {coachLabel}:</span> {e.text}
+              <button
+                className="coachline-x"
+                aria-label="dismiss"
+                onClick={() => setDismissed((s) => new Set(s).add(e.id))}
+              >
+                ×
+              </button>
+            </div>
+          );
+        }
         if (e.kind === "opp") {
           return (
             <div className="msg opp" key={e.id}>
