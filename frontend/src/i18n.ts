@@ -17,6 +17,8 @@ export interface MeterLabels {
 
 export interface Strings {
   tagline: string;
+  // header sound toggle aria-labels (action-describing: what a tap will do)
+  sound: { mute: string; unmute: string };
   eyebrow: string;
   heroTitle: string; // may contain <em> for the accented word
   heroLead: string;
@@ -204,6 +206,7 @@ export interface Strings {
 export const I18N: Record<Lang, Strings> = {
   ru: {
     tagline: "переговорный додзё",
+    sound: { mute: "Выключить звук", unmute: "Включить звук" },
     eyebrow: "Гарвардский метод · SPIN · BATNA",
     heroTitle: "Учитесь <em>договариваться</em> — за столом, а не по учебнику.",
     heroCta: "Начать переговоры",
@@ -431,6 +434,7 @@ export const I18N: Record<Lang, Strings> = {
   },
   en: {
     tagline: "negotiation dojo",
+    sound: { mute: "Mute sound", unmute: "Unmute sound" },
     eyebrow: "Harvard method · SPIN · BATNA",
     heroTitle: "Learn to <em>negotiate</em> — at the table, not from a textbook.",
     heroCta: "Start negotiating",

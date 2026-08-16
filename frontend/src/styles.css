@@ -753,13 +753,21 @@ textarea:focus { outline: none; border-color: var(--brass); }
   100% { box-shadow: 0 0 0 8px transparent; background: transparent; }
 }
 .toast {
-  position: fixed; left: 50%; top: 74px; transform: translateX(-50%); z-index: 40;
+  position: fixed; left: 50%; top: 74px; transform: translateX(-50%); z-index: 60;
   padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;
   color: var(--trust); background: var(--panel);
   border: 1px solid color-mix(in srgb, var(--trust) 45%, var(--line));
   box-shadow: var(--shadow); animation: toastin 0.32s ease;
+  max-width: min(92vw, 340px); text-align: center;
+  pointer-events: none; /* purely celebratory — never intercept taps on what's beneath */
 }
 @keyframes toastin { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* Mobile (screenshot 51 fix): the header isn't sticky, so a top:74px toast could
+   land on the meters/interests line it's celebrating. Pin it just below the
+   header band and above the side panel so it never covers that row at 390px. */
+@media (max-width: 640px) {
+  .toast { top: calc(52px + env(safe-area-inset-top)); }
+}
 
 /* ============================================================
    Gamification — rank/XP, daily goal, skill profile, badges,

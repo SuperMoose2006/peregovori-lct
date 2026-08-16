@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Lang } from "../types";
 import type { Strings } from "../i18n";
+import { haptic, play } from "../lib/sound";
 import {
   ACHIEVEMENTS, dayKey, getAchievement, rankForXp, skillViews, strongestWeakest,
   type GameResult, type Profile, type SkillId,
@@ -179,6 +180,26 @@ export function SkillsProfile({
 // caption, and no level-up flourish — a blown negotiation shouldn't feel rewarded.
 export function XpAward({ t, lang, game, failed }: { t: Strings; lang: Lang; game: GameResult; failed?: boolean }) {
   const n = useCountUp(game.xpGain);
+  // Audio choreography, once per debrief mount (ref-guarded against re-render):
+  // the coin-cascade rides under the count-up, then a warm major sting lands if
+  // the run leveled up. Staggered so it follows the grade sting the ring plays.
+  const cued = useRef(false);
+  useEffect(() => {
+    if (cued.current) return;
+    cued.current = true;
+    const a = setTimeout(() => play("xp"), 480);
+    let b: ReturnType<typeof setTimeout> | undefined;
+    if (game.leveledUp && !failed) {
+      b = setTimeout(() => {
+        play("levelup");
+        haptic(22);
+      }, 1080);
+    }
+    return () => {
+      clearTimeout(a);
+      if (b) clearTimeout(b);
+    };
+  }, [game.leveledUp, failed]);
   return (
     <div className={failed ? "xpaward failed" : "xpaward"}>
       <div className="xpa-main">

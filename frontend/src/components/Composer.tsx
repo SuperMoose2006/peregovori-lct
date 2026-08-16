@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { QuickMove } from "../i18n";
 import { previewChips } from "../lib/techniques";
+import { haptic, play } from "../lib/sound";
 
 interface Props {
   disabled: boolean;
@@ -26,6 +27,10 @@ export function Composer({
   const submit = () => {
     const t = text.trim();
     if (!t || disabled) return;
+    // Soft send cue + a light haptic tap. This is also a genuine user gesture,
+    // so it doubles as the first chance to unlock the AudioContext.
+    play("send");
+    haptic();
     onSend(t);
     setText("");
   };

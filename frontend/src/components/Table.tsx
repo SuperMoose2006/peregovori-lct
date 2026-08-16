@@ -6,6 +6,7 @@ import type { TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
 import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
+import { haptic, play } from "../lib/sound";
 import { Meters } from "./Meters";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
@@ -92,6 +93,11 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
     const rose = iFound > prevFound.current;
     prevFound.current = iFound;
     if (!rose || exam) return;
+    // Celebratory cue for uncovering a hidden interest: a gentle rising chime
+    // + a light haptic. Fires once per real count increase (this effect only
+    // runs when `rose`), so no guard against re-render is needed.
+    play("reveal");
+    haptic();
     setFlash(true);
     setToast(true);
     const t1 = setTimeout(() => setFlash(false), 900);

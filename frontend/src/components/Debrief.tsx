@@ -5,6 +5,7 @@ import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, WhatIfBran
 import type { Strings } from "../i18n";
 import type { GameResult, RecordResult } from "../lib/progress";
 import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
+import { play } from "../lib/sound";
 import { XpAward } from "./Gamification";
 
 const GRADE_COLOR: Record<string, string> = {
@@ -66,6 +67,17 @@ export function Debrief({
       if (raf.current) cancelAnimationFrame(raf.current);
     };
   }, []);
+
+  // Grade-ring reveal sting: a short tone whose pitch/brightness scales with the
+  // grade (A rises bright, F sinks low). Once per debrief mount, timed to land as
+  // the ring fills — ahead of the XP cascade the award plays.
+  const graded = useRef(false);
+  useEffect(() => {
+    if (graded.current) return;
+    graded.current = true;
+    const id = setTimeout(() => play("grade", { grade: d.grade }), 160);
+    return () => clearTimeout(id);
+  }, [d.grade]);
 
   const bars: Array<{ label: string; v: number; color: string }> = [
     { label: t.sb.economic, v: d.economic, color: "var(--brass)" },

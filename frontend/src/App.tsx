@@ -11,6 +11,7 @@ import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
 import { HeroStats, SkillsProfile, AchievementToasts } from "./components/Gamification";
 import { applyDebrief, loadProfile, saveProfile, type GameResult, type Profile } from "./lib/progress";
+import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 
 type Screen = "home" | "generating" | "game" | "debrief" | "campaign_done" | "profile";
 type Theme = "light" | "dark" | null;
@@ -38,6 +39,14 @@ export default function App() {
   const [profile, setProfile] = useState<Profile>(() => loadProfile());
   const [lastGame, setLastGame] = useState<GameResult | null>(null);
   const recordedProgress = useRef<DebriefData | null>(null);
+  // Sound layer: local mirror of the persisted mute flag drives the header
+  // toggle's icon; the cues themselves read the flag live from lib/sound.
+  const [muted, setMuted] = useState<boolean>(() => isMuted());
+
+  // Arm the AudioContext to unlock on the first user gesture (autoplay-safe).
+  useEffect(() => {
+    initAudioUnlock();
+  }, []);
 
   const nego = useNegotiation(lang);
   const t = I18N[lang];
@@ -218,6 +227,15 @@ export default function App() {
           <div className="seg">
             <button onClick={toggleTheme} aria-label="theme">
               {isDark ? "☀" : "◐"}
+            </button>
+          </div>
+          <div className="seg">
+            <button
+              onClick={() => setMuted(toggleMuted())}
+              aria-label={muted ? t.sound.unmute : t.sound.mute}
+              aria-pressed={muted}
+            >
+              {muted ? "🔇" : "🔊"}
             </button>
           </div>
         </div>
