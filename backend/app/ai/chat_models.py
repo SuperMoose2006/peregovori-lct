@@ -127,8 +127,14 @@ class CliBackend:
         # the task as "Bounded" — instead of our role/generation prompt). The
         # user turn is fed on stdin. raw=True skips sanitize (structured/JSON).
         model = re.sub(r"[^a-zA-Z0-9._-]", "", _model())  # whitelist: no arg injection
-        # Structured (raw) generation is a heavier task → allow more time.
-        timeout = max(_timeout(), 90.0) if raw else _timeout()
+        # Structured (raw) generation is a heavier task → allow more time. Short
+        # opponent lines get a tight cap so a slow/throttled CLI falls back to the
+        # instant templated line fast, instead of stalling the turn.
+        timeout = max(_timeout(), 90.0) if raw else min(_timeout(), 18.0)
+        # For short opponent lines, --effort low suppresses Claude Code's extended
+        # thinking (the dominant per-call cost) → ~6-7s and far more consistent.
+        # Scenario generation (raw) keeps default effort for quality.
+        effort = [] if raw else ["--effort", "low"]
         try:
             proc = subprocess.run(
                 # --setting-sources "" loads NO CLAUDE.md / skills / plugins / hooks
@@ -136,7 +142,7 @@ class CliBackend:
                 # --system-prompt this fully isolates the call from the dev's
                 # global Claude Code environment → no context leak, and faster.
                 ["claude", "-p", "--model", model, "--output-format", "text",
-                 "--setting-sources", "", "--system-prompt", system],
+                 "--setting-sources", "", "--system-prompt", system, *effort],
                 input=user,
                 capture_output=True,
                 text=True,
