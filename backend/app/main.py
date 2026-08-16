@@ -193,12 +193,18 @@ async def ws(websocket: WebSocket) -> None:
                 session_id = store.new_id()
                 store.put(session_id, sess)
                 sc = engine.by_id(scenario_id)
+                greet = views.greeting_line(sess, lang)
+                # Campaign: the opponent references your reputation from prior stages.
+                if data.mode == "campaign" and data.reputation is not None:
+                    intro = views.reputation_intro(data.reputation, lang)
+                    if intro:
+                        greet = intro + " " + greet
                 await websocket.send_json({
                     "type": "greeting",
                     "sessionId": session_id,
                     "scenario": views.scenario_view(sc, lang).model_dump(),
                     "state": views.state_view(sess).model_dump(),
-                    "text": views.greeting_line(sess, lang),
+                    "text": greet,
                 })
 
             # ---- turn -----------------------------------------------------

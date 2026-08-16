@@ -224,6 +224,27 @@ def greeting_line(sess: "engine.Session", lang: str) -> str:
     return f"Hello. I'm {name}. Our opening position is {offer}{unit}. Where shall we start?"
 
 
+def reputation_intro(reputation: float, lang: str) -> str:
+    """A campaign opponent references the reputation the player earned in prior
+    stages — 'your reputation preceded you'. Empty for a neutral/first stage."""
+    if reputation is None:
+        return ""
+    ru = lang == "ru"
+    if reputation >= 45:
+        return ("Наслышан — говорят, с вами приятно и по делу вести дела." if ru
+                else "I've heard good things — they say you're straight and fair to deal with.")
+    if reputation >= 15:
+        return ("Слышал, вы уверенно ведёте переговоры." if ru
+                else "I hear you drive a confident bargain.")
+    if reputation <= -45:
+        return ("Наслышан о вашей манере — давайте на этот раз без давления." if ru
+                else "I've heard about your style — let's keep the pressure down this time.")
+    if reputation <= -15:
+        return ("Говорят, с вами бывает непросто договориться." if ru
+                else "They say you can be a tough one to settle with.")
+    return ""
+
+
 def timeout_line(lang: str) -> str:
     if lang == "ru":
         return "У нас вышло время на сегодня. Предлагаю вернуться позже — договориться так и не удалось."
