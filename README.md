@@ -65,7 +65,14 @@ make test                    # тесты движка (36 зелёных)
 NEGO_AI=cli make backend
 # Продакшен через API:
 NEGO_AI=api ANTHROPIC_API_KEY=sk-... make backend
+# Дёшево через OpenAI (самый дешёвый gpt-5-nano):
+NEGO_AI=openai OPENAI_API_KEY=sk-... make backend
 ```
+
+**Рекомендуемый прод-профиль** (умная оценка включена): `NEGO_AI=openai` (или `api`) **+ `NEGO_JUDGE=1`**.
+Тогда оппонент понимает смысл, раскрывает именно тот интерес, что вскрыл вопрос, и даёт пер-ход коучинг
+(см. «Семантический судья» в [CLAUDE.md](CLAUDE.md)). Секреты — в gitignored `backend/.env` (автозагрузка).
+Без ключа/офлайн (`NEGO_AI=off`) продукт полностью играбелен на детерминированном движке.
 
 Собранный фронт также раздаётся самим бэкендом (`cd frontend && npm run build`, затем открыть
 `http://localhost:8010/`) — один процесс на весь продукт.
