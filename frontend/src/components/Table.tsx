@@ -1,14 +1,16 @@
 // Table.tsx — the negotiation screen. Left: counterpart card, offers board,
 // live meters, briefing, BATNA, interests tracker. Right: chat log + composer.
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Deltas, Mode, ScenarioView, StateView } from "../types";
 import type { TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
+import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
 import { Meters } from "./Meters";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
 import { DealTracker } from "./DealTracker";
+import { Onboarding, type CoachStep } from "./Onboarding";
 
 interface Props {
   t: Strings;
@@ -66,7 +68,8 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
   // player to open with a question. Shown only on turn 0 (before any send) and
   // never in exam (which withholds help). Dismissed on × or the first send.
   const [coachDismissed, setCoachDismissed] = useState(false);
-  const showFirstCoach = !exam && !!st && st.turn === 0 && !coachDismissed;
+  // The legacy one-line nudge is for RETURNING players; first-timers get the full
+  // guided onboarding instead (below), so suppress it whenever that ran this game.
 
   // Mobile: the briefing + BATNA collapse behind a toggle so the game side-strip
   // stays short and the chat/composer are reachable without endless scrolling.
@@ -98,6 +101,123 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
     };
   }, [iFound, exam]);
 
+  // ---- Guided first-negotiation onboarding (director's #1) ------------------
+  // Practice-only, first-time-only coach-marks that reveal each element the
+  // moment it first matters — a warm intro (welcome → meters → composer) and
+  // then two reveals tied to REAL engine events: the first interest uncovered
+  // and the opponent's first price move. Skippable at every step; the engine
+  // stays the source of truth (this only points at what it already did).
+  const ranTutorial = useRef(shouldRunTutorial(mode, isTutorialDone()));
+  const showFirstCoach = !exam && !ranTutorial.current && !!st && st.turn === 0 && !coachDismissed;
+  type TutPhase = "off" | "welcome" | "meters" | "compose" | "run" | "done";
+  const [tutPhase, setTutPhase] = useState<TutPhase>(() => (ranTutorial.current ? "welcome" : "off"));
+  const [tutMark, setTutMark] = useState<null | "interest" | "deal">(null);
+  const [tutQueue, setTutQueue] = useState<Array<"interest" | "deal">>([]);
+  const tutPhaseRef = useRef(tutPhase);
+  tutPhaseRef.current = tutPhase;
+  const tutSeen = useRef({ interest: false, deal: false });
+  const tutFirstOffer = useRef<number | null>(null);
+  const tutFound = useRef(iFound);
+  const tutDoneOnce = useRef(false);
+
+  const metersRef = useRef<HTMLDivElement>(null);
+  const dealRef = useRef<HTMLDivElement>(null);
+  const interestsRef = useRef<HTMLDivElement>(null);
+  const composeRef = useRef<HTMLDivElement>(null);
+
+  // Persist the one-time flag the first moment the player engages an exit path
+  // (advances past the intro, sends the opener, or skips) — so a second game
+  // never re-onboards, even if they quit mid-tutorial. Idempotent.
+  const commitTutDone = useCallback(() => {
+    if (!tutDoneOnce.current) {
+      tutDoneOnce.current = true;
+      markTutorialDone();
+    }
+  }, []);
+
+  // Queue an event-driven reveal, once each, only while the tutorial is live.
+  const queueTutMark = useCallback((ev: "interest" | "deal") => {
+    const p = tutPhaseRef.current;
+    if (p === "off" || p === "done") return;
+    if (tutSeen.current[ev]) return;
+    tutSeen.current[ev] = true;
+    setTutQueue((q) => [...q, ev]);
+  }, []);
+
+  // Real event #1: the engine's interests_found ticked up → an interest surfaced.
+  useEffect(() => {
+    const rose = iFound > tutFound.current;
+    tutFound.current = iFound;
+    if (rose) queueTutMark("interest");
+  }, [iFound, queueTutMark]);
+
+  // Real event #2: the opponent's offer moved off its opening (their price shifted).
+  useEffect(() => {
+    if (!st) return;
+    if (tutFirstOffer.current === null) {
+      tutFirstOffer.current = st.offer_opp;
+      return;
+    }
+    if (st.offer_opp !== tutFirstOffer.current) queueTutMark("deal");
+  }, [st, queueTutMark]);
+
+  // Show queued reveals one at a time; finish once both have been shown.
+  useEffect(() => {
+    if (tutPhase !== "run" || tutMark !== null) return;
+    if (tutQueue.length === 0) {
+      if (tutSeen.current.interest && tutSeen.current.deal) setTutPhase("done");
+      return;
+    }
+    setTutMark(tutQueue[0]);
+    setTutQueue((q) => q.slice(1));
+  }, [tutPhase, tutMark, tutQueue]);
+
+  // End the guided intro (either "send the opener" or "I'll write my own").
+  const startTutRun = useCallback(() => {
+    commitTutDone();
+    setTutPhase("run");
+  }, [commitTutDone]);
+  const sendTutOpener = useCallback(() => {
+    handleSend(t.onboarding.suggestedOpening);
+    startTutRun();
+  }, [t, startTutRun]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dismissTutMark = useCallback(() => setTutMark(null), []);
+  const skipTutorial = useCallback(() => {
+    commitTutDone();
+    setTutPhase("off");
+    setTutMark(null);
+    setTutQueue([]);
+  }, [commitTutDone]);
+
+  // Quitting mid-tutorial still counts as "seen" — never re-onboard next game.
+  const handleQuit = () => {
+    if (ranTutorial.current) commitTutDone();
+    onQuit();
+  };
+
+  // Resolve the single active coach step (or null). Event reveals take the stage
+  // over the linear intro; intro steps carry 3 progress dots, reveals carry none.
+  const o = t.onboarding;
+  const intro = { steps: 3, skipLabel: o.skip, onSkip: skipTutorial };
+  let tutStep: CoachStep | null = null;
+  if (tutMark === "interest") {
+    tutStep = { stepKey: "m-interest", targetRef: interestsRef, title: o.interestTitle, body: o.interestBody,
+      primaryLabel: o.gotIt, onPrimary: dismissTutMark, step: 0, steps: 0, skipLabel: o.skip, onSkip: skipTutorial };
+  } else if (tutMark === "deal") {
+    tutStep = { stepKey: "m-deal", targetRef: dealRef, title: o.dealTitle, body: o.dealBody,
+      primaryLabel: o.gotIt, onPrimary: dismissTutMark, step: 0, steps: 0, skipLabel: o.skip, onSkip: skipTutorial };
+  } else if (tutPhase === "welcome") {
+    tutStep = { stepKey: "welcome", title: o.welcomeTitle, body: o.welcomeBody,
+      primaryLabel: o.next, onPrimary: () => setTutPhase("meters"), step: 1, ...intro };
+  } else if (tutPhase === "meters") {
+    tutStep = { stepKey: "meters", targetRef: metersRef, title: o.metersTitle, body: o.metersBody,
+      primaryLabel: o.next, onPrimary: () => setTutPhase("compose"), step: 2, ...intro };
+  } else if (tutPhase === "compose") {
+    tutStep = { stepKey: "compose", targetRef: composeRef, title: o.composeTitle, body: o.composeBody,
+      primaryLabel: o.orTypeYourself, onPrimary: startTutRun, action: { label: o.sendOpening, onClick: sendTutOpener },
+      step: 3, ...intro };
+  }
+
   return (
     <section className="screen">
       {toast ? (
@@ -116,14 +236,18 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
               </div>
             </div>
 
-            <DealTracker scenario={scenario} state={st} t={t} />
+            <div ref={dealRef} className="onb-anchor">
+              <DealTracker scenario={scenario} state={st} t={t} />
+            </div>
 
             {st && !exam ? (
-              <Meters state={st} labels={t.meters} info={t.meterInfo} deltas={lastDeltas} />
+              <div ref={metersRef} className="onb-anchor">
+                <Meters state={st} labels={t.meters} info={t.meterInfo} deltas={lastDeltas} />
+              </div>
             ) : null}
 
             {iTotal > 0 && !exam ? (
-              <div className={`interests-line${flash ? " flash" : ""}`}>
+              <div ref={interestsRef} className={`interests-line${flash ? " flash" : ""}`}>
                 <span>{t.interests}:</span>
                 <span className="pips">
                   {Array.from({ length: iTotal }, (_, i) => (
@@ -153,7 +277,7 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
                 </div>
               </div>
             </div>
-            <button className="quit" onClick={onQuit}>
+            <button className="quit" onClick={handleQuit}>
               ← {t.quit}
             </button>
           </aside>
@@ -187,18 +311,21 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
                 </button>
               </div>
             ) : null}
-            <Composer
-              disabled={busy || finished || !st}
-              placeholder={t.placeholder}
-              quickMoves={t.quickMoves}
-              onSend={handleSend}
-              onHint={onHint}
-              hintEnabled={!exam}
-              showChips={!exam}
-            />
+            <div ref={composeRef} className="onb-anchor">
+              <Composer
+                disabled={busy || finished || !st}
+                placeholder={t.placeholder}
+                quickMoves={t.quickMoves}
+                onSend={handleSend}
+                onHint={onHint}
+                hintEnabled={!exam}
+                showChips={!exam}
+              />
+            </div>
           </main>
         </div>
       </div>
+      {tutStep ? <Onboarding {...tutStep} /> : null}
     </section>
   );
 }

@@ -12,6 +12,7 @@ import {
   nextStreak,
   rankForXp,
   recordDebrief,
+  shouldRunTutorial,
   skillSignals,
   strongestWeakest,
   xpForDebrief,
@@ -296,4 +297,21 @@ test("applyDebrief: crossing an XP threshold flags a level-up", () => {
   assert.equal(g.rankBefore.rank.id, "novice");
   assert.equal(g.rankAfter.rank.id, "negotiator");
   assert.equal(g.leveledUp, true);
+});
+
+// ---- Guided first-negotiation onboarding gate -------------------------------
+// The tutorial runs ONLY in practice, and ONLY until finished/skipped once.
+test("shouldRunTutorial: practice + not done → true (the one case that onboards)", () => {
+  assert.equal(shouldRunTutorial("practice", false), true);
+});
+
+test("shouldRunTutorial: once done, practice never re-onboards", () => {
+  assert.equal(shouldRunTutorial("practice", true), false);
+});
+
+test("shouldRunTutorial: exam / campaign / custom never onboard, even fresh", () => {
+  for (const mode of ["exam", "campaign", "custom"] as const) {
+    assert.equal(shouldRunTutorial(mode, false), false, `${mode} must not onboard`);
+    assert.equal(shouldRunTutorial(mode, true), false, `${mode} must not onboard`);
+  }
 });

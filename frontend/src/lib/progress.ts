@@ -7,7 +7,7 @@
 // only loadProfile/saveProfile touch localStorage, and they're defensive — any
 // corrupt/missing/half-shaped blob degrades to sane defaults rather than throwing.
 
-import type { Debrief } from "../types";
+import type { Debrief, Mode } from "../types";
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
 
@@ -221,6 +221,38 @@ export function saveProfile(p: Profile): void {
 
 export function getRecord(profile: Profile, scenarioId: string): ScenarioRecord | null {
   return profile.scenarios[scenarioId] ?? null;
+}
+
+// ---- First-run onboarding gate ---------------------------------------------
+// A one-time flag: has the player been through (or skipped) the guided first
+// negotiation? Kept in its own key — it's a boolean milestone, unrelated to the
+// scoring/streak profile, so a corrupt profile blob never blocks or re-triggers
+// onboarding. Reads/writes are defensive (private mode / disabled storage just
+// means the tutorial may show again — never a thrown error into the UI).
+const TUTORIAL_KEY = "dialog.tutorialDone.v1";
+
+export function isTutorialDone(): boolean {
+  try {
+    return typeof localStorage !== "undefined" && localStorage.getItem(TUTORIAL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markTutorialDone(): void {
+  try {
+    if (typeof localStorage !== "undefined") localStorage.setItem(TUTORIAL_KEY, "1");
+  } catch {
+    // best-effort; a blocked store just means the guided intro may run again
+  }
+}
+
+// Pure gate for the guided first negotiation. It runs ONLY in practice (an
+// assessment/exam, a narrative campaign act, or a custom deal must never be
+// hijacked by coach-marks) and ONLY until the player has finished or skipped it
+// once. Pure so the rule is unit-testable without touching localStorage.
+export function shouldRunTutorial(mode: Mode, tutorialDone: boolean): boolean {
+  return mode === "practice" && !tutorialDone;
 }
 
 // ============================================================================

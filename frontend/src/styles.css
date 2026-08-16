@@ -836,6 +836,77 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .badges { grid-template-columns: 1fr; }
 }
 
+/* ============================================================
+   Guided first-negotiation onboarding (coach-marks). A dimmed
+   backdrop with a spotlight "hole" over the live element that
+   matters right now, plus a small tooltip anchored to it (or a
+   centered welcome card). Theme-aware; reduced-motion is handled
+   by the global rule at the end of this file.
+   ============================================================ */
+.onb-anchor { display: block; }         /* transparent measurement wrapper — no layout impact */
+
+.onb { position: fixed; inset: 0; z-index: 60; }
+
+/* Welcome beat (no target): a soft full-screen scrim behind a centered card. */
+.onb-scrim { position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--ground) 60%, transparent); }
+
+/* Spotlight hole: a transparent box over the target whose vast box-shadow paints
+   the dim everywhere else, ringed in brass so the eye lands on the element. */
+.onb-hole {
+  position: absolute; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px color-mix(in srgb, var(--ground) 60%, transparent),
+    0 0 0 2px var(--brass), 0 0 22px 4px color-mix(in srgb, var(--brass) 45%, transparent);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+  animation: onbfade 0.3s ease;
+}
+
+.onb-tip {
+  position: absolute; z-index: 1; max-width: min(320px, calc(100vw - 24px));
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line));
+  border-radius: 14px; padding: 16px 16px 12px; box-shadow: var(--shadow);
+  animation: onbtip 0.28s ease;
+}
+.onb-tip.centered { width: min(360px, calc(100vw - 32px)); animation: onbfade 0.28s ease; }
+@keyframes onbtip { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes onbfade { from { opacity: 0; } to { opacity: 1; } }
+
+.onb-arrow {
+  position: absolute; width: 12px; height: 12px; left: 50%; margin-left: -6px; transform: rotate(45deg);
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line));
+}
+.onb-tip.a-up .onb-arrow { top: -7px; border-right: none; border-bottom: none; }
+.onb-tip.a-down .onb-arrow { bottom: -7px; border-left: none; border-top: none; }
+
+.onb-title { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
+.onb-body { font-size: 13.5px; line-height: 1.52; color: var(--ink-dim); }
+
+.onb-action {
+  display: block; width: 100%; margin-top: 13px; padding: 11px 12px; border-radius: 10px;
+  background: var(--brass); color: #fff; font-weight: 700; font-size: 13.5px; text-align: center; transition: filter 0.15s;
+}
+:root[data-theme="dark"] .onb-action { color: #1a1509; }
+.onb-action:hover { filter: brightness(1.06); }
+
+.onb-foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.onb-dots { display: inline-flex; gap: 5px; }
+.onb-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+.onb-dots i.on { background: var(--brass); }
+.onb-btns { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.onb-skip { font-size: 12.5px; color: var(--ink-faint); padding: 7px 10px; border-radius: 8px; transition: 0.15s; }
+.onb-skip:hover { color: var(--ink-dim); background: var(--panel-2); }
+.onb-next {
+  font-size: 13px; font-weight: 700; color: var(--brass); padding: 8px 12px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--brass) 40%, var(--line)); transition: 0.15s;
+}
+.onb-next:hover { background: color-mix(in srgb, var(--brass) 10%, var(--panel)); }
+
+@media (max-width: 640px) {
+  .onb-tip { padding: 15px 15px 12px; }
+  .onb-action { min-height: 46px; }
+  .onb-skip, .onb-next { min-height: 40px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

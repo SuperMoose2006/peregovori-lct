@@ -99,6 +99,28 @@ export interface Strings {
   // {name} = counterpart name, substituted at render.
   firstTurnCoach: string;
   dismiss: string; // aria-label for the bubble's × close
+  // guided first-negotiation onboarding (practice, first time only). Warm-coach
+  // copy for the welcome beat, the meter/composer coach-marks, the tap-to-send
+  // opener, and the two event-driven reveals (interest uncovered / their price moved).
+  onboarding: {
+    skip: string; // "пропустить" — always available
+    next: string; // advance the guided intro
+    gotIt: string; // dismiss an event-driven coach-mark
+    stepOf: string; // "{n}/{total}" progress caption (substituted)
+    welcomeTitle: string;
+    welcomeBody: string;
+    metersTitle: string;
+    metersBody: string;
+    composeTitle: string;
+    composeBody: string;
+    sendOpening: string; // label on the tap-to-send opener button
+    suggestedOpening: string; // the actual SPIN/interest question that gets sent
+    orTypeYourself: string; // secondary action: skip the opener, write your own
+    interestTitle: string;
+    interestBody: string;
+    dealTitle: string;
+    dealBody: string;
+  };
   // debrief
   turningPoints: { title: string; turn: string }; // "Ключевые ходы" / "Ход {n}"
   debriefTitle: string;
@@ -246,6 +268,30 @@ export const I18N: Record<Lang, Strings> = {
     },
     firstTurnCoach: "💡 Начните с вопроса: узнайте, что важно для {name}. Не давите — сначала интересы.",
     dismiss: "Закрыть подсказку",
+    onboarding: {
+      skip: "Пропустить",
+      next: "Далее →",
+      gotIt: "Понятно",
+      stepOf: "{n}/{total}",
+      welcomeTitle: "Добро пожаловать за стол",
+      welcomeBody:
+        "Это тренажёр переговоров. Ведите диалог своими словами — исход зависит от того, ЧТО и КАК вы говорите. Секрет прост: не давите — сначала спрашивайте.",
+      metersTitle: "Четыре шкалы стола",
+      metersBody:
+        "Доверие, Напряжение, Информация, Рычаг. Ведите доверие и информацию вверх, а напряжение — вниз. Наведитесь на любую, чтобы понять, что её двигает.",
+      composeTitle: "Ваш ход — своими словами",
+      composeBody:
+        "Пишите как в жизни. Не знаете, с чего начать? Начните с вопроса — вскройте, что важно для собеседника.",
+      sendOpening: "❓ Задать этот вопрос",
+      suggestedOpening: "Что для вас важнее всего в этой сделке и почему?",
+      orTypeYourself: "или напишу сам",
+      interestTitle: "Вы вскрыли интерес",
+      interestBody:
+        "За позицией всегда стоит интерес. Вы спросили — и шкала «Информация» выросла. Так вы находите, о чём реально договариваться.",
+      dealTitle: "Их цена поехала",
+      dealBody:
+        "Смотрите: их цена сдвинулась к вашей цели. Каждый удачный ход двигает её — следите за этой шкалой.",
+    },
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
@@ -416,6 +462,30 @@ export const I18N: Record<Lang, Strings> = {
     },
     firstTurnCoach: "💡 Open with a question: find out what matters to {name}. Don't push — interests first.",
     dismiss: "Dismiss tip",
+    onboarding: {
+      skip: "Skip",
+      next: "Next →",
+      gotIt: "Got it",
+      stepOf: "{n}/{total}",
+      welcomeTitle: "Welcome to the table",
+      welcomeBody:
+        "This is a negotiation trainer. Talk in your own words — the outcome depends on WHAT you say and HOW. The secret is simple: don't push — ask first.",
+      metersTitle: "The table's four meters",
+      metersBody:
+        "Trust, Tension, Information, Leverage. Keep trust and information rising and tension low. Hover any one to see what moves it.",
+      composeTitle: "Your move — in your own words",
+      composeBody:
+        "Write like you would in real life. Not sure how to open? Start with a question — surface what matters to them.",
+      sendOpening: "❓ Ask this question",
+      suggestedOpening: "What matters most to you in this deal, and why?",
+      orTypeYourself: "or I'll write my own",
+      interestTitle: "You uncovered an interest",
+      interestBody:
+        "Behind every position sits an interest. You asked — and the Information meter rose. That's how you find what's really worth negotiating over.",
+      dealTitle: "Their price is moving",
+      dealBody:
+        "Look: their price slid toward your target. Every good move nudges it — keep an eye on this scale.",
+    },
     turningPoints: { title: "Turning points", turn: "Turn" },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",
