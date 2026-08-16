@@ -51,6 +51,13 @@ def scenarios(lang: str = "ru") -> dict:
     return {"scenarios": [views.scenario_view(s, lang).model_dump() for s in engine.SCENARIOS]}
 
 
+@app.get("/api/campaigns")
+def campaigns(lang: str = "ru") -> dict:
+    from app.engine.campaigns import CAMPAIGNS
+    lang = "en" if lang == "en" else "ru"
+    return {"campaigns": [views.campaign_view(c, lang).model_dump() for c in CAMPAIGNS]}
+
+
 async def _opponent_line(sess, result, templated: str) -> str:
     """Try the AI backend; fall back to the deterministic templated line.
 
@@ -105,6 +112,9 @@ async def ws(websocket: WebSocket) -> None:
                     scenario_id = data.scenarioId
 
                 sess = engine.create_session(scenario_id, lang)
+                # Campaign reputation carries into the next stage as a trust nudge.
+                if data.reputation is not None:
+                    views.apply_reputation(sess, data.reputation)
                 session_id = store.new_id()
                 store.put(session_id, sess)
                 sc = engine.by_id(scenario_id)

@@ -7,9 +7,33 @@ messages lives here, so main.py stays decoupled from engine field names.
 from __future__ import annotations
 
 from app import engine
+from app.engine.campaigns import Campaign
 from app.protocol import (
     Analysis, Tag, Flags, Deltas, StateView, ScenarioView, Debrief,
+    CampaignView, CampaignStageView,
 )
+
+
+def campaign_view(c: "Campaign", lang: str) -> CampaignView:
+    stages = []
+    for st in c.stages:
+        sc = engine.by_id(st.scenario_id)
+        stages.append(CampaignStageView(
+            scenario_id=st.scenario_id,
+            act=st.act[lang],
+            intro=st.intro[lang],
+            title=sc.title[lang],
+            icon=sc.icon,
+            difficulty=sc.difficulty,
+        ))
+    return CampaignView(id=c.id, icon=c.icon, title=c.title[lang], tagline=c.tagline[lang], stages=stages)
+
+
+def apply_reputation(sess: "engine.Session", reputation: float) -> None:
+    """Carry campaign reputation into the next stage as an initial-trust nudge
+    (±15 max). Reputation is an initial condition only — scoring is untouched."""
+    nudge = max(-15.0, min(15.0, reputation * 0.12))
+    sess.state.trust = max(0.0, min(100.0, sess.state.trust + nudge))
 
 
 # ---- engine → protocol shapes ----------------------------------------------

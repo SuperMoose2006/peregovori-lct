@@ -81,6 +81,23 @@ class ScenarioView(BaseModel):
     reservation: float
 
 
+class CampaignStageView(BaseModel):
+    scenario_id: str
+    act: str
+    intro: str
+    title: str      # scenario title
+    icon: str       # scenario icon
+    difficulty: int
+
+
+class CampaignView(BaseModel):
+    id: str
+    icon: str
+    title: str
+    tagline: str
+    stages: list[CampaignStageView]
+
+
 class Debrief(BaseModel):
     overall: int
     grade: str  # A|B|C|D|F
@@ -108,6 +125,7 @@ class StartMsg(BaseModel):
     lang: Lang = "ru"
     mode: Mode = "practice"
     situation: Optional[str] = None  # free-text for mode="custom" scenario generation
+    reputation: Optional[float] = None  # campaign carry (-100..100): nudges initial trust
 
 
 class TurnMsg(BaseModel):
