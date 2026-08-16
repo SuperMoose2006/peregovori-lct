@@ -184,6 +184,13 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  // Mobile hero CTA: bring the opponent picker into view (it sits just below the
+  // hero on the same home screen). Reduced-motion callers still land there.
+  const scrollToPlay = useCallback(() => {
+    const el = document.getElementById("play");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   const retry = useCallback(() => {
     if (mode === "custom") startCustom();
     else if (currentScenario) start(currentScenario);
@@ -221,8 +228,11 @@ export default function App() {
             <div className="hero">
               <div className="eyebrow">{t.eyebrow}</div>
               <h1 dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
-              <p className="lead">{t.heroLead}</p>
               <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} />
+              {/* Mobile-only: a single clear call-to-action above the fold that jumps
+                  to the opponent picker. Desktop shows the picker inline, so it's hidden there. */}
+              <button className="hero-cta" onClick={scrollToPlay}>{t.heroCta}</button>
+              <p className="lead">{t.heroLead}</p>
               <div className="rule" />
               <div className="principles">
                 {t.principles.map((p, i) => (
@@ -230,6 +240,7 @@ export default function App() {
                 ))}
               </div>
             </div>
+            <div id="play">
             <ScenarioPicker
               t={t}
               lang={lang}
@@ -245,6 +256,7 @@ export default function App() {
               onBeginStage={beginStage}
               profile={profile}
             />
+            </div>
           </div>
         </section>
       )}

@@ -20,6 +20,7 @@ export interface Strings {
   eyebrow: string;
   heroTitle: string; // may contain <em> for the accented word
   heroLead: string;
+  heroCta: string; // mobile hero primary button → jump to the opponent picker
   principles: string[]; // may contain <b>
   pickHead: string;
   modesHead: string;
@@ -125,6 +126,8 @@ export interface Strings {
     totalXp: string; // "{n} XP" total-xp chip
     levelUp: string; // "level up!" flourish on the debrief
     xpAwardLabel: string; // caption under the +XP count-up
+    xpAwardFailed: string; // sober caption when the negotiation collapsed
+    lowData: string; // skill bar shown before 2 games of data exist
     dailyGoal: string; // ring label
     dailyDone: string; // goal met today
     dailyTodo: string; // goal still open today
@@ -149,6 +152,7 @@ export const I18N: Record<Lang, Strings> = {
     tagline: "переговорный додзё",
     eyebrow: "Гарвардский метод · SPIN · BATNA",
     heroTitle: "Учитесь <em>договариваться</em> — за столом, а не по учебнику.",
+    heroCta: "Начать переговоры",
     heroLead:
       "Живой диалог с ИИ-оппонентом, у которого есть скрытые интересы, красная линия и характер. Исход зависит от вашей стратегии, формулировок и аргументов — каждая реплика разбирается в реальном времени.",
     principles: [
@@ -270,6 +274,8 @@ export const I18N: Record<Lang, Strings> = {
       totalXp: "{n} XP",
       levelUp: "уровень повышен!",
       xpAwardLabel: "опыт за переговоры",
+      xpAwardFailed: "переговоры сорвались",
+      lowData: "мало данных — сыграйте ещё",
       dailyGoal: "цель дня",
       dailyDone: "цель дня выполнена",
       dailyTodo: "проведите одну переговорку",
@@ -316,6 +322,7 @@ export const I18N: Record<Lang, Strings> = {
     tagline: "negotiation dojo",
     eyebrow: "Harvard method · SPIN · BATNA",
     heroTitle: "Learn to <em>negotiate</em> — at the table, not from a textbook.",
+    heroCta: "Start negotiating",
     heroLead:
       "A live dialogue with an AI counterpart who has hidden interests, a red line and a personality. The outcome depends on your strategy, wording and arguments — every line is analyzed in real time.",
     principles: [
@@ -437,6 +444,8 @@ export const I18N: Record<Lang, Strings> = {
       totalXp: "{n} XP",
       levelUp: "level up!",
       xpAwardLabel: "earned this negotiation",
+      xpAwardFailed: "talks broke down",
+      lowData: "not enough data — play more",
       dailyGoal: "daily goal",
       dailyDone: "daily goal met",
       dailyTodo: "play one negotiation",

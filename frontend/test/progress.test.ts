@@ -52,12 +52,13 @@ test("isBetter: same grade compares score; exact tie does not improve", () => {
   assert.equal(isBetter("B", 70, rec("B", 70)), false, "tie keeps the earlier record");
 });
 
-test("recordDebrief: best only updates when improved; attempts always increments", () => {
+test("recordDebrief: first run is a silent baseline (no 'improved'); best only updates when improved; attempts always increments", () => {
   let p = emptyProfile();
   let r = recordDebrief(p, "supplier", "B", 72, new Date("2026-02-01T10:00:00Z"));
-  assert.equal(r.improved, true);
+  assert.equal(r.improved, false, "first-ever attempt beats no prior best — never a 'record'");
+  assert.equal(r.isFirst, true, "first run sets the baseline");
   assert.equal(r.prevBest, null);
-  assert.equal(r.record.bestGrade, "B");
+  assert.equal(r.record.bestGrade, "B", "baseline is still recorded");
   assert.equal(r.record.bestScore, 72);
   assert.equal(r.record.attempts, 1);
   p = r.profile;
@@ -65,15 +66,17 @@ test("recordDebrief: best only updates when improved; attempts always increments
   // A worse run: attempts bumps, best is unchanged, improved=false.
   r = recordDebrief(p, "supplier", "D", 40, new Date("2026-02-01T11:00:00Z"));
   assert.equal(r.improved, false);
+  assert.equal(r.isFirst, false);
   assert.equal(r.record.bestGrade, "B");
   assert.equal(r.record.bestScore, 72);
   assert.equal(r.record.attempts, 2);
   assert.deepEqual(r.prevBest, { grade: "B", score: 72 });
   p = r.profile;
 
-  // A better run: best rises, delta is reported via prevBest.
+  // A better run that beats a real prior best: improved=true, delta via prevBest.
   r = recordDebrief(p, "supplier", "A", 88, new Date("2026-02-02T09:00:00Z"));
   assert.equal(r.improved, true);
+  assert.equal(r.isFirst, false);
   assert.equal(r.record.bestGrade, "A");
   assert.equal(r.record.bestScore, 88);
   assert.equal(r.record.attempts, 3);
@@ -107,6 +110,14 @@ test("xpForDebrief: base score + record bonus + agreement bonus", () => {
   assert.equal(xpForDebrief(60, "agreement", false), 75, "+15 for closing a deal");
   assert.equal(xpForDebrief(72.4, "agreement", true), 72 + 25 + 15, "all three, rounded");
   assert.equal(xpForDebrief(-5, "breakdown", false), 0, "never negative");
+});
+
+test("xpForDebrief: a breakdown is scaled down hard and earns no bonuses", () => {
+  assert.equal(xpForDebrief(60, "breakdown", false), 18, "60 × 0.3, no bonuses");
+  assert.equal(xpForDebrief(60, "breakdown", true), 18, "a breakdown never collects the record bonus");
+  assert.equal(xpForDebrief(90, "breakdown", false), 27, "90 × 0.3");
+  // A collapsed deal earns far less than the same score reached honestly.
+  assert.ok(xpForDebrief(60, "breakdown", false) < xpForDebrief(60, "active", false));
 });
 
 test("rankForXp: thresholds, mid-tier progress, and the capped top rank", () => {
@@ -174,6 +185,23 @@ test("earnedAchievements: each predicate fires on its own condition", () => {
   assert.ok(earnedAchievements(wide, deb()).includes("five_scenarios"));
 });
 
+test("earnedAchievements: a breakdown mints no skill/success badge", () => {
+  const base = emptyProfile();
+  // Even if the player uncovered every interest and used a criterion + trade, a
+  // collapsed table earns none of the success badges.
+  assert.deepEqual(
+    earnedAchievements(base, deb({
+      status: "breakdown", grade: "F",
+      interests_found: 3, interests_total: 3, objective_criteria: 2, tradeoffs: 1,
+    })),
+    [],
+    "no success badge survives a breakdown",
+  );
+  // Participation badges (streak, breadth) still count — you did show up.
+  const streaky: Profile = { ...base, streak: 3 };
+  assert.deepEqual(earnedAchievements(streaky, deb({ status: "breakdown", grade: "F" })), ["streak_3"]);
+});
+
 test("applyDebrief: awards XP, folds skill averages, unlocks badges, tracks daily goal", () => {
   let p = emptyProfile();
 
@@ -183,8 +211,11 @@ test("applyDebrief: awards XP, folds skill averages, unlocks badges, tracks dail
     deb({ overall: 88, grade: "A", status: "agreement", spin_stages: 3, interests_found: 3, interests_total: 3, objective_criteria: 2, tradeoffs: 1, empathy: 2, threats: 0, relationship: 78 }),
     new Date("2026-04-01T10:00:00Z"),
   );
-  assert.equal(g.improved, true);
-  assert.equal(g.xpGain, 88 + 25 + 15, "score + record + deal");
+  assert.equal(g.improved, false, "a first attempt beats no prior best");
+  assert.equal(g.isFirst, true);
+  assert.equal(g.celebrate, false, "no record fanfare on the very first play");
+  assert.equal(g.failed, false);
+  assert.equal(g.xpGain, 88 + 15, "score + deal, but NO record bonus on a first attempt");
   assert.equal(g.xpAfter, g.xpGain);
   assert.equal(g.dailyGoalMet, true, "first game of the day meets the goal");
   assert.ok(g.newAchievements.includes("first_a"));
@@ -213,6 +244,49 @@ test("applyDebrief: awards XP, folds skill averages, unlocks badges, tracks dail
   // tension = (78+40)/2 = 59 is the highest running average across the two games.
   assert.equal(strong, "tension");
   assert.equal(weak, "tradeoff"); // (50+0)/2 = 25 is the lowest
+});
+
+test("applyDebrief: honest reward loop — beat-a-best celebrates, breakdown does not", () => {
+  let p = emptyProfile();
+
+  // Baseline: a first C. No record, no fanfare (celebrate=false).
+  let g = applyDebrief(p, "supplier", deb({ overall: 60, grade: "C", status: "agreement" }), new Date("2026-06-01T10:00:00Z"));
+  assert.equal(g.isFirst, true);
+  assert.equal(g.celebrate, false, "first attempt never celebrates");
+  assert.equal(g.xpGain, 60 + 15, "no +25 record bonus on the baseline");
+  p = g.profile;
+
+  // Next day, a real improvement to a passing B: THIS celebrates + earns the bonus.
+  g = applyDebrief(p, "supplier", deb({ overall: 80, grade: "B", status: "agreement" }), new Date("2026-06-02T10:00:00Z"));
+  assert.equal(g.improved, true);
+  assert.equal(g.celebrate, true, "beating a prior best with a passing grade celebrates");
+  assert.equal(g.xpGain, 80 + 25 + 15, "score + record + deal");
+  p = g.profile;
+
+  // Next day, the same scenario collapses: reduced XP, no fanfare, best untouched.
+  const before = p.xp;
+  g = applyDebrief(p, "supplier", deb({ overall: 50, grade: "F", status: "breakdown" }), new Date("2026-06-03T10:00:00Z"));
+  assert.equal(g.failed, true);
+  assert.equal(g.celebrate, false, "a breakdown never shows a record");
+  assert.equal(g.improved, false);
+  assert.equal(g.xpGain, Math.round(50 * 0.3), "breakdown XP is hard-scaled, no bonuses");
+  assert.equal(g.xpAfter, before + Math.round(50 * 0.3));
+  assert.equal(g.record.bestGrade, "B", "the collapse does not touch the recorded best");
+  // Three consecutive days earns the participation streak badge, but no skill/success badge.
+  const success = ["first_a", "all_interests", "no_threat_deal", "criteria_tradeoff"];
+  assert.ok(!g.newAchievements.some((a) => success.includes(a)), "no success badge from a breakdown");
+});
+
+test("applyDebrief: a D/F run that edges out a prior best still does not celebrate", () => {
+  // Prior best is a failing F(10). A D(45) is numerically better, so the stored
+  // best rises — but a D is still a failing grade, so no fanfare/record bonus.
+  let p = emptyProfile();
+  p = applyDebrief(p, "salary", deb({ overall: 10, grade: "F", status: "active" }), new Date("2026-07-01T10:00:00Z")).profile;
+  const g = applyDebrief(p, "salary", deb({ overall: 45, grade: "D", status: "active" }), new Date("2026-07-02T10:00:00Z"));
+  assert.equal(g.improved, true, "the raw score did beat the prior best");
+  assert.equal(g.celebrate, false, "but a D never celebrates");
+  assert.equal(g.xpGain, 45, "no +25 record bonus on a failing grade");
+  assert.equal(g.record.bestScore, 45, "the best still rises to reflect reality");
 });
 
 test("applyDebrief: crossing an XP threshold flags a level-up", () => {

@@ -123,24 +123,36 @@ export function SkillsProfile({
           )}
 
           <div className="skillbars">
-            {views.map((s) => (
-              <div className="skb" key={s.id}>
-                <div className="skb-h">
-                  <span className="skb-n">{t.gam.skillNames[s.id]}</span>
-                  <b>{s.n > 0 ? s.mastery : "—"}</b>
+            {views.map((s) => {
+              // One game isn't a mastery signal — a lone weak score would shame a
+              // beginner ("you're a 0 at everything"). Below 2 games we withhold the
+              // number/bar and invite another play instead of scoring them.
+              const enough = s.n >= 2;
+              return (
+                <div className="skb" key={s.id}>
+                  <div className="skb-h">
+                    <span className="skb-n">{t.gam.skillNames[s.id]}</span>
+                    <b>{enough ? s.mastery : "—"}</b>
+                  </div>
+                  <div className="skb-t">
+                    <div
+                      className="skb-f"
+                      style={{ width: grown && enough ? `${s.mastery}%` : "0%", background: SKILL_COLOR[s.id] }}
+                    />
+                  </div>
+                  <div className="skb-hint">
+                    {enough ? (
+                      <>
+                        {t.gam.skillHints[s.id]}
+                        <span className="skb-games"> · {sub(t.gam.gamesCount, { n: s.n })}</span>
+                      </>
+                    ) : (
+                      <span className="skb-lowdata">{t.gam.lowData}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="skb-t">
-                  <div
-                    className="skb-f"
-                    style={{ width: grown && s.n > 0 ? `${s.mastery}%` : "0%", background: SKILL_COLOR[s.id] }}
-                  />
-                </div>
-                <div className="skb-hint">
-                  {t.gam.skillHints[s.id]}
-                  {s.n > 0 ? <span className="skb-games"> · {sub(t.gam.gamesCount, { n: s.n })}</span> : null}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <h3 className="badges-title">{t.gam.achievementsTitle}</h3>
@@ -163,16 +175,18 @@ export function SkillsProfile({
 }
 
 // ---- Debrief XP award: count-up + level-up flourish ------------------------
-export function XpAward({ t, lang, game }: { t: Strings; lang: Lang; game: GameResult }) {
+// `failed` (talks collapsed) drops the celebratory tone: muted styling, a sober
+// caption, and no level-up flourish — a blown negotiation shouldn't feel rewarded.
+export function XpAward({ t, lang, game, failed }: { t: Strings; lang: Lang; game: GameResult; failed?: boolean }) {
   const n = useCountUp(game.xpGain);
   return (
-    <div className="xpaward">
+    <div className={failed ? "xpaward failed" : "xpaward"}>
       <div className="xpa-main">
         <span className="xpa-plus">+{n}</span>
         <span className="xpa-unit">XP</span>
       </div>
-      <div className="xpa-cap">{t.gam.xpAwardLabel}</div>
-      {game.leveledUp ? (
+      <div className="xpa-cap">{failed ? t.gam.xpAwardFailed : t.gam.xpAwardLabel}</div>
+      {game.leveledUp && !failed ? (
         <div className="xpa-level">
           <span className="xpa-spark" aria-hidden="true">✦</span> {t.gam.levelUp}
           <b> {game.rankAfter.rank.name[lang]}</b>
@@ -183,13 +197,24 @@ export function XpAward({ t, lang, game }: { t: Strings; lang: Lang; game: GameR
 }
 
 // ---- Achievement toasts (fixed, auto-dismiss) ------------------------------
+// Anchored bottom (see .ach-toasts) so it never overlaps the debrief header, and
+// held back until the debrief's reveal beats have played (grade ring → XP count-up
+// → badge) so the badge doesn't pop on top of the count-up. Reduced-motion skips
+// the wait. Stack order in the same tick is preserved by keying on the id list.
 export function AchievementToasts({ t, lang, ids }: { t: Strings; lang: Lang; ids: string[] }) {
   const [visible, setVisible] = useState<string[]>([]);
   useEffect(() => {
-    if (ids.length === 0) return;
-    setVisible(ids);
-    const timer = setTimeout(() => setVisible([]), 4600);
-    return () => clearTimeout(timer);
+    if (ids.length === 0) {
+      setVisible([]);
+      return;
+    }
+    const lead = prefersReducedMotion() ? 0 : 1300; // let the ring + XP count-up land first
+    const show = setTimeout(() => setVisible(ids), lead);
+    const hide = setTimeout(() => setVisible([]), lead + 4600);
+    return () => {
+      clearTimeout(show);
+      clearTimeout(hide);
+    };
   }, [ids]);
   if (visible.length === 0) return null;
   return (

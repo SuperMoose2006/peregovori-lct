@@ -101,7 +101,10 @@ export interface RecordResult {
   profile: Profile; // the updated profile (immutable copy)
   record: ScenarioRecord; // the scenario's record AFTER this run
   prevBest: { grade: Grade | null; score: number } | null; // best BEFORE this run
-  improved: boolean; // did this run set a new personal best?
+  // Did this run BEAT a previously recorded best? False on the first-ever attempt
+  // of a scenario — a first result is the silent baseline, not a "new record".
+  improved: boolean;
+  isFirst: boolean; // no prior recorded best existed (this run sets the baseline)
 }
 
 // Fold one finished negotiation into the profile: bump attempts + lastPlayed,
@@ -116,11 +119,17 @@ export function recordDebrief(
 ): RecordResult {
   const prev = profile.scenarios[scenarioId] ?? null;
   const prevBest = prev ? { grade: prev.bestGrade, score: prev.bestScore } : null;
-  const improved = isBetter(grade, score, prev);
+  const hadBest = !!(prev && prev.bestGrade !== null);
+  // `raise` decides whether we overwrite the stored best (true on the first run,
+  // so the baseline gets recorded). `improved` is the CELEBRATORY signal — it only
+  // fires when a real prior best was actually beaten, never on the first attempt.
+  const raise = isBetter(grade, score, prev);
+  const improved = hadBest && raise;
+  const isFirst = !hadBest;
 
   const record: ScenarioRecord = {
-    bestGrade: improved ? grade : prev!.bestGrade,
-    bestScore: improved ? score : prev!.bestScore,
+    bestGrade: raise ? grade : prev!.bestGrade,
+    bestScore: raise ? score : prev!.bestScore,
     attempts: (prev?.attempts ?? 0) + 1,
     lastPlayed: now.toISOString(),
   };
@@ -139,7 +148,7 @@ export function recordDebrief(
     skills: profile.skills,
     achievements: profile.achievements,
   };
-  return { profile: next, record, prevBest, improved };
+  return { profile: next, record, prevBest, improved, isFirst };
 }
 
 // ---- localStorage adapters (defensive; never throw into the UI) ----
@@ -224,9 +233,15 @@ export function getRecord(profile: Profile, scenarioId: string): ScenarioRecord 
 
 // ---- XP + ranks --------------------------------------------------------------
 
-// XP for one finished negotiation: the engine's own score, plus a record bonus
-// (reward for beating your own best) and a small closing bonus (reaching a deal).
+// XP for one finished negotiation. Honest by construction:
+//  - a BREAKDOWN (talks collapsed) is scaled down hard (×0.3) and earns no
+//    bonuses — a failed negotiation should never feel rewarded.
+//  - otherwise it's the engine's own score, plus a record bonus (only when a real
+//    prior best was beaten — `improved`) and a small closing bonus (reaching a deal).
+// `improved` here is the celebratory flag (passing grade AND a beaten prior best),
+// so a lucky D/F never collects the +25 record bonus.
 export function xpForDebrief(overall: number, status: Debrief["status"], improved: boolean): number {
+  if (status === "breakdown") return Math.max(0, Math.round(overall * 0.3));
   let xp = Math.max(0, Math.round(overall));
   if (improved) xp += 25; // beat your personal best on this scenario
   if (status === "agreement") xp += 15; // closed the deal
@@ -352,11 +367,14 @@ export function getAchievement(id: string): Achievement | undefined {
 // (already folded with this run) and the just-finished debrief. Pure/deterministic.
 export function earnedAchievements(profile: Profile, d: Debrief): string[] {
   const out: string[] = [];
-  if (d.grade === "A") out.push("first_a");
+  // A collapsed negotiation earns no skill/success badge — you can't "win" a table
+  // you blew up. Only participation badges (streak, breadth) survive a breakdown.
+  const failed = d.status === "breakdown";
+  if (!failed && d.grade === "A") out.push("first_a");
   if (profile.streak >= 3) out.push("streak_3");
-  if (d.interests_total > 0 && d.interests_found >= d.interests_total) out.push("all_interests");
+  if (!failed && d.interests_total > 0 && d.interests_found >= d.interests_total) out.push("all_interests");
   if (d.status === "agreement" && d.threats === 0) out.push("no_threat_deal");
-  if (d.objective_criteria > 0 && d.tradeoffs > 0) out.push("criteria_tradeoff");
+  if (!failed && d.objective_criteria > 0 && d.tradeoffs > 0) out.push("criteria_tradeoff");
   if (Object.keys(profile.scenarios).length >= 5) out.push("five_scenarios");
   return out;
 }
@@ -372,6 +390,12 @@ export interface GameResult extends RecordResult {
   leveledUp: boolean; // crossed into a new rank this game
   newAchievements: string[]; // ids first unlocked this game (for toasts)
   dailyGoalMet: boolean; // this was the first finished game today
+  // The negotiation collapsed (walked out / timed out). Drives the sober,
+  // no-fanfare debrief tone: reduced XP, no record splash, no level-up flourish.
+  failed: boolean;
+  // Earn the celebratory "new record" flourish: a real prior best was beaten AND
+  // the outcome is a passing, non-collapsed one. Guards against celebrating a D/F.
+  celebrate: boolean;
 }
 
 // The single entry point the app calls on every debrief. Builds on recordDebrief
@@ -389,7 +413,13 @@ export function applyDebrief(
 
   const base = recordDebrief(profile, scenarioId, d.grade as Grade, d.overall, now);
 
-  const xpGain = xpForDebrief(d.overall, d.status, base.improved);
+  // Honesty gate: a collapsed table or a failing grade never triggers the record
+  // fanfare or its XP bonus, even if the raw score edged out a prior (worse) best.
+  const failed = d.status === "breakdown";
+  const passing = d.grade !== "D" && d.grade !== "F";
+  const celebrate = base.improved && passing && !failed;
+
+  const xpGain = xpForDebrief(d.overall, d.status, celebrate);
   const xpBefore = profile.xp;
   const xpAfter = xpBefore + xpGain;
   const rankBefore = rankForXp(xpBefore);
@@ -418,5 +448,7 @@ export function applyDebrief(
     leveledUp: rankAfter.index > rankBefore.index,
     newAchievements,
     dailyGoalMet,
+    failed,
+    celebrate,
   };
 }

@@ -94,11 +94,13 @@ export function Debrief({ t, d, mode, lang, scenarioTitle, record, game, onRetry
                 {t.outcome[d.status]} · <b>{d.deal_text}</b>
               </div>
               {record && record.record.bestGrade ? (
-                <div className={`pb${record.improved ? " beat" : ""}`}>
+                <div className={`pb${game?.celebrate ? " beat" : ""}`}>
                   <span className="pb-l">
                     {t.personalBest}: <b>{record.record.bestGrade} ({record.record.bestScore})</b>
                   </span>
-                  {record.improved ? (
+                  {/* "new record!" only when a real prior best was beaten with a
+                      passing, non-collapsed outcome — never on a first attempt or a D/F. */}
+                  {game?.celebrate ? (
                     <span className="pb-new">
                       ▲ {t.newRecord}
                       {record.prevBest && record.prevBest.grade
@@ -108,7 +110,7 @@ export function Debrief({ t, d, mode, lang, scenarioTitle, record, game, onRetry
                   ) : null}
                 </div>
               ) : null}
-              {game ? <XpAward t={t} lang={lang} game={game} /> : null}
+              {game ? <XpAward t={t} lang={lang} game={game} failed={game.failed} /> : null}
             </div>
           </div>
 

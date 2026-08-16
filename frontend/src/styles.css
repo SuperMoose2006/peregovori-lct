@@ -82,6 +82,11 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .principles { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13.5px; color: var(--ink-dim); }
 .principles b { color: var(--ink); font-weight: 600; }
 
+/* Mobile-only hero CTA. Desktop shows the opponent picker inline just below the
+   hero, so the jump-to-picker button is redundant there and stays hidden. */
+.hero-cta { display: none; }
+:root[data-theme="dark"] .hero-cta { color: #1a1509; }
+
 /* ---------- Mode picker ---------- */
 .section-head { font-size: 12.5px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-faint); margin: 34px 0 16px; }
 .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
@@ -156,8 +161,12 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .gen-sub { font-size: 14.5px; color: var(--ink-dim); margin: 12px auto 0; max-width: 42ch; }
 
 /* ---------- Table (game) ---------- */
-.screen { animation: fade 0.4s ease; }
-@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+/* Screens enter with a gentle upward settle — NOT an opacity ramp from 0. A
+   fade-from-transparent on the very first paint (the home hero) reads as a stuck
+   "still loading" state on slower phones; a short slide never does. Reduced-motion
+   disables it entirely (see the media query at the end of the file). */
+.screen { animation: fade 0.34s ease both; }
+@keyframes fade { from { transform: translateY(7px); } to { transform: translateY(0); } }
 
 .table { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 20px 0 40px; align-items: start; }
 .side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
@@ -458,11 +467,26 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .controls { gap: 8px; flex-shrink: 0; }
   .seg button { padding: 9px 13px; font-size: 13px; min-height: 40px; }
 
-  /* Hero: tighter, still the "lamplit" serif voice. */
-  .hero { padding: 22px 0 14px; }
-  .hero p.lead { font-size: 16px; margin-top: 16px; }
-  .rule { margin: 22px 0; }
+  /* Hero: tighter, still the "lamplit" serif voice. Reordered for thumbs — the
+     rank strip and a single clear CTA lead above the fold; the long lead paragraph
+     and principle pills drop below so the player can act without scrolling. */
+  .hero { padding: 20px 0 12px; display: flex; flex-direction: column; }
+  .hero .eyebrow { order: 1; margin-bottom: 12px; }
+  .hero h1 { order: 2; }
+  .hero .herostats { order: 3; }
+  .hero .hero-cta { order: 4; }
+  .hero p.lead { order: 5; font-size: 16px; margin-top: 18px; }
+  .hero .rule { order: 6; }
+  .hero .principles { order: 7; }
+  .rule { margin: 20px 0; }
   .section-head { margin: 24px 0 12px; }
+
+  .hero-cta {
+    display: block; width: 100%; margin-top: 14px; min-height: 50px; padding: 14px;
+    border-radius: 12px; background: var(--brass); color: #fff;
+    font-weight: 700; font-size: 16px; box-shadow: var(--shadow); transition: filter 0.15s;
+  }
+  .hero-cta:active { filter: brightness(0.94); }
 
   /* Home: single-column cards + modes, big tap targets. */
   .modes { grid-template-columns: 1fr; gap: 10px; }
@@ -758,17 +782,34 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .xpa-level b { color: var(--ink); font-family: var(--serif); }
 .xpa-spark { color: var(--brass); }
 
+/* Collapsed negotiation: a sober award, no brass splash or pop. The reduced XP is
+   still shown honestly, but nothing here reads as a celebration. */
+.xpaward.failed {
+  background: var(--panel-2); border-color: var(--line-2); animation: none;
+}
+.xpaward.failed .xpa-plus { color: var(--ink-dim); }
+.xpaward.failed .xpa-unit { color: var(--ink-faint); }
+.xpaward.failed .xpa-cap { color: var(--tension); }
+
+/* Skill bar before 2 games exist: an invitation, not a punishing "0". */
+.skb-lowdata { color: var(--ink-faint); font-style: italic; }
+
 /* ---- Achievement toasts (fixed, stacked) ---- */
+/* Anchored bottom-right so a badge never lands on top of the debrief's grade ring
+   or "Разбор переговоров" title (they live at the top of the report). On phones it
+   spans the bottom. The reveal is also time-sequenced in JS (ring → XP → badge). */
 .ach-toasts {
-  position: fixed; left: 50%; top: 74px; transform: translateX(-50%); z-index: 50;
-  display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none;
-  max-width: calc(100vw - 28px);
+  position: fixed; right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom)); z-index: 50;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none;
+  max-width: calc(100vw - 36px);
 }
 .ach-toast {
   display: flex; align-items: center; gap: 11px; padding: 10px 16px 10px 12px;
   background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 45%, var(--line));
-  border-radius: 999px; box-shadow: var(--shadow); animation: toastin 0.36s ease both;
+  border-radius: 999px; box-shadow: var(--shadow); animation: toastup 0.36s ease both;
 }
+@keyframes toastup { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .ach-ic { font-size: 22px; line-height: 1; }
 .ach-txt { display: flex; flex-direction: column; line-height: 1.25; }
 .ach-txt b { font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--brass); }
@@ -783,7 +824,12 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .skills { padding: 20px 0 40px; }
   .skills-head h2 { font-size: 23px; }
   .badges { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .ach-toasts { top: 64px; }
+  /* Phones: span the bottom edge, above the composer/safe area. */
+  .ach-toasts {
+    left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom)); align-items: stretch; max-width: none;
+  }
+  .ach-toast { justify-content: center; }
   .ach-txt span { font-size: 13px; }
 }
 @media (max-width: 360px) {
