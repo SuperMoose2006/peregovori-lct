@@ -2,7 +2,7 @@
 // Speaks the exact same ClientMsg -> ServerMsg contract as the FastAPI backend,
 // driven by the deterministic mock engine. This is what makes `npm run dev`
 // demonstrate the full UI end-to-end with no backend running.
-import type { ClientMsg, Lang, ServerMsg } from "../types";
+import type { ClientMsg, Deltas, Lang, ServerMsg, TurningPoint } from "../types";
 import type { ServerMsgHandler, Transport } from "../api/transport";
 import { SCENARIO_MAP, toScenarioView, type ScenarioDef } from "../data/scenarios";
 import { synthCustomScenario } from "./customScenario";
@@ -16,6 +16,9 @@ export class MockServer implements Transport {
   private session: Session | null = null;
   private closed = false;
   private timers = new Set<ReturnType<typeof setTimeout>>();
+  // Per-turn record of the player's own words + their meter swing, so the debrief
+  // can quote the moves that mattered (stand-in for the backend's turning_points).
+  private turns: Array<{ turn: number; text: string; primary: string; deltas: Deltas }> = [];
 
   constructor(onMessage: ServerMsgHandler) {
     this.onMessage = onMessage;
@@ -84,6 +87,7 @@ export class MockServer implements Transport {
       s.trust = Math.max(0, Math.min(100, s.trust + nudge));
     }
     this.session = s;
+    this.turns = [];
     await this.delay(genDelay);
     this.emit({
       type: "greeting",
@@ -105,6 +109,7 @@ export class MockServer implements Transport {
     const raw = analyze(text);
     s.turn += 1;
     const result = applyMove(s, raw);
+    this.turns.push({ turn: s.turn, text, primary: raw.primary, deltas: result.deltas });
 
     let timeout = false;
     if (s.status === "active" && s.turn >= s.maxTurns) {
@@ -141,7 +146,9 @@ export class MockServer implements Transport {
 
     if (result.closed) {
       await this.delay(650);
-      this.emit({ type: "debrief", debrief: scoreSession(s) });
+      const debrief = scoreSession(s);
+      debrief.turning_points = synthTurningPoints(this.turns, s.lang);
+      this.emit({ type: "debrief", debrief });
     }
   }
 
@@ -192,6 +199,46 @@ function coachLine(primary: string, lang: Lang): string | undefined {
   };
   const table = lang === "ru" ? ru : en;
   return table[primary];
+}
+
+// Pick the 1-2 turns that swung the table most (by total meter movement) and
+// quote the player's own words back — the debrief's "replay the tape" moment.
+// Deterministic: ranked by |Δ| sum, then rendered in chronological order.
+function synthTurningPoints(
+  turns: Array<{ turn: number; text: string; primary: string; deltas: Deltas }>,
+  lang: Lang,
+): TurningPoint[] {
+  const swing = (d: Deltas) =>
+    Math.abs(d.trust) + Math.abs(d.tension) + Math.abs(d.info) + Math.abs(d.leverage);
+  return [...turns]
+    .filter((t) => swing(t.deltas) > 0)
+    .sort((a, b) => swing(b.deltas) - swing(a.deltas))
+    .slice(0, 2)
+    .sort((a, b) => a.turn - b.turn)
+    .map((t) => ({
+      turn: t.turn,
+      quote: t.text,
+      what: describeSwing(t.deltas, lang),
+      coach: coachLine(t.primary, lang),
+    }));
+}
+
+// Put the meter swing into plain prose: a lead on which way the table tilted,
+// then the meters that actually moved (honest numbers, engine-owned).
+function describeSwing(d: Deltas, lang: Lang): string {
+  const parts: string[] = [];
+  const push = (ru: string, en: string, v: number) => {
+    if (Math.abs(v) >= 3) parts.push(`${lang === "ru" ? ru : en} ${v > 0 ? "+" : "−"}${Math.abs(Math.round(v))}`);
+  };
+  push("Доверие", "Trust", d.trust);
+  push("Напряжение", "Tension", d.tension);
+  push("Информация", "Info", d.info);
+  push("Рычаг", "Leverage", d.leverage);
+  const positive = d.trust + d.info + d.leverage - d.tension >= 0;
+  const lead = lang === "ru"
+    ? positive ? "Ход сыграл в вашу пользу" : "Ход качнул стол против вас"
+    : positive ? "This move swung the table your way" : "This move swung the table against you";
+  return parts.length ? `${lead}: ${parts.join(", ")}.` : `${lead}.`;
 }
 
 // Split a reply into word-group chunks for a streaming feel.

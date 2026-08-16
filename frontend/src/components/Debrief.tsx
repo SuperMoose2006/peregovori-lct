@@ -132,6 +132,24 @@ export function Debrief({ t, d, mode, scenarioTitle, record, onRetry, onHome, on
             ))}
           </div>
 
+          {d.turning_points && d.turning_points.length > 0 ? (
+            <div className="tpoints">
+              <h3>{t.turningPoints.title}</h3>
+              <ol>
+                {d.turning_points.map((p, i) => (
+                  <li key={i}>
+                    <span className="tp-turn">
+                      {t.turningPoints.turn} {p.turn}
+                    </span>
+                    <blockquote className="tp-quote">«{p.quote}»</blockquote>
+                    <div className="tp-what">{p.what}</div>
+                    {p.coach ? <div className="tp-coach">{p.coach}</div> : null}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : null}
+
           <div className="coach">
             <h3>{t.coachTitle}</h3>
             <ul>

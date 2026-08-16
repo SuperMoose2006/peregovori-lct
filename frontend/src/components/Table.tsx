@@ -54,6 +54,16 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
   }
   const face = exam ? scenario.icon : moodFace(st, scenario.icon);
 
+  // First-90-seconds hook: a one-time, dismissible coach bubble nudging the new
+  // player to open with a question. Shown only on turn 0 (before any send) and
+  // never in exam (which withholds help). Dismissed on × or the first send.
+  const [coachDismissed, setCoachDismissed] = useState(false);
+  const showFirstCoach = !exam && !!st && st.turn === 0 && !coachDismissed;
+  const handleSend = (text: string) => {
+    setCoachDismissed(true);
+    onSend(text);
+  };
+
   // Interest-reveal delight: when the engine's interests_found ticks up, flash
   // the tracker and float a brief toast. Purely celebratory — we never reveal
   // the interest text the backend withheld, only that the COUNT rose. Suppressed
@@ -138,11 +148,23 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
               exam={exam}
               coachLabel={t.coachLabel}
             />
+            {showFirstCoach ? (
+              <div className="firstcoach" role="note">
+                <span>{t.firstTurnCoach.replace("{name}", scenario.counterpart_name)}</span>
+                <button
+                  className="firstcoach-x"
+                  onClick={() => setCoachDismissed(true)}
+                  aria-label={t.dismiss}
+                >
+                  ×
+                </button>
+              </div>
+            ) : null}
             <Composer
               disabled={busy || finished || !st}
               placeholder={t.placeholder}
               quickMoves={t.quickMoves}
-              onSend={onSend}
+              onSend={handleSend}
               onHint={onHint}
               hintEnabled={!exam}
               showChips={!exam}

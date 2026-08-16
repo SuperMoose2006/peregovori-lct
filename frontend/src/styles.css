@@ -290,6 +290,22 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .quick button { font-size: 11.5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-dim); transition: 0.15s; }
 .quick button:hover { border-color: var(--brass); color: var(--ink); }
 
+/* first-turn coach bubble — the opening nudge above the composer, dismissible */
+.firstcoach {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 0 14px 10px; padding: 10px 12px;
+  font-size: 13px; color: var(--ink-dim); line-height: 1.5;
+  background: color-mix(in srgb, var(--brass) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--brass) 30%, var(--line));
+  border-left: 2.5px solid var(--brass); border-radius: 10px;
+  animation: pop 0.3s ease;
+}
+.firstcoach-x {
+  flex-shrink: 0; font-size: 17px; line-height: 1; color: var(--ink-faint);
+  padding: 0 3px; border-radius: 6px; transition: 0.15s;
+}
+.firstcoach-x:hover { color: var(--ink); background: var(--panel-2); }
+
 /* debrief */
 .debrief { max-width: 720px; margin: 0 auto; padding: 34px 0 50px; }
 .gh { display: flex; align-items: center; gap: 26px; margin-bottom: 30px; }
@@ -320,6 +336,18 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .st { background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 13px; text-align: center; }
 .st .n { font-family: var(--serif); font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .st .l { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+/* turning points — the "replay the tape" section: the player's own lines quoted back */
+.tpoints { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; margin-bottom: 20px; }
+.tpoints h3 { margin: 0 0 15px; font-size: 17px; }
+.tpoints ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.tpoints li { border-left: 2.5px solid var(--brass); padding: 2px 0 2px 14px; }
+.tp-turn { display: inline-block; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--brass); font-weight: 700; margin-bottom: 6px; }
+.tp-quote { margin: 0 0 7px; font-family: var(--serif); font-style: italic; font-size: 15px;
+  color: var(--ink-dim); line-height: 1.5; }
+.tp-what { font-size: 13.5px; color: var(--ink); line-height: 1.5; }
+.tp-coach { margin-top: 6px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+.tp-coach::before { content: "— "; color: var(--brass); }
 .coach { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; margin-bottom: 22px; }
 .coach h3 { margin: 0 0 13px; font-size: 17px; }
 .coach ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }

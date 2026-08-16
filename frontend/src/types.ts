@@ -60,6 +60,15 @@ export interface ScenarioView {
   reservation: number;
 }
 
+// A move that swung the negotiation, quoted from the player's own words —
+// the "replay the tape" teaching moment. Synthesized by the engine, never the UI.
+export interface TurningPoint {
+  turn: number;
+  quote: string; // the player's actual line
+  what: string; // what happened as a result (the meter swing, in prose)
+  coach?: string; // optional coach note on the move
+}
+
 export interface Debrief {
   overall: number;
   grade: string; // A|B|C|D|F
@@ -77,6 +86,9 @@ export interface Debrief {
   tradeoffs: number;
   avg_arg: number;
   tips: string[];
+  // The 1-2 moves that swung the negotiation most (backend may omit; older
+  // debriefs / non-engine paths render nothing when absent).
+  turning_points?: TurningPoint[];
 }
 
 export interface CampaignStageView {

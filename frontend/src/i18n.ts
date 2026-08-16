@@ -90,7 +90,12 @@ export interface Strings {
     replay: string; // restart the campaign
     verdicts: Record<string, string>; // grade (A..F) → title
   };
+  // first-turn coach bubble (practice/campaign/custom; withheld in exam).
+  // {name} = counterpart name, substituted at render.
+  firstTurnCoach: string;
+  dismiss: string; // aria-label for the bubble's × close
   // debrief
+  turningPoints: { title: string; turn: string }; // "Ключевые ходы" / "Ход {n}"
   debriefTitle: string;
   coachTitle: string;
   retry: string;
@@ -204,6 +209,9 @@ export const I18N: Record<Lang, Strings> = {
         F: "Ещё учиться",
       },
     },
+    firstTurnCoach: "💡 Начните с вопроса: узнайте, что важно для {name}. Не давите — сначала интересы.",
+    dismiss: "Закрыть подсказку",
+    turningPoints: { title: "Ключевые ходы", turn: "Ход" },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
     retry: "Пройти снова",
@@ -328,6 +336,9 @@ export const I18N: Record<Lang, Strings> = {
         F: "Still learning",
       },
     },
+    firstTurnCoach: "💡 Open with a question: find out what matters to {name}. Don't push — interests first.",
+    dismiss: "Dismiss tip",
+    turningPoints: { title: "Turning points", turn: "Turn" },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",
     retry: "Try again",
