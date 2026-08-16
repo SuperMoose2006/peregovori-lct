@@ -19,9 +19,12 @@ interface Props {
   scenarioTitle?: string;
   onRetry: () => void;
   onHome: () => void;
+  // Campaign mode: the primary action advances the arc instead of replaying.
+  onNext?: () => void;
+  nextLabel?: string;
 }
 
-export function Debrief({ t, d, mode, scenarioTitle, onRetry, onHome }: Props) {
+export function Debrief({ t, d, mode, scenarioTitle, onRetry, onHome, onNext, nextLabel }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
   // Exam reads like a certificate: same score/stats/tips, ceremonial framing.
   const exam = mode === "exam";
@@ -120,9 +123,15 @@ export function Debrief({ t, d, mode, scenarioTitle, onRetry, onHome }: Props) {
           </div>
 
           <div className="dacts">
-            <button className="primary" onClick={onRetry}>
-              ↻ {t.retry}
-            </button>
+            {onNext ? (
+              <button className="primary" onClick={onNext}>
+                {nextLabel}
+              </button>
+            ) : (
+              <button className="primary" onClick={onRetry}>
+                ↻ {t.retry}
+              </button>
+            )}
             <button className="quit" onClick={onHome}>
               {t.toHome}
             </button>

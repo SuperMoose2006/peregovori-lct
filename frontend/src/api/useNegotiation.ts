@@ -24,7 +24,8 @@ export interface NegotiationState {
 
 export interface Negotiation extends NegotiationState {
   // situation is the free-text brief for mode "custom" (ignored otherwise).
-  start: (scenarioId: string, mode: Mode, situation?: string) => void;
+  // reputation (-100..100) carries a campaign result into the next stage's trust.
+  start: (scenarioId: string, mode: Mode, situation?: string, reputation?: number) => void;
   turn: (text: string) => void;
   requestHint: () => void;
   clearError: () => void;
@@ -70,11 +71,11 @@ export function useNegotiation(lang: Lang): Negotiation {
   }, [handle]);
 
   const start = useCallback(
-    (scenarioId: string, mode: Mode, situation?: string) => {
+    (scenarioId: string, mode: Mode, situation?: string, reputation?: number) => {
       teardown();
       setS({ ...initialState });
       const t = ensureTransport();
-      t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation });
+      t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation, reputation });
     },
     [ensureTransport, teardown],
   );

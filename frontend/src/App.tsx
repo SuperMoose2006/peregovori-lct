@@ -1,14 +1,19 @@
-// App.tsx — screen router (home / game / debrief) with RU/EN + light/dark toggles.
-import { useCallback, useEffect, useState } from "react";
-import type { Lang, Mode } from "./types";
+// App.tsx — screen router (home / game / debrief / campaign) with RU/EN + light/dark toggles.
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { CampaignView, Debrief as DebriefData, Lang, Mode } from "./types";
 import { I18N } from "./i18n";
 import { useNegotiation } from "./api/useNegotiation";
+import { getCampaigns } from "./api/campaigns";
 import { ScenarioPicker } from "./components/ScenarioPicker";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
+import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
 
-type Screen = "home" | "generating" | "game" | "debrief";
+type Screen = "home" | "generating" | "game" | "debrief" | "campaign_done";
 type Theme = "light" | "dark" | null;
+
+const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
+const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 export default function App() {
   const [lang, setLang] = useState<Lang>("ru");
@@ -17,6 +22,13 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("practice");
   const [currentScenario, setCurrentScenario] = useState<string | null>(null);
   const [situation, setSituation] = useState("");
+  // Campaign ("Восхождение"): the fetched arc + the player's running progress
+  // (which act is next, accumulated reputation, and per-act grades).
+  const [campaign, setCampaign] = useState<CampaignView | null>(null);
+  const [progress, setProgress] = useState<CampaignProgress>(INITIAL_PROGRESS);
+  // Dedupe recording a stage result: each debrief is a fresh object, so identity
+  // tells one stage's debrief from the next (and from a reset).
+  const recordedDebrief = useRef<DebriefData | null>(null);
 
   const nego = useNegotiation(lang);
   const t = I18N[lang];
@@ -47,6 +59,34 @@ export default function App() {
     if (screen === "generating" && nego.error) setScreen("home");
   }, [screen, nego.error]);
 
+  // Load the campaign arc when the mode is active (refetch on lang change to
+  // relocalize). Falls back to an offline synth if the backend is unreachable.
+  useEffect(() => {
+    if (mode !== "campaign") return;
+    let cancelled = false;
+    getCampaigns(lang).then((cs) => {
+      if (!cancelled) setCampaign(cs[0] ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, lang]);
+
+  // When a campaign stage's debrief lands, record its result: push the grade,
+  // advance the arc, and fold (overall − 50) into the running reputation. The
+  // engine still owns scoring — reputation is only the next stage's trust nudge.
+  useEffect(() => {
+    if (mode !== "campaign" || !nego.debrief || !campaign) return;
+    if (recordedDebrief.current === nego.debrief) return;
+    recordedDebrief.current = nego.debrief;
+    const d = nego.debrief;
+    setProgress((p) => ({
+      stageIndex: p.stageIndex + 1,
+      reputation: clamp(p.reputation + (d.overall - 50), -100, 100),
+      results: [...p.results, { grade: d.grade, overall: d.overall }],
+    }));
+  }, [mode, nego.debrief, campaign]);
+
   const isDark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
@@ -67,6 +107,39 @@ export default function App() {
     setScreen("generating");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [nego, situation]);
+
+  // Launch the current campaign act, carrying the running reputation into it. If
+  // the arc is already finished, jump to the summit summary instead.
+  const beginStage = useCallback(() => {
+    if (!campaign) return;
+    const total = campaign.stages.length;
+    if (progress.stageIndex >= total) {
+      setScreen("campaign_done");
+      return;
+    }
+    const stage = campaign.stages[progress.stageIndex];
+    setCurrentScenario(stage.scenario_id);
+    nego.start(stage.scenario_id, "campaign", undefined, progress.reputation);
+    setScreen("game");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [campaign, progress.stageIndex, progress.reputation, nego]);
+
+  // Debrief → advance: back to the arc overview (progress already recorded), or
+  // to the summit summary after the final act.
+  const nextAct = useCallback(() => {
+    nego.reset();
+    const total = campaign?.stages.length ?? 0;
+    setScreen(progress.stageIndex >= total ? "campaign_done" : "home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [nego, campaign, progress.stageIndex]);
+
+  const replayCampaign = useCallback(() => {
+    setProgress(INITIAL_PROGRESS);
+    recordedDebrief.current = null;
+    nego.reset();
+    setScreen("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [nego]);
 
   // Switching modes clears a stale generation error from the custom view.
   const selectMode = useCallback(
@@ -138,6 +211,9 @@ export default function App() {
               customError={nego.error}
               onSituationChange={setSituation}
               onStartCustom={startCustom}
+              campaign={campaign}
+              campaignProgress={progress}
+              onBeginStage={beginStage}
             />
           </div>
         </section>
@@ -190,6 +266,24 @@ export default function App() {
           mode={mode}
           scenarioTitle={nego.scenario?.title}
           onRetry={retry}
+          onHome={goHome}
+          onNext={mode === "campaign" ? nextAct : undefined}
+          nextLabel={
+            mode === "campaign"
+              ? progress.stageIndex >= (campaign?.stages.length ?? Infinity)
+                ? t.campaign.seeResults
+                : t.campaign.nextAct
+              : undefined
+          }
+        />
+      )}
+
+      {screen === "campaign_done" && campaign && (
+        <CampaignComplete
+          t={t}
+          campaign={campaign}
+          progress={progress}
+          onReplay={replayCampaign}
           onHome={goHome}
         />
       )}

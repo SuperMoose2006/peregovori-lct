@@ -1,13 +1,14 @@
 // ScenarioPicker.tsx — mode picker (Практика · Своя сделка · Экзамен wired;
 // Кампания shown as a "soon" card). For library modes it lists scenario cards;
 // for "custom" it swaps in the free-text situation input (CustomSituation).
-import type { Lang, Mode } from "../types";
+import type { CampaignView, Lang, Mode } from "../types";
 import type { Strings } from "../i18n";
 import { catalog } from "../data/scenarios";
 import { CustomSituation } from "./CustomSituation";
+import { CampaignArc, type CampaignProgress } from "./CampaignScreen";
 
 const MODES: Mode[] = ["practice", "campaign", "custom", "exam"];
-const WIRED: Record<Mode, boolean> = { practice: true, campaign: false, custom: true, exam: true };
+const WIRED: Record<Mode, boolean> = { practice: true, campaign: true, custom: true, exam: true };
 
 interface Props {
   t: Strings;
@@ -20,11 +21,16 @@ interface Props {
   customError: string | null;
   onSituationChange: (v: string) => void;
   onStartCustom: () => void;
+  // campaign-mode wiring
+  campaign: CampaignView | null;
+  campaignProgress: CampaignProgress;
+  onBeginStage: () => void;
 }
 
 export function ScenarioPicker({
   t, lang, mode, onSelectMode, onStart,
   situation, customError, onSituationChange, onStartCustom,
+  campaign, campaignProgress, onBeginStage,
 }: Props) {
   const rows = catalog(lang);
   return (
@@ -58,6 +64,8 @@ export function ScenarioPicker({
           onChange={onSituationChange}
           onGenerate={onStartCustom}
         />
+      ) : mode === "campaign" ? (
+        <CampaignArc t={t} campaign={campaign} progress={campaignProgress} onBegin={onBeginStage} />
       ) : (
         <>
           <div className="section-head">{t.pickHead}</div>

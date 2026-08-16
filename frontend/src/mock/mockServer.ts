@@ -76,6 +76,13 @@ export class MockServer implements Transport {
     }
 
     const s = newSession(def, lang);
+    // Campaign reputation carries into this stage as a starting-trust nudge
+    // (mirrors backend views.apply_reputation: ±15 max, initial condition only —
+    // never scoring). Lets the offline demo show the carry-over take effect.
+    if (typeof msg.reputation === "number") {
+      const nudge = Math.max(-15, Math.min(15, msg.reputation * 0.12));
+      s.trust = Math.max(0, Math.min(100, s.trust + nudge));
+    }
     this.session = s;
     await this.delay(genDelay);
     this.emit({

@@ -276,6 +276,54 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .primary:hover { filter: brightness(1.08); }
 .dacts .quit { flex: 1; }
 
+/* ---------- Campaign ("Восхождение") arc ---------- */
+.camp { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; box-shadow: var(--shadow); }
+.camp-head { display: flex; align-items: flex-start; gap: 15px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.camp-ic { font-size: 34px; flex-shrink: 0; filter: drop-shadow(0 0 16px color-mix(in srgb, var(--brass) 40%, transparent)); }
+.camp-ic.big { font-size: 52px; }
+.camp-heading { flex: 1; }
+.camp-title { font-family: var(--serif); font-size: 24px; margin: 0; }
+.camp-tag { font-size: 13.5px; color: var(--ink-dim); margin: 6px 0 0; max-width: 54ch; }
+.camp-rep { flex-shrink: 0; text-align: right; border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 12px; }
+.camp-rep-l { display: block; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-faint); }
+.camp-rep b { font-family: var(--serif); font-size: 20px; font-variant-numeric: tabular-nums; }
+.camp-rep.pos b { color: var(--trust); }
+.camp-rep.neg b { color: var(--tension); }
+
+/* The vertical story arc: each act is a node + body, joined by a connector. */
+.arc { list-style: none; margin: 20px 0 0; padding: 0; }
+.act { position: relative; display: flex; gap: 15px; padding: 0 0 22px; }
+.act:last-child { padding-bottom: 0; }
+/* connector line running through the node column */
+.act::before { content: ""; position: absolute; left: 20px; top: 42px; bottom: -2px; width: 2px; background: var(--line); }
+.act:last-child::before { display: none; }
+.act-node { position: relative; z-index: 1; width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); border: 2px solid var(--line-2); font-family: var(--serif); font-weight: 700; }
+.act-node .grade { font-size: 20px; line-height: 1; }
+.act-node .num { font-size: 17px; color: var(--ink-faint); }
+.act-node .lock { font-size: 15px; filter: grayscale(1); opacity: 0.6; }
+.act.done .act-node { border-color: color-mix(in srgb, var(--brass) 55%, transparent); background: color-mix(in srgb, var(--brass) 10%, var(--panel)); }
+.act.current .act-node { border-color: var(--brass); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brass) 16%, transparent); }
+.act.locked { opacity: 0.55; }
+.act-body { flex: 1; padding-top: 2px; }
+.act-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+.act-title { font-family: var(--serif); font-size: 18px; font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 8px; }
+.act-ic { font-size: 18px; }
+.act-meta { display: flex; align-items: center; gap: 12px; margin-top: 7px; font-size: 12px; color: var(--ink-dim); }
+.act-of { color: var(--ink-faint); }
+.act-badge { margin-left: auto; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 9px; color: var(--ink-faint); }
+.act-badge.current { color: var(--brass); border-color: color-mix(in srgb, var(--brass) 45%, transparent); }
+.act-badge.done { color: var(--trust); border-color: color-mix(in srgb, var(--trust) 40%, transparent); }
+.act-intro { font-size: 13px; color: var(--ink-dim); margin: 9px 0 0; padding: 10px 12px; background: var(--panel-2); border-left: 3px solid var(--brass); border-radius: 8px; max-width: 60ch; }
+.camp-cta { width: 100%; margin-top: 22px; }
+
+/* Campaign summit summary reuses the .debrief.cert shell */
+.camp-done-head { text-align: center; padding-bottom: 26px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+.camp-done-head h2 { font-family: var(--serif); font-size: 30px; margin: 4px 0 0; }
+.camp-done-head .verdict { font-size: 22px; font-style: italic; margin-top: 10px; }
+.camp-avg { margin-top: 10px; font-size: 14px; color: var(--ink-dim); }
+.camp-avg b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.arc.final { margin-top: 22px; margin-bottom: 22px; }
+
 .foot { border-top: 1px solid var(--line); padding: 18px 22px; max-width: 1120px; margin: 40px auto 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-faint); }
 
 @media (max-width: 860px) {

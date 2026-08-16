@@ -54,6 +54,24 @@ export interface Strings {
     resultTitle: string; // "Exam result"
     scenarioLabel: string; // "Scenario"
   };
+  // campaign mode ("Кампания") — narrative career arc
+  campaign: {
+    overviewHead: string; // section head above the arc
+    begin: string; // "Begin the climb" (first act)
+    continue: string; // "Continue the climb" (later acts)
+    nextAct: string; // debrief primary action, non-final act
+    seeResults: string; // debrief primary action, final act
+    locked: string; // future-act badge
+    current: string; // current-act badge
+    done: string; // completed-act badge
+    reputation: string; // running-reputation chip label
+    actOf: string; // "Act {n} of {total}" — {n}/{total} substituted
+    completeEyebrow: string; // kicker on the completion screen
+    completeTitle: string;
+    avgLabel: string; // "Average score"
+    replay: string; // restart the campaign
+    verdicts: Record<string, string>; // grade (A..F) → title
+  };
   // debrief
   debriefTitle: string;
   coachTitle: string;
@@ -124,6 +142,29 @@ export const I18N: Record<Lang, Strings> = {
       eyebrow: "Сертификат · экзамен",
       resultTitle: "Результат экзамена",
       scenarioLabel: "Сценарий",
+    },
+    campaign: {
+      overviewHead: "Ваша карьерная арка",
+      begin: "Начать восхождение →",
+      continue: "Продолжить восхождение →",
+      nextAct: "Следующий акт →",
+      seeResults: "Итоги восхождения →",
+      locked: "закрыто",
+      current: "сейчас",
+      done: "пройдено",
+      reputation: "Репутация",
+      actOf: "Акт {n} из {total}",
+      completeEyebrow: "Восхождение · итог",
+      completeTitle: "Путь пройден",
+      avgLabel: "Средний балл",
+      replay: "Пройти заново",
+      verdicts: {
+        A: "Мастер переговоров",
+        B: "Уверенный переговорщик",
+        C: "Крепкий середняк",
+        D: "Есть над чем поработать",
+        F: "Ещё учиться",
+      },
     },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
@@ -214,6 +255,29 @@ export const I18N: Record<Lang, Strings> = {
       eyebrow: "Certificate · exam",
       resultTitle: "Exam result",
       scenarioLabel: "Scenario",
+    },
+    campaign: {
+      overviewHead: "Your career arc",
+      begin: "Begin the climb →",
+      continue: "Continue the climb →",
+      nextAct: "Next act →",
+      seeResults: "See the summit →",
+      locked: "locked",
+      current: "now",
+      done: "cleared",
+      reputation: "Reputation",
+      actOf: "Act {n} of {total}",
+      completeEyebrow: "The Climb · summary",
+      completeTitle: "The climb is complete",
+      avgLabel: "Average score",
+      replay: "Climb again",
+      verdicts: {
+        A: "Master negotiator",
+        B: "Confident negotiator",
+        C: "Solid middleweight",
+        D: "Room to grow",
+        F: "Still learning",
+      },
     },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",
