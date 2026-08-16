@@ -139,3 +139,18 @@ def test_hostility_drives_breakdown():
         "Смешно, вы издеваетесь.",
     ])
     assert sess.state.status == "breakdown"
+
+
+def test_repeated_line_barely_moves_opponent():
+    """Anti-gaming: spamming the same line should not keep conceding."""
+    from app import engine
+    from app.engine.techniques import analyze as _an
+    sess = engine.create_session("supplier", "ru")
+    line = "По рыночным данным цена ниже, потому что это отраслевой стандарт."
+    sess.turn += 1
+    r1 = engine.apply_move(sess, _an(line), line)
+    first_move = abs(r1.deltas["offer_opp"])
+    sess.turn += 1
+    r2 = engine.apply_move(sess, _an(line), line)  # exact repeat
+    second_move = abs(r2.deltas["offer_opp"])
+    assert second_move < first_move * 0.5  # repeat concedes far less

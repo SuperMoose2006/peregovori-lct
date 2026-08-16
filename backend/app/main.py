@@ -167,7 +167,7 @@ async def ws(websocket: WebSocket) -> None:
                     except Exception:
                         judge = None
 
-                result = engine.apply_move(sess, analysis, judge=judge)
+                result = engine.apply_move(sess, analysis, text, judge=judge)
 
                 timeout = False
                 if sess.state.status == "active" and sess.turn >= sess.max_turns:

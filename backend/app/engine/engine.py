@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .scenarios import Scenario, by_id
-from .techniques import Analysis, analyze
+from .techniques import Analysis, analyze, norm
 
 
 def _js_round(x: float) -> int:
@@ -86,6 +86,7 @@ class Session:
     state: GameState
     metrics: Metrics
     log: list = field(default_factory=list)
+    last_player_norm: str = ""  # anti-gaming: detect repeated identical lines
 
 
 @dataclass
@@ -175,6 +176,14 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     if judge is not None and judge.get("arg_score") is not None:
         analysis.arg_quality = int(judge["arg_score"])
 
+    # Anti-gaming: repeating the exact same line barely works — the opponent
+    # notices, and it stops padding your technique score.
+    cur_norm = norm(raw_text)
+    repeated = bool(cur_norm) and cur_norm == sess.last_player_norm
+    sess.last_player_norm = cur_norm
+    if repeated:
+        analysis.arg_quality = min(analysis.arg_quality, 12)
+
     before = {
         "trust": s.trust,
         "tension": s.tension,
@@ -205,7 +214,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
 
     # --- SPIN & interest probing: uncover hidden interests. --------------------
     judge_interest = judge.get("interest_targeted") if judge else None
-    if analysis.spin or has("interests_probe") or judge_interest is not None:
+    if (analysis.spin or has("interests_probe") or judge_interest is not None) and not repeated:
         total = len(sc.hidden_interests[sess.lang])
         revealed = False
         if s.trust > 30:
@@ -305,6 +314,8 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         concession_fraction *= 0.25
     elif s.tension > 55:
         concession_fraction *= 0.6
+    if repeated:
+        concession_fraction *= 0.15  # repeating the same line won't move them
     concession_fraction = clamp(concession_fraction, 0, 0.7)
 
     if concession_fraction > 0.01:
