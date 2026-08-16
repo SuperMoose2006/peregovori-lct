@@ -22,10 +22,24 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import tempfile
 from typing import Optional
 
 # Output cap (chars) — mirrors legacy sanitize; keeps a reply to a couple lines.
 MAX_LEN = 400
+
+# `claude -p` must run in a NEUTRAL directory: if it runs inside this repo it
+# loads the project CLAUDE.md + skills and answers as "Claude Code working on
+# the project" instead of as our role-play/generation prompt (and is far slower).
+# One throwaway empty dir, created lazily and reused.
+_CLI_CWD: Optional[str] = None
+
+
+def _cli_cwd() -> str:
+    global _CLI_CWD
+    if _CLI_CWD is None:
+        _CLI_CWD = tempfile.mkdtemp(prefix="nego-cli-")
+    return _CLI_CWD
 
 
 def _model() -> str:
@@ -80,7 +94,7 @@ def sanitize(text: Optional[str]) -> Optional[str]:
 class OffBackend:
     """No AI: always None so the caller uses the engine's templated fallback."""
 
-    def generate(self, system: str, user: str) -> Optional[str]:
+    def generate(self, system: str, user: str, raw: bool = False) -> Optional[str]:
         return None
 
     def describe_mode(self) -> str:
@@ -90,25 +104,29 @@ class OffBackend:
 class CliBackend:
     """Wraps the local `claude` CLI as a 'local API' (no API key needed)."""
 
-    def generate(self, system: str, user: str) -> Optional[str]:
+    def generate(self, system: str, user: str, raw: bool = False) -> Optional[str]:
         # `claude -p` takes a single non-interactive prompt on stdin; we fold the
         # system rules and the turn message into one self-contained prompt.
+        # raw=True skips sanitize (used for structured/JSON generation).
         prompt = f"{system}\n\n{user}"
         # Model name is whitelisted so it can never inject extra CLI args.
         model = re.sub(r"[^a-zA-Z0-9._-]", "", _model())
+        # Structured (raw) generation is a heavier task → allow more time.
+        timeout = max(_timeout(), 90.0) if raw else _timeout()
         try:
             proc = subprocess.run(
                 ["claude", "-p", "--model", model, "--output-format", "text"],
                 input=prompt,
                 capture_output=True,
                 text=True,
-                timeout=_timeout(),
+                timeout=timeout,
+                cwd=_cli_cwd(),  # neutral dir: don't load the project's CLAUDE.md/skills
             )
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             return None
         if proc.returncode != 0:
             return None
-        return sanitize(proc.stdout)
+        return proc.stdout.strip() if raw else sanitize(proc.stdout)
 
     def describe_mode(self) -> str:
         return f"cli — local `claude -p` (model={_model()}, timeout={_timeout():g}s)"
@@ -138,13 +156,15 @@ class ApiBackend:
     def available(self) -> bool:
         return self._llm is not None
 
-    def generate(self, system: str, user: str) -> Optional[str]:
+    def generate(self, system: str, user: str, raw: bool = False) -> Optional[str]:
         if self._llm is None:
             return None
         try:
             from langchain_core.messages import SystemMessage, HumanMessage
 
-            resp = self._llm.invoke(
+            # raw=True needs room for a full JSON scenario and skips sanitize.
+            llm = self._llm.bind(max_tokens=1024) if raw else self._llm
+            resp = llm.invoke(
                 [SystemMessage(content=system), HumanMessage(content=user)]
             )
             content = getattr(resp, "content", None)
@@ -153,7 +173,7 @@ class ApiBackend:
                 content = "".join(
                     b.get("text", "") if isinstance(b, dict) else str(b) for b in content
                 )
-            return sanitize(content)
+            return (content or "").strip() if raw else sanitize(content)
         except Exception:
             return None
 

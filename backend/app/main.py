@@ -80,10 +80,25 @@ async def ws(websocket: WebSocket) -> None:
             if mtype == "start":
                 data = StartMsg(**msg)
                 lang = data.lang
-                sess = engine.create_session(data.scenarioId, lang)
+
+                # "Своя сделка": generate an ephemeral scenario from the user's situation.
+                if data.mode == "custom":
+                    from app.ai.scenario_gen import generate_scenario
+                    gen = generate_scenario(data.situation or "", lang)
+                    if gen is None:
+                        await websocket.send_json({"type": "error", "message": (
+                            "Режим «Своя сделка» требует включённого ИИ (NEGO_AI=cli или api)."
+                            if lang == "ru" else
+                            "Custom mode requires an AI backend (NEGO_AI=cli or api).")})
+                        continue
+                    scenario_id = gen.id
+                else:
+                    scenario_id = data.scenarioId
+
+                sess = engine.create_session(scenario_id, lang)
                 session_id = store.new_id()
                 store.put(session_id, sess)
-                sc = engine.by_id(data.scenarioId)
+                sc = engine.by_id(scenario_id)
                 await websocket.send_json({
                     "type": "greeting",
                     "sessionId": session_id,

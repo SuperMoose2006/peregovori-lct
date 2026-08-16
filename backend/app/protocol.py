@@ -104,9 +104,10 @@ class Debrief(BaseModel):
 
 class StartMsg(BaseModel):
     type: Literal["start"] = "start"
-    scenarioId: str
+    scenarioId: str = ""          # empty for mode="custom" (scenario is generated)
     lang: Lang = "ru"
     mode: Mode = "practice"
+    situation: Optional[str] = None  # free-text for mode="custom" scenario generation
 
 
 class TurnMsg(BaseModel):

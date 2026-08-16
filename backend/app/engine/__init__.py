@@ -4,7 +4,7 @@ Public API mirrors the engine contract in the design doc §3.
 """
 
 from .techniques import Analysis, analyze, norm
-from .scenarios import Scenario, SCENARIOS, by_id
+from .scenarios import Scenario, SCENARIOS, by_id, register_runtime_scenario
 from .engine import (
     Session,
     GameState,
@@ -25,6 +25,7 @@ __all__ = [
     "Scenario",
     "SCENARIOS",
     "by_id",
+    "register_runtime_scenario",
     "Session",
     "GameState",
     "MoveResult",

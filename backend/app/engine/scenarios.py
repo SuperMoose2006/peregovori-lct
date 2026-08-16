@@ -232,8 +232,17 @@ SCENARIOS: list[Scenario] = [
 ]
 
 
+# Runtime registry for generated ("custom") scenarios. These are ephemeral,
+# session-scoped, and never mutate the static SCENARIOS catalog.
+_RUNTIME: dict[str, Scenario] = {}
+
+
+def register_runtime_scenario(scenario: Scenario) -> None:
+    _RUNTIME[scenario.id] = scenario
+
+
 def by_id(scenario_id: str) -> Scenario | None:
     for s in SCENARIOS:
         if s.id == scenario_id:
             return s
-    return None
+    return _RUNTIME.get(scenario_id)
