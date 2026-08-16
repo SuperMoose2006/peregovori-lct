@@ -131,8 +131,12 @@ class CliBackend:
         timeout = max(_timeout(), 90.0) if raw else _timeout()
         try:
             proc = subprocess.run(
+                # --setting-sources "" loads NO CLAUDE.md / skills / plugins / hooks
+                # (OAuth creds live elsewhere, so auth still works). Together with
+                # --system-prompt this fully isolates the call from the dev's
+                # global Claude Code environment → no context leak, and faster.
                 ["claude", "-p", "--model", model, "--output-format", "text",
-                 "--system-prompt", system],
+                 "--setting-sources", "", "--system-prompt", system],
                 input=user,
                 capture_output=True,
                 text=True,
