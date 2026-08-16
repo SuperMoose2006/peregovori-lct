@@ -4,6 +4,7 @@ import type { CampaignView, Debrief as DebriefData, Lang, Mode } from "./types";
 import { I18N } from "./i18n";
 import { useNegotiation } from "./api/useNegotiation";
 import { getCampaigns } from "./api/campaigns";
+import { whatIf } from "./api/whatif";
 import { ScenarioPicker } from "./components/ScenarioPicker";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
@@ -312,6 +313,17 @@ export default function App() {
           game={lastGame}
           onRetry={retry}
           onHome={goHome}
+          // "А что если…" replay: the player's OWN lines in order (from the chat
+          // log) drive the deterministic branch. Runs over the same transport the
+          // game used (real backend or offline synth) via the kind passed through.
+          runWhatIf={(req) => whatIf(nego.kind, req)}
+          whatIfMoves={nego.log.filter((e) => e.kind === "me").map((e) => e.text)}
+          whatIfScenarioId={nego.scenario?.id ?? currentScenario ?? undefined}
+          whatIfUnit={nego.scenario?.headline_unit}
+          // Direction: target below reservation = the player wants a LOWER number.
+          whatIfLowerBetter={
+            nego.scenario ? nego.scenario.target < nego.scenario.reservation : undefined
+          }
           onNext={mode === "campaign" ? nextAct : undefined}
           nextLabel={
             mode === "campaign"

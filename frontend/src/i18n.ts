@@ -123,6 +123,29 @@ export interface Strings {
   };
   // debrief
   turningPoints: { title: string; turn: string }; // "Ключевые ходы" / "Ход {n}"
+  // "А что если…" — the what-if replay card in the debrief.
+  whatIf: {
+    title: string; // section heading
+    intro: string; // "Вы надавили здесь. Смотрите, что было бы иначе."
+    reveal: string; // button to run the replay
+    loading: string; // in-flight label
+    again: string; // reset to try a different alt line
+    altLabel: string; // "Сильная альтернатива" (chooser label)
+    customPlaceholder: string; // free-text alt input
+    wasLabel: string; // column: "Как было"
+    couldLabel: string; // column: "Как могло быть"
+    opponentLabel: string; // "Ответ оппонента"
+    offerLabel: string; // "Их цена"
+    meters: { trust: string; tension: string; info: string };
+    betterBanner: string; // shown when the alt is genuinely better
+    neutralBanner: string; // honest fallback when it isn't clearly better
+    insteadOf: string; // "вместо" — "tension −3 instead of +22"
+    uncovered: string; // "вы бы вскрыли интерес"
+    trustHigher: string; // "доверие выше"
+    priceFurther: string; // "цена сдвинулась дальше"
+    unavailable: string; // graceful note when the replay can't be computed
+    presets: [string, string]; // two strong preset alternatives
+  };
   debriefTitle: string;
   coachTitle: string;
   retry: string;
@@ -293,6 +316,31 @@ export const I18N: Record<Lang, Strings> = {
         "Смотрите: их цена сдвинулась к вашей цели. Каждый удачный ход двигает её — следите за этой шкалой.",
     },
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
+    whatIf: {
+      title: "А что если…",
+      intro: "Ваш самый дорогой ход. Смотрите, что было бы, спроси вы иначе — с той же точки.",
+      reveal: "Показать, что было бы иначе",
+      loading: "Считаю развилку…",
+      again: "Другая реплика",
+      altLabel: "Сильная альтернатива",
+      customPlaceholder: "…или впишите свою реплику",
+      wasLabel: "Как было",
+      couldLabel: "Как могло быть",
+      opponentLabel: "Ответ оппонента",
+      offerLabel: "Их цена",
+      meters: { trust: "Доверие", tension: "Напряжение", info: "Информация" },
+      betterBanner: "Так было бы лучше",
+      neutralBanner: "Сравните исходы",
+      insteadOf: "вместо",
+      uncovered: "вы бы вскрыли интерес",
+      trustHigher: "доверие выше",
+      priceFurther: "цена сдвинулась дальше",
+      unavailable: "Развилку для этого сценария посчитать не удалось.",
+      presets: [
+        "А что для вас важнее всего в этой сделке и почему?",
+        "Давайте сверимся с рыночными данными — какая цена была бы справедливой?",
+      ],
+    },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
     retry: "Пройти снова",
@@ -487,6 +535,31 @@ export const I18N: Record<Lang, Strings> = {
         "Look: their price slid toward your target. Every good move nudges it — keep an eye on this scale.",
     },
     turningPoints: { title: "Turning points", turn: "Turn" },
+    whatIf: {
+      title: "What if…",
+      intro: "Your most costly move. See what would have happened had you asked differently — from the same moment.",
+      reveal: "Show what would have happened",
+      loading: "Replaying the branch…",
+      again: "Try another line",
+      altLabel: "A stronger line",
+      customPlaceholder: "…or write your own line",
+      wasLabel: "What happened",
+      couldLabel: "What could have been",
+      opponentLabel: "Opponent's reply",
+      offerLabel: "Their price",
+      meters: { trust: "Trust", tension: "Tension", info: "Info" },
+      betterBanner: "This would have gone better",
+      neutralBanner: "Compare the outcomes",
+      insteadOf: "instead of",
+      uncovered: "you'd have uncovered an interest",
+      trustHigher: "trust higher",
+      priceFurther: "the price moved further",
+      unavailable: "Couldn't compute the branch for this scenario.",
+      presets: [
+        "What matters most to you in this deal, and why?",
+        "Let's check the market data — what price would be fair?",
+      ],
+    },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",
     retry: "Try again",

@@ -1,9 +1,10 @@
 // Debrief.tsx — post-negotiation report: grade ring (A–F), three score bars
 // (economic / relationship / technique), stat cells, coaching tips, retry/home.
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Debrief as DebriefData, Lang, Mode } from "../types";
+import type { Debrief as DebriefData, Lang, Mode, WhatIfBranch, WhatIfRequest, WhatIfResponse } from "../types";
 import type { Strings } from "../i18n";
 import type { GameResult, RecordResult } from "../lib/progress";
+import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
 import { XpAward } from "./Gamification";
 
 const GRADE_COLOR: Record<string, string> = {
@@ -31,9 +32,21 @@ interface Props {
   // Campaign mode: the primary action advances the arc instead of replaying.
   onNext?: () => void;
   nextLabel?: string;
+  // "А что если…" replay: the callback that runs the deterministic branch (backend
+  // or offline synth) plus the context it needs — the player's OWN lines in order,
+  // the scenario id, and the display context (unit + which direction is better).
+  // Omit any of these (or leave moves empty) to hide the card entirely.
+  runWhatIf?: (req: WhatIfRequest) => Promise<WhatIfResponse | null>;
+  whatIfMoves?: string[];
+  whatIfScenarioId?: string;
+  whatIfUnit?: string;
+  whatIfLowerBetter?: boolean;
 }
 
-export function Debrief({ t, d, mode, lang, scenarioTitle, record, game, onRetry, onHome, onNext, nextLabel }: Props) {
+export function Debrief({
+  t, d, mode, lang, scenarioTitle, record, game, onRetry, onHome, onNext, nextLabel,
+  runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
+}: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
   // Exam reads like a certificate: same score/stats/tips, ceremonial framing.
   const exam = mode === "exam";
@@ -52,6 +65,15 @@ export function Debrief({ t, d, mode, lang, scenarioTitle, record, game, onRetry
     { label: t.sb.relationship, v: d.relationship, color: "var(--trust)" },
     { label: t.sb.technique, v: d.technique, color: "var(--leverage)" },
   ];
+
+  // The pivotal (most-damaging) turn to teach from, and its 0-based index into the
+  // player's moves. The card renders only when everything lines up: a callback, the
+  // player's lines, a scenario id, and a valid pivotal turn inside that move list.
+  const pivotal = pickPivotalTurn(d.turning_points);
+  const pivotIdx = pivotalTurnIndex(pivotal, whatIfMoves?.length ?? 0);
+  const showWhatIf =
+    !!runWhatIf && !!whatIfScenarioId && !!whatIfMoves && whatIfMoves.length > 0 &&
+    pivotal !== null && pivotIdx !== null && !exam;
 
   const cells: Array<{ n: string; l: string }> = [
     { n: `${d.spin_stages}/3`, l: t.stat.spin },
@@ -158,6 +180,20 @@ export function Debrief({ t, d, mode, lang, scenarioTitle, record, game, onRetry
             </div>
           ) : null}
 
+          {showWhatIf && pivotal && pivotIdx !== null ? (
+            <WhatIfCard
+              t={t}
+              lang={lang}
+              run={runWhatIf!}
+              scenarioId={whatIfScenarioId!}
+              moves={whatIfMoves!}
+              turnIndex={pivotIdx}
+              originalQuote={pivotal.quote}
+              unit={whatIfUnit}
+              lowerBetter={whatIfLowerBetter}
+            />
+          ) : null}
+
           <div className="coach">
             <h3>{t.coachTitle}</h3>
             <ul>
@@ -185,4 +221,232 @@ export function Debrief({ t, d, mode, lang, scenarioTitle, record, game, onRetry
       </div>
     </section>
   );
+}
+
+// ---------------------------------------------------------------------------
+// "А что если…" — the what-if replay card. Shows the player's pivotal line, lets
+// them pick (or type) a stronger one, then reveals a side-by-side divergence of
+// the two deterministic branches: meter swings, the opponent's offer, and their
+// line. Honest: the "better" banner shows only when the alternative truly wins.
+// ---------------------------------------------------------------------------
+interface WhatIfCardProps {
+  t: Strings;
+  lang: Lang;
+  run: (req: WhatIfRequest) => Promise<WhatIfResponse | null>;
+  scenarioId: string;
+  moves: string[];
+  turnIndex: number;
+  originalQuote: string;
+  unit?: string;
+  lowerBetter?: boolean;
+}
+
+function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote, unit, lowerBetter }: WhatIfCardProps) {
+  const w = t.whatIf;
+  // Alt choice: two presets (0|1) or free text ("custom"). Default to the first
+  // preset — a strong interest probe, the canonical "ask why" move.
+  const [choice, setChoice] = useState<0 | 1 | "custom">(0);
+  const [custom, setCustom] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [res, setRes] = useState<WhatIfResponse | null>(null);
+  const [failed, setFailed] = useState(false);
+  // Grow the alt bars in from 0 once the divergence is revealed.
+  const [grown, setGrown] = useState(false);
+  const raf = useRef<number>();
+
+  const altText = (choice === "custom" ? custom : w.presets[choice]).trim();
+
+  const reveal = async () => {
+    if (loading || !altText) return;
+    setLoading(true);
+    setFailed(false);
+    const out = await run({ scenarioId, lang, moves, turnIndex, altText });
+    setLoading(false);
+    if (!out) {
+      setFailed(true);
+      return;
+    }
+    setRes(out);
+    setGrown(false);
+    raf.current = requestAnimationFrame(() => setGrown(true));
+  };
+
+  const resetChoice = () => {
+    setRes(null);
+    setFailed(false);
+    setGrown(false);
+    if (raf.current) cancelAnimationFrame(raf.current);
+  };
+
+  useEffect(() => () => {
+    if (raf.current) cancelAnimationFrame(raf.current);
+  }, []);
+
+  return (
+    <div className="whatif">
+      <h3>{w.title}</h3>
+      <p className="wi-intro">{w.intro}</p>
+
+      <blockquote className="wi-orig">«{originalQuote}»</blockquote>
+
+      {!res ? (
+        <>
+          <div className="wi-altlabel">{w.altLabel}</div>
+          <div className="wi-presets">
+            {w.presets.map((p, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`wi-preset${choice === i ? " on" : ""}`}
+                onClick={() => setChoice(i as 0 | 1)}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <input
+            className="wi-input"
+            type="text"
+            value={custom}
+            placeholder={w.customPlaceholder}
+            onChange={(e) => {
+              setCustom(e.target.value);
+              setChoice("custom");
+            }}
+            onFocus={() => setChoice("custom")}
+          />
+          <button className="wi-reveal" type="button" onClick={reveal} disabled={loading || !altText}>
+            {loading ? w.loading : w.reveal}
+          </button>
+          {failed ? <p className="wi-fail">{w.unavailable}</p> : null}
+        </>
+      ) : (
+        <Divergence
+          t={t}
+          res={res}
+          grown={grown}
+          unit={unit}
+          lowerBetter={lowerBetter}
+          onReset={resetChoice}
+        />
+      )}
+    </div>
+  );
+}
+
+// The revealed side-by-side: original vs alternative branch. Emphasizes the
+// improvement honestly — the banner and summary are derived from the real deltas.
+function Divergence({
+  t, res, grown, unit, lowerBetter, onReset,
+}: {
+  t: Strings;
+  res: WhatIfResponse;
+  grown: boolean;
+  unit?: string;
+  lowerBetter?: boolean;
+  onReset: () => void;
+}) {
+  const w = t.whatIf;
+  const { original: o, alternative: a } = res;
+
+  // Is the alternative genuinely better? Cooler room AND at least one real gain
+  // (an interest uncovered, more trust, or a better price move). Keeps it honest.
+  const priceBetter =
+    lowerBetter === undefined
+      ? false
+      : lowerBetter
+        ? a.state.offer_opp < o.state.offer_opp
+        : a.state.offer_opp > o.state.offer_opp;
+  const uncovered = a.state.interests_found > o.state.interests_found;
+  const trustHigher = a.deltas.trust > o.deltas.trust;
+  const cooler = a.deltas.tension < o.deltas.tension;
+  const better = cooler && (uncovered || trustHigher || priceBetter);
+
+  // The one-line proof, built only from what's actually true.
+  const bits: string[] = [];
+  if (a.deltas.tension !== o.deltas.tension) {
+    bits.push(`${w.meters.tension.toLowerCase()} ${fmtDelta(a.deltas.tension)} ${w.insteadOf} ${fmtDelta(o.deltas.tension)}`);
+  }
+  if (uncovered) bits.push(w.uncovered);
+  else if (trustHigher) bits.push(w.trustHigher);
+  if (priceBetter) bits.push(w.priceFurther);
+
+  return (
+    <div className="wi-diverge">
+      <div className={`wi-banner${better ? " good" : ""}`}>
+        {better ? w.betterBanner : w.neutralBanner}
+      </div>
+      {bits.length ? <div className="wi-summary">{bits.join(" · ")}</div> : null}
+
+      <div className="wi-cols">
+        <Branch t={t} label={w.wasLabel} b={o} grown={grown} unit={unit} alt={false} />
+        <Branch t={t} label={w.couldLabel} b={a} grown={grown} unit={unit} alt />
+      </div>
+
+      <button className="wi-reveal ghost" type="button" onClick={onReset}>
+        ↺ {w.again}
+      </button>
+    </div>
+  );
+}
+
+// One branch column: three meter bars (trust/tension/info), the opponent's offer,
+// and their line. Only the alternative column animates its bars in.
+function Branch({
+  t, label, b, grown, unit, alt,
+}: {
+  t: Strings;
+  label: string;
+  b: WhatIfBranch;
+  grown: boolean;
+  unit?: string;
+  alt: boolean;
+}) {
+  const w = t.whatIf;
+  const rows: Array<{ label: string; v: number; goodPos: boolean }> = [
+    { label: w.meters.trust, v: b.deltas.trust, goodPos: true },
+    { label: w.meters.tension, v: b.deltas.tension, goodPos: false },
+    { label: w.meters.info, v: b.deltas.info, goodPos: true },
+  ];
+  return (
+    <div className={`wi-col${alt ? " alt" : ""}`}>
+      <div className="wi-collabel">{label}</div>
+      <div className="wi-meters">
+        {rows.map((r, i) => {
+          const good = r.v === 0 ? "neutral" : (r.goodPos ? r.v > 0 : r.v < 0) ? "good" : "bad";
+          // Only the alt column grows on reveal; the original is static context.
+          const width = alt ? (grown ? meterWidth(r.v) : 0) : meterWidth(r.v);
+          return (
+            <div className="wi-meter" key={i}>
+              <span className="wi-mlabel">{r.label}</span>
+              <span className={`wi-mval ${good}`}>{fmtDelta(r.v)}</span>
+              <span className="wi-mtrack">
+                <span className={`wi-mfill ${good}`} style={{ width: `${width}%` }} />
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="wi-offer">
+        <span>{w.offerLabel}</span>
+        <b>{b.state.offer_opp}{unit ?? ""}</b>
+      </div>
+      <div className="wi-oline">
+        <span className="wi-olabel">{w.opponentLabel}</span>
+        «{b.opponent_line}»
+      </div>
+    </div>
+  );
+}
+
+// Signed delta as "+5" / "−3" / "0" (typographic minus).
+function fmtDelta(v: number): string {
+  const r = Math.round(v);
+  if (r === 0) return "0";
+  return `${r > 0 ? "+" : "−"}${Math.abs(r)}`;
+}
+
+// Scale a meter delta to a bar width (capped). Tension can swing ~26 → ~68%.
+function meterWidth(v: number): number {
+  return Math.min(100, Math.abs(v) * 2.6);
 }

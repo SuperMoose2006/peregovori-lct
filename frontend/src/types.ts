@@ -91,6 +91,35 @@ export interface Debrief {
   turning_points?: TurningPoint[];
 }
 
+// "А что если…" — the deterministic what-if replay. Because the engine is a pure
+// function of (scenario, ordered moves), one pivotal turn can be re-run with a
+// BETTER line to show exactly how the future would diverge. Mirrors the backend's
+// POST /api/whatif contract (main.py). Fully reproducible; no LLM involved.
+export interface WhatIfRequest {
+  scenarioId: string;
+  lang: Lang;
+  moves: string[]; // the player's own lines, in order
+  turnIndex: number; // 0-based index into `moves` — the pivotal turn
+  altText: string; // the stronger line to replay instead
+}
+
+// One replayed branch: the move's classification, meter swing, resulting state,
+// and the opponent's line. `original` re-runs the real move; `alternative` the
+// suggested better one. Engine-owned — the UI only renders.
+export interface WhatIfBranch {
+  text: string;
+  analysis: Analysis;
+  deltas: Deltas;
+  state: StateView;
+  opponent_line: string;
+}
+
+export interface WhatIfResponse {
+  turnIndex: number;
+  original: WhatIfBranch;
+  alternative: WhatIfBranch;
+}
+
 export interface CampaignStageView {
   scenario_id: string;
   act: string;

@@ -3,7 +3,7 @@
 // (types.ts): Analysis, Deltas, StateView, Debrief. This lets the MockServer
 // behave like the real backend so the full UI works with no server running.
 import type { Lang } from "../types";
-import type { Analysis, Deltas, Debrief, StateView, Status, Tag } from "../types";
+import type { Analysis, Deltas, Debrief, StateView, Status, Tag, WhatIfBranch } from "../types";
 import { LEX, cnt, extractNum, has, norm } from "../lib/techniques";
 import type { ScenarioDef } from "../data/scenarios";
 
@@ -354,6 +354,31 @@ export function scoreSession(s: Session): Debrief {
     interests_found: s.interests.length, interests_total: sc.interests[lang].length,
     spin_stages: spinC, objective_criteria: m.crit, empathy: m.empathy,
     threats: m.threats, tradeoffs: s.tradeoffs.length, avg_arg: Math.round(avgArg), tips,
+  };
+}
+
+// ---------- "А что если…" replay (offline mirror of backend _whatif_branch) ----------
+// Replay `prefix` on a FRESH session, then apply one `branchText` move and capture
+// the outcome. A fresh session per branch guarantees the two branches share no
+// state — determinism by construction. The per-turn sequence (increment turn →
+// analyze → applyMove → renderLine) mirrors the MockServer loop exactly, so a
+// branch re-using the original text reproduces the real play bit-for-bit.
+export function whatIfBranch(def: ScenarioDef, lang: Lang, prefix: string[], branchText: string): WhatIfBranch {
+  const s = newSession(def, lang);
+  for (const tx of prefix) {
+    s.turn += 1;
+    applyMove(s, analyze(tx));
+  }
+  s.turn += 1;
+  const raw = analyze(branchText);
+  const result = applyMove(s, raw);
+  const line = renderLine(s, result.reaction, result.closed);
+  return {
+    text: branchText,
+    analysis: toAnalysis(raw, branchText),
+    deltas: result.deltas,
+    state: stateView(s),
+    opponent_line: line,
   };
 }
 
