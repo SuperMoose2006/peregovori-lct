@@ -266,6 +266,78 @@ class OpenAIBackend:
         return f"openai — unavailable ({self._reason}); returns None"
 
 
+class SdkBackend:
+    """Claude Agent SDK — the supported programmatic Claude Code client (vs
+    shelling out to `claude -p`). Wins over CliBackend: native setting_sources=[]
+    isolation, direct thinking control (max_thinking_tokens=0 / effort=low) which
+    was the latency bottleneck, and a clean async/streaming API. Still runs the
+    Claude Code engine (subscription rate limits apply). Degrades to None on any
+    error so the opponent falls back to the engine's templated line."""
+
+    def __init__(self) -> None:
+        self._reason: Optional[str] = None
+        try:
+            import claude_agent_sdk  # noqa: F401
+        except Exception:
+            self._reason = "claude-agent-sdk not installed"
+
+    @property
+    def available(self) -> bool:
+        return self._reason is None
+
+    def _options(self, system: str):
+        from claude_agent_sdk import ClaudeAgentOptions
+        base = dict(
+            system_prompt=system,
+            allowed_tools=[],          # no tools → leaner, no tool-thinking
+            max_turns=1,
+            model=re.sub(r"[^a-zA-Z0-9._-]", "", _model()),
+            setting_sources=[],        # native isolation: no CLAUDE.md/skills/plugins
+        )
+        # Thinking is the dominant per-call cost; kill it for short lines. Guard
+        # each option so an SDK version without a field can't break construction.
+        for extra in ({"max_thinking_tokens": 0, "effort": "low"}, {"effort": "low"}, {}):
+            try:
+                return ClaudeAgentOptions(**base, **extra)
+            except TypeError:
+                continue
+        return ClaudeAgentOptions(**base)
+
+    async def _agenerate(self, system: str, user: str) -> Optional[str]:
+        import asyncio
+        from claude_agent_sdk import query, AssistantMessage
+        text = ""
+
+        async def run():
+            nonlocal text
+            async for msg in query(prompt=user, options=self._options(system)):
+                if isinstance(msg, AssistantMessage):
+                    for b in msg.content:
+                        t = getattr(b, "text", None)
+                        if t:
+                            text += t
+
+        await asyncio.wait_for(run(), timeout=_timeout())
+        return text.strip() or None
+
+    def generate(self, system: str, user: str, raw: bool = False) -> Optional[str]:
+        if not self.available:
+            return None
+        try:
+            import asyncio
+            out = asyncio.run(self._agenerate(system, user))  # called in a worker thread
+        except Exception:
+            return None
+        if not out:
+            return None
+        return out if raw else sanitize(out)
+
+    def describe_mode(self) -> str:
+        if self.available:
+            return f"sdk — Claude Agent SDK (model={_model()}, thinking off)"
+        return f"sdk — unavailable ({self._reason}); returns None"
+
+
 def get_chat_backend():
     """Return the backend selected by env NEGO_AI (default 'off').
 
@@ -274,6 +346,8 @@ def get_chat_backend():
     mode = os.environ.get("NEGO_AI", "off").strip().lower()
     if mode == "cli":
         return CliBackend()
+    if mode == "sdk":
+        return SdkBackend()
     if mode == "api":
         return ApiBackend()
     if mode == "openai":

@@ -7,3 +7,4 @@ langchain-core
 pytest
 httpx
 langchain-openai
+claude-agent-sdk

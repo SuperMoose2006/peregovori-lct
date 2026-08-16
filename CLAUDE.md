@@ -73,7 +73,8 @@
   | значение | бэкенд | назначение |
   |---|---|---|
   | `off` | шаблонные реплики движка | офлайн-фолбэк, тесты |
-  | `cli` (по умолч. локально) | обёртка над `claude` CLI (`claude -p`) как «локальный API» | разработка без API-ключа |
+  | `cli` (по умолч. локально) | обёртка над `claude` CLI (`claude -p`, `--effort low`) | разработка без API-ключа |
+  | `sdk` | Claude Agent SDK (`claude-agent-sdk`, thinking off, `setting_sources=[]`) | «правильный» Claude-клиент по подписке; те же rate-limits |
   | `api` | `ChatAnthropic` | продакшен (`ANTHROPIC_API_KEY`) |
   | `openai` | `ChatOpenAI` (по умолч. `gpt-5-nano` — самый дешёвый) | дешёвый прод (`OPENAI_API_KEY`), модель через `NEGO_MODEL`/`NEGO_OPENAI_MODEL` |
   - Секреты — в `backend/.env` (gitignored, автозагрузка в `main.py`), не в командной строке.
