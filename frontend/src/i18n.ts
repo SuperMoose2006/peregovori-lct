@@ -1,6 +1,7 @@
 // i18n.ts — RU/EN string tables. Ported from legacy-node/public/i18n.js + demo.html.
 // Engine/scenario content is localized at the data layer (see data/scenarios.ts).
 import type { Lang, Mode } from "./types";
+import type { SkillId } from "./lib/progress";
 
 export interface QuickMove {
   label: string;
@@ -116,6 +117,31 @@ export interface Strings {
   };
   footRight: string;
   quickMoves: QuickMove[];
+  // gamification (localStorage): XP/ranks, daily goal, skill mastery, achievements
+  gam: {
+    rankLabel: string; // "rank" kicker
+    toNext: string; // "{n} XP to «{name}»" ({n},{name} substituted)
+    maxRank: string; // top-rank state instead of a "to next" line
+    totalXp: string; // "{n} XP" total-xp chip
+    levelUp: string; // "level up!" flourish on the debrief
+    xpAwardLabel: string; // caption under the +XP count-up
+    dailyGoal: string; // ring label
+    dailyDone: string; // goal met today
+    dailyTodo: string; // goal still open today
+    skillsTitle: string; // profile screen heading
+    skillsLink: string; // home entry point to the profile
+    skillsSub: string; // profile screen subheading
+    strongIn: string; // "Strong at"
+    workOn: string; // "Work on"
+    noGames: string; // empty-state on the profile
+    back: string; // back to home
+    gamesCount: string; // "{n} games" under a skill bar
+    achievementsTitle: string;
+    unlockedToast: string; // toast prefix when a badge unlocks
+    locked: string; // aria/title for a not-yet-earned badge
+    skillNames: Record<SkillId, string>;
+    skillHints: Record<SkillId, string>;
+  };
 }
 
 export const I18N: Record<Lang, Strings> = {
@@ -237,6 +263,44 @@ export const I18N: Record<Lang, Strings> = {
       arg: "аргументация",
     },
     footRight: "исход зависит от вашей стратегии",
+    gam: {
+      rankLabel: "ранг",
+      toNext: "{n} XP до «{name}»",
+      maxRank: "высший ранг достигнут",
+      totalXp: "{n} XP",
+      levelUp: "уровень повышен!",
+      xpAwardLabel: "опыт за переговоры",
+      dailyGoal: "цель дня",
+      dailyDone: "цель дня выполнена",
+      dailyTodo: "проведите одну переговорку",
+      skillsTitle: "Профиль навыков",
+      skillsLink: "Профиль навыков",
+      skillsSub: "Средняя оценка по всем играм — так видно, где вы растёте.",
+      strongIn: "Силён в",
+      workOn: "Подтяни",
+      noGames: "Сыграйте первую переговорку, чтобы увидеть прогресс.",
+      back: "← Назад",
+      gamesCount: "{n} игр",
+      achievementsTitle: "Достижения",
+      unlockedToast: "Достижение получено",
+      locked: "ещё не получено",
+      skillNames: {
+        questions: "Вопросы / SPIN",
+        interests: "Интересы",
+        criteria: "Объективные критерии",
+        listening: "Активное слушание",
+        tradeoff: "Размен",
+        tension: "Управление напряжением",
+      },
+      skillHints: {
+        questions: "Вскрываете суть вопросами, а не давлением",
+        interests: "Находите скрытые интересы за позицией",
+        criteria: "Опираетесь на объективные критерии",
+        listening: "Признаёте интересы другой стороны",
+        tradeoff: "Создаёте ценность разменом уступок",
+        tension: "Держите доверие и не даёте напряжению расти",
+      },
+    },
     // Stems, not finished moves: the chip drops a sentence STARTER into the box
     // that the player must complete in their own words (a full worked example
     // lives behind the 💡 hint). Leaving the scoring to the player, not the chip.
@@ -366,6 +430,44 @@ export const I18N: Record<Lang, Strings> = {
       arg: "argumentation",
     },
     footRight: "the outcome depends on your strategy",
+    gam: {
+      rankLabel: "rank",
+      toNext: "{n} XP to “{name}”",
+      maxRank: "top rank reached",
+      totalXp: "{n} XP",
+      levelUp: "level up!",
+      xpAwardLabel: "earned this negotiation",
+      dailyGoal: "daily goal",
+      dailyDone: "daily goal met",
+      dailyTodo: "play one negotiation",
+      skillsTitle: "Skill profile",
+      skillsLink: "Skill profile",
+      skillsSub: "Your average across every game — so you can see where you're growing.",
+      strongIn: "Strong at",
+      workOn: "Work on",
+      noGames: "Play your first negotiation to see your progress.",
+      back: "← Back",
+      gamesCount: "{n} games",
+      achievementsTitle: "Achievements",
+      unlockedToast: "Achievement unlocked",
+      locked: "not yet earned",
+      skillNames: {
+        questions: "Questions / SPIN",
+        interests: "Interests",
+        criteria: "Objective criteria",
+        listening: "Active listening",
+        tradeoff: "Trade-offs",
+        tension: "Tension management",
+      },
+      skillHints: {
+        questions: "Surface the substance with questions, not pressure",
+        interests: "Find the hidden interests behind the position",
+        criteria: "Ground your case in objective criteria",
+        listening: "Acknowledge what matters to the other side",
+        tradeoff: "Create value by trading concessions",
+        tension: "Keep trust up and tension from rising",
+      },
+    },
     // Stems, not finished moves — the player completes each in their own words
     // (the full worked example stays behind the 💡 hint button).
     quickMoves: [

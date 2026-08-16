@@ -643,6 +643,153 @@ textarea:focus { outline: none; border-color: var(--brass); }
 }
 @keyframes toastin { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
+/* ============================================================
+   Gamification — rank/XP, daily goal, skill profile, badges,
+   XP award, achievement toasts. Understated-premium, brass/serif.
+   ============================================================ */
+
+/* ---- Home hero stats: rank + XP bar · daily goal · streak ---- */
+.herostats { display: flex; align-items: stretch; gap: 12px; margin: 26px 0 4px; flex-wrap: wrap; }
+.hs-rank {
+  flex: 1 1 300px; min-width: 260px; text-align: left;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 13px 16px; display: flex; flex-direction: column; gap: 6px;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+.hs-rank:hover { border-color: var(--brass); box-shadow: var(--shadow); transform: translateY(-2px); }
+.hs-rank-top { display: flex; justify-content: space-between; align-items: baseline; }
+.hs-rank-kicker { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--brass); }
+.hs-xp { font-size: 12px; font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.hs-rank-name { font-family: var(--serif); font-size: 21px; font-weight: 700; line-height: 1; }
+.hs-bar { height: 7px; background: var(--panel-2); border-radius: 5px; overflow: hidden; margin-top: 2px; }
+.hs-bar-fill {
+  height: 100%; border-radius: 5px; min-width: 3px;
+  background: linear-gradient(90deg, var(--brass-soft), var(--brass));
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hs-next { font-size: 11.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+
+.hs-aside { display: flex; align-items: stretch; gap: 12px; }
+.hs-goal {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 16px; min-width: 96px;
+}
+.hs-goal.done { border-color: color-mix(in srgb, var(--brass) 45%, var(--line)); }
+.hs-goal-l { font-size: 10px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); text-align: center; }
+.hs-goal.done .hs-goal-l { color: var(--brass); }
+.hs-ring { position: relative; width: 36px; height: 36px; display: grid; place-items: center; }
+.hs-ring svg { position: absolute; inset: 0; }
+.hs-ring-track { stroke: var(--line-2); }
+.hs-ring-fill { stroke: var(--brass); transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.hs-ring-emoji { font-size: 15px; line-height: 1; }
+.hs-goal:not(.done) .hs-ring-emoji { color: var(--ink-faint); opacity: 0.7; }
+
+.hs-streak {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line));
+  border-radius: var(--r); padding: 10px 15px; min-width: 62px;
+}
+.hs-flame { font-size: 20px; line-height: 1; }
+.hs-streak b { font-family: var(--serif); font-size: 17px; color: var(--brass); font-variant-numeric: tabular-nums; }
+
+/* ---- Skill-mastery screen ---- */
+.skills { max-width: 720px; margin: 0 auto; padding: 26px 0 50px; }
+.skills-back {
+  font-size: 13px; color: var(--ink-dim); border: 1px solid var(--line-2);
+  border-radius: 9px; padding: 8px 13px; margin-bottom: 18px; transition: 0.15s;
+}
+.skills-back:hover { border-color: var(--brass); color: var(--ink); }
+.skills-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.skills-head h2 { font-family: var(--serif); font-size: 27px; margin: 0; }
+.skills-rank { font-size: 13.5px; color: var(--ink-dim); }
+.skills-rank b { color: var(--brass); font-family: var(--serif); }
+.skills-sub { font-size: 14px; color: var(--ink-dim); margin: 8px 0 0; max-width: 56ch; }
+.skills-read {
+  font-size: 13.5px; color: var(--ink-dim); margin: 16px 0 22px; padding: 11px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--brass); border-radius: 10px;
+}
+.skills-read b { color: var(--ink); }
+.sr-up { color: var(--trust); font-weight: 700; }
+.sr-dn { color: var(--brass); font-weight: 700; }
+.skills-empty {
+  font-size: 14px; color: var(--ink-dim); margin: 16px 0 22px; padding: 16px;
+  background: var(--panel); border: 1px dashed var(--line-2); border-radius: 10px; text-align: center;
+}
+.skillbars { display: flex; flex-direction: column; gap: 16px; }
+.skb-h { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: 6px; }
+.skb-n { font-family: var(--serif); font-weight: 600; }
+.skb-h b { font-variant-numeric: tabular-nums; font-size: 15px; }
+.skb-t { height: 9px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+.skb-f { height: 100%; width: 0; border-radius: 5px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.skb-hint { font-size: 12px; color: var(--ink-faint); margin-top: 5px; }
+.skb-games { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+.badges-title { font-family: var(--serif); font-size: 19px; margin: 34px 0 15px; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.badge {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 15px 14px;
+  display: flex; flex-direction: column; gap: 5px; opacity: 0.55; filter: grayscale(0.7);
+  transition: opacity 0.2s, filter 0.2s, border-color 0.2s;
+}
+.badge.on {
+  opacity: 1; filter: none; border-color: color-mix(in srgb, var(--brass) 45%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 7%, var(--panel)), var(--panel));
+}
+.badge-ic { font-size: 26px; line-height: 1; }
+.badge-nm { font-family: var(--serif); font-size: 14.5px; font-weight: 700; }
+.badge-ds { font-size: 11.5px; color: var(--ink-dim); line-height: 1.4; }
+
+/* ---- Debrief XP award ---- */
+.xpaward {
+  margin-top: 14px; padding: 12px 16px; display: inline-flex; flex-direction: column; gap: 2px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 12%, var(--panel)), var(--panel));
+  border: 1px solid color-mix(in srgb, var(--brass) 40%, var(--line)); border-radius: 12px;
+  animation: xppop 0.5s ease;
+}
+@keyframes xppop { from { transform: scale(0.82); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.xpa-main { display: flex; align-items: baseline; gap: 5px; }
+.xpa-plus { font-family: var(--serif); font-size: 30px; font-weight: 800; color: var(--brass); font-variant-numeric: tabular-nums; line-height: 1; }
+.xpa-unit { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--brass-soft); }
+.xpa-cap { font-size: 11px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); }
+.xpa-level {
+  margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--trust);
+  display: flex; align-items: center; gap: 5px; animation: recordpop 0.6s ease 0.4s both;
+}
+.xpa-level b { color: var(--ink); font-family: var(--serif); }
+.xpa-spark { color: var(--brass); }
+
+/* ---- Achievement toasts (fixed, stacked) ---- */
+.ach-toasts {
+  position: fixed; left: 50%; top: 74px; transform: translateX(-50%); z-index: 50;
+  display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none;
+  max-width: calc(100vw - 28px);
+}
+.ach-toast {
+  display: flex; align-items: center; gap: 11px; padding: 10px 16px 10px 12px;
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 45%, var(--line));
+  border-radius: 999px; box-shadow: var(--shadow); animation: toastin 0.36s ease both;
+}
+.ach-ic { font-size: 22px; line-height: 1; }
+.ach-txt { display: flex; flex-direction: column; line-height: 1.25; }
+.ach-txt b { font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--brass); }
+.ach-txt span { font-family: var(--serif); font-size: 14px; font-weight: 600; color: var(--ink); }
+
+@media (max-width: 640px) {
+  .herostats { gap: 10px; margin: 18px 0 2px; }
+  .hs-rank { flex-basis: 100%; min-width: 0; padding: 12px 14px; }
+  .hs-aside { width: 100%; gap: 10px; }
+  .hs-goal { flex: 1; min-width: 0; padding: 9px 10px; }
+  .hs-streak { flex: 0 0 auto; }
+  .skills { padding: 20px 0 40px; }
+  .skills-head h2 { font-size: 23px; }
+  .badges { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ach-toasts { top: 64px; }
+  .ach-txt span { font-size: 13px; }
+}
+@media (max-width: 360px) {
+  .badges { grid-template-columns: 1fr; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

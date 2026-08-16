@@ -1,9 +1,10 @@
 // Debrief.tsx — post-negotiation report: grade ring (A–F), three score bars
 // (economic / relationship / technique), stat cells, coaching tips, retry/home.
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Debrief as DebriefData, Mode } from "../types";
+import type { Debrief as DebriefData, Lang, Mode } from "../types";
 import type { Strings } from "../i18n";
-import type { RecordResult } from "../lib/progress";
+import type { GameResult, RecordResult } from "../lib/progress";
+import { XpAward } from "./Gamification";
 
 const GRADE_COLOR: Record<string, string> = {
   A: "var(--trust)",
@@ -17,10 +18,14 @@ interface Props {
   t: Strings;
   d: DebriefData;
   mode: Mode;
+  lang: Lang;
   scenarioTitle?: string;
   // This run's personal-best outcome (from the retention profile) — null if not
   // yet recorded. Drives the "Личный рекорд" line + the "new record!" flourish.
   record?: RecordResult | null;
+  // The gamification outcome of this run (XP gained, rank, level-up). Drives the
+  // "+XP" count-up award. Same object as `record` (GameResult extends RecordResult).
+  game?: GameResult | null;
   onRetry: () => void;
   onHome: () => void;
   // Campaign mode: the primary action advances the arc instead of replaying.
@@ -28,7 +33,7 @@ interface Props {
   nextLabel?: string;
 }
 
-export function Debrief({ t, d, mode, scenarioTitle, record, onRetry, onHome, onNext, nextLabel }: Props) {
+export function Debrief({ t, d, mode, lang, scenarioTitle, record, game, onRetry, onHome, onNext, nextLabel }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
   // Exam reads like a certificate: same score/stats/tips, ceremonial framing.
   const exam = mode === "exam";
@@ -103,6 +108,7 @@ export function Debrief({ t, d, mode, scenarioTitle, record, onRetry, onHome, on
                   ) : null}
                 </div>
               ) : null}
+              {game ? <XpAward t={t} lang={lang} game={game} /> : null}
             </div>
           </div>
 

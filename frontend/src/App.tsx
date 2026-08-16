@@ -8,9 +8,10 @@ import { ScenarioPicker } from "./components/ScenarioPicker";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
-import { loadProfile, recordDebrief, saveProfile, type Grade, type Profile, type RecordResult } from "./lib/progress";
+import { HeroStats, SkillsProfile, AchievementToasts } from "./components/Gamification";
+import { applyDebrief, loadProfile, saveProfile, type GameResult, type Profile } from "./lib/progress";
 
-type Screen = "home" | "generating" | "game" | "debrief" | "campaign_done";
+type Screen = "home" | "generating" | "game" | "debrief" | "campaign_done" | "profile";
 type Theme = "light" | "dark" | null;
 
 const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
@@ -34,7 +35,7 @@ export default function App() {
   // once; each debrief folds in a result and re-persists. `lastRecord` carries
   // the just-finished run's personal-best delta to the Debrief screen.
   const [profile, setProfile] = useState<Profile>(() => loadProfile());
-  const [lastRecord, setLastRecord] = useState<RecordResult | null>(null);
+  const [lastGame, setLastGame] = useState<GameResult | null>(null);
   const recordedProgress = useRef<DebriefData | null>(null);
 
   const nego = useNegotiation(lang);
@@ -65,10 +66,10 @@ export default function App() {
     if (recordedProgress.current === nego.debrief) return;
     recordedProgress.current = nego.debrief;
     const scenarioId = nego.scenario?.id ?? currentScenario ?? "custom";
-    const res = recordDebrief(loadProfile(), scenarioId, nego.debrief.grade as Grade, nego.debrief.overall);
+    const res = applyDebrief(loadProfile(), scenarioId, nego.debrief);
     saveProfile(res.profile);
     setProfile(res.profile);
-    setLastRecord(res);
+    setLastGame(res);
   }, [nego.debrief, nego.scenario, currentScenario]);
 
   // Custom mode: while generating, the scenario is designed server-side (or by
@@ -178,6 +179,11 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [nego]);
 
+  const openProfile = useCallback(() => {
+    setScreen("profile");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   const retry = useCallback(() => {
     if (mode === "custom") startCustom();
     else if (currentScenario) start(currentScenario);
@@ -213,14 +219,10 @@ export default function App() {
         <section className="screen">
           <div className="wrap">
             <div className="hero">
-              <div className="eyebrow">
-                {t.eyebrow}
-                {profile.streak > 0 ? (
-                  <span className="streak">{t.streakLabel.replace("{n}", String(profile.streak))}</span>
-                ) : null}
-              </div>
+              <div className="eyebrow">{t.eyebrow}</div>
               <h1 dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
               <p className="lead">{t.heroLead}</p>
+              <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} />
               <div className="rule" />
               <div className="principles">
                 {t.principles.map((p, i) => (
@@ -292,8 +294,10 @@ export default function App() {
           t={t}
           d={nego.debrief}
           mode={mode}
+          lang={lang}
           scenarioTitle={nego.scenario?.title}
-          record={lastRecord}
+          record={lastGame}
+          game={lastGame}
           onRetry={retry}
           onHome={goHome}
           onNext={mode === "campaign" ? nextAct : undefined}
@@ -316,6 +320,12 @@ export default function App() {
           onHome={goHome}
         />
       )}
+
+      {screen === "profile" && (
+        <SkillsProfile t={t} lang={lang} profile={profile} onHome={goHome} />
+      )}
+
+      {lastGame ? <AchievementToasts t={t} lang={lang} ids={lastGame.newAchievements} /> : null}
 
       <div className="foot">
         <span>Диалог · Negotiation Skills Simulator</span>

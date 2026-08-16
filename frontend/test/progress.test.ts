@@ -4,12 +4,30 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  applyDebrief,
+  earnedAchievements,
   emptyProfile,
   isBetter,
+  masteryOf,
   nextStreak,
+  rankForXp,
   recordDebrief,
+  skillSignals,
+  strongestWeakest,
+  xpForDebrief,
+  type Profile,
   type ScenarioRecord,
 } from "../src/lib/progress";
+import type { Debrief } from "../src/types";
+
+// A debrief factory: neutral defaults, override the fields a test cares about.
+const deb = (o: Partial<Debrief> = {}): Debrief => ({
+  overall: 60, grade: "C", economic: 60, relationship: 60, technique: 60,
+  deal_text: "", status: "active",
+  interests_found: 0, interests_total: 3, spin_stages: 0, objective_criteria: 0,
+  empathy: 0, threats: 0, tradeoffs: 0, avg_arg: 50, tips: [],
+  ...o,
+});
 
 const rec = (grade: ScenarioRecord["bestGrade"], score: number, attempts = 1): ScenarioRecord => ({
   bestGrade: grade,
@@ -79,4 +97,129 @@ test("recordDebrief advances the streak across consecutive days but not within a
   assert.equal(p.streak, 2, "next day advances");
   p = recordDebrief(p, "salary", "B", 71, new Date("2026-03-10T09:00:00Z")).profile;
   assert.equal(p.streak, 1, "a gap resets");
+});
+
+// ---- Gamification: XP, ranks, skills, achievements -------------------------
+
+test("xpForDebrief: base score + record bonus + agreement bonus", () => {
+  assert.equal(xpForDebrief(60, "active", false), 60, "just the score");
+  assert.equal(xpForDebrief(60, "active", true), 85, "+25 for a personal record");
+  assert.equal(xpForDebrief(60, "agreement", false), 75, "+15 for closing a deal");
+  assert.equal(xpForDebrief(72.4, "agreement", true), 72 + 25 + 15, "all three, rounded");
+  assert.equal(xpForDebrief(-5, "breakdown", false), 0, "never negative");
+});
+
+test("rankForXp: thresholds, mid-tier progress, and the capped top rank", () => {
+  assert.equal(rankForXp(0).rank.id, "novice");
+  assert.equal(rankForXp(149).rank.id, "novice");
+  assert.equal(rankForXp(150).rank.id, "negotiator");
+  assert.equal(rankForXp(400).rank.id, "pro");
+
+  const mid = rankForXp(275); // negotiator [150..400): halfway
+  assert.equal(mid.rank.id, "negotiator");
+  assert.equal(mid.next?.id, "pro");
+  assert.equal(mid.toNext, 125);
+  assert.equal(mid.progress, 0.5);
+
+  const top = rankForXp(5000);
+  assert.equal(top.rank.id, "grandmaster");
+  assert.equal(top.next, null);
+  assert.equal(top.progress, 1, "top rank shows a full bar");
+  assert.equal(top.toNext, 0);
+});
+
+test("skillSignals: each debrief stat maps to a 0..100 signal", () => {
+  const s = skillSignals(deb({
+    spin_stages: 3, interests_found: 2, interests_total: 4,
+    objective_criteria: 2, empathy: 1, tradeoffs: 3, relationship: 80,
+  }));
+  assert.equal(s.questions, 100, "3/3 SPIN stages");
+  assert.equal(s.interests, 50, "2 of 4 interests");
+  assert.equal(s.criteria, 67, "min(2,3)/3 rounded");
+  assert.equal(s.listening, 33, "min(1,3)/3 rounded");
+  assert.equal(s.tradeoff, 100, "min(3,2)/2 capped");
+  assert.equal(s.tension, 80, "relationship dimension");
+
+  // Missing denominators degrade to 0, not NaN.
+  const z = skillSignals(deb({ interests_found: 0, interests_total: 0 }));
+  assert.equal(z.interests, 0);
+});
+
+test("earnedAchievements: each predicate fires on its own condition", () => {
+  const base = emptyProfile();
+  assert.deepEqual(earnedAchievements(base, deb({ grade: "A" })), ["first_a"]);
+  assert.deepEqual(
+    earnedAchievements(base, deb({ interests_found: 3, interests_total: 3 })),
+    ["all_interests"],
+  );
+  assert.deepEqual(
+    earnedAchievements(base, deb({ status: "agreement", threats: 0 })),
+    ["no_threat_deal"],
+  );
+  assert.deepEqual(
+    earnedAchievements(base, deb({ objective_criteria: 1, tradeoffs: 1 })),
+    ["criteria_tradeoff"],
+  );
+  // A threatful deal does NOT earn the clean-deal badge.
+  assert.deepEqual(earnedAchievements(base, deb({ status: "agreement", threats: 2 })), []);
+
+  const streaky: Profile = { ...base, streak: 3 };
+  assert.deepEqual(earnedAchievements(streaky, deb()), ["streak_3"]);
+
+  const rr = rec("A", 80);
+  const wide: Profile = {
+    ...base,
+    scenarios: { a: rr, b: rr, c: rr, d: rr, e: rr },
+  };
+  assert.ok(earnedAchievements(wide, deb()).includes("five_scenarios"));
+});
+
+test("applyDebrief: awards XP, folds skill averages, unlocks badges, tracks daily goal", () => {
+  let p = emptyProfile();
+
+  // Game 1: a strong A with a deal on day 1.
+  let g = applyDebrief(
+    p, "supplier",
+    deb({ overall: 88, grade: "A", status: "agreement", spin_stages: 3, interests_found: 3, interests_total: 3, objective_criteria: 2, tradeoffs: 1, empathy: 2, threats: 0, relationship: 78 }),
+    new Date("2026-04-01T10:00:00Z"),
+  );
+  assert.equal(g.improved, true);
+  assert.equal(g.xpGain, 88 + 25 + 15, "score + record + deal");
+  assert.equal(g.xpAfter, g.xpGain);
+  assert.equal(g.dailyGoalMet, true, "first game of the day meets the goal");
+  assert.ok(g.newAchievements.includes("first_a"));
+  assert.ok(g.newAchievements.includes("all_interests"));
+  assert.ok(g.newAchievements.includes("no_threat_deal"));
+  assert.ok(g.newAchievements.includes("criteria_tradeoff"));
+  assert.equal(masteryOf(g.profile.skills.questions), 100);
+  assert.equal(masteryOf(g.profile.skills.interests), 100);
+  p = g.profile;
+
+  // Game 2 same day: goal already met; skills average across the two games.
+  g = applyDebrief(
+    p, "salary",
+    deb({ overall: 40, grade: "D", status: "active", spin_stages: 0, interests_found: 0, interests_total: 3, relationship: 40 }),
+    new Date("2026-04-01T20:00:00Z"),
+  );
+  assert.equal(g.dailyGoalMet, false, "second game same day: goal already met");
+  assert.equal(masteryOf(g.profile.skills.questions), 50, "(100 + 0) / 2");
+  assert.equal(masteryOf(g.profile.skills.interests), 50);
+  // No badge is unlocked twice.
+  assert.equal(g.newAchievements.includes("first_a"), false);
+  assert.equal(g.profile.achievements.filter((a) => a === "first_a").length, 1);
+  p = g.profile;
+
+  const { strong, weak } = strongestWeakest(p);
+  // tension = (78+40)/2 = 59 is the highest running average across the two games.
+  assert.equal(strong, "tension");
+  assert.equal(weak, "tradeoff"); // (50+0)/2 = 25 is the lowest
+});
+
+test("applyDebrief: crossing an XP threshold flags a level-up", () => {
+  // Seed just below the negotiator threshold (150), then earn enough to cross it.
+  let p: Profile = { ...emptyProfile(), xp: 140 };
+  const g = applyDebrief(p, "supplier", deb({ overall: 60, status: "active" }), new Date("2026-05-01T10:00:00Z"));
+  assert.equal(g.rankBefore.rank.id, "novice");
+  assert.equal(g.rankAfter.rank.id, "negotiator");
+  assert.equal(g.leveledUp, true);
 });
