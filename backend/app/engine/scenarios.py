@@ -262,6 +262,40 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Совместный статус для руководства", "Временно поделиться ресурсом", "Переразбить объём работ"],
             "en": ["Joint status update to leadership", "Temporarily share a resource", "Re-scope the workload"],
         },
+        # A joint status update lets Alexey avoid looking at fault AND save face
+        # (two of his three interests) at almost no cost to you — the ideal chip.
+        # Sharing a resource genuinely eases his staffing shortage but costs you a
+        # real body on your own deadline → moderate value, moderate cost.
+        secondary_issues=[
+            SecondaryIssue(
+                id="joint_status",
+                label={"ru": "Совместный статус для руководства", "en": "Joint status to leadership"},
+                keywords={
+                    "ru": ["совместный статус", "совместно доложим", "совместно отчита", "общий статус",
+                           "статус для руководств", "статус руководству", "вместе доложим", "вместе отчита",
+                           "доложим вместе", "совместный отчет", "совместно перед руководств"],
+                    "en": ["joint status", "status to leadership", "status update to leadership",
+                           "report together", "joint update", "update leadership together", "joint report",
+                           "present together to leadership"],
+                },
+                opp_value=0.8,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="share_resource",
+                label={"ru": "Временно поделиться ресурсом", "en": "Temporarily share a resource"},
+                keywords={
+                    "ru": ["поделит ресурс", "поделюсь ресурс", "поделиться ресурс", "выделю человек",
+                           "выделить человек", "выделю ресурс", "временно ресурс", "дам человек",
+                           "дам разработчик", "подкину ресурс", "поделимся людьми", "выделю людей",
+                           "временно поделит"],
+                    "en": ["share a resource", "share resource", "lend a person", "temporarily share",
+                           "spare a person", "loan a developer", "share people", "share a developer"],
+                },
+                opp_value=0.55,
+                player_cost=0.45,
+            ),
+        ],
         briefing={
             "ru": "Здесь деньги ни при чём — важны эмоции и интересы. Отделите человека от проблемы, признайте его давление, ищите общий план.",
             "en": "This is not about money — it is about emotion and interests. Separate the person from the problem, acknowledge his pressure, find a shared plan.",
@@ -304,6 +338,38 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Место в совете вместо доли", "Транши по метрикам", "Pro-rata права в следующем раунде"],
             "en": ["Board seat instead of equity", "Tranches tied to milestones", "Pro-rata rights next round"],
         },
+        # A board seat is exactly one of Marina's stated interests and lets her
+        # trade down on equity while keeping the founder motivated — cheap for you,
+        # highly valuable to her. Milestone tranches de-risk her check but tie up
+        # your runway → moderate value, moderate cost.
+        secondary_issues=[
+            SecondaryIssue(
+                id="board_seat",
+                label={"ru": "Место в совете директоров", "en": "Board seat"},
+                keywords={
+                    "ru": ["место в совете", "место в борде", "кресло в совете", "совет директор",
+                           "войти в совет", "войдете в совет", "место в правлении", "дам место в совете",
+                           "место в board"],
+                    "en": ["board seat", "seat on the board", "board observer", "place on the board",
+                           "join the board", "seat in the board"],
+                },
+                opp_value=0.8,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="tranches",
+                label={"ru": "Транши по метрикам", "en": "Milestone tranches"},
+                keywords={
+                    "ru": ["транш", "по метрикам", "по вехам", "по milestone", "поэтапн финансир",
+                           "деньги траншами", "выплаты по метрикам", "привязать к метрикам",
+                           "финансирование траншами"],
+                    "en": ["tranche", "tied to milestones", "milestone-based", "staged funding",
+                           "in tranches", "milestone tranches"],
+                },
+                opp_value=0.55,
+                player_cost=0.45,
+            ),
+        ],
         briefing={
             "ru": "Сильный BATNA — ваш козырь, но применяйте его аккуратно, подкрепляя объективными критериями оценки.",
             "en": "A strong BATNA is your trump card, but wield it carefully, backed by objective valuation criteria.",
@@ -354,6 +420,37 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Договор на 11+ месяцев", "Депозит за 2 месяца вперёд", "Мелкий ремонт беру на себя"],
             "en": ["Sign an 11+ month lease", "Two months' deposit upfront", "Handle minor repairs myself"],
         },
+        # A long lease directly removes Natalia's biggest fear — vacancy and empty
+        # months — and costs the tenant nothing (they want to stay anyway): the
+        # ideal chip. A two-month deposit reassures her on reliable payment but ties
+        # up the tenant's cash → moderate value, moderate cost.
+        secondary_issues=[
+            SecondaryIssue(
+                id="long_lease",
+                label={"ru": "Договор на 11+ месяцев", "en": "11+ month lease"},
+                keywords={
+                    "ru": ["договор на 11", "на 11 месяц", "длительн договор", "долгосрочн аренд",
+                           "долгий срок", "на год аренд", "год аренд", "останусь на год", "подпишу на 11",
+                           "длинн договор", "договор надолго", "на длительн срок"],
+                    "en": ["11-month lease", "11 month lease", "long lease", "long-term lease",
+                           "sign for a year", "stay for a year", "longer lease", "year lease"],
+                },
+                opp_value=0.8,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="deposit",
+                label={"ru": "Депозит за 2 месяца вперёд", "en": "Two months' deposit"},
+                keywords={
+                    "ru": ["депозит", "залог", "два месяца вперед", "оплата вперед", "депозит за 2",
+                           "залог за два месяца", "заплачу вперед", "внесу депозит", "аванс за два месяца"],
+                    "en": ["deposit", "two months upfront", "two-month deposit", "pay upfront",
+                           "advance rent", "security deposit"],
+                },
+                opp_value=0.55,
+                player_cost=0.45,
+            ),
+        ],
         briefing={
             "ru": "Цель: ≤ 64 k. Красная линия: 70. Для собственницы деньги — не всё: спросите, что её беспокоит, и предложите то, что снимет её тревоги.",
             "en": "Goal: ≤ 64k. Red line: 70. Money isn't everything to her — ask what worries her and offer what removes those worries.",
@@ -404,6 +501,38 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Оплата наличными сразу и полностью", "Оформление перерегистрации беру на себя", "Забираю в течение 2 дней"],
             "en": ["Pay cash in full today", "I handle the re-registration paperwork", "Pick it up within 2 days"],
         },
+        # Cash in full today serves Sergey's top need (fast money) and proves you're
+        # the serious buyer he's tired of missing — cheap for a buyer who's buying
+        # anyway. Handling the re-registration paperwork is a convenience for him but
+        # real hassle/cost for you → moderate value, moderate cost.
+        secondary_issues=[
+            SecondaryIssue(
+                id="cash_now",
+                label={"ru": "Оплата наличными сразу", "en": "Cash in full today"},
+                keywords={
+                    "ru": ["налич", "оплачу сразу", "оплата сразу", "заплачу сегодня", "всю сумму сразу",
+                           "полностью сразу", "деньги сразу", "оплата полностью", "рассчитаюсь сегодня",
+                           "оплачу полностью", "всю сумму сегодня"],
+                    "en": ["cash", "pay in full today", "pay today", "full amount now", "pay cash",
+                           "cash in full"],
+                },
+                opp_value=0.8,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="paperwork",
+                label={"ru": "Перерегистрацию беру на себя", "en": "I handle the paperwork"},
+                keywords={
+                    "ru": ["переоформл", "перерегистрац", "оформлен беру", "документы беру", "оформлю сам",
+                           "оформление на себя", "бумаги оформлю", "займусь оформлением",
+                           "перерегистрацию беру", "документы на себя"],
+                    "en": ["re-registration", "reregistration", "paperwork", "handle the paperwork",
+                           "registration myself", "transfer paperwork"],
+                },
+                opp_value=0.55,
+                player_cost=0.45,
+            ),
+        ],
         briefing={
             "ru": "Цель: ≤ 1060 k. Красная линия: 1130. Он на взводе — критика машины только поднимет напряжение. Узнайте, почему он продаёт, и дайте ему скорость и уверенность вместо давления.",
             "en": "Goal: ≤ 1060k. Red line: 1130. He's tense — bashing the car only raises the heat. Find out why he's selling and offer speed and certainty instead of pressure.",
@@ -454,6 +583,38 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Фикс-прайс за чётко очерченный этап", "Приоритетная доступность и сжатые сроки", "Документация и передача знаний команде"],
             "en": ["Fixed price for a clearly scoped phase", "Priority availability and a tighter timeline", "Documentation and knowledge transfer to the team"],
         },
+        # A fixed price for a scoped phase kills Pavel's top fear — budget overruns —
+        # and for a senior dev, scoping is cheap: the ideal chip. Priority
+        # availability and a tighter timeline serve his speed-to-funding need but
+        # cost you flexibility with other clients → moderate value, moderate cost.
+        secondary_issues=[
+            SecondaryIssue(
+                id="fixed_price",
+                label={"ru": "Фикс-прайс за этап", "en": "Fixed price per phase"},
+                keywords={
+                    "ru": ["фикс-прайс", "фикс прайс", "фиксированн цен", "фиксированн стоимост",
+                           "фикс за этап", "фиксированный бюджет", "фикс на этап", "по фиксу",
+                           "фиксирую цену", "оценка за этап", "фиксированная оценка"],
+                    "en": ["fixed price", "fixed-price", "fixed cost", "fixed scope", "flat fee",
+                           "fixed bid"],
+                },
+                opp_value=0.8,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="priority_timeline",
+                label={"ru": "Приоритет и сжатые сроки", "en": "Priority & tighter timeline"},
+                keywords={
+                    "ru": ["приоритетн доступ", "сжат срок", "сжатые сроки", "приоритет по времени",
+                           "быстрее срок", "приоритетн", "жест срок", "плотный график",
+                           "буду доступен приоритетно", "ускор срок"],
+                    "en": ["priority availability", "tighter timeline", "faster timeline",
+                           "priority access", "tight deadline", "compressed timeline"],
+                },
+                opp_value=0.55,
+                player_cost=0.45,
+            ),
+        ],
         briefing={
             "ru": "Цель: ≥ 19 k/день. Красная линия: 14. Он верит цифрам: обоснуйте ставку рыночными данными и своей сеньорностью, снимите его страх перерасхода разменом по объёму и срокам.",
             "en": "Goal: ≥ 19k/day. Red line: 14. He trusts numbers: justify the rate with market data and your seniority, and defuse his overrun fear by trading on scope and timeline.",
@@ -504,6 +665,38 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Продление на 3 года вместо года", "Ступенчатый SLA с ростом по кварталам", "Совместное дежурство и общий план инцидентов"],
             "en": ["A 3-year renewal instead of one", "A phased SLA that ramps up by quarter", "Joint on-call and a shared incident plan"],
         },
+        # A 3-year renewal locks in Viktor's recurring revenue and lets him show
+        # leadership the contract grew (two interests) at little cost to a client
+        # who's staying anyway: the ideal chip. A phased SLA lowers his penalty fear
+        # but delays your full uptime benefit → moderate value, moderate cost.
+        secondary_issues=[
+            SecondaryIssue(
+                id="three_year",
+                label={"ru": "Продление на 3 года", "en": "3-year renewal"},
+                keywords={
+                    "ru": ["на 3 года", "на три года", "трехлетн", "три года вместо", "продление на 3",
+                           "долгосрочн контракт", "многолетн контракт", "продлим на три", "контракт на 3 года",
+                           "продлим на 3 года"],
+                    "en": ["3-year", "three-year", "three year", "3 year renewal", "multi-year",
+                           "longer term", "renew for three"],
+                },
+                opp_value=0.8,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="phased_sla",
+                label={"ru": "Ступенчатый SLA", "en": "Phased SLA"},
+                keywords={
+                    "ru": ["ступенчат", "поэтапн sla", "по кварталам", "рост по кварталам", "постепенн рост",
+                           "фазами", "поэтапн внедрен", "наращивать по кварталам", "поэтапно повыш",
+                           "ступенчатый sla"],
+                    "en": ["phased sla", "phased", "ramp up by quarter", "quarterly ramp", "step up",
+                           "gradual sla", "phased rollout"],
+                },
+                opp_value=0.55,
+                player_cost=0.45,
+            ),
+        ],
         briefing={
             "ru": "Цель: ≥ 99.8%. Красная линия: 99.4%. Он бережёт маржу и боится штрафов — давите объективными критериями (отраслевые SLA, ваши потери от простоя) и снижайте его риск ступенчатым внедрением и длинным контрактом.",
             "en": "Goal: ≥ 99.8%. Red line: 99.4%. He guards his margin and fears penalties — press with objective criteria (industry SLAs, your downtime cost) and lower his risk with a phased rollout and a longer term.",

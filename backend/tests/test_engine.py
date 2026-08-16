@@ -217,16 +217,68 @@ def test_terms_conceded_records_the_issue():
 
 def test_scenario_without_secondary_issues_is_unaffected():
     """A scenario with no secondary_issues never records a concession and its
-    scoring path is untouched (the package signal is skipped entirely)."""
-    sc = by_id("rent")
-    assert sc.secondary_issues == []
-    sess = engine.create_session("rent", "ru")
+    scoring path is untouched (the package signal is skipped entirely).
+
+    Every CATALOG scenario now carries structured logrolling, so this legacy
+    guarantee is exercised through a synthetic scenario built by stripping the
+    secondary_issues off a real one — the no-secondary code path still exists and
+    must stay byte-identical for it."""
+    import dataclasses
+    from app.engine.scenarios import register_runtime_scenario
+    base = by_id("rent")
+    plain = dataclasses.replace(base, id="rent_no_sec", secondary_issues=[])
+    register_runtime_scenario(plain)
+    assert plain.secondary_issues == []
+    sess = engine.create_session("rent_no_sec", "ru")
     sess.turn += 1
     line = "Если подпишем договор на 11 месяцев, в обмен сможете подвинуться?"
     assert "tradeoff" in analyze(line).moves  # it IS a trade-off move
     engine.apply_move(sess, analyze(line), line)
     assert sess.state.terms_conceded == []     # but nothing structured is recorded
     assert engine.to_state_view(sess)["terms_conceded"] == []
+
+
+def test_every_scenario_has_at_least_two_secondary_issues():
+    """Structured logrolling is now universal: every catalog scenario exposes at
+    least two secondary issues, each fully bilingual with the two trade numbers."""
+    from app.engine.scenarios import SCENARIOS
+    for sc in SCENARIOS:
+        assert len(sc.secondary_issues) >= 2, f"{sc.id} has < 2 secondary issues"
+        for iss in sc.secondary_issues:
+            assert iss.label.get("ru") and iss.label.get("en"), f"{sc.id}/{iss.id} label"
+            assert iss.keywords.get("ru") and iss.keywords.get("en"), f"{sc.id}/{iss.id} keywords"
+            assert 0.0 <= iss.opp_value <= 1.0 and 0.0 <= iss.player_cost <= 1.0
+
+
+def test_high_value_trade_moves_more_than_low_in_new_scenarios():
+    """For each newly-structured scenario, conceding the good chip (high opp_value)
+    must move the opponent's number more than conceding the moderate chip, from an
+    identical starting state — proof the second axis is genuinely calibrated."""
+    # (scenario, good-chip line, moderate-chip line, good id, moderate id)
+    cases = [
+        ("conflict",
+         "Давайте в обмен сделаем совместный статус для руководства, сможете подвинуться?",
+         "Давайте в обмен временно поделюсь ресурсом, сможете подвинуться?",
+         "joint_status", "share_resource"),
+        ("rent",
+         "Давайте в обмен подпишу договор на 11 месяцев, сможете подвинуться?",
+         "Давайте в обмен внесу депозит за 2 месяца, сможете подвинуться?",
+         "long_lease", "deposit"),
+        ("used_car",
+         "Давайте в обмен оплачу наличными сразу, сможете подвинуться?",
+         "Давайте в обмен перерегистрацию беру на себя, сможете подвинуться?",
+         "cash_now", "paperwork"),
+        ("sla_renewal",
+         "Давайте в обмен продлим на 3 года, сможете подвинуться?",
+         "Давайте в обмен сделаем ступенчатый SLA по кварталам, сможете подвинуться?",
+         "three_year", "phased_sla"),
+    ]
+    for sid, hi_line, lo_line, hi_id, lo_id in cases:
+        hi, hi_terms = _trade(sid, hi_line)
+        lo, lo_terms = _trade(sid, lo_line)
+        assert hi_terms == [hi_id], f"{sid}: expected {hi_id}, got {hi_terms}"
+        assert lo_terms == [lo_id], f"{sid}: expected {lo_id}, got {lo_terms}"
+        assert hi > lo, f"{sid}: high-value move {hi} should exceed low-value {lo}"
 
 
 def test_technique_floor_caps_grade_at_C_when_method_ignored():
