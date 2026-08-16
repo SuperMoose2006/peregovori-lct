@@ -6,6 +6,11 @@ from app.ai.judge import judge_turn, judge_enabled, _extract_json
 
 def test_disabled_by_default(monkeypatch):
     monkeypatch.delenv("NEGO_JUDGE", raising=False)
+    monkeypatch.setenv("NEGO_AI", "off")
+    assert judge_enabled() is False
+    monkeypatch.setenv("NEGO_AI", "openai")  # fast API backend → auto-on
+    assert judge_enabled() is True
+    monkeypatch.setenv("NEGO_JUDGE", "off")   # explicit off overrides auto-on
     assert judge_enabled() is False
     for v in ("1", "on", "true", "yes"):
         monkeypatch.setenv("NEGO_JUDGE", v)

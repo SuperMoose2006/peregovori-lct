@@ -28,7 +28,16 @@ from app.ai.chat_models import get_chat_backend
 
 
 def judge_enabled() -> bool:
-    return os.environ.get("NEGO_JUDGE", "").strip().lower() in ("1", "on", "true", "yes")
+    """Whether the semantic judge runs. Explicit NEGO_JUDGE wins; otherwise it
+    auto-enables for the FAST API backends (openai/api) — so the recommended prod
+    profile is semantic by default — but stays off for off/cli/sdk/tmux where the
+    extra per-turn call would be slow (there it needs an explicit NEGO_JUDGE=1)."""
+    v = os.environ.get("NEGO_JUDGE", "").strip().lower()
+    if v in ("1", "on", "true", "yes"):
+        return True
+    if v in ("0", "off", "false", "no"):
+        return False
+    return os.environ.get("NEGO_AI", "off").strip().lower() in ("api", "openai")
 
 
 def _sys(lang: str) -> str:
