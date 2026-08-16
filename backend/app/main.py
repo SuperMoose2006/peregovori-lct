@@ -175,7 +175,8 @@ async def ws(websocket: WebSocket) -> None:
                     result.closed = True
                     timeout = True
 
-                sess.log.append({"role": "player", "text": text, "judge": judge})
+                sess.log.append({"role": "player", "text": text, "judge": judge,
+                                 "turn": sess.turn, "deltas": result.deltas})
                 templated = engine.render_line(sess, result.reaction, result.closed)
                 reply = views.timeout_line(lang) if timeout else await _opponent_line(sess, result, templated)
                 sess.log.append({"role": "opp", "text": reply})
@@ -191,10 +192,9 @@ async def ws(websocket: WebSocket) -> None:
                     opp_payload["coach"] = judge["note"]
                 await websocket.send_json(opp_payload)
                 if result.closed:
-                    await websocket.send_json({
-                        "type": "debrief",
-                        "debrief": views.debrief_view(sess).model_dump(),
-                    })
+                    deb = views.debrief_view(sess).model_dump()
+                    deb["turning_points"] = views.turning_points(sess)  # transcript-grounded
+                    await websocket.send_json({"type": "debrief", "debrief": deb})
 
             # ---- hint -----------------------------------------------------
             elif mtype == "hint":

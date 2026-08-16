@@ -114,6 +114,41 @@ def _last_player_text(sess: "engine.Session") -> str:
     return ""
 
 
+def turning_points(sess: "engine.Session", k: int = 2) -> list[dict]:
+    """The 1-2 turns that moved the negotiation most — quoted with what happened,
+    so the debrief teaches from the player's ACTUAL words, not generic tips."""
+    ru = sess.lang == "ru"
+    entries = [e for e in sess.log if e.get("role") == "player" and e.get("deltas")]
+
+    def swing(e):
+        d = e["deltas"]
+        return max(abs(d.get("trust", 0)), abs(d.get("tension", 0)), abs(d.get("info", 0)))
+
+    top = sorted(entries, key=swing, reverse=True)[:k]
+    top = sorted(top, key=lambda e: e.get("turn", 0))  # chronological
+    out = []
+    for e in top:
+        d = e["deltas"]
+        parts = []
+        if d.get("tension", 0) >= 6:
+            parts.append("напряжение подскочило" if ru else "tension spiked")
+        elif d.get("tension", 0) <= -6:
+            parts.append("напряжение спало" if ru else "tension eased")
+        if d.get("trust", 0) >= 6:
+            parts.append("доверие выросло" if ru else "trust rose")
+        elif d.get("trust", 0) <= -6:
+            parts.append("доверие упало" if ru else "trust fell")
+        if d.get("info", 0) >= 10:
+            parts.append("вы вскрыли интерес" if ru else "you uncovered an interest")
+        what = ", ".join(parts) or ("этот ход сдвинул переговоры" if ru else "this move shifted the talk")
+        item = {"turn": e.get("turn"), "quote": (e.get("text") or "")[:140], "what": what}
+        jn = (e.get("judge") or {}).get("note") if isinstance(e.get("judge"), dict) else None
+        if jn:
+            item["coach"] = jn
+        out.append(item)
+    return out
+
+
 def judge_context(sess: "engine.Session") -> tuple[str, list[str]]:
     """Context + hidden-interest list the semantic judge needs to score a turn
     and identify which interest a question targets."""
