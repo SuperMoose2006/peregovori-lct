@@ -47,6 +47,8 @@ export interface Strings {
   coachLabel: string; // inline "coach" tag on the judge's per-turn nudge
   typingLabel: string; // opponent "typing…" indicator while a reply is pending
   batna: string;
+  // mobile: label for the collapsible briefing/BATNA section in the game side strip
+  moreLabel: string;
   // retention (localStorage profile): streak chip, card best-grade, debrief record
   streakLabel: string; // "🔥 {n}-day streak" ({n} substituted)
   notPlayed: string; // empty best-grade state on a scenario card
@@ -164,6 +166,7 @@ export const I18N: Record<Lang, Strings> = {
     coachLabel: "тренер",
     typingLabel: "печатает…",
     batna: "BATNA",
+    moreLabel: "Брифинг и BATNA",
     streakLabel: "🔥 {n} дн. подряд",
     notPlayed: "не пройдено",
     personalBest: "Личный рекорд",
@@ -292,6 +295,7 @@ export const I18N: Record<Lang, Strings> = {
     coachLabel: "coach",
     typingLabel: "typing…",
     batna: "BATNA",
+    moreLabel: "Briefing & BATNA",
     streakLabel: "🔥 {n}-day streak",
     notPlayed: "not played",
     personalBest: "Personal best",

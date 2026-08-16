@@ -67,6 +67,11 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
   // never in exam (which withholds help). Dismissed on × or the first send.
   const [coachDismissed, setCoachDismissed] = useState(false);
   const showFirstCoach = !exam && !!st && st.turn === 0 && !coachDismissed;
+
+  // Mobile: the briefing + BATNA collapse behind a toggle so the game side-strip
+  // stays short and the chat/composer are reachable without endless scrolling.
+  // On desktop this section is always expanded (the toggle is hidden by CSS).
+  const [moreOpen, setMoreOpen] = useState(false);
   const handleSend = (text: string) => {
     setCoachDismissed(true);
     onSend(text);
@@ -131,10 +136,22 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
               </div>
             ) : null}
 
-            <div className="brief">{scenario.briefing}</div>
-            <div className="batna">
-              <b>🛡 {t.batna}</b>
-              <span>{scenario.batna}</span>
+            <div className={`side-more${moreOpen ? " open" : ""}`}>
+              <button
+                className="side-more-toggle"
+                onClick={() => setMoreOpen((o) => !o)}
+                aria-expanded={moreOpen}
+              >
+                <span>📋 {t.moreLabel}</span>
+                <span className="chev" aria-hidden="true">▾</span>
+              </button>
+              <div className="side-more-body">
+                <div className="brief">{scenario.briefing}</div>
+                <div className="batna">
+                  <b>🛡 {t.batna}</b>
+                  <span>{scenario.batna}</span>
+                </div>
+              </div>
             </div>
             <button className="quit" onClick={onQuit}>
               ← {t.quit}
