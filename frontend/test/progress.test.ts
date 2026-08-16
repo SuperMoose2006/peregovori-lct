@@ -5,16 +5,21 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   applyDebrief,
+  dailyGoalView,
   earnedAchievements,
   emptyProfile,
+  FREEZE_CAP,
   isBetter,
   masteryOf,
+  milestonesForGame,
   nextStreak,
   rankForXp,
   recordDebrief,
+  setDailyGoalTarget,
   shouldRunTutorial,
   skillSignals,
   strongestWeakest,
+  updateStreak,
   xpForDebrief,
   type Profile,
   type ScenarioRecord,
@@ -314,4 +319,162 @@ test("shouldRunTutorial: exam / campaign / custom never onboard, even fresh", ()
     assert.equal(shouldRunTutorial(mode, false), false, `${mode} must not onboard`);
     assert.equal(shouldRunTutorial(mode, true), false, `${mode} must not onboard`);
   }
+});
+
+// ---- Streak-freeze: earn / spend / reset -----------------------------------
+
+test("updateStreak: normal advance increments and earns a freeze every 5 days", () => {
+  // Day-by-day from 4→5: the 5-day landing earns one freeze.
+  const at5 = updateStreak({ streak: 4, freezes: 0 }, "2026-02-04", "2026-02-05");
+  assert.equal(at5.streak, 5);
+  assert.equal(at5.freezes, 1, "5-day streak earns a freeze");
+  assert.equal(at5.freezeUsed, false);
+  // A non-milestone day earns nothing.
+  const at6 = updateStreak({ streak: 5, freezes: 1 }, "2026-02-05", "2026-02-06");
+  assert.equal(at6.streak, 6);
+  assert.equal(at6.freezes, 1);
+});
+
+test("updateStreak: earned freezes are capped", () => {
+  // Already at the cap: landing on another 5-day milestone grants nothing extra.
+  const at10 = updateStreak({ streak: 9, freezes: FREEZE_CAP }, "2026-02-09", "2026-02-10");
+  assert.equal(at10.streak, 10);
+  assert.equal(at10.freezes, FREEZE_CAP, "never exceeds the cap");
+});
+
+test("updateStreak: a missed day WITH a freeze preserves the streak and spends one", () => {
+  // Last played the 1st, playing again the 3rd — the 2nd was skipped.
+  const r = updateStreak({ streak: 6, freezes: 2 }, "2026-02-01", "2026-02-03");
+  assert.equal(r.freezeUsed, true, "a freeze was spent to cover the gap");
+  assert.equal(r.streak, 7, "streak preserved through the gap and extended today");
+  assert.equal(r.freezes, 1, "one freeze consumed");
+});
+
+test("updateStreak: a missed day WITHOUT a freeze resets to 1", () => {
+  const r = updateStreak({ streak: 6, freezes: 0 }, "2026-02-01", "2026-02-03");
+  assert.equal(r.freezeUsed, false);
+  assert.equal(r.streak, 1, "no freeze to spend → reset");
+  assert.equal(r.freezes, 0);
+});
+
+test("updateStreak: a gap larger than held freezes resets (held freezes survive)", () => {
+  // Two days skipped (gap of 3) needs two freezes; only one held → reset.
+  const r = updateStreak({ streak: 8, freezes: 1 }, "2026-02-01", "2026-02-04");
+  assert.equal(r.streak, 1);
+  assert.equal(r.freezeUsed, false);
+  assert.equal(r.freezes, 1, "the held freeze is not burned on a reset");
+  // Two skipped days WITH two freezes: covered, streak preserved, both spent.
+  const ok = updateStreak({ streak: 8, freezes: 2 }, "2026-02-01", "2026-02-04");
+  assert.equal(ok.streak, 9);
+  assert.equal(ok.freezes, 0);
+  assert.equal(ok.freezeUsed, true);
+});
+
+test("updateStreak: first finish and same-day replay never spend a freeze", () => {
+  assert.deepEqual(updateStreak({ streak: 0, freezes: 0 }, "", "2026-02-01"), { streak: 1, freezes: 0, freezeUsed: false });
+  assert.deepEqual(updateStreak({ streak: 3, freezes: 1 }, "2026-02-01", "2026-02-01"), { streak: 3, freezes: 1, freezeUsed: false });
+});
+
+test("applyDebrief: a missed day is auto-saved by a held freeze", () => {
+  // Seed a profile that finished on day 1 with a streak of 4 and one freeze.
+  let p: Profile = { ...emptyProfile(), streak: 4, lastStreakDay: "2026-03-01", freezes: 1 };
+  // Play again on day 3 — day 2 was missed; the freeze covers it.
+  const g = applyDebrief(p, "supplier", deb({ overall: 60, status: "active" }), new Date("2026-03-03T10:00:00Z"));
+  assert.equal(g.freezeUsed, true);
+  assert.equal(g.profile.streak, 5, "streak preserved through the gap and extended");
+  assert.equal(g.freezes, 1, "one freeze spent, one earned back at the 5-day landing");
+  assert.equal(g.profile.freezes, 1);
+});
+
+// ---- Customizable daily goal ------------------------------------------------
+
+test("setDailyGoalTarget: clamps to 1..3", () => {
+  const p = emptyProfile();
+  assert.equal(setDailyGoalTarget(p, 3).dailyGoalTarget, 3);
+  assert.equal(setDailyGoalTarget(p, 0).dailyGoalTarget, 1, "floor at 1");
+  assert.equal(setDailyGoalTarget(p, 9).dailyGoalTarget, 3, "ceil at 3");
+});
+
+test("dailyGoalView: fills toward the chosen target across the day", () => {
+  const p: Profile = { ...emptyProfile(), dailyGoalTarget: 3, dailyDoneDay: "2026-04-10", dailyDoneCount: 2 };
+  const v = dailyGoalView(p, "2026-04-10");
+  assert.equal(v.target, 3);
+  assert.equal(v.done, 2);
+  assert.equal(v.met, false);
+  assert.ok(Math.abs(v.progress - 2 / 3) < 1e-9, "ring fills to 2/3");
+  // A new day resets the visible count to 0 even though the stored count lingers.
+  const fresh = dailyGoalView(p, "2026-04-11");
+  assert.equal(fresh.done, 0);
+  assert.equal(fresh.progress, 0);
+});
+
+test("applyDebrief: the daily goal fires only on the game that hits the chosen target", () => {
+  // Target of 2 games/day. First finish: progress 1/2, not yet met.
+  let p: Profile = { ...emptyProfile(), dailyGoalTarget: 2 };
+  let g = applyDebrief(p, "a", deb({ overall: 60 }), new Date("2026-05-01T09:00:00Z"));
+  assert.equal(g.dailyTarget, 2);
+  assert.equal(g.dailyDone, 1);
+  assert.equal(g.dailyGoalMet, false, "one of two — not met yet");
+  p = g.profile;
+  // Second finish same day: crosses the target → met fires exactly here.
+  g = applyDebrief(p, "b", deb({ overall: 60 }), new Date("2026-05-01T18:00:00Z"));
+  assert.equal(g.dailyDone, 2);
+  assert.equal(g.dailyGoalMet, true, "the crossing game fires the goal");
+  p = g.profile;
+  // Third finish same day: already met earlier, does not re-fire.
+  g = applyDebrief(p, "c", deb({ overall: 60 }), new Date("2026-05-01T21:00:00Z"));
+  assert.equal(g.dailyDone, 3);
+  assert.equal(g.dailyGoalMet, false, "goal already met today — no re-fire");
+  // Next day, the count resets and a target-1 profile meets on the first game.
+  const one: Profile = { ...emptyProfile(), dailyGoalTarget: 1 };
+  const g2 = applyDebrief(one, "a", deb({ overall: 60 }), new Date("2026-05-02T09:00:00Z"));
+  assert.equal(g2.dailyDone, 1);
+  assert.equal(g2.dailyGoalMet, true, "target of 1 meets on the first finish");
+});
+
+// ---- Milestones: detection + once-only dedupe -------------------------------
+
+test("milestonesForGame: a 7-day streak and each rank-up are milestones", () => {
+  const novice = rankForXp(0);
+  const negotiator = rankForXp(150);
+  assert.deepEqual(milestonesForGame(novice, novice, 3), [], "no rank-up, sub-7 streak → nothing");
+  const streak = milestonesForGame(novice, novice, 7);
+  assert.equal(streak.length, 1);
+  assert.equal(streak[0].id, "streak_7");
+  const rankUp = milestonesForGame(novice, negotiator, 2);
+  assert.equal(rankUp.length, 1);
+  assert.equal(rankUp[0].id, "rank_negotiator");
+  assert.equal(rankUp[0].kind, "rank");
+});
+
+test("applyDebrief: a milestone is celebrated once, never on replay", () => {
+  // Seed just below the negotiator threshold; a finish crosses it → rank milestone.
+  let p: Profile = { ...emptyProfile(), xp: 140 };
+  let g = applyDebrief(p, "supplier", deb({ overall: 60, status: "active" }), new Date("2026-06-01T10:00:00Z"));
+  assert.equal(g.leveledUp, true);
+  assert.deepEqual(g.newMilestones.map((m) => m.id), ["rank_negotiator"], "the rank-up is celebrated once");
+  assert.ok(g.profile.celebratedMilestones.includes("rank_negotiator"), "and recorded so it can't repeat");
+  p = g.profile;
+  // A later game at the same rank yields no repeat of that milestone.
+  g = applyDebrief(p, "supplier", deb({ overall: 60, status: "active" }), new Date("2026-06-02T10:00:00Z"));
+  assert.deepEqual(g.newMilestones, [], "already celebrated → never fires again");
+});
+
+test("applyDebrief: a 7-day streak milestone fires once, and never on a breakdown", () => {
+  // A streak of 6 finishing on a normal next day → hits 7, celebrates once.
+  let p: Profile = { ...emptyProfile(), streak: 6, lastStreakDay: "2026-07-06" };
+  let g = applyDebrief(p, "a", deb({ overall: 60, status: "active" }), new Date("2026-07-07T10:00:00Z"));
+  assert.equal(g.profile.streak, 7);
+  assert.deepEqual(g.newMilestones.map((m) => m.id), ["streak_7"]);
+  p = g.profile;
+  // Next day the streak grows past 7 but the milestone never repeats.
+  g = applyDebrief(p, "a", deb({ overall: 60, status: "active" }), new Date("2026-07-08T10:00:00Z"));
+  assert.deepEqual(g.newMilestones, [], "streak_7 shown once only");
+
+  // A breakdown never celebrates, even if it lands on the 7th day.
+  const q: Profile = { ...emptyProfile(), streak: 6, lastStreakDay: "2026-08-06" };
+  const gb = applyDebrief(q, "a", deb({ overall: 40, grade: "F", status: "breakdown" }), new Date("2026-08-07T10:00:00Z"));
+  assert.equal(gb.profile.streak, 7, "showing up still advances the streak");
+  assert.deepEqual(gb.newMilestones, [], "but a collapse is never a celebration");
+  assert.deepEqual(gb.profile.celebratedMilestones, [], "and nothing is marked celebrated");
 });

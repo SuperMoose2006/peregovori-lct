@@ -9,8 +9,8 @@ import { ScenarioPicker } from "./components/ScenarioPicker";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
-import { HeroStats, SkillsProfile, AchievementToasts } from "./components/Gamification";
-import { applyDebrief, loadProfile, saveProfile, type GameResult, type Profile } from "./lib/progress";
+import { HeroStats, SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
+import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameResult, type Profile } from "./lib/progress";
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 
 type Screen = "home" | "generating" | "game" | "debrief" | "campaign_done" | "profile";
@@ -194,6 +194,14 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  // Customizable daily goal: persist the chosen target (1..3). Read fresh from
+  // storage so we never clobber a concurrently-recorded debrief's fields.
+  const setGoalTarget = useCallback((target: number) => {
+    const next = setDailyGoalTarget(loadProfile(), target);
+    saveProfile(next);
+    setProfile(next);
+  }, []);
+
   // Mobile hero CTA: bring the opponent picker into view (it sits just below the
   // hero on the same home screen). Reduced-motion callers still land there.
   const scrollToPlay = useCallback(() => {
@@ -247,7 +255,7 @@ export default function App() {
             <div className="hero">
               <div className="eyebrow">{t.eyebrow}</div>
               <h1 dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
-              <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} />
+              <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} onSetGoal={setGoalTarget} />
               {/* Mobile-only: a single clear call-to-action above the fold that jumps
                   to the opponent picker. Desktop shows the picker inline, so it's hidden there. */}
               <button className="hero-cta" onClick={scrollToPlay}>{t.heroCta}</button>
@@ -371,6 +379,9 @@ export default function App() {
         <SkillsProfile t={t} lang={lang} profile={profile} onHome={goHome} />
       )}
 
+      {/* Milestone celebration rides over any screen; it self-dismisses per card and
+          never repeats a milestone (the ids are deduped against the saved profile). */}
+      {lastGame ? <MilestoneCard t={t} lang={lang} game={lastGame} /> : null}
       {lastGame ? <AchievementToasts t={t} lang={lang} ids={lastGame.newAchievements} /> : null}
 
       <div className="foot">

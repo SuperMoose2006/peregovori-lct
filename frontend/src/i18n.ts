@@ -187,6 +187,22 @@ export interface Strings {
     dailyGoal: string; // ring label
     dailyDone: string; // goal met today
     dailyTodo: string; // goal still open today
+    dailyProgress: string; // "{done}/{target}" progress under the ring
+    dailyTargetLabel: string; // aria/label for the 1/2/3 target selector
+    dailyTargetSet: string; // "{n}/day" title on a target button ({n} substituted)
+    freezeLabel: string; // "🧊 заморозка ×{n}" — the {word} in the chip
+    freezeSaved: string; // gentle note the day a freeze saved the streak
+    // near-full-screen milestone celebration (7-day streak, rank-up)
+    milestone: {
+      kicker: string; // small eyebrow over the card
+      dismiss: string; // primary "continue" button
+      streakTitle: string; // "{n} days in a row" ({n} substituted)
+      streakDetail: string; // supporting line under a streak milestone
+      streakUnit: string; // word under the big count-up ("days")
+      rankKicker: string; // "New rank"
+      rankDetail: string; // supporting line under a rank-up
+      rankUnit: string; // word under the big XP count-up ("XP")
+    };
     skillsTitle: string; // profile screen heading
     skillsLink: string; // home entry point to the profile
     skillsSub: string; // profile screen subheading
@@ -393,6 +409,21 @@ export const I18N: Record<Lang, Strings> = {
       dailyGoal: "цель дня",
       dailyDone: "цель дня выполнена",
       dailyTodo: "проведите одну переговорку",
+      dailyProgress: "{done}/{target}",
+      dailyTargetLabel: "Цель на день",
+      dailyTargetSet: "{n} в день",
+      freezeLabel: "заморозка",
+      freezeSaved: "🧊 Заморозка сохранила вашу серию — пропущенный день не в счёт.",
+      milestone: {
+        kicker: "Веха",
+        dismiss: "Продолжить",
+        streakTitle: "{n} дней подряд",
+        streakDetail: "Неделя за столом. Привычка договариваться закрепляется.",
+        streakUnit: "дней",
+        rankKicker: "Новый ранг",
+        rankDetail: "Вы растёте как переговорщик — так держать.",
+        rankUnit: "XP",
+      },
       skillsTitle: "Профиль навыков",
       skillsLink: "Профиль навыков",
       skillsSub: "Средняя оценка по всем играм — так видно, где вы растёте.",
@@ -621,6 +652,21 @@ export const I18N: Record<Lang, Strings> = {
       dailyGoal: "daily goal",
       dailyDone: "daily goal met",
       dailyTodo: "play one negotiation",
+      dailyProgress: "{done}/{target}",
+      dailyTargetLabel: "Daily goal",
+      dailyTargetSet: "{n}/day",
+      freezeLabel: "freeze",
+      freezeSaved: "🧊 A freeze saved your streak — the missed day doesn't count.",
+      milestone: {
+        kicker: "Milestone",
+        dismiss: "Continue",
+        streakTitle: "{n} days in a row",
+        streakDetail: "A week at the table. The habit of negotiating is sticking.",
+        streakUnit: "days",
+        rankKicker: "New rank",
+        rankDetail: "You're growing as a negotiator — keep it up.",
+        rankUnit: "XP",
+      },
       skillsTitle: "Skill profile",
       skillsLink: "Skill profile",
       skillsSub: "Your average across every game — so you can see where you're growing.",

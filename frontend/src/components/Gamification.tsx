@@ -8,8 +8,9 @@ import type { Lang } from "../types";
 import type { Strings } from "../i18n";
 import { haptic, play } from "../lib/sound";
 import {
-  ACHIEVEMENTS, dayKey, getAchievement, rankForXp, skillViews, strongestWeakest,
-  type GameResult, type Profile, type SkillId,
+  ACHIEVEMENTS, DAILY_GOAL_MAX, DAILY_GOAL_MIN, dailyGoalView, getAchievement, rankForXp,
+  skillViews, strongestWeakest,
+  type GameResult, type MilestoneHit, type Profile, type SkillId,
 } from "../lib/progress";
 
 // Per-skill bar color. Labels carry the meaning; color just aids scanning.
@@ -30,16 +31,20 @@ const sub = (tpl: string, vars: Record<string, string | number>) =>
 
 // ---- Home hero stats: rank + XP progress, daily-goal ring, streak ----------
 export function HeroStats({
-  t, lang, profile, onOpenProfile,
+  t, lang, profile, onOpenProfile, onSetGoal,
 }: {
   t: Strings; lang: Lang; profile: Profile; onOpenProfile: () => void;
+  onSetGoal: (target: number) => void;
 }) {
   const r = rankForXp(profile.xp);
   const rankName = r.rank.name[lang];
-  const goalDone = profile.lastStreakDay === dayKey();
+  const goal = dailyGoalView(profile);
   const nextLine = r.next
     ? sub(t.gam.toNext, { n: r.toNext, name: r.next.name[lang] })
     : t.gam.maxRank;
+  // 1..3 target buttons — a small, discoverable control right on the ring tile.
+  const targets: number[] = [];
+  for (let n = DAILY_GOAL_MIN; n <= DAILY_GOAL_MAX; n++) targets.push(n);
 
   return (
     <div className="herostats">
@@ -56,14 +61,34 @@ export function HeroStats({
       </button>
 
       <div className="hs-aside">
-        <div className={`hs-goal${goalDone ? " done" : ""}`} title={goalDone ? t.gam.dailyDone : t.gam.dailyTodo}>
-          <DailyRing done={goalDone} />
-          <span className="hs-goal-l">{goalDone ? t.gam.dailyDone : t.gam.dailyGoal}</span>
+        <div className={`hs-goal${goal.met ? " done" : ""}`} title={goal.met ? t.gam.dailyDone : t.gam.dailyTodo}>
+          <DailyRing progress={goal.progress} met={goal.met} />
+          <span className="hs-goal-l">{goal.met ? t.gam.dailyDone : t.gam.dailyGoal}</span>
+          <span className="hs-goal-n">{sub(t.gam.dailyProgress, { done: goal.done, target: goal.target })}</span>
+          <div className="hs-goalset" role="group" aria-label={t.gam.dailyTargetLabel}>
+            {targets.map((n) => (
+              <button
+                key={n}
+                className={goal.target === n ? "on" : ""}
+                aria-pressed={goal.target === n}
+                title={sub(t.gam.dailyTargetSet, { n })}
+                // Stop the click from bubbling to any parent; just set the target.
+                onClick={(e) => { e.stopPropagation(); onSetGoal(n); }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
         {profile.streak > 0 ? (
           <div className="hs-streak" title={t.streakLabel.replace("{n}", String(profile.streak))}>
             <span className="hs-flame" aria-hidden="true">🔥</span>
             <b>{profile.streak}</b>
+            {profile.freezes > 0 ? (
+              <span className="hs-freeze" title={t.gam.freezeSaved}>
+                🧊 {t.gam.freezeLabel} ×{profile.freezes}
+              </span>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -71,20 +96,21 @@ export function HeroStats({
   );
 }
 
-// A small ring that fills (with a flame) once today's goal is met.
-function DailyRing({ done }: { done: boolean }) {
+// A small ring that fills toward today's target; a flame lands once it's met.
+function DailyRing({ progress, met }: { progress: number; met: boolean }) {
   const R = 15, C = 2 * Math.PI * R;
+  const p = Math.max(0, Math.min(1, progress));
   return (
     <span className="hs-ring" aria-hidden="true">
       <svg viewBox="0 0 36 36" width="36" height="36">
         <circle cx="18" cy="18" r={R} className="hs-ring-track" fill="none" strokeWidth="3" />
         <circle
           cx="18" cy="18" r={R} className="hs-ring-fill" fill="none" strokeWidth="3"
-          strokeDasharray={C} strokeDashoffset={done ? 0 : C} strokeLinecap="round"
+          strokeDasharray={C} strokeDashoffset={C * (1 - p)} strokeLinecap="round"
           transform="rotate(-90 18 18)"
         />
       </svg>
-      <span className="hs-ring-emoji">{done ? "🔥" : "◌"}</span>
+      <span className="hs-ring-emoji">{met ? "🔥" : "◌"}</span>
     </span>
   );
 }
@@ -213,6 +239,86 @@ export function XpAward({ t, lang, game, failed }: { t: Strings; lang: Lang; gam
           <b> {game.rankAfter.rank.name[lang]}</b>
         </div>
       ) : null}
+      {/* A freeze quietly saved the streak this game — an honest, gentle note (a
+          missed day was covered), independent of the run's grade. */}
+      {game.freezeUsed ? <div className="xpa-freeze">{t.gam.freezeSaved}</div> : null}
+    </div>
+  );
+}
+
+// ---- Milestone celebration (near-full-screen, once each) -------------------
+// A prominent overlay for REAL milestones only: a 7-day streak and each rank-up
+// (the caller filters against already-celebrated ids and never passes any on a
+// collapsed game). Reuses the XpAward count-up + play('levelup') + haptic. Shows
+// one card at a time, dismissible; reduced-motion renders it statically (no bounce,
+// no auto-motion) but still shows. Understated-premium — no confetti.
+export function MilestoneCard({
+  t, lang, game, onDone,
+}: {
+  t: Strings; lang: Lang; game: GameResult; onDone?: () => void;
+}) {
+  const ids = game.newMilestones;
+  // Which card in the queue is showing; reset whenever a fresh game's list arrives.
+  const [i, setI] = useState(0);
+  const key = ids.map((m) => m.id).join(",");
+  useEffect(() => { setI(0); }, [key]);
+  // Warm sting + haptic once per card shown (a genuine milestone earns the fanfare).
+  useEffect(() => {
+    if (ids.length === 0 || i >= ids.length) return;
+    play("levelup");
+    haptic(22);
+  }, [key, i, ids.length]);
+
+  if (ids.length === 0 || i >= ids.length) return null;
+  const m = ids[i];
+  const last = i >= ids.length - 1;
+  // Always step forward (past the end hides the overlay); notify the parent once
+  // the final card is dismissed so it can drop the overlay entirely.
+  const advance = () => {
+    setI((n) => n + 1);
+    if (last) onDone?.();
+  };
+
+  return (
+    <div className="milestone-scrim" role="dialog" aria-modal="true" aria-label={t.gam.milestone.kicker}>
+      <div className="milestone-card">
+        <div className="milestone-kicker">
+          {m.kind === "rank" ? t.gam.milestone.rankKicker : t.gam.milestone.kicker}
+        </div>
+        <MilestoneHero t={t} lang={lang} game={game} hit={m} />
+        <p className="milestone-detail">
+          {m.kind === "rank" ? t.gam.milestone.rankDetail : t.gam.milestone.streakDetail}
+        </p>
+        <button className="milestone-go" onClick={advance}>
+          {last ? t.gam.milestone.dismiss : `${t.gam.milestone.dismiss} (${i + 1}/${ids.length})`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// The card's animated hero: a big count-up (reused motion) with a milestone icon.
+// Streak → counts to the day number; rank-up → counts the new lifetime XP and names
+// the rank. Reduced-motion jumps straight to the final value (useCountUp handles it).
+function MilestoneHero({
+  t, lang, game, hit,
+}: {
+  t: Strings; lang: Lang; game: GameResult; hit: MilestoneHit;
+}) {
+  const isRank = hit.kind === "rank";
+  const target = isRank ? game.xpAfter : hit.value;
+  const n = useCountUp(target);
+  return (
+    <div className="milestone-hero">
+      <span className="milestone-ic" aria-hidden="true">{isRank ? "✦" : "🔥"}</span>
+      {isRank ? (
+        <div className="milestone-rank">{game.rankAfter.rank.name[lang]}</div>
+      ) : (
+        <div className="milestone-title">{sub(t.gam.milestone.streakTitle, { n: hit.value })}</div>
+      )}
+      <div className="milestone-count">
+        <b>{n}</b> <span>{isRank ? t.gam.milestone.rankUnit : t.gam.milestone.streakUnit}</span>
+      </div>
     </div>
   );
 }

@@ -817,6 +817,24 @@ textarea:focus { outline: none; border-color: var(--brass); }
 }
 .hs-flame { font-size: 20px; line-height: 1; }
 .hs-streak b { font-family: var(--serif); font-size: 17px; color: var(--brass); font-variant-numeric: tabular-nums; }
+/* Held streak-freezes — a quiet buffer chip under the flame (Duolingo's calmer). */
+.hs-freeze {
+  font-size: 9.5px; letter-spacing: 0.3px; color: var(--info);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+
+/* Daily-goal: progress count + the 1/2/3 target selector on the ring tile. */
+.hs-goal-n { font-size: 12px; font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.hs-goal.done .hs-goal-n { color: var(--brass); }
+.hs-goalset { display: flex; gap: 3px; margin-top: 2px; }
+.hs-goalset button {
+  width: 20px; height: 20px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  color: var(--ink-faint); border: 1px solid var(--line-2); background: transparent;
+  font-variant-numeric: tabular-nums; transition: 0.14s; line-height: 1;
+}
+.hs-goalset button:hover { border-color: var(--brass); color: var(--ink-dim); }
+.hs-goalset button.on { background: var(--brass); color: #fff; border-color: var(--brass); }
+:root[data-theme="dark"] .hs-goalset button.on { color: #1a1509; }
 
 /* ---- Skill-mastery screen ---- */
 .skills { max-width: 720px; margin: 0 auto; padding: 26px 0 50px; }
@@ -883,6 +901,8 @@ textarea:focus { outline: none; border-color: var(--brass); }
 }
 .xpa-level b { color: var(--ink); font-family: var(--serif); }
 .xpa-spark { color: var(--brass); }
+/* Freeze-saved note: quiet, informative, cool-toned (distinct from the brass fanfare). */
+.xpa-freeze { margin-top: 6px; font-size: 12px; color: var(--info); line-height: 1.4; max-width: 34ch; }
 
 /* Collapsed negotiation: a sober award, no brass splash or pop. The reduced XP is
    still shown honestly, but nothing here reads as a celebration. */
@@ -895,6 +915,49 @@ textarea:focus { outline: none; border-color: var(--brass); }
 
 /* Skill bar before 2 games exist: an invitation, not a punishing "0". */
 .skb-lowdata { color: var(--ink-faint); font-style: italic; }
+
+/* ---- Milestone celebration (near-full-screen overlay, once each) ----
+   Understated-premium: a calm brass-lit card over a dimmed scrim, not confetti.
+   Sits above the achievement toasts (z-50). Reduced-motion drops the fade/pop
+   via the global rule at the file's end but the card still shows statically. */
+.milestone-scrim {
+  position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+  backdrop-filter: blur(3px); animation: mscrim 0.32s ease both;
+}
+@keyframes mscrim { from { opacity: 0; } to { opacity: 1; } }
+.milestone-card {
+  width: 100%; max-width: 380px; text-align: center;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 12%, var(--panel)), var(--panel));
+  border: 1px solid color-mix(in srgb, var(--brass) 45%, var(--line));
+  border-radius: 20px; box-shadow: var(--shadow);
+  padding: 34px 26px 26px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  animation: mcard 0.5s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+@keyframes mcard { from { opacity: 0; transform: scale(0.86); } to { opacity: 1; transform: scale(1); } }
+.milestone-kicker { font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--brass); }
+.milestone-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 4px 0; }
+.milestone-ic {
+  font-size: 44px; line-height: 1;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--brass) 55%, transparent));
+}
+.milestone-title, .milestone-rank { font-family: var(--serif); font-weight: 800; color: var(--ink); }
+.milestone-title { font-size: 24px; }
+.milestone-rank { font-size: 28px; color: var(--brass); }
+.milestone-count { font-size: 14px; color: var(--ink-dim); margin-top: 2px; }
+.milestone-count b {
+  font-family: var(--serif); font-size: 30px; color: var(--brass);
+  font-variant-numeric: tabular-nums; margin-right: 3px;
+}
+.milestone-detail { font-size: 13.5px; color: var(--ink-dim); line-height: 1.5; margin: 2px 0 4px; max-width: 30ch; }
+.milestone-go {
+  margin-top: 8px; min-width: 160px; min-height: 44px; padding: 11px 22px;
+  font-size: 14px; font-weight: 700; color: #fff; background: var(--brass);
+  border: 1px solid var(--brass); border-radius: 12px; transition: 0.15s;
+}
+:root[data-theme="dark"] .milestone-go { color: #1a1509; }
+.milestone-go:hover { filter: brightness(1.06); transform: translateY(-1px); }
 
 /* ---- Achievement toasts (fixed, stacked) ---- */
 /* Anchored bottom-right so a badge never lands on top of the debrief's grade ring

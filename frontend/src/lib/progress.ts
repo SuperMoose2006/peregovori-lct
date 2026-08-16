@@ -41,10 +41,31 @@ export interface Profile {
   xp: number; // cumulative lifetime XP
   skills: Record<SkillId, SkillAgg>; // per-skill running mastery
   achievements: string[]; // unlocked achievement ids (set, stored as array)
+  // ---- retention layer v3 (streak-freeze, daily goal, milestone dedupe) ------
+  freezes: number; // held streak-freezes (earned 1 per 5-day streak, capped)
+  dailyGoalTarget: number; // games/day the player aims for (1..3, default 1)
+  dailyDoneDay: string; // YYYY-MM-DD the dailyDoneCount applies to ("" = none)
+  dailyDoneCount: number; // finished games on dailyDoneDay (toward the goal ring)
+  celebratedMilestones: string[]; // milestone ids already shown (never repeat)
 }
 
-const VERSION = 2;
+const VERSION = 3;
 const KEY = "dialog.progress.v1";
+
+// Streak-freeze economy (Duolingo's anxiety-reducer): a small buffer that eats a
+// missed day so a good habit isn't punished by one busy day. Earned by showing up
+// (1 per 5-day streak), hard-capped so it can never trivialize the streak.
+export const FREEZE_CAP = 2;
+export const FREEZE_EARN_EVERY = 5;
+
+// Daily-goal bounds — the player picks 1/2/3 finished games per day.
+export const DAILY_GOAL_MIN = 1;
+export const DAILY_GOAL_MAX = 3;
+export const DAILY_GOAL_DEFAULT = 1;
+
+function clampGoal(n: number): number {
+  return clamp(Math.round(n), DAILY_GOAL_MIN, DAILY_GOAL_MAX);
+}
 
 function emptySkills(): Record<SkillId, SkillAgg> {
   const s = {} as Record<SkillId, SkillAgg>;
@@ -53,7 +74,12 @@ function emptySkills(): Record<SkillId, SkillAgg> {
 }
 
 export function emptyProfile(): Profile {
-  return { version: VERSION, scenarios: {}, streak: 0, lastStreakDay: "", xp: 0, skills: emptySkills(), achievements: [] };
+  return {
+    version: VERSION, scenarios: {}, streak: 0, lastStreakDay: "", xp: 0,
+    skills: emptySkills(), achievements: [],
+    freezes: 0, dailyGoalTarget: DAILY_GOAL_DEFAULT, dailyDoneDay: "", dailyDoneCount: 0,
+    celebratedMilestones: [],
+  };
 }
 
 const GRADE_RANK: Record<Grade, number> = { A: 5, B: 4, C: 3, D: 2, F: 1 };
@@ -95,6 +121,96 @@ export function nextStreak(prevStreak: number, lastDay: string, today: string): 
   const gap = daysBetween(lastDay, today);
   if (gap === 1) return Math.max(1, prevStreak) + 1;
   return 1;
+}
+
+export interface StreakState {
+  streak: number;
+  freezes: number;
+}
+
+export interface StreakUpdate {
+  streak: number;
+  freezes: number;
+  freezeUsed: boolean; // a freeze was spent this update to save the streak
+}
+
+// Freeze-aware streak transition — the honest anxiety-reducer. Pure, so the whole
+// earn/spend/reset economy is unit-testable under an injected "today".
+//  - a genuine advance (first finish, or the next day) increments the streak, and
+//    every 5th day earns a freeze (capped at FREEZE_CAP);
+//  - a MISSED stretch spends one freeze per skipped day to keep the streak alive
+//    (freezeUsed=true). Today still extends it once the gap is covered;
+//  - only when the held freezes can't cover every skipped day does the streak reset.
+// Freezes are never spent on a same-day replay or a normal consecutive day.
+export function updateStreak(prev: StreakState, lastDay: string, today: string): StreakUpdate {
+  const s0 = Math.max(0, prev.streak);
+  const f0 = clamp(prev.freezes, 0, FREEZE_CAP);
+  // Grant an earned freeze when an ADVANCE lands the streak on a 5-day milestone.
+  const earn = (streak: number, freezes: number) =>
+    streak > s0 && streak % FREEZE_EARN_EVERY === 0 ? Math.min(FREEZE_CAP, freezes + 1) : freezes;
+
+  if (!lastDay) {
+    return { streak: 1, freezes: earn(1, f0), freezeUsed: false };
+  }
+  if (lastDay === today) {
+    return { streak: Math.max(1, s0), freezes: f0, freezeUsed: false };
+  }
+  const gap = daysBetween(lastDay, today);
+  if (gap === 1) {
+    const streak = Math.max(1, s0) + 1;
+    return { streak, freezes: earn(streak, f0), freezeUsed: false };
+  }
+  // gap >= 2 → (gap - 1) day(s) were skipped. Spend one freeze per skipped day.
+  const missed = Number.isFinite(gap) ? gap - 1 : Infinity;
+  if (missed >= 1 && missed <= f0) {
+    const streak = Math.max(1, s0) + 1; // preserved through the gap, extended today
+    return { streak, freezes: earn(streak, f0 - missed), freezeUsed: true };
+  }
+  // Not enough freezes to cover the gap — the streak resets (held freezes survive).
+  return { streak: 1, freezes: f0, freezeUsed: false };
+}
+
+// ---- Daily goal (customizable target, per-day progress) ----------------------
+
+export interface DailyGoalView {
+  target: number; // the player's chosen 1..3
+  done: number; // finished games so far today
+  met: boolean; // done >= target
+  progress: number; // 0..1 fraction toward the target (for the ring)
+}
+
+// Pure read of today's daily-goal state — how many games are done vs the chosen
+// target. `today` is injectable for tests; the count only counts if it's today's.
+export function dailyGoalView(profile: Profile, today: string = dayKey()): DailyGoalView {
+  const target = clampGoal(profile.dailyGoalTarget);
+  const done = profile.dailyDoneDay === today ? Math.max(0, profile.dailyDoneCount) : 0;
+  return { target, done, met: done >= target, progress: clamp(done / target, 0, 1) };
+}
+
+// Pure setter for the daily target (returns a fresh Profile). Clamped to 1..3.
+export function setDailyGoalTarget(profile: Profile, target: number): Profile {
+  return { ...profile, dailyGoalTarget: clampGoal(target) };
+}
+
+// ---- Milestones (near-full-screen celebrations, once each) -------------------
+
+export interface MilestoneHit {
+  id: string; // dedupe key, e.g. "streak_7" | "rank_pro"
+  kind: "streak" | "rank";
+  value: number; // streak days, or the new rank's index
+  rankId?: string; // set for rank milestones (drives the localized rank name)
+}
+
+// The real milestones reached by THIS game: a 7-day streak, and each rank-up. Pure;
+// the caller filters against already-celebrated ids so a card never repeats. Failed
+// games pass an empty result upstream (a collapse is never a celebration).
+export function milestonesForGame(rankBefore: RankInfo, rankAfter: RankInfo, streak: number): MilestoneHit[] {
+  const out: MilestoneHit[] = [];
+  if (rankAfter.index > rankBefore.index) {
+    out.push({ id: `rank_${rankAfter.rank.id}`, kind: "rank", value: rankAfter.index, rankId: rankAfter.rank.id });
+  }
+  if (streak >= 7) out.push({ id: "streak_7", kind: "streak", value: 7 });
+  return out;
 }
 
 export interface RecordResult {
@@ -147,6 +263,11 @@ export function recordDebrief(
     xp: profile.xp,
     skills: profile.skills,
     achievements: profile.achievements,
+    freezes: profile.freezes,
+    dailyGoalTarget: profile.dailyGoalTarget,
+    dailyDoneDay: profile.dailyDoneDay,
+    dailyDoneCount: profile.dailyDoneCount,
+    celebratedMilestones: profile.celebratedMilestones,
   };
   return { profile: next, record, prevBest, improved, isFirst };
 }
@@ -187,6 +308,23 @@ export function loadProfile(): Profile {
       skills: sanitizeSkills(parsed.skills),
       achievements: Array.isArray(parsed.achievements)
         ? parsed.achievements.filter((a): a is string => typeof a === "string")
+        : [],
+      // v3 retention fields — any pre-v3 blob loads them defaulted (never throws).
+      freezes:
+        typeof parsed.freezes === "number" && isFinite(parsed.freezes) && parsed.freezes >= 0
+          ? clamp(Math.floor(parsed.freezes), 0, FREEZE_CAP)
+          : 0,
+      dailyGoalTarget:
+        typeof parsed.dailyGoalTarget === "number" && isFinite(parsed.dailyGoalTarget)
+          ? clampGoal(parsed.dailyGoalTarget)
+          : DAILY_GOAL_DEFAULT,
+      dailyDoneDay: typeof parsed.dailyDoneDay === "string" ? parsed.dailyDoneDay : "",
+      dailyDoneCount:
+        typeof parsed.dailyDoneCount === "number" && parsed.dailyDoneCount >= 0
+          ? Math.floor(parsed.dailyDoneCount)
+          : 0,
+      celebratedMilestones: Array.isArray(parsed.celebratedMilestones)
+        ? parsed.celebratedMilestones.filter((a): a is string => typeof a === "string")
         : [],
     };
   } catch {
@@ -421,7 +559,12 @@ export interface GameResult extends RecordResult {
   rankAfter: RankInfo;
   leveledUp: boolean; // crossed into a new rank this game
   newAchievements: string[]; // ids first unlocked this game (for toasts)
-  dailyGoalMet: boolean; // this was the first finished game today
+  dailyGoalMet: boolean; // this game HIT the daily target (the crossing game)
+  dailyDone: number; // finished games today AFTER this one (toward the ring)
+  dailyTarget: number; // the player's chosen daily target (1..3)
+  freezes: number; // streak-freezes held AFTER this game
+  freezeUsed: boolean; // a freeze saved the streak this game (gentle note)
+  newMilestones: MilestoneHit[]; // real milestones to celebrate now (deduped, none on a fail)
   // The negotiation collapsed (walked out / timed out). Drives the sober,
   // no-fanfare debrief tone: reduced XP, no record splash, no level-up flourish.
   failed: boolean;
@@ -440,8 +583,18 @@ export function applyDebrief(
   d: Debrief,
   now: Date = new Date(),
 ): GameResult {
-  // Daily goal = first finished game of the local day (before this one is folded in).
-  const dailyGoalMet = profile.lastStreakDay !== dayKey(now);
+  const today = dayKey(now);
+
+  // Daily goal: count finished games in the local day, then fire "met" only on the
+  // game that CROSSES the chosen target (later games the same day don't re-fire).
+  const dailyTarget = clampGoal(profile.dailyGoalTarget);
+  const doneBefore = profile.dailyDoneDay === today ? Math.max(0, profile.dailyDoneCount) : 0;
+  const dailyDone = doneBefore + 1;
+  const dailyGoalMet = dailyDone === dailyTarget;
+
+  // Freeze-aware streak (recordDebrief still advances the freeze-unaware baseline;
+  // we recompute from the ORIGINAL profile and override so a missed day can be saved).
+  const su = updateStreak({ streak: profile.streak, freezes: profile.freezes }, profile.lastStreakDay, today);
 
   const base = recordDebrief(profile, scenarioId, d.grade as Grade, d.overall, now);
 
@@ -464,10 +617,27 @@ export function applyDebrief(
     skills[id] = { sum: prev.sum + sig[id], n: prev.n + 1 };
   }
 
-  const nextProfile: Profile = { ...base.profile, xp: xpAfter, skills };
+  const nextProfile: Profile = {
+    ...base.profile,
+    xp: xpAfter,
+    skills,
+    // Override the baseline streak with the freeze-aware result + updated economy.
+    streak: su.streak,
+    freezes: su.freezes,
+    dailyDoneDay: today,
+    dailyDoneCount: dailyDone,
+  };
   const earned = earnedAchievements(nextProfile, d);
   const newAchievements = earned.filter((a) => !profile.achievements.includes(a));
   nextProfile.achievements = Array.from(new Set([...profile.achievements, ...earned]));
+
+  // Milestones: real, once each, never on a collapse. Filter against what's already
+  // been celebrated, then mark the newly-shown ones so a card can never repeat.
+  const hits = failed ? [] : milestonesForGame(rankBefore, rankAfter, su.streak);
+  const newMilestones = hits.filter((h) => !profile.celebratedMilestones.includes(h.id));
+  nextProfile.celebratedMilestones = Array.from(
+    new Set([...profile.celebratedMilestones, ...newMilestones.map((h) => h.id)]),
+  );
 
   return {
     ...base,
@@ -480,6 +650,11 @@ export function applyDebrief(
     leveledUp: rankAfter.index > rankBefore.index,
     newAchievements,
     dailyGoalMet,
+    dailyDone,
+    dailyTarget,
+    freezes: su.freezes,
+    freezeUsed: su.freezeUsed,
+    newMilestones,
     failed,
     celebrate,
   };
