@@ -4,7 +4,7 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang } from "../types";
 import type { Analysis, Deltas, Debrief, StateView, Status, Tag, WhatIfBranch } from "../types";
-import { LEX, cnt, extractNum, has, norm } from "../lib/techniques";
+import { LEX, cnt, extractNum, has, norm } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import type { ScenarioDef } from "../data/scenarios";
 
 const clamp = (v: number, lo = 0, hi = 100): number => Math.max(lo, Math.min(hi, v));
@@ -108,6 +108,10 @@ export interface Session {
   offerPlayer: number | null;
   interests: number[];
   tradeoffs: number[];
+  // ids of secondary issues the player has traded (logrolling "package"), in the
+  // order conceded. Mirrors the backend's terms_conceded; empty when a scenario
+  // has no secondary issues (then the mock behaves exactly as before).
+  termsConceded: string[];
   deal: number | null;
   status: Status;
   met: Metrics;
@@ -117,7 +121,7 @@ export function newSession(sc: ScenarioDef, lang: Lang): Session {
   return {
     sc, lang, lowerBetter: sc.dir === "low", turn: 0, maxTurns: 12,
     trust: 40, tension: 25, info: 0, leverage: sc.dir === "high" ? 12 : 11,
-    offerOpp: sc.open, offerPlayer: null, interests: [], tradeoffs: [], deal: null, status: "active",
+    offerOpp: sc.open, offerPlayer: null, interests: [], tradeoffs: [], termsConceded: [], deal: null, status: "active",
     met: { argSum: 0, argN: 0, threats: 0, hostiles: 0, empathy: 0, crit: 0, spin: new Set(), probes: 0 },
   };
 }
@@ -140,7 +144,10 @@ export interface MoveResult {
   closed: boolean;
 }
 
-export function applyMove(s: Session, a: RawAnalysis): MoveResult {
+// `rawText` (the player's untouched line) is optional but required for structured
+// logrolling: it lets us detect WHICH secondary issue the player offered by
+// keyword, mirroring the backend's per-issue terms_conceded tracking.
+export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult {
   const sc = s.sc;
   const style = sc.cp.style;
   const b = { trust: s.trust, tension: s.tension, info: s.info, leverage: s.leverage };
@@ -176,6 +183,18 @@ export function applyMove(s: Session, a: RawAnalysis): MoveResult {
     cf += 0.12 + 0.18 * (s.info / 100);
     if (s.tradeoffs.length < sc.tradeoffs[s.lang].length) s.tradeoffs.push(s.tradeoffs.length);
     reaction = "collaborated";
+    // Structured logrolling: name the concrete secondary issue(s) the player put
+    // on the table, so the deal-terms panel can mark the "package" forming — just
+    // as the backend appends to terms_conceded. Detection is keyword-based here.
+    const rn = norm(rawText);
+    for (const iss of sc.secondaryIssues ?? []) {
+      if (s.termsConceded.includes(iss.id)) continue;
+      if (has(rn, iss.keywords[s.lang])) {
+        s.termsConceded.push(iss.id);
+        cf += 0.1; // a genuinely-valued concession unlocks a bit more price movement
+        s.trust = clamp(s.trust + 3);
+      }
+    }
   }
   if (H("threat")) {
     m.threats++; s.tension = clamp(s.tension + 22); s.trust = clamp(s.trust - 14); s.leverage = clamp(s.leverage + 6);
@@ -288,6 +307,7 @@ export function stateView(s: Session): StateView {
     offer_player: s.offerPlayer,
     interests_found: s.interests.length,
     interests_total: s.sc.interests[s.lang].length,
+    terms_conceded: [...s.termsConceded],
     status: s.status,
     turn: s.turn,
     max_turns: s.maxTurns,

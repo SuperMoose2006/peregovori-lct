@@ -158,6 +158,51 @@ test("exam mode: greeting → opponent → debrief over the same protocol path",
   server.close();
 });
 
+test("logrolling: offering a secondary issue marks it traded in terms_conceded", async () => {
+  const { server, waitFor, messages } = harness();
+
+  server.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice" });
+  const greeting = await waitFor((m) => m.type === "greeting");
+  assert.equal(greeting.type, "greeting");
+  if (greeting.type === "greeting") {
+    // The scenario view must expose the tradeable secondary issues (label only).
+    assert.ok(greeting.scenario.secondary_issues && greeting.scenario.secondary_issues.length === 2);
+    const ids = greeting.scenario.secondary_issues!.map((i) => i.id).sort();
+    assert.deepEqual(ids, ["annual_contract", "prepay"]);
+    // Nothing traded at the start.
+    assert.deepEqual(greeting.state.terms_conceded ?? [], []);
+  }
+
+  // Offer a trade-off that concedes the annual-contract issue by keyword.
+  const before = messages.length;
+  server.send({
+    type: "turn",
+    text: "Если мы пойдём навстречу и подпишем годовой контракт с гарантией объёма, сможете ли вы снизить цену?",
+  });
+  const opp = await waitFor((m) => messages.indexOf(m) >= before && m.type === "opponent");
+  assert.equal(opp.type, "opponent");
+  if (opp.type === "opponent") {
+    assert.ok(
+      (opp.state.terms_conceded ?? []).includes("annual_contract"),
+      "the annual contract should be on the table after being offered",
+    );
+    assert.ok(!(opp.state.terms_conceded ?? []).includes("prepay"), "prepay was not offered yet");
+  }
+
+  server.close();
+});
+
+test("scenarios without secondary issues expose an empty list", async () => {
+  const { server, waitFor } = harness();
+  server.send({ type: "start", scenarioId: "conflict", lang: "ru", mode: "practice" });
+  const greeting = await waitFor((m) => m.type === "greeting");
+  if (greeting.type === "greeting") {
+    assert.deepEqual(greeting.scenario.secondary_issues ?? [], []);
+    assert.deepEqual(greeting.state.terms_conceded ?? [], []);
+  }
+  server.close();
+});
+
 test("hint request returns a hint message", async () => {
   const { server, waitFor } = harness();
   server.send({ type: "start", scenarioId: "salary", lang: "en", mode: "practice" });

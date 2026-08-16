@@ -324,6 +324,10 @@ export default function App() {
           whatIfLowerBetter={
             nego.scenario ? nego.scenario.target < nego.scenario.reservation : undefined
           }
+          // Visible logrolling recap: the tradeable issues + the final package.
+          // terms_conceded rides on the last StateView, retained through debrief.
+          secondaryIssues={nego.scenario?.secondary_issues}
+          termsConceded={nego.state?.terms_conceded}
           onNext={mode === "campaign" ? nextAct : undefined}
           nextLabel={
             mode === "campaign"

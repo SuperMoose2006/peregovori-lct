@@ -1,7 +1,7 @@
 // Debrief.tsx — post-negotiation report: grade ring (A–F), three score bars
 // (economic / relationship / technique), stat cells, coaching tips, retry/home.
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Debrief as DebriefData, Lang, Mode, WhatIfBranch, WhatIfRequest, WhatIfResponse } from "../types";
+import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, WhatIfBranch, WhatIfRequest, WhatIfResponse } from "../types";
 import type { Strings } from "../i18n";
 import type { GameResult, RecordResult } from "../lib/progress";
 import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
@@ -41,11 +41,18 @@ interface Props {
   whatIfScenarioId?: string;
   whatIfUnit?: string;
   whatIfLowerBetter?: boolean;
+  // Visible logrolling recap: the scenario's tradeable secondary issues and the
+  // ids actually traded (the final terms_conceded). Both engine-owned — the line
+  // reinforces that trading created value, or gently flags the missed chance.
+  // Absent/empty secondaryIssues ⇒ the line doesn't render (non-logrolling games).
+  secondaryIssues?: SecondaryIssueView[];
+  termsConceded?: string[];
 }
 
 export function Debrief({
   t, d, mode, lang, scenarioTitle, record, game, onRetry, onHome, onNext, nextLabel,
   runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
+  secondaryIssues, termsConceded,
 }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
   // Exam reads like a certificate: same score/stats/tips, ceremonial framing.
@@ -84,6 +91,14 @@ export function Debrief({
     { n: String(d.threats), l: t.stat.threats },
     { n: String(d.avg_arg), l: t.stat.arg },
   ];
+
+  // Visible logrolling recap. Only scenarios with tradeable issues show this line:
+  // the labels of what actually went on the table, or — if nothing did — a gentle
+  // note that value was left uncreated. Labels only; no hidden numbers leak here.
+  const issues = secondaryIssues ?? [];
+  const tradedIds = new Set(termsConceded ?? []);
+  const tradedLabels = issues.filter((iss) => tradedIds.has(iss.id)).map((iss) => iss.label);
+  const showTerms = issues.length > 0;
 
   return (
     <section className="screen">
@@ -161,6 +176,21 @@ export function Debrief({
               </div>
             ))}
           </div>
+
+          {showTerms ? (
+            <div className={`dbterms${tradedLabels.length ? "" : " none"}`}>
+              <span className="dbt-label">🔄 {t.terms.debriefLabel}</span>
+              {tradedLabels.length ? (
+                <span className="dbt-chips">
+                  {tradedLabels.map((label, i) => (
+                    <span className="dbt-chip" key={i}>✓ {label}</span>
+                  ))}
+                </span>
+              ) : (
+                <span className="dbt-miss">{t.terms.debriefNone}</span>
+              )}
+            </div>
+          ) : null}
 
           {d.turning_points && d.turning_points.length > 0 ? (
             <div className="tpoints">

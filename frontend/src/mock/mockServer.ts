@@ -108,7 +108,7 @@ export class MockServer implements Transport {
 
     const raw = analyze(text);
     s.turn += 1;
-    const result = applyMove(s, raw);
+    const result = applyMove(s, raw, text);
     this.turns.push({ turn: s.turn, text, primary: raw.primary, deltas: result.deltas });
 
     let timeout = false;

@@ -7,6 +7,16 @@ export type CounterpartStyle = "relationship" | "analytical" | "tough";
 type L = Record<Lang, string>;
 type LList = Record<Lang, string[]>;
 
+// A structured tradeable secondary issue (mirrors backend SecondaryIssue). Only
+// `id`/`label` are public (see toScenarioView); `keywords` drive offline detection
+// of the player offering it, so the mock can mark the "package" forming like the
+// real engine does. Scenarios without any behave exactly as before.
+export interface SecondaryIssueDef {
+  id: string;
+  label: L;
+  keywords: LList;
+}
+
 export interface ScenarioDef {
   id: string;
   icon: string;
@@ -24,6 +34,9 @@ export interface ScenarioDef {
   batna: L;
   interests: LList;
   tradeoffs: LList;
+  // Structured logrolling axis (optional). Populated only for scenarios that
+  // support cross-issue trading — mirrors backend Scenario.secondary_issues.
+  secondaryIssues?: SecondaryIssueDef[];
   brief: L;
 }
 
@@ -47,6 +60,24 @@ export const SCENARIOS: ScenarioDef[] = [
       en: ["Stable utilization", "Upfront payment / cash flow", "Long-term contract"],
     },
     tradeoffs: { ru: ["годовой контракт", "предоплату 30%"], en: ["an annual contract", "30% upfront"] },
+    secondaryIssues: [
+      {
+        id: "annual_contract",
+        label: { ru: "Годовой контракт с гарантией объёма", en: "Annual volume commitment" },
+        keywords: {
+          ru: ["годов", "гарантия объем", "гарантию объем", "объем на год", "долгосрочн", "на год", "длительн контракт", "многолетн"],
+          en: ["annual", "volume commitment", "long-term", "long term", "yearly", "multi-year", "year contract"],
+        },
+      },
+      {
+        id: "prepay",
+        label: { ru: "Предоплата 30%", en: "30% upfront payment" },
+        keywords: {
+          ru: ["предоплат", "аванс", "вперед оплат", "оплата вперед", "предоплатим"],
+          en: ["upfront", "prepay", "advance payment", "pay in advance", "cash upfront"],
+        },
+      },
+    ],
     brief: {
       ru: "Цель: ≤86. Красная линия: 92. У поставщика скрытые интересы — вскройте их вопросами.",
       en: "Goal ≤86. Red line 92. The supplier has hidden interests — surface them with questions.",
@@ -71,6 +102,24 @@ export const SCENARIOS: ScenarioDef[] = [
       en: ["Keep the budget", "Close the role fast", "Justify the band to finance"],
     },
     tradeoffs: { ru: ["пересмотр через 6 мес по KPI", "подписной бонус"], en: ["a 6-month KPI review", "a signing bonus"] },
+    secondaryIssues: [
+      {
+        id: "kpi_review",
+        label: { ru: "Пересмотр через 6 месяцев по KPI", en: "6-month review tied to KPIs" },
+        keywords: {
+          ru: ["пересмотр", "через 6 месяц", "через полгода", "по kpi", "kpi", "ревью", "пересмотреть", "6 месяц"],
+          en: ["6-month review", "kpi review", "kpi", "performance review", "revisit in", "review tied", "6 month", "review in six"],
+        },
+      },
+      {
+        id: "signing_bonus",
+        label: { ru: "Подписной бонус вместо оклада", en: "Signing bonus instead of base" },
+        keywords: {
+          ru: ["подписн", "бонус вместо", "разов бонус", "единоразов", "единовремен бонус", "sign-on"],
+          en: ["signing bonus", "sign-on", "one-time bonus", "bonus instead of base", "lump sum"],
+        },
+      },
+    ],
     brief: {
       ru: "Цель: ≥230k. Красная линия: 195. Опирайтесь на рыночные данные, а не эмоции.",
       en: "Goal ≥230k. Red line 195. Anchor on market data, not emotion.",
@@ -148,6 +197,10 @@ export function toScenarioView(def: ScenarioDef, lang: Lang): ScenarioView {
     batna: def.batna[lang],
     target: def.target,
     reservation: def.resv,
+    secondary_issues: (def.secondaryIssues ?? []).map((iss) => ({
+      id: iss.id,
+      label: iss.label[lang],
+    })),
   };
 }
 

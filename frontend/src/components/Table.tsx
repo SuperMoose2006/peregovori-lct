@@ -10,6 +10,7 @@ import { Meters } from "./Meters";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
 import { DealTracker } from "./DealTracker";
+import { DealTerms } from "./DealTerms";
 import { Onboarding, type CoachStep } from "./Onboarding";
 
 interface Props {
@@ -239,6 +240,11 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
             <div ref={dealRef} className="onb-anchor">
               <DealTracker scenario={scenario} state={st} t={t} />
             </div>
+
+            {/* Visible logrolling: the tradeable "package" forming, right under
+                the price tracker so the price move and the trade read together.
+                Renders only for scenarios that carry secondary issues. */}
+            <DealTerms scenario={scenario} state={st} t={t} />
 
             {st && !exam ? (
               <div ref={metersRef} className="onb-anchor">

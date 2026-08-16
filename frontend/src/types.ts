@@ -40,9 +40,19 @@ export interface StateView {
   offer_player: number | null;
   interests_found: number;
   interests_total: number;
+  // ids of secondary issues the player has traded so far (logrolling "package").
+  // Empty/absent for scenarios without tradeable secondary issues. Grows per turn.
+  terms_conceded?: string[];
   status: Status;
   turn: number;
   max_turns: number;
+}
+
+// A tradeable secondary issue exposed to the client (label only, no numbers).
+// Mirrors backend SecondaryIssueView — powers the visible logrolling "package".
+export interface SecondaryIssueView {
+  id: string;
+  label: string;
 }
 
 export interface ScenarioView {
@@ -58,6 +68,9 @@ export interface ScenarioView {
   batna: string;
   target: number;
   reservation: number;
+  // Tradeable secondary issues for cross-issue value creation (logrolling).
+  // Only some scenarios (supplier, salary) have them; others send [].
+  secondary_issues?: SecondaryIssueView[];
 }
 
 // A move that swung the negotiation, quoted from the player's own words —

@@ -41,6 +41,15 @@ export interface Strings {
     opening: string;
     history: string;
   };
+  // deal-terms panel (visible logrolling / the "package") — game screen + debrief
+  terms: {
+    title: string; // panel heading
+    explainer: string; // one-line "what is logrolling" note
+    onTable: string; // suffix on a traded chip ("— на столе")
+    notYet: string; // muted state for an untraded issue
+    debriefLabel: string; // "Размен" line label in the debrief
+    debriefNone: string; // gentle nudge when tradeable issues went unused
+  };
   turn: string;
   hint: string;
   quit: string;
@@ -232,6 +241,14 @@ export const I18N: Record<Lang, Strings> = {
       yourOffer: "ваша цена",
       opening: "старт",
       history: "динамика их цены",
+    },
+    terms: {
+      title: "Условия сделки",
+      explainer: "Уступая то, что дёшево для вас, но ценно для них, вы двигаете цену — это размен (логроллинг).",
+      onTable: "на столе",
+      notYet: "ещё не предложено",
+      debriefLabel: "Размен",
+      debriefNone: "Вы не использовали размен — это упущенная ценность.",
     },
     turn: "ход",
     hint: "подсказка",
@@ -451,6 +468,14 @@ export const I18N: Record<Lang, Strings> = {
       yourOffer: "your offer",
       opening: "opening",
       history: "their price over time",
+    },
+    terms: {
+      title: "Deal terms",
+      explainer: "Concede what's cheap for you but valuable to them and the price moves — that's a trade-off (logrolling).",
+      onTable: "on the table",
+      notYet: "not offered yet",
+      debriefLabel: "Trade-offs",
+      debriefNone: "You didn't use trade-offs — that's value left on the table.",
     },
     turn: "turn",
     hint: "hint",
