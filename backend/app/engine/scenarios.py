@@ -34,6 +34,28 @@ class Batna:
 
 
 @dataclass(frozen=True)
+class SecondaryIssue:
+    """A structured second axis for real logrolling (value creation).
+
+    The player can concede this issue in a trade-off. Unlike the free-text
+    `tradeoffs` (a flat prompt cue), a SecondaryIssue carries the two numbers
+    that make cross-issue trading a genuine second dimension:
+      - `opp_value` (0..1): how much the OPPONENT values getting this → how much
+        EXTRA price flexibility it unlocks. High-value concessions move price more.
+      - `player_cost` (0..1): how much conceding it costs the PLAYER's package.
+    Good logrolling = concede an issue that is cheap for you (low player_cost) but
+    valuable to them (high opp_value) in exchange for movement on the headline price.
+    `keywords` drive OFFLINE detection of the player offering/conceding the issue;
+    the semantic judge can name it by `id` instead (see engine.apply_move).
+    """
+    id: str
+    label: dict[str, str]
+    keywords: dict[str, list[str]]
+    opp_value: float
+    player_cost: float
+
+
+@dataclass(frozen=True)
 class Scenario:
     id: str
     icon: str
@@ -50,6 +72,10 @@ class Scenario:
     hidden_interests: dict[str, list[str]]
     tradeoffs: dict[str, list[str]]
     briefing: dict[str, str]
+    # Optional structured logrolling axis. Empty default ⇒ the scenario behaves
+    # EXACTLY as before (flat tradeoff bonus, no package scoring). Populate to
+    # enable real cross-issue value creation. See SecondaryIssue.
+    secondary_issues: list[SecondaryIssue] = field(default_factory=list)
 
 
 SCENARIOS: list[Scenario] = [
@@ -98,6 +124,33 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Годовой контракт с гарантией объёма", "Предоплата 30%", "Совместный прогноз спроса"],
             "en": ["Annual volume commitment", "30% upfront payment", "Joint demand forecast"],
         },
+        # Two structured issues promoted from the tradeoffs above. Annual volume
+        # is what the supplier craves most (stable utilization + long-term deal =
+        # two of their three interests) yet costs the buyer little → the ideal
+        # logrolling chip. Upfront payment helps their cash flow but ties up the
+        # buyer's working capital → moderate value, moderate cost.
+        secondary_issues=[
+            SecondaryIssue(
+                id="annual_contract",
+                label={"ru": "Годовой контракт с гарантией объёма", "en": "Annual volume commitment"},
+                keywords={
+                    "ru": ["годов", "гарантия объем", "гарантию объем", "объем на год", "долгосрочн", "на год", "длительн контракт", "многолетн"],
+                    "en": ["annual", "volume commitment", "long-term", "long term", "yearly", "multi-year", "year contract"],
+                },
+                opp_value=0.85,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="prepay",
+                label={"ru": "Предоплата 30%", "en": "30% upfront payment"},
+                keywords={
+                    "ru": ["предоплат", "аванс", "вперед оплат", "оплата вперед", "предоплатим"],
+                    "en": ["upfront", "prepay", "advance payment", "pay in advance", "cash upfront"],
+                },
+                opp_value=0.55,
+                player_cost=0.45,
+            ),
+        ],
         briefing={
             "ru": "Цель: цена ≤ 86 ₽/шт. Красная линия: 92. У поставщика есть скрытые интересы — узнайте их вопросами, и цена сдвинется без давления.",
             "en": "Goal: price ≤ 86/unit. Red line: 92. The supplier has hidden interests — surface them with questions and the price moves without pressure.",
@@ -140,6 +193,33 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Пересмотр через 6 месяцев по KPI", "Подписной бонус вместо оклада", "Доп. отпуск / удалёнка"],
             "en": ["6-month review tied to KPIs", "Signing bonus instead of base", "Extra leave / remote days"],
         },
+        # A KPI-tied review defers the raise off today's budget and is easy to
+        # justify to finance (two of the director's interests) while costing the
+        # candidate little — it's tied to their own performance → best chip. A
+        # signing bonus is one-off cash that doesn't inflate the salary band, but
+        # it trades recurring base for a lump sum → moderate value, moderate cost.
+        secondary_issues=[
+            SecondaryIssue(
+                id="kpi_review",
+                label={"ru": "Пересмотр через 6 месяцев по KPI", "en": "6-month review tied to KPIs"},
+                keywords={
+                    "ru": ["пересмотр", "через 6 месяц", "через полгода", "по kpi", "kpi", "ревью", "пересмотреть", "6 месяц"],
+                    "en": ["6-month review", "kpi review", "kpi", "performance review", "revisit in", "review tied", "6 month", "review in six"],
+                },
+                opp_value=0.75,
+                player_cost=0.25,
+            ),
+            SecondaryIssue(
+                id="signing_bonus",
+                label={"ru": "Подписной бонус вместо оклада", "en": "Signing bonus instead of base"},
+                keywords={
+                    "ru": ["подписн", "бонус вместо", "разов бонус", "единоразов", "единовремен бонус", "sign-on"],
+                    "en": ["signing bonus", "sign-on", "one-time bonus", "bonus instead of base", "lump sum"],
+                },
+                opp_value=0.55,
+                player_cost=0.45,
+            ),
+        ],
         briefing={
             "ru": "Цель: ≥ 230 k. Красная линия: 195. Работодатель уважает рыночные данные — используйте объективные критерии, а не эмоции.",
             "en": "Goal: ≥ 230k. Red line: 195. The employer respects market data — use objective criteria, not emotion.",

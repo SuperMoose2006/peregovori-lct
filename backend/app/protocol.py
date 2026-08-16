@@ -60,9 +60,16 @@ class StateView(BaseModel):
     offer_player: Optional[float] = None
     interests_found: int
     interests_total: int
+    terms_conceded: list[str] = Field(default_factory=list)  # ids of secondary issues traded so far
     status: Status
     turn: int
     max_turns: int
+
+
+class SecondaryIssueView(BaseModel):
+    """A tradeable secondary issue exposed to the client (label only, no numbers)."""
+    id: str
+    label: str
 
 
 class ScenarioView(BaseModel):
@@ -79,6 +86,7 @@ class ScenarioView(BaseModel):
     batna: str
     target: float
     reservation: float
+    secondary_issues: list[SecondaryIssueView] = Field(default_factory=list)
 
 
 class CampaignStageView(BaseModel):

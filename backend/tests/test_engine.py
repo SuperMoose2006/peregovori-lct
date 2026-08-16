@@ -176,3 +176,54 @@ def test_new_scenarios_have_playable_opening_and_valid_zopa():
             assert sc.opponent_reservation < sc.player_target < sc.player_reservation
         else:
             assert sc.player_reservation < sc.player_target < sc.opponent_reservation
+
+
+# ---- Structured logrolling (secondary issues) -------------------------------
+
+def _trade(scenario_id, line, trust=45):
+    """One trade-off turn on a fresh session; return (offer swing, terms conceded)."""
+    sess = engine.create_session(scenario_id, "ru")
+    sess.state.trust = trust  # fix starting flexibility so runs are comparable
+    sess.turn += 1
+    r = engine.apply_move(sess, analyze(line), line)
+    return abs(r.deltas["offer_opp"]), list(sess.state.terms_conceded)
+
+
+def test_high_value_concession_moves_opponent_more_than_low_value():
+    """A genuine second axis: conceding the issue the opponent values MORE
+    (supplier's annual contract, opp_value 0.85) must move price more than a
+    lower-value one (prepayment, opp_value 0.55), from an identical state."""
+    high, high_terms = _trade("supplier", "Если дадим годовой контракт с гарантией объёма, сможете подвинуться?")
+    low, low_terms = _trade("supplier", "Если добавим предоплату вперёд, сможете подвинуться?")
+    assert high_terms == ["annual_contract"]
+    assert low_terms == ["prepay"]
+    assert high > low, f"high-value move {high} should exceed low-value {low}"
+
+
+def test_terms_conceded_records_the_issue():
+    """The engine logs which secondary issue was traded, and only once."""
+    sess = engine.create_session("salary", "en")
+    sess.state.trust = 50
+    line = "If we tie it to a 6-month KPI review in return, would you move on base?"
+    sess.turn += 1
+    engine.apply_move(sess, analyze(line), line)
+    assert sess.state.terms_conceded == ["kpi_review"]
+    assert engine.to_state_view(sess)["terms_conceded"] == ["kpi_review"]
+    # Re-offering the same issue does not double-count it.
+    sess.turn += 1
+    engine.apply_move(sess, analyze(line), line + " please")
+    assert sess.state.terms_conceded == ["kpi_review"]
+
+
+def test_scenario_without_secondary_issues_is_unaffected():
+    """A scenario with no secondary_issues never records a concession and its
+    scoring path is untouched (the package signal is skipped entirely)."""
+    sc = by_id("rent")
+    assert sc.secondary_issues == []
+    sess = engine.create_session("rent", "ru")
+    sess.turn += 1
+    line = "Если подпишем договор на 11 месяцев, в обмен сможете подвинуться?"
+    assert "tradeoff" in analyze(line).moves  # it IS a trade-off move
+    engine.apply_move(sess, analyze(line), line)
+    assert sess.state.terms_conceded == []     # but nothing structured is recorded
+    assert engine.to_state_view(sess)["terms_conceded"] == []

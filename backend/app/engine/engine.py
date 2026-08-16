@@ -57,6 +57,7 @@ class GameState:
     offer_player: Optional[float] = None
     interests_found: list[int] = field(default_factory=list)
     tradeoffs_used: list[int] = field(default_factory=list)
+    terms_conceded: list[str] = field(default_factory=list)  # ids of secondary issues traded
     deal: Optional[float] = None
     status: str = "active"     # active | agreement | breakdown
 
@@ -155,6 +156,31 @@ def _acceptable(sess: Session, number: float) -> bool:
     if sess.lower_better:
         return number >= sc.opponent_reservation - 0.001
     return number <= sc.opponent_reservation + 0.001
+
+
+def _match_secondary_issues(sc: Scenario, cur_norm: str, lang: str,
+                            judge: dict | None) -> list:
+    """Which secondary issues is the player conceding on THIS trade-off?
+
+    Semantic judge (if it names one by id via `secondary_conceded`) is
+    authoritative — it read the meaning. Otherwise fall back to offline keyword
+    detection, which can match several issues offered in one breath. Returns the
+    SecondaryIssue objects (deduped by id, order preserved)."""
+    if not sc.secondary_issues:
+        return []
+    if judge is not None:
+        jid = judge.get("secondary_conceded")
+        if jid:
+            for iss in sc.secondary_issues:
+                if iss.id == jid:
+                    return [iss]
+            return []  # judge spoke and named nothing valid → trust it, no keyword guess
+    out = []
+    for iss in sc.secondary_issues:
+        kws = iss.keywords.get(lang, [])
+        if any(k in cur_norm for k in kws):
+            out.append(iss)
+    return out
 
 
 def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
@@ -266,6 +292,16 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         if len(s.tradeoffs_used) < len(tset):
             s.tradeoffs_used.append(len(s.tradeoffs_used))
         reaction = "collaborated"
+        # Structured logrolling (scenarios with secondary_issues only): trading a
+        # concrete issue the opponent values unlocks a genuine SECOND axis of
+        # price movement, scaled by how much they want it. Cheap-for-you /
+        # valuable-for-them trades are the whole point. Scenarios with no
+        # secondary_issues keep exactly the flat tradeoff behaviour above.
+        for iss in _match_secondary_issues(sc, cur_norm, sess.lang, judge):
+            if iss.id not in s.terms_conceded:
+                s.terms_conceded.append(iss.id)
+                concession_fraction += 0.10 + 0.30 * iss.opp_value
+                s.trust = clamp(s.trust + 3 + 4 * iss.opp_value)
 
     # --- Threat / ultimatum: leverage up, relationship down. -------------------
     if has("threat"):
@@ -536,6 +572,17 @@ def score_session(sess: Session) -> dict:
     technique += _js_round((avg_arg / 100) * 14)
     technique -= m.hostiles * 12
     technique -= max(0, m.threats - 1) * 6
+    # Package signal — ONLY for scenarios with a structured logrolling axis, so
+    # scoring is byte-identical for scenarios without secondary_issues. Reward
+    # trading issues the opponent values (high opp_value) and lightly discount
+    # giving away things costly to the player (high player_cost). Folded into
+    # technique with a small weight; capped so it can't dominate the dimension.
+    if sc.secondary_issues:
+        package = 0.0
+        for iss in sc.secondary_issues:
+            if iss.id in s.terms_conceded:
+                package += 10 * iss.opp_value - 6 * iss.player_cost
+        technique += clamp(package, -10, 16)
     technique = clamp(_js_round(technique))
 
     overall = clamp(_js_round(0.4 * economic + 0.25 * relationship + 0.35 * technique))
@@ -623,6 +670,7 @@ def to_state_view(sess: Session) -> dict:
         "offer_player": s.offer_player,
         "interests_found": len(s.interests_found),
         "interests_total": len(sc.hidden_interests[sess.lang]),
+        "terms_conceded": list(s.terms_conceded),
         "status": s.status,
         "turn": sess.turn,
         "max_turns": sess.max_turns,

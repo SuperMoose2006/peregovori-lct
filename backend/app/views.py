@@ -9,7 +9,7 @@ from __future__ import annotations
 from app import engine
 from app.engine.campaigns import Campaign
 from app.protocol import (
-    Analysis, Tag, Flags, Deltas, StateView, ScenarioView, Debrief,
+    Analysis, Tag, Flags, Deltas, StateView, ScenarioView, SecondaryIssueView, Debrief,
     CampaignView, CampaignStageView,
 )
 
@@ -52,6 +52,10 @@ def scenario_view(sc: "engine.Scenario", lang: str) -> ScenarioView:
         batna=sc.player_batna.note[lang],
         target=sc.player_target,
         reservation=sc.player_reservation,
+        secondary_issues=[
+            SecondaryIssueView(id=iss.id, label=iss.label[lang])
+            for iss in getattr(sc, "secondary_issues", [])
+        ],
     )
 
 
@@ -160,6 +164,15 @@ def judge_context(sess: "engine.Session") -> tuple[str, list[str]]:
     ctx = (f"{sc.role[lang]} {who}: {sc.counterpart.name[lang]} — {sc.counterpart.persona[lang]}. "
            f"{cur}: {sess.state.offer_opp}{unit}.")
     return ctx, list(sc.hidden_interests[lang])
+
+
+def judge_secondary(sess: "engine.Session") -> list[tuple[str, str]]:
+    """(id, label) pairs of the scenario's tradeable secondary issues, so the
+    semantic judge can name which one the player concedes. Empty when the
+    scenario has none (then the judge simply won't return a secondary id)."""
+    sc = engine.by_id(sess.scenario_id)
+    lang = sess.lang
+    return [(iss.id, iss.label[lang]) for iss in getattr(sc, "secondary_issues", [])]
 
 
 def build_facts(sess: "engine.Session", result: "engine.MoveResult") -> dict:

@@ -163,7 +163,8 @@ async def ws(websocket: WebSocket) -> None:
                 if judge_enabled():
                     try:
                         ctx, interests = views.judge_context(sess)
-                        judge = await asyncio.to_thread(judge_turn, ctx, text, lang, interests)
+                        secondary = views.judge_secondary(sess)
+                        judge = await asyncio.to_thread(judge_turn, ctx, text, lang, interests, secondary)
                     except Exception:
                         judge = None
 
