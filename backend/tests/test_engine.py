@@ -227,3 +227,19 @@ def test_scenario_without_secondary_issues_is_unaffected():
     engine.apply_move(sess, analyze(line), line)
     assert sess.state.terms_conceded == []     # but nothing structured is recorded
     assert engine.to_state_view(sess)["terms_conceded"] == []
+
+
+def test_technique_floor_caps_grade_at_C_when_method_ignored():
+    """A great number with no method (technique < 45) can't buy an A/B."""
+    from app import engine
+    from app.engine.techniques import analyze as _an
+    sess = engine.create_session("supplier", "ru")
+    # Land a strong price purely by naming numbers / conceding — little real technique.
+    for msg in ["Наша цена 88.", "Давайте 86.", "Ок, 85, договорились."]:
+        if sess.state.status != "active":
+            break
+        sess.turn += 1
+        engine.apply_move(sess, _an(msg), msg)
+    d = engine.score_session(sess)
+    if d["technique"] < 45:
+        assert d["grade"] in ("C", "D", "F"), f"low technique but grade {d['grade']}"

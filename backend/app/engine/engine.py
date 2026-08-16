@@ -595,6 +595,12 @@ def score_session(sess: Session) -> dict:
         "F"
     )
 
+    # Technique floor: A/B must be EARNED with method, not bought with a good
+    # number. Landing a great price while ignoring interests/criteria/trade-offs
+    # (technique < 45) caps the grade at C — the Harvard thesis, not haggling.
+    if technique < 45 and grade in ("A", "B"):
+        grade = "C"
+
     tips: list[str] = []
 
     def T(ru: str, en: str) -> None:
