@@ -7,6 +7,7 @@ import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
 import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
 import { haptic, play } from "../lib/sound";
+import { Avatar, avatarMood } from "./Avatar";
 import { Meters } from "./Meters";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
@@ -27,17 +28,6 @@ interface Props {
   onQuit: () => void;
 }
 
-// Counterpart's face reflects their live mood — driven only by the deterministic
-// meters (trust/tension), so it's another read on the same honest state. Withheld
-// in exam mode, where meters are hidden (would leak the same signal).
-function moodFace(st: StateView | null, fallback: string): string {
-  if (!st) return fallback;
-  if (st.tension > 70) return "😠";
-  if (st.tension > 45) return "😟";
-  if (st.trust > 65) return "🙂";
-  return "😐";
-}
-
 export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHint, onQuit }: Props) {
   const st = state;
   const finished = !!st && st.status !== "active";
@@ -56,7 +46,11 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
       break;
     }
   }
-  const face = exam ? scenario.icon : moodFace(st, scenario.icon);
+  // The counterpart's face reflects their live mood — driven only by the
+  // deterministic meters (trust/tension), another read on the same honest state.
+  // In exam the meters are hidden, so `avatarMood` returns a fixed neutral (the
+  // expression must never leak the withheld signal).
+  const mood = avatarMood(st, exam);
 
   // Typing indicator: show while a turn is in flight (busy) but the opponent's
   // reply hasn't begun. Once opponent_delta pushes a streaming "opp" bubble it
@@ -236,7 +230,9 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
         <div className="table">
           <aside className="side">
             <div className="opp">
-              <div className="face" key={face}>{face}</div>
+              <div className="face">
+                <Avatar scenarioId={scenario.id} mood={mood} label={scenario.counterpart_name} />
+              </div>
               <div>
                 <div className="nm">{scenario.counterpart_name}</div>
                 <div className="ps">{scenario.counterpart_persona}</div>

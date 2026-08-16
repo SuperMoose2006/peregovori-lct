@@ -4,6 +4,7 @@
 import type { CampaignView, Lang, Mode } from "../types";
 import type { Strings } from "../i18n";
 import { catalog } from "../data/scenarios";
+import { Avatar } from "./Avatar";
 import { getRecord, type Profile } from "../lib/progress";
 import { CustomSituation } from "./CustomSituation";
 import { CampaignArc, type CampaignProgress } from "./CampaignScreen";
@@ -98,7 +99,13 @@ export function ScenarioPicker({
           <div className="cards">
             {rows.map((sc) => (
               <button className="card" key={sc.id} onClick={() => onStart(sc.id)}>
-                <div className="ic">{sc.icon}</div>
+                {/* Meet-your-8-opponents: the same portrait as the table, at a
+                    neutral expression (no live state to read yet). The deal-type
+                    emoji rides in a small corner badge so the card stays legible. */}
+                <div className="ic">
+                  <Avatar scenarioId={sc.id} mood="neutral" label={sc.title} />
+                  <span className="ic-badge" aria-hidden="true">{sc.icon}</span>
+                </div>
                 <div className="ct">{sc.title}</div>
                 <div className="cr">{sc.role}</div>
                 <div className="cf">
