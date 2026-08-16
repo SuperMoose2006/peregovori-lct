@@ -11,7 +11,7 @@ internals), so this file stays stable as the engine evolves.
 
 from __future__ import annotations
 
-import inspect
+import asyncio
 import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import engine
 from app.session import store
-from app.ai.graph import run_opponent
+from app.ai.graph import run_opponent_sync
 from app.ai.chat_models import describe_mode
 from app import views
 from app.protocol import (
@@ -52,13 +52,15 @@ def scenarios(lang: str = "ru") -> dict:
 
 
 async def _opponent_line(sess, result, templated: str) -> str:
-    """Try the AI backend; fall back to the deterministic templated line."""
+    """Try the AI backend; fall back to the deterministic templated line.
+
+    The AI call is a blocking subprocess (CLI) / network call (API); run it off
+    the event loop so the WebSocket stays responsive (keepalive) during it.
+    """
     try:
         facts = views.build_facts(sess, result)
         facts["fallback"] = templated
-        out = run_opponent(facts)
-        if inspect.isawaitable(out):
-            out = await out
+        out = await asyncio.to_thread(run_opponent_sync, facts)
         if out:
             return out
     except Exception:
@@ -84,12 +86,19 @@ async def ws(websocket: WebSocket) -> None:
                 # "Своя сделка": generate an ephemeral scenario from the user's situation.
                 if data.mode == "custom":
                     from app.ai.scenario_gen import generate_scenario
-                    gen = generate_scenario(data.situation or "", lang)
+                    # Off the event loop: generation is a ~40s blocking CLI call.
+                    gen = await asyncio.to_thread(generate_scenario, data.situation or "", lang)
                     if gen is None:
-                        await websocket.send_json({"type": "error", "message": (
-                            "Режим «Своя сделка» требует включённого ИИ (NEGO_AI=cli или api)."
-                            if lang == "ru" else
-                            "Custom mode requires an AI backend (NEGO_AI=cli or api).")})
+                        ai_off = describe_mode().startswith("off")
+                        if ai_off:
+                            msg = ("Режим «Своя сделка» требует включённого ИИ (NEGO_AI=cli или api)."
+                                   if lang == "ru" else
+                                   "Custom mode requires an AI backend (NEGO_AI=cli or api).")
+                        else:
+                            msg = ("Не удалось сгенерировать сценарий. Попробуйте переформулировать ситуацию."
+                                   if lang == "ru" else
+                                   "Couldn't generate a scenario. Try rephrasing the situation.")
+                        await websocket.send_json({"type": "error", "message": msg})
                         continue
                     scenario_id = gen.id
                 else:

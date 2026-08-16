@@ -121,10 +121,18 @@ def _dual_list(items: list) -> dict[str, list[str]]:
     return {"ru": lst, "en": lst}
 
 
-def generate_scenario(situation: str, lang: str = "ru") -> Optional[Scenario]:
+def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2) -> Optional[Scenario]:
+    # The CLI backend is intermittently noisy (occasional non-JSON preamble),
+    # so retry a couple of times before giving up. The API backend parses first try.
     backend = get_chat_backend()
-    raw = backend.generate(_sys_prompt(lang), (situation or "").strip()[:1500], raw=True)
-    d = _extract_json(raw or "")
+    sys = _sys_prompt(lang)
+    user = (situation or "").strip()[:1500]
+    d = None
+    for _ in range(max(1, attempts)):
+        raw = backend.generate(sys, user, raw=True)
+        d = _extract_json(raw or "")
+        if d:
+            break
     if not d:
         return None
 

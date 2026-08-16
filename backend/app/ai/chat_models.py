@@ -121,18 +121,19 @@ class CliBackend:
     """Wraps the local `claude` CLI as a 'local API' (no API key needed)."""
 
     def generate(self, system: str, user: str, raw: bool = False) -> Optional[str]:
-        # `claude -p` takes a single non-interactive prompt on stdin; we fold the
-        # system rules and the turn message into one self-contained prompt.
-        # raw=True skips sanitize (used for structured/JSON generation).
-        prompt = f"{system}\n\n{user}"
-        # Model name is whitelisted so it can never inject extra CLI args.
-        model = re.sub(r"[^a-zA-Z0-9._-]", "", _model())
+        # `--system-prompt` REPLACES Claude Code's default agent system prompt,
+        # so the globally-installed skills/plugins and user memory can't leak in
+        # (otherwise the CLI sometimes answers as "Claude Code" — e.g. classifies
+        # the task as "Bounded" — instead of our role/generation prompt). The
+        # user turn is fed on stdin. raw=True skips sanitize (structured/JSON).
+        model = re.sub(r"[^a-zA-Z0-9._-]", "", _model())  # whitelist: no arg injection
         # Structured (raw) generation is a heavier task → allow more time.
         timeout = max(_timeout(), 90.0) if raw else _timeout()
         try:
             proc = subprocess.run(
-                ["claude", "-p", "--model", model, "--output-format", "text"],
-                input=prompt,
+                ["claude", "-p", "--model", model, "--output-format", "text",
+                 "--system-prompt", system],
+                input=user,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
