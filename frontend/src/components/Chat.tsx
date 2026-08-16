@@ -14,16 +14,20 @@ interface Props {
   // the judge's live coach line (exam gives its feedback only at the debrief).
   exam?: boolean;
   coachLabel: string;
+  // While a turn is in flight (before the opponent's reply/stream lands) we show
+  // an opponent-styled "typing…" bubble so the wait doesn't read as a dead chat.
+  typing?: boolean;
+  typingLabel: string;
 }
 
-export function Chat({ log, metersShort, argLabel, exam, coachLabel }: Props) {
+export function Chat({ log, metersShort, argLabel, exam, coachLabel, typing, typingLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   useEffect(() => {
     const el = ref.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [log]);
+  }, [log, typing]);
 
   return (
     <div className="log" ref={ref}>
@@ -63,6 +67,14 @@ export function Chat({ log, metersShort, argLabel, exam, coachLabel }: Props) {
           </div>
         );
       })}
+      {typing ? (
+        <div className="msg opp typing-msg" aria-live="polite">
+          <div className="bub typing">
+            <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
+            <span className="typing-label">{typingLabel}</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

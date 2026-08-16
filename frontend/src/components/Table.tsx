@@ -54,6 +54,14 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
   }
   const face = exam ? scenario.icon : moodFace(st, scenario.icon);
 
+  // Typing indicator: show while a turn is in flight (busy) but the opponent's
+  // reply hasn't begun. Once opponent_delta pushes a streaming "opp" bubble it
+  // becomes the last entry, so the indicator yields to the live reply. Cleared
+  // automatically when busy drops (opponent/error/debrief all reset it), and
+  // never shown after the game is finished.
+  const lastEntry = log[log.length - 1];
+  const typing = busy && !finished && (!lastEntry || lastEntry.kind !== "opp");
+
   // First-90-seconds hook: a one-time, dismissible coach bubble nudging the new
   // player to open with a question. Shown only on turn 0 (before any send) and
   // never in exam (which withholds help). Dismissed on × or the first send.
@@ -147,6 +155,8 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
               argLabel={t.argLabel}
               exam={exam}
               coachLabel={t.coachLabel}
+              typing={typing}
+              typingLabel={t.typingLabel}
             />
             {showFirstCoach ? (
               <div className="firstcoach" role="note">

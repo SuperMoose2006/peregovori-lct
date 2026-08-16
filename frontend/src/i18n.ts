@@ -45,6 +45,7 @@ export interface Strings {
   interests: string;
   interestToast: string; // celebratory toast when a hidden interest is uncovered
   coachLabel: string; // inline "coach" tag on the judge's per-turn nudge
+  typingLabel: string; // opponent "typing…" indicator while a reply is pending
   batna: string;
   // retention (localStorage profile): streak chip, card best-grade, debrief record
   streakLabel: string; // "🔥 {n}-day streak" ({n} substituted)
@@ -161,6 +162,7 @@ export const I18N: Record<Lang, Strings> = {
     interests: "Раскрытые интересы",
     interestToast: "Вы вскрыли интерес",
     coachLabel: "тренер",
+    typingLabel: "печатает…",
     batna: "BATNA",
     streakLabel: "🔥 {n} дн. подряд",
     notPlayed: "не пройдено",
@@ -288,6 +290,7 @@ export const I18N: Record<Lang, Strings> = {
     interests: "Interests uncovered",
     interestToast: "Interest uncovered",
     coachLabel: "coach",
+    typingLabel: "typing…",
     batna: "BATNA",
     streakLabel: "🔥 {n}-day streak",
     notPlayed: "not played",
