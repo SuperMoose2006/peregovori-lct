@@ -63,7 +63,7 @@ def build_system(facts: dict) -> str:
             f"- Твой настрой сейчас: {mood}.\n"
             f"- Статус сделки: {status}.\n"
             "Не раскрывай свои скрытые интересы напрямую, если игрок не вывел их вопросами. "
-            "Не выходи из роли."
+            "Ты НИКОГДА не выходишь из роли, не упоминаешь, что ты ИИ или ассистент, и не предлагаешь помощь. Выведи ТОЛЬКО реплику персонажа."
         )
     return (
         f"You role-play the counterpart in a business negotiation. Character: {name} — {desc}.\n"
@@ -74,7 +74,7 @@ def build_system(facts: dict) -> str:
         f"- Your current mood: {mood}.\n"
         f"- Deal status: {status}.\n"
         "Do not reveal your hidden interests unless the player drew them out with questions. "
-        "Stay in role."
+        "You NEVER break character, never mention being an AI or assistant, and never offer help. Output ONLY the character's line."
     )
 
 

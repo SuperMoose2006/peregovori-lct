@@ -28,6 +28,15 @@ from typing import Optional
 # Output cap (chars) — mirrors legacy sanitize; keeps a reply to a couple lines.
 MAX_LEN = 400
 
+# Markers that betray the CLI answering as an assistant instead of the character.
+# Specific multi-word phrases only, to avoid flagging legitimate negotiation lines.
+_BREAK_MARKERS = (
+    "я специализируюсь", "как ии", "как искусственный интеллект", "как языковая модель",
+    "виртуальный ассистент", "чем могу помочь", "как ассистент", "я — ии", "я ии,",
+    "as an ai", "i'm an ai", "i am an ai", "language model", "i cannot assist",
+    "i'm claude", "i am claude", "i specialize in", "how can i help", "as an assistant",
+)
+
 # `claude -p` must run in a NEUTRAL directory: if it runs inside this repo it
 # loads the project CLAUDE.md + skills and answers as "Claude Code working on
 # the project" instead of as our role-play/generation prompt (and is far slower).
@@ -82,6 +91,13 @@ def sanitize(text: Optional[str]) -> Optional[str]:
     # Strip a single layer of wrapping quotes the model may add around the line.
     s = s.strip().strip("\"'«»").strip()
     if not s:
+        return None
+
+    # Reject "assistant-persona" breaks: the CLI is an assistant and sometimes
+    # answers out of character. Better to fall back to the engine's in-character
+    # templated line than show the opponent breaking the fourth wall.
+    low = s.lower()
+    if any(mk in low for mk in _BREAK_MARKERS):
         return None
 
     if len(s) > MAX_LEN:
