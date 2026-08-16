@@ -111,16 +111,23 @@ def build_user(facts: dict) -> str:
     lang = facts.get("lang", "ru")
     player_text = facts.get("player_text", "")
     fallback = facts.get("fallback", "")
+    transcript = facts.get("transcript", "")
 
     if lang == "ru":
+        hist = f"Разговор до этого момента:\n{transcript}\n\n" if transcript else ""
         return (
+            f"{hist}"
             f'Ориентир твоей реакции по движку (перефразируй в характере, не копируй): "{fallback}"\n\n'
             f"Реплика игрока: {player_text}\n"
+            "Ответь с учётом всего разговора — помни свои прежние уступки и слова.\n"
             "Твой ответ:"
         )
+    hist = f"Conversation so far:\n{transcript}\n\n" if transcript else ""
     return (
+        f"{hist}"
         f'Engine reference reaction (rephrase in character, do not copy): "{fallback}"\n\n'
         f"Player said: {player_text}\n"
+        "Answer in light of the whole conversation — remember your earlier concessions and words.\n"
         "Your reply:"
     )
 

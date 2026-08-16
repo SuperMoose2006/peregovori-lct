@@ -181,8 +181,22 @@ def build_facts(sess: "engine.Session", result: "engine.MoveResult") -> dict:
         "mood": _mood(result.reaction, lang),
         "status": sess.state.status,
         "revealed_interests": revealed,
+        "transcript": _transcript(sess, lang),  # memory: the opponent remembers the dialogue
         "player_text": _last_player_text(sess),
     }
+
+
+def _transcript(sess: "engine.Session", lang: str, max_turns: int = 6) -> str:
+    """Recent dialogue so the opponent has memory of its own concessions/words.
+    Excludes the current player line (that's passed separately as player_text)."""
+    you = "Ты" if lang == "ru" else "You"
+    them = "Игрок" if lang == "ru" else "Player"
+    prior = sess.log[:-1] if sess.log else []
+    recent = [e for e in prior if e.get("role") in ("opp", "player")][-max_turns:]
+    return "\n".join(
+        f"{you if e['role'] == 'opp' else them}: {(e.get('text') or '').strip()}"
+        for e in recent
+    )
 
 
 # ---- fixed lines ------------------------------------------------------------
