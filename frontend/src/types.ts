@@ -81,7 +81,8 @@ export interface Debrief {
 
 // client -> server
 export type ClientMsg =
-  | { type: "start"; scenarioId: string; lang: Lang; mode: Mode }
+  // scenarioId is "" for mode "custom"; situation carries the user's free-text
+  | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string }
   | { type: "turn"; text: string }
   | { type: "hint" };
 

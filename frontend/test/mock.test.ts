@@ -80,6 +80,48 @@ test("greeting → opponent turns → debrief over the protocol", async () => {
   server.close();
 });
 
+test("custom mode: situation → synthesized scenario → greeting → opponent", async () => {
+  const { server, messages, waitFor } = harness();
+
+  server.send({
+    type: "start",
+    scenarioId: "",
+    lang: "ru",
+    mode: "custom",
+    situation:
+      "Я фрилансер-дизайнер. Клиент хочет снизить мою ставку, но я не готов работать ниже рынка.",
+  });
+
+  const greeting = await waitFor((m) => m.type === "greeting");
+  assert.equal(greeting.type, "greeting");
+  if (greeting.type === "greeting") {
+    // A full, playable ScenarioView must be synthesized from the free text.
+    assert.ok(greeting.scenario.id.length > 0);
+    assert.ok(greeting.scenario.title.length > 0);
+    assert.ok(greeting.scenario.counterpart_name.length > 0);
+    assert.ok(greeting.scenario.briefing.length > 0);
+    assert.equal(typeof greeting.scenario.target, "number");
+    assert.equal(typeof greeting.scenario.reservation, "number");
+    assert.equal(greeting.state.turn, 0);
+    assert.equal(greeting.state.status, "active");
+    assert.ok(greeting.state.interests_total > 0);
+    assert.ok(greeting.text.length > 0);
+  }
+
+  // The synthesized scenario drives the SAME engine — a turn yields an opponent.
+  const before = messages.length;
+  server.send({ type: "turn", text: "Что для вас важнее всего в этой сделке и почему именно это?" });
+  const opp = await waitFor((m) => messages.indexOf(m) >= before && m.type === "opponent");
+  assert.equal(opp.type, "opponent");
+  if (opp.type === "opponent") {
+    assert.ok(opp.text.length > 0);
+    assert.equal(typeof opp.analysis.arg_quality, "number");
+    assert.ok(opp.state.turn >= 1);
+  }
+
+  server.close();
+});
+
 test("hint request returns a hint message", async () => {
   const { server, waitFor } = harness();
   server.send({ type: "start", scenarioId: "salary", lang: "en", mode: "practice" });

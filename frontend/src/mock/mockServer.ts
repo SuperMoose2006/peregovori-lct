@@ -4,7 +4,8 @@
 // demonstrate the full UI end-to-end with no backend running.
 import type { ClientMsg, Lang, ServerMsg } from "../types";
 import type { ServerMsgHandler, Transport } from "../api/transport";
-import { SCENARIO_MAP, toScenarioView } from "../data/scenarios";
+import { SCENARIO_MAP, toScenarioView, type ScenarioDef } from "../data/scenarios";
+import { synthCustomScenario } from "./customScenario";
 import {
   analyze, applyMove, greetingText, hintText, newSession, renderLine,
   scoreSession, stateView, toAnalysis, type Session,
@@ -24,7 +25,7 @@ export class MockServer implements Transport {
     if (this.closed) return;
     switch (msg.type) {
       case "start":
-        void this.handleStart(msg.scenarioId, msg.lang);
+        void this.handleStart(msg);
         break;
       case "turn":
         void this.handleTurn(msg.text);
@@ -56,18 +57,30 @@ export class MockServer implements Transport {
     });
   }
 
-  private async handleStart(scenarioId: string, lang: Lang): Promise<void> {
-    const def = SCENARIO_MAP[scenarioId];
-    if (!def) {
-      this.emit({ type: "error", message: `Unknown scenario: ${scenarioId}` });
-      return;
+  private async handleStart(msg: Extract<ClientMsg, { type: "start" }>): Promise<void> {
+    const lang: Lang = msg.lang;
+    let def: ScenarioDef | undefined;
+    let genDelay = 150;
+
+    if (msg.mode === "custom") {
+      // No backend to design a scenario, so synthesize one locally from the
+      // user's situation text. A longer delay lets the loading screen breathe.
+      def = synthCustomScenario(msg.situation ?? "", lang);
+      genDelay = 900;
+    } else {
+      def = SCENARIO_MAP[msg.scenarioId];
+      if (!def) {
+        this.emit({ type: "error", message: `Unknown scenario: ${msg.scenarioId}` });
+        return;
+      }
     }
+
     const s = newSession(def, lang);
     this.session = s;
-    await this.delay(150);
+    await this.delay(genDelay);
     this.emit({
       type: "greeting",
-      sessionId: `mock-${scenarioId}-${Date.now()}`,
+      sessionId: `mock-${def.id}-${Date.now()}`,
       scenario: toScenarioView(def, lang),
       state: stateView(s),
       text: greetingText(s),

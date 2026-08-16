@@ -7,7 +7,7 @@ import { ScenarioPicker } from "./components/ScenarioPicker";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
 
-type Screen = "home" | "game" | "debrief";
+type Screen = "home" | "generating" | "game" | "debrief";
 type Theme = "light" | "dark" | null;
 
 export default function App() {
@@ -16,6 +16,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [mode, setMode] = useState<Mode>("practice");
   const [currentScenario, setCurrentScenario] = useState<string | null>(null);
+  const [situation, setSituation] = useState("");
 
   const nego = useNegotiation(lang);
   const t = I18N[lang];
@@ -36,6 +37,16 @@ export default function App() {
     if (nego.debrief) setScreen("debrief");
   }, [nego.debrief]);
 
+  // Custom mode: while generating, the scenario is designed server-side (or by
+  // the mock synth). The greeting's arrival drops us into the game; an error
+  // sends us back to the situation input (with the message + a retry button).
+  useEffect(() => {
+    if (screen === "generating" && nego.scenario) setScreen("game");
+  }, [screen, nego.scenario]);
+  useEffect(() => {
+    if (screen === "generating" && nego.error) setScreen("home");
+  }, [screen, nego.error]);
+
   const isDark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
@@ -49,6 +60,23 @@ export default function App() {
     [mode, nego],
   );
 
+  const startCustom = useCallback(() => {
+    if (!situation.trim()) return;
+    setCurrentScenario(null);
+    nego.start("", "custom", situation);
+    setScreen("generating");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [nego, situation]);
+
+  // Switching modes clears a stale generation error from the custom view.
+  const selectMode = useCallback(
+    (m: Mode) => {
+      nego.clearError();
+      setMode(m);
+    },
+    [nego],
+  );
+
   const goHome = useCallback(() => {
     nego.reset();
     setScreen("home");
@@ -56,8 +84,9 @@ export default function App() {
   }, [nego]);
 
   const retry = useCallback(() => {
-    if (currentScenario) start(currentScenario);
-  }, [currentScenario, start]);
+    if (mode === "custom") startCustom();
+    else if (currentScenario) start(currentScenario);
+  }, [mode, currentScenario, start, startCustom]);
 
   return (
     <>
@@ -99,7 +128,32 @@ export default function App() {
                 ))}
               </div>
             </div>
-            <ScenarioPicker t={t} lang={lang} mode={mode} onSelectMode={setMode} onStart={start} />
+            <ScenarioPicker
+              t={t}
+              lang={lang}
+              mode={mode}
+              onSelectMode={selectMode}
+              onStart={start}
+              situation={situation}
+              customError={nego.error}
+              onSituationChange={setSituation}
+              onStartCustom={startCustom}
+            />
+          </div>
+        </section>
+      )}
+
+      {screen === "generating" && (
+        <section className="screen">
+          <div className="wrap">
+            <div className="gen">
+              <div className="gen-lamp" aria-hidden="true">🎯</div>
+              <div className="gen-dots" aria-hidden="true">
+                <i /><i /><i />
+              </div>
+              <h2 className="gen-title">{t.custom.generating}</h2>
+              <p className="gen-sub">{t.custom.generatingSub}</p>
+            </div>
           </div>
         </section>
       )}

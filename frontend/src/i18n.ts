@@ -38,6 +38,16 @@ export interface Strings {
   argLabel: string;
   connecting: string;
   usingMock: string;
+  // custom ("Своя сделка") mode
+  custom: {
+    head: string;
+    placeholder: string;
+    generate: string;
+    generating: string;
+    generatingSub: string;
+    errorHead: string;
+    retry: string;
+  };
   // debrief
   debriefTitle: string;
   coachTitle: string;
@@ -94,6 +104,16 @@ export const I18N: Record<Lang, Strings> = {
     argLabel: "аргум.",
     connecting: "Соединение…",
     usingMock: "демо-режим (без сервера)",
+    custom: {
+      head: "Опишите вашу ситуацию",
+      placeholder:
+        "Опишите вашу переговорную ситуацию… Например: «Я фрилансер, клиент просит скидку 20% на проект, а я не готов опускаться ниже своей ставки. Нужно сохранить контракт и не обесценить работу.»",
+      generate: "Сгенерировать сценарий →",
+      generating: "Генерируем вашего оппонента…",
+      generatingSub: "ИИ проектирует персону, скрытые интересы и зону торга под вашу ситуацию.",
+      errorHead: "Не удалось сгенерировать сценарий",
+      retry: "Попробовать снова",
+    },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
     retry: "Пройти снова",
@@ -169,6 +189,16 @@ export const I18N: Record<Lang, Strings> = {
     argLabel: "arg.",
     connecting: "Connecting…",
     usingMock: "demo mode (no server)",
+    custom: {
+      head: "Describe your situation",
+      placeholder:
+        "Describe your negotiation situation… e.g. “I'm a freelancer, a client wants a 20% discount on the project, but I can't go below my rate. I need to keep the contract without devaluing my work.”",
+      generate: "Generate scenario →",
+      generating: "Generating your counterpart…",
+      generatingSub: "The AI is designing a persona, hidden interests and a bargaining zone for your situation.",
+      errorHead: "Couldn't generate a scenario",
+      retry: "Try again",
+    },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",
     retry: "Try again",

@@ -1,11 +1,13 @@
-// ScenarioPicker.tsx — mode picker (only Практика fully wired; others shown as
-// "soon" cards) + scenario cards drawn from the catalog.
+// ScenarioPicker.tsx — mode picker (Практика + Своя сделка wired; Кампания/Экзамен
+// shown as "soon" cards). For library modes it lists scenario cards; for "custom"
+// it swaps in the free-text situation input (CustomSituation).
 import type { Lang, Mode } from "../types";
 import type { Strings } from "../i18n";
 import { catalog } from "../data/scenarios";
+import { CustomSituation } from "./CustomSituation";
 
 const MODES: Mode[] = ["practice", "campaign", "custom", "exam"];
-const WIRED: Record<Mode, boolean> = { practice: true, campaign: false, custom: false, exam: false };
+const WIRED: Record<Mode, boolean> = { practice: true, campaign: false, custom: true, exam: false };
 
 interface Props {
   t: Strings;
@@ -13,9 +15,17 @@ interface Props {
   mode: Mode;
   onSelectMode: (m: Mode) => void;
   onStart: (scenarioId: string) => void;
+  // custom-mode wiring
+  situation: string;
+  customError: string | null;
+  onSituationChange: (v: string) => void;
+  onStartCustom: () => void;
 }
 
-export function ScenarioPicker({ t, lang, mode, onSelectMode, onStart }: Props) {
+export function ScenarioPicker({
+  t, lang, mode, onSelectMode, onStart,
+  situation, customError, onSituationChange, onStartCustom,
+}: Props) {
   const rows = catalog(lang);
   return (
     <>
@@ -39,24 +49,37 @@ export function ScenarioPicker({ t, lang, mode, onSelectMode, onStart }: Props) 
         })}
       </div>
 
-      <div className="section-head">{t.pickHead}</div>
-      <div className="cards">
-        {rows.map((sc) => (
-          <button className="card" key={sc.id} onClick={() => onStart(sc.id)}>
-            <div className="ic">{sc.icon}</div>
-            <div className="ct">{sc.title}</div>
-            <div className="cr">{sc.role}</div>
-            <div className="cf">
-              <div className="diff">
-                {Array.from({ length: 5 }, (_, i) => (
-                  <i className={i < sc.difficulty ? "on" : ""} key={i} />
-                ))}
-              </div>
-              <div className="go">{lang === "ru" ? "Начать →" : "Start →"}</div>
-            </div>
-          </button>
-        ))}
-      </div>
+      {mode === "custom" ? (
+        <CustomSituation
+          t={t}
+          lang={lang}
+          value={situation}
+          error={customError}
+          onChange={onSituationChange}
+          onGenerate={onStartCustom}
+        />
+      ) : (
+        <>
+          <div className="section-head">{t.pickHead}</div>
+          <div className="cards">
+            {rows.map((sc) => (
+              <button className="card" key={sc.id} onClick={() => onStart(sc.id)}>
+                <div className="ic">{sc.icon}</div>
+                <div className="ct">{sc.title}</div>
+                <div className="cr">{sc.role}</div>
+                <div className="cf">
+                  <div className="diff">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <i className={i < sc.difficulty ? "on" : ""} key={i} />
+                    ))}
+                  </div>
+                  <div className="go">{lang === "ru" ? "Начать →" : "Start →"}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }

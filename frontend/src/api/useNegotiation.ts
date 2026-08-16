@@ -23,9 +23,11 @@ export interface NegotiationState {
 }
 
 export interface Negotiation extends NegotiationState {
-  start: (scenarioId: string, mode: Mode) => void;
+  // situation is the free-text brief for mode "custom" (ignored otherwise).
+  start: (scenarioId: string, mode: Mode, situation?: string) => void;
   turn: (text: string) => void;
   requestHint: () => void;
+  clearError: () => void;
   reset: () => void;
 }
 
@@ -68,11 +70,11 @@ export function useNegotiation(lang: Lang): Negotiation {
   }, [handle]);
 
   const start = useCallback(
-    (scenarioId: string, mode: Mode) => {
+    (scenarioId: string, mode: Mode, situation?: string) => {
       teardown();
       setS({ ...initialState });
       const t = ensureTransport();
-      t.send({ type: "start", scenarioId, lang: langRef.current, mode });
+      t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation });
     },
     [ensureTransport, teardown],
   );
@@ -92,12 +94,16 @@ export function useNegotiation(lang: Lang): Negotiation {
     transportRef.current?.send({ type: "hint" });
   }, []);
 
+  const clearError = useCallback(() => {
+    setS((p) => (p.error ? { ...p, error: null } : p));
+  }, []);
+
   const reset = useCallback(() => {
     teardown();
     setS({ ...initialState });
   }, [teardown]);
 
-  return { ...s, start, turn, requestHint, reset };
+  return { ...s, start, turn, requestHint, clearError, reset };
 }
 
 // Pure reducer over the ServerMsg stream.
