@@ -13,6 +13,25 @@ from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
+
+
+def _load_dotenv() -> None:
+    """Load backend/.env (gitignored) so secrets like OPENAI_API_KEY stay out of
+    shell history and command lines. Existing env vars always win."""
+    env_path = Path(__file__).resolve().parents[1] / ".env"
+    if not env_path.is_file():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, val = line.split("=", 1)
+        os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse

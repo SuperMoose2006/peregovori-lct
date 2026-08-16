@@ -75,6 +75,8 @@
   | `off` | шаблонные реплики движка | офлайн-фолбэк, тесты |
   | `cli` (по умолч. локально) | обёртка над `claude` CLI (`claude -p`) как «локальный API» | разработка без API-ключа |
   | `api` | `ChatAnthropic` | продакшен (`ANTHROPIC_API_KEY`) |
+  | `openai` | `ChatOpenAI` (по умолч. `gpt-5-nano` — самый дешёвый) | дешёвый прод (`OPENAI_API_KEY`), модель через `NEGO_MODEL`/`NEGO_OPENAI_MODEL` |
+  - Секреты — в `backend/.env` (gitignored, автозагрузка в `main.py`), не в командной строке.
 - `claude_cli` ChatModel вызывает `claude -p --model <NEGO_MODEL> --output-format text` через
   subprocess. (Опционально — через tmux-сессию для наблюдения: `tmux attach -t nego-ai`.)
 - `NEGO_MODEL` по умолчанию `claude-sonnet-5`; локально для скорости — `claude-haiku-4-5-20251001`.

@@ -204,6 +204,62 @@ class ApiBackend:
         return f"api — unavailable ({self._reason}); returns None"
 
 
+def _openai_model() -> str:
+    """OpenAI model id; defaults to the cheapest (gpt-5-nano). NEGO_MODEL wins
+    only if it actually names a gpt/o-series model, so a global claude default
+    doesn't bleed into the OpenAI backend."""
+    m = os.environ.get("NEGO_OPENAI_MODEL") or os.environ.get("NEGO_MODEL", "")
+    return m if (m.startswith("gpt") or m.startswith("o")) else "gpt-5-nano"
+
+
+class OpenAIBackend:
+    """langchain_openai.ChatOpenAI — cheapest-model default. Degrades to None
+    (never crashes on import) if the package or OPENAI_API_KEY is missing."""
+
+    def __init__(self) -> None:
+        self._reason: Optional[str] = None
+        self._llm = None
+        if not os.environ.get("OPENAI_API_KEY"):
+            self._reason = "OPENAI_API_KEY not set"
+            return
+        try:
+            from langchain_openai import ChatOpenAI
+        except Exception:
+            self._reason = "langchain_openai not installed"
+            return
+        try:
+            self._llm = ChatOpenAI(model=_openai_model(), timeout=_timeout())
+        except Exception as exc:  # pragma: no cover - defensive
+            self._reason = f"ChatOpenAI init failed: {exc}"
+
+    @property
+    def available(self) -> bool:
+        return self._llm is not None
+
+    def generate(self, system: str, user: str, raw: bool = False) -> Optional[str]:
+        if self._llm is None:
+            return None
+        try:
+            from langchain_core.messages import SystemMessage, HumanMessage
+
+            # A short line normally; room for a full JSON scenario when raw.
+            llm = self._llm.bind(max_tokens=1024) if raw else self._llm.bind(max_tokens=200)
+            resp = llm.invoke([SystemMessage(content=system), HumanMessage(content=user)])
+            content = getattr(resp, "content", None)
+            if isinstance(content, list):
+                content = "".join(
+                    b.get("text", "") if isinstance(b, dict) else str(b) for b in content
+                )
+            return (content or "").strip() if raw else sanitize(content)
+        except Exception:
+            return None
+
+    def describe_mode(self) -> str:
+        if self.available:
+            return f"openai — ChatOpenAI (model={_openai_model()})"
+        return f"openai — unavailable ({self._reason}); returns None"
+
+
 def get_chat_backend():
     """Return the backend selected by env NEGO_AI (default 'off').
 
@@ -214,6 +270,8 @@ def get_chat_backend():
         return CliBackend()
     if mode == "api":
         return ApiBackend()
+    if mode == "openai":
+        return OpenAIBackend()
     return OffBackend()
 
 
