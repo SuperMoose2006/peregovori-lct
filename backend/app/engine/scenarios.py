@@ -229,6 +229,206 @@ SCENARIOS: list[Scenario] = [
             "en": "A strong BATNA is your trump card, but wield it carefully, backed by objective valuation criteria.",
         },
     ),
+    Scenario(
+        id="rent",
+        icon="🏠",
+        difficulty=2,
+        title={"ru": "Аренда квартиры", "en": "Apartment Rent"},
+        role={
+            "ru": "Вы — арендатор. Хотите снизить месячную арендную плату, не потеряв удачную квартиру.",
+            "en": "You are a tenant. You want to lower the monthly rent without losing a great flat.",
+        },
+        counterpart=Counterpart(
+            name={"ru": "Наталья, собственница", "en": "Natalia, the Landlady"},
+            persona={
+                "ru": "Доброжелательная, боится проблемных жильцов, ценит порядочность и спокойствие.",
+                "en": "Warm, wary of troublesome tenants, values decency and a quiet life.",
+            },
+            style="relationship",
+        ),
+        headline=Headline(unit={"ru": "k ₽/мес", "en": "k/mo"}, dir="lower_is_better"),
+        opponent_open=75,
+        opponent_reservation=62,
+        player_target=64,
+        player_reservation=70,
+        player_batna=Batna(
+            strength=45,
+            note={
+                "ru": "Похожая квартира за 68, но на 40 минут дальше от работы.",
+                "en": "A similar flat at 68, but 40 minutes farther from work.",
+            },
+        ),
+        hidden_interests={
+            "ru": [
+                "Избежать простоя и пустых месяцев",
+                "Аккуратный, тихий жилец без хлопот",
+                "Стабильная оплата точно в срок",
+            ],
+            "en": [
+                "Avoid vacancy and empty months",
+                "A tidy, quiet tenant with no hassle",
+                "Reliable payment exactly on time",
+            ],
+        },
+        tradeoffs={
+            "ru": ["Договор на 11+ месяцев", "Депозит за 2 месяца вперёд", "Мелкий ремонт беру на себя"],
+            "en": ["Sign an 11+ month lease", "Two months' deposit upfront", "Handle minor repairs myself"],
+        },
+        briefing={
+            "ru": "Цель: ≤ 64 k. Красная линия: 70. Для собственницы деньги — не всё: спросите, что её беспокоит, и предложите то, что снимет её тревоги.",
+            "en": "Goal: ≤ 64k. Red line: 70. Money isn't everything to her — ask what worries her and offer what removes those worries.",
+        },
+    ),
+    Scenario(
+        id="used_car",
+        icon="🚗",
+        difficulty=3,
+        title={"ru": "Покупка авто с рук", "en": "Buying a Used Car"},
+        role={
+            "ru": "Вы — покупатель. Торгуетесь с частным продавцом, чтобы сбить цену на подержанный автомобиль.",
+            "en": "You are the buyer, haggling with a private seller to bring down the price of a used car.",
+        },
+        counterpart=Counterpart(
+            name={"ru": "Сергей, продавец", "en": "Sergey, the Seller"},
+            persona={
+                "ru": "Упрямый, слегка на нервах, привязан к машине и не терпит, когда её ругают.",
+                "en": "Stubborn, a bit on edge, attached to the car and hates hearing it trashed.",
+            },
+            style="tough",
+        ),
+        headline=Headline(unit={"ru": "k ₽", "en": "k"}, dir="lower_is_better"),
+        opponent_open=1200,
+        opponent_reservation=1040,
+        player_target=1060,
+        player_reservation=1130,
+        player_batna=Batna(
+            strength=50,
+            note={
+                "ru": "Такая же модель за 1150, но с большим пробегом.",
+                "en": "The same model at 1150, but with higher mileage.",
+            },
+        ),
+        hidden_interests={
+            "ru": [
+                "Нужны деньги быстро — уже присмотрел новую машину",
+                "Хочет отдать авто в надёжные руки",
+                "Устал от смотрящих без намерений — нужен серьёзный покупатель",
+            ],
+            "en": [
+                "Needs the cash fast — already eyeing a new car",
+                "Wants the car to go to a caring owner",
+                "Tired of tire-kickers — wants a serious buyer",
+            ],
+        },
+        tradeoffs={
+            "ru": ["Оплата наличными сразу и полностью", "Оформление перерегистрации беру на себя", "Забираю в течение 2 дней"],
+            "en": ["Pay cash in full today", "I handle the re-registration paperwork", "Pick it up within 2 days"],
+        },
+        briefing={
+            "ru": "Цель: ≤ 1060 k. Красная линия: 1130. Он на взводе — критика машины только поднимет напряжение. Узнайте, почему он продаёт, и дайте ему скорость и уверенность вместо давления.",
+            "en": "Goal: ≤ 1060k. Red line: 1130. He's tense — bashing the car only raises the heat. Find out why he's selling and offer speed and certainty instead of pressure.",
+        },
+    ),
+    Scenario(
+        id="freelance_rate",
+        icon="💻",
+        difficulty=4,
+        title={"ru": "Ставка фрилансера", "en": "Freelance Rate"},
+        role={
+            "ru": "Вы — независимый разработчик. Хотите поднять дневную ставку по проекту для стартапа.",
+            "en": "You are an independent developer. You want to raise your project day rate with a startup.",
+        },
+        counterpart=Counterpart(
+            name={"ru": "Павел, основатель стартапа", "en": "Pavel, Startup Founder"},
+            persona={
+                "ru": "Считает каждый рубль, мыслит юнит-экономикой, убеждается цифрами, а не эмоциями.",
+                "en": "Counts every ruble, thinks in unit economics, persuaded by numbers, not emotion.",
+            },
+            style="analytical",
+        ),
+        headline=Headline(unit={"ru": "k ₽/день", "en": "k/day"}, dir="higher_is_better"),
+        opponent_open=12,
+        opponent_reservation=20,
+        player_target=19,
+        player_reservation=14,
+        player_batna=Batna(
+            strength=55,
+            note={
+                "ru": "Есть другой клиент на 16/день, но скучная поддержка легаси.",
+                "en": "Another client at 16/day, but dull legacy maintenance.",
+            },
+        ),
+        hidden_interests={
+            "ru": [
+                "Предсказуемый бюджет без перерасхода",
+                "Успеть к раунду инвестиций — важна скорость",
+                "Сеньорная экспертиза, чтобы не переделывать",
+            ],
+            "en": [
+                "A predictable budget with no overruns",
+                "Ship before the funding round — speed matters",
+                "Senior expertise so nothing gets reworked",
+            ],
+        },
+        tradeoffs={
+            "ru": ["Фикс-прайс за чётко очерченный этап", "Приоритетная доступность и сжатые сроки", "Документация и передача знаний команде"],
+            "en": ["Fixed price for a clearly scoped phase", "Priority availability and a tighter timeline", "Documentation and knowledge transfer to the team"],
+        },
+        briefing={
+            "ru": "Цель: ≥ 19 k/день. Красная линия: 14. Он верит цифрам: обоснуйте ставку рыночными данными и своей сеньорностью, снимите его страх перерасхода разменом по объёму и срокам.",
+            "en": "Goal: ≥ 19k/day. Red line: 14. He trusts numbers: justify the rate with market data and your seniority, and defuse his overrun fear by trading on scope and timeline.",
+        },
+    ),
+    Scenario(
+        id="sla_renewal",
+        icon="🛰️",
+        difficulty=5,
+        title={"ru": "Продление SLA-контракта", "en": "SLA Contract Renewal"},
+        role={
+            "ru": "Вы — ИТ-директор. Продлеваете контракт с облачным вендором и хотите более высокую гарантию аптайма.",
+            "en": "You are an IT director. Renewing a cloud vendor contract, you want a higher uptime guarantee.",
+        },
+        counterpart=Counterpart(
+            name={"ru": "Виктор, вендор", "en": "Viktor, Vendor Account Exec"},
+            persona={
+                "ru": "Жёсткий переговорщик, защищает маржу, не любит связывать себя строгими штрафами.",
+                "en": "A hard bargainer, protects his margin, dislikes binding himself to strict penalties.",
+            },
+            style="tough",
+        ),
+        headline=Headline(unit={"ru": "% аптайм", "en": "% uptime"}, dir="higher_is_better"),
+        opponent_open=99.0,
+        opponent_reservation=99.9,
+        player_target=99.8,
+        player_reservation=99.4,
+        player_batna=Batna(
+            strength=60,
+            note={
+                "ru": "Конкурирующий провайдер даёт 99.7%, но миграция — это риск и время.",
+                "en": "A rival provider offers 99.7%, but migration is risk and time.",
+            },
+        ),
+        hidden_interests={
+            "ru": [
+                "Удержать клиента и многолетнюю выручку",
+                "Не брать штрафы, которые не вытянет его команда эксплуатации",
+                "Показать руководству рост контракта",
+            ],
+            "en": [
+                "Retain the account and years of recurring revenue",
+                "Avoid penalties his ops team can't sustain",
+                "Show his leadership the contract grew",
+            ],
+        },
+        tradeoffs={
+            "ru": ["Продление на 3 года вместо года", "Ступенчатый SLA с ростом по кварталам", "Совместное дежурство и общий план инцидентов"],
+            "en": ["A 3-year renewal instead of one", "A phased SLA that ramps up by quarter", "Joint on-call and a shared incident plan"],
+        },
+        briefing={
+            "ru": "Цель: ≥ 99.8%. Красная линия: 99.4%. Он бережёт маржу и боится штрафов — давите объективными критериями (отраслевые SLA, ваши потери от простоя) и снижайте его риск ступенчатым внедрением и длинным контрактом.",
+            "en": "Goal: ≥ 99.8%. Red line: 99.4%. He guards his margin and fears penalties — press with objective criteria (industry SLAs, your downtime cost) and lower his risk with a phased rollout and a longer term.",
+        },
+    ),
 ]
 
 

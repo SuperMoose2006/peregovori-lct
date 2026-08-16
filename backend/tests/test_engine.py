@@ -154,3 +154,25 @@ def test_repeated_line_barely_moves_opponent():
     r2 = engine.apply_move(sess, _an(line), line)  # exact repeat
     second_move = abs(r2.deltas["offer_opp"])
     assert second_move < first_move * 0.5  # repeat concedes far less
+
+
+# ---- New content-library scenarios: playable opening + valid ZOPA -----------
+
+def test_new_scenarios_have_playable_opening_and_valid_zopa():
+    """Additive: each newer scenario must boot into an active, coherent state
+    with a ZOPA that respects its direction (opponent floor reachable from the
+    player's reservation, target between the two)."""
+    for sid in ("rent", "used_car", "freelance_rate", "sla_renewal"):
+        sc = by_id(sid)
+        assert sc is not None, f"missing scenario {sid}"
+        assert len(sc.hidden_interests["ru"]) == 3
+        assert len(sc.hidden_interests["en"]) == 3
+        sess = engine.create_session(sid, "ru")
+        view = engine.to_state_view(sess)
+        assert view["status"] == "active"
+        assert view["offer_opp"] == sc.opponent_open
+        assert view["interests_total"] == 3
+        if sc.headline.dir == "lower_is_better":
+            assert sc.opponent_reservation < sc.player_target < sc.player_reservation
+        else:
+            assert sc.player_reservation < sc.player_target < sc.opponent_reservation
