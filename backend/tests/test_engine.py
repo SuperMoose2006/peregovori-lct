@@ -91,6 +91,34 @@ def test_spin_questions_uncover_interests():
     assert sess.state.info > 0
 
 
+def test_offline_reveal_is_honest_for_specific_probe():
+    """Offline (judge=None): a probe that names a SPECIFIC interest uncovers THAT
+    interest, not the next one in list order. supplier interest #1 is cash flow —
+    a cash-flow question must reveal index 1, never index 0."""
+    sess = engine.create_session("supplier", "ru")
+    sess.state.trust = 60  # above the reveal threshold
+    line = "А почему для вас так важен денежный поток и предоплата?"
+    sess.turn += 1
+    engine.apply_move(sess, analyze(line), line, judge=None)
+    assert sess.state.interests_found == [1], sess.state.interests_found
+
+
+def test_offline_reveal_generic_probe_stays_in_order():
+    """Offline (judge=None): a generic probe naming no specific interest keeps the
+    old behaviour — reveal next-in-order — so principled play still uncovers
+    interests and the balance is unchanged."""
+    sess = engine.create_session("supplier", "ru")
+    sess.state.trust = 60
+    order = []
+    for line in ["Что для вас важно в этой сделке и почему?",
+                 "Почему это для вас важно?",
+                 "Почему это для вас принципиально?"]:
+        sess.turn += 1
+        engine.apply_move(sess, analyze(line), line, judge=None)
+        order = list(sess.state.interests_found)
+    assert order == [0, 1, 2], order
+
+
 def test_opponent_never_crosses_reservation_floor():
     sess, _ = play("supplier", "ru", [
         "По рыночным данным цена ниже, потому что это стандарт. Если дадим годовой контракт, подвинетесь?"

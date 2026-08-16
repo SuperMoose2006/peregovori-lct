@@ -158,6 +158,32 @@ def _acceptable(sess: Session, number: float) -> bool:
     return number <= sc.opponent_reservation + 0.001
 
 
+def _reveal_index_offline(sc: Scenario, cur_norm: str, lang: str,
+                          found: list[int]) -> Optional[int]:
+    """Which hidden interest does an OFFLINE probe uncover (judge is None)?
+
+    Honesty first: if the player's words match the keywords of an interest that
+    is still hidden, uncover THAT interest — so the opponent only ever speaks to
+    what was actually asked. If the words hit no unrevealed interest (a generic
+    "почему?" / "что для вас важно?"), fall back to the smallest still-hidden
+    index — i.e. next-in-order, exactly the previous behaviour. This preserves the
+    per-probe reveal COUNT (one interest per genuine probe) so scoring/balance is
+    unchanged; only WHICH interest a specific question reveals becomes honest.
+    Returns None when everything is already uncovered."""
+    total = len(sc.hidden_interests[lang])
+    kw = sc.hidden_interest_keywords.get(lang) if sc.hidden_interest_keywords else None
+    if kw:
+        for i in range(min(total, len(kw))):
+            if i in found:
+                continue
+            if any(k in cur_norm for k in kw[i]):
+                return i
+    for i in range(total):
+        if i not in found:
+            return i
+    return None
+
+
 def _match_secondary_issues(sc: Scenario, cur_norm: str, lang: str,
                             judge: dict | None) -> list:
     """Which secondary issues is the player conceding on THIS trade-off?
@@ -248,10 +274,13 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
                 # Reveal the interest the question ACTUALLY targeted (semantic).
                 s.interests_found.append(judge_interest)
                 revealed = True
-            elif judge is None and len(s.interests_found) < total:
-                # Offline fallback: reveal next in order (deterministic).
-                s.interests_found.append(len(s.interests_found))
-                revealed = True
+            elif judge is None:
+                # Offline: reveal the interest the probe ACTUALLY targets (honest);
+                # a generic probe falls back to next-in-order. Deterministic.
+                idx = _reveal_index_offline(sc, cur_norm, sess.lang, s.interests_found)
+                if idx is not None:
+                    s.interests_found.append(idx)
+                    revealed = True
         gain_base = 22 if analysis.spin in ("implication", "need-payoff") else 14
         gain = gain_base + (10 if has("interests_probe") else 0)
         # With the judge on, a vague question that hit no real interest earns little.

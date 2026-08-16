@@ -76,6 +76,13 @@ class Scenario:
     # EXACTLY as before (flat tradeoff bonus, no package scoring). Populate to
     # enable real cross-issue value creation. See SecondaryIssue.
     secondary_issues: list[SecondaryIssue] = field(default_factory=list)
+    # Per-interest probe keywords for HONEST offline interest-reveal. `lang → list
+    # of 3 keyword-lists`, index-aligned with `hidden_interests`. When the semantic
+    # judge is OFF, a probe whose text matches an unrevealed interest's keywords
+    # uncovers THAT interest (not the next one in list order) so the opponent never
+    # speaks to an interest the player didn't actually ask about. Empty default ⇒
+    # pure next-in-order behaviour (unchanged). See engine._reveal_index_offline.
+    hidden_interest_keywords: dict[str, list[list[str]]] = field(default_factory=dict)
 
 
 SCENARIOS: list[Scenario] = [
@@ -118,6 +125,18 @@ SCENARIOS: list[Scenario] = [
                 "Stable factory utilization",
                 "Upfront payment / cash flow",
                 "Long-term contract over one-off deal",
+            ],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["загрузк", "загруз производ", "стабильн загруз", "простой", "недозагруз", "объем производ", "заполнить производ"],
+                ["денежн", "поток", "предоплат", "аванс", "кэшфлоу", "кассов разрыв", "оборотн средств", "деньги вперед", "ликвидн"],
+                ["долгосрочн", "годов контракт", "на год", "длительн", "разов сделк", "постоянн сотрудни", "длинн контракт", "надолго"],
+            ],
+            "en": [
+                ["utilization", "factory", "capacity", "keep the line", "steady volume", "idle", "load the plant"],
+                ["cash flow", "cashflow", "upfront", "prepay", "advance", "working capital", "liquidity"],
+                ["long-term", "long term", "one-off", "ongoing", "multi-year", "lasting", "annual contract"],
             ],
         },
         tradeoffs={
@@ -189,6 +208,18 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Удержать бюджет отдела в рамках", "Быстро закрыть позицию", "Обосновать вилку перед финансами"],
             "en": ["Keep the team budget in bounds", "Close the role quickly", "Justify the band to finance"],
         },
+        hidden_interest_keywords={
+            "ru": [
+                ["бюджет отдел", "бюджет команд", "бюджет в рамк", "рамки бюджет", "бюджет", "перерасход", "фонд оплаты"],
+                ["быстро закр", "закрыть позиц", "сроки найм", "быстро выйти", "скорее выйти", "как быстро нужно", "скорее закрыть", "срочно нужен"],
+                ["перед финанс", "обоснов вилк", "вилк", "перед финотдел", "объяснить финанс", "согласовать с финанс", "финанс"],
+            ],
+            "en": [
+                ["team budget", "budget", "within budget", "budget bounds", "budget cap", "headcount cost"],
+                ["close the role", "fill the role", "start quickly", "how soon", "timeline to hire", "fill it quickly"],
+                ["finance", "justify the band", "salary band", "band to finance", "cfo", "approve the band"],
+            ],
+        },
         tradeoffs={
             "ru": ["Пересмотр через 6 месяцев по KPI", "Подписной бонус вместо оклада", "Доп. отпуск / удалёнка"],
             "en": ["6-month review tied to KPIs", "Signing bonus instead of base", "Extra leave / remote days"],
@@ -257,6 +288,18 @@ SCENARIOS: list[Scenario] = [
         hidden_interests={
             "ru": ["Не выглядеть виноватым перед руководством", "Реальная нехватка людей в его команде", "Сохранить лицо"],
             "en": ["Not look at fault to leadership", "A real staffing shortage on his side", "Save face"],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["виноват", "вина", "перед руководств", "выглядеть виноват", "свалить вину", "ответственн за срыв", "кто накосяч"],
+                ["нехватк люд", "не хватает люд", "мало люд", "нехватк ресурс", "не хватает рук", "людей не хватает", "штат", "недостаток люд", "не хватает разработ"],
+                ["сохранить лицо", "лицо", "репутац", "не потерять лицо", "самолюб", "достоинств"],
+            ],
+            "en": [
+                ["at fault", "blame", "look bad to leadership", "fault", "responsible for the slip", "who dropped the ball"],
+                ["staffing", "short-staffed", "not enough people", "headcount", "understaffed", "shortage of people"],
+                ["save face", "face", "reputation", "pride", "dignity"],
+            ],
         },
         tradeoffs={
             "ru": ["Совместный статус для руководства", "Временно поделиться ресурсом", "Переразбить объём работ"],
@@ -333,6 +376,18 @@ SCENARIOS: list[Scenario] = [
         hidden_interests={
             "ru": ["Мотивированный фаундер с большой долей", "Место в совете директоров", "Скорость закрытия сделки"],
             "en": ["A motivated founder with meaningful equity", "A board seat", "Speed of closing"],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["мотивац фаундер", "мотивирован фаундер", "доля фаундер", "мотивац основател", "большая доля", "мотивирован основ", "заинтересован фаундер", "мотивац команд"],
+                ["совет директор", "место в совете", "борд", "войти в совет", "кресло в совете", "правлен", "контроль над"],
+                ["скорост закрыт", "быстро закрыть", "скорее закр", "сроки закрыт", "быстро закрыть раунд", "скорост сделк", "как быстро закр"],
+            ],
+            "en": [
+                ["motivated founder", "founder equity", "founder motivation", "meaningful equity", "skin in the game"],
+                ["board seat", "board", "seat on the board", "governance", "board control"],
+                ["speed of closing", "close quickly", "closing speed", "how fast", "time to close", "close fast"],
+            ],
         },
         tradeoffs={
             "ru": ["Место в совете вместо доли", "Транши по метрикам", "Pro-rata права в следующем раунде"],
@@ -416,6 +471,18 @@ SCENARIOS: list[Scenario] = [
                 "Reliable payment exactly on time",
             ],
         },
+        hidden_interest_keywords={
+            "ru": [
+                ["простой", "пуст месяц", "без жильц", "простаива", "пустует", "не пустовал", "чтобы не пустовал", "поиск жильц"],
+                ["аккуратн жилец", "тих жилец", "без хлопот", "порядочн", "спокойн жилец", "надежн жилец", "проблемн жилец", "не буду шум", "тишин"],
+                ["оплата в срок", "точно в срок", "вовремя плат", "стабильн оплат", "платить вовремя", "без задержек оплат", "исправно плат", "задержк оплат"],
+            ],
+            "en": [
+                ["vacancy", "empty months", "sit empty", "vacant", "no tenant", "gap between tenants"],
+                ["quiet tenant", "tidy tenant", "no hassle", "reliable tenant", "no trouble", "decent tenant", "noise"],
+                ["on time", "pay on time", "reliable payment", "timely payment", "pay promptly", "never late"],
+            ],
+        },
         tradeoffs={
             "ru": ["Договор на 11+ месяцев", "Депозит за 2 месяца вперёд", "Мелкий ремонт беру на себя"],
             "en": ["Sign an 11+ month lease", "Two months' deposit upfront", "Handle minor repairs myself"],
@@ -495,6 +562,18 @@ SCENARIOS: list[Scenario] = [
                 "Needs the cash fast — already eyeing a new car",
                 "Wants the car to go to a caring owner",
                 "Tired of tire-kickers — wants a serious buyer",
+            ],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["деньги быстро", "нужны деньги", "срочно деньги", "быстро продать", "нужны средства", "деньги срочно", "как быстро нужны деньги", "новую машину", "торопитесь продать"],
+                ["надежн руки", "хорош руки", "заботит машин", "берег машин", "хорош хозяин", "ухаживать за машин", "любит машин", "в добрые руки"],
+                ["серьезн покупател", "без намерен", "смотрящ", "устал показыв", "реальн покупател", "не просто смотр", "намерен купить", "серьезно настроен"],
+            ],
+            "en": [
+                ["cash fast", "need the money", "quick sale", "need cash", "sell quickly", "money soon", "new car"],
+                ["good hands", "caring owner", "look after the car", "take care of the car", "good home for the car"],
+                ["serious buyer", "tire-kicker", "tire kicker", "just looking", "real buyer", "genuine buyer"],
             ],
         },
         tradeoffs={
@@ -579,6 +658,18 @@ SCENARIOS: list[Scenario] = [
                 "Senior expertise so nothing gets reworked",
             ],
         },
+        hidden_interest_keywords={
+            "ru": [
+                ["предсказуем бюджет", "без перерасход", "перерасход", "уложиться в бюджет", "не выйти за бюджет", "предсказуем стоимост", "контроль бюджет", "юнит-экономик"],
+                ["к раунду", "раунд инвестиц", "успеть к", "важна скорость", "быстрее запуст", "успеть к сроку", "скорее релиз", "до раунда"],
+                ["сеньор", "экспертиз", "не переделыв", "качеств кода", "опыт разработ", "квалификац", "чтобы не переделыв", "senior"],
+            ],
+            "en": [
+                ["predictable budget", "no overruns", "overrun", "budget certainty", "stay in budget", "budget predictab", "unit economics"],
+                ["funding round", "ship before", "speed matters", "time to market", "before the round", "ship fast"],
+                ["senior expertise", "senior", "rework", "not redo", "quality code", "experience so nothing"],
+            ],
+        },
         tradeoffs={
             "ru": ["Фикс-прайс за чётко очерченный этап", "Приоритетная доступность и сжатые сроки", "Документация и передача знаний команде"],
             "en": ["Fixed price for a clearly scoped phase", "Priority availability and a tighter timeline", "Documentation and knowledge transfer to the team"],
@@ -659,6 +750,18 @@ SCENARIOS: list[Scenario] = [
                 "Retain the account and years of recurring revenue",
                 "Avoid penalties his ops team can't sustain",
                 "Show his leadership the contract grew",
+            ],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["удержать клиент", "многолетн выручк", "сохранить клиент", "долгосрочн выручк", "не потерять клиент", "продлить сотрудни", "лояльн клиент", "удержание"],
+                ["штраф", "не вытянет команд", "команда эксплуатац", "пенальти", "жестк штраф", "не потянут штраф", "риск штраф", "команда не справ"],
+                ["рост контракт", "показать руководств", "перед руководств", "увеличить контракт", "нарастить контракт", "апсейл", "рост сделк", "рост выручк"],
+            ],
+            "en": [
+                ["retain the account", "recurring revenue", "keep the account", "retain the client", "long-term revenue", "renewal revenue"],
+                ["penalt", "ops team", "can't sustain", "cannot sustain", "operations team", "penalty they can"],
+                ["contract grew", "show leadership", "grow the contract", "upsell", "contract growth", "bigger deal"],
             ],
         },
         tradeoffs={
