@@ -79,10 +79,28 @@ export interface Debrief {
   tips: string[];
 }
 
+export interface CampaignStageView {
+  scenario_id: string;
+  act: string;
+  intro: string;
+  title: string;
+  icon: string;
+  difficulty: number;
+}
+
+export interface CampaignView {
+  id: string;
+  icon: string;
+  title: string;
+  tagline: string;
+  stages: CampaignStageView[];
+}
+
 // client -> server
 export type ClientMsg =
-  // scenarioId is "" for mode "custom"; situation carries the user's free-text
-  | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string }
+  // scenarioId is "" for mode "custom"; situation carries the user's free-text;
+  // reputation (-100..100) carries a campaign result into the next stage's trust
+  | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string; reputation?: number }
   | { type: "turn"; text: string }
   | { type: "hint" };
 
