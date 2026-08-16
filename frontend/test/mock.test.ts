@@ -192,12 +192,14 @@ test("logrolling: offering a secondary issue marks it traded in terms_conceded",
   server.close();
 });
 
-test("scenarios without secondary issues expose an empty list", async () => {
+test("every built-in scenario now exposes its tradeable secondary issues", async () => {
   const { server, waitFor } = harness();
   server.send({ type: "start", scenarioId: "conflict", lang: "ru", mode: "practice" });
   const greeting = await waitFor((m) => m.type === "greeting");
   if (greeting.type === "greeting") {
-    assert.deepEqual(greeting.scenario.secondary_issues ?? [], []);
+    // Parity with the backend: conflict now carries a structured logrolling axis.
+    const ids = (greeting.scenario.secondary_issues ?? []).map((i) => i.id).sort();
+    assert.deepEqual(ids, ["joint_status", "share_resource"]);
     assert.deepEqual(greeting.state.terms_conceded ?? [], []);
   }
   server.close();

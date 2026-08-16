@@ -104,6 +104,7 @@ export function synthCustomScenario(situation: string, lang: Lang): ScenarioDef 
     cp,
     unit: kind.unit,
     open: kind.open, floor: kind.floor, target: kind.target, resv: kind.resv,
+    batnaStrength: 50,
     batna: {
       ru: "У вас есть запасной вариант — используйте его как рычаг, но аккуратно.",
       en: "You have a fallback option — use it as leverage, but carefully.",
