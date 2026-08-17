@@ -165,8 +165,14 @@ export type ServerMsg =
   // false = the deterministic keyword path (offline, mock) — nothing to claim.
   | { type: "greeting"; sessionId: string; scenario: ScenarioView; state: StateView; text: string; judge_active?: boolean }
   | { type: "opponent_delta"; chunk: string }
-  // coach: optional per-turn coaching from the semantic judge (hidden in exam mode)
-  | { type: "opponent"; text: string; analysis: Analysis; deltas: Deltas; state: StateView; coach?: string }
+  // coach: optional per-turn coaching from the semantic judge (hidden in exam mode).
+  // coach_techniques / coach_reject: present ONLY when the LIVE semantic judge ran
+  // this turn (never offline/mock — honestly ABSENT there, not [] / false):
+  //   coach_techniques — already-localized labels of the techniques the judge
+  //     RECOGNIZED in the player's line (drives the lit "judge-cam" chips).
+  //   coach_reject — true when the judge flagged the line as low-meaning
+  //     buzzword-spam / parroting (drives the struck-through "pattern, not meaning" chip).
+  | { type: "opponent"; text: string; analysis: Analysis; deltas: Deltas; state: StateView; coach?: string; coach_techniques?: string[]; coach_reject?: boolean }
   | { type: "debrief"; debrief: Debrief }
   | { type: "hint"; text: string }
   | { type: "error"; message: string };

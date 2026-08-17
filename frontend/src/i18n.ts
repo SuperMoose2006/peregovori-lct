@@ -63,6 +63,10 @@ export interface Strings {
     debriefNone: string; // gentle nudge when tradeable issues went unused
   };
   turn: string;
+  // Turn counter framing (item 5b): a BUDGET before the first move ("12 ходов"),
+  // then a positive "ход {n} из {max}" once play starts — never "ход 0/12".
+  turnBudget: string; // "{n} ходов" — {n} substituted
+  turnOf: string;     // "ход {n} из {max}" — {n},{max} substituted
   hint: string;
   quit: string;
   interests: string;
@@ -72,6 +76,21 @@ export interface Strings {
   // judge scored the move (never offline/mock, where it'd overclaim). aria explains
   // the judge scores argumentation by meaning, not keywords.
   judgeBadge: { label: string; aria: string };
+  // "judge-cam" chips (item 1): struck-through chip when the LIVE judge flags the
+  // line as buzzword-spam / parroting (recognized a pattern, not real meaning).
+  // Only ever shown when the live judge ran — the recognized-technique chips reuse
+  // the already-localized labels the judge itself returns.
+  judgeReject: string;
+  // rubric scorecard chips (item 2): a compact, always-offline read of the LATEST
+  // turn, derived purely from the deterministic engine's analysis/deltas/flags.
+  scorecard: {
+    interest: string;    // info rose sharply — an interest surfaced
+    criteria: string;    // an objective-criterion move landed
+    tradeoff: string;    // a trade-off (logroll) move landed
+    tensionUp: string;   // tension spiked this turn
+    trustUp: string;     // trust rose this turn
+    aggression: string;  // a hostile line
+  };
   typingLabel: string; // opponent "typing…" indicator while a reply is pending
   batna: string;
   // mobile: label for the collapsible briefing/BATNA section in the game side strip
@@ -175,6 +194,29 @@ export interface Strings {
   };
   // debrief
   turningPoints: { title: string; turn: string }; // "Ключевые ходы" / "Ход {n}"
+  // "Что сказал бы мастер" (item 3): on the single weakest turning point, a
+  // side-by-side of the player's line vs a principled master reformulation. The
+  // SELECTION (weak turn + missing technique) is an engine fact; the reformulation
+  // is a quality Harvard/SPIN template keyed to what the debrief shows was missing.
+  master: {
+    title: string;   // "Что сказал бы мастер"
+    yours: string;   // "Ваша реплика"
+    label: string;   // "Мастер" (the quoted reformulation's speaker)
+    why: string;     // one-line rationale prefix under the master line
+    // reformulations keyed to the missing technique (picked by priority)
+    criteria: string;  // objective_criteria === 0 → cite a market criterion
+    interest: string;  // interests_found < interests_total → probe an interest
+    tradeoff: string;  // tradeoffs === 0 → propose a logroll
+    threat: string;    // threats > 0 → reframe off the threat
+    // rationale tails matching each reformulation
+    whyCriteria: string;
+    whyInterest: string;
+    whyTradeoff: string;
+    whyThreat: string;
+  };
+  // Technique-floor explanation (item 4): one honest line when a great price is
+  // capped by thin method (technique < 45 & economic high) — the "price ≠ grade" rule.
+  techniqueFloor: string;
   // "А что если…" — the what-if replay card in the debrief.
   whatIf: {
     title: string; // section heading
@@ -198,6 +240,7 @@ export interface Strings {
     priceFurther: string; // "цена сдвинулась дальше"
     unavailable: string; // graceful note when the replay can't be computed
     presets: [string, string]; // two strong preset alternatives
+    mobileCta: string; // mobile-only: tap-to-expand the collapsed what-if card
   };
   debriefTitle: string;
   coachTitle: string;
@@ -360,6 +403,8 @@ export const I18N: Record<Lang, Strings> = {
       debriefNone: "Вы не использовали размен — это упущенная ценность.",
     },
     turn: "ход",
+    turnBudget: "{n} ходов",
+    turnOf: "ход {n} из {max}",
     hint: "подсказка",
     quit: "выйти",
     interests: "Раскрытые интересы",
@@ -368,6 +413,15 @@ export const I18N: Record<Lang, Strings> = {
     judgeBadge: {
       label: "судит ИИ по смыслу",
       aria: "Семантический ИИ-судья оценивает аргументацию по смыслу, а не по ключевым словам.",
+    },
+    judgeReject: "распознал шаблон, не смысл",
+    scorecard: {
+      interest: "вскрыли интерес",
+      criteria: "объективный критерий",
+      tradeoff: "размен",
+      tensionUp: "↑ напряжение",
+      trustUp: "↑ доверие",
+      aggression: "агрессия",
     },
     typingLabel: "печатает…",
     batna: "BATNA",
@@ -441,7 +495,7 @@ export const I18N: Record<Lang, Strings> = {
         F: "Ещё учиться",
       },
     },
-    firstTurnCoach: "💡 Начните с вопроса: узнайте, что важно для {name}. Не давите — сначала интересы.",
+    firstTurnCoach: "💡 Начните с интересов: узнайте, что важно второй стороне. Не давите ценой — сначала спрашивайте.",
     dismiss: "Закрыть подсказку",
     suggestChip: {
       label: "Спросите, что для них важно →",
@@ -472,6 +526,21 @@ export const I18N: Record<Lang, Strings> = {
         "Смотрите: их цена сдвинулась к вашей цели. Каждый удачный ход двигает её — следите за этой шкалой.",
     },
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
+    master: {
+      title: "Что сказал бы мастер",
+      yours: "Ваша реплика",
+      label: "Мастер",
+      why: "Почему сильнее:",
+      criteria: "Давайте опираться не на позиции, а на объективный критерий: какая цена справедлива по рыночным данным для таких сделок?",
+      interest: "Прежде чем говорить о цене — что для вас здесь важнее всего и почему? Хочу понять ваш интерес, а не только позицию.",
+      tradeoff: "Давайте разменяем: если я уступлю в сроках, готовы ли вы двинуться по цене? Свяжем уступки в пакет.",
+      threat: "Уберём давление со стола. Предлагаю решать по существу: какой критерий был бы честным для нас обоих?",
+      whyCriteria: "объективный критерий убеждает сильнее позиционного торга (Гарвардский метод).",
+      whyInterest: "интерес за позицией открывает пространство для сделки (Гарвардский метод, SPIN).",
+      whyTradeoff: "размен по разным по ценности вопросам создаёт ценность, а не делит её (логроллинг).",
+      whyThreat: "уход от угроз к критериям снижает напряжение и сохраняет отношения.",
+    },
+    techniqueFloor: "Отличная цена, но грейд ограничен: A/B нужно заслужить методом — интересы, критерии, размен, — а не только торгом.",
     whatIf: {
       title: "А что если…",
       teaser: "Один ход решал всё →",
@@ -497,6 +566,7 @@ export const I18N: Record<Lang, Strings> = {
         "А что для вас важнее всего в этой сделке и почему?",
         "Давайте сверимся с рыночными данными — какая цена была бы справедливой?",
       ],
+      mobileCta: "Показать развилку",
     },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
@@ -680,6 +750,8 @@ export const I18N: Record<Lang, Strings> = {
       debriefNone: "You didn't use trade-offs — that's value left on the table.",
     },
     turn: "turn",
+    turnBudget: "{n} turns",
+    turnOf: "turn {n} of {max}",
     hint: "hint",
     quit: "leave",
     interests: "Interests uncovered",
@@ -688,6 +760,15 @@ export const I18N: Record<Lang, Strings> = {
     judgeBadge: {
       label: "graded by meaning",
       aria: "A semantic AI judge scores your argumentation by meaning, not by keywords.",
+    },
+    judgeReject: "recognized a pattern, not meaning",
+    scorecard: {
+      interest: "surfaced an interest",
+      criteria: "objective criterion",
+      tradeoff: "trade-off",
+      tensionUp: "↑ tension",
+      trustUp: "↑ trust",
+      aggression: "aggression",
     },
     typingLabel: "typing…",
     batna: "BATNA",
@@ -761,7 +842,7 @@ export const I18N: Record<Lang, Strings> = {
         F: "Still learning",
       },
     },
-    firstTurnCoach: "💡 Open with a question: find out what matters to {name}. Don't push — interests first.",
+    firstTurnCoach: "💡 Start with interests: find out what matters to the other side. Don't push on price — ask first.",
     dismiss: "Dismiss tip",
     suggestChip: {
       label: "Ask what matters most to them →",
@@ -792,6 +873,21 @@ export const I18N: Record<Lang, Strings> = {
         "Look: their price slid toward your target. Every good move nudges it — keep an eye on this scale.",
     },
     turningPoints: { title: "Turning points", turn: "Turn" },
+    master: {
+      title: "What a master would say",
+      yours: "Your line",
+      label: "Master",
+      why: "Why it's stronger:",
+      criteria: "Let's anchor on an objective criterion rather than positions: what price is fair by market data for deals like this?",
+      interest: "Before we talk price — what matters most to you here, and why? I want to understand your interest, not just your position.",
+      tradeoff: "Let's trade: if I move on the timeline, could you move on price? Let's package the concessions together.",
+      threat: "Let's take the pressure off the table and decide on the merits: what criterion would be fair to us both?",
+      whyCriteria: "an objective criterion persuades better than positional bargaining (Harvard method).",
+      whyInterest: "the interest behind the position opens room for a deal (Harvard method, SPIN).",
+      whyTradeoff: "trading across issues of differing value creates value instead of splitting it (logrolling).",
+      whyThreat: "moving from threats to criteria lowers tension and preserves the relationship.",
+    },
+    techniqueFloor: "Great price, but the grade is capped: an A/B is earned with method — interests, criteria, trade-offs — not by bargaining alone.",
     whatIf: {
       title: "What if…",
       teaser: "One move changed everything →",
@@ -817,6 +913,7 @@ export const I18N: Record<Lang, Strings> = {
         "What matters most to you in this deal, and why?",
         "Let's check the market data — what price would be fair?",
       ],
+      mobileCta: "Show the branch",
     },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",

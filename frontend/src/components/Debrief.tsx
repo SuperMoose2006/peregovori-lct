@@ -110,6 +110,29 @@ export function Debrief({
     !!runWhatIf && !!whatIfScenarioId && !!whatIfMoves && whatIfMoves.length > 0 &&
     pivotal !== null && pivotIdx !== null && !exam;
 
+  // Mobile-only collapse for the hoisted what-if card (item 6): on ≤640px it
+  // pushes the score bars far down, so on mobile it starts collapsed behind a
+  // teaser + CTA and expands in place. Desktop ignores this (CSS always shows it).
+  const [wiOpen, setWiOpen] = useState(false);
+
+  // Technique-floor rule (item 4): a great price with thin method caps the grade.
+  // Surfacing the rule makes a capped grade read as principled, not harsh.
+  const techniqueFloored = d.technique < 45 && d.economic >= 65;
+
+  // "Что сказал бы мастер" (item 3): spotlight the single weakest turning point and
+  // reformulate it with the ONE most-relevant missing technique. The selection is
+  // an engine fact (pivotal turn + which technique the debrief shows was missing);
+  // the reformulation is a principled Harvard/SPIN template. Nothing when no turn.
+  const master: { quote: string; line: string; why: string } | null = (() => {
+    if (!pivotal || exam) return null;
+    const m = t.master;
+    if (d.threats > 0) return { quote: pivotal.quote, line: m.threat, why: m.whyThreat };
+    if (d.objective_criteria === 0) return { quote: pivotal.quote, line: m.criteria, why: m.whyCriteria };
+    if (d.interests_found < d.interests_total) return { quote: pivotal.quote, line: m.interest, why: m.whyInterest };
+    if (d.tradeoffs === 0) return { quote: pivotal.quote, line: m.tradeoff, why: m.whyTradeoff };
+    return null;
+  })();
+
   const cells: Array<{ n: string; l: string }> = [
     { n: `${d.spin_stages}/3`, l: t.stat.spin },
     { n: String(d.objective_criteria), l: t.stat.criteria },
@@ -205,17 +228,28 @@ export function Debrief({
               player's own costly line, before the metric bars. Deterministic
               replay logic is unchanged; only its position moved. */}
           {showWhatIf && pivotal && pivotIdx !== null ? (
-            <WhatIfCard
-              t={t}
-              lang={lang}
-              run={runWhatIf!}
-              scenarioId={whatIfScenarioId!}
-              moves={whatIfMoves!}
-              turnIndex={pivotIdx}
-              originalQuote={pivotal.quote}
-              unit={whatIfUnit}
-              lowerBetter={whatIfLowerBetter}
-            />
+            <div className={`whatif-wrap${wiOpen ? " open" : ""}`}>
+              <button
+                type="button"
+                className="whatif-mtoggle"
+                aria-expanded={wiOpen}
+                onClick={() => setWiOpen((o) => !o)}
+              >
+                <span className="wi-teaser">{t.whatIf.teaser}</span>
+                <span className="wmt-cta">{t.whatIf.mobileCta} ▾</span>
+              </button>
+              <WhatIfCard
+                t={t}
+                lang={lang}
+                run={runWhatIf!}
+                scenarioId={whatIfScenarioId!}
+                moves={whatIfMoves!}
+                turnIndex={pivotIdx}
+                originalQuote={pivotal.quote}
+                unit={whatIfUnit}
+                lowerBetter={whatIfLowerBetter}
+              />
+            </div>
           ) : null}
 
           <div className="sb">
@@ -239,6 +273,13 @@ export function Debrief({
               </div>
             ))}
           </div>
+
+          {techniqueFloored ? (
+            <div className="tfloor" role="note">
+              <span className="tfloor-i" aria-hidden="true">⚖</span>
+              <span>{t.techniqueFloor}</span>
+            </div>
+          ) : null}
 
           <div className="stats">
             {cells.map((c, i) => (
@@ -279,6 +320,25 @@ export function Debrief({
                   </li>
                 ))}
               </ol>
+            </div>
+          ) : null}
+
+          {master ? (
+            <div className="master">
+              <h3>✦ {t.master.title}</h3>
+              <div className="ms-grid">
+                <div className="ms-cell yours">
+                  <span className="ms-lab">{t.master.yours}</span>
+                  <blockquote className="ms-q">«{master.quote}»</blockquote>
+                </div>
+                <div className="ms-cell mstr">
+                  <span className="ms-lab">✦ {t.master.label}</span>
+                  <blockquote className="ms-q ms-line">«{master.line}»</blockquote>
+                </div>
+              </div>
+              <div className="ms-why">
+                <b>{t.master.why}</b> {master.why}
+              </div>
             </div>
           ) : null}
 

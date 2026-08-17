@@ -25,13 +25,17 @@ interface Props {
   // where coaching comes from the deterministic keyword path — no claim to make.
   judgeActive?: boolean;
   judgeBadge: { label: string; aria: string };
+  // "judge-cam" chip label (item 1): the struck-through "pattern, not meaning" chip
+  // shown when the live judge flags a line as buzzword-spam. Technique chips reuse
+  // the already-localized labels the judge returns on the coach entry.
+  judgeReject: string;
   // While a turn is in flight (before the opponent's reply/stream lands) we show
   // an opponent-styled "typing…" bubble so the wait doesn't read as a dead chat.
   typing?: boolean;
   typingLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, exam, coachLabel, judgeActive, judgeBadge, typing, typingLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -57,12 +61,26 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
         if (e.kind === "sys") return <div className="sys" key={e.id}>{e.text}</div>;
         if (e.kind === "coach") {
           if (exam || dismissed.has(e.id)) return null;
+          // "judge-cam" chips: recognized techniques + an optional reject chip.
+          // Both ride the coach entry ONLY when the LIVE judge scored this turn —
+          // honestly absent offline/mock, so no need to gate them on judgeActive.
+          const chips = e.techniques ?? [];
+          const hasCam = chips.length > 0 || e.reject === true;
           return (
             <div className="coachline" key={e.id}>
-              <span className="coachline-b">💡 {coachLabel}:</span> {e.text}
+              <span className="coachline-b">💡 {coachLabel}:</span>
+              {e.text ? <> {e.text}</> : null}
               {judgeActive ? (
                 <span className="judge-badge" title={judgeBadge.aria} aria-label={judgeBadge.aria}>
                   ⚖ {judgeBadge.label}
+                </span>
+              ) : null}
+              {hasCam ? (
+                <span className="judgecam">
+                  {chips.map((label, i) => (
+                    <span className="jc-chip on" key={i}>✓ {label}</span>
+                  ))}
+                  {e.reject ? <span className="jc-chip reject">{judgeReject}</span> : null}
                 </span>
               ) : null}
               <button

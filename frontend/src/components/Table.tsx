@@ -1,7 +1,7 @@
 // Table.tsx — the negotiation screen. Left: counterpart card, offers board,
 // live meters, briefing, BATNA, interests tracker. Right: chat log + composer.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Deltas, Lang, Mode, ScenarioView, StateView } from "../types";
+import type { Analysis, Deltas, Lang, Mode, ScenarioView, StateView } from "../types";
 import type { TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
@@ -11,6 +11,7 @@ import { haptic, play } from "../lib/sound";
 import { Avatar, avatarMood } from "./Avatar";
 import { ScreenHeading } from "./ScreenHeading";
 import { Meters } from "./Meters";
+import { Scorecard } from "./Scorecard";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
 import { DealTracker } from "./DealTracker";
@@ -47,11 +48,15 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
   const placeholder = exam ? t.placeholder : teachingPlaceholder(st?.turn ?? 0, t.placeholder, t.placeholderNudges);
   // Latest turn's deltas (for the meter pulse cue) — read off the most recent
   // player line in the log. Never used in exam (meters are hidden there anyway).
+  // Latest turn's deltas + analysis feed both the meter pulse and the rubric
+  // scorecard (item 2) — both read off the most recent classified player line.
   let lastDeltas: Deltas | null = null;
+  let lastAnalysis: Analysis | null = null;
   for (let i = log.length - 1; i >= 0; i--) {
     const e = log[i];
     if (e.kind === "me" && e.deltas) {
       lastDeltas = e.deltas;
+      lastAnalysis = e.analysis ?? null;
       break;
     }
   }
@@ -265,6 +270,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
             {st && !exam ? (
               <div ref={metersRef} className="onb-anchor">
                 <Meters state={st} labels={t.meters} info={t.meterInfo} deltas={lastDeltas} />
+                <Scorecard analysis={lastAnalysis} deltas={lastDeltas} labels={t.scorecard} />
               </div>
             ) : null}
 
@@ -307,7 +313,14 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
           <main className="chat">
             <div className="ch">
               <div className="turn">
-                {t.turn} {st?.turn ?? 0}/{st?.max_turns ?? 12}
+                {/* Budget, not a countdown: before the first move show the turn
+                    BUDGET ("12 ходов"); once play starts show "ход {n} из {max}"
+                    — never "ход 0/12", which reads like a countdown-to-failure. */}
+                {(st?.turn ?? 0) < 1
+                  ? t.turnBudget.replace("{n}", String(st?.max_turns ?? 12))
+                  : t.turnOf
+                      .replace("{n}", String(st?.turn ?? 0))
+                      .replace("{max}", String(st?.max_turns ?? 12))}
                 {kind === "mock" ? <span className="conn mock">{t.usingMock}</span> : null}
                 {kind === null ? <span className="conn">{t.connecting}</span> : null}
               </div>
@@ -323,12 +336,13 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
               coachLabel={t.coachLabel}
               judgeActive={judgeActive}
               judgeBadge={t.judgeBadge}
+              judgeReject={t.judgeReject}
               typing={typing}
               typingLabel={t.typingLabel}
             />
             {showFirstCoach ? (
               <div className="firstcoach" role="note">
-                <span>{t.firstTurnCoach.replace("{name}", scenario.counterpart_name)}</span>
+                <span>{t.firstTurnCoach}</span>
                 <button
                   className="firstcoach-x"
                   onClick={() => setCoachDismissed(true)}

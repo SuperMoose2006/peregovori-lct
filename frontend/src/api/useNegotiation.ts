@@ -13,7 +13,9 @@ export type ChatEntry =
   | { id: number; kind: "hint"; text: string }
   // coach: the semantic judge's per-turn nudge, threaded under the exchange.
   // Rendered by Chat (hidden in exam mode) — the hook stays modality/mode-agnostic.
-  | { id: number; kind: "coach"; text: string }
+  // techniques / reject ride along ONLY when the live judge scored this turn (the
+  // "judge-cam" chips); both absent offline/mock where no live judge ran.
+  | { id: number; kind: "coach"; text: string; techniques?: string[]; reject?: boolean }
   | { id: number; kind: "sys"; text: string };
 
 export interface NegotiationState {
@@ -171,9 +173,14 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
         log.push({ id: nextId(), kind: "opp", text: msg.text });
       }
       // The judge's coaching (if any) rides under the exchange. Chat decides
-      // whether to show it (exam withholds all live feedback).
-      if (msg.coach && msg.coach.trim()) {
-        log.push({ id: nextId(), kind: "coach", text: msg.coach.trim() });
+      // whether to show it (exam withholds all live feedback). We also raise a
+      // coach entry when the live judge returned recognized-technique labels or a
+      // reject flag even without a text nudge — so the "judge-cam" chips can show.
+      const techniques = msg.coach_techniques?.length ? msg.coach_techniques : undefined;
+      const reject = msg.coach_reject === true ? true : undefined;
+      const coachText = msg.coach?.trim() ?? "";
+      if (coachText || techniques || reject) {
+        log.push({ id: nextId(), kind: "coach", text: coachText, techniques, reject });
       }
       return { ...prev, state: msg.state, busy: false, log };
     }

@@ -72,6 +72,11 @@ test("greeting → opponent turns → debrief over the protocol", async () => {
       assert.ok(Array.isArray(opp.analysis.tags));
       assert.equal(typeof opp.deltas.trust, "number");
       assert.ok(opp.state.turn >= 1);
+      // Mock parity: offline has no LIVE judge, so the "judge-cam" fields must be
+      // honestly ABSENT (undefined) — never [] / false. The scorecard chips (item 2)
+      // still work offline because they derive from analysis/deltas, checked above.
+      assert.equal(opp.coach_techniques, undefined);
+      assert.equal(opp.coach_reject, undefined);
       // Once the session closes, the server emits a debrief shortly after.
       if (opp.state.status !== "active") {
         debrief = await waitFor((m) => m.type === "debrief");
