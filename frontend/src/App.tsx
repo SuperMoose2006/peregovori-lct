@@ -6,6 +6,7 @@ import { useNegotiation } from "./api/useNegotiation";
 import { getCampaigns } from "./api/campaigns";
 import { whatIf } from "./api/whatif";
 import { ScenarioPicker } from "./components/ScenarioPicker";
+import { ScreenHeading } from "./components/ScreenHeading";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
@@ -254,7 +255,7 @@ export default function App() {
           <div className="wrap">
             <div className="hero">
               <div className="eyebrow">{t.eyebrow}</div>
-              <h1 dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
+              <ScreenHeading as="h1" dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
               <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} onSetGoal={setGoalTarget} />
               {/* Mobile-only: a single clear call-to-action above the fold that jumps
                   to the opponent picker. Desktop shows the picker inline, so it's hidden there. */}
@@ -296,7 +297,7 @@ export default function App() {
               <div className="gen-dots" aria-hidden="true">
                 <i /><i /><i />
               </div>
-              <h2 className="gen-title">{t.custom.generating}</h2>
+              <ScreenHeading as="h2" className="gen-title">{t.custom.generating}</ScreenHeading>
               <p className="gen-sub">{t.custom.generatingSub}</p>
             </div>
           </div>
@@ -306,6 +307,7 @@ export default function App() {
       {screen === "game" && nego.scenario && (
         <Table
           t={t}
+          lang={lang}
           mode={mode}
           kind={nego.kind}
           scenario={nego.scenario}

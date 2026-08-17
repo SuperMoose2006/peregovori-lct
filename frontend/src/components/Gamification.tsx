@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Lang } from "../types";
 import type { Strings } from "../i18n";
+import { ScreenHeading } from "./ScreenHeading";
 import { haptic, play } from "../lib/sound";
 import {
   ACHIEVEMENTS, DAILY_GOAL_MAX, DAILY_GOAL_MIN, dailyGoalView, getAchievement, rankForXp,
@@ -133,7 +134,7 @@ export function SkillsProfile({
         <div className="skills">
           <button className="skills-back" onClick={onHome}>{t.gam.back}</button>
           <div className="skills-head">
-            <h2>{t.gam.skillsTitle}</h2>
+            <ScreenHeading as="h2">{t.gam.skillsTitle}</ScreenHeading>
             <div className="skills-rank">
               <b>{r.rank.name[lang]}</b> · {sub(t.gam.totalXp, { n: profile.xp })}
             </div>
@@ -149,6 +150,9 @@ export function SkillsProfile({
             <p className="skills-empty">{t.gam.noGames}</p>
           )}
 
+          {/* Zero-state: with no games there's nothing honest to score, so we skip
+              the (all "—") bars entirely and let the friendly invite above stand. */}
+          {hasGames ? (
           <div className="skillbars">
             {views.map((s) => {
               // One game isn't a mastery signal — a lone weak score would shame a
@@ -181,6 +185,7 @@ export function SkillsProfile({
               );
             })}
           </div>
+          ) : null}
 
           <h3 className="badges-title">{t.gam.achievementsTitle}</h3>
           <div className="badges">

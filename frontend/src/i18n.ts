@@ -68,6 +68,9 @@ export interface Strings {
   personalBest: string; // debrief: "Personal best"
   newRecord: string; // debrief: "new record!" when the best is beaten
   placeholder: string;
+  // Teaching placeholders shown in the composer for a new player's first few turns
+  // (concrete technique nudges), then it settles to `placeholder`. RU/EN.
+  placeholderNudges: string[];
   send: string;
   argLabel: string;
   connecting: string;
@@ -217,6 +220,16 @@ export interface Strings {
     skillNames: Record<SkillId, string>;
     skillHints: Record<SkillId, string>;
   };
+  // Screen-reader labels for non-textual UI (meters/rings/scales/log). Templates
+  // use {name}-style tokens substituted at render.
+  a11y: {
+    chatLog: string;      // aria-label for the chat-log live region
+    gameHeading: string;  // sr-only game-screen heading — "{name}" substituted
+    grade: string;        // debrief grade ring — "{grade}"/"{score}" substituted
+    scoreBar: string;     // a score bar — "{label}"/"{v}" substituted
+    deal: string;         // deal-tracker summary — target/redline/offer substituted
+    delta: string;        // a per-turn meter delta chip — "{label}"/"{value}"
+  };
 }
 
 export const I18N: Record<Lang, Strings> = {
@@ -283,6 +296,11 @@ export const I18N: Record<Lang, Strings> = {
     personalBest: "Личный рекорд",
     newRecord: "новый рекорд!",
     placeholder: "Ваша реплика своими словами…",
+    placeholderNudges: [
+      "Спросите, ПОЧЕМУ это важно для них…",
+      "Сошлитесь на рыночные данные или объективный критерий…",
+      "Предложите размен: «если…, то…»…",
+    ],
     send: "Отправить",
     argLabel: "аргум.",
     connecting: "Соединение…",
@@ -429,7 +447,7 @@ export const I18N: Record<Lang, Strings> = {
       skillsSub: "Средняя оценка по всем играм — так видно, где вы растёте.",
       strongIn: "Силён в",
       workOn: "Подтяни",
-      noGames: "Сыграйте первую переговорку, чтобы увидеть прогресс.",
+      noGames: "Сыграйте первую переговорку, чтобы увидеть, где вы растёте.",
       back: "← Назад",
       gamesCount: "{n} игр",
       achievementsTitle: "Достижения",
@@ -451,6 +469,14 @@ export const I18N: Record<Lang, Strings> = {
         tradeoff: "Создаёте ценность разменом уступок",
         tension: "Держите доверие и не даёте напряжению расти",
       },
+    },
+    a11y: {
+      chatLog: "Ход переговоров",
+      gameHeading: "Переговоры: {name}",
+      grade: "Оценка {grade}, {score} из 100",
+      scoreBar: "{label}: {v} из 100",
+      deal: "Сделка. Ваша цель {target}, красная линия {redline}, их текущая цена {offer}.",
+      delta: "{label}: {value}",
     },
     // Stems, not finished moves: the chip drops a sentence STARTER into the box
     // that the player must complete in their own words (a full worked example
@@ -526,6 +552,11 @@ export const I18N: Record<Lang, Strings> = {
     personalBest: "Personal best",
     newRecord: "new record!",
     placeholder: "Your line, in your own words…",
+    placeholderNudges: [
+      "Ask WHY this matters to them…",
+      "Cite market data or an objective criterion…",
+      "Offer a trade: “if…, then…”…",
+    ],
     send: "Send",
     argLabel: "arg.",
     connecting: "Connecting…",
@@ -672,7 +703,7 @@ export const I18N: Record<Lang, Strings> = {
       skillsSub: "Your average across every game — so you can see where you're growing.",
       strongIn: "Strong at",
       workOn: "Work on",
-      noGames: "Play your first negotiation to see your progress.",
+      noGames: "Play your first negotiation to see where you're growing.",
       back: "← Back",
       gamesCount: "{n} games",
       achievementsTitle: "Achievements",
@@ -694,6 +725,14 @@ export const I18N: Record<Lang, Strings> = {
         tradeoff: "Create value by trading concessions",
         tension: "Keep trust up and tension from rising",
       },
+    },
+    a11y: {
+      chatLog: "Negotiation transcript",
+      gameHeading: "Negotiation: {name}",
+      grade: "Grade {grade}, {score} out of 100",
+      scoreBar: "{label}: {v} out of 100",
+      deal: "Deal. Your target {target}, red line {redline}, their current offer {offer}.",
+      delta: "{label}: {value}",
     },
     // Stems, not finished moves — the player completes each in their own words
     // (the full worked example stays behind the 💡 hint button).

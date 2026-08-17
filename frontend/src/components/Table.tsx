@@ -1,13 +1,15 @@
 // Table.tsx — the negotiation screen. Left: counterpart card, offers board,
 // live meters, briefing, BATNA, interests tracker. Right: chat log + composer.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Deltas, Mode, ScenarioView, StateView } from "../types";
+import type { Deltas, Lang, Mode, ScenarioView, StateView } from "../types";
 import type { TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
 import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
+import { teachingPlaceholder } from "../lib/format";
 import { haptic, play } from "../lib/sound";
 import { Avatar, avatarMood } from "./Avatar";
+import { ScreenHeading } from "./ScreenHeading";
 import { Meters } from "./Meters";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
@@ -17,6 +19,7 @@ import { Onboarding, type CoachStep } from "./Onboarding";
 
 interface Props {
   t: Strings;
+  lang: Lang;
   mode: Mode;
   kind: TransportKind | null;
   scenario: ScenarioView;
@@ -28,7 +31,7 @@ interface Props {
   onQuit: () => void;
 }
 
-export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHint, onQuit }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, onSend, onHint, onQuit }: Props) {
   const st = state;
   const finished = !!st && st.status !== "active";
   const iFound = st?.interests_found ?? 0;
@@ -36,6 +39,9 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
   // Exam is an assessment: all live coaching feedback (meters, interests tracker,
   // technique chips/badges, meter deltas, hint) is withheld until the debrief.
   const exam = mode === "exam";
+  // Teaching placeholder: nudge a concrete technique for the opening turns, then
+  // settle to the neutral prompt. Withheld in exam (no live coaching there).
+  const placeholder = exam ? t.placeholder : teachingPlaceholder(st?.turn ?? 0, t.placeholder, t.placeholderNudges);
   // Latest turn's deltas (for the meter pulse cue) — read off the most recent
   // player line in the log. Never used in exam (meters are hidden there anyway).
   let lastDeltas: Deltas | null = null;
@@ -227,6 +233,11 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
         </div>
       ) : null}
       <div className="wrap">
+        {/* Screen-reader heading + focus target for the game screen (visually the
+            counterpart card carries the identity, so this stays sr-only). */}
+        <ScreenHeading as="h2" className="sr-only">
+          {t.a11y.gameHeading.replace("{name}", scenario.counterpart_name)}
+        </ScreenHeading>
         <div className="table">
           <aside className="side">
             <div className="opp">
@@ -240,7 +251,7 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
             </div>
 
             <div ref={dealRef} className="onb-anchor">
-              <DealTracker scenario={scenario} state={st} t={t} />
+              <DealTracker scenario={scenario} state={st} t={t} lang={lang} />
             </div>
 
             {/* Visible logrolling: the tradeable "package" forming, right under
@@ -301,6 +312,9 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
             <Chat
               log={log}
               metersShort={t.metersShort}
+              metersFull={t.meters}
+              deltaAria={t.a11y.delta}
+              logLabel={t.a11y.chatLog}
               argLabel={t.argLabel}
               exam={exam}
               coachLabel={t.coachLabel}
@@ -322,7 +336,7 @@ export function Table({ t, mode, kind, scenario, state, log, busy, onSend, onHin
             <div ref={composeRef} className="onb-anchor">
               <Composer
                 disabled={busy || finished || !st}
-                placeholder={t.placeholder}
+                placeholder={placeholder}
                 quickMoves={t.quickMoves}
                 onSend={handleSend}
                 onHint={onHint}

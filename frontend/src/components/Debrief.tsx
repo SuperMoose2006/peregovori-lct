@@ -5,7 +5,9 @@ import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, WhatIfBran
 import type { Strings } from "../i18n";
 import type { GameResult, RecordResult } from "../lib/progress";
 import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
+import { formatDeal } from "../lib/format";
 import { play } from "../lib/sound";
+import { ScreenHeading } from "./ScreenHeading";
 import { XpAward } from "./Gamification";
 
 const GRADE_COLOR: Record<string, string> = {
@@ -119,6 +121,8 @@ export function Debrief({
           <div className="gh">
             <div
               className="ring"
+              role="img"
+              aria-label={t.a11y.grade.replace("{grade}", d.grade).replace("{score}", String(d.overall))}
               style={
                 {
                   ["--p" as string]: grown ? d.overall : 0,
@@ -126,14 +130,14 @@ export function Debrief({
                 } as CSSProperties
               }
             >
-              <span className="gl" style={{ color: gc }}>
+              <span className="gl" style={{ color: gc }} aria-hidden="true">
                 {d.grade}
               </span>
-              <span className="gs">{d.overall}/100</span>
+              <span className="gs" aria-hidden="true">{d.overall}/100</span>
             </div>
             <div>
               {exam ? <div className="cert-eyebrow">🏆 {t.exam.eyebrow}</div> : null}
-              <h2>{exam ? t.exam.resultTitle : t.debriefTitle}</h2>
+              <ScreenHeading as="h2">{exam ? t.exam.resultTitle : t.debriefTitle}</ScreenHeading>
               {exam && scenarioTitle ? (
                 <div className="cert-scenario">
                   {t.exam.scenarioLabel}: <b>{scenarioTitle}</b>
@@ -165,12 +169,17 @@ export function Debrief({
 
           <div className="sb">
             {bars.map((b, i) => (
-              <div className="sbi" key={i}>
-                <div className="sbh">
+              <div
+                className="sbi"
+                key={i}
+                role="img"
+                aria-label={t.a11y.scoreBar.replace("{label}", b.label).replace("{v}", String(b.v))}
+              >
+                <div className="sbh" aria-hidden="true">
                   <span>{b.label}</span>
                   <b>{b.v}</b>
                 </div>
-                <div className="sbt">
+                <div className="sbt" aria-hidden="true">
                   <div
                     className="sbf"
                     style={{ width: grown ? `${b.v}%` : "0%", background: b.color }}
@@ -182,9 +191,9 @@ export function Debrief({
 
           <div className="stats">
             {cells.map((c, i) => (
-              <div className="st" key={i}>
-                <div className="n">{c.n}</div>
-                <div className="l">{c.l}</div>
+              <div className="st" key={i} role="img" aria-label={`${c.l}: ${c.n}`}>
+                <div className="n" aria-hidden="true">{c.n}</div>
+                <div className="l" aria-hidden="true">{c.l}</div>
               </div>
             ))}
           </div>
@@ -365,6 +374,7 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
       ) : (
         <Divergence
           t={t}
+          lang={lang}
           res={res}
           grown={grown}
           unit={unit}
@@ -379,9 +389,10 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
 // The revealed side-by-side: original vs alternative branch. Emphasizes the
 // improvement honestly — the banner and summary are derived from the real deltas.
 function Divergence({
-  t, res, grown, unit, lowerBetter, onReset,
+  t, lang, res, grown, unit, lowerBetter, onReset,
 }: {
   t: Strings;
+  lang: Lang;
   res: WhatIfResponse;
   grown: boolean;
   unit?: string;
@@ -421,8 +432,8 @@ function Divergence({
       {bits.length ? <div className="wi-summary">{bits.join(" · ")}</div> : null}
 
       <div className="wi-cols">
-        <Branch t={t} label={w.wasLabel} b={o} grown={grown} unit={unit} alt={false} />
-        <Branch t={t} label={w.couldLabel} b={a} grown={grown} unit={unit} alt />
+        <Branch t={t} lang={lang} label={w.wasLabel} b={o} grown={grown} unit={unit} alt={false} />
+        <Branch t={t} lang={lang} label={w.couldLabel} b={a} grown={grown} unit={unit} alt />
       </div>
 
       <button className="wi-reveal ghost" type="button" onClick={onReset}>
@@ -435,9 +446,10 @@ function Divergence({
 // One branch column: three meter bars (trust/tension/info), the opponent's offer,
 // and their line. Only the alternative column animates its bars in.
 function Branch({
-  t, label, b, grown, unit, alt,
+  t, lang, label, b, grown, unit, alt,
 }: {
   t: Strings;
+  lang: Lang;
   label: string;
   b: WhatIfBranch;
   grown: boolean;
@@ -471,7 +483,7 @@ function Branch({
       </div>
       <div className="wi-offer">
         <span>{w.offerLabel}</span>
-        <b>{b.state.offer_opp}{unit ?? ""}</b>
+        <b>{formatDeal(b.state.offer_opp, unit ?? "", lang)}</b>
       </div>
       <div className="wi-oline">
         <span className="wi-olabel">{w.opponentLabel}</span>

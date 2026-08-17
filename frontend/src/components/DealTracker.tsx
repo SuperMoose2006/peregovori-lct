@@ -10,13 +10,15 @@
 // (their opening), the current offer_opp, and offer_player. The shaded "good
 // zone" is purely the PLAYER's own acceptable band (target → red line).
 import { useEffect, useRef, useState } from "react";
-import type { ScenarioView, StateView } from "../types";
+import type { Lang, ScenarioView, StateView } from "../types";
 import type { Strings } from "../i18n";
+import { formatDeal } from "../lib/format";
 
 interface Props {
   scenario: ScenarioView;
   state: StateView | null;
   t: Strings;
+  lang: Lang;
 }
 
 // Track their offer per turn. Reset when the scenario changes (new game).
@@ -47,9 +49,10 @@ function useOfferHistory(scenarioId: string, state: StateView | null): number[] 
   return hist;
 }
 
-export function DealTracker({ scenario, state, t }: Props) {
+export function DealTracker({ scenario, state, t, lang }: Props) {
   const hist = useOfferHistory(scenario.id, state);
   const unit = scenario.headline_unit;
+  const fmt = (v: number) => formatDeal(v, unit, lang);
   const target = scenario.target;
   const redline = scenario.reservation;
   // Direction is inferred from target vs red line — no engine `dir` needed and
@@ -78,16 +81,25 @@ export function DealTracker({ scenario, state, t }: Props) {
   const gz1 = Math.min(x(target), x(redline)) * 100;
   const gz2 = Math.max(x(target), x(redline)) * 100;
 
+  // Single accessible summary for the whole (otherwise purely visual) tracker: the
+  // player's own target + red line and the counterpart's current offer. The hidden
+  // floor is never referenced (honesty). role="img" collapses the ticks/scale into
+  // this one label for screen readers.
+  const ariaSummary = t.a11y.deal
+    .replace("{target}", fmt(target))
+    .replace("{redline}", fmt(redline))
+    .replace("{offer}", state ? fmt(current) : "—");
+
   return (
-    <div className="dealtracker">
-      <div className="dt-head">
+    <div className="dealtracker" role="img" aria-label={ariaSummary}>
+      <div className="dt-head" aria-hidden="true">
         <div className="ob">
           <div className="l">{t.tracker.theirOffer}</div>
-          <div className="v">{state ? current + unit : "—"}</div>
+          <div className="v">{state ? fmt(current) : "—"}</div>
         </div>
         <div className="ob">
           <div className="l">{t.tracker.target}</div>
-          <div className="v tg">{target + unit}</div>
+          <div className="v tg">{fmt(target)}</div>
         </div>
       </div>
 

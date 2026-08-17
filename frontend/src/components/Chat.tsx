@@ -9,6 +9,12 @@ import type { MeterLabels } from "../i18n";
 interface Props {
   log: ChatEntry[];
   metersShort: MeterLabels;
+  // full meter names (for accessible delta-chip labels; the chips render short)
+  metersFull: MeterLabels;
+  // aria template for a delta chip — "{label}: {value}"
+  deltaAria: string;
+  // accessible name for the log live region
+  logLabel: string;
   argLabel: string;
   // exam mode withholds per-turn technique badges + arg score + meter deltas +
   // the judge's live coach line (exam gives its feedback only at the debrief).
@@ -20,7 +26,7 @@ interface Props {
   typingLabel: string;
 }
 
-export function Chat({ log, metersShort, argLabel, exam, coachLabel, typing, typingLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, exam, coachLabel, typing, typingLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -30,7 +36,17 @@ export function Chat({ log, metersShort, argLabel, exam, coachLabel, typing, typ
   }, [log, typing]);
 
   return (
-    <div className="log" ref={ref}>
+    // The log is a polite live region: new opponent replies and coach lines are
+    // announced to screen readers as they arrive, without stealing focus.
+    <div
+      className="log"
+      ref={ref}
+      role="log"
+      aria-label={logLabel}
+      aria-live="polite"
+      aria-relevant="additions text"
+      aria-atomic="false"
+    >
       {log.map((e) => {
         if (e.kind === "hint") return <div className="hintbub" key={e.id}>💡 {e.text}</div>;
         if (e.kind === "sys") return <div className="sys" key={e.id}>{e.text}</div>;
@@ -63,7 +79,9 @@ export function Chat({ log, metersShort, argLabel, exam, coachLabel, typing, typ
           <div className="msg me" key={e.id}>
             <div className="bub">{e.text}</div>
             {!exam && e.analysis ? <TagRow analysis={e.analysis} argLabel={argLabel} /> : null}
-            {!exam && e.deltas ? <DeltaRow deltas={e.deltas} labels={metersShort} /> : null}
+            {!exam && e.deltas ? (
+              <DeltaRow deltas={e.deltas} labels={metersShort} full={metersFull} deltaAria={deltaAria} />
+            ) : null}
           </div>
         );
       })}
@@ -94,13 +112,20 @@ function TagRow({ analysis, argLabel }: { analysis: Analysis; argLabel: string }
   );
 }
 
-function DeltaRow({ deltas, labels }: { deltas: Deltas; labels: MeterLabels }) {
+function DeltaRow({
+  deltas, labels, full, deltaAria,
+}: {
+  deltas: Deltas;
+  labels: MeterLabels;
+  full: MeterLabels;
+  deltaAria: string;
+}) {
   // tension is "inverted" — a drop is good (shown green).
-  const cells: Array<{ label: string; v: number; invert?: boolean }> = [
-    { label: labels.trust, v: deltas.trust },
-    { label: labels.tension, v: deltas.tension, invert: true },
-    { label: labels.info, v: deltas.info },
-    { label: labels.leverage, v: deltas.leverage },
+  const cells: Array<{ label: string; full: string; v: number; invert?: boolean }> = [
+    { label: labels.trust, full: full.trust, v: deltas.trust },
+    { label: labels.tension, full: full.tension, v: deltas.tension, invert: true },
+    { label: labels.info, full: full.info, v: deltas.info },
+    { label: labels.leverage, full: full.leverage, v: deltas.leverage },
   ];
   const shown = cells.filter((c) => Math.abs(c.v) >= 0.5);
   if (!shown.length) return null;
@@ -108,10 +133,14 @@ function DeltaRow({ deltas, labels }: { deltas: Deltas; labels: MeterLabels }) {
     <div className="deltas">
       {shown.map((c, i) => {
         const good = c.invert ? c.v < 0 : c.v > 0;
+        const signed = `${c.v > 0 ? "+" : ""}${Math.round(c.v)}`;
+        // Chip shows the abbreviation; the aria-label spells out the full meter name.
+        const label = deltaAria.replace("{label}", c.full).replace("{value}", signed);
         return (
-          <span className={good ? "up" : "dn"} key={i}>
-            {c.label} {c.v > 0 ? "+" : ""}
-            {Math.round(c.v)}
+          <span className={good ? "up" : "dn"} key={i} aria-label={label}>
+            <span aria-hidden="true">
+              {c.label} {signed}
+            </span>
           </span>
         );
       })}
