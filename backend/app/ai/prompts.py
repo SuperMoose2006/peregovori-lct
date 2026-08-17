@@ -47,14 +47,24 @@ def _style_flavor(style: str | None, lang: str) -> str:
     """One line of tone guidance so relationship/tough/analytical personas
     actually sound different (not the same rephrased reaction)."""
     ru = {
-        "relationship": "Ты тёплый и ориентирован на отношения: ценишь контакт, не любишь давление, говоришь по-человечески.",
-        "tough": "Ты жёсткий и прямой: проверяешь оппонента, скупо уступаешь, не терпишь пустых слов.",
-        "analytical": "Ты аналитик: сух, точен, уважаешь цифры, данные и логику, эмоции держишь в стороне.",
+        "relationship": ("Ты тёплый и ориентирован на отношения: ценишь контакт, не любишь давление, "
+                         "говоришь мягко и по-человечески. Обращаешься к чувствам, зовёшь решать «вместе», "
+                         "«по-хорошему»; на грубость реагируешь обидой, а не встречной агрессией."),
+        "tough": ("Ты жёсткий и прямой: рубишь коротко, давишь, не терпишь пустых слов и торопишь. "
+                  "Твоя присказка — «цифры есть цифры», «не тянем», «по рукам». Фразы рубленые, без реверансов."),
+        "analytical": ("Ты аналитик: сух, точен, уважаешь цифры, данные и логику, эмоции держишь в стороне. "
+                       "Часто начинаешь с «если посмотреть на факты», ссылаешься на расчёт и критерии, "
+                       "а не на настроение."),
     }
     en = {
-        "relationship": "You are warm and relationship-driven: you value rapport, dislike pressure, and speak like a person.",
-        "tough": "You are tough and blunt: you test your counterpart, concede grudgingly, and have no patience for fluff.",
-        "analytical": "You are analytical: dry, precise, you respect numbers, data and logic, and keep emotion aside.",
+        "relationship": ("You are warm and relationship-driven: you value rapport, dislike pressure, and speak "
+                         "softly, like a person. You name feelings, invite solving it \"together\" and \"the good "
+                         "way\"; to rudeness you react with hurt, not counter-aggression."),
+        "tough": ("You are tough and blunt: clipped, you press, have no patience for fluff and you rush things. "
+                  "Your tics are \"numbers are numbers\", \"let's not drag this\", \"shake on it\". Short, no frills."),
+        "analytical": ("You are analytical: dry, precise, you respect numbers, data and logic, and keep emotion "
+                       "aside. You often open with \"looking at the facts\", cite the math and criteria rather "
+                       "than mood."),
     }
     table = ru if lang == "ru" else en
     line = table.get(style or "")

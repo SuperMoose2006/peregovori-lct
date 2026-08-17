@@ -454,16 +454,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Ценю, что вы вникаете в нашу ситуацию. Продолжайте.",
             ],
             "relationship": [
-                "Как приятно иметь дело с понимающим человеком. Давайте всё решим по-хорошему.",
-                "Вот за это я и люблю нормальные переговоры. Спасибо, что услышали.",
+                "Как приятно иметь дело с понимающим человеком. Давайте решим всё по-хорошему, вместе.",
+                "Вот за это я и люблю нормальный разговор. Спасибо, что услышали меня.",
+                "Мне правда важно, что вы вникли. Давайте дальше двигаться вместе.",
             ],
             "tough": [
                 "Ладно, уже без наездов. Так и быть, продолжим.",
-                "Хорошо, хоть по-деловому заговорили. Дальше.",
+                "Наконец по-деловому. Дальше, не тянем.",
+                "Хорошо. Меньше эмоций, больше дела.",
             ],
             "analytical": [
                 "Разумно. Раз мы сходимся по фактам — двигаемся дальше.",
                 "Логично. С таким подходом можно работать.",
+                "Если посмотреть на факты — вы правы. Продолжим.",
             ],
         },
         "opened_up": {
@@ -476,16 +479,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Не буду скрывать: за этим стоит {interest}.",
             ],
             "relationship": [
-                "Раз уж по-доброму спрашиваете — по-человечески нам важно {interest}.",
-                "Вам скажу откровенно: для нас это про {interest}.",
+                "Раз уж вы так по-доброму спрашиваете — по-человечески нам важно {interest}.",
+                "Вам скажу откровенно, как своим: для нас это про {interest}.",
+                "Спасибо, что интересуетесь. По-настоящему нас волнует {interest}.",
             ],
             "tough": [
                 "Ладно. Коротко: нам нужно {interest}. Вот и весь секрет.",
                 "Скажу прямо, без обёртки: дело в {interest}.",
+                "Раз надо — {interest}. Всё, поехали дальше.",
             ],
             "analytical": [
                 "Если разложить по сути — ключевой фактор для нас {interest}.",
                 "По факту всё упирается в {interest}.",
+                "Если посмотреть на факты, для нас определяющее — {interest}.",
             ],
         },
         "persuaded": {
@@ -498,16 +504,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Справедливо. Пойду вам навстречу — {offer}{unit}.",
             ],
             "relationship": [
-                "Вы меня по-хорошему убедили. Так и быть, {offer}{unit}.",
-                "Ради нормальных отношений подвинусь — {offer}{unit}.",
+                "Вы меня по-хорошему убедили. Давайте так и сделаем — {offer}{unit}.",
+                "Ради добрых отношений с радостью подвинусь — {offer}{unit}.",
+                "Мне приятно, что мы слышим друг друга. Пусть будет {offer}{unit}.",
             ],
             "tough": [
                 "Ладно. Цифра бьёт — {offer}{unit}. Дальше.",
                 "Принято, крыть нечем. {offer}{unit}.",
+                "Цифры есть цифры. {offer}{unit}, идём.",
             ],
             "analytical": [
                 "Расчёт корректный. Пересчитал — {offer}{unit}.",
                 "Данные сходятся. По ним получается {offer}{unit}.",
+                "Если посмотреть на факты, ваш довод верен. {offer}{unit}.",
             ],
         },
         "pressured": {
@@ -520,16 +529,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Угрозы лишние, у нас и так есть о чём говорить. {offer}{unit}.",
             ],
             "relationship": [
-                "Зачем же так резко? Мы ведь по-хорошему можем. {offer}{unit}.",
-                "Не надо давить, я и так к вам расположена. {offer}{unit}.",
+                "Ну зачем же так резко? Мы ведь можем по-хорошему, вместе. {offer}{unit}.",
+                "Не надо давить, я и так к вам расположена. Давайте спокойно — {offer}{unit}.",
+                "Мне неуютно от такого тона. Давайте по-доброму: {offer}{unit}.",
             ],
             "tough": [
                 "Давите? Давите. Меня этим не сдвинуть. {offer}{unit}.",
                 "Альтернативы — это ваше дело. Моё — {offer}{unit}.",
+                "Пугать будете кого другого. {offer}{unit}.",
             ],
             "analytical": [
                 "Ваша BATNA — это тоже цифра, давайте её и обсудим. Пока {offer}{unit}.",
                 "Хорошо, сравним варианты по фактам. У меня {offer}{unit}.",
+                "Эмоции опустим. По расчёту у меня {offer}{unit}.",
             ],
         },
         "collaborated": {
@@ -542,16 +554,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Вот теперь мы создаём ценность, а не делим её. {offer}{unit}.",
             ],
             "relationship": [
-                "Вот это по-партнёрски! На таких условиях с радостью — {offer}{unit}.",
-                "Люблю, когда ищут общий интерес. Тогда {offer}{unit}.",
+                "Вот это по-партнёрски! Давайте вместе так и сделаем — {offer}{unit}.",
+                "Люблю, когда ищут общий интерес, а не тянут одеяло. Тогда {offer}{unit}.",
+                "Вот теперь мы заодно. С удовольствием — {offer}{unit}.",
             ],
             "tough": [
                 "Годится. Даёте это — беру {offer}{unit}. Почти по рукам.",
                 "Вот это конкретика. За такое — {offer}{unit}.",
+                "Дело говорите. {offer}{unit}, и не тянем.",
             ],
             "analytical": [
                 "Сходится: ваша уступка компенсирует мою. Тогда {offer}{unit}.",
                 "По балансу выгод это работает. {offer}{unit}.",
+                "Если посмотреть на факты, размен честный. {offer}{unit}.",
             ],
         },
         "hardened": {
@@ -564,16 +579,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Чем сильнее давите, тем меньше желания двигаться. {offer}{unit}.",
             ],
             "relationship": [
-                "Мне неприятен такой напор. Так я уступать не готова — {offer}{unit}.",
-                "Жаль, что вы так. По-хорошему было бы проще. {offer}{unit}.",
+                "Мне неприятен такой напор, честно. Так уступать не хочется — {offer}{unit}.",
+                "Жаль, что вы так со мной. По-доброму было бы куда проще. {offer}{unit}.",
+                "Мне обидно от такого давления. Пока остаюсь на {offer}{unit}.",
             ],
             "tough": [
                 "Не пройдёт. {offer}{unit}, и точка.",
                 "Меня на испуг не возьмёшь. {offer}{unit}.",
+                "Давите сколько хотите — {offer}{unit}.",
             ],
             "analytical": [
                 "Эмоции — не аргумент. Пока цифры прежние: {offer}{unit}.",
                 "Без фактов это просто давление. {offer}{unit}.",
+                "Дайте данные, а не тон. Пока {offer}{unit}.",
             ],
         },
         "offended": {
@@ -586,16 +604,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Ещё одно такое слово — и разговор закончен.",
             ],
             "relationship": [
-                "Мне правда обидно это слышать. Я так не привыкла.",
+                "Мне правда обидно это слышать, я так не привыкла разговаривать.",
                 "Зачем же так? Я ведь к вам со всей душой.",
+                "Мне неприятно. Давайте всё же по-человечески.",
             ],
             "tough": [
                 "Полегче. Ещё раз так — и разошлись.",
                 "Аккуратнее в выражениях со мной.",
+                "Тон смени. Быстро.",
             ],
             "analytical": [
                 "Эмоции оставим за скобками, это непродуктивно.",
                 "Переход на личности к сути отношения не имеет.",
+                "Давайте по фактам, а не на личности.",
             ],
         },
         "neutral": {
@@ -608,16 +629,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Давайте зафиксируем: сейчас на столе {offer}{unit}.",
             ],
             "relationship": [
-                "Хорошо, пока пусть будет {offer}{unit}, а там посмотрим.",
-                "Понимаю вас. Пока остановимся на {offer}{unit}.",
+                "Хорошо, давайте пока остановимся на {offer}{unit}, а дальше вместе посмотрим.",
+                "Я вас понимаю. Пусть пока будет {offer}{unit}, спокойно.",
+                "Хорошо, услышала вас. Пока {offer}{unit}, и давайте не спеша.",
             ],
             "tough": [
                 "Так. Пока {offer}{unit}. Что дальше?",
                 "Ясно. {offer}{unit}. Не тянем.",
+                "Коротко: {offer}{unit}. Дальше.",
             ],
             "analytical": [
                 "Фиксирую: текущая цифра {offer}{unit}.",
                 "По состоянию на сейчас — {offer}{unit}.",
+                "Если по фактам — на столе {offer}{unit}.",
             ],
         },
         "not_yet": {
@@ -630,16 +654,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Руку жать пока не за что — {offer}{unit}.",
             ],
             "relationship": [
-                "Не будем спешить, хорошо? Пока {offer}{unit}.",
-                "Мне бы хотелось договориться, но пока рано — {offer}{unit}.",
+                "Давайте не будем спешить, хорошо? Пока {offer}{unit}.",
+                "Мне бы очень хотелось договориться, но пока рановато — {offer}{unit}.",
+                "Мы ведь к этому идём вместе. Пока {offer}{unit}.",
             ],
             "tough": [
                 "Нет. Пока нет. {offer}{unit}.",
                 "Рано. {offer}{unit}, и не торопите.",
+                "Не сходимся. {offer}{unit}.",
             ],
             "analytical": [
                 "По цифрам мы ещё не сошлись: {offer}{unit}.",
                 "Разрыв пока есть. {offer}{unit}.",
+                "Данные пока расходятся. {offer}{unit}.",
             ],
         },
         "walked_out": {
@@ -652,16 +679,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Всё, я не готов это продолжать. До свидания.",
             ],
             "relationship": [
-                "Мне жаль, но так я больше не могу. Давайте на этом закончим.",
-                "Обидно, что так вышло. Всего вам доброго.",
+                "Мне очень жаль, но так я больше не могу. Давайте на этом по-доброму закончим.",
+                "Обидно, что так вышло между нами. Всего вам доброго.",
+                "Не хочу ссориться. Давайте остановимся, мне так спокойнее.",
             ],
             "tough": [
                 "Всё, хватит. Я закончил.",
                 "Разговор окончен. Ищите другого.",
+                "Время не тяните — я ушёл.",
             ],
             "analytical": [
                 "Дальнейший разговор непродуктивен. Закрываем.",
                 "Смысла продолжать нет. Расходимся.",
+                "По фактам продолжать нерационально. Всё.",
             ],
         },
         "agreement": {
@@ -674,16 +704,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Согласен, {deal}{unit}. Оформляем.",
             ],
             "relationship": [
-                "Вот и славно! {deal}{unit} — и работаем дальше. Рада сделке.",
-                "По рукам, {deal}{unit}! Приятно, когда всё по-человечески.",
+                "Вот и славно! {deal}{unit} — и работаем дальше по-доброму. Рада сделке.",
+                "По рукам, {deal}{unit}! Приятно, когда всё по-человечески, вместе.",
+                "Договорились, {deal}{unit}. Спасибо, что услышали меня.",
             ],
             "tough": [
                 "Идёт. {deal}{unit}. По рукам, не будем тянуть.",
                 "Ок, {deal}{unit}. Договорились.",
+                "{deal}{unit}. Всё, по рукам.",
             ],
             "analytical": [
                 "Цифра сходится: {deal}{unit}. Фиксируем в договоре.",
                 "{deal}{unit} — по расчётам всех устраивает. Договорились.",
+                "Если посмотреть на факты — {deal}{unit} оптимально. Договорились.",
             ],
         },
     },
@@ -698,16 +731,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "I appreciate you engaging with our situation. Please continue.",
             ],
             "relationship": [
-                "It's a pleasure dealing with someone who understands. Let's sort this out the good way.",
-                "This is why I like a civil negotiation. Thanks for listening.",
+                "It's a pleasure dealing with someone who understands. Let's sort this out together, the good way.",
+                "This is why I like a civil negotiation. Thanks for hearing me out.",
+                "It really means a lot that you get it. Let's work through this together.",
             ],
             "tough": [
                 "Alright, no more jabs. Fine, let's keep going.",
                 "Good, now you're talking business. Next.",
+                "Right. Less noise, more substance.",
             ],
             "analytical": [
                 "Reasonable. Since we agree on the facts, let's move on.",
                 "Logical. I can work with that approach.",
+                "Looking at the facts, you're right. Let's continue.",
             ],
         },
         "opened_up": {
@@ -721,15 +757,18 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
             ],
             "relationship": [
                 "Since you ask so kindly — on a human level, {interest} matters to us.",
-                "I'll be open with you: for us this is about {interest}.",
+                "I'll be open with you, as a friend: for us this is about {interest}.",
+                "Thank you for caring to ask. What truly worries us is {interest}.",
             ],
             "tough": [
                 "Fine. Short version: we need {interest}. That's the whole story.",
                 "I'll say it plainly: it comes down to {interest}.",
+                "If you must know — {interest}. That's it, moving on.",
             ],
             "analytical": [
                 "If we break it down — the key factor for us is {interest}.",
                 "In effect it all reduces to {interest}.",
+                "Look at the facts and it's clear: what decides it for us is {interest}.",
             ],
         },
         "persuaded": {
@@ -742,16 +781,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "That's fair. I'll meet you — {offer}{unit}.",
             ],
             "relationship": [
-                "You've won me over the decent way. Alright, {offer}{unit}.",
-                "For the sake of a good relationship I'll move — {offer}{unit}.",
+                "You've won me over the decent way. Let's do it — {offer}{unit}.",
+                "For the sake of a good relationship I'll gladly move — {offer}{unit}.",
+                "I'm glad we hear each other. Let it be {offer}{unit}.",
             ],
             "tough": [
                 "Fine. The number lands — {offer}{unit}. Next.",
                 "Taken, nothing to add. {offer}{unit}.",
+                "Numbers are numbers. {offer}{unit}, let's go.",
             ],
             "analytical": [
                 "The math checks out. Recalculated — {offer}{unit}.",
                 "The data lines up. It comes to {offer}{unit}.",
+                "On the facts, your point holds. {offer}{unit}.",
             ],
         },
         "pressured": {
@@ -764,16 +806,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Threats are unnecessary, we have plenty to discuss. {offer}{unit}.",
             ],
             "relationship": [
-                "Why so sharp? We can do this the friendly way. {offer}{unit}.",
-                "No need to push, I'm already on your side. {offer}{unit}.",
+                "Why so sharp? We can do this the friendly way, together. {offer}{unit}.",
+                "No need to push, I'm already on your side. Let's stay calm — {offer}{unit}.",
+                "That tone makes me uneasy. Let's keep it kind: {offer}{unit}.",
             ],
             "tough": [
                 "Push all you like. It won't move me. {offer}{unit}.",
                 "Your alternatives are your business. Mine is {offer}{unit}.",
+                "Save the scare tactics for someone else. {offer}{unit}.",
             ],
             "analytical": [
                 "Your BATNA is a number too — let's discuss that. For now {offer}{unit}.",
                 "Fine, let's compare options on the facts. I'm at {offer}{unit}.",
+                "Let's set emotion aside. By my math I'm at {offer}{unit}.",
             ],
         },
         "collaborated": {
@@ -786,16 +831,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Now we're creating value, not just splitting it. {offer}{unit}.",
             ],
             "relationship": [
-                "Now that's a partnership! On those terms, gladly — {offer}{unit}.",
-                "I love it when we find the shared interest. Then {offer}{unit}.",
+                "Now that's a partnership! Let's do it together — {offer}{unit}.",
+                "I love it when we find the shared interest instead of tugging. Then {offer}{unit}.",
+                "Now we're on the same side. Happily — {offer}{unit}.",
             ],
             "tough": [
                 "Works. You give that, I take {offer}{unit}. Almost a deal.",
                 "Now that's concrete. For that — {offer}{unit}.",
+                "Now you're talking. {offer}{unit}, no dragging it out.",
             ],
             "analytical": [
                 "It nets out: your concession offsets mine. Then {offer}{unit}.",
                 "On the balance of value, that works. {offer}{unit}.",
+                "On the facts, that's a fair trade. {offer}{unit}.",
             ],
         },
         "hardened": {
@@ -808,16 +856,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "The harder you push, the less I want to move. {offer}{unit}.",
             ],
             "relationship": [
-                "I don't like this pressure. I won't concede like this — {offer}{unit}.",
-                "A shame you're taking this tack. It'd be easier the nice way. {offer}{unit}.",
+                "I honestly don't like this pressure. I don't want to concede like this — {offer}{unit}.",
+                "A shame you're taking this tack with me. It'd be far easier the kind way. {offer}{unit}.",
+                "This pressure upsets me. I'm staying at {offer}{unit} for now.",
             ],
             "tough": [
                 "Not happening. {offer}{unit}, period.",
                 "You won't scare me. {offer}{unit}.",
+                "Push all day — {offer}{unit}.",
             ],
             "analytical": [
                 "Emotion isn't an argument. Numbers stand: {offer}{unit}.",
                 "Without facts this is just noise. {offer}{unit}.",
+                "Bring data, not tone. For now {offer}{unit}.",
             ],
         },
         "offended": {
@@ -830,16 +881,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "One more remark like that and we're done.",
             ],
             "relationship": [
-                "That genuinely hurts to hear. I'm not used to this.",
+                "That genuinely hurts to hear. I'm not used to being spoken to this way.",
                 "Why be like that? I've been nothing but fair with you.",
+                "That upsets me. Let's keep this human, please.",
             ],
             "tough": [
                 "Easy. One more like that and we're through.",
                 "Watch your tone with me.",
+                "Drop the tone. Now.",
             ],
             "analytical": [
                 "Let's leave emotion out of it, it's unproductive.",
                 "Personal attacks have no bearing on the substance.",
+                "Let's stick to the facts, not personalities.",
             ],
         },
         "neutral": {
@@ -852,16 +906,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Let's log it: {offer}{unit} is on the table.",
             ],
             "relationship": [
-                "Alright, let's leave it at {offer}{unit} for now and see.",
-                "I hear you. Let's rest at {offer}{unit}.",
+                "Alright, let's leave it at {offer}{unit} for now and see together.",
+                "I hear you. Let's rest at {offer}{unit}, no rush.",
+                "Okay, I hear you. {offer}{unit} for now, let's take it easy.",
             ],
             "tough": [
                 "Right. {offer}{unit} for now. What's next?",
                 "Clear. {offer}{unit}. Let's not drag this.",
+                "Short version: {offer}{unit}. Next.",
             ],
             "analytical": [
                 "Logged: current figure {offer}{unit}.",
                 "As of now — {offer}{unit}.",
+                "On the facts — {offer}{unit} is on the table.",
             ],
         },
         "not_yet": {
@@ -875,15 +932,18 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
             ],
             "relationship": [
                 "Let's not rush it, okay? For now {offer}{unit}.",
-                "I'd like to get there, but it's early — {offer}{unit}.",
+                "I'd really like to get there, but it's a touch early — {offer}{unit}.",
+                "We're getting there together. For now {offer}{unit}.",
             ],
             "tough": [
                 "No. Not yet. {offer}{unit}.",
                 "Too soon. {offer}{unit}, and don't rush me.",
+                "We're not there. {offer}{unit}.",
             ],
             "analytical": [
                 "On the numbers we haven't converged: {offer}{unit}.",
                 "There's still a gap. {offer}{unit}.",
+                "The data still diverges. {offer}{unit}.",
             ],
         },
         "walked_out": {
@@ -896,16 +956,19 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "That's it, I'm not continuing this. Goodbye.",
             ],
             "relationship": [
-                "I'm sorry, but I can't do this anymore. Let's end here.",
-                "It pains me it came to this. All the best to you.",
+                "I'm sorry, but I can't do this anymore. Let's end here kindly.",
+                "It pains me it came to this between us. All the best to you.",
+                "I don't want a quarrel. Let's stop — it's easier for me this way.",
             ],
             "tough": [
                 "That's it. I'm done.",
                 "This conversation is over. Find someone else.",
+                "Don't waste my time — I'm out.",
             ],
             "analytical": [
                 "Continuing is unproductive. We're closing this.",
                 "No point going further. We're done here.",
+                "On the facts, continuing is irrational. That's all.",
             ],
         },
         "agreement": {
@@ -919,15 +982,18 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
             ],
             "relationship": [
                 "Wonderful! {deal}{unit} — and let's keep working together. Glad we did this.",
-                "Deal, {deal}{unit}! It's nice when it's done the human way.",
+                "Deal, {deal}{unit}! It's nice when it's done the human way, together.",
+                "Agreed, {deal}{unit}. Thank you for truly hearing me.",
             ],
             "tough": [
                 "Done. {deal}{unit}. Shake on it, let's not drag it.",
                 "Okay, {deal}{unit}. We've got a deal.",
+                "{deal}{unit}. That's it, shake on it.",
             ],
             "analytical": [
                 "The number works: {deal}{unit}. Let's put it in the contract.",
                 "{deal}{unit} — it pencils out for everyone. Agreed.",
+                "On the facts, {deal}{unit} is optimal. Agreed.",
             ],
         },
     },
