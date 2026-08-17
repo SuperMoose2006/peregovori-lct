@@ -75,6 +75,16 @@ export interface Strings {
   argLabel: string;
   connecting: string;
   usingMock: string;
+  // gentle composer note as the input nears the length cap — "{n}" = chars left
+  composerLimit: string;
+  // mid-game connection health (reconnect banner / lost-connection panel)
+  conn: {
+    reconnecting: string; // non-blocking banner while retrying a dropped socket
+    lostTitle: string; // heading once retries are exhausted
+    lostBody: string; // calm explanation + reassurance progress is saved
+    retry: string; // restart the scenario (reconnects, or continues offline)
+    home: string; // bail to the home screen
+  };
   // custom ("Своя сделка") mode
   custom: {
     head: string;
@@ -83,6 +93,9 @@ export interface Strings {
     generating: string;
     generatingSub: string;
     errorHead: string;
+    errorSub: string; // reassuring sub-line under the failure head
+    timeout: string; // message shown when generation runs past the client timeout
+    orPickReady: string; // fallback link → jump to the ready-made scenario picker
     retry: string;
   };
   // exam mode ("Экзамен") — assessment framing
@@ -305,6 +318,14 @@ export const I18N: Record<Lang, Strings> = {
     argLabel: "аргум.",
     connecting: "Соединение…",
     usingMock: "демо-режим (без сервера)",
+    composerLimit: "Осталось {n} символов",
+    conn: {
+      reconnecting: "Соединение потеряно — переподключаемся…",
+      lostTitle: "Связь с сервером прервана",
+      lostBody: "Не удалось переподключиться. Можно перезапустить сценарий — ваш прогресс и профиль сохранены.",
+      retry: "Перезапустить сценарий",
+      home: "На главную",
+    },
     custom: {
       head: "Опишите вашу ситуацию",
       placeholder:
@@ -313,6 +334,9 @@ export const I18N: Record<Lang, Strings> = {
       generating: "Генерируем вашего оппонента…",
       generatingSub: "ИИ проектирует персону, скрытые интересы и зону торга под вашу ситуацию.",
       errorHead: "Не удалось сгенерировать сценарий",
+      errorSub: "Иногда генерация не удаётся. Попробуйте ещё раз или начните с готового сценария.",
+      timeout: "Генерация заняла слишком много времени. Возможно, сервер перегружен — попробуйте снова.",
+      orPickReady: "…или выберите готовый сценарий",
       retry: "Попробовать снова",
     },
     exam: {
@@ -561,6 +585,14 @@ export const I18N: Record<Lang, Strings> = {
     argLabel: "arg.",
     connecting: "Connecting…",
     usingMock: "demo mode (no server)",
+    composerLimit: "{n} characters left",
+    conn: {
+      reconnecting: "Connection lost — reconnecting…",
+      lostTitle: "Lost connection to the server",
+      lostBody: "We couldn't reconnect. You can restart the scenario — your progress and profile are saved.",
+      retry: "Restart scenario",
+      home: "Home",
+    },
     custom: {
       head: "Describe your situation",
       placeholder:
@@ -569,6 +601,9 @@ export const I18N: Record<Lang, Strings> = {
       generating: "Generating your counterpart…",
       generatingSub: "The AI is designing a persona, hidden interests and a bargaining zone for your situation.",
       errorHead: "Couldn't generate a scenario",
+      errorSub: "Generation sometimes fails. Try again, or start from a ready-made scenario.",
+      timeout: "Generation took too long. The server may be busy — please try again.",
+      orPickReady: "…or pick a ready-made scenario",
       retry: "Try again",
     },
     exam: {

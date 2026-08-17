@@ -3,8 +3,9 @@
 // state (scenario, live meters, chat log, debrief), and exposes clean actions.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Analysis, Deltas, Lang, Mode, ScenarioView, ServerMsg, StateView } from "../types";
-import type { Transport, TransportKind } from "./transport";
+import type { ConnStatus, Transport, TransportKind } from "./transport";
 import { createTransport } from "./ws";
+import { clampInput } from "../lib/net";
 
 export type ChatEntry =
   | { id: number; kind: "opp"; text: string; streaming?: boolean }
@@ -23,6 +24,8 @@ export interface NegotiationState {
   debrief: import("../types").Debrief | null;
   busy: boolean; // waiting for the opponent's reply
   error: string | null;
+  // Live WS health (mock is always "online"). Drives the mid-game reconnect banner.
+  conn: ConnStatus;
 }
 
 export interface Negotiation extends NegotiationState {
@@ -43,6 +46,7 @@ const initialState: NegotiationState = {
   debrief: null,
   busy: false,
   error: null,
+  conn: "online",
 };
 
 export function useNegotiation(lang: Lang): Negotiation {
@@ -66,8 +70,17 @@ export function useNegotiation(lang: Lang): Negotiation {
 
   const ensureTransport = useCallback((): Transport => {
     if (!transportRef.current) {
-      transportRef.current = createTransport(handle, (kind) =>
-        setS((p) => ({ ...p, kind })),
+      transportRef.current = createTransport(
+        handle,
+        (kind) => setS((p) => ({ ...p, kind })),
+        (conn) =>
+          setS((p) => ({
+            ...p,
+            conn,
+            // A drop or a lost connection must never leave the typing indicator
+            // spinning — clear busy so the reconnect banner owns the messaging.
+            busy: conn === "online" ? p.busy : false,
+          })),
       );
     }
     return transportRef.current;
@@ -84,7 +97,9 @@ export function useNegotiation(lang: Lang): Negotiation {
   );
 
   const turn = useCallback((text: string) => {
-    const trimmed = text.trim();
+    // Trim guards empty/whitespace sends; clampInput is a backstop against an
+    // over-long payload even if the composer's own cap were bypassed.
+    const trimmed = clampInput(text.trim());
     if (!trimmed) return;
     setS((prev) => {
       if (prev.busy || !prev.state || prev.state.status !== "active") return prev;

@@ -14,3 +14,7 @@ export interface Transport {
 }
 
 export type TransportKind = "ws" | "mock";
+
+// Live connection health for the real WS transport. The mock is always "online".
+// "reconnecting" = a mid-game drop is being retried; "lost" = retries exhausted.
+export type ConnStatus = "online" | "reconnecting" | "lost";

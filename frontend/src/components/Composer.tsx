@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import type { QuickMove } from "../i18n";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
+import { MAX_INPUT, clampInput, inputRemaining, showInputNote } from "../lib/net";
 
 interface Props {
   disabled: boolean;
@@ -15,14 +16,17 @@ interface Props {
   // showChips=false (exam mode) suppresses the live technique preview so the
   // player gets no read on how their line is being classified.
   showChips: boolean;
+  // gentle "N chars left" note as the input nears the cap — "{n}" substituted.
+  limitNote: string;
 }
 
 export function Composer({
-  disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips,
+  disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
   const chips = showChips ? previewChips(text) : [];
+  const nearLimit = showInputNote(text);
 
   const submit = () => {
     const t = text.trim();
@@ -63,8 +67,10 @@ export function Composer({
           ref={taRef}
           rows={2}
           value={text}
+          maxLength={MAX_INPUT}
           placeholder={placeholder}
-          onChange={(e) => setText(e.target.value)}
+          // Cap defensively even if maxLength is bypassed (paste, IME, autofill).
+          onChange={(e) => setText(clampInput(e.target.value))}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -76,6 +82,11 @@ export function Composer({
           ➤
         </button>
       </div>
+      {nearLimit ? (
+        <div className="compose-note" role="status">
+          {limitNote.replace("{n}", String(inputRemaining(text)))}
+        </div>
+      ) : null}
       <div className="quick">
         {hintEnabled ? (
           <button onClick={onHint} disabled={disabled}>

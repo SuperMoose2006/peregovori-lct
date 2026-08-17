@@ -342,6 +342,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, onSend,
                 onHint={onHint}
                 hintEnabled={!exam}
                 showChips={!exam}
+                limitNote={t.composerLimit}
               />
             </div>
           </main>

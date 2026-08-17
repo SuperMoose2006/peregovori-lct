@@ -33,6 +33,16 @@ function harness() {
   return { server, messages, waitFor };
 }
 
+test("custom generation can be forced to fail (failure-UI seam)", async () => {
+  const { server, waitFor } = harness();
+  // The sentinel makes the deterministic synth emit {type:error} instead of a
+  // greeting — the hook the failure/retry UI is exercised against.
+  server.send({ type: "start", scenarioId: "", lang: "ru", mode: "custom", situation: "force-gen-error" });
+  const err = await waitFor((m) => m.type === "error");
+  assert.equal(err.type, "error");
+  if (err.type === "error") assert.ok(err.message.length > 0);
+});
+
 test("greeting → opponent turns → debrief over the protocol", async () => {
   const { server, messages, waitFor } = harness();
 

@@ -1,5 +1,5 @@
 // App.tsx — screen router (home / game / debrief / campaign) with RU/EN + light/dark toggles.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { CampaignView, Debrief as DebriefData, Lang, Mode } from "./types";
 import { I18N } from "./i18n";
 import { useNegotiation } from "./api/useNegotiation";
@@ -13,8 +13,9 @@ import { CampaignComplete, type CampaignProgress } from "./components/CampaignSc
 import { HeroStats, SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameResult, type Profile } from "./lib/progress";
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
+import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 
-type Screen = "home" | "generating" | "game" | "debrief" | "campaign_done" | "profile";
+type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile";
 type Theme = "light" | "dark" | null;
 
 const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
@@ -27,6 +28,11 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("practice");
   const [currentScenario, setCurrentScenario] = useState<string | null>(null);
   const [situation, setSituation] = useState("");
+  // Custom-generation flow (net.genReducer): "generating" → "ready" (drop into
+  // the game) or "failed" (show the retry/fallback screen). Guards a slow backend
+  // racing the client timeout, and a hung generation always resolves to failure.
+  const [genPhase, dispatchGen] = useReducer(genReducer, "idle");
+  const [genErr, setGenErr] = useState<string | null>(null);
   // Campaign ("Восхождение"): the fetched arc + the player's running progress
   // (which act is next, accumulated reputation, and per-act grades).
   const [campaign, setCampaign] = useState<CampaignView | null>(null);
@@ -84,14 +90,35 @@ export default function App() {
   }, [nego.debrief, nego.scenario, currentScenario]);
 
   // Custom mode: while generating, the scenario is designed server-side (or by
-  // the mock synth). The greeting's arrival drops us into the game; an error
-  // sends us back to the situation input (with the message + a retry button).
+  // the mock synth). Drive the outcome through the gen state machine: a greeting
+  // resolves to "ready", a server error or the client timeout to "failed".
   useEffect(() => {
-    if (screen === "generating" && nego.scenario) setScreen("game");
-  }, [screen, nego.scenario]);
+    if (genPhase !== "generating") return;
+    if (nego.scenario) dispatchGen("greeting");
+    else if (nego.error) {
+      setGenErr(nego.error);
+      dispatchGen("error");
+    }
+  }, [genPhase, nego.scenario, nego.error]);
+
+  // Client-side timeout: a hung generation (~25s+ backend, or a silent stall)
+  // must surface the failure UI, never an infinite "генерируем…".
   useEffect(() => {
-    if (screen === "generating" && nego.error) setScreen("home");
-  }, [screen, nego.error]);
+    if (genPhase !== "generating") return;
+    const id = setTimeout(() => {
+      setGenErr(t.custom.timeout);
+      dispatchGen("timeout");
+    }, GEN_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [genPhase, t.custom.timeout]);
+
+  // The gen state machine is the single source of truth for the custom sub-flow's
+  // screen: generating spinner → game (ready) or the failure screen.
+  useEffect(() => {
+    if (genPhase === "generating") setScreen("generating");
+    else if (genPhase === "ready") setScreen("game");
+    else if (genPhase === "failed") setScreen("gen_error");
+  }, [genPhase]);
 
   // Load the campaign arc when the mode is active (refetch on lang change to
   // relocalize). Falls back to an offline synth if the backend is unreachable.
@@ -126,6 +153,7 @@ export default function App() {
 
   const start = useCallback(
     (scenarioId: string) => {
+      dispatchGen("reset"); // leave any stale custom-gen state behind
       setCurrentScenario(scenarioId);
       nego.start(scenarioId, mode);
       setScreen("game");
@@ -137,10 +165,25 @@ export default function App() {
   const startCustom = useCallback(() => {
     if (!situation.trim()) return;
     setCurrentScenario(null);
+    setGenErr(null);
     nego.start("", "custom", situation);
-    setScreen("generating");
+    // dispatch drives the screen → "generating" (see the gen-phase effect above).
+    dispatchGen("start");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [nego, situation]);
+
+  // gen_error fallback: abandon the custom generation and jump to the ready-made
+  // scenario picker (practice mode) so a failed generation is never a dead end.
+  const pickReadyScenario = useCallback(() => {
+    dispatchGen("reset");
+    setGenErr(null);
+    nego.clearError();
+    setMode("practice");
+    setScreen("home");
+    requestAnimationFrame(() => {
+      document.getElementById("play")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [nego]);
 
   // Launch the current campaign act, carrying the running reputation into it. If
   // the arc is already finished, jump to the summit summary instead.
@@ -185,6 +228,8 @@ export default function App() {
   );
 
   const goHome = useCallback(() => {
+    dispatchGen("reset");
+    setGenErr(null);
     nego.reset();
     setScreen("home");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -304,20 +349,62 @@ export default function App() {
         </section>
       )}
 
+      {screen === "gen_error" && (
+        <section className="screen">
+          <div className="wrap">
+            <div className="gen genfail">
+              <div className="genfail-mark" aria-hidden="true">⚠️</div>
+              <ScreenHeading as="h2" className="gen-title">{t.custom.errorHead}</ScreenHeading>
+              {genErr ? <p className="genfail-msg">{genErr}</p> : null}
+              <p className="gen-sub">{t.custom.errorSub}</p>
+              <div className="genfail-actions">
+                <button className="primary" onClick={startCustom}>{t.custom.retry}</button>
+                <button className="ghost" onClick={pickReadyScenario}>{t.custom.orPickReady}</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {screen === "game" && nego.scenario && (
-        <Table
-          t={t}
-          lang={lang}
-          mode={mode}
-          kind={nego.kind}
-          scenario={nego.scenario}
-          state={nego.state}
-          log={nego.log}
-          busy={nego.busy}
-          onSend={nego.turn}
-          onHint={nego.requestHint}
-          onQuit={goHome}
-        />
+        <>
+          {/* Mid-game connection health. "reconnecting" is a calm, non-blocking
+              banner; "lost" degrades to a small panel offering a restart (which
+              reconnects to the backend, or continues on the offline demo) or home.
+              Progress/profile are already persisted, so neither loses the player's
+              standing — only the in-flight server session. */}
+          {nego.conn === "reconnecting" ? (
+            <div className="conn-banner" role="status">
+              <span className="conn-spin" aria-hidden="true" />
+              <span>{t.conn.reconnecting}</span>
+            </div>
+          ) : null}
+          {nego.conn === "lost" ? (
+            <div className="conn-lost" role="alert">
+              <div className="conn-lost-body">
+                <b>{t.conn.lostTitle}</b>
+                <span>{t.conn.lostBody}</span>
+              </div>
+              <div className="conn-lost-actions">
+                <button className="primary" onClick={retry}>{t.conn.retry}</button>
+                <button className="ghost" onClick={goHome}>{t.conn.home}</button>
+              </div>
+            </div>
+          ) : null}
+          <Table
+            t={t}
+            lang={lang}
+            mode={mode}
+            kind={nego.kind}
+            scenario={nego.scenario}
+            state={nego.state}
+            log={nego.log}
+            busy={nego.busy}
+            onSend={nego.turn}
+            onHint={nego.requestHint}
+            onQuit={goHome}
+          />
+        </>
       )}
 
       {screen === "game" && !nego.scenario && (

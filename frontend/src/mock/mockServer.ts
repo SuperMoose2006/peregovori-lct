@@ -66,6 +66,20 @@ export class MockServer implements Transport {
     let genDelay = 150;
 
     if (msg.mode === "custom") {
+      // Test/QA seam: let the offline demo exercise the generation-failure UI.
+      // Triggered by `?genfail=1` in the URL or a sentinel in the situation text
+      // — the only thing that makes the deterministic synth "fail". Prod is
+      // unaffected (real backend owns generation; this branch is mock-only).
+      if (mockGenShouldFail(msg.situation ?? "")) {
+        await this.delay(600);
+        this.emit({
+          type: "error",
+          message: lang === "ru"
+            ? "ИИ не смог спроектировать сценарий по этому описанию."
+            : "The AI couldn't design a scenario from this description.",
+        });
+        return;
+      }
       // No backend to design a scenario, so synthesize one locally from the
       // user's situation text. A longer delay lets the loading screen breathe.
       def = synthCustomScenario(msg.situation ?? "", lang);
@@ -160,6 +174,14 @@ export class MockServer implements Transport {
     }
     this.emit({ type: "hint", text: hintText(s) });
   }
+}
+
+// Whether the mock should simulate a generation failure — for exercising the
+// failure/retry UI in the offline demo (never in prod). URL flag or text sentinel.
+function mockGenShouldFail(situation: string): boolean {
+  if (/(^|\W)(force-gen-error|genfail)(\W|$)/i.test(situation)) return true;
+  if (typeof location !== "undefined" && /[?&]genfail=1(&|$)/.test(location.search)) return true;
+  return false;
 }
 
 // A short coaching nudge keyed to the player's primary move (mock stand-in for

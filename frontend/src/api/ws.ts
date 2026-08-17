@@ -2,8 +2,9 @@
 // factory that transparently falls back to the local MockServer when the backend
 // is unreachable (or when VITE_MOCK forces it). A REST fallback seam is stubbed.
 import type { ClientMsg, ServerMsg } from "../types";
-import type { ServerMsgHandler, Transport, TransportKind } from "./transport";
+import type { ConnStatus, ServerMsgHandler, Transport, TransportKind } from "./transport";
 import { MockServer } from "../mock/mockServer";
+import { canReconnect, reconnectDelay } from "../lib/net";
 
 const WS_PATH = "/ws";
 const OPEN_TIMEOUT_MS = 1500;
@@ -94,12 +95,17 @@ export interface CreatedTransport {
 
 // Attempts a real WS connection; if it doesn't open within OPEN_TIMEOUT_MS
 // (backend not running) it swaps in the MockServer so the UI still works.
+// onStatus (optional) reports live connection health AFTER the WS is chosen — a
+// mid-game drop drives "reconnecting" → "online" (recovered) or "lost" (gave up).
 export function createTransport(
   onMessage: ServerMsgHandler,
   onKind: (kind: TransportKind) => void,
+  onStatus?: (status: ConnStatus) => void,
 ): Transport {
+  const status = onStatus ?? (() => {});
   if (mockForced()) {
     onKind("mock");
+    status("online");
     return new MockServer(onMessage);
   }
 
@@ -125,6 +131,7 @@ export function createTransport(
     const mock = new MockServer(onMessage);
     inner = mock;
     onKind("mock");
+    status("online");
     early.forEach((m) => mock.send(m));
     early.length = 0;
   };
@@ -139,7 +146,8 @@ export function createTransport(
   };
 
   try {
-    const ws = new WebSocket(wsUrl());
+    const url = wsUrl();
+    const ws = new WebSocket(url);
     const timer = setTimeout(() => {
       if (!decided && !mockDisabled()) {
         try { ws.close(); } catch { /* ignore */ }
@@ -149,7 +157,9 @@ export function createTransport(
 
     ws.onopen = () => {
       clearTimeout(timer);
-      const wsT = new WsTransportFromSocket(ws, onMessage);
+      // Hand the already-open socket to the reconnecting transport; it owns the
+      // socket's lifecycle from here (drops → backoff retries → online/lost).
+      const wsT = new LiveWsTransport(ws, url, onMessage, status);
       useWs(wsT);
     };
     ws.onerror = () => {
@@ -167,24 +177,116 @@ export function createTransport(
   return proxy;
 }
 
-// Wraps an already-open socket (avoids opening a second connection).
-class WsTransportFromSocket implements Transport {
-  private ws: WebSocket;
-  constructor(ws: WebSocket, onMessage: ServerMsgHandler) {
+// Wraps an already-open socket and keeps the connection alive across mid-game
+// drops. On close/error it reports "reconnecting", retries with capped backoff
+// (lib/net), and reports "online" on recovery or "lost" once the budget is spent.
+// Sends issued while down are queued and flushed on reconnect (best-effort — the
+// server session is in-memory, so a resumed turn may come back as an error the
+// UI already handles; the point is to never freeze on a dead socket).
+class LiveWsTransport implements Transport {
+  private ws: WebSocket | null = null;
+  private readonly url: string;
+  private readonly onMessage: ServerMsgHandler;
+  private readonly onStatus: (s: ConnStatus) => void;
+  private attempts = 0;
+  private closed = false;
+  private open = false;
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private outbox: ClientMsg[] = [];
+
+  constructor(
+    ws: WebSocket,
+    url: string,
+    onMessage: ServerMsgHandler,
+    onStatus: (s: ConnStatus) => void,
+  ) {
+    this.url = url;
+    this.onMessage = onMessage;
+    this.onStatus = onStatus;
+    this.adopt(ws, true); // the initial socket is already open
+  }
+
+  // Wire a socket's lifecycle. alreadyOpen=true for the first (handed-in) socket;
+  // reconnect sockets report open via onopen.
+  private adopt(ws: WebSocket, alreadyOpen: boolean): void {
     this.ws = ws;
+    ws.onopen = () => this.markOpen();
     ws.onmessage = (ev) => {
       try {
-        onMessage(JSON.parse(ev.data) as ServerMsg);
+        this.onMessage(JSON.parse(ev.data) as ServerMsg);
       } catch {
-        onMessage({ type: "error", message: "Malformed server message" });
+        this.onMessage({ type: "error", message: "Malformed server message" });
       }
     };
-    ws.onerror = () => onMessage({ type: "error", message: "WebSocket error" });
+    ws.onerror = () => this.onDrop(ws);
+    ws.onclose = () => this.onDrop(ws);
+    if (alreadyOpen) this.markOpen();
   }
+
+  private markOpen(): void {
+    if (this.closed || this.open) return;
+    this.open = true;
+    this.attempts = 0;
+    this.onStatus("online");
+    const pending = this.outbox;
+    this.outbox = [];
+    pending.forEach((m) => this.raw(m));
+  }
+
+  private onDrop(ws: WebSocket): void {
+    if (this.closed || ws !== this.ws) return; // ignore stale handlers
+    this.open = false;
+    ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
+    this.ws = null;
+    this.scheduleReconnect();
+  }
+
+  private scheduleReconnect(): void {
+    if (this.closed || this.timer) return;
+    this.attempts += 1;
+    if (!canReconnect(this.attempts)) {
+      this.onStatus("lost");
+      return;
+    }
+    this.onStatus("reconnecting");
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      this.reopen();
+    }, reconnectDelay(this.attempts));
+  }
+
+  private reopen(): void {
+    if (this.closed) return;
+    try {
+      this.adopt(new WebSocket(this.url), false);
+    } catch {
+      this.scheduleReconnect();
+    }
+  }
+
+  private raw(msg: ClientMsg): void {
+    try {
+      this.ws?.send(JSON.stringify(msg));
+    } catch {
+      /* dropped mid-flight; the reconnect path will recover or give up */
+    }
+  }
+
   send(msg: ClientMsg): void {
-    this.ws.send(JSON.stringify(msg));
+    if (this.open && this.ws) this.raw(msg);
+    else this.outbox.push(msg);
   }
+
   close(): void {
-    try { this.ws.close(); } catch { /* ignore */ }
+    this.closed = true;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.ws) {
+      this.ws.onopen = this.ws.onmessage = this.ws.onerror = this.ws.onclose = null;
+      try { this.ws.close(); } catch { /* ignore */ }
+      this.ws = null;
+    }
   }
 }
