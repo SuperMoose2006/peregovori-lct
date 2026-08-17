@@ -87,6 +87,64 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .hero-cta { display: none; }
 :root[data-theme="dark"] .hero-cta { color: #1a1509; }
 
+/* ---------- "Why this teaches" (director's #8) ----------
+   Proof-of-method for a cold visitor. Same type scale + brass voice as the hero,
+   generous spacing, so it reads as part of the page, not a bolted-on marketing
+   block. Panels stack at ≤640px (auto-fit grid). */
+.teach { padding: 30px 0 6px; }
+.teach-head { font-size: 12.5px; letter-spacing: 3px; text-transform: uppercase; color: var(--brass); margin-bottom: 12px; }
+.teach-title {
+  font-family: var(--serif); font-size: clamp(22px, 3vw, 30px); line-height: 1.1;
+  margin: 0; font-weight: 700; letter-spacing: -0.3px; text-wrap: balance; max-width: 24ch;
+}
+
+/* Price-dot micro-animation: their-offer dot easing toward the target tick. */
+.teach-demo { margin: 26px 0 30px; max-width: 460px; }
+.td-track { position: relative; height: 2px; background: var(--line-2); border-radius: 2px; margin: 26px 0 26px; }
+.td-target { position: absolute; right: 8%; top: 50%; width: 3px; height: 15px; background: var(--brass); border-radius: 2px; transform: translateY(-50%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brass) 25%, transparent); }
+.td-target-lbl { position: absolute; right: 8%; top: -20px; transform: translateX(50%);
+  font-size: 11px; letter-spacing: 0.5px; color: var(--brass); white-space: nowrap; }
+.td-dot { position: absolute; top: 50%; left: 6%; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--info); transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--info) 55%, transparent);
+  animation: td-slide 5s ease-in-out infinite; }
+.td-dot-lbl { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; letter-spacing: 0.5px; color: var(--info); white-space: nowrap; }
+@keyframes td-slide {
+  0% { left: 6%; opacity: 0; }
+  10% { opacity: 1; }
+  55%, 80% { left: 84%; opacity: 1; }
+  93%, 100% { left: 84%; opacity: 0; }
+}
+.teach-demo-cap { font-size: 13px; color: var(--ink-dim); }
+
+.teach-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 14px; }
+.tp-panel {
+  background: var(--panel); border: 1px solid var(--line); border-top: 2.5px solid var(--brass);
+  border-radius: var(--r); padding: 18px 20px; display: flex; flex-direction: column; gap: 7px;
+  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+.tp-panel:hover { transform: translateY(-2px); border-color: var(--brass); box-shadow: var(--shadow); }
+.tp-tag { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
+.tp-name { font-family: var(--serif); font-size: 18px; font-weight: 600; line-height: 1.15; }
+.tp-idea { margin: 0; font-size: 13.5px; color: var(--ink-dim); line-height: 1.5; }
+.tp-example {
+  margin: 4px 0 0; font-size: 13px; color: var(--ink); line-height: 1.55;
+  padding: 11px 13px; border-left: 2.5px solid var(--brass); border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--brass) 7%, transparent);
+}
+.teach-framing {
+  max-width: 68ch; margin: 26px 0 6px; font-size: 15px; line-height: 1.6; color: var(--ink-dim);
+  border-top: 1px solid var(--line); padding-top: 22px;
+}
+
+/* Reduced-motion: park the dot mid-track (the global rule kills the keyframe, so
+   set an explicit resting position that still reads as "price moved"). */
+@media (prefers-reduced-motion: reduce) {
+  .td-dot { left: 52%; opacity: 1; }
+}
+
 /* ---------- Mode picker ---------- */
 .section-head { font-size: 12.5px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-faint); margin: 34px 0 16px; }
 .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
@@ -583,6 +641,11 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .hero .principles { order: 7; }
   .rule { margin: 20px 0; }
   .section-head { margin: 24px 0 12px; }
+
+  /* "Why this teaches": tighter rhythm, panels already single-column via auto-fit. */
+  .teach { padding: 18px 0 4px; }
+  .teach-demo { margin: 22px 0 24px; }
+  .teach-framing { font-size: 14.5px; margin-top: 22px; }
 
   .hero-cta {
     display: block; width: 100%; margin-top: 14px; min-height: 50px; padding: 14px;

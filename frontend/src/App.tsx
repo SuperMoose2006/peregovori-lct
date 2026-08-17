@@ -6,6 +6,7 @@ import { useNegotiation } from "./api/useNegotiation";
 import { getCampaigns } from "./api/campaigns";
 import { whatIf } from "./api/whatif";
 import { ScenarioPicker } from "./components/ScenarioPicker";
+import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
@@ -313,6 +314,10 @@ export default function App() {
                 ))}
               </div>
             </div>
+            {/* Director's #8: proof-of-method for a cold visitor, between the hero
+                and the picker. Sits OUTSIDE #play so the CTA still lands on the
+                opponent picker, not this explainer. */}
+            <WhyTeaches t={t} lang={lang} />
             <div id="play">
             <ScenarioPicker
               t={t}

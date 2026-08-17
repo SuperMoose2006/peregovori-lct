@@ -24,6 +24,16 @@ export interface Strings {
   heroLead: string;
   heroCta: string; // mobile hero primary button → jump to the opponent picker
   principles: string[]; // may contain <b>
+  // "Why this teaches" — the proof-of-method scroll section under the hero.
+  // Each panel grounds one principle in a concrete in-game micro-example; the
+  // framing states the honesty guarantee (deterministic engine + scored debrief).
+  teach: {
+    head: string; // eyebrow above the section
+    title: string; // serif headline
+    panels: { tag: string; name: string; idea: string; example: string }[];
+    framing: string; // one/two-sentence "why it works", confident not salesy
+    demoCap: string; // caption under the price-dot micro-animation
+  };
   pickHead: string;
   modesHead: string;
   soon: string;
@@ -260,6 +270,43 @@ export const I18N: Record<Lang, Strings> = {
       "<b>BATNA</b> как рычаг",
       "<b>Размен</b> создаёт ценность",
     ],
+    teach: {
+      head: "Почему это учит",
+      title: "Не тренинг по слайдам — стол, где решает метод.",
+      panels: [
+        {
+          tag: "SPIN",
+          name: "Позиции ≠ интересы",
+          idea: "За жёсткой позицией всегда стоит интерес. Найдите его вопросом — и появится, о чём договариваться.",
+          example:
+            "Не «дайте скидку», а «почему для вас важен объём?» → интерес вскрыт, шкала «Информация» растёт, и их цена двигается — без давления.",
+        },
+        {
+          tag: "Гарвард",
+          name: "Объективные критерии",
+          idea: "Спор мнений выигрывает тот, кто громче. Спор по критерию — тот, кто прав.",
+          example:
+            "«По рыночным данным справедливая ставка — X» → это законный рычаг: шкала «Рычаг» растёт, а уступка не выглядит капитуляцией.",
+        },
+        {
+          tag: "Гарвард",
+          name: "Размен создаёт ценность",
+          idea: "Уступайте то, что дёшево для вас, но ценно для них. Так из одной суммы получаются две победы.",
+          example:
+            "«Если подвинемся по срокам — сможете по цене?» → размен (логроллинг) двигает сделку там, где лобовой торг застревает.",
+        },
+        {
+          tag: "BATNA",
+          name: "Запасной вариант как рычаг",
+          idea: "Ваша лучшая альтернатива — источник спокойствия, а не дубина.",
+          example:
+            "Знаете свой запасной вариант — торгуетесь увереннее. Но угроза «уйду» в лоб бьёт по доверию: BATNA — рычаг, а не таран.",
+        },
+      ],
+      framing:
+        "Здесь не победить общими словами: исход считает детерминированный движок, а каждую реплику разбирают по смыслу — по стратегии, формулировке и аргументу. В конце вы получаете честную, воспроизводимую оценку с грейдом и разбором ключевых ходов.",
+      demoCap: "Вскрыли интерес — их цена поехала к вашей цели.",
+    },
     pickHead: "Выберите оппонента за столом",
     modesHead: "Режим тренировки",
     soon: "скоро",
@@ -527,6 +574,43 @@ export const I18N: Record<Lang, Strings> = {
       "<b>BATNA</b> as leverage",
       "<b>Trade-offs</b> create value",
     ],
+    teach: {
+      head: "Why this teaches",
+      title: "Not a slide deck — a table where method decides.",
+      panels: [
+        {
+          tag: "SPIN",
+          name: "Positions ≠ interests",
+          idea: "Behind every hard position sits an interest. Surface it with a question — and now there's something to negotiate.",
+          example:
+            "Not “give me a discount,” but “why does volume matter to you?” → the interest is uncovered, the Information meter rises, and their price moves — without pressure.",
+        },
+        {
+          tag: "Harvard",
+          name: "Objective criteria",
+          idea: "A clash of opinions is won by the loudest. A clash of criteria, by whoever's right.",
+          example:
+            "“By market data, the fair rate is X” → that's legitimate leverage: the Leverage meter rises, and a concession doesn't read as surrender.",
+        },
+        {
+          tag: "Harvard",
+          name: "Trade-offs create value",
+          idea: "Concede what's cheap for you but valuable to them. That turns one number into two wins.",
+          example:
+            "“If we move on timing, can you move on price?” → a trade-off (logrolling) advances the deal where head-on haggling stalls.",
+        },
+        {
+          tag: "BATNA",
+          name: "Your fallback as leverage",
+          idea: "Your best alternative is a source of calm, not a club.",
+          example:
+            "Know your fallback and you bargain with confidence. But a blunt “I'll walk” hits trust: BATNA is leverage, not a battering ram.",
+        },
+      ],
+      framing:
+        "You can't win here with nice words: a deterministic engine owns the outcome and every line is analyzed on its merits — strategy, wording, argument. At the end you get an honest, reproducible score with a grade and a breakdown of your key moves.",
+      demoCap: "Uncover an interest — their price slides toward your target.",
+    },
     pickHead: "Choose your counterpart",
     modesHead: "Training mode",
     soon: "soon",
