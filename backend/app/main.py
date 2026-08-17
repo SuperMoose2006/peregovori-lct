@@ -252,8 +252,15 @@ async def ws(websocket: WebSocket) -> None:
                     "deltas": views.deltas_view(result).model_dump(),
                     "state": views.state_view(sess).model_dump(),
                 }
-                if judge and judge.get("note"):  # live per-turn coaching
-                    opp_payload["coach"] = judge["note"]
+                if judge:  # semantic-judge presentation metadata (judge-cam)
+                    if judge.get("note"):  # live per-turn coaching
+                        opp_payload["coach"] = judge["note"]
+                    # Techniques the judge RECOGNIZED in this line (localized labels).
+                    opp_payload["coach_techniques"] = list(judge.get("techniques") or [])
+                    # True when the line reads as low-meaning parroting / buzzword-spam
+                    # (low semantic score) despite possibly tripping keyword lexicons →
+                    # drives the struck-through "recognized a pattern, not meaning" chip.
+                    opp_payload["coach_reject"] = int(judge.get("arg_score", 100)) < 35
                 await websocket.send_json(opp_payload)
                 if result.closed:
                     deb = views.debrief_view(sess).model_dump()

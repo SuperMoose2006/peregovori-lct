@@ -146,9 +146,13 @@ def turning_points(sess: "engine.Session", k: int = 2) -> list[dict]:
             parts.append("вы вскрыли интерес" if ru else "you uncovered an interest")
         what = ", ".join(parts) or ("этот ход сдвинул переговоры" if ru else "this move shifted the talk")
         item = {"turn": e.get("turn"), "quote": (e.get("text") or "")[:140], "what": what}
-        jn = (e.get("judge") or {}).get("note") if isinstance(e.get("judge"), dict) else None
-        if jn:
-            item["coach"] = jn
+        jd = e.get("judge") if isinstance(e.get("judge"), dict) else None
+        if jd:
+            if jd.get("note"):
+                item["coach"] = jd["note"]
+            techs = jd.get("techniques")
+            if techs:  # recognized technique labels (judge-cam), when present
+                item["coach_techniques"] = list(techs)
         out.append(item)
     return out
 
