@@ -247,6 +247,12 @@ export function XpAward({ t, lang, game, failed }: { t: Strings; lang: Lang; gam
       {/* A freeze quietly saved the streak this game — an honest, gentle note (a
           missed day was covered), independent of the run's grade. */}
       {game.freezeUsed ? <div className="xpa-freeze">{t.gam.freezeSaved}</div> : null}
+      {/* Honest note when a weak run (D/F) didn't extend an existing streak — the
+          streak rewards competence (C+), not attendance. Only shown if there's a
+          streak to speak of, so first-timers aren't nagged. */}
+      {!game.streakCounted && game.profile.streak > 0 ? (
+        <div className="xpa-streak-skip">{t.gam.streakSkipped}</div>
+      ) : null}
     </div>
   );
 }

@@ -976,6 +976,8 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .xpa-spark { color: var(--brass); }
 /* Freeze-saved note: quiet, informative, cool-toned (distinct from the brass fanfare). */
 .xpa-freeze { margin-top: 6px; font-size: 12px; color: var(--info); line-height: 1.4; max-width: 34ch; }
+/* Honest, muted (not alarming) note that a weak run didn't count toward the streak. */
+.xpa-streak-skip { margin-top: 6px; font-size: 12px; color: var(--ink-dim); line-height: 1.4; max-width: 36ch; }
 
 /* Collapsed negotiation: a sober award, no brass splash or pop. The reduced XP is
    still shown honestly, but nothing here reads as a celebration. */

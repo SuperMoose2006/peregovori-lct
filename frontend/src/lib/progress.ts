@@ -571,6 +571,10 @@ export interface GameResult extends RecordResult {
   // Earn the celebratory "new record" flourish: a real prior best was beaten AND
   // the outcome is a passing, non-collapsed one. Guards against celebrating a D/F.
   celebrate: boolean;
+  // Did this run extend the day-streak? True only for a C+ (non-collapse) result.
+  // A D/F leaves the streak untouched (neither advanced nor reset) — lets the UI
+  // note honestly that a weak run didn't count toward the streak.
+  streakCounted: boolean;
 }
 
 // The single entry point the app calls on every debrief. Builds on recordDebrief
@@ -592,10 +596,6 @@ export function applyDebrief(
   const dailyDone = doneBefore + 1;
   const dailyGoalMet = dailyDone === dailyTarget;
 
-  // Freeze-aware streak (recordDebrief still advances the freeze-unaware baseline;
-  // we recompute from the ORIGINAL profile and override so a missed day can be saved).
-  const su = updateStreak({ streak: profile.streak, freezes: profile.freezes }, profile.lastStreakDay, today);
-
   const base = recordDebrief(profile, scenarioId, d.grade as Grade, d.overall, now);
 
   // Honesty gate: a collapsed table or a failing grade never triggers the record
@@ -603,6 +603,20 @@ export function applyDebrief(
   const failed = d.status === "breakdown";
   const passing = d.grade !== "D" && d.grade !== "F";
   const celebrate = base.improved && passing && !failed;
+
+  // Streak honesty: the day-streak is a MASTERY streak, not an attendance log — only
+  // a competent result (C+ and no collapse) marks a day as "qualifying", so `streak` =
+  // "consecutive days you actually negotiated to at least a C". A weak run doesn't
+  // touch the count in the moment (a later C+ the same day still extends it), but it
+  // also fails to mark the day — so a day with NO C+ breaks the chain, and the next
+  // qualifying day restarts unless a banked freeze covers the gap. This closes the
+  // loophole of farming a streak by opening the app and tanking a game. Freeze-aware
+  // transition (recompute from the ORIGINAL profile) — applied ONLY when the run qualifies.
+  const streakCounted = passing && !failed;
+  const su = updateStreak({ streak: profile.streak, freezes: profile.freezes }, profile.lastStreakDay, today);
+  const streakOut = streakCounted
+    ? { streak: su.streak, freezes: su.freezes, lastStreakDay: today, freezeUsed: su.freezeUsed }
+    : { streak: profile.streak, freezes: profile.freezes, lastStreakDay: profile.lastStreakDay, freezeUsed: false };
 
   const xpGain = xpForDebrief(d.overall, d.status, celebrate);
   const xpBefore = profile.xp;
@@ -621,9 +635,11 @@ export function applyDebrief(
     ...base.profile,
     xp: xpAfter,
     skills,
-    // Override the baseline streak with the freeze-aware result + updated economy.
-    streak: su.streak,
-    freezes: su.freezes,
+    // Override the baseline streak with the C+-gated, freeze-aware result. When the
+    // run didn't qualify, streakOut carries the profile's streak/day forward unchanged.
+    streak: streakOut.streak,
+    freezes: streakOut.freezes,
+    lastStreakDay: streakOut.lastStreakDay,
     dailyDoneDay: today,
     dailyDoneCount: dailyDone,
   };
@@ -633,7 +649,7 @@ export function applyDebrief(
 
   // Milestones: real, once each, never on a collapse. Filter against what's already
   // been celebrated, then mark the newly-shown ones so a card can never repeat.
-  const hits = failed ? [] : milestonesForGame(rankBefore, rankAfter, su.streak);
+  const hits = failed ? [] : milestonesForGame(rankBefore, rankAfter, streakOut.streak);
   const newMilestones = hits.filter((h) => !profile.celebratedMilestones.includes(h.id));
   nextProfile.celebratedMilestones = Array.from(
     new Set([...profile.celebratedMilestones, ...newMilestones.map((h) => h.id)]),
@@ -652,10 +668,11 @@ export function applyDebrief(
     dailyGoalMet,
     dailyDone,
     dailyTarget,
-    freezes: su.freezes,
-    freezeUsed: su.freezeUsed,
+    freezes: streakOut.freezes,
+    freezeUsed: streakOut.freezeUsed,
     newMilestones,
     failed,
     celebrate,
+    streakCounted,
   };
 }

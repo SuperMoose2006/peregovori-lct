@@ -278,10 +278,39 @@ test("applyDebrief: honest reward loop — beat-a-best celebrates, breakdown doe
   assert.equal(g.xpGain, Math.round(50 * 0.3), "breakdown XP is hard-scaled, no bonuses");
   assert.equal(g.xpAfter, before + Math.round(50 * 0.3));
   assert.equal(g.record.bestGrade, "B", "the collapse does not touch the recorded best");
-  // Three consecutive days earns the participation streak badge, but no skill/success badge.
-  const success = ["first_a", "all_interests", "no_threat_deal", "criteria_tradeoff"];
-  assert.ok(!g.newAchievements.some((a) => success.includes(a)), "no success badge from a breakdown");
+  // Streak honesty: the day-3 collapse does NOT extend the streak (it's a mastery
+  // streak, not attendance) — so no streak_3 and no other success badge either.
+  assert.equal(g.streakCounted, false, "a breakdown does not count toward the streak");
+  assert.equal(g.profile.streak, 2, "streak stays at the 2 competent days, day-3 collapse excluded");
+  const success = ["first_a", "all_interests", "no_threat_deal", "criteria_tradeoff", "streak_3"];
+  assert.ok(!g.newAchievements.some((a) => success.includes(a)), "no success/streak badge from a breakdown");
 });
+
+test("applyDebrief: streak is a MASTERY streak — only C+ days count, a weak day is neutral", () => {
+  let p = emptyProfile();
+  // Day 1: a competent C → streak starts at 1.
+  let g = applyDebrief(p, "supplier", deb({ overall: 60, grade: "C", status: "agreement" }), new Date("2026-09-01T10:00:00Z"));
+  assert.equal(g.streakCounted, true);
+  assert.equal(g.profile.streak, 1);
+  p = g.profile;
+
+  // Day 2: a D → doesn't count. lastStreakDay stays on the last QUALIFYING day (day 1),
+  // so the streak number is untouched in the moment (not reset mid-day: a later C+ the
+  // same day would still extend it, since today === a consecutive step from day 1).
+  g = applyDebrief(p, "supplier", deb({ overall: 40, grade: "D", status: "active" }), new Date("2026-09-02T10:00:00Z"));
+  assert.equal(g.streakCounted, false, "a D never counts toward the streak");
+  assert.equal(g.profile.streak, 1, "the weak day leaves the count as-is in the moment");
+  assert.equal(g.profile.lastStreakDay, "2026-09-01", "the last qualifying day is still day 1");
+  p = g.profile;
+
+  // Day 3: a competent B, but now a full calendar gap sits between it and the last
+  // qualifying day (day 1) — day 2 had no C+, so the chain is genuinely broken. With no
+  // freeze banked (freezes accrue every 5 days), it honestly restarts at 1: "consecutive
+  // days with a C+" is exactly 1. (A long streak would hold a freeze and survive one off-day.)
+  g = applyDebrief(p, "supplier", deb({ overall: 78, grade: "B", status: "agreement" }), new Date("2026-09-03T10:00:00Z"));
+  assert.equal(g.streakCounted, true);
+  assert.equal(g.profile.streak, 1, "a non-C+ middle day breaks the chain — the streak restarts");
+})
 
 test("applyDebrief: a D/F run that edges out a prior best still does not celebrate", () => {
   // Prior best is a failing F(10). A D(45) is numerically better, so the stored
@@ -471,10 +500,12 @@ test("applyDebrief: a 7-day streak milestone fires once, and never on a breakdow
   g = applyDebrief(p, "a", deb({ overall: 60, status: "active" }), new Date("2026-07-08T10:00:00Z"));
   assert.deepEqual(g.newMilestones, [], "streak_7 shown once only");
 
-  // A breakdown never celebrates, even if it lands on the 7th day.
+  // A breakdown on what would have been the 7th day: it doesn't count toward the
+  // mastery streak (stays at 6), so of course no milestone and nothing celebrated.
   const q: Profile = { ...emptyProfile(), streak: 6, lastStreakDay: "2026-08-06" };
   const gb = applyDebrief(q, "a", deb({ overall: 40, grade: "F", status: "breakdown" }), new Date("2026-08-07T10:00:00Z"));
-  assert.equal(gb.profile.streak, 7, "showing up still advances the streak");
+  assert.equal(gb.streakCounted, false);
+  assert.equal(gb.profile.streak, 6, "a collapse doesn't advance the streak — it isn't a competent day");
   assert.deepEqual(gb.newMilestones, [], "but a collapse is never a celebration");
   assert.deepEqual(gb.profile.celebratedMilestones, [], "and nothing is marked celebrated");
 });

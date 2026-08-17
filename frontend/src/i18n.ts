@@ -234,6 +234,7 @@ export interface Strings {
     dailyTargetSet: string; // "{n}/day" title on a target button ({n} substituted)
     freezeLabel: string; // "🧊 заморозка ×{n}" — the {word} in the chip
     freezeSaved: string; // gentle note the day a freeze saved the streak
+    streakSkipped: string; // honest note: a D/F run didn't count toward the mastery streak
     // near-full-screen milestone celebration (7-day streak, rank-up)
     milestone: {
       kicker: string; // small eyebrow over the card
@@ -534,6 +535,7 @@ export const I18N: Record<Lang, Strings> = {
       dailyTargetSet: "{n} в день",
       freezeLabel: "заморозка",
       freezeSaved: "🧊 Заморозка сохранила вашу серию — пропущенный день не в счёт.",
+      streakSkipped: "Этот результат не засчитан в серию — она растёт за грейд C и выше.",
       milestone: {
         kicker: "Веха",
         dismiss: "Продолжить",
@@ -853,6 +855,7 @@ export const I18N: Record<Lang, Strings> = {
       dailyTargetSet: "{n}/day",
       freezeLabel: "freeze",
       freezeSaved: "🧊 A freeze saved your streak — the missed day doesn't count.",
+      streakSkipped: "This result didn't count toward your streak — it grows on a grade C or better.",
       milestone: {
         kicker: "Milestone",
         dismiss: "Continue",
