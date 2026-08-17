@@ -205,6 +205,8 @@ async def ws(websocket: WebSocket) -> None:
                     "scenario": views.scenario_view(sc, lang).model_dump(),
                     "state": views.state_view(sess).model_dump(),
                     "text": greet,
+                    # so the client can badge coaching as semantic ("судит ИИ по смыслу")
+                    "judge_active": judge_enabled(),
                 })
 
             # ---- turn -----------------------------------------------------
