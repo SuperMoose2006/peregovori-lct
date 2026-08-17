@@ -24,6 +24,9 @@ interface Props {
   mode: Mode;
   lang: Lang;
   scenarioTitle?: string;
+  // Exam only: the name the player entered, printed on a passing certificate.
+  // Empty ⇒ the certificate falls back to a neutral placeholder.
+  playerName?: string;
   // This run's personal-best outcome (from the retention profile) — null if not
   // yet recorded. Drives the "Личный рекорд" line + the "new record!" flourish.
   record?: RecordResult | null;
@@ -53,13 +56,24 @@ interface Props {
 }
 
 export function Debrief({
-  t, d, mode, lang, scenarioTitle, record, game, onRetry, onHome, onNext, nextLabel,
+  t, d, mode, lang, scenarioTitle, playerName, record, game, onRetry, onHome, onNext, nextLabel,
   runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
   secondaryIssues, termsConceded,
 }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
   // Exam reads like a certificate: same score/stats/tips, ceremonial framing.
   const exam = mode === "exam";
+  // A passing exam earns a named, printable certificate (A/B/C — not D/F). Only
+  // then do we show the awarded-to name, date and print action.
+  const passed = exam && ["A", "B", "C"].includes(d.grade);
+  // Certificate date — new Date() lives only here, in the browser render path
+  // (never in the mock/engine or tests), so it stays deterministic-safe there.
+  const certDate = passed
+    ? new Date().toLocaleDateString(lang === "ru" ? "ru-RU" : "en-US", {
+        year: "numeric", month: "long", day: "numeric",
+      })
+    : "";
+  const certName = (playerName ?? "").trim() || t.exam.namePlaceholder;
   // Animate the bars in from 0 after mount.
   const [grown, setGrown] = useState(false);
   const raf = useRef<number>();
@@ -143,6 +157,18 @@ export function Debrief({
                   {t.exam.scenarioLabel}: <b>{scenarioTitle}</b>
                 </div>
               ) : null}
+              {passed ? (
+                <div className="cert-award">
+                  <div className="cert-award-line">
+                    <span className="cert-award-lab">{t.exam.awardedTo}</span>
+                    <b className="cert-name">{certName}</b>
+                  </div>
+                  <div className="cert-award-line">
+                    <span className="cert-award-lab">{t.exam.dateLabel}</span>
+                    <span className="cert-date">{certDate}</span>
+                  </div>
+                </div>
+              ) : null}
               <div className="oc">
                 {t.outcome[d.status]} · <b>{d.deal_text}</b>
               </div>
@@ -164,8 +190,33 @@ export function Debrief({
                 </div>
               ) : null}
               {game ? <XpAward t={t} lang={lang} game={game} failed={game.failed} /> : null}
+              {passed ? (
+                <button className="cert-print" type="button" onClick={() => window.print()}>
+                  🖨 {t.exam.download}
+                </button>
+              ) : null}
             </div>
           </div>
+
+          {passed ? <div className="cert-certifies">{t.exam.certifies}</div> : null}
+
+          {/* Hoisted to the top (directly under the grade ring): the single
+              pivotal-turn replay is the jury's magnet — an inviting teaser + the
+              player's own costly line, before the metric bars. Deterministic
+              replay logic is unchanged; only its position moved. */}
+          {showWhatIf && pivotal && pivotIdx !== null ? (
+            <WhatIfCard
+              t={t}
+              lang={lang}
+              run={runWhatIf!}
+              scenarioId={whatIfScenarioId!}
+              moves={whatIfMoves!}
+              turnIndex={pivotIdx}
+              originalQuote={pivotal.quote}
+              unit={whatIfUnit}
+              lowerBetter={whatIfLowerBetter}
+            />
+          ) : null}
 
           <div className="sb">
             {bars.map((b, i) => (
@@ -229,20 +280,6 @@ export function Debrief({
                 ))}
               </ol>
             </div>
-          ) : null}
-
-          {showWhatIf && pivotal && pivotIdx !== null ? (
-            <WhatIfCard
-              t={t}
-              lang={lang}
-              run={runWhatIf!}
-              scenarioId={whatIfScenarioId!}
-              moves={whatIfMoves!}
-              turnIndex={pivotIdx}
-              originalQuote={pivotal.quote}
-              unit={whatIfUnit}
-              lowerBetter={whatIfLowerBetter}
-            />
           ) : null}
 
           <div className="coach">
@@ -335,6 +372,7 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
 
   return (
     <div className="whatif">
+      <div className="wi-teaser">{w.teaser}</div>
       <h3>{w.title}</h3>
       <p className="wi-intro">{w.intro}</p>
 

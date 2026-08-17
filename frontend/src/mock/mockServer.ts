@@ -109,6 +109,10 @@ export class MockServer implements Transport {
       scenario: toScenarioView(def, lang),
       state: stateView(s),
       text: greetingText(s),
+      // Offline demo is the deterministic keyword path — the semantic judge is a
+      // backend-only capability. Report it honestly so the "graded by meaning"
+      // badge never appears without a live judge behind it.
+      judge_active: false,
     });
   }
 

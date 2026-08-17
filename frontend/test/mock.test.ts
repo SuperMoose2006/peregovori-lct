@@ -54,6 +54,9 @@ test("greeting → opponent turns → debrief over the protocol", async () => {
     assert.equal(greeting.state.turn, 0);
     assert.equal(greeting.state.status, "active");
     assert.ok(greeting.text.length > 0);
+    // Offline is the deterministic keyword path — the semantic judge is never
+    // live in the mock, so the "graded by meaning" badge must stay honest (off).
+    assert.equal(greeting.judge_active, false);
   }
 
   // Drive turns until the negotiation closes (agreement or timeout breakdown).

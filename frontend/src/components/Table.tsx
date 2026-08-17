@@ -26,12 +26,15 @@ interface Props {
   state: StateView | null;
   log: ChatEntry[];
   busy: boolean;
+  // Whether the live semantic judge scored this session (drives the "graded by
+  // meaning" badge on coach lines). False offline/mock — nothing to claim.
+  judgeActive: boolean;
   onSend: (text: string) => void;
   onHint: () => void;
   onQuit: () => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, onSend, onHint, onQuit }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeActive, onSend, onHint, onQuit }: Props) {
   const st = state;
   const finished = !!st && st.status !== "active";
   const iFound = st?.interests_found ?? 0;
@@ -318,6 +321,8 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, onSend,
               argLabel={t.argLabel}
               exam={exam}
               coachLabel={t.coachLabel}
+              judgeActive={judgeActive}
+              judgeBadge={t.judgeBadge}
               typing={typing}
               typingLabel={t.typingLabel}
             />
@@ -343,6 +348,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, onSend,
                 hintEnabled={!exam}
                 showChips={!exam}
                 limitNote={t.composerLimit}
+                // Turn-1 only opener (before any move): a one-tap interest probe
+                // that pre-fills the box. Withheld in exam (no live help there).
+                suggestion={!exam && !!st && st.turn === 0 ? t.suggestChip : undefined}
               />
             </div>
           </main>

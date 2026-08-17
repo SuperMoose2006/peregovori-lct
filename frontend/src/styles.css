@@ -1252,3 +1252,101 @@ textarea:focus-visible,
   .conn-lost-actions .ghost { width: 100%; }
   .genfail-actions .primary, .genfail-actions .ghost { width: 100%; }
 }
+
+/* ---------- Semantic-judge badge (the #1 differentiator, made visible) ----------
+   Rides on the per-turn coach line ONLY when the live judge scored the move. */
+.judge-badge {
+  display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
+  margin-left: 7px; padding: 1px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
+  color: var(--info); cursor: help;
+  background: color-mix(in srgb, var(--info) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--info) 34%, var(--line));
+}
+
+/* ---------- Turn-1 suggested-reply chip ----------
+   One inviting opener above the composer; pre-fills (never sends), then yields. */
+.suggest { margin: 0 0 8px; }
+.suggest-chip {
+  display: inline-flex; align-items: center; max-width: 100%;
+  padding: 8px 13px; border-radius: 999px; text-align: left; line-height: 1.35;
+  font-size: 12.5px; font-weight: 600; color: var(--brass);
+  background: color-mix(in srgb, var(--brass) 9%, var(--panel));
+  border: 1px dashed color-mix(in srgb, var(--brass) 45%, var(--line-2));
+  transition: 0.15s; animation: pop 0.3s ease;
+}
+.suggest-chip:hover {
+  color: var(--ink); border-style: solid; border-color: var(--brass);
+  background: color-mix(in srgb, var(--brass) 14%, var(--panel));
+}
+
+/* ---------- Exam-mode name field (pre-exam) ---------- */
+.exam-name {
+  display: flex; flex-direction: column; gap: 7px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--brass); border-radius: var(--r);
+  padding: 13px 15px; margin-bottom: 18px;
+}
+.exam-name label { font-size: 12.5px; font-weight: 700; color: var(--brass); }
+.exam-name input {
+  width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 9px;
+  border: 1px solid var(--line-2); background: var(--ground); color: var(--ink);
+  font-family: var(--serif); font-size: 15px;
+}
+.exam-name input:focus { outline: none; border-color: var(--brass); box-shadow: var(--shadow); }
+
+/* ---------- Named printable certificate (passing exam) ---------- */
+.cert-award {
+  margin-top: 12px; padding-top: 12px; display: flex; flex-direction: column; gap: 4px;
+  border-top: 1px dashed color-mix(in srgb, var(--brass) 40%, var(--line));
+}
+.cert-award-line { display: flex; align-items: baseline; gap: 8px; }
+.cert-award-lab {
+  font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-faint); min-width: 62px;
+}
+.cert-name { font-family: var(--serif); font-size: 21px; color: var(--ink); line-height: 1.15; }
+.cert-date { font-family: var(--serif); font-size: 14px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.cert-certifies {
+  margin: 0 0 20px; font-family: var(--serif); font-style: italic;
+  font-size: 13.5px; color: var(--ink-dim); line-height: 1.5;
+  padding-left: 14px; border-left: 2.5px solid var(--brass);
+}
+.cert-print {
+  align-self: flex-start; margin-top: 14px; padding: 9px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; color: #fff; background: var(--brass);
+  transition: 0.15s;
+}
+:root[data-theme="dark"] .cert-print { color: #1a1509; }
+.cert-print:hover { filter: brightness(1.08); }
+
+/* ---------- Hoisted what-if teaser (top of the debrief) ---------- */
+.wi-teaser {
+  font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 800;
+  color: var(--brass); margin-bottom: 8px;
+}
+
+/* ---------- Print: isolate the certificate ----------
+   Force a light palette, strip app chrome and interactive/long panels, and box
+   the certificate in a brass border so it reads as a credible printed award. */
+@media print {
+  :root {
+    --ground: #fff; --panel: #fff; --panel-2: #f4efe4;
+    --ink: #241e16; --ink-dim: #5d5344; --ink-faint: #7d7359;
+    --line: #d8cdb8; --line-2: #cfc4ad;
+    --brass: #9c6c22; --brass-soft: #b07c2e;
+    --shadow: none;
+  }
+  .top, .foot, .dacts, .cert-print,
+  .whatif, .tpoints, .coach, .dbterms,
+  .pb, .xpaward,
+  .conn-banner, .conn-lost, .toast,
+  .ach-toasts, .milestone-scrim { display: none !important; }
+  body { background: #fff !important; }
+  .screen { padding: 0 !important; }
+  .wrap { max-width: 100% !important; padding: 0 !important; }
+  .debrief, .debrief.cert {
+    max-width: 100%; margin: 0; padding: 40px 44px;
+    border: 2.5px solid var(--brass); border-radius: 6px; background: #fff;
+  }
+}

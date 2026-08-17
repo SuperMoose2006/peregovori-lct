@@ -20,13 +20,18 @@ interface Props {
   // the judge's live coach line (exam gives its feedback only at the debrief).
   exam?: boolean;
   coachLabel: string;
+  // Semantic-judge differentiator: when the live judge scored the move, badge the
+  // coach line "graded by meaning". Never shown offline/mock (judgeActive=false),
+  // where coaching comes from the deterministic keyword path — no claim to make.
+  judgeActive?: boolean;
+  judgeBadge: { label: string; aria: string };
   // While a turn is in flight (before the opponent's reply/stream lands) we show
   // an opponent-styled "typing…" bubble so the wait doesn't read as a dead chat.
   typing?: boolean;
   typingLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, exam, coachLabel, typing, typingLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, exam, coachLabel, judgeActive, judgeBadge, typing, typingLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -55,6 +60,11 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
           return (
             <div className="coachline" key={e.id}>
               <span className="coachline-b">💡 {coachLabel}:</span> {e.text}
+              {judgeActive ? (
+                <span className="judge-badge" title={judgeBadge.aria} aria-label={judgeBadge.aria}>
+                  ⚖ {judgeBadge.label}
+                </span>
+              ) : null}
               <button
                 className="coachline-x"
                 aria-label="dismiss"

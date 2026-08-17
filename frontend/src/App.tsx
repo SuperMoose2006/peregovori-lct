@@ -29,6 +29,9 @@ export default function App() {
   const [mode, setMode] = useState<Mode>("practice");
   const [currentScenario, setCurrentScenario] = useState<string | null>(null);
   const [situation, setSituation] = useState("");
+  // Exam mode: the name printed on the certificate (optional; falls back to a
+  // placeholder on the certificate itself). Collected on the exam-mode picker.
+  const [examName, setExamName] = useState("");
   // Custom-generation flow (net.genReducer): "generating" → "ready" (drop into
   // the game) or "failed" (show the retry/fallback screen). Guards a slow backend
   // racing the client timeout, and a hung generation always resolves to failure.
@@ -333,6 +336,8 @@ export default function App() {
               campaignProgress={progress}
               onBeginStage={beginStage}
               profile={profile}
+              examName={examName}
+              onExamNameChange={setExamName}
             />
             </div>
           </div>
@@ -405,6 +410,7 @@ export default function App() {
             state={nego.state}
             log={nego.log}
             busy={nego.busy}
+            judgeActive={nego.judgeActive}
             onSend={nego.turn}
             onHint={nego.requestHint}
             onQuit={goHome}
@@ -429,6 +435,7 @@ export default function App() {
           mode={mode}
           lang={lang}
           scenarioTitle={nego.scenario?.title}
+          playerName={examName}
           record={lastGame}
           game={lastGame}
           onRetry={retry}

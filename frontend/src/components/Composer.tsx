@@ -18,10 +18,14 @@ interface Props {
   showChips: boolean;
   // gentle "N chars left" note as the input nears the cap — "{n}" substituted.
   limitNote: string;
+  // Turn-1 opener: a single tappable chip that pre-fills (never sends) an
+  // interest-probing SPIN opener. Provided only on the very first move; hidden
+  // here the moment the box is non-empty. Absent ⇒ no chip.
+  suggestion?: { label: string; fill: string };
 }
 
 export function Composer({
-  disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote,
+  disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote, suggestion,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -51,8 +55,23 @@ export function Composer({
     });
   };
 
+  // The opener chip earns its place only before the player has typed anything —
+  // it de-blanks the first move, then yields the moment they start writing.
+  const showSuggestion = !!suggestion && text.trim() === "" && !disabled;
+
   return (
     <div className="compose">
+      {showSuggestion && suggestion ? (
+        <div className="suggest">
+          <button
+            type="button"
+            className="suggest-chip"
+            onClick={() => insertStem(suggestion.fill)}
+          >
+            {suggestion.label}
+          </button>
+        </div>
+      ) : null}
       {showChips ? (
         <div className="live">
           {chips.map((c, i) => (

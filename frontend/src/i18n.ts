@@ -68,6 +68,10 @@ export interface Strings {
   interests: string;
   interestToast: string; // celebratory toast when a hidden interest is uncovered
   coachLabel: string; // inline "coach" tag on the judge's per-turn nudge
+  // "graded by meaning" badge — shown beside coaching ONLY when the live semantic
+  // judge scored the move (never offline/mock, where it'd overclaim). aria explains
+  // the judge scores argumentation by meaning, not keywords.
+  judgeBadge: { label: string; aria: string };
   typingLabel: string; // opponent "typing…" indicator while a reply is pending
   batna: string;
   // mobile: label for the collapsible briefing/BATNA section in the game side strip
@@ -113,6 +117,13 @@ export interface Strings {
     eyebrow: string; // small "Certificate" kicker above the result
     resultTitle: string; // "Exam result"
     scenarioLabel: string; // "Scenario"
+    // Named, printable certificate (passing runs only).
+    nameLabel: string; // label above the pre-exam name field
+    namePlaceholder: string; // placeholder / default when the field is left blank
+    awardedTo: string; // "Выдан" — precedes the certified name on the certificate
+    dateLabel: string; // "Дата" — precedes the (browser-side) date
+    download: string; // "Скачать / Печать" — triggers window.print()
+    certifies: string; // one-line credibility caption on the certificate
   };
   // campaign mode ("Кампания") — narrative career arc
   campaign: {
@@ -136,6 +147,10 @@ export interface Strings {
   // {name} = counterpart name, substituted at render.
   firstTurnCoach: string;
   dismiss: string; // aria-label for the bubble's × close
+  // Turn-1 suggested-reply chip: a one-tap interest-probing opener that pre-fills
+  // (never auto-sends) the composer, de-blanking the first move. label = the chip
+  // caption; fill = the SPIN opener dropped into the box for the player to send.
+  suggestChip: { label: string; fill: string };
   // guided first-negotiation onboarding (practice, first time only). Warm-coach
   // copy for the welcome beat, the meter/composer coach-marks, the tap-to-send
   // opener, and the two event-driven reveals (interest uncovered / their price moved).
@@ -163,6 +178,7 @@ export interface Strings {
   // "А что если…" — the what-if replay card in the debrief.
   whatIf: {
     title: string; // section heading
+    teaser: string; // inviting one-liner at the hoisted top of the card ("Один ход решал всё →")
     intro: string; // "Вы надавили здесь. Смотрите, что было бы иначе."
     reveal: string; // button to run the replay
     loading: string; // in-flight label
@@ -348,6 +364,10 @@ export const I18N: Record<Lang, Strings> = {
     interests: "Раскрытые интересы",
     interestToast: "Вы вскрыли интерес",
     coachLabel: "тренер",
+    judgeBadge: {
+      label: "судит ИИ по смыслу",
+      aria: "Семантический ИИ-судья оценивает аргументацию по смыслу, а не по ключевым словам.",
+    },
     typingLabel: "печатает…",
     batna: "BATNA",
     moreLabel: "Брифинг и BATNA",
@@ -390,6 +410,12 @@ export const I18N: Record<Lang, Strings> = {
       eyebrow: "Сертификат · экзамен",
       resultTitle: "Результат экзамена",
       scenarioLabel: "Сценарий",
+      nameLabel: "Имя для сертификата",
+      namePlaceholder: "Участник",
+      awardedTo: "Выдан",
+      dateLabel: "Дата",
+      download: "Скачать / Печать",
+      certifies: "Тренажёр «Диалог» удостоверяет владение методом переговоров.",
     },
     campaign: {
       overviewHead: "Ваша карьерная арка",
@@ -416,6 +442,10 @@ export const I18N: Record<Lang, Strings> = {
     },
     firstTurnCoach: "💡 Начните с вопроса: узнайте, что важно для {name}. Не давите — сначала интересы.",
     dismiss: "Закрыть подсказку",
+    suggestChip: {
+      label: "Спросите, что для них важно →",
+      fill: "Что для вас важнее всего в этой сделке?",
+    },
     onboarding: {
       skip: "Пропустить",
       next: "Далее →",
@@ -443,6 +473,7 @@ export const I18N: Record<Lang, Strings> = {
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
     whatIf: {
       title: "А что если…",
+      teaser: "Один ход решал всё →",
       intro: "Ваш самый дорогой ход. Смотрите, что было бы, спроси вы иначе — с той же точки.",
       reveal: "Показать, что было бы иначе",
       loading: "Считаю развилку…",
@@ -652,6 +683,10 @@ export const I18N: Record<Lang, Strings> = {
     interests: "Interests uncovered",
     interestToast: "Interest uncovered",
     coachLabel: "coach",
+    judgeBadge: {
+      label: "graded by meaning",
+      aria: "A semantic AI judge scores your argumentation by meaning, not by keywords.",
+    },
     typingLabel: "typing…",
     batna: "BATNA",
     moreLabel: "Briefing & BATNA",
@@ -694,6 +729,12 @@ export const I18N: Record<Lang, Strings> = {
       eyebrow: "Certificate · exam",
       resultTitle: "Exam result",
       scenarioLabel: "Scenario",
+      nameLabel: "Name for the certificate",
+      namePlaceholder: "Candidate",
+      awardedTo: "Awarded to",
+      dateLabel: "Date",
+      download: "Download / Print",
+      certifies: "The «Диалог» trainer certifies command of the negotiation method.",
     },
     campaign: {
       overviewHead: "Your career arc",
@@ -720,6 +761,10 @@ export const I18N: Record<Lang, Strings> = {
     },
     firstTurnCoach: "💡 Open with a question: find out what matters to {name}. Don't push — interests first.",
     dismiss: "Dismiss tip",
+    suggestChip: {
+      label: "Ask what matters most to them →",
+      fill: "What matters most to you in this deal?",
+    },
     onboarding: {
       skip: "Skip",
       next: "Next →",
@@ -747,6 +792,7 @@ export const I18N: Record<Lang, Strings> = {
     turningPoints: { title: "Turning points", turn: "Turn" },
     whatIf: {
       title: "What if…",
+      teaser: "One move changed everything →",
       intro: "Your most costly move. See what would have happened had you asked differently — from the same moment.",
       reveal: "Show what would have happened",
       loading: "Replaying the branch…",

@@ -160,7 +160,10 @@ export type ClientMsg =
 
 // server -> client
 export type ServerMsg =
-  | { type: "greeting"; sessionId: string; scenario: ScenarioView; state: StateView; text: string }
+  // judge_active: whether the semantic judge (option C) is live this session, so
+  // the UI can honestly surface the "graded by meaning" differentiator. Absent /
+  // false = the deterministic keyword path (offline, mock) — nothing to claim.
+  | { type: "greeting"; sessionId: string; scenario: ScenarioView; state: StateView; text: string; judge_active?: boolean }
   | { type: "opponent_delta"; chunk: string }
   // coach: optional per-turn coaching from the semantic judge (hidden in exam mode)
   | { type: "opponent"; text: string; analysis: Analysis; deltas: Deltas; state: StateView; coach?: string }

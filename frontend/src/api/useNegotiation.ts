@@ -26,6 +26,9 @@ export interface NegotiationState {
   error: string | null;
   // Live WS health (mock is always "online"). Drives the mid-game reconnect banner.
   conn: ConnStatus;
+  // Whether the semantic judge is live for this session (from the greeting). Drives
+  // the "graded by meaning" badge — false offline/mock (deterministic keyword path).
+  judgeActive: boolean;
 }
 
 export interface Negotiation extends NegotiationState {
@@ -47,6 +50,7 @@ const initialState: NegotiationState = {
   busy: false,
   error: null,
   conn: "online",
+  judgeActive: false,
 };
 
 export function useNegotiation(lang: Lang): Negotiation {
@@ -134,6 +138,7 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
         scenario: msg.scenario,
         state: msg.state,
         error: null,
+        judgeActive: !!msg.judge_active,
         log: [{ id: nextId(), kind: "opp", text: msg.text }],
       };
 

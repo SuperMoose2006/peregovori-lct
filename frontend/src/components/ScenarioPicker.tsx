@@ -37,6 +37,9 @@ interface Props {
   onBeginStage: () => void;
   // retention profile → best-grade badges on scenario cards
   profile: Profile;
+  // exam-mode wiring: the (optional) name printed on a passing certificate.
+  examName: string;
+  onExamNameChange: (v: string) => void;
 }
 
 // Best-grade chip in a card's difficulty-row: the letter + best score in brass
@@ -58,6 +61,7 @@ export function ScenarioPicker({
   t, lang, mode, onSelectMode, onStart,
   situation, customError, onSituationChange, onStartCustom,
   campaign, campaignProgress, onBeginStage, profile,
+  examName, onExamNameChange,
 }: Props) {
   const rows = catalog(lang);
   return (
@@ -95,6 +99,19 @@ export function ScenarioPicker({
         <CampaignArc t={t} campaign={campaign} progress={campaignProgress} onBegin={onBeginStage} />
       ) : (
         <>
+          {mode === "exam" ? (
+            <div className="exam-name">
+              <label htmlFor="exam-name-input">🏆 {t.exam.nameLabel}</label>
+              <input
+                id="exam-name-input"
+                type="text"
+                value={examName}
+                maxLength={48}
+                placeholder={t.exam.namePlaceholder}
+                onChange={(e) => onExamNameChange(e.target.value)}
+              />
+            </div>
+          ) : null}
           <div className="section-head">{t.pickHead}</div>
           <div className="cards">
             {rows.map((sc) => (
