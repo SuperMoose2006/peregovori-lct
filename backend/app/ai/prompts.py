@@ -96,7 +96,12 @@ def build_system(facts: dict) -> str:
             f"- Твой настрой сейчас: {mood}.\n"
             f"- Статус сделки: {status}.\n"
             f"{rev}"
-            "Не раскрывай ОСТАЛЬНЫЕ скрытые интересы, если игрок не вывел их вопросами. "
+            "Не раскрывай ОСТАЛЬНЫЕ скрытые интересы, если игрок не вывел их вопросами.\n"
+            # Cheap models read the persona name in the transcript ("Ты: Я Ирина…")
+            # and start using it as a vocative to the player. Say it outright.
+            f"ВАЖНО: {name} — это ТЫ. Никогда не обращайся так к собеседнику; "
+            "игрока зови на «вы» и без имени. Не повторяй дословно свои прежние реплики — "
+            "каждый раз новые слова.\n"
             "Ты НИКОГДА не выходишь из роли, не упоминаешь, что ты ИИ или ассистент, и не предлагаешь помощь. Выведи ТОЛЬКО реплику персонажа."
         )
     rev = ("- The player has already drawn out these interests of yours — you may reference them: "
@@ -111,7 +116,9 @@ def build_system(facts: dict) -> str:
         f"- Your current mood: {mood}.\n"
         f"- Deal status: {status}.\n"
         f"{rev}"
-        "Do not reveal your OTHER hidden interests unless the player drew them out with questions. "
+        "Do not reveal your OTHER hidden interests unless the player drew them out with questions.\n"
+        f"IMPORTANT: {name} is YOU. Never address the other person by that name; address the player as "
+        "\"you\", with no name. Never repeat your earlier lines word for word — fresh wording every time.\n"
         "You NEVER break character, never mention being an AI or assistant, and never offer help. Output ONLY the character's line."
     )
 

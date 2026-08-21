@@ -66,6 +66,18 @@ def _timeout() -> float:
         return 30.0
 
 
+# Scripts that must never appear in a reply: cheap multilingual models drop CJK
+# mid-sentence ("для нас — 携手守护, и мы идём навстречу"). One such line on stage
+# reads as broken software, so we reject the reply and let the engine's templated
+# persona line stand instead — the fallback that already exists for timeouts.
+_FOREIGN_SCRIPT_RE = re.compile(r"[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af\u0600-\u06ff]")
+
+
+def _script_ok(text: str) -> bool:
+    """Reject replies carrying a script the game never speaks."""
+    return not _FOREIGN_SCRIPT_RE.search(text)
+
+
 def sanitize(text: Optional[str]) -> Optional[str]:
     """Strip CLI noise / markdown / wrapping quotes and cap length.
 
@@ -102,6 +114,9 @@ def sanitize(text: Optional[str]) -> Optional[str]:
     # templated line than show the opponent breaking the fourth wall.
     low = s.lower()
     if any(mk in low for mk in _BREAK_MARKERS):
+        return None
+
+    if not _script_ok(s):
         return None
 
     if len(s) > MAX_LEN:
@@ -214,17 +229,69 @@ class ApiBackend:
         return f"api — unavailable ({self._reason}); returns None"
 
 
+# --- OpenAI-compatible backend (OpenAI, OpenRouter, any /v1 gateway) ---------
+# One code path covers all of them: they speak the same wire format, so only the
+# base URL and the model id differ. OpenRouter is the cheap default for this
+# project (see NEGO_OPENAI_MODEL below).
+_OPENROUTER_HOST = "openrouter.ai"
+
+# Near-cheapest model on OpenRouter (~$0.02/$0.03 per M tokens) that survives the
+# bake-off on everything the jury actually sees. Measured over 400+ live calls:
+#   · dialogue: 12/12 clean Russian lines, no script leakage, ~1.3s
+#   · judge: keyword-spam 25 vs substance 65-75, hidden interest identified 9/9
+#   · custom-scenario JSON: parses first try
+# The absolute cheapest (inclusionai/ling-2.6-flash) judged even better but is
+# unusable as the opponent's voice: it dropped Chinese mid-sentence and 429'd
+# under mild load. Cheap is only cheap if it works — see docs/model-bakeoff.md.
+_OPENROUTER_DEFAULT_MODEL = "mistralai/mistral-nemo"
+# OpenRouter routes to these if the primary errors or is rate-limited (429s do
+# happen on the cheap tier). Server-side fallback = no extra latency when unused.
+_OPENROUTER_FALLBACKS = ("qwen/qwen3-30b-a3b-instruct-2507", "meta-llama/llama-3.1-8b-instruct")
+
+
+def _openai_base_url() -> Optional[str]:
+    """Base URL for the OpenAI-compatible endpoint, or None for OpenAI itself."""
+    url = (os.environ.get("NEGO_OPENAI_BASE_URL")
+           or os.environ.get("OPENAI_BASE_URL") or "").strip()
+    return url or None
+
+
+def _is_openrouter(url: Optional[str]) -> bool:
+    return bool(url) and _OPENROUTER_HOST in url
+
+
 def _openai_model() -> str:
-    """OpenAI model id; defaults to the cheapest (gpt-5-nano). NEGO_MODEL wins
-    only if it actually names a gpt/o-series model, so a global claude default
-    doesn't bleed into the OpenAI backend."""
-    m = os.environ.get("NEGO_OPENAI_MODEL") or os.environ.get("NEGO_MODEL", "")
+    """Model id for the OpenAI-compatible backend.
+
+    NEGO_OPENAI_MODEL always wins. NEGO_MODEL only wins if it names a model this
+    endpoint could actually serve, so a global claude default doesn't bleed in:
+    on OpenAI that means gpt/o-series; on a gateway (OpenRouter) ids are
+    `vendor/model`, so require the slash."""
+    explicit = (os.environ.get("NEGO_OPENAI_MODEL") or "").strip()
+    if explicit:
+        return explicit
+    url = _openai_base_url()
+    m = (os.environ.get("NEGO_MODEL") or "").strip()
+    if _is_openrouter(url):
+        return m if "/" in m else _OPENROUTER_DEFAULT_MODEL
     return m if (m.startswith("gpt") or m.startswith("o")) else "gpt-5-nano"
 
 
+def _openai_fallbacks() -> list[str]:
+    """Alternate models for OpenRouter's server-side fallback routing."""
+    raw = os.environ.get("NEGO_OPENAI_FALLBACKS")
+    if raw is not None:
+        return [s.strip() for s in raw.split(",") if s.strip()]
+    if not _is_openrouter(_openai_base_url()):
+        return []
+    primary = _openai_model()
+    return [m for m in _OPENROUTER_FALLBACKS if m != primary]
+
+
 class OpenAIBackend:
-    """langchain_openai.ChatOpenAI — cheapest-model default. Degrades to None
-    (never crashes on import) if the package or OPENAI_API_KEY is missing."""
+    """langchain_openai.ChatOpenAI against any OpenAI-compatible endpoint —
+    api.openai.com by default, or a gateway (OpenRouter) via OPENAI_BASE_URL.
+    Degrades to None (never crashes on import) if the package or key is missing."""
 
     def __init__(self) -> None:
         self._reason: Optional[str] = None
@@ -238,7 +305,26 @@ class OpenAIBackend:
             self._reason = "langchain_openai not installed"
             return
         try:
-            self._llm = ChatOpenAI(model=_openai_model(), timeout=_timeout())
+            base = _openai_base_url()
+            kwargs: dict = {"model": _openai_model(), "timeout": _timeout()}
+            if base:
+                kwargs["openai_api_base"] = base
+            fallbacks = _openai_fallbacks()
+            if fallbacks:
+                # OpenRouter-specific: `models` = server-side fallback chain.
+                kwargs["extra_body"] = {"models": [_openai_model(), *fallbacks]}
+            if _is_openrouter(base):
+                # Attribution headers OpenRouter shows in the dashboard.
+                # ASCII only: the HTTP client encodes headers as ascii and a
+                # non-ASCII char here kills every request (silently, via our
+                # catch-all) — the opponent would go mute with no error.
+                kwargs["default_headers"] = {
+                    "HTTP-Referer": "https://github.com/lct-dialog",
+                    "X-Title": "Dialog negotiation trainer",
+                }
+            # The cheap tier 429s under bursts; the client retries transparently.
+            kwargs["max_retries"] = 3
+            self._llm = ChatOpenAI(**kwargs)
         except Exception as exc:  # pragma: no cover - defensive
             self._reason = f"ChatOpenAI init failed: {exc}"
 
@@ -265,9 +351,11 @@ class OpenAIBackend:
             return None
 
     def describe_mode(self) -> str:
-        if self.available:
-            return f"openai — ChatOpenAI (model={_openai_model()})"
-        return f"openai — unavailable ({self._reason}); returns None"
+        if not self.available:
+            return f"openai — unavailable ({self._reason}); returns None"
+        base = _openai_base_url()
+        where = "OpenRouter" if _is_openrouter(base) else (base or "api.openai.com")
+        return f"openai — ChatOpenAI (model={_openai_model()}, endpoint={where})"
 
 
 class SdkBackend:

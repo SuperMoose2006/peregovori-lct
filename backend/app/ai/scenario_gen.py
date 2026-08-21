@@ -41,8 +41,12 @@ def _sys_prompt(lang: str) -> str:
             ' "hidden_interests": [три скрытых интереса второй стороны],\n'
             ' "tradeoffs": [два-три предмета для размена],\n'
             ' "briefing": "краткая вводная для игрока: цель, красная линия, подсказка"}\n'
-            "dir=lower_is_better если игрок хочет меньшее число (цена, доля, срок), иначе higher_is_better. "
-            "Числа должны образовывать реалистичную зону торга. Всё на русском."
+            "dir — с точки зрения ИГРОКА: lower_is_better, если игрок хочет ЧИСЛО ПОМЕНЬШЕ "
+            "(закупочная цена, арендная ставка, срок внедрения, комиссия); higher_is_better, если ПОБОЛЬШЕ "
+            "(своя зарплата, цена продажи, бюджет, доля, объём). Проверь себя: кто платит — хочет меньше, "
+            "кто получает — больше.\n"
+            "opponent_open — стартовая позиция оппонента, самая невыгодная игроку; player_target — цель игрока; "
+            "все четыре числа должны образовывать реалистичную зону торга. Всё на русском."
         )
     return (
         "You are a scenario designer for a negotiation trainer. From the user's situation, create ONE "
@@ -58,8 +62,11 @@ def _sys_prompt(lang: str) -> str:
         ' "hidden_interests": [three hidden interests of the counterpart],\n'
         ' "tradeoffs": [two-three tradeable items],\n'
         ' "briefing": "short player briefing: goal, red line, a hint"}\n'
-        "dir=lower_is_better if the player wants the smaller number (price, equity, days), else higher_is_better. "
-        "Numbers must form a realistic bargaining zone. All text in English."
+        "dir is from the PLAYER's point of view: lower_is_better if the player wants a SMALLER number "
+        "(purchase price, rent, delivery time, fee); higher_is_better if a BIGGER one (their own salary, "
+        "sale price, budget, equity, volume). Sanity check: whoever pays wants less, whoever receives wants more.\n"
+        "opponent_open is the counterpart's opening position, the worst one for the player; player_target is the "
+        "player's goal; all four numbers must form a realistic bargaining zone. All text in English."
     )
 
 

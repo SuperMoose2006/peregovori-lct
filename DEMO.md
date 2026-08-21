@@ -15,15 +15,18 @@
 **Бэкенд — с живым судьёй, одинаковый источник (same-origin), без мок-фолбэка:**
 
 ```bash
-# backend/.env (gitignored): ANTHROPIC_API_KEY=...  (или OPENAI_API_KEY для дешёвого пути)
+# backend/.env (gitignored) — уже настроен на OpenRouter:
+#   OPENAI_API_KEY=sk-or-v1-...   OPENAI_BASE_URL=https://openrouter.ai/api/v1
+#   NEGO_AI=openai   NEGO_JUDGE=1
 cd frontend && npm run build            # собрать SPA -> frontend/dist
-cd ../backend
-NEGO_AI=api NEGO_JUDGE=1 uvicorn app.main:app --port 8010   # judge авто-он для api/openai
+cd ../backend && uvicorn app.main:app --port 8010
 # открыть http://localhost:8010  — main.py отдаёт собранный SPA той же процессой
 ```
 
-- **`NEGO_AI=api`** (ChatAnthropic) или **`NEGO_AI=openai`** (`gpt-5-nano`, дёшево) —
-  ответ за секунды. **Не `cli`** на сцене: локальный CLI ~20–25 с, event loop ждёт.
+- **`NEGO_AI=openai` через OpenRouter** (`mistralai/mistral-nemo`) — ход за 3–4 с,
+  копейки за прогон; `NEGO_AI=api` (ChatAnthropic) — тот же профиль, если есть ключ.
+  **Не `cli`** на сцене: локальный CLI ~20–25 с, event loop ждёт. Выбор модели и
+  чем ломались более дешёвые — `docs/model-bakeoff.md`.
 - **Same-origin** (SPA отдаёт бэкенд на :8010) → нет отдельного Vite-прокси и нет
   1500 мс WS-таймаута, который роняет фронт в мок. Мок остаётся только как
   осознанный аргумент «работает без сети».

@@ -77,8 +77,15 @@
   | `sdk` | Claude Agent SDK (`claude-agent-sdk`, thinking off, `setting_sources=[]`) | «правильный» Claude-клиент по подписке; те же rate-limits |
   | `tmux` | `claude -p` в персистентной tmux-сессии (file-based, без TUI-скрейпинга) | наблюдаемый Claude: `tmux attach -t nego-ai`; латентность как у `cli` |
   | `api` | `ChatAnthropic` | продакшен (`ANTHROPIC_API_KEY`) |
-  | `openai` | `ChatOpenAI` (по умолч. `gpt-5-nano` — самый дешёвый) | дешёвый прод (`OPENAI_API_KEY`), модель через `NEGO_MODEL`/`NEGO_OPENAI_MODEL` |
+  | `openai` | `ChatOpenAI` на любой OpenAI-совместимый эндпоинт | дешёвый прод; без `OPENAI_BASE_URL` — сам OpenAI (`gpt-5-nano`) |
+  | `openai` + `OPENAI_BASE_URL=https://openrouter.ai/api/v1` | тот же ChatOpenAI через OpenRouter | **текущий рабочий профиль**: `mistralai/mistral-nemo` (~$0.02/$0.03 за M токенов), server-side fallback на резервные модели |
   - Секреты — в `backend/.env` (gitignored, автозагрузка в `main.py`), не в командной строке.
+  - Модель: `NEGO_OPENAI_MODEL` > `NEGO_MODEL` (если он вообще servable этим эндпоинтом) > дефолт.
+    Выбор модели обоснован живым бейк-оффом — `docs/model-bakeoff.md`. Дешёвые модели ломаются
+    по-разному (чужой алфавит в реплике, судья не отличает спам от сути, перевёрнутый `dir`),
+    поэтому в коде есть защиты: `_script_ok` (реплика с CJK → шаблонный фолбэк), закрытый словарь
+    приёмов судьи, явная числовая рубрика в `judge.py`. **Тесты всегда офлайн** — `tests/conftest.py`
+    принудительно ставит `NEGO_AI=off`, чтобы `.env` не утащил suite в сеть и в расходы.
 - `claude_cli` ChatModel вызывает `claude -p --model <NEGO_MODEL> --output-format text` через
   subprocess. (Опционально — через tmux-сессию для наблюдения: `tmux attach -t nego-ai`.)
 - `NEGO_MODEL` по умолчанию `claude-sonnet-5`; локально для скорости — `claude-haiku-4-5-20251001`.

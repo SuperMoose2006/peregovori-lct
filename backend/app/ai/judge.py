@@ -40,34 +40,73 @@ def judge_enabled() -> bool:
     return os.environ.get("NEGO_AI", "off").strip().lower() in ("api", "openai")
 
 
+# Closed vocabulary for the recognized-technique chips. The judge picks from it
+# instead of free-writing labels: free-form output produced unreadable chips
+# ("интерrogация", "предложениеУсловия") in the demo's most visible surface.
+TECHNIQUES_RU = (
+    "вскрытие интересов", "объективный критерий", "размен", "BATNA",
+    "активное слушание", "SPIN-вопрос", "обоснование", "давление",
+    "уступка", "закрытие сделки",
+)
+TECHNIQUES_EN = (
+    "probing interests", "objective criteria", "trade-off", "BATNA",
+    "active listening", "SPIN question", "rationale", "pressure",
+    "concession", "closing",
+)
+
+
 def _sys(lang: str) -> str:
     if lang == "ru":
         return (
             "Ты — строгий, но справедливый тренер по переговорам (Гарвардский метод, SPIN, BATNA), "
             "и одновременно ты понимаешь скрытые интересы второй стороны. "
-            "Оцени ПОСЛЕДНЮЮ реплику игрока по СМЫСЛУ, а не по ключевым словам. "
-            "Учитывай: подлинное вскрытие интересов, опора на ОБЪЕКТИВНЫЕ критерии, логическую обоснованность, "
-            "тон/эмпатию, продвигает ли реплика позицию без разрушения отношений. "
-            "Спам заученных фраз без смысла — НИЗКИЙ балл. Верни СТРОГО JSON без markdown:\n"
+            "Оцени ПОСЛЕДНЮЮ реплику игрока по СМЫСЛУ, а не по ключевым словам.\n"
+            "ШКАЛА arg_score (следуй ей буквально):\n"
+            "0-20: грубость, пустая реплика ИЛИ набор переговорных клише («рынок», «стандарт индустрии», "
+            "«в обмен на объём») БЕЗ конкретных цифр, данных и без конкретной уступки — это спам, а не аргумент.\n"
+            "ВАЖНО: если в реплике есть конкретное число, диапазон, ссылка на реальную альтернативу (BATNA) "
+            "или названная уступка — это НЕ спам, ставь минимум 55, даже если слова звучат шаблонно.\n"
+            "Реплика из 1-3 слов без содержания («ну», «ок», «дальше») — не выше 15.\n"
+            "21-40: голая позиция, требование или давление без обоснования.\n"
+            "41-60: осмысленный, но поверхностный ход: общий вопрос или слабое обоснование.\n"
+            "61-80: один сильный приём по существу — вскрытие конкретного интереса, настоящий объективный "
+            "критерий с цифрой/источником, или конкретный размен «мы даём X — вы двигаетесь по Y».\n"
+            "81-100: два и более таких приёма вместе, продвигают к сделке и не рушат отношения.\n"
+            "Сначала спроси себя: что КОНКРЕТНО игрок сообщил или узнал этой репликой? Если ничего "
+            "конкретного — балл низкий, сколько бы «правильных» слов там ни было. "
+            "Верни СТРОГО JSON без markdown:\n"
             '{"arg_score": 0-100, '
             '"interest_targeted": индекс интереса из списка (0-based), в который РЕАЛЬНО метит вопрос игрока, или null, '
             '"secondary_conceded": id вторичного вопроса из списка, который игрок реально предлагает уступить в размене, или null, '
             '"criteria_legitimate": true если игрок опёрся на настоящий объективный критерий (данные/стандарт), иначе false, '
             '"note": "одно короткое конкретное указание игроку", '
-            '"techniques": ["распознанные приёмы, по-русски"]}'
+            '"techniques": [список ТОЛЬКО из этих значений, без своих формулировок: '
+            + ", ".join(f'"{t}"' for t in TECHNIQUES_RU) + "]}"
         )
     return (
         "You are a strict but fair negotiation coach (Harvard method, SPIN, BATNA) who also knows the other "
-        "side's hidden interests. Rate the player's LAST line on MEANING, not keywords. "
-        "Consider: genuine interest-probing, use of OBJECTIVE criteria, logical grounding, tone/empathy, and whether "
-        "it advances their position without wrecking the relationship. Parroting phrases → LOW score. "
+        "side's hidden interests. Rate the player's LAST line on MEANING, not keywords.\n"
+        "arg_score SCALE (follow it literally):\n"
+        "0-20: hostility, an empty line, OR a salad of negotiation cliches (\"market rate\", \"industry "
+        "standard\", \"in exchange for volume\") with NO concrete numbers, data or actual concession — that is "
+        "spam, not an argument.\n"        "IMPORTANT: if the line carries a concrete number, a range, a real alternative (BATNA) or a named "
+        "concession, it is NOT spam — score at least 55, however boilerplate the wording sounds.\n"
+        "A throwaway 1-3 word line (\"ok\", \"sure\", \"go on\") — no higher than 15.\n"
+        "21-40: a bare position, demand or pressure with no grounding.\n"
+        "41-60: meaningful but shallow: a generic question or weak rationale.\n"
+        "61-80: one strong substantive move — probing a specific interest, a real objective criterion with a "
+        "number/source, or a concrete trade \"we give X if you move on Y\".\n"
+        "81-100: two or more such moves together, advancing the deal without wrecking the relationship.\n"
+        "First ask yourself: what did the player CONCRETELY tell or learn with this line? If nothing concrete, "
+        "the score is low no matter how many \"right\" words it contains. "
         "Return STRICT JSON, no markdown:\n"
         '{"arg_score": 0-100, '
         '"interest_targeted": index (0-based) of the interest the question ACTUALLY targets, or null, '
         '"secondary_conceded": id of the secondary issue from the list the player actually offers to concede in a trade, or null, '
         '"criteria_legitimate": true if the player leaned on a real objective criterion (data/standard), else false, '
         '"note": "one short concrete tip to the player", '
-        '"techniques": ["recognized techniques, in English"]}'
+        '"techniques": [pick ONLY from this list, invent nothing: '
+        + ", ".join(f'"{t}"' for t in TECHNIQUES_EN) + "]}"
     )
 
 
@@ -100,6 +139,18 @@ def _extract_json(text: str) -> Optional[dict]:
         return None
 
 
+def _clean_techniques(items, lang: str) -> list[str]:
+    """Keep only labels from the closed vocabulary (models still drift)."""
+    vocab = TECHNIQUES_RU if lang == "ru" else TECHNIQUES_EN
+    index = {v.lower(): v for v in vocab}
+    out: list[str] = []
+    for it in (items or []):
+        v = index.get(str(it).strip().lower())
+        if v and v not in out:
+            out.append(v)
+    return out[:4]
+
+
 def judge_turn(context: str, player_text: str, lang: str = "ru",
                interests: Optional[list] = None,
                secondary: Optional[list] = None) -> Optional[dict]:
@@ -115,9 +166,14 @@ def judge_turn(context: str, player_text: str, lang: str = "ru",
     """
     if not (player_text or "").strip():
         return None
-    raw = get_chat_backend().generate(
-        _sys(lang), _user(context, player_text, lang, interests, secondary), raw=True)
-    d = _extract_json(raw or "")
+    backend = get_chat_backend()
+    sys_p = _sys(lang)
+    user_p = _user(context, player_text, lang, interests, secondary)
+    d = None
+    for _ in range(2):
+        d = _extract_json(backend.generate(sys_p, user_p, raw=True) or "")
+        if d:
+            break
     if not d:
         return None
     try:
@@ -146,5 +202,5 @@ def judge_turn(context: str, player_text: str, lang: str = "ru",
         "secondary_conceded": sec,
         "criteria_legitimate": bool(d.get("criteria_legitimate")),
         "note": str(d.get("note") or "").strip()[:280],
-        "techniques": [str(t) for t in (d.get("techniques") or [])][:6],
+        "techniques": _clean_techniques(d.get("techniques"), lang),
     }
