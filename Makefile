@@ -1,21 +1,29 @@
-.PHONY: install backend frontend test dev
+.PHONY: install gateway frontend avatar test test-py test-js dev
 
-PY := backend/.venv/bin/python
-PIP := backend/.venv/bin/pip
+PY  := services/gateway/.venv/bin/python
+PIP := services/gateway/.venv/bin/pip
 
-install:                       ## install backend + frontend deps
-	python3 -m venv backend/.venv
-	$(PIP) install -q -r backend/requirements.txt
+install:                       ## install gateway + frontend deps
+	python3 -m venv services/gateway/.venv
+	$(PIP) install -q -r services/gateway/requirements.txt
 	cd frontend && npm install
 
-backend:                       ## run FastAPI backend on :8000 (NEGO_AI=cli|api|off)
-	cd backend && .venv/bin/uvicorn app.main:app --reload --port 8010
+gateway:                       ## realtime gateway on :8010
+	cd services/gateway && .venv/bin/uvicorn app.main:app --reload --port 8010
 
-frontend:                      ## run Vite dev server on :5173
+frontend:                      ## Vite dev server on :5173 (proxies /ws and /v1 to :8010)
 	cd frontend && npm run dev
 
-test:                          ## run backend engine + ai tests
-	$(PY) -m pytest backend/tests -q
+avatar:                        ## LiveTalking avatar worker on :8020 (needs CUDA GPU)
+	cd services/avatar && ./run.sh
 
-# Tip: run `make backend` and `make frontend` in two terminals.
-# Local AI opponent via the claude CLI:  NEGO_AI=cli make backend
+test: test-py test-js          ## everything
+
+test-py:
+	$(PY) -m pytest services/gateway/tests -q
+
+test-js:
+	cd frontend && npm test
+
+# Локально: `make gateway` и `make frontend` в двух терминалах.
+# Аватар — отдельный сервис, поднимается там, где есть GPU (см. services/avatar/README.md).

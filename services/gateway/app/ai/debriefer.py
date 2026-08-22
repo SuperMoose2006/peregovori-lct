@@ -109,9 +109,37 @@ def _trim(s: str, cap: int) -> str:
     return s
 
 
+def build_prompts(facts: dict, lang: str = "ru") -> tuple[str, str]:
+    """The mentor's (system, user) pair.
+
+    Public so the async realtime path (app/orchestrator/negotiation.py) sends
+    the SAME prompt through the OpenRouter provider instead of re-deriving it.
+    """
+    return _sys(lang), _user(facts, lang)
+
+
+def parse(raw: str, lang: str = "ru") -> Optional[dict]:
+    """Validate a raw mentor reply, or None if it says nothing useful.
+
+    Shared by the sync and async paths: the length floor below is the guard
+    that keeps a one-word "well done" from replacing the engine's own tips.
+    """
+    d = _extract_json(raw or "")
+    if not d:
+        return None
+    verdict = _trim(d.get("verdict"), MAX_VERDICT)
+    if len(verdict) < 20:
+        return None
+    return {
+        "verdict": verdict,
+        "strength": _trim(d.get("strength"), MAX_LINE),
+        "growth": _trim(d.get("growth"), MAX_LINE),
+    }
+
+
 def summarize(facts: dict, lang: str = "ru") -> Optional[dict]:
     """{'verdict','strength','growth'} narrating the engine's verdict, or None."""
-    raw = get_chat_backend().generate(_sys(lang), _user(facts, lang), raw=True)
+    raw = get_chat_backend().generate(*build_prompts(facts, lang), raw=True)
     d = _extract_json(raw or "")
     if not d:
         return None

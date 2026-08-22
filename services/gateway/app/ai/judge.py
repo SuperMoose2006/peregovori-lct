@@ -151,6 +151,33 @@ def _clean_techniques(items, lang: str) -> list[str]:
     return out[:4]
 
 
+def build_prompts(context: str, player_text: str, lang: str = "ru",
+                  interests: Optional[list] = None,
+                  secondary: Optional[list] = None) -> tuple[str, str]:
+    """The judge's (system, user) pair.
+
+    Public so the async realtime path (app/orchestrator/judge.py) can send the
+    SAME prompt through the OpenRouter provider. The prompt and the validation
+    below were paid for by a live bake-off (docs/model-bakeoff.md); rewriting
+    them for the new transport would throw that away.
+    """
+    return _sys(lang), _user(context, player_text, lang, interests, secondary)
+
+
+def parse_judgement(raw: str, lang: str = "ru", interests: Optional[list] = None,
+                    secondary: Optional[list] = None) -> Optional[dict]:
+    """Validate a raw judge reply into the judgement dict, or None if unusable.
+
+    Split out of `judge_turn` so the sync and async paths share one validator:
+    the score clamp, the closed technique vocabulary and the interest-index
+    bounds check are what keep a cheap model from corrupting engine state.
+    """
+    d = _extract_json(raw or "")
+    if not d:
+        return None
+    return _validate(d, lang, interests, secondary)
+
+
 def judge_turn(context: str, player_text: str, lang: str = "ru",
                interests: Optional[list] = None,
                secondary: Optional[list] = None) -> Optional[dict]:
@@ -167,8 +194,7 @@ def judge_turn(context: str, player_text: str, lang: str = "ru",
     if not (player_text or "").strip():
         return None
     backend = get_chat_backend()
-    sys_p = _sys(lang)
-    user_p = _user(context, player_text, lang, interests, secondary)
+    sys_p, user_p = build_prompts(context, player_text, lang, interests, secondary)
     d = None
     for _ in range(2):
         d = _extract_json(backend.generate(sys_p, user_p, raw=True) or "")
@@ -176,6 +202,11 @@ def judge_turn(context: str, player_text: str, lang: str = "ru",
             break
     if not d:
         return None
+    return _validate(d, lang, interests, secondary)
+
+
+def _validate(d: dict, lang: str, interests: Optional[list],
+              secondary: Optional[list]) -> Optional[dict]:
     try:
         score = max(0, min(100, int(round(float(d.get("arg_score"))))))
     except (TypeError, ValueError):

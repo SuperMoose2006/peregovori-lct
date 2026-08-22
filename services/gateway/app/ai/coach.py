@@ -88,9 +88,17 @@ def _extract_json(text: str) -> Optional[dict]:
         return None
 
 
-def suggest_line(facts: dict, lang: str = "ru") -> Optional[dict]:
-    """{'why': str, 'line': str} the player can send, or None to fall back."""
-    raw = get_chat_backend().generate(_sys(lang), _user(facts, lang), raw=True)
+def build_prompts(facts: dict, lang: str = "ru") -> tuple[str, str]:
+    """The coach's (system, user) pair — shared with the async realtime path."""
+    return _sys(lang), _user(facts, lang)
+
+
+def parse(raw: str, lang: str = "ru") -> Optional[dict]:
+    """Validate a raw coach reply into {'why', 'line'}, or None to fall back.
+
+    The length floor matters: a two-word "be firmer" is not a line the player
+    can send, and the engine's own hint is more useful than that.
+    """
     d = _extract_json(raw or "")
     if not d:
         return None
@@ -101,3 +109,8 @@ def suggest_line(facts: dict, lang: str = "ru") -> Optional[dict]:
     if len(line) > MAX_LINE:
         line = re.sub(r"\s+\S*$", "", line[:MAX_LINE]) + "…"
     return {"why": why[:160], "line": line}
+
+
+def suggest_line(facts: dict, lang: str = "ru") -> Optional[dict]:
+    """{'why': str, 'line': str} the player can send, or None to fall back."""
+    return parse(get_chat_backend().generate(*build_prompts(facts, lang), raw=True) or "", lang)

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 
@@ -49,7 +50,20 @@ from app.protocol import (
     StartMsg, TurnMsg, ScenarioView, StateView, WhatIfMsg,
 )
 
-app = FastAPI(title="Диалог — Negotiation Simulator API")
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    """Пул соединений к OpenRouter живёт столько же, сколько процесс.
+
+    Держать его открытым — не микрооптимизация: холодное TLS-рукопожатие к
+    OpenRouter стоит сотни миллисекунд, и они видны напрямую в критическом пути
+    судьи. Закрываем на shutdown, иначе `uvicorn --reload` течёт сокетами.
+    """
+    yield
+    from app.providers.openrouter import chat as orchat
+    await orchat.aclose()
+
+
+app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_lifespan)
 
 # Dev CORS: the Vite dev server runs on another origin.
 app.add_middleware(
@@ -217,6 +231,17 @@ async def _opponent_line(sess, result, templated: str, send_chunk=None) -> str:
     except Exception:
         pass
     return templated
+
+
+# ---------------------------------------------------------------------------
+# Realtime-путь (новая архитектура). Протокол — MiniCPM-o + события переговоров.
+# Старый `/ws` ниже живёт до паритета и удаляется в фазе 7 (см. плану rebuild).
+# ---------------------------------------------------------------------------
+
+@app.websocket("/v1/realtime")
+async def realtime(websocket: WebSocket) -> None:
+    from app.realtime.endpoint import realtime_ws
+    await realtime_ws(websocket)
 
 
 @app.websocket("/ws")

@@ -1,5 +1,5 @@
 # python
-backend/.venv/
+services/*/.venv/
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -12,3 +12,8 @@ frontend/dist/
 /tmp/
 .DS_Store
 .superdesign/tmp/
+# upstream clones — provenance lives in docs/upstream-code-map.md, not in git
+.upstream/
+# avatar service model weights
+services/avatar/models/
+services/avatar/avatars/

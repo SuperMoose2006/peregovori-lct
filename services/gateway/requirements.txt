@@ -1,0 +1,28 @@
+# --- ядро сервиса -----------------------------------------------------------
+fastapi
+uvicorn[standard]
+websockets
+pydantic
+httpx[http2]
+pytest
+pytest-asyncio
+
+# --- восприятие -------------------------------------------------------------
+# TEN VAD: готовая нативная либа, CPU, hop 16 мс. См. docs/upstream-code-map.md.
+ten-vad
+numpy
+# Резка потока на фразы для TTS (Open-LLM-VTuber SentenceDivider).
+pysbd
+langdetect
+
+# --- голос ------------------------------------------------------------------
+# Русский голос по умолчанию: бесплатный, стримит чанками.
+edge-tts
+
+# --- унаследованный путь (удаляется в фазе 7 после паритета) ----------------
+langgraph
+langchain-core
+langchain-openai
+
+# Декодер MP3→PCM для edge-tts (PyAV несёт свои ffmpeg-либы; системного ffmpeg нет).
+av
