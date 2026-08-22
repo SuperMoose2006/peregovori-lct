@@ -28,6 +28,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from app import engine, views
 from app.avatar.base import AvatarProvider
+from app.avatar.livetalking import AVATAR_URL, LiveTalkingAvatar
 from app.avatar.presence import PresenceAvatar
 from app.orchestrator.judge import judge_enabled
 from app.orchestrator.negotiation import NegotiationOrchestrator
@@ -207,7 +208,7 @@ def _wire(session: RealtimeSession) -> tuple[
 
     avatar: Optional[AvatarProvider] = None
     if session.layers.avatar:
-        avatar = PresenceAvatar(session.engine_session.scenario_id, session.bus.publish)
+        avatar = _make_avatar(session)
 
     tts: Optional[TTSTaskManager] = None
     if session.layers.voice:
@@ -240,6 +241,18 @@ def _wire(session: RealtimeSession) -> tuple[
         vision = sampler if sampler.available() else None
 
     return orchestrator, voice, vision
+
+
+def _make_avatar(session: RealtimeSession) -> AvatarProvider:
+    """Выбор провайдера лица. Одна переменная переключает липсинк на GPU-хосте.
+
+    Порядок намеренный: `livetalking` берётся, только если задан его адрес.
+    Иначе — `presence`, который работает всегда и ничего не обещает сверх того,
+    что умеет. Пустого лица не бывает ни в одном из случаев.
+    """
+    if AVATAR_URL:
+        return LiveTalkingAvatar(session.session_id, session.bus.publish)
+    return PresenceAvatar(session.engine_session.scenario_id, session.bus.publish)
 
 
 def _persona_is_female(scenario) -> bool:
@@ -278,11 +291,11 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         "avatar": {"available": False, "lipsync": False, "transport": "none"},
     }
     if session.layers.avatar:
-        provider = PresenceAvatar(engine_session.scenario_id, session.bus.publish)
-        caps = provider.capabilities()
+        caps = _make_avatar(session).capabilities()
         capabilities["avatar"] = {
             "available": caps.available, "lipsync": caps.lipsync,
             "transport": caps.transport, "states": list(caps.states),
+            "reason": caps.reason or None,
         }
 
     return {

@@ -15,6 +15,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 
+from app.engine.numbers import spell_to_digits
+
 
 def _js_round(x: float) -> int:
     """Replicate JS Math.round (round half toward +infinity)."""
@@ -31,7 +33,10 @@ def norm(s: Optional[str]) -> str:
             out.append(" ")
     s = "".join(out)
     s = re.sub(r"\s+", " ", s).strip()
-    return s
+    # Числительные словами → цифры. Единственная точка, через которую проходит
+    # любой ход, поэтому паритет клавиатуры и голоса обеспечивается здесь:
+    # «триста тысяч» и «300 000» дают один и тот же ход. См. numbers.py.
+    return spell_to_digits(s)
 
 
 def _has(t: str, arr: list[str]) -> bool:
@@ -143,9 +148,19 @@ LEX: dict[str, list[str]] = {
     ],
 }
 
-# A monetary figure in the message ("we can do 85", "цена 92")
+# A monetary figure in the message ("we can do 85", "цена 92").
+#
+# Две ветки, и порядок важен. Первая — число с разделителями групп («300 000»,
+# «1.500»); вторая — сплошной ряд цифр с необязательной дробной частью.
+#
+# Вторая ветка добавлена по найденному дефекту: прежняя регулярка требовала
+# разделитель, поэтому «300000» читалось как **300**, а «64000» — как 640.
+# Игрок называл цену, а движок засчитывал другую — молча. Проявлялось и при
+# печати, и особенно при голосе, где числительные разворачиваются в сплошной
+# ряд цифр.
 MONEY_RE = re.compile(
-    r"(?:^|[^\d])(\d{1,3}(?:[ .,]\d{3})*(?:[.,]\d+)?)(?:\s*(?:%|руб|k|к|тыс|тысяч|млн|usd|\$|€|eur))?",
+    r"(?:^|[^\d])(\d{1,3}(?:[ .,]\d{3})+|\d+(?:[.,]\d+)?)"
+    r"(?:\s*(?:%|руб|k|к|тыс|тысяч|млн|usd|\$|€|eur))?",
     re.IGNORECASE,
 )
 

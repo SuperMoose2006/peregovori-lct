@@ -2,6 +2,8 @@
 // Ported from legacy-node/public/demo.html. Used by the composer's live preview
 // (client-side, works against any backend) and by the MockServer engine.
 
+import { spellToDigits } from "./numbers";
+
 export const LEX: Record<string, string[]> = {
   spinSituation: [
     "как сейчас", "как у вас", "какой у вас", "сколько", "как часто", "как устроен",
@@ -86,18 +88,28 @@ export const LEX: Record<string, string[]> = {
 };
 
 export const norm = (s: string): string =>
-  (s || "")
-    .toLowerCase()
-    .replace(/ё/g, "е")
-    .replace(/[^\p{L}\p{N}\s%.,?!\-]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  // Числительные словами → цифры. Единственная точка, через которую проходит
+  // любой ход, поэтому паритет клавиатуры и голоса обеспечивается здесь:
+  // «триста тысяч» и «300 000» дают один и тот же ход. Зеркало —
+  // services/gateway/app/engine/numbers.py, менять синхронно.
+  spellToDigits(
+    (s || "")
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/[^\p{L}\p{N}\s%.,?!\-]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
 
 export const has = (t: string, arr: string[]): boolean => arr.some((w) => t.includes(w));
 export const cnt = (t: string, arr: string[]): number =>
   arr.reduce((n, w) => n + (t.includes(w) ? 1 : 0), 0);
 
-const MONEY = /(?:^|[^\d])(\d{1,3}(?:[ .,]\d{3})*(?:[.,]\d+)?)/;
+// Две ветки, порядок важен: сперва число с разделителями групп («300 000»),
+// затем сплошной ряд цифр. Вторая добавлена по найденному дефекту — прежняя
+// регулярка требовала разделитель, и «300000» читалось как 300.
+// Зеркало: services/gateway/app/engine/techniques.py::MONEY_RE.
+const MONEY = /(?:^|[^\d])(\d{1,3}(?:[ .,]\d{3})+|\d+(?:[.,]\d+)?)/;
 export function extractNum(t: string): number | null {
   const m = t.match(MONEY);
   if (!m) return null;
