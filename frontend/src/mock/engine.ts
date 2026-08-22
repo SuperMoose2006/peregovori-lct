@@ -723,6 +723,9 @@ export function scoreSession(s: Session): Debrief {
     overall, grade, economic, relationship, technique,
     deal_text: dealText, status: s.status,
     interests_found: s.interests.length, interests_total: sc.interests[lang].length,
+    // The debrief's reveal — mirrors the backend's `interests` (engine.py
+    // score_session). Deterministic, so the offline demo lifts the same curtain.
+    interests: sc.interests[lang].map((text, i) => ({ text, found: s.interests.includes(i) })),
     spin_stages: spinC, objective_criteria: m.crit, empathy: m.empathy,
     threats: m.threats, tradeoffs: s.tradeoffs.length, avg_arg: Math.round(avgArg), tips,
   };

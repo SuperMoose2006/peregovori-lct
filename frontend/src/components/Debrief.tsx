@@ -281,6 +281,26 @@ export function Debrief({
             </div>
           ) : null}
 
+          {d.interests && d.interests.length > 0 ? (
+            <div className="reveal">
+              <h3>🔎 {t.reveal.title}</h3>
+              <ul>
+                {d.interests.map((it, i) => (
+                  <li key={i} className={it.found ? "rv-found" : "rv-missed"}>
+                    <span className="rv-mark" aria-hidden="true">{it.found ? "✓" : "?"}</span>
+                    <span className="rv-text">{it.text}</span>
+                    <span className="rv-badge">{it.found ? t.reveal.found : t.reveal.missed}</span>
+                  </li>
+                ))}
+              </ul>
+              {d.interests.every((i) => i.found) ? (
+                <p className="rv-note good">{t.reveal.allFound}</p>
+              ) : d.interests.every((i) => !i.found) ? (
+                <p className="rv-note bad">{t.reveal.noneFound}</p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="stats">
             {cells.map((c, i) => (
               <div className="st" key={i} role="img" aria-label={`${c.l}: ${c.n}`}>

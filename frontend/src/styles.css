@@ -1411,6 +1411,43 @@ textarea:focus-visible,
 .ms-why { margin-top: 14px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
 .ms-why b { color: var(--brass); font-weight: 700; }
 
+/* ---------- Hidden-interest reveal (deterministic, offline too) ----------
+   The one card on the debrief that lifts a curtain instead of grading. Missed
+   interests are the lesson, so they are the LOUD state (brass, full contrast);
+   found ones recede into a calm green tick. Inverting that would reward the
+   player for what they already know and hide what they need to learn. */
+.reveal {
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--brass); border-radius: var(--r);
+  padding: 18px 20px; margin-bottom: 20px;
+}
+.reveal h3 { margin: 0 0 14px; font-size: 16px; color: var(--brass); }
+.reveal ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.reveal li {
+  display: grid; grid-template-columns: 22px 1fr auto; align-items: baseline;
+  gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--ground);
+}
+.rv-mark { font-weight: 700; font-size: 14px; text-align: center; }
+.rv-found .rv-mark { color: var(--trust); }
+.rv-missed .rv-mark { color: var(--brass); }
+.rv-text { font-size: 14px; line-height: 1.45; min-width: 0; }
+.rv-found .rv-text { color: var(--ink-dim); }
+.rv-missed .rv-text { color: var(--ink); font-weight: 500; }
+.rv-badge {
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-weight: 700; white-space: nowrap;
+}
+.rv-found .rv-badge { color: var(--trust); }
+.rv-missed .rv-badge { color: var(--brass); }
+.rv-note { margin: 13px 0 0; font-size: 13px; line-height: 1.5; }
+.rv-note.good { color: var(--trust); }
+.rv-note.bad { color: var(--tension); }
+
+@media (max-width: 640px) {
+  .reveal li { grid-template-columns: 20px 1fr; }
+  .rv-badge { grid-column: 2; }
+}
+
 /* ---------- Mentor's closing word (live AI only) ----------
    Deliberately warmer than the surrounding scorecards: this is the one block on
    the debrief that speaks TO the player rather than measuring them, so it leads

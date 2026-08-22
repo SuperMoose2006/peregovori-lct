@@ -200,6 +200,15 @@ export interface Strings {
   // side-by-side of the player's line vs a principled master reformulation. The
   // SELECTION (weak turn + missing technique) is an engine fact; the reformulation
   // is a quality Harvard/SPIN template keyed to what the debrief shows was missing.
+  // Debrief reveal: what the counterpart was actually protecting. Deterministic,
+  // shown offline too — unlike `mentor` below.
+  reveal: {
+    title: string;
+    found: string;   // badge on an interest the player drew out
+    missed: string;  // badge on one they never asked about
+    allFound: string;  // line under a clean sweep
+    noneFound: string; // line when they surfaced nothing
+  };
   // The AI mentor's closing word on the debrief. Rendered only when the backend
   // sent one (live AI); offline the engine's tips carry the debrief alone.
   mentor: {
@@ -536,6 +545,13 @@ export const I18N: Record<Lang, Strings> = {
         "Смотрите: их цена сдвинулась к вашей цели. Каждый удачный ход двигает её — следите за этой шкалой.",
     },
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
+    reveal: {
+      title: "Что на самом деле было важно для второй стороны",
+      found: "вы это вскрыли",
+      missed: "вы не спросили",
+      allFound: "Вы вскрыли всё, что она скрывала. Именно поэтому сделка сошлась.",
+      noneFound: "Вы вели переговоры вслепую — ни один из интересов так и не прозвучал.",
+    },
     mentor: {
       title: "Слово наставника",
       strength: "Что сработало",
@@ -889,6 +905,13 @@ export const I18N: Record<Lang, Strings> = {
         "Look: their price slid toward your target. Every good move nudges it — keep an eye on this scale.",
     },
     turningPoints: { title: "Turning points", turn: "Turn" },
+    reveal: {
+      title: "What the other side actually cared about",
+      found: "you drew this out",
+      missed: "you never asked",
+      allFound: "You surfaced everything they were protecting. That is why the deal closed.",
+      noneFound: "You negotiated blind — not one of their interests ever came up.",
+    },
     mentor: {
       title: "A word from your mentor",
       strength: "What worked",

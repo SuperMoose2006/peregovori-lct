@@ -282,3 +282,18 @@ test("the offline debrief claims no mentor verdict", async () => {
   assert.equal(d.ai_growth, undefined);
   assert.ok(Array.isArray(d.tips) && (d.tips as unknown[]).length > 0);
 });
+
+test("the offline debrief reveals every hidden interest, found or not", async () => {
+  // Parity with the backend's engine.score_session: counting "1 of 3" teaches
+  // nothing — the two the player never asked about are the lesson.
+  const { newSession, scoreSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const sc = SCENARIO_MAP["supplier"];
+  const s = newSession(sc, "ru");
+  s.interests.push(1);
+  const d = scoreSession(s) as unknown as Record<string, unknown>;
+  const revealed = d.interests as { text: string; found: boolean }[];
+  assert.deepEqual(revealed.map((r) => r.text), sc.interests.ru);
+  assert.deepEqual(revealed.map((r) => r.found), [false, true, false]);
+  assert.equal(d.interests_found, 1);
+});

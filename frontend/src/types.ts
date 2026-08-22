@@ -92,6 +92,9 @@ export interface Debrief {
   status: Status;
   interests_found: number;
   interests_total: number;
+  // Every hidden interest with whether the player drew it out. Deterministic —
+  // present offline too, unlike the ai_* fields below.
+  interests?: { text: string; found: boolean }[];
   spin_stages: number;
   objective_criteria: number;
   empathy: number;

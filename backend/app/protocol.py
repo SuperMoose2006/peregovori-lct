@@ -106,6 +106,11 @@ class CampaignView(BaseModel):
     stages: list[CampaignStageView]
 
 
+class RevealedInterest(BaseModel):
+    text: str
+    found: bool
+
+
 class Debrief(BaseModel):
     overall: int
     grade: str  # A|B|C|D|F
@@ -116,6 +121,9 @@ class Debrief(BaseModel):
     status: Status
     interests_found: int
     interests_total: int
+    # Every hidden interest with whether the player drew it out — the debrief's
+    # reveal. Deterministic; present offline too.
+    interests: list[RevealedInterest] = Field(default_factory=list)
     spin_stages: int
     objective_criteria: int
     empathy: int

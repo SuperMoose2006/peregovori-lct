@@ -81,3 +81,15 @@ def test_debrief_schema_is_valid_without_ai_fields():
     """Offline debriefs carry none of the three — the client must still work."""
     d = Debrief(**engine.to_debrief(engine.create_session("supplier", "ru")))
     assert d.ai_verdict is None and d.ai_strength is None and d.ai_growth is None
+
+
+def test_debrief_reveals_every_hidden_interest_with_its_status():
+    """The count "1 of 3" teaches nothing; the two the player never asked about
+    are the lesson. Deterministic — this must hold with NEGO_AI=off."""
+    sess = engine.create_session("supplier", "ru")
+    sess.state.interests_found.append(1)
+    d = Debrief(**engine.to_debrief(sess))
+    hidden = engine.by_id("supplier").hidden_interests["ru"]
+    assert [i.text for i in d.interests] == list(hidden)
+    assert [i.found for i in d.interests] == [False, True, False]
+    assert d.interests_found == 1 and d.interests_total == len(hidden)

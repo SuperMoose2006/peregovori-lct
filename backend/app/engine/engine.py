@@ -1171,6 +1171,13 @@ def score_session(sess: Session) -> dict:
         "status": s.status,
         "interests_found": len(s.interests_found),
         "interests_total": len(sc.hidden_interests[lang]),
+        # The curtain-lift: counting "1 of 3" teaches nothing, seeing the two the
+        # player never asked about does. Safe to reveal only because the game is
+        # over — during play these stay hidden (see views.coach_facts).
+        "interests": [
+            {"text": txt, "found": i in s.interests_found}
+            for i, txt in enumerate(sc.hidden_interests[lang])
+        ],
         "spin_stages": spin_count,
         "objective_criteria": m.objective_criteria,
         "empathy": m.empathy,
@@ -1224,6 +1231,7 @@ def to_debrief(sess: Session) -> dict:
         "status": d["status"],
         "interests_found": d["interests_found"],
         "interests_total": d["interests_total"],
+        "interests": d["interests"],
         "spin_stages": d["spin_stages"],
         "objective_criteria": d["objective_criteria"],
         "empathy": d["empathy"],
