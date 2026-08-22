@@ -6,7 +6,7 @@ import type { TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
 import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
-import { teachingPlaceholder } from "../lib/format";
+import { teachingPlaceholder, formatDeal } from "../lib/format";
 import { haptic, play } from "../lib/sound";
 import { Avatar, avatarMood } from "./Avatar";
 import { ScreenHeading } from "./ScreenHeading";
@@ -66,6 +66,42 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   // Exam is an assessment: all live coaching feedback (meters, interests tracker,
   // technique chips/badges, meter deltas, hint) is withheld until the debrief.
   const exam = mode === "exam";
+
+  // Turn 0 leaves a tall empty log. Exam withholds all coaching, so it keeps the
+  // bare table; everywhere else the void carries the scene and three real first
+  // lines — the point where a first-timer decides whether they know what to do.
+  const showOpening = !exam && !!st && st.turn === 0;
+  const unit = scenario.headline_unit;
+  const openingCard = showOpening ? (
+    <div className="opening" role="note">
+      <h3>{t.opening.title}</h3>
+      <p className="op-scene">
+        {t.opening.scene
+          .replace("{role}", scenario.role)
+          .replace("{name}", scenario.counterpart_name)
+          .replace("{offer}", formatDeal(st!.offer_opp, unit, lang))
+          .replace("{target}", formatDeal(scenario.target, unit, lang))
+          .replace("{red}", formatDeal(scenario.reservation, unit, lang))}
+      </p>
+      <p className="op-hint">{t.opening.hint}</p>
+      <div className="op-lines">
+        {t.opening.lines.map((l, i) => (
+          <button
+            key={i}
+            type="button"
+            className="op-line"
+            // Fills the composer, never sends: the move stays the player's and
+            // gets judged like anything they type themselves.
+            onClick={() => setPrefill({ text: l.text, nonce: prefillNonce.current++ })}
+          >
+            <span className="op-tag">{l.tag}</span>
+            <span className="op-text">{l.text}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   // Teaching placeholder: nudge a concrete technique for the opening turns, then
   // settle to the neutral prompt. Withheld in exam (no live coaching there).
   const placeholder = exam ? t.placeholder : teachingPlaceholder(st?.turn ?? 0, t.placeholder, t.placeholderNudges);
@@ -368,6 +404,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               tagLabels={t.tagLabels}
               typingLabel={phase === "judging" ? t.judgingLabel : t.typingLabel}
               typingJudging={phase === "judging"}
+              opening={showOpening ? openingCard : undefined}
               hintPendingLabel={t.hintPending}
             />
             {showFirstCoach ? (

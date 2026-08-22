@@ -391,6 +391,9 @@ h1, h2, h3, .serif { font-family: var(--serif); }
    moment the log overflows — unlike `justify-content: flex-end`, which clips
    the scrolled-past top in several browsers. */
 .log > :first-child { margin-top: auto; }
+/* ...but when the opening card is filling that space there is nothing to push
+   down, and bottom-aligning would shove the card and greeting off the top. */
+.log.has-opening > :first-child { margin-top: 0; }
 .msg { max-width: 84%; display: flex; flex-direction: column; gap: 5px; animation: pop 0.3s ease; }
 @keyframes pop { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
 .msg.opp { align-self: flex-start; }
@@ -1501,6 +1504,40 @@ textarea:focus-visible,
 }
 .ms-why { margin-top: 14px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
 .ms-why b { color: var(--brass); font-weight: 700; }
+
+/* ---------- Opening beat: the table-setting card ----------
+   Fills the empty log at turn 0. Deliberately NOT a chat bubble: it is the game
+   addressing the player, not a character speaking, so it takes the panel's own
+   surface and a brass edge rather than the opponent's bubble styling. */
+.opening {
+  align-self: stretch; background: var(--panel-2);
+  border: 1px solid var(--line); border-left: 3px solid var(--brass);
+  border-radius: var(--r); padding: 16px 18px; margin-bottom: 4px;
+}
+.opening h3 {
+  margin: 0 0 9px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--brass);
+}
+.op-scene { margin: 0; font-family: var(--serif); font-size: 16px; line-height: 1.5; color: var(--ink); }
+.op-hint { margin: 9px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+.op-lines { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
+.op-line {
+  display: flex; align-items: baseline; gap: 10px; width: 100%; text-align: left;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: 0.14s;
+  background: var(--panel); border: 1px solid var(--line-2); color: var(--ink-dim);
+}
+.op-line:hover { border-color: var(--brass); color: var(--ink); }
+.op-tag {
+  flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--brass);
+  white-space: nowrap;
+}
+.op-text { font-size: 13.5px; line-height: 1.45; min-width: 0; }
+
+@media (max-width: 640px) {
+  .opening { padding: 13px 14px; }
+  .op-scene { font-size: 15px; }
+  .op-line { flex-direction: column; gap: 4px; }
+}
 
 /* ---------- Closing beat: the outcome strip ----------
    Sits where the composer was the moment the table closes. It is the only place

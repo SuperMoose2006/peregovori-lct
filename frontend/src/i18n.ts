@@ -176,6 +176,18 @@ export interface Strings {
   // first-turn coach bubble (practice/campaign/custom; withheld in exam).
   // {name} = counterpart name, substituted at render.
   firstTurnCoach: string;
+  // "Table setting" card filling the empty chat at turn 0. The opening frame a
+  // juror stares at longest, and the moment a first-timer decides whether they
+  // know what to do — so it states the scene and offers three real first lines.
+  opening: {
+    title: string;
+    // "{role} Напротив — {name}. Её цена: {offer}. …" — `role` is ALREADY a full
+    // sentence in the player's voice ("Вы — менеджер по закупкам: …"), so the
+    // template must not prefix it with another "Вы —".
+    scene: string;
+    hint: string;   // one line on what a strong opening does
+    lines: { tag: string; text: string }[];
+  };
   dismiss: string; // aria-label for the bubble's × close
   // Turn-1 suggested-reply chip: a one-tap interest-probing opener that pre-fills
   // (never auto-sends) the composer, de-blanking the first move. label = the chip
@@ -554,6 +566,16 @@ export const I18N: Record<Lang, Strings> = {
         D: "Есть над чем поработать",
         F: "Ещё учиться",
       },
+    },
+    opening: {
+      title: "Стол накрыт",
+      scene: "{role} Напротив — {name}. Её цена: {offer}. Ваша цель: {target}, красная линия: {red}.",
+      hint: "У неё три скрытых интереса. Пока вы их не вскрыли, спор идёт только о цене — а там выигрывает тот, кто сильнее давит.",
+      lines: [
+        { tag: "🎯 Интерес", text: "Что для вас важнее всего в этой сделке — и почему именно это?" },
+        { tag: "📊 Критерий", text: "Прежде чем спорить о цифре: на какие данные мы оба могли бы опереться?" },
+        { tag: "🔄 Размен", text: "Что вам дешевле уступить — сроки или объём? Возможно, нам есть чем обменяться." },
+      ],
     },
     firstTurnCoach: "💡 Начните с интересов: узнайте, что важно второй стороне. Не давите ценой — сначала спрашивайте.",
     dismiss: "Закрыть подсказку",
@@ -938,6 +960,16 @@ export const I18N: Record<Lang, Strings> = {
         D: "Room to grow",
         F: "Still learning",
       },
+    },
+    opening: {
+      title: "The table is set",
+      scene: "{role} Across from you: {name}. Their price: {offer}. Your target: {target}, red line: {red}.",
+      hint: "They have three hidden interests. Until you surface them the argument is only about price — and there the harder pusher wins.",
+      lines: [
+        { tag: "🎯 Interest", text: "What matters most to you in this deal — and why exactly that?" },
+        { tag: "📊 Criterion", text: "Before we argue about the number: what data could we both anchor on?" },
+        { tag: "🔄 Trade-off", text: "What's cheaper for you to give — timing or volume? We may have something to trade." },
+      ],
     },
     firstTurnCoach: "💡 Start with interests: find out what matters to the other side. Don't push on price — ask first.",
     dismiss: "Dismiss tip",

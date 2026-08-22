@@ -35,6 +35,10 @@ interface Props {
   // an opponent-styled "typing…" bubble so the wait doesn't read as a dead chat.
   typing?: boolean;
   typingLabel: string;
+  // Rendered at the top of an otherwise-empty log (turn 0). The log bottom-aligns
+  // its content, which is right for a filling chat and leaves a tall void in an
+  // empty one — this is what goes there.
+  opening?: React.ReactNode;
   // True while the label refers to the JUDGE, not the opponent. The bubble then
   // drops its opponent styling — it is not the counterpart speaking.
   typingJudging?: boolean;
@@ -46,20 +50,24 @@ interface Props {
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, hintPendingLabel, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   useEffect(() => {
     const el = ref.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [log, typing]);
+    if (!el) return;
+    // At turn 0 there is no conversation to catch up to — the opening card IS
+    // the content, and on a phone (where the log is capped at 48vh) chasing the
+    // bottom cut its title and scene off the top.
+    el.scrollTop = opening ? 0 : el.scrollHeight;
+  }, [log, typing, opening]);
 
   return (
     // The log is a polite live region: new opponent replies and coach lines are
     // announced to screen readers as they arrive, without stealing focus.
     <div
-      className="log"
+      className={`log${opening ? " has-opening" : ""}`}
       ref={ref}
       role="log"
       aria-label={logLabel}
@@ -67,6 +75,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
       aria-relevant="additions text"
       aria-atomic="false"
     >
+      {opening}
       {log.map((e) => {
         if (e.kind === "hint") {
           // A hint with a `line` is a worked example — the strongest scaffold in
