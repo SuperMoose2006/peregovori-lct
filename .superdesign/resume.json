@@ -76,15 +76,34 @@
           "title": "Emotion-reading moment",
           "visualDirection": "probe card inline in the log, avatar enlarged, composer blocked, meters kept visible",
           "parentDraftId": "c42f80c0-5a95-4662-ac86-38b1b15703e4",
-          "currentVersion": 1
+          "currentVersion": 2
         },
         "fb405c20-23d2-4941-ba8e-de82703ecad1": {
           "title": "Voice mode",
           "visualDirection": "composer becomes a mic; live transcript editable before sending; no visible timer",
           "parentDraftId": "c42f80c0-5a95-4662-ac86-38b1b15703e4",
           "currentVersion": 1
+        },
+        "ac49713d-447d-4cb0-82bb-d98cc5a1e083": {
+          "title": "Emotion-reading verdict (wrong answer)",
+          "visualDirection": "answered state: picked red + correct green, evidence chips, teaching explanation, composer restored",
+          "parentDraftId": "37b1f9da-d9eb-430a-9c27-2a64fc0562d4",
+          "currentVersion": 2
+        },
+        "c12cf8d5-03e1-4434-bb71-de91641c0d0a": {
+          "title": "Debrief with observation layers",
+          "visualDirection": "grade zone untouched; three layer cards share the 'наблюдение' badge; interests card deliberately has none",
+          "currentVersion": 2
+        },
+        "4599a213-2d12-495f-97c5-eaa184b44845": {
+          "title": "Mobile 390 — setup, probe, voice",
+          "visualDirection": "sidebar becomes a 5-tab bottom bar; layers stack; meters move into the flow above the question",
+          "currentVersion": 2
         }
-      }
+      },
+      "referenceIds": [
+        "91e29cfb-3238-418d-8f6c-95d40114d384"
+      ]
     }
   }
 }
