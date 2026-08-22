@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   COURSE_BANK, COURSE_BLOCKS, check, checkFreeform, drawExam, exercisesOf,
-  metersOptions, reactionOptions, simulate,
+  metersOptions, reactionOptions, shuffledRight, simulate, startingOrder,
 } from "../src/lib/course";
 import type { Lang } from "../src/types";
 
@@ -103,5 +103,27 @@ test("предикат капстоуна смотрит только в сос�
     "info", "leverage", "turn", "terms_conceded"]);
   for (const ex of COURSE_BANK.filter((x) => x.type === "drill")) {
     for (const c of ex.pass!) assert.ok(allowed.has(c.field), `${ex.id}: ${c.field}`);
+  }
+});
+
+test("стартовая раскладка «порядка» и «соответствия» не является ответом", () => {
+  // Иначе оба типа решались бы нажатием «Проверить» без единого действия:
+  // в банке элементы перечислены в правильном порядке — так их удобнее читать
+  // и проверять тестами, но показывать так нельзя.
+  for (const ex of COURSE_BANK.filter((x) => x.type === "order")) {
+    const start = startingOrder(ex);
+    const answer = ex.answer as string[];
+    assert.equal(start.length, answer.length, ex.id);
+    assert.deepEqual([...start].sort(), [...answer].sort(), `${ex.id}: те же элементы`);
+    assert.notDeepEqual(start, answer, `${ex.id}: старт не должен быть ответом`);
+    assert.deepEqual(startingOrder(ex), start, `${ex.id}: раскладка воспроизводима`);
+  }
+  for (const ex of COURSE_BANK.filter((x) => x.type === "match")) {
+    const right = shuffledRight(ex);
+    const answer = ex.answer as Record<string, string>;
+    assert.equal(right.length, (ex.right ?? []).length, ex.id);
+    const parallel = (ex.left ?? []).every((l, i) => answer[l.id] === right[i]?.id);
+    assert.equal(parallel, false, `${ex.id}: колонки не должны идти параллельно`);
+    assert.deepEqual(shuffledRight(ex).map((r) => r.id), right.map((r) => r.id), `${ex.id}: воспроизводимо`);
   }
 });

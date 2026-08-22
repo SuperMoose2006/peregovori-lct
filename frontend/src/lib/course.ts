@@ -10,7 +10,7 @@
 // Зеркало: services/gateway/app/course/check.py. Менять синхронно.
 import { COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK } from "../data/course.generated";
 import { SCENARIO_MAP } from "../data/scenarios";
-import type { Exercise, PassCondition } from "./courseTypes";
+import type { Exercise, ItemWithId, PassCondition } from "./courseTypes";
 import { REACTION_SCALE, type Reaction } from "./probe";
 import { analyze, applyMove, newSession } from "../mock/engine";
 import { norm } from "./techniques";
@@ -197,7 +197,7 @@ export function seedOf(s: string): number {
   return h >>> 0;
 }
 
-function shuffled<T>(items: T[], seed: number): T[] {
+export function shuffled<T>(items: T[], seed: number): T[] {
   const out = [...items];
   let s = seed || 1;
   for (let i = out.length - 1; i > 0; i--) {
@@ -237,6 +237,38 @@ export function drawExam(blockId: string, attempt = 0): ExamDraw {
 }
 
 export const passed = (score: number, draw: ExamDraw) => score >= draw.passMark;
+
+// --------------------------------------------------- раскладка «на старте»
+//
+// ДЕФЕКТ, РАДИ КОТОРОГО ЭТО НАПИСАНО. В банке элементы «порядка» перечислены В
+// ПРАВИЛЬНОМ порядке, а правая колонка «соответствия» — в порядке ответа: это
+// удобно читать и проверять, но если показать их как есть, оба типа решаются
+// нажатием «Проверить» без единого действия.
+//
+// Раскладка детерминированная (от id упражнения): повтор урока даёт ту же
+// расстановку, поэтому разбор и скриншоты воспроизводимы.
+
+/** Начальный порядок карточек — заведомо НЕ ответ. */
+export function startingOrder(ex: Exercise): string[] {
+  const ids = (ex.items ?? []).map((i) => i.id);
+  const answer = (ex.answer as string[]) ?? [];
+  const same = (a: string[]) => a.length === answer.length && a.every((x, i) => x === answer[i]);
+  let out = shuffled(ids, seedOf(ex.id));
+  // Перемешивание могло случайно вернуть ответ — тогда сдвигаем на один.
+  if (same(out)) out = [...out.slice(1), out[0]];
+  return out;
+}
+
+/** Порядок правой колонки «соответствия» — заведомо не параллельный левой. */
+export function shuffledRight(ex: Exercise): ItemWithId[] {
+  const right = ex.right ?? [];
+  const answer = (ex.answer as Record<string, string>) ?? {};
+  const parallel = (list: ItemWithId[]) =>
+    (ex.left ?? []).every((l, i) => list[i] && answer[l.id] === list[i].id);
+  let out = shuffled(right, seedOf(`${ex.id}#right`));
+  if (parallel(out)) out = [...out.slice(1), out[0]];
+  return out;
+}
 
 // ------------------------------------------------------------ «что дальше»
 

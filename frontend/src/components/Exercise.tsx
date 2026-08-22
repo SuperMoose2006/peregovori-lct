@@ -11,7 +11,9 @@ import { useMemo, useState } from "react";
 import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
-import { check, metersOptions, reactionOptions, type Verdict } from "../lib/course";
+import {
+  check, metersOptions, reactionOptions, shuffledRight, startingOrder, type Verdict,
+} from "../lib/course";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
 import { courseCoach } from "../api/courseCoach";
@@ -34,7 +36,9 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
   const [picked, setPicked] = useState<number | null>(null);
   const [text, setText] = useState("");
   const [num, setNum] = useState("");
-  const [order, setOrder] = useState<string[]>(() => (ex.items ?? []).map((i) => i.id));
+  // Стартовая раскладка заведомо не совпадает с ответом — иначе «Проверить»
+  // без единого действия засчитывало бы упражнение (см. lib/course.ts).
+  const [order, setOrder] = useState<string[]>(() => startingOrder(ex));
   const [pairs, setPairs] = useState<Record<string, string>>({});
   const [activeLeft, setActiveLeft] = useState<string | null>(null);
   const [pick, setPick] = useState<string | null>(null);
@@ -202,7 +206,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
             ))}
           </ul>
           <ul>
-            {(ex.right ?? []).map((r) => (
+            {shuffledRight(ex).map((r) => (
               <li key={r.id}>
                 <button
                   className="ex-opt"
