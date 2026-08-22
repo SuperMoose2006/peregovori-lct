@@ -11,3 +11,4 @@ frontend/dist/
 *.log
 /tmp/
 .DS_Store
+.superdesign/tmp/

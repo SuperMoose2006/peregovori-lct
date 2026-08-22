@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "/home": {
+      "targetKind": "existing-ui",
+      "projectId": "93a93892-1f68-4369-b240-ab79ad9158ac",
+      "baselineDraftId": "6bd153e9-bc6b-4739-a26f-cc97376db66b",
+      "activeDraftId": "5055c1ab-54d8-472e-b4a1-0471f49ea13c",
+      "designSystemPath": ".superdesign/design-system.md",
+      "referenceIds": [
+        "734aa00e-6e82-4f1b-a79c-2f1a5518159b"
+      ],
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        "frontend/src/App.tsx",
+        "frontend/src/components/ScenarioPicker.tsx",
+        "frontend/src/components/WhyTeaches.tsx",
+        "frontend/src/components/Gamification.tsx",
+        "frontend/src/styles.css:1:275"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "e255938d07be55c9277606e92cd3996ac6988601615809cc0e1ef13110fec679",
+        "frontend/src/App.tsx": "434c9fae4a7a32536f871a3625cbcf8f384568642b1dac50d57e1851d170213c",
+        "frontend/src/components/ScenarioPicker.tsx": "3e427c5716214dbe692ca8a4b831e4374a5f94cdc9acf6d0742579c9b99ceccb",
+        "frontend/src/components/WhyTeaches.tsx": "c9c4b25c27cd059bf48b4a356ea95e62e1b645a272b32e69755c32194ae216ca",
+        "frontend/src/components/Gamification.tsx": "5a8a90fc8be83af7c3303b61f0a4d4ac797420934812e08dea0d42c3812108d1",
+        "frontend/src/styles.css": "f61660257d44a03ad321abed3416e7566bdb5a2bdc8ea2e8e8aac44c29350dd6"
+      },
+      "drafts": {
+        "6bd153e9-bc6b-4739-a26f-cc97376db66b": {
+          "title": "Current — home + shell (dojo)",
+          "visualDirection": "faithful reproduction of the shipped dojo skin",
+          "currentVersion": 1
+        },
+        "5055c1ab-54d8-472e-b4a1-0471f49ea13c": {
+          "title": "Duolingo-style App Shell Redesign",
+          "visualDirection": "full Duolingo: white/green, sidebar + stats strip + right rail",
+          "parentDraftId": "6bd153e9-bc6b-4739-a26f-cc97376db66b",
+          "currentVersion": 1
+        },
+        "23ea35a2-f8e3-480b-b858-38f8415a81a7": {
+          "title": "Negotiation Dojo - Duolingo Structure",
+          "visualDirection": "Duolingo STRUCTURE with the dojo palette/serif kept",
+          "parentDraftId": "6bd153e9-bc6b-4739-a26f-cc97376db66b",
+          "currentVersion": 1
+        }
+      }
+    }
+  }
+}
