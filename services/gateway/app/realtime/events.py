@@ -101,6 +101,10 @@ class SessionInit(BaseModel):
     situation: Optional[str] = None        # для режима «своя сделка»
     reputation: Optional[float] = None     # репутация из прошлых актов кампании
     layers: dict[str, bool] = Field(default_factory=dict)
+    #: Вернуться в брошенную партию после обрыва связи. Состояние игры держит
+    #: движок, а не сокет, поэтому переподключение — это продолжение, а не
+    #: новая партия. Пусто → начать заново.
+    resume: Optional[str] = None
 
 
 class InputAppend(BaseModel):

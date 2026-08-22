@@ -36,6 +36,8 @@ export interface ProtocolEntry {
 }
 
 export interface SessionInitPayload {
+  /** Вернуться в брошенную партию. Ставится автоматически при переподключении. */
+  resume?: string;
   scenarioId?: string;
   lang?: "ru" | "en";
   gameMode?: "practice" | "campaign" | "custom" | "exam";
@@ -92,7 +94,9 @@ export class RealtimeSession {
 
   /** Открыть сокет и довести партию до `session.created`. */
   async start(payload: SessionInitPayload): Promise<ServerEvent> {
-    this.initPayload = payload;
+    // `resume` в сохранённый payload не кладём: он одноразовый, а следующая
+    // попытка подставит свежий идентификатор сессии.
+    this.initPayload = { ...payload, resume: undefined };
     this.closing = false;
     this.onStatus?.("connecting");
 
@@ -236,7 +240,11 @@ export class RealtimeSession {
     const delay = Math.min(4000, 400 * 2 ** (this.attempt - 1));
     setTimeout(() => {
       if (this.closing || !this.initPayload) return;
-      void this.start(this.initPayload).catch(() => this.handleClose());
+      // Возвращаемся в ТУ ЖЕ партию, а не начинаем новую. Без `resume` человек
+      // после обрыва молча терял всё, что наговорил, — и это было бы хуже,
+      // чем не переподключаться вовсе.
+      void this.start({ ...this.initPayload, resume: this.sessionId || undefined })
+        .catch(() => this.handleClose());
     }, delay);
   }
 

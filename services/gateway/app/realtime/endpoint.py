@@ -133,6 +133,8 @@ async def realtime_ws(websocket: WebSocket) -> None:
             # ---- session.close ---------------------------------------------
             if kind == "session.close":
                 await orchestrator.interrupt(reason="session_close")
+                # Человек сам сказал, что закончил — ждать возвращения незачем.
+                store.drop(session.session_id)
                 await websocket.send_json(session_closed(session.session_id,
                                                          message.get("reason", "user_stop")))
                 break
@@ -153,7 +155,9 @@ async def realtime_ws(websocket: WebSocket) -> None:
                 await vision.aclose()
         if session is not None:
             session.bus.close()
-            store.drop(session.session_id)
+            # Отпускаем, а не удаляем: сокет мог оборваться сам. Явное
+            # `session.close` уже удалило сессию выше.
+            store.release(session.session_id)
         if writer is not None:
             writer.cancel()
             with contextlib.suppress(asyncio.CancelledError, Exception):
@@ -165,7 +169,22 @@ async def realtime_ws(websocket: WebSocket) -> None:
 # ---------------------------------------------------------------------------
 
 async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession], Optional[str]]:
-    """Создать партию. Возвращает (сессия, причина отказа)."""
+    """Создать партию — или вернуться в брошенную. Возвращает (сессия, отказ)."""
+    # Возвращение после обрыва. Сессия та же, ход тот же, шкалы те же: их
+    # держал движок, а не соединение. Если срок ожидания вышел или сессии
+    # никогда не было — молча начинаем новую: это лучше отказа.
+    if payload.resume:
+        existing = store.claim(payload.resume)
+        if existing is not None:
+            return RealtimeSession(
+                session_id=payload.resume,
+                engine_session=existing,
+                lang=payload.lang,
+                mode=payload.mode,
+                game_mode=payload.gameMode,
+                layers=Layers.from_dict(payload.layers),
+            ), None
+
     scenario_id = payload.scenarioId
 
     if payload.gameMode == "custom":
@@ -302,6 +321,9 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         "type": "session.created",
         "session_id": session.session_id,
         "mode": session.mode,
+        # Клиент по этому флагу решает, показывать ли приветствие ещё раз:
+        # в продолженной партии оно уже было сказано.
+        "resumed": engine_session.turn > 0,
         "scenario": views.scenario_view(scenario, session.lang).model_dump(),
         "state": views.state_view(engine_session).model_dump(),
         "greeting": greeting,
