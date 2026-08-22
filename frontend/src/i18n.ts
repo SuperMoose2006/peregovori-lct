@@ -68,6 +68,8 @@ export interface Strings {
   turnBudget: string; // "{n} ходов" — {n} substituted
   turnOf: string;     // "ход {n} из {max}" — {n},{max} substituted
   hint: string;
+  // button on a coach hint that drops its worked example into the composer
+  useLine: string;
   quit: string;
   interests: string;
   interestToast: string; // celebratory toast when a hidden interest is uncovered
@@ -406,6 +408,7 @@ export const I18N: Record<Lang, Strings> = {
     turnBudget: "{n} ходов",
     turnOf: "ход {n} из {max}",
     hint: "подсказка",
+    useLine: "Вставить",
     quit: "выйти",
     interests: "Раскрытые интересы",
     interestToast: "Вы вскрыли интерес",
@@ -753,6 +756,7 @@ export const I18N: Record<Lang, Strings> = {
     turnBudget: "{n} turns",
     turnOf: "turn {n} of {max}",
     hint: "hint",
+    useLine: "Use it",
     quit: "leave",
     interests: "Interests uncovered",
     interestToast: "Interest uncovered",

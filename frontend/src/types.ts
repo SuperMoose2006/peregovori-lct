@@ -174,5 +174,8 @@ export type ServerMsg =
   //     buzzword-spam / parroting (drives the struck-through "pattern, not meaning" chip).
   | { type: "opponent"; text: string; analysis: Analysis; deltas: Deltas; state: StateView; coach?: string; coach_techniques?: string[]; coach_reject?: boolean }
   | { type: "debrief"; debrief: Debrief }
-  | { type: "hint"; text: string }
+  // hint.text is the coaching direction; hint.line is a ready-to-send worked
+  // example the player can drop into the composer. The line is present only
+  // when a live AI coach produced one — the deterministic hint has none.
+  | { type: "hint"; text: string; line?: string }
   | { type: "error"; message: string };

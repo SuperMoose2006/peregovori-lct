@@ -40,8 +40,9 @@ from fastapi.staticfiles import StaticFiles
 from app import engine
 from app.session import store
 from app.ai.graph import run_opponent_sync
-from app.ai.chat_models import describe_mode
+from app.ai.chat_models import describe_mode, ai_enabled
 from app.ai.judge import judge_turn, judge_enabled
+from app.ai.coach import suggest_line as coach_suggest
 from app import views
 from app.protocol import (
     StartMsg, TurnMsg, ScenarioView, StateView, WhatIfMsg,
@@ -273,7 +274,19 @@ async def ws(websocket: WebSocket) -> None:
                 if sess is None:
                     await websocket.send_json({"type": "error", "message": "no active session"})
                     continue
-                await websocket.send_json({"type": "hint", "text": views.compute_hint(sess, lang)})
+                base_hint = views.compute_hint(sess, lang)
+                payload = {"type": "hint", "text": base_hint}
+                # With a live backend the coach turns that direction into a line
+                # the player can actually send. Blocking call -> thread, same as
+                # the opponent's turn, or a slow hint would stall the socket.
+                if ai_enabled():
+                    facts = views.coach_facts(sess, lang)
+                    facts["fallback_hint"] = base_hint
+                    tip = await asyncio.to_thread(coach_suggest, facts, lang)
+                    if tip:
+                        payload["text"] = tip.get("why") or base_hint
+                        payload["line"] = tip.get("line")
+                await websocket.send_json(payload)
 
             else:
                 await websocket.send_json({"type": "error", "message": f"unknown message: {mtype}"})

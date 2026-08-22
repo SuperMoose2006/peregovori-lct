@@ -10,7 +10,7 @@ import { clampInput } from "../lib/net";
 export type ChatEntry =
   | { id: number; kind: "opp"; text: string; streaming?: boolean }
   | { id: number; kind: "me"; text: string; analysis?: Analysis; deltas?: Deltas }
-  | { id: number; kind: "hint"; text: string }
+  | { id: number; kind: "hint"; text: string; line?: string }
   // coach: the semantic judge's per-turn nudge, threaded under the exchange.
   // Rendered by Chat (hidden in exam mode) — the hook stays modality/mode-agnostic.
   // techniques / reject ride along ONLY when the live judge scored this turn (the
@@ -189,7 +189,7 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
       return { ...prev, debrief: msg.debrief, busy: false };
 
     case "hint":
-      return { ...prev, log: [...prev.log, { id: nextId(), kind: "hint", text: msg.text }] };
+      return { ...prev, log: [...prev.log, { id: nextId(), kind: "hint", text: msg.text, line: msg.line }] };
 
     case "error":
       return { ...prev, busy: false, error: msg.message };

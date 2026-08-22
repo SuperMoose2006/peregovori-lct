@@ -7,7 +7,7 @@ import type { ServerMsgHandler, Transport } from "../api/transport";
 import { SCENARIO_MAP, toScenarioView, type ScenarioDef } from "../data/scenarios";
 import { synthCustomScenario } from "./customScenario";
 import {
-  analyze, applyMove, greetingText, hintText, newSession, renderLine,
+  analyze, applyMove, greetingText, hintLine, hintText, newSession, renderLine,
   scoreSession, stateView, toAnalysis, type Session,
 } from "./engine";
 
@@ -176,7 +176,7 @@ export class MockServer implements Transport {
       this.emit({ type: "error", message: "Hint unavailable" });
       return;
     }
-    this.emit({ type: "hint", text: hintText(s) });
+    this.emit({ type: "hint", text: hintText(s), line: hintLine(s) });
   }
 }
 

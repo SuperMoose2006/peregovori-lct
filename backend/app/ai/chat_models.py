@@ -535,3 +535,14 @@ def get_chat_backend():
 def describe_mode() -> str:
     """Human-readable description of the currently selected backend."""
     return get_chat_backend().describe_mode()
+
+
+def ai_enabled() -> bool:
+    """Whether a live text backend is available (features may degrade gracefully).
+
+    Read fresh each call, like get_chat_backend(): a backend that failed to
+    initialise (missing key/package) reports unavailable and callers fall back
+    to their deterministic path rather than waiting on a call that returns None.
+    """
+    backend = get_chat_backend()
+    return bool(getattr(backend, "available", False))

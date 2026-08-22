@@ -1,6 +1,6 @@
 // Composer.tsx — message composer: textarea with live technique preview,
 // quick-move chips, hint button, send.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { QuickMove } from "../i18n";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
@@ -22,10 +22,14 @@ interface Props {
   // interest-probing SPIN opener. Provided only on the very first move; hidden
   // here the moment the box is non-empty. Absent ⇒ no chip.
   suggestion?: { label: string; fill: string };
+  // Externally-supplied text to drop into the box (the coach's worked example).
+  // Keyed by a nonce, not by the text, so tapping the same suggestion twice
+  // still re-fills after the player has edited or cleared it.
+  prefill?: { text: string; nonce: number };
 }
 
 export function Composer({
-  disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote, suggestion,
+  disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote, suggestion, prefill,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -54,6 +58,13 @@ export function Composer({
       el.selectionStart = el.selectionEnd = el.value.length;
     });
   };
+
+  useEffect(() => {
+    if (prefill?.text) insertStem(prefill.text);
+    // Only the nonce drives this: re-filling on text identity would fight the
+    // player's edits on every re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill?.nonce]);
 
   // The opener chip earns its place only before the player has typed anything —
   // it de-blanks the first move, then yields the moment they start writing.

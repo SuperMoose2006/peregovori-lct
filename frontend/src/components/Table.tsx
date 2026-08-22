@@ -36,6 +36,11 @@ interface Props {
 }
 
 export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeActive, onSend, onHint, onQuit }: Props) {
+  // The coach's worked example travels from a hint bubble down into the
+  // composer. A monotonic nonce (not the text) is what makes re-tapping the
+  // same suggestion refill the box after the player edited it away.
+  const [prefill, setPrefill] = useState<{ text: string; nonce: number } | undefined>(undefined);
+  const prefillNonce = useRef(1);
   const st = state;
   const finished = !!st && st.status !== "active";
   const iFound = st?.interests_found ?? 0;
@@ -326,6 +331,8 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
               </div>
             </div>
             <Chat
+              onUseLine={(text) => setPrefill({ text, nonce: prefillNonce.current++ })}
+              useLineLabel={t.useLine}
               log={log}
               metersShort={t.metersShort}
               metersFull={t.meters}
@@ -365,6 +372,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
                 // Turn-1 only opener (before any move): a one-tap interest probe
                 // that pre-fills the box. Withheld in exam (no live help there).
                 suggestion={!exam && !!st && st.turn === 0 ? t.suggestChip : undefined}
+                prefill={prefill}
               />
             </div>
           </main>

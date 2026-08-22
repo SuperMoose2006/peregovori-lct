@@ -192,6 +192,10 @@ class DebriefMsg(BaseModel):
 class HintReplyMsg(BaseModel):
     type: Literal["hint"] = "hint"
     text: str
+    # A ready-to-send line the player can drop straight into the composer.
+    # Present only when the AI coach produced one; the deterministic hint has
+    # no worked example, so the client must render fine without it.
+    line: Optional[str] = None
 
 
 class ErrorMsg(BaseModel):

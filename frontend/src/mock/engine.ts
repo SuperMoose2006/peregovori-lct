@@ -762,6 +762,37 @@ export function hintText(s: Session): string {
   if (s.tradeoffs.length === 0 && s.info > 40) return H.trade;
   return H.close;
 }
+// The worked example that goes with the hint — offline parity for the backend's
+// AI coach. Deterministic phrasings (the mock has no model), but the same
+// contract: a line the player can send as-is. Uses the scenario's own tradeable
+// item where the situation calls for one, so it is never generic filler.
+export function hintLine(s: Session): string {
+  const L = HINT_LINES[s.lang];
+  if (s.info < 40) return L.info;
+  if (s.tension > 60) return L.tension;
+  if (s.met.crit === 0) return L.crit;
+  if (s.tradeoffs.length === 0 && s.info > 40) {
+    const item = (s.sc.tradeoffs[s.lang][0] ?? "").toLowerCase();
+    return L.trade.replace("{item}", item);
+  }
+  return L.close;
+}
+const HINT_LINES: Record<Lang, Record<string, string>> = {
+  ru: {
+    info: "Что для вас важнее всего в этой сделке и почему именно это?",
+    tension: "Понимаю, откуда вы идёте. Давайте вернёмся к сути — что для вас критично?",
+    crit: "По рынку сопоставимые условия идут в другом диапазоне. Давайте опираться на этот ориентир, а не на позиции.",
+    trade: "Если мы дадим {item}, сможете подвинуться по цене?",
+    close: "Тогда фиксируем: условия, о которых договорились, и цена. Подписываем?",
+  },
+  en: {
+    info: "What matters most to you in this deal, and why exactly that?",
+    tension: "I understand where you're coming from. Let's get back to substance — what is critical for you?",
+    crit: "Comparable terms on the market sit in a different range. Let's anchor on that benchmark rather than positions.",
+    trade: "If we give you {item}, can you move on price?",
+    close: "Then let's lock it: the terms we agreed plus the price. Shall we sign?",
+  },
+};
 const HINTS: Record<Lang, Record<string, string>> = {
   ru: {
     info: "Вы почти не знаете, что движет оппонентом. Спросите: «Что для вас важнее всего и почему?»",

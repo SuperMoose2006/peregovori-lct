@@ -233,3 +233,38 @@ test("hint request returns a hint message", async () => {
   if (hint.type === "hint") assert.ok(hint.text.length > 0);
   server.close();
 });
+
+test("hint carries a ready-to-send worked example, offline too", async () => {
+  const { server, waitFor } = harness();
+  server.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice" });
+  await waitFor((m) => m.type === "greeting");
+
+  server.send({ type: "hint" });
+  const hint = await waitFor((m) => m.type === "hint");
+  assert.equal(hint.type, "hint");
+  if (hint.type === "hint") {
+    // The direction ("ask about interests") AND the line that does it. Parity
+    // with the backend's AI coach: offline the phrasing is canned, but the
+    // contract the UI renders against is identical.
+    assert.ok(hint.text.length > 0);
+    assert.ok(hint.line && hint.line.length > 8, "hint must carry a usable line");
+    // A worked example is something you can actually send — not advice about
+    // sending something.
+    assert.ok(!/^(Вы|You)\b/.test(hint.line as string));
+  }
+});
+
+test("the hint's worked example follows the state, not a fixed script", async () => {
+  const { hintLine, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const s = newSession(SCENARIO_MAP["supplier"], "ru");
+
+  const cold = hintLine(s);
+  s.info = 70;              // interests uncovered → the ladder moves on
+  s.met.crit = 1;           // criterion already used
+  const warm = hintLine(s);
+  assert.notEqual(cold, warm);
+  // With interests known and no trade yet, the line must propose the trade
+  // using this scenario's own tradeable item — never a generic placeholder.
+  assert.ok(!warm.includes("{item}"));
+});

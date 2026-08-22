@@ -33,9 +33,13 @@ interface Props {
   // an opponent-styled "typing…" bubble so the wait doesn't read as a dead chat.
   typing?: boolean;
   typingLabel: string;
+  // Fills the composer with a coach-suggested line (the AI hint's worked
+  // example). Absent ⇒ the line is shown but not offered as one tap.
+  onUseLine?: (text: string) => void;
+  useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -57,7 +61,28 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
       aria-atomic="false"
     >
       {log.map((e) => {
-        if (e.kind === "hint") return <div className="hintbub" key={e.id}>💡 {e.text}</div>;
+        if (e.kind === "hint") {
+          // A hint with a `line` is a worked example — the strongest scaffold in
+          // deliberate practice. It fills the composer, never sends: the move
+          // stays the player's, and gets judged like anything they type.
+          return (
+            <div className="hintbub" key={e.id}>
+              <div>💡 {e.text}</div>
+              {e.line && onUseLine ? (
+                <div className="hintline">
+                  <span className="hintline-q">«{e.line}»</span>
+                  <button
+                    type="button"
+                    className="hintline-use"
+                    onClick={() => onUseLine(e.line as string)}
+                  >
+                    {useLineLabel}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          );
+        }
         if (e.kind === "sys") return <div className="sys" key={e.id}>{e.text}</div>;
         if (e.kind === "coach") {
           if (exam || dismissed.has(e.id)) return null;

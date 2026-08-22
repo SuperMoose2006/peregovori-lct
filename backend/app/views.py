@@ -203,6 +203,32 @@ def build_facts(sess: "engine.Session", result: "engine.MoveResult") -> dict:
     }
 
 
+def coach_facts(sess: "engine.Session", lang: str) -> dict:
+    """Facts for the AI coach behind the hint button.
+
+    Deliberately a SUBSET of build_facts: the coach sees the meters, the briefing
+    and the interests the player has already surfaced — never the hidden ones.
+    A hint that spoils the discovery would defeat the whole exercise.
+    """
+    sc = engine.by_id(sess.scenario_id)
+    ilist = sc.hidden_interests[lang]
+    revealed = [ilist[i] for i in sess.state.interests_found if 0 <= i < len(ilist)]
+    s = sess.state
+    return {
+        "lang": lang,
+        "role": sc.role[lang],
+        "persona_name": sc.counterpart.name[lang],
+        "persona_desc": sc.counterpart.persona[lang],
+        "offer_opp": s.offer_opp,
+        "unit": sc.headline.unit[lang],
+        "trust": s.trust,
+        "tension": s.tension,
+        "info": s.info,
+        "revealed_interests": revealed,
+        "transcript": _transcript(sess, lang),
+    }
+
+
 def _transcript(sess: "engine.Session", lang: str, max_turns: int = 6) -> str:
     """Recent dialogue so the opponent has memory of its own concessions/words.
     Excludes the current player line (that's passed separately as player_text)."""
