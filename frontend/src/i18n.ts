@@ -175,6 +175,36 @@ export interface Strings {
   };
   // first-turn coach bubble (practice/campaign/custom; withheld in exam).
   // {name} = counterpart name, substituted at render.
+  // The optional modality layers: the pre-game setup screen, the in-log question
+  // and its verdict. Reaction names double as the question's answer options.
+  layers: {
+    head: string;
+    what: string;            // "[i] что это"
+    sameGrade: string;       // caption on every toggle — the honesty guarantee
+    unavailable: string;     // badge on a layer the environment cannot deliver
+    presets: string;
+    start: string;
+    back: string;
+    names: Record<"probe" | "voice" | "camera", string>;
+    blurbs: Record<"probe" | "voice" | "camera", string>;
+    presetNames: Record<string, string>;
+    explainHead: string;
+    explain: string[];
+  };
+  probe: {
+    ask: string;             // "Что с ней сейчас?"
+    readFace: string;        // label above the enlarged portrait
+    blocked: string;         // composer placeholder while the question is open
+    tally: string;           // "прочитано {n} из {m}"
+    right: string;
+    wrong: string;
+    // reaction id -> the short label shown as an answer option
+    reactions: Record<string, string>;
+    // reaction id -> one line explaining why it was that, shown after a miss
+    why: Record<string, string>;
+    debriefHead: string;     // "Как вы читали её"
+    observation: string;     // shared badge: "наблюдение · не влияет на оценку"
+  };
   // Left sidebar of the "game" skin's app shell. Only the entries that
   // correspond to something the product actually has — inventing a shop or a
   // leaderboard here would advertise what does not exist.
@@ -581,6 +611,56 @@ export const I18N: Record<Lang, Strings> = {
         F: "Ещё учиться",
       },
     },
+    layers: {
+      head: "Слои",
+      what: "что это",
+      sameGrade: "оценка та же",
+      unavailable: "недоступно",
+      presets: "Пресеты",
+      start: "Начать переговоры",
+      back: "к выбору оппонента",
+      names: { probe: "Читай лицо", voice: "Голосом", camera: "Камера" },
+      blurbs: {
+        probe: "Игра спросит, что чувствует оппонент",
+        voice: "Говорите вслух, расшифровка перед отправкой",
+        camera: "Сигналы присутствия: взгляд, паузы",
+      },
+      presetNames: { classic: "Классика", read: "Читай лицо", full: "Полный контакт" },
+      explainHead: "Что это даёт",
+      explain: [
+        "Слои меняют состав разбора после партии, но никогда не влияют на грейд.",
+        "Любой сценарий проходится с выключенными слоями.",
+        "В экзамене слои выключены, чтобы сертификаты были сравнимы.",
+      ],
+    },
+    probe: {
+      ask: "Что с ней сейчас?",
+      readFace: "Читайте лицо",
+      blocked: "Ответьте на вопрос, чтобы продолжить",
+      tally: "прочитано {n} из {m}",
+      right: "Верно.",
+      wrong: "Мимо.",
+      reactions: {
+        warmed: "Потеплела", opened_up: "Приоткрылась", persuaded: "Убеждена данными",
+        collaborated: "Готова сотрудничать", neutral: "Держит нейтралитет",
+        not_yet: "Ещё не готова", pressured: "Под давлением",
+        hardened: "Закрылась", offended: "Обиделась", walked_out: "Встаёт из-за стола",
+      },
+      why: {
+        warmed: "Доверие выросло — вы попали в её интерес.",
+        opened_up: "Информация подскочила: она поделилась тем, что скрывала.",
+        persuaded: "Рычаг вырос — её убедил объективный критерий, а не нажим.",
+        collaborated: "Напряжение упало, доверие выросло: вы предложили размен.",
+        neutral: "Счётчики почти не двинулись — ход прошёл мимо неё.",
+        not_yet: "Она не отказала, но и не сдвинулась: рано закрывать.",
+        pressured: "Напряжение выросло — она восприняла это как нажим.",
+        hardened: "Напряжение выросло, доверие упало — она закрылась.",
+        offended: "Доверие обвалилось: резкий тон бьёт сильнее аргумента.",
+        walked_out: "Она встаёт из-за стола — напряжение дошло до предела.",
+      },
+      debriefHead: "Как вы читали её",
+      observation: "наблюдение · не влияет на оценку",
+    },
     nav: { training: "Тренировка", campaign: "Кампания", custom: "Своя сделка",
            exam: "Экзамен", progress: "Прогресс", profile: "Профиль" },
     skin: { label: "Оформление", toGame: "Игровое оформление", toDojo: "Оформление «додзё»" },
@@ -978,6 +1058,56 @@ export const I18N: Record<Lang, Strings> = {
         D: "Room to grow",
         F: "Still learning",
       },
+    },
+    layers: {
+      head: "Layers",
+      what: "what is this",
+      sameGrade: "same grading",
+      unavailable: "unavailable",
+      presets: "Presets",
+      start: "Start the negotiation",
+      back: "back to opponents",
+      names: { probe: "Read the face", voice: "By voice", camera: "Camera" },
+      blurbs: {
+        probe: "The game will ask what your counterpart feels",
+        voice: "Speak aloud; the transcript is editable before sending",
+        camera: "Presence signals: gaze, pauses",
+      },
+      presetNames: { classic: "Classic", read: "Read the face", full: "Full contact" },
+      explainHead: "What this changes",
+      explain: [
+        "Layers change what the debrief shows — never the grade.",
+        "Every scenario is playable with all layers off.",
+        "The exam keeps them off so certificates stay comparable.",
+      ],
+    },
+    probe: {
+      ask: "What is she feeling now?",
+      readFace: "Read the face",
+      blocked: "Answer the question to continue",
+      tally: "read {n} of {m}",
+      right: "Correct.",
+      wrong: "Missed.",
+      reactions: {
+        warmed: "Warmed up", opened_up: "Opened up", persuaded: "Persuaded by data",
+        collaborated: "Ready to cooperate", neutral: "Staying neutral",
+        not_yet: "Not ready yet", pressured: "Under pressure",
+        hardened: "Closed off", offended: "Offended", walked_out: "Leaving the table",
+      },
+      why: {
+        warmed: "Trust rose — you hit her actual interest.",
+        opened_up: "Information jumped: she shared what she had been holding back.",
+        persuaded: "Leverage rose — an objective criterion convinced her, not pressure.",
+        collaborated: "Tension fell and trust rose: you offered a trade.",
+        neutral: "The meters barely moved — the move passed her by.",
+        not_yet: "She did not refuse, but did not move either: too early to close.",
+        pressured: "Tension rose — she read that as a push.",
+        hardened: "Tension rose and trust fell — she closed off.",
+        offended: "Trust collapsed: a harsh tone hits harder than any argument.",
+        walked_out: "She is getting up — tension hit its limit.",
+      },
+      debriefHead: "How well you read her",
+      observation: "observation · does not affect the grade",
     },
     nav: { training: "Training", campaign: "Campaign", custom: "Your deal",
            exam: "Exam", progress: "Progress", profile: "Profile" },

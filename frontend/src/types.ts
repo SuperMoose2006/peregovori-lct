@@ -167,7 +167,12 @@ export interface CampaignView {
 export type ClientMsg =
   // scenarioId is "" for mode "custom"; situation carries the user's free-text;
   // reputation (-100..100) carries a campaign result into the next stage's trust
-  | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string; reputation?: number }
+  // CONTRACT(layers): `layers` is honoured by the mock only. protocol.py has no
+  //   such field yet, so against the live backend the optional layers are simply
+  //   not offered. Real when: StartMsg gains `capabilities` and the engine emits
+  //   `probe` — deliberately NOT read by score_session. See docs/modalities.md §0.
+  | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string;
+      reputation?: number; layers?: { probe?: boolean; voice?: boolean; camera?: boolean } }
   | { type: "turn"; text: string }
   | { type: "hint" };
 
@@ -192,6 +197,8 @@ export type ServerMsg =
   // when a live AI coach produced one — the deterministic hint has none.
   // Which part of the turn the server is on. Presentational only — a turn must
   // render correctly if this never arrives (offline/mock, or judge disabled).
+  // The "read her face" question. Mock-only for now — see CONTRACT(probe).
+  | { type: "probe"; turn: number; options: string[]; answer: number }
   | { type: "phase"; phase: "judging" | "replying" }
   | { type: "hint"; text: string; line?: string }
   | { type: "error"; message: string };

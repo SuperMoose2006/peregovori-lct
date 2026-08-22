@@ -42,9 +42,13 @@ interface Props {
   // closing word. `debriefReady` false → the button waits and says so.
   debriefReady?: boolean;
   onSeeDebrief?: () => void;
+  // "Read her face" layer: a running "n of m" and the answer callback. Both
+  // absent when the layer is off, and the chat then renders no question at all.
+  probeTally?: string;
+  onProbeAnswer?: (id: number, choice: number) => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -56,6 +60,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   const outcomeRef = useRef<HTMLDivElement | null>(null);
   const st = state;
   const finished = !!st && st.status !== "active";
+  // An unanswered question blocks the composer (but never the transcript): the
+  // player has to commit to a reading before the negotiation moves on.
+  const probeOpen = log.some((e) => e.kind === "probe" && e.picked === undefined);
   useEffect(() => {
     if (!finished) return;
     outcomeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -406,6 +413,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               typingJudging={phase === "judging"}
               opening={showOpening ? openingCard : undefined}
               hintPendingLabel={t.hintPending}
+              probeLabels={t.probe}
+              probeTally={probeTally}
+              onProbeAnswer={onProbeAnswer}
             />
             {showFirstCoach ? (
               <div className="firstcoach" role="note">
@@ -445,8 +455,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
             ) : null}
             <div ref={composeRef} className="onb-anchor" hidden={finished && !!onSeeDebrief}>
               <Composer
-                disabled={busy || finished || !st}
-                placeholder={placeholder}
+                disabled={busy || finished || probeOpen || !st}
+                blocked={probeOpen}
+                placeholder={probeOpen ? t.probe.blocked : placeholder}
                 quickMoves={t.quickMoves}
                 onSend={handleSend}
                 onHint={onHint}

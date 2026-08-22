@@ -10,6 +10,7 @@ import {
   analyze, applyMove, greetingText, hintLine, hintText, newSession, renderLine,
   scoreSession, stateView, toAnalysis, type Session,
 } from "./engine";
+import { shouldProbe, buildProbe } from "../lib/probe";
 
 export class MockServer implements Transport {
   private onMessage: ServerMsgHandler;
@@ -19,6 +20,9 @@ export class MockServer implements Transport {
   // Per-turn record of the player's own words + their meter swing, so the debrief
   // can quote the moves that mattered (stand-in for the backend's turning_points).
   private turns: Array<{ turn: number; text: string; primary: string; deltas: Deltas }> = [];
+  /** Which optional layers this session runs with. Only `probe` is honoured — the
+   *  others report themselves unavailable and never reach here. */
+  private layers: { probe?: boolean } | null = null;
 
   constructor(onMessage: ServerMsgHandler) {
     this.onMessage = onMessage;
@@ -62,6 +66,7 @@ export class MockServer implements Transport {
 
   private async handleStart(msg: Extract<ClientMsg, { type: "start" }>): Promise<void> {
     const lang: Lang = msg.lang;
+    this.layers = msg.layers ?? null;
     let def: ScenarioDef | undefined;
     let genDelay = 150;
 
@@ -161,6 +166,16 @@ export class MockServer implements Transport {
       state: stateView(s),
       coach: timeout ? undefined : coachLine(raw.primary, s.lang),
     });
+
+    // MOCK(probe): the question is produced client-side because the Python engine
+    //   has no `probe` message yet. It is NOT faked data — the reaction it asks
+    //   about is the same one the engine computed for this turn, so the answer is
+    //   genuinely deterministic and offline.
+    //   Real when: CONTRACT(probe) below lands and the server emits it instead.
+    if (this.layers?.probe && shouldProbe(s.turn, result.closed)) {
+      const p = buildProbe(result.reaction, s.turn);
+      if (p) this.emit({ type: "probe", turn: p.turn, options: p.options, answer: p.answer });
+    }
 
     if (result.closed) {
       await this.delay(650);

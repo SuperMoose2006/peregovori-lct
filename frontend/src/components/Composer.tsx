@@ -8,6 +8,11 @@ import { MAX_INPUT, clampInput, inputRemaining, showInputNote } from "../lib/net
 
 interface Props {
   disabled: boolean;
+  /** Stronger than `disabled`. `disabled` only stops SENDING — typing ahead while
+   *  the opponent replies is deliberate. `blocked` also stops composing, for the
+   *  one case where the player genuinely must do something else first (answering
+   *  the "read her face" question). */
+  blocked?: boolean;
   placeholder: string;
   quickMoves: QuickMove[];
   onSend: (text: string) => void;
@@ -29,7 +34,7 @@ interface Props {
 }
 
 export function Composer({
-  disabled, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote, suggestion, prefill,
+  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote, suggestion, prefill,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -98,6 +103,7 @@ export function Composer({
           rows={2}
           value={text}
           maxLength={MAX_INPUT}
+          disabled={blocked}
           placeholder={placeholder}
           // Cap defensively even if maxLength is bypassed (paste, IME, autofill).
           onChange={(e) => setText(clampInput(e.target.value))}

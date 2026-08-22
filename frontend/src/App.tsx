@@ -1,5 +1,5 @@
 // App.tsx — screen router (home / game / debrief / campaign) with RU/EN + light/dark toggles.
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { CampaignView, Debrief as DebriefData, Lang, Mode } from "./types";
 import { I18N } from "./i18n";
 import { useNegotiation } from "./api/useNegotiation";
@@ -9,6 +9,9 @@ import { ScenarioPicker } from "./components/ScenarioPicker";
 import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
+import { Setup } from "./components/Setup";
+import { SCENARIO_MAP, toScenarioView } from "./data/scenarios";
+import { detectLayers, pruneLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
@@ -17,7 +20,7 @@ import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameRe
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 
-type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile";
+type Screen = "home" | "setup" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile";
 
 // How long the finished table stays on screen before the scorecard takes over.
 // Long enough to read the closing line and the outcome stamp, short enough that
@@ -36,6 +39,13 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 export default function App() {
   const [lang, setLang] = useState<Lang>("ru");
   const [theme, setTheme] = useState<Theme>(null);
+  // Optional modality layers. `detectLayers` is the single source of truth for
+  // what this environment can actually deliver — a saved preset can never switch
+  // on something that does not exist (see pruneLayers).
+  const layerStates = useMemo(() => detectLayers(), []);
+  const [layers, setLayers] = useState<Layers>(NO_LAYERS);
+  const [pendingScenario, setPendingScenario] = useState<string | null>(null);
+
   const [skin, setSkin] = useState<Skin>(() => {
     // Storage can throw (private mode, blocked site data) — the default skin is
     // always a correct answer, so never let a read break the app.
@@ -194,16 +204,58 @@ export default function App() {
   const isDark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
+  /** Picking an opponent goes to SETUP first — where the layers are chosen —
+   *  except in exam mode, which fixes them off so certificates stay comparable
+   *  (docs/modalities.md §0) and therefore has nothing to choose. */
   const start = useCallback(
     (scenarioId: string) => {
       dispatchGen("reset"); // leave any stale custom-gen state behind
       setCurrentScenario(scenarioId);
-      nego.start(scenarioId, mode);
-      setScreen("game");
+      if (mode === "exam") {
+        setLayers(NO_LAYERS);
+        nego.start(scenarioId, mode, undefined, undefined, NO_LAYERS);
+        setScreen("game");
+      } else {
+        setPendingScenario(scenarioId);
+        setScreen("setup");
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
     [mode, nego],
   );
+
+  const startWithLayers = useCallback(() => {
+    if (!pendingScenario) return;
+    const use = pruneLayers(layers, layerStates);
+    setLayers(use);
+    nego.start(pendingScenario, mode, undefined, undefined, use);
+    setScreen("game");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [pendingScenario, layers, layerStates, mode, nego]);
+
+  /** "прочитано n из m" — answered-correctly over asked. Counted from the log,
+   *  so it needs no extra state and survives a re-render. */
+  /** Same counts, shaped for the debrief card. Undefined when nothing was asked,
+   *  so the card is absent rather than showing a hollow "0 / 0". */
+  const probeStats = useMemo(() => {
+    const asked = nego.log.filter((e) => e.kind === "probe");
+    if (!asked.length) return undefined;
+    return {
+      asked: asked.length,
+      right: asked.filter((e) => e.kind === "probe" && e.picked === e.answer).length,
+    };
+  }, [nego.log]);
+
+  const probeTally = useMemo(() => {
+    const asked = nego.log.filter((e) => e.kind === "probe");
+    if (!asked.length) return undefined;
+    const right = asked.filter((e) => e.kind === "probe" && e.picked === e.answer).length;
+    return t.probe.tally.replace("{n}", String(right)).replace("{m}", String(asked.length));
+  }, [nego.log, t]);
+
+  const toggleLayer = useCallback((id: LayerId) => {
+    setLayers((p) => (layerStates[id].available ? { ...p, [id]: !p[id] } : p));
+  }, [layerStates]);
 
   const startCustom = useCallback(() => {
     if (!situation.trim()) return;
@@ -418,6 +470,20 @@ export default function App() {
         </section>
       )}
 
+      {screen === "setup" && pendingScenario && (
+        <Setup
+          t={t}
+          lang={lang}
+          scenario={toScenarioView(SCENARIO_MAP[pendingScenario], lang)}
+          layers={layers}
+          states={layerStates}
+          onToggle={toggleLayer}
+          onPreset={setLayers}
+          onStart={startWithLayers}
+          onBack={goHome}
+        />
+      )}
+
       {screen === "generating" && (
         <section className="screen">
           <div className="wrap">
@@ -490,6 +556,8 @@ export default function App() {
             onHint={nego.requestHint}
             onQuit={goHome}
             debriefReady={!!nego.debrief}
+            probeTally={layers.probe ? probeTally : undefined}
+            onProbeAnswer={layers.probe ? nego.answerProbe : undefined}
             onSeeDebrief={() => setScreen("debrief")}
           />
         </>
@@ -509,6 +577,7 @@ export default function App() {
         <Debrief
           t={t}
           d={nego.debrief}
+          probeStats={layers.probe ? probeStats : undefined}
           mode={mode}
           lang={lang}
           scenarioTitle={nego.scenario?.title}

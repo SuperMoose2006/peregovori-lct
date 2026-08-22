@@ -35,6 +35,10 @@ interface Props {
   // an opponent-styled "typing…" bubble so the wait doesn't read as a dead chat.
   typing?: boolean;
   typingLabel: string;
+  // Copy + callback for the "read her face" layer. Absent when the layer is off.
+  probeLabels: Strings["probe"];
+  probeTally?: string;
+  onProbeAnswer?: (id: number, choice: number) => void;
   // Rendered at the top of an otherwise-empty log (turn 0). The log bottom-aligns
   // its content, which is right for a filling chat and leaves a tall void in an
   // empty one — this is what goes there.
@@ -50,7 +54,7 @@ interface Props {
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, onProbeAnswer, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -114,6 +118,44 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
           );
         }
         if (e.kind === "sys") return <div className="sys" key={e.id}>{e.text}</div>;
+        if (e.kind === "probe") {
+          // Deliberately inline rather than a modal: the answer is read off the
+          // avatar's expression and the meters, and a modal would cover both.
+          const answered = e.picked !== undefined;
+          const right = answered && e.picked === e.answer;
+          return (
+            <div className={`probe${answered ? (right ? " right" : " wrong") : ""}`} key={e.id}>
+              <div className="pb-head">
+                <b>🎭 {probeLabels.ask}</b>
+                {probeTally ? <span className="pb-tally">{probeTally}</span> : null}
+              </div>
+              <div className="pb-opts">
+                {e.options.map((o, i) => {
+                  const mark = !answered ? "" : i === e.answer ? " ok" : i === e.picked ? " bad" : " dim";
+                  return (
+                    <button
+                      key={i}
+                      className={`pb-opt${mark}`}
+                      disabled={answered}
+                      onClick={() => onProbeAnswer?.(e.id, i)}
+                    >
+                      {probeLabels.reactions[o] ?? o}
+                      {answered && i === e.answer ? <span aria-hidden="true"> ✓</span> : null}
+                      {answered && i === e.picked && i !== e.answer ? <span aria-hidden="true"> ✗</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Marking an answer wrong teaches nothing; the reason does. */}
+              {answered ? (
+                <div className="pb-why">
+                  <b>{right ? probeLabels.right : probeLabels.wrong}</b>{" "}
+                  {probeLabels.why[e.options[e.answer]] ?? ""}
+                </div>
+              ) : null}
+            </div>
+          );
+        }
         if (e.kind === "coach") {
           if (exam || dismissed.has(e.id)) return null;
           // "judge-cam" chips: recognized techniques + an optional reject chip.

@@ -19,7 +19,14 @@ export type ChatEntry =
   // techniques / reject ride along ONLY when the live judge scored this turn (the
   // "judge-cam" chips); both absent offline/mock where no live judge ran.
   | { id: number; kind: "coach"; text: string; techniques?: string[]; reject?: boolean }
-  | { id: number; kind: "sys"; text: string };
+  | { id: number; kind: "sys"; text: string }
+  // The "read her face" question, and its resolved state once answered. The
+  // engine's reaction IS the answer, so this is real, not a quiz bolted on top.
+  | {
+      id: number; kind: "probe"; turn: number;
+      options: string[]; answer: number;
+      picked?: number;              // undefined while the question is open
+    };
 
 export interface NegotiationState {
   kind: TransportKind | null;
@@ -44,9 +51,11 @@ export interface NegotiationState {
 export interface Negotiation extends NegotiationState {
   // situation is the free-text brief for mode "custom" (ignored otherwise).
   // reputation (-100..100) carries a campaign result into the next stage's trust.
-  start: (scenarioId: string, mode: Mode, situation?: string, reputation?: number) => void;
+  start: (scenarioId: string, mode: Mode, situation?: string, reputation?: number,
+          layers?: { probe?: boolean; voice?: boolean; camera?: boolean }) => void;
   turn: (text: string) => void;
   requestHint: () => void;
+  answerProbe: (id: number, choice: number) => void;
   clearError: () => void;
   reset: () => void;
 }
@@ -102,11 +111,12 @@ export function useNegotiation(lang: Lang): Negotiation {
   }, [handle]);
 
   const start = useCallback(
-    (scenarioId: string, mode: Mode, situation?: string, reputation?: number) => {
+    (scenarioId: string, mode: Mode, situation?: string, reputation?: number,
+     layers?: { probe?: boolean; voice?: boolean; camera?: boolean }) => {
       teardown();
       setS({ ...initialState });
       const t = ensureTransport();
-      t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation, reputation });
+      t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation, reputation, layers });
     },
     [ensureTransport, teardown],
   );
@@ -122,6 +132,16 @@ export function useNegotiation(lang: Lang): Negotiation {
       transportRef.current?.send({ type: "turn", text: trimmed });
       return { ...prev, busy: true, phase: null, log: [...prev.log, entry] };
     });
+  }, []);
+
+  /** Resolve a probe in place. The answer came with the question, so this needs
+   *  no round-trip and stays correct offline. */
+  const answerProbe = useCallback((id: number, choice: number) => {
+    setS((prev) => ({
+      ...prev,
+      log: prev.log.map((e) =>
+        e.kind === "probe" && e.id === id && e.picked === undefined ? { ...e, picked: choice } : e),
+    }));
   }, []);
 
   const requestHint = useCallback(() => {
@@ -144,7 +164,7 @@ export function useNegotiation(lang: Lang): Negotiation {
     setS({ ...initialState });
   }, [teardown]);
 
-  return { ...s, start, turn, requestHint, clearError, reset };
+  return { ...s, start, turn, requestHint, answerProbe, clearError, reset };
 }
 
 // Pure reducer over the ServerMsg stream.
@@ -206,6 +226,11 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
 
     case "phase":
       return { ...prev, phase: msg.phase };
+
+    case "probe":
+      return { ...prev, log: [...prev.log, {
+        id: nextId(), kind: "probe", turn: msg.turn, options: msg.options, answer: msg.answer,
+      }] };
 
     case "hint": {
       // Fill the placeholder in place if one is waiting, so the hint appears
