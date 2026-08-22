@@ -644,6 +644,7 @@ export function stateView(s: Session): StateView {
     info: Math.round(s.info),
     leverage: Math.round(flex(s) * 100),
     offer_opp: s.offerOpp,
+    deal: s.deal ?? null,   // settled price; see StateView.deal
     offer_player: s.offerPlayer,
     interests_found: s.interests.length,
     interests_total: s.sc.interests[s.lang].length,

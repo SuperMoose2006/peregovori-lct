@@ -17,6 +17,11 @@ import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 
 type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile";
+
+// How long the finished table stays on screen before the scorecard takes over.
+// Long enough to read the closing line and the outcome stamp, short enough that
+// nobody reaches for the button first.
+const OUTCOME_HOLD_MS = 2200;
 type Theme = "light" | "dark" | null;
 
 const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
@@ -73,9 +78,15 @@ export default function App() {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  // When a debrief arrives, advance to the debrief screen.
+  // Hold on the table for a beat when the debrief arrives, instead of swapping
+  // the whole layout out from under the closing line. The handshake (or the
+  // walk-out) is the climax of a negotiation; every game holds on the winning
+  // shot before showing the box score. The player can skip the hold by pressing
+  // the outcome strip's button, and the timer guarantees they never get stuck.
   useEffect(() => {
-    if (nego.debrief) setScreen("debrief");
+    if (!nego.debrief) return;
+    const id = setTimeout(() => setScreen("debrief"), OUTCOME_HOLD_MS);
+    return () => clearTimeout(id);
   }, [nego.debrief]);
 
   // Record every finished negotiation into the retention profile (any mode):
@@ -414,6 +425,8 @@ export default function App() {
             onSend={nego.turn}
             onHint={nego.requestHint}
             onQuit={goHome}
+            debriefReady={!!nego.debrief}
+            onSeeDebrief={() => setScreen("debrief")}
           />
         </>
       )}

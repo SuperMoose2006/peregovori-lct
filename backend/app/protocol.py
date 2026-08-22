@@ -58,6 +58,8 @@ class StateView(BaseModel):
     leverage: int
     offer_opp: float
     offer_player: Optional[float] = None
+    # Settled price once the deal closes; None while the table is open.
+    deal: Optional[float] = None
     interests_found: int
     interests_total: int
     terms_conceded: list[str] = Field(default_factory=list)  # ids of secondary issues traded so far

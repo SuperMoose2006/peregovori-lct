@@ -1152,6 +1152,9 @@ textarea:focus { outline: none; border-color: var(--brass); }
    by the global rule at the end of this file.
    ============================================================ */
 .onb-anchor { display: block; }         /* transparent measurement wrapper — no layout impact */
+/* ...but an author `display` beats the UA stylesheet's rule for [hidden], so the
+   composer stayed on screen under the closing outcome strip without this. */
+.onb-anchor[hidden] { display: none; }
 
 .onb { position: fixed; inset: 0; z-index: 60; }
 
@@ -1473,6 +1476,35 @@ textarea:focus-visible,
 }
 .ms-why { margin-top: 14px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
 .ms-why b { color: var(--brass); font-weight: 700; }
+
+/* ---------- Closing beat: the outcome strip ----------
+   Sits where the composer was the moment the table closes. It is the only place
+   in the game that marks an ending, so it gets a full-width band and the largest
+   type in the chat card rather than another quiet chip. */
+.outcome {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; padding: 16px 18px; border-top: 1px solid var(--line);
+  animation: pop 0.4s ease both;
+}
+.outcome.agreement { background: color-mix(in srgb, var(--trust) 10%, var(--panel)); }
+.outcome.breakdown { background: color-mix(in srgb, var(--tension) 9%, var(--panel)); }
+.oc-stamp { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap; min-width: 0; }
+.oc-mark { font-size: 26px; line-height: 1; }
+.oc-title { font-family: var(--serif); font-size: 20px; font-weight: 700; }
+.outcome.agreement .oc-title { color: var(--trust); }
+.outcome.breakdown .oc-title { color: var(--tension); }
+.oc-price {
+  font-family: var(--serif); font-size: 20px; font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.oc-go { padding: 11px 20px; border-radius: 11px; font-size: 14px; font-weight: 600; }
+.oc-go:disabled { opacity: 0.55; cursor: default; }
+
+@media (max-width: 640px) {
+  .outcome { padding: 13px 14px; gap: 11px; }
+  .oc-title, .oc-price { font-size: 17px; }
+  .oc-go { width: 100%; }
+}
 
 /* ---------- Hidden-interest reveal (deterministic, offline too) ----------
    The one card on the debrief that lifts a curtain instead of grading. Missed

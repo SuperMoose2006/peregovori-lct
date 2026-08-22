@@ -1208,6 +1208,11 @@ def to_state_view(sess: Session) -> dict:
         "leverage": _js_round(flexibility(sess) * 100),
         "offer_opp": s.offer_opp,
         "offer_player": s.offer_player,
+        # The SETTLED price, once there is one. Distinct from offer_opp: the
+        # deal closes at the meeting point, not at whatever the opponent last
+        # said, so a closing screen reading offer_opp shows a number the deal
+        # was never struck at. None while the table is still open.
+        "deal": s.deal,
         "interests_found": len(s.interests_found),
         "interests_total": len(sc.hidden_interests[sess.lang]),
         "terms_conceded": list(s.terms_conceded),

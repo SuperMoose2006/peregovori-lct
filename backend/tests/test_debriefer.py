@@ -93,3 +93,14 @@ def test_debrief_reveals_every_hidden_interest_with_its_status():
     assert [i.text for i in d.interests] == list(hidden)
     assert [i.found for i in d.interests] == [False, True, False]
     assert d.interests_found == 1 and d.interests_total == len(hidden)
+
+
+def test_state_view_publishes_the_settled_price_not_the_last_offer():
+    """A closing screen reading `offer_opp` shows a number the deal was never
+    struck at — the deal closes at the meeting point (`deal`)."""
+    sess = engine.create_session("supplier", "ru")
+    assert engine.to_state_view(sess)["deal"] is None  # table still open
+    sess.state.deal = 86.0
+    sess.state.offer_opp = 88.5
+    view = engine.to_state_view(sess)
+    assert view["deal"] == 86.0 and view["offer_opp"] == 88.5

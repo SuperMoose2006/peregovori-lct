@@ -38,6 +38,10 @@ export interface StateView {
   leverage: number;
   offer_opp: number;
   offer_player: number | null;
+  // The SETTLED price once the deal closes — the meeting point, not whatever the
+  // opponent last said. null while the table is open. A closing screen reading
+  // offer_opp would print a number the deal was never struck at.
+  deal?: number | null;
   interests_found: number;
   interests_total: number;
   // ids of secondary issues the player has traded so far (logrolling "package").

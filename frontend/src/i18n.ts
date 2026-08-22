@@ -289,7 +289,13 @@ export interface Strings {
   coachTitle: string;
   retry: string;
   toHome: string;
-  outcome: Record<"agreement" | "breakdown" | "active", string>;
+  outcome: {
+    agreement: string; breakdown: string; active: string;
+    // The table's closing beat reuses agreement/breakdown above; `see` is the
+    // primary action on it and `preparing` its waiting state while the debrief
+    // (and the AI mentor's closing word) is still being built.
+    see: string; preparing: string;
+  };
   sb: { economic: string; relationship: string; technique: string };
   stat: {
     spin: string;
@@ -652,6 +658,8 @@ export const I18N: Record<Lang, Strings> = {
       agreement: "Соглашение достигнуто",
       breakdown: "Переговоры сорваны",
       active: "Без соглашения",
+      see: "Смотреть разбор →",
+      preparing: "Готовим разбор…",
     },
     sb: { economic: "Экономика сделки", relationship: "Отношения", technique: "Техника переговоров" },
     stat: {
@@ -1032,6 +1040,8 @@ export const I18N: Record<Lang, Strings> = {
       agreement: "Agreement reached",
       breakdown: "Talks broke down",
       active: "No agreement",
+      see: "See the debrief →",
+      preparing: "Building your debrief…",
     },
     sb: { economic: "Deal economics", relationship: "Relationship", technique: "Negotiation technique" },
     stat: {

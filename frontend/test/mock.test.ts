@@ -297,3 +297,18 @@ test("the offline debrief reveals every hidden interest, found or not", async ()
   assert.deepEqual(revealed.map((r) => r.found), [false, true, false]);
   assert.equal(d.interests_found, 1);
 });
+
+test("the closing price is the settled deal, not the opponent's last offer", async () => {
+  // These differ: the deal closes at the meeting point while offerOpp keeps the
+  // last thing the opponent said. A closing screen reading offerOpp prints a
+  // number the deal was never struck at (and contradicts the closing line).
+  const { newSession, stateView } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const s = newSession(SCENARIO_MAP["supplier"], "ru");
+  assert.equal(stateView(s).deal, null);   // table still open
+  s.deal = 86.27;
+  s.offerOpp = 86.51;
+  const v = stateView(s);
+  assert.equal(v.deal, 86.27);
+  assert.equal(v.offer_opp, 86.51);
+});

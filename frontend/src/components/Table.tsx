@@ -33,9 +33,15 @@ interface Props {
   onSend: (text: string) => void;
   onHint: () => void;
   onQuit: () => void;
+  // The negotiation's last beat. When the table closes we hold here for a moment
+  // instead of swapping straight to the scorecard: the handshake (or the walk-out)
+  // IS the climax, and the hold also covers the AI mentor still composing its
+  // closing word. `debriefReady` false → the button waits and says so.
+  debriefReady?: boolean;
+  onSeeDebrief?: () => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeActive, onSend, onHint, onQuit }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -361,7 +367,31 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
                 </button>
               </div>
             ) : null}
-            <div ref={composeRef} className="onb-anchor">
+            {finished && onSeeDebrief ? (
+              <div className={`outcome ${st!.status}`} role="status">
+                <div className="oc-stamp">
+                  <span className="oc-mark" aria-hidden="true">
+                    {st!.status === "agreement" ? "🤝" : "🚪"}
+                  </span>
+                  <span className="oc-title">
+                    {st!.status === "agreement" ? t.outcome.agreement : t.outcome.breakdown}
+                  </span>
+                  {/* The settled price, never `offer_opp` — the deal closes at
+                      the meeting point, so offer_opp would contradict the
+                      opponent's own closing line by a rouble or two. */}
+                  {st!.status === "agreement" && st!.deal != null ? (
+                    <span className="oc-price">
+                      {st!.deal}
+                      {scenario.headline_unit}
+                    </span>
+                  ) : null}
+                </div>
+                <button className="primary oc-go" onClick={onSeeDebrief} disabled={!debriefReady}>
+                  {debriefReady ? t.outcome.see : t.outcome.preparing}
+                </button>
+              </div>
+            ) : null}
+            <div ref={composeRef} className="onb-anchor" hidden={finished && !!onSeeDebrief}>
               <Composer
                 disabled={busy || finished || !st}
                 placeholder={placeholder}
