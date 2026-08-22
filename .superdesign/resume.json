@@ -33,10 +33,10 @@
           "currentVersion": 1
         },
         "5055c1ab-54d8-472e-b4a1-0471f49ea13c": {
-          "title": "Duolingo-style App Shell Redesign",
-          "visualDirection": "full Duolingo: white/green, sidebar + stats strip + right rail",
+          "title": "Duolingo App Shell — refined",
+          "visualDirection": "full Duolingo: white/green, sidebar + stats strip + right rail + footer; invented features (shop, hearts) removed, real rank ladder, 3D lip on all primaries, wordmark contrast fixed",
           "parentDraftId": "6bd153e9-bc6b-4739-a26f-cc97376db66b",
-          "currentVersion": 1
+          "currentVersion": 4
         },
         "23ea35a2-f8e3-480b-b858-38f8415a81a7": {
           "title": "Negotiation Dojo - Duolingo Structure",
