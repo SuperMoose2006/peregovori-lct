@@ -48,12 +48,15 @@ export default function App() {
   const [pendingScenario, setPendingScenario] = useState<string | null>(null);
 
   const [skin, setSkin] = useState<Skin>(() => {
-    // Storage can throw (private mode, blocked site data) — the default skin is
+    // "game" is the DEFAULT: it is the product's current face, and requiring a
+    // click to reach it meant every first visit — including a jury's — landed on
+    // the older look. "dojo" survives as an explicit opt-out, not as the fallback.
+    // Storage can throw (private mode, blocked site data), and the default is
     // always a correct answer, so never let a read break the app.
     try {
-      return localStorage.getItem(SKIN_KEY) === "game" ? "game" : "dojo";
+      return localStorage.getItem(SKIN_KEY) === "dojo" ? "dojo" : "game";
     } catch {
-      return "dojo";
+      return "game";
     }
   });
   const [screen, setScreen] = useState<Screen>("home");

@@ -2188,6 +2188,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   text-align: center; transition: transform 0.06s;
 }
 :root[data-skin="game"] .card:active .go { transform: translateY(3px); border-bottom-width: 1px; }
+/* `width: 100%` alone does nothing inside the footer's flex row — the button
+   needs its own line for that to mean anything. */
+:root[data-skin="game"] .card .cf { flex-wrap: wrap; row-gap: 4px; }
+:root[data-skin="game"] .card .cf .go { flex: 1 0 100%; }
 
 /* ---------- Game skin: the counter strip and the turn budget ---------- */
 .stats { display: flex; align-items: center; gap: 18px; }
