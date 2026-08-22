@@ -12,7 +12,8 @@ import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
 import {
-  check, metersOptions, reactionOptions, shuffledRight, startingOrder, type Verdict,
+  check, metersOptions, reactionOptions, shuffledOptions, shuffledRight, startingOrder,
+  type Verdict,
 } from "../lib/course";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
@@ -46,6 +47,10 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
   // Комментарий тренера приходит ПОСЛЕ вердикта и никогда его не меняет.
   const [coach, setCoach] = useState<string | null>(null);
 
+  // Варианты показываются перемешанными; ответ сверяется по ПОКАЗАННОМУ индексу,
+  // поэтому позиция верного варианта ничего не подсказывает.
+  const opts = useMemo(() => shuffledOptions(ex), [ex]);
+
   const chips = useMemo(
     () => (ex.type === "freeform" && !exam ? previewChips(text) : []),
     [ex.type, exam, text],
@@ -53,7 +58,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
 
   const answer = (): unknown => {
     switch (ex.type) {
-      case "choice": case "spot_error": return picked;
+      case "choice": case "spot_error": return picked;  // индекс в перемешанном списке
       case "order": return order;
       case "match": return pairs;
       case "numeric": return num.trim() === "" ? null : parseFloat(num.replace(",", "."));
@@ -76,7 +81,10 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
 
   const submit = () => {
     if (verdict) return;
-    const v = check(ex, answer(), lang);
+    // Для выбора сверяем с перемешанным индексом верного варианта.
+    const v = (ex.type === "choice" || ex.type === "spot_error")
+      ? check({ ...ex, answer: opts.answer }, picked, lang)
+      : check(ex, answer(), lang);
     setVerdict(v);
     // Звук — часть обратной связи, а не украшение: он приходит раньше, чем глаз
     // находит цветную рамку. Глушится общим переключателем, как всё остальное.
@@ -124,9 +132,9 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       {/* ---- варианты ---- */}
       {(ex.type === "choice" || ex.type === "spot_error") ? (
         <ul className="ex-opts">
-          {(ex.options ?? []).map((o, i) => {
-            const right = locked && i === ex.answer;
-            const wrong = locked && i === picked && i !== ex.answer;
+          {opts.options.map((o, i) => {
+            const right = locked && i === opts.answer;
+            const wrong = locked && i === picked && i !== opts.answer;
             return (
               <li key={i}>
                 <button

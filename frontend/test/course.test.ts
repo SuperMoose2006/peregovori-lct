@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   COURSE_BANK, COURSE_BLOCKS, check, checkFreeform, drawExam, exercisesOf,
-  metersOptions, reactionOptions, shuffledRight, simulate, startingOrder,
+  metersOptions, reactionOptions, shuffledOptions, shuffledRight, simulate, startingOrder,
 } from "../src/lib/course";
 import type { Lang } from "../src/types";
 
@@ -126,4 +126,21 @@ test("стартовая раскладка «порядка» и «соотве
     assert.equal(parallel, false, `${ex.id}: колонки не должны идти параллельно`);
     assert.deepEqual(shuffledRight(ex).map((r) => r.id), right.map((r) => r.id), `${ex.id}: воспроизводимо`);
   }
+});
+
+test("позиция верного варианта перемешана и ничего не подсказывает", () => {
+  // В банке верный вариант оказался вторым в двенадцати пунктах из шестнадцати:
+  // так писать удобнее, но игрок, заметивший это, решает курс не читая.
+  const picks: number[] = [];
+  for (const ex of COURSE_BANK.filter((x) => x.type === "choice" || x.type === "spot_error")) {
+    const { options, answer } = shuffledOptions(ex);
+    assert.equal(options.length, ex.options!.length, ex.id);
+    assert.deepEqual(options[answer], ex.options![ex.answer as number], `${ex.id}: ответ тот же`);
+    assert.deepEqual(shuffledOptions(ex).answer, answer, `${ex.id}: раскладка воспроизводима`);
+    picks.push(answer);
+  }
+  const counts = picks.reduce<Record<number, number>>((m, i) => ({ ...m, [i]: (m[i] ?? 0) + 1 }), {});
+  const worst = Math.max(...Object.values(counts));
+  assert.ok(worst <= Math.ceil(picks.length * 0.5),
+    `верный вариант слишком часто на одной позиции: ${JSON.stringify(counts)}`);
 });
