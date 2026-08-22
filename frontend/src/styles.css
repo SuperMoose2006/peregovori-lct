@@ -2193,16 +2193,19 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 :root[data-skin="game"] .card .cf { flex-wrap: wrap; row-gap: 4px; }
 :root[data-skin="game"] .card .cf .go { flex: 1 0 100%; }
 
-/* ---------- Game skin: the counter strip and the turn budget ---------- */
-.stats { display: flex; align-items: center; gap: 18px; }
+/* ---------- Game skin: the counter strip and the turn budget ----------
+   Named `hudstats`, NOT `stats`: `.stats` is already the debrief's 7-tile
+   statistics grid, and reusing it here made the header's `display: none`
+   fallback delete that grid outright in the dojo skin. */
+.hudstats { display: flex; align-items: center; gap: 18px; }
 .st-c {
   display: inline-flex; align-items: baseline; gap: 6px;
   font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink);
 }
 .st-c b { font-size: 17px; font-weight: 400; }
 /* The dojo header has no counters; only the game skin shows them. */
-.stats { display: none; }
-:root[data-skin="game"] .stats { display: flex; }
+.hudstats { display: none; }
+:root[data-skin="game"] .hudstats { display: flex; }
 
 .turnbar { display: none; }
 :root[data-skin="game"] .turnbar {
@@ -2216,7 +2219,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 :root[data-skin="game"] .ch .turn { order: 1; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
 
 @media (max-width: 640px) {
-  .stats { gap: 12px; }
+  .hudstats { gap: 12px; }
   .st-c { font-size: 13px; }
   /* The chat header has no room for a bar beside the label and the mode chip,
      so it wraps onto its own full-width line rather than squeezing to 20px. */
@@ -2233,4 +2236,76 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   .setup-back { min-height: 44px; display: inline-flex; align-items: center; }
   .sp-pill { min-height: 44px; }
   .ly-sw { min-height: 32px; }
+}
+
+/* ================================================================
+   Screen-coverage fixes: the skin was built against home/setup/game
+   and never reached the rest. Everything below is scoped to the skin.
+   ================================================================ */
+
+/* The header shrank to its content (406px of a 1344px column) because the base
+   `.top` centres with `margin: 0 auto` and the skin removed its max-width — so
+   its bottom border drew as a stub rule in mid-air. `.foot` already got this. */
+:root[data-skin="game"] .top { margin: 0; width: 100%; }
+
+/* The achievement toast fires after EVERY finished negotiation and sat on top of
+   the mobile tab bar, blanking five of six tabs for its lifetime. */
+@media (max-width: 860px) {
+  :root[data-skin="game"] .ach-toasts { bottom: calc(78px + env(safe-area-inset-bottom)); }
+}
+
+/* The certificate and the campaign summit were explicitly opted OUT by a
+   `:not(.cert)` — two screens, not one, kept the parchment gradient. */
+:root[data-skin="game"] .debrief.cert {
+  border-width: 2px; box-shadow: none; background: var(--panel);
+}
+:root[data-skin="game"] .camp-done-head .verdict { font-style: normal; }
+
+/* Milestone: an 82%-white scrim with a blurred backdrop over a white page left
+   the card barely separated — and a blur is the one thing this skin's own
+   comment forbids. Ink-based scrim, solid card. */
+:root[data-skin="game"] .milestone-scrim {
+  background: color-mix(in srgb, var(--ink) 55%, transparent); backdrop-filter: none;
+}
+:root[data-skin="game"] .milestone-card {
+  background: var(--panel); border-width: 2px; border-radius: var(--r);
+}
+:root[data-skin="game"] .onb-scrim, :root[data-skin="game"] .onb-hole {
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+/* Onboarding: its primary action read as a disabled control beside the
+   composer's 3D send button. Same treatment as every other primary. */
+:root[data-skin="game"] .onb-next {
+  background: var(--brass); color: #fff; border: none;
+  border-bottom: 4px solid var(--edge); border-radius: 14px;
+  text-transform: uppercase; letter-spacing: 0.04em; font-weight: 800;
+}
+:root[data-skin="game"] .onb-next:active { transform: translateY(3px); border-bottom-width: 1px; }
+:root[data-skin="game"] .onb-tip { border-width: 2px; border-radius: var(--r); }
+
+/* The remaining hairline cards: generation, profile furniture. */
+:root[data-skin="game"] .gen,
+:root[data-skin="game"] .badge,
+:root[data-skin="game"] .skills-empty,
+:root[data-skin="game"] .conn-lost { border-width: 2px; box-shadow: none; }
+:root[data-skin="game"] .ghost,
+:root[data-skin="game"] .skills-back {
+  border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 14px;
+}
+:root[data-skin="game"] .ghost:active,
+:root[data-skin="game"] .skills-back:active { transform: translateY(3px); border-bottom-width: 2px; }
+
+/* Connection states were centred on the viewport, not the content column, so
+   they landed on the header controls beside the sidebar. */
+:root[data-skin="game"] .conn-banner { top: 76px; }
+:root[data-skin="game"] .conn-lost::before {
+  content: ""; position: fixed; inset: 0; z-index: -1;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+/* A walk-out ending on a saturated green button: in this grammar the green 3D
+   button IS the success signal, so a failed negotiation was closing on one. */
+:root[data-skin="game"] .outcome.breakdown .oc-go {
+  background: var(--ink-dim); border-bottom-color: var(--ink);
 }

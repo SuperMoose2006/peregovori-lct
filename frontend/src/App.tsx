@@ -376,7 +376,7 @@ export default function App() {
         {/* Live counters, the way a game shows them. Only in the game skin —
             the dojo header is a wordmark and controls, deliberately quiet. */}
         {skin === "game" ? (
-          <div className="stats" aria-label={t.a11y.stats}>
+          <div className="hudstats" aria-label={t.a11y.stats}>
             <span className="st-c" title={t.streakLabel.replace("{n}", String(profile.streak))}>
               <b aria-hidden="true">🔥</b> {profile.streak}
             </span>
