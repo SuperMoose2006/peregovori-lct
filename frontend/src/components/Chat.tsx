@@ -38,6 +38,8 @@ interface Props {
   // Copy + callback for the "read her face" layer. Absent when the layer is off.
   probeLabels: Strings["probe"];
   probeTally?: string;
+  /** Compact meters shown inside an open question on narrow screens. */
+  probeMeters?: React.ReactNode;
   onProbeAnswer?: (id: number, choice: number) => void;
   // Rendered at the top of an otherwise-empty log (turn 0). The log bottom-aligns
   // its content, which is right for a filling chat and leaves a tall void in an
@@ -54,7 +56,7 @@ interface Props {
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, onProbeAnswer, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, probeMeters, onProbeAnswer, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -129,6 +131,10 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
                 <b>🎭 {probeLabels.ask}</b>
                 {probeTally ? <span className="pb-tally">{probeTally}</span> : null}
               </div>
+              {/* On a phone the instrument rail sits far above the question, so
+                  the meters the player must read to answer are duplicated INTO
+                  the card. Desktop hides this — the rail is already beside it. */}
+              {probeMeters ? <div className="pb-meters">{probeMeters}</div> : null}
               <div className="pb-opts">
                 {e.options.map((o, i) => {
                   const mark = !answered ? "" : i === e.answer ? " ok" : i === e.picked ? " bad" : " dim";

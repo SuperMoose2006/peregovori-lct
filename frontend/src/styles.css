@@ -1903,19 +1903,41 @@ textarea:focus-visible,
 .sn-ic { font-size: 19px; line-height: 1; flex: 0 0 auto; }
 .sn-lb { min-width: 0; }
 
-/* Below the game's own two-column breakpoint the sidebar would leave no room
-   for the cockpit, so it becomes a horizontal strip above the content. */
+/* Below the game's own two-column breakpoint a 256px sidebar would leave no room
+   for the cockpit, so it moves to the BOTTOM as a tab bar — the phone convention,
+   and the only place a persistent nav can live without stealing content height.
+   Order matters: `order: 2` puts it after the content in the DOM-independent
+   grid flow, so screen readers still meet the content first. */
 @media (max-width: 860px) {
   :root[data-skin="game"] .app { grid-template-columns: 1fr; }
   .sidenav {
-    position: static; height: auto; border-right: none;
-    border-bottom: 2px solid var(--line); padding: 12px;
+    /* `top: auto` is load-bearing: the desktop rule sets `top: 0` for sticky, and
+       leaving it set pins the bar to the TOP of the viewport instead. */
+    position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 30;
+    align-self: auto;
+    height: auto; border-right: none; border-top: 2px solid var(--line);
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: var(--panel);
   }
   .sn-brand { display: none; }
-  .sidenav ul { flex-direction: row; overflow-x: auto; gap: 8px; }
-  .sn-row { padding: 9px 12px; font-size: 11.5px; white-space: nowrap; }
-  .sn-lb { display: none; }
+  .sidenav ul { flex-direction: row; gap: 2px; }
+  .sidenav li { flex: 1 1 0; min-width: 0; }
+  .sn-row {
+    flex-direction: column; gap: 3px; padding: 7px 4px; min-height: 52px; overflow: hidden;
+    justify-content: center; font-size: 9px; letter-spacing: 0.04em;
+  }
   .sn-ic { font-size: 21px; }
+  /* Only the current tab is labelled — six labels at this width is noise. And
+     the label must stay INSIDE its tab: at 390px six tabs are ~65px each, so it
+     is clipped rather than allowed to spill over its neighbours. */
+  .sn-lb { display: none; }
+  .sn-row.on .sn-lb {
+    display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; font-size: 8.5px; letter-spacing: 0;
+  }
+  .sn-row.on { border-color: transparent; }
+  /* Give the page room so the fixed bar never covers the last control. */
+  :root[data-skin="game"] .appbody { padding-bottom: 72px; }
 }
 
 /* The top strip is `space-between`, and hiding the brand left the controls
@@ -2051,3 +2073,46 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .obs-dots i { width: 10px; height: 10px; border-radius: 50%; display: block; }
 .obs-dots i.ok { background: var(--trust); }
 .obs-dots i.bad { background: var(--tension); }
+
+/* ---------- The push-in: reading her face ----------
+   The counterpart card takes over the rail while a question is open. Everything
+   here is scoped to `.reading`, so the normal game screen is untouched. */
+.opp.reading {
+  flex-direction: column; text-align: center; gap: 10px;
+  border-color: var(--brass); border-width: 2px;
+  background: color-mix(in srgb, var(--brass) 8%, var(--panel));
+  transition: 0.35s ease;
+}
+.opp-cue {
+  font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  font-weight: 800; color: var(--brass);
+}
+.opp.reading .face {
+  width: 150px; height: 150px; border-radius: 24px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brass) 30%, transparent);
+  transition: width 0.35s ease, height 0.35s ease;
+}
+.opp.reading .nm { font-size: 19px; }
+/* Reduced-motion users get the size change without the animation. */
+@media (prefers-reduced-motion: reduce) {
+  .opp.reading, .opp.reading .face { transition: none; }
+}
+
+/* Meters duplicated inside an open question. Desktop already shows them in the
+   rail beside the card, so this only exists where the rail is out of sight. */
+.pb-meters { display: none; }
+@media (max-width: 860px) {
+  .pb-meters {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; margin-bottom: 12px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--line);
+  }
+  .pm { display: flex; align-items: center; gap: 6px; font-size: 10.5px; min-width: 0; }
+  .pm b { font-weight: 700; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+  .pm-bar { flex: 1; height: 5px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
+  .pm-fill { display: block; height: 100%; border-radius: 3px; }
+  .pm-fill.trust { background: var(--trust); }
+  .pm-fill.tension { background: var(--tension); }
+  .pm-fill.info { background: var(--info); }
+  .pm-fill.leverage { background: var(--leverage); }
+  .pm u { text-decoration: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+}

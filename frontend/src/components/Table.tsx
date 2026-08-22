@@ -316,7 +316,11 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
         </ScreenHeading>
         <div className="table">
           <aside className="side">
-            <div className="opp">
+            {/* While a "read her face" question is open the portrait becomes the
+                main object on screen — this is the one beat that justifies the
+                parametric expressions, which otherwise work almost unnoticed. */}
+            <div className={`opp${probeOpen ? " reading" : ""}`}>
+              {probeOpen ? <div className="opp-cue">{t.probe.readFace}</div> : null}
               <div className="face">
                 <Avatar scenarioId={scenario.id} mood={mood} label={scenario.counterpart_name} />
               </div>
@@ -415,6 +419,20 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               hintPendingLabel={t.hintPending}
               probeLabels={t.probe}
               probeTally={probeTally}
+              probeMeters={
+                st ? (
+                  <>
+                    {([["trust", st.trust], ["tension", st.tension],
+                       ["info", st.info], ["leverage", st.leverage]] as const).map(([k, v]) => (
+                      <span className="pm" key={k}>
+                        <b>{t.metersShort[k]}</b>
+                        <i className="pm-bar"><i className={`pm-fill ${k}`} style={{ width: `${v}%` }} /></i>
+                        <u>{v}</u>
+                      </span>
+                    ))}
+                  </>
+                ) : undefined
+              }
               onProbeAnswer={onProbeAnswer}
             />
             {showFirstCoach ? (
