@@ -8,7 +8,7 @@ import type { Strings } from "../i18n";
 import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
 import { teachingPlaceholder, formatDeal } from "../lib/format";
 import { haptic, play } from "../lib/sound";
-import { Avatar, avatarMood } from "./Avatar";
+import { OpponentFace } from "./OpponentFace";
 import { ScreenHeading } from "./ScreenHeading";
 import { Meters } from "./Meters";
 import { Scorecard } from "./Scorecard";
@@ -42,13 +42,19 @@ interface Props {
   // closing word. `debriefReady` false → the button waits and says so.
   debriefReady?: boolean;
   onSeeDebrief?: () => void;
+  // Realtime-слои. Все необязательные: партия обязана рисоваться, даже если ни
+  // одного такого события не пришло (офлайн, текстовый режим).
+  /** Состояние лица из `avatar.state`. Null — живых событий нет, лицо выводится из шкал. */
+  avatarState?: string | null;
+  /** Оппонент звучит: честный индикатор речи, а не имитация губ. */
+  oppSpeaking?: boolean;
   // "Read her face" layer: a running "n of m" and the answer callback. Both
   // absent when the layer is off, and the chat then renders no question at all.
   probeTally?: string;
   onProbeAnswer?: (id: number, choice: number) => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -152,12 +158,6 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
       break;
     }
   }
-  // The counterpart's face reflects their live mood — driven only by the
-  // deterministic meters (trust/tension), another read on the same honest state.
-  // In exam the meters are hidden, so `avatarMood` returns a fixed neutral (the
-  // expression must never leak the withheld signal).
-  const mood = avatarMood(st, exam);
-
   // Typing indicator: show while a turn is in flight (busy) but the opponent's
   // reply hasn't begun. Once opponent_delta pushes a streaming "opp" bubble it
   // becomes the last entry, so the indicator yields to the live reply. Cleared
@@ -347,9 +347,14 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 parametric expressions, which otherwise work almost unnoticed. */}
             <div className={`opp${probeOpen ? " reading" : ""}`}>
               {probeOpen ? <div className="opp-cue">{t.probe.readFace}</div> : null}
-              <div className="face">
-                <Avatar scenarioId={scenario.id} mood={mood} label={scenario.counterpart_name} />
-              </div>
+              <OpponentFace
+                scenarioId={scenario.id}
+                avatarState={avatarState}
+                state={st}
+                exam={exam}
+                speaking={oppSpeaking}
+                label={scenario.counterpart_name}
+              />
               <div>
                 <div className="nm">{scenario.counterpart_name}</div>
                 <div className="ps">{scenario.counterpart_persona}</div>

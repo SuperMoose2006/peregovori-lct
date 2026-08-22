@@ -1,0 +1,23 @@
+{
+  "persona": "sla_renewal",
+  "name": {
+    "ru": "Виктор, вендор",
+    "en": "Viktor, Vendor Account Exec"
+  },
+  "style": "tough",
+  "states": [
+    "annoyed",
+    "listening",
+    "offended",
+    "walk_out"
+  ],
+  "aliases": {
+    "idle": "listening",
+    "hesitation": "thinking",
+    "nod": "warm",
+    "smile": "warm",
+    "shake_head": "annoyed"
+  },
+  "generated_by": "google/gemini-3.1-flash-image",
+  "lipsync": false
+}

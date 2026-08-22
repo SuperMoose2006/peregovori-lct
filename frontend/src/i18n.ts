@@ -193,8 +193,8 @@ export interface Strings {
     presets: string;
     start: string;
     back: string;
-    names: Record<"probe" | "voice" | "camera", string>;
-    blurbs: Record<"probe" | "voice" | "camera", string>;
+    names: Record<"probe" | "voice" | "camera" | "avatar", string>;
+    blurbs: Record<"probe" | "voice" | "camera" | "avatar", string>;
     presetNames: Record<string, string>;
     explainHead: string;
     explain: string[];
@@ -640,13 +640,14 @@ export const I18N: Record<Lang, Strings> = {
       presets: "Пресеты",
       start: "Начать переговоры",
       back: "к выбору оппонента",
-      names: { probe: "Читай лицо", voice: "Голосом", camera: "Камера" },
+      names: { probe: "Читай лицо", voice: "Голосом", camera: "Камера", avatar: "Лицо оппонента" },
       blurbs: {
         probe: "Игра спросит, что чувствует оппонент",
-        voice: "Говорите вслух, расшифровка перед отправкой",
-        camera: "Сигналы присутствия: взгляд, паузы",
+        voice: "Говорите вслух — и слышите ответ. Можно перебивать",
+        camera: "Сигналы присутствия: кто в кадре, куда смотрите",
+        avatar: "Оппонент меняется в лице по реакции движка",
       },
-      presetNames: { classic: "Классика", read: "Читай лицо", full: "Полный контакт" },
+      presetNames: { classic: "Классика", read: "Читай лицо", call: "Видеозвонок", full: "Полный контакт" },
       explainHead: "Что это даёт",
       explain: [
         "Слои меняют состав разбора после партии, но никогда не влияют на грейд.",
@@ -1101,13 +1102,14 @@ export const I18N: Record<Lang, Strings> = {
       presets: "Presets",
       start: "Start the negotiation",
       back: "back to opponents",
-      names: { probe: "Read the face", voice: "By voice", camera: "Camera" },
+      names: { probe: "Read the face", voice: "By voice", camera: "Camera", avatar: "Their face" },
       blurbs: {
         probe: "The game will ask what your counterpart feels",
-        voice: "Speak aloud; the transcript is editable before sending",
-        camera: "Presence signals: gaze, pauses",
+        voice: "Speak aloud — and hear the reply. You can cut in",
+        camera: "Presence signals: who is in frame, where you look",
+        avatar: "Their expression follows the engine's reaction",
       },
-      presetNames: { classic: "Classic", read: "Read the face", full: "Full contact" },
+      presetNames: { classic: "Classic", read: "Read the face", call: "Video call", full: "Full contact" },
       explainHead: "What this changes",
       explain: [
         "Layers change what the debrief shows — never the grade.",

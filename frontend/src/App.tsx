@@ -586,6 +586,8 @@ export default function App() {
             busy={nego.busy}
             phase={nego.phase}
             judgeActive={nego.judgeActive}
+            avatarState={nego.avatarState}
+            oppSpeaking={nego.oppSpeaking}
             onSend={nego.turn}
             onHint={nego.requestHint}
             onQuit={goHome}

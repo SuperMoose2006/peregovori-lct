@@ -1,68 +1,91 @@
-// layers.ts — the optional modality layers and, more importantly, whether they
-// are actually available.
+// layers.ts — опциональные слои модальностей и, что важнее, доступны ли они на самом деле.
 //
-// The governing rule (docs/modalities.md): a layer never touches scoring. A
-// grade earned with the camera on must be comparable to one earned without it,
-// otherwise the exam certificate means nothing and campaign acts stop being
-// comparable. Layers only change WHAT THE DEBRIEF SHOWS.
+// Правило первое (docs/modalities.md): слой НИКОГДА не касается оценки. Грейд,
+// заработанный с камерой, обязан быть сравним с грейдом без неё — иначе
+// сертификат экзамена ничего не значит, а акты кампании перестают быть
+// сопоставимыми. Слои меняют только ТО, ЧТО ПОКАЗЫВАЕТ РАЗБОР, и то, насколько
+// живым выглядит оппонент.
 //
-// The second rule is about honesty in the other direction: a layer we cannot
-// actually deliver reports itself UNAVAILABLE. It is never faked. The setup
-// screen was designed with an "unavailable" state precisely so that this is a
-// first-class outcome and not a failure.
+// Правило второе — честность в другую сторону: слой, который мы не умеем,
+// объявляет себя НЕДОСТУПНЫМ. Он никогда не имитируется. Экран подготовки
+// специально спроектирован с этим состоянием, поэтому «недоступно» — штатный
+// исход, а не сбой.
+//
+// ЧТО ИЗМЕНИЛОСЬ ПОСЛЕ ПЕРЕСБОРКИ. Голос и камера были `STUB` — их не
+// существовало. Теперь существуют: микрофон → VAD (ten-vad) → детектор конца
+// реплики → распознавание → ход движка, и обратно синтез речи; камера → редкие
+// кадры в модель зрения. Поэтому их доступность больше не «нет», а зависит от
+// двух настоящих условий: браузер даёт `getUserMedia` и страница в защищённом
+// контексте. Слоя лица не было вовсе — он добавлен.
 import type { Lang } from "../types";
 
-export type LayerId = "probe" | "voice" | "camera";
+export type LayerId = "probe" | "voice" | "camera" | "avatar";
 
 export interface LayerState {
   id: LayerId;
   available: boolean;
-  /** Why it is unavailable — rendered under the toggle. Null when available. */
+  /** Почему недоступен — рисуется под переключателем. Null, когда доступен. */
   reason: { ru: string; en: string } | null;
 }
 
 export type Layers = Record<LayerId, boolean>;
 
-export const NO_LAYERS: Layers = { probe: false, voice: false, camera: false };
+export const NO_LAYERS: Layers = { probe: false, voice: false, camera: false, avatar: false };
 
-/** Presets are names you can say on stage; the toggles underneath are the truth. */
+/** Пресеты — это имена, которые можно назвать со сцены; истина — переключатели под ними. */
 export const PRESETS: { id: string; label: { ru: string; en: string }; layers: Layers }[] = [
   { id: "classic", label: { ru: "Классика", en: "Classic" }, layers: NO_LAYERS },
   { id: "read", label: { ru: "Читай лицо", en: "Read the face" },
-    layers: { probe: true, voice: false, camera: false } },
+    layers: { probe: true, voice: false, camera: false, avatar: true } },
+  { id: "call", label: { ru: "Видеозвонок", en: "Video call" },
+    layers: { probe: false, voice: true, camera: false, avatar: true } },
   { id: "full", label: { ru: "Полный контакт", en: "Full contact" },
-    layers: { probe: true, voice: true, camera: true } },
+    layers: { probe: true, voice: true, camera: true, avatar: true } },
 ];
 
-// STUB(voice): нет ни STT, ни TTS — слой объявляет себя недоступным, а не имитирует
-//   разговор. Настоящим станет: адаптер распознавания, отдающий тот же turn.text,
-//   плюс правило «расшифровка редактируется до отправки». См. docs/modalities.md §3.
-// STUB(camera): нет распознавания лица. Настоящим станет: MediaPipe Face Landmarker
-//   в WASM локально, наружу только агрегаты (взгляд/устойчивость/моргание), кадры не
-//   покидают браузер. См. docs/modalities.md §2.
+/**
+ * Микрофон и камера требуют защищённого контекста. Это не наша придирчивость:
+ * браузер просто не отдаст поток по http с чужого хоста, и переключатель,
+ * который «включается», но ничего не делает, — ровно тот четвёртый вид
+ * состояния, которого в продукте не бывает.
+ */
+function mediaAllowed(): boolean {
+  if (typeof navigator === "undefined") return false;
+  if (!navigator.mediaDevices?.getUserMedia) return false;
+  return typeof window === "undefined" || window.isSecureContext !== false;
+}
+
 export function detectLayers(): Record<LayerId, LayerState> {
+  const media = mediaAllowed();
+  const insecure = {
+    ru: "нужен https или localhost — браузер не даёт микрофон и камеру иначе",
+    en: "needs https or localhost — the browser withholds mic and camera otherwise",
+  };
+
   return {
-    // Fully real: the engine already computes a reaction every turn, so reading
-    // it is deterministic, offline and free. No AI and no permissions involved.
+    // Полностью настоящий и офлайновый: движок и так считает реакцию каждый
+    // ход, так что правильный ответ детерминирован и бесплатен.
     probe: { id: "probe", available: true, reason: null },
-    voice: {
-      id: "voice", available: false,
-      reason: { ru: "распознавание речи ещё не подключено", en: "speech recognition not wired yet" },
-    },
-    camera: {
-      id: "camera", available: false,
-      reason: { ru: "чтение мимики ещё не подключено", en: "face reading not wired yet" },
-    },
+    // Настоящий: ten-vad → детектор конца реплики → распознавание → ход, и
+    // синтез речи оппонента обратно. Голос и текст дают одинаковый ход.
+    voice: { id: "voice", available: media, reason: media ? null : insecure },
+    // Настоящий, но узко: кадры уходят в модель зрения редко и адаптивно, и
+    // отвечают только на вопрос о присутствии и обстановке. Оценку не трогают.
+    camera: { id: "camera", available: media, reason: media ? null : insecure },
+    // Лицо оппонента: набор состояний, которые переключает РЕАКЦИЯ ДВИЖКА.
+    // Работает всегда — картинки лежат рядом, сеть и разрешения не нужны.
+    avatar: { id: "avatar", available: true, reason: null },
   };
 }
 
-/** Drop any layer the environment cannot actually deliver. Called on start, so a
- *  stale saved preset can never switch on something that does not exist. */
+/** Выбросить слой, который окружение не может дать. Вызывается на старте, чтобы
+ *  сохранённый пресет не включил то, чего нет. */
 export function pruneLayers(want: Layers, have: Record<LayerId, LayerState>): Layers {
   return {
     probe: want.probe && have.probe.available,
     voice: want.voice && have.voice.available,
     camera: want.camera && have.camera.available,
+    avatar: want.avatar && have.avatar.available,
   };
 }
 

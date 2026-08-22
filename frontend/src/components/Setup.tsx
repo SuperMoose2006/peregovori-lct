@@ -13,8 +13,9 @@ import type { Lang, ScenarioView } from "../types";
 import { PRESETS, reasonText, type LayerId, type Layers, type LayerState } from "../lib/layers";
 import { ScreenHeading } from "./ScreenHeading";
 
-const ICONS: Record<LayerId, string> = { probe: "🎭", voice: "🎤", camera: "📷" };
-const ORDER: LayerId[] = ["probe", "voice", "camera"];
+const ICONS: Record<LayerId, string> = { probe: "🎭", voice: "🎤", camera: "📷", avatar: "🙂" };
+// Порядок — от того, что работает всегда, к тому, что требует разрешений.
+const ORDER: LayerId[] = ["avatar", "probe", "voice", "camera"];
 
 interface Props {
   t: Strings;

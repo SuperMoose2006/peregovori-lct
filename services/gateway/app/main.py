@@ -424,7 +424,11 @@ async def ws(websocket: WebSocket) -> None:
 # ---- Production: serve the built SPA (single-process deploy) -----------------
 # In dev the Vite server serves the frontend and proxies /ws here, so this mount
 # is a no-op until `frontend/dist` exists. API/WS routes above always win.
-_DIST = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
+# Корень монорепо: app/ → services/gateway/ → services/ → LCT/.
+# Считаем от файла, а не от cwd: uvicorn запускают из разных мест, а
+# после переезда backend/ → services/gateway/ путь стал на уровень глубже.
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+_DIST = os.path.join(_REPO_ROOT, "frontend", "dist")
 if os.path.isdir(_DIST):
     app.mount("/assets", StaticFiles(directory=os.path.join(_DIST, "assets")), name="assets")
 

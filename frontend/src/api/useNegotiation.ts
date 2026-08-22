@@ -46,6 +46,20 @@ export interface NegotiationState {
   // Whether the semantic judge is live for this session (from the greeting). Drives
   // the "graded by meaning" badge — false offline/mock (deterministic keyword path).
   judgeActive: boolean;
+  // ---- realtime-слои. Все необязательные: партия обязана рисоваться, даже
+  // если ни одного из этих событий не пришло (офлайн, текстовый режим).
+  /** Состояние лица оппонента из `avatar.state`. Null — живых событий нет. */
+  avatarState: string | null;
+  /** Оппонент сейчас звучит. Управляет честным индикатором речи, а не губами. */
+  oppSpeaking: boolean;
+  /** Игрок сейчас говорит (VAD сервера). */
+  userSpeaking: boolean;
+  /** Расшифровка речи игрока — показывается, пока он не отправил ход. */
+  transcript: string | null;
+  /** Наблюдения камеры. НИКОГДА не влияют на оценку — только на разбор. */
+  observations: string[];
+  /** Что умеет эта сессия (из `session.created`). Null до начала партии. */
+  capabilities: Record<string, unknown> | null;
 }
 
 export interface Negotiation extends NegotiationState {
@@ -71,14 +85,31 @@ const initialState: NegotiationState = {
   error: null,
   conn: "online",
   judgeActive: false,
+  avatarState: null,
+  oppSpeaking: false,
+  userSpeaking: false,
+  transcript: null,
+  observations: [],
+  capabilities: null,
 };
 
-export function useNegotiation(lang: Lang): Negotiation {
+/** Куда рисовать картинку с камеры. Сами слои выбираются на экране подготовки
+ *  и едут в сообщении `start` — здесь только DOM-узлы, которых у протокола нет. */
+export interface RealtimeOptions {
+  videoEl?: HTMLVideoElement | null;
+  canvasEl?: HTMLCanvasElement | null;
+}
+
+export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Negotiation {
   const [s, setS] = useState<NegotiationState>(initialState);
   const transportRef = useRef<Transport | null>(null);
   const idRef = useRef(0);
   const langRef = useRef(lang);
   langRef.current = lang;
+  // Через ref, а не через зависимость эффекта: смена микрофона не должна
+  // пересоздавать транспорт посреди партии.
+  const realtimeRef = useRef(realtime);
+  realtimeRef.current = realtime;
   const nextId = () => ++idRef.current;
 
   const teardown = useCallback(() => {
@@ -105,6 +136,20 @@ export function useNegotiation(lang: Lang): Negotiation {
             // spinning — clear busy so the reconnect banner owns the messaging.
             busy: conn === "online" ? p.busy : false,
           })),
+        {
+          // Голос и камера сюда не передаются: их выбирают на экране
+          // подготовки, и они приезжают в сообщении `start` (см. transport.ts).
+          videoEl: realtimeRef.current.videoEl,
+          canvasEl: realtimeRef.current.canvasEl,
+          onAvatar: (avatarState) =>
+            setS((p) => ({ ...p, avatarState, oppSpeaking: avatarState === "speaking" })),
+          onObservation: (text) =>
+            setS((p) => ({ ...p, observations: [...p.observations, text] })),
+          onTranscript: (text, final) =>
+            setS((p) => ({ ...p, transcript: final ? null : text })),
+          onSpeech: (userSpeaking) => setS((p) => ({ ...p, userSpeaking })),
+          onCapabilities: (capabilities) => setS((p) => ({ ...p, capabilities })),
+        },
       );
     }
     return transportRef.current;

@@ -32,6 +32,7 @@ from app.avatar.presence import PresenceAvatar
 from app.orchestrator.judge import judge_enabled
 from app.orchestrator.negotiation import NegotiationOrchestrator
 from app.orchestrator.tts_manager import TTSTaskManager
+from app.perception.vision import VisionSampler
 from app.perception.voice_pipeline import VoicePipeline
 from app.providers.asr.openrouter import OpenRouterASR
 from app.providers.openrouter import chat as orchat
@@ -57,6 +58,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
     session: Optional[RealtimeSession] = None
     orchestrator: Optional[NegotiationOrchestrator] = None
     voice: Optional[VoicePipeline] = None
+    vision: Optional[VisionSampler] = None
     writer: Optional[asyncio.Task] = None
 
     try:
@@ -77,7 +79,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
                     await websocket.send_json(error("init_failed", problem or "init failed"))
                     continue
 
-                orchestrator, voice = _wire(session)
+                orchestrator, voice, vision = _wire(session)
                 writer = asyncio.create_task(_pump(websocket, session))
                 await websocket.send_json(_created_payload(session, voice))
                 continue
@@ -96,6 +98,8 @@ async def realtime_ws(websocket: WebSocket) -> None:
                 frames = data.get("video_frames")
                 if frames:
                     session.append_input(frames=frames)
+                    if vision is not None:
+                        vision.offer(frames)
                 audio_b64 = data.get("audio")
                 if audio_b64 and voice is not None:
                     pcm = np.frombuffer(base64.b64decode(audio_b64), dtype=np.int16)
@@ -143,6 +147,9 @@ async def realtime_ws(websocket: WebSocket) -> None:
         if orchestrator is not None:
             with contextlib.suppress(Exception):
                 await orchestrator.interrupt(reason="disconnect")
+        if vision is not None:
+            with contextlib.suppress(Exception):
+                await vision.aclose()
         if session is not None:
             session.bus.close()
             store.drop(session.session_id)
@@ -189,7 +196,8 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     ), None
 
 
-def _wire(session: RealtimeSession) -> tuple[NegotiationOrchestrator, Optional[VoicePipeline]]:
+def _wire(session: RealtimeSession) -> tuple[
+        NegotiationOrchestrator, Optional[VoicePipeline], Optional[VisionSampler]]:
     """Собрать подсистемы вокруг сессии по включённым слоям.
 
     Слои включают КАНАЛЫ, а не правила игры: выключенный голос означает, что
@@ -225,7 +233,13 @@ def _wire(session: RealtimeSession) -> tuple[NegotiationOrchestrator, Optional[V
             # пайплайн поднимает планку перебивания на это время.
             orchestrator.on_speaking_change = pipeline.set_opponent_speaking
 
-    return orchestrator, voice
+    vision: Optional[VisionSampler] = None
+    if session.layers.camera:
+        sampler = VisionSampler(session.lang, session.bus.publish,
+                                session.observations.append)
+        vision = sampler if sampler.available() else None
+
+    return orchestrator, voice, vision
 
 
 def _persona_is_female(scenario) -> bool:
@@ -257,7 +271,7 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
     capabilities = {
         "voice": bool(session.layers.voice),
         "microphone": voice is not None,
-        "camera": bool(session.layers.camera),
+        "camera": bool(session.layers.camera) and orchat.available(),
         "judge": judge_enabled(),
         "cloud_ai": orchat.available(),
         "models": describe_models(),
