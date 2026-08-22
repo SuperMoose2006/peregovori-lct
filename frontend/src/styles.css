@@ -2116,3 +2116,74 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   .pm-fill.leverage { background: var(--leverage); }
   .pm u { text-decoration: none; font-weight: 700; font-variant-numeric: tabular-nums; }
 }
+
+/* ---------- SKIN "game": the third column ----------
+   The shell is sidebar · content · rail. Without the rail the content column is
+   the whole width and the layout stops reading as an app — that was the gap
+   between the canvas design and what the code first shipped. */
+:root[data-skin="game"] .withrail {
+  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start;
+}
+.rail { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
+.rc {
+  background: var(--panel); border: 2px solid var(--line); border-radius: var(--r); padding: 16px 17px;
+}
+.rc h3 {
+  margin: 0 0 12px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  font-weight: 800; color: var(--ink-faint);
+}
+.rc-goal { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.rc-goal b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.rc-steps { display: inline-flex; gap: 5px; }
+.rc-steps i {
+  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  font-style: normal; font-size: 11px; font-weight: 800;
+  background: var(--panel-2); color: var(--ink-faint);
+}
+.rc-steps i.on { background: var(--brass); color: #fff; }
+.rc-rank { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.rc-rank b { font-size: 16px; }
+.rc-rank span { font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.rc-bar { height: 10px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+.rc-bar i { display: block; height: 100%; border-radius: 999px; background: var(--brass); transition: width 0.5s ease; }
+.rc-next { margin: 9px 0 0; font-size: 11.5px; color: var(--ink-dim); }
+.rc-method { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.rc-method li { font-size: 12.5px; line-height: 1.45; color: var(--ink-dim); padding-left: 13px; position: relative; }
+.rc-method li::before {
+  content: ""; position: absolute; left: 0; top: 7px; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--brass);
+}
+.rc-method li b { color: var(--ink); }
+
+.setup-main { min-width: 0; }
+
+/* The game screen already HAS an instrument rail — the canvas design puts it on
+   the RIGHT, beside the transcript, so the conversation gets the left-to-right
+   reading position. One `order` swap, no markup change. */
+:root[data-skin="game"] .table { grid-template-columns: minmax(0, 1fr) 340px; }
+:root[data-skin="game"] .side { order: 2; }
+:root[data-skin="game"] .chat { order: 1; }
+
+@media (max-width: 1100px) {
+  :root[data-skin="game"] .withrail { grid-template-columns: 1fr; }
+  .rail { position: static; flex-direction: row; flex-wrap: wrap; }
+  .rail .rc { flex: 1 1 240px; }
+}
+@media (max-width: 860px) {
+  /* Stacked: the instruments go back above the transcript, as in the dojo skin. */
+  :root[data-skin="game"] .table { grid-template-columns: 1fr; }
+  :root[data-skin="game"] .side { order: 0; }
+  :root[data-skin="game"] .chat { order: 0; }
+}
+
+/* The canvas design makes the card's call to action a real button, not a text
+   link — full width, uppercase, with the same pressable lip as every other
+   primary. It is the single most-clicked control on the screen. */
+:root[data-skin="game"] .go {
+  display: block; width: 100%; margin-top: 12px; padding: 11px;
+  background: var(--brass); color: #fff; border-radius: 14px;
+  border-bottom: 4px solid var(--edge);
+  font-size: 13px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+  text-align: center; transition: transform 0.06s;
+}
+:root[data-skin="game"] .card:active .go { transform: translateY(3px); border-bottom-width: 1px; }

@@ -26,15 +26,18 @@ interface Props {
   onPreset: (layers: Layers) => void;
   onStart: () => void;
   onBack: () => void;
+  /** Right-rail content — the shell's third column. */
+  rail?: React.ReactNode;
 }
 
-export function Setup({ t, lang, scenario, layers, states, onToggle, onPreset, onStart, onBack }: Props) {
+export function Setup({ t, lang, scenario, layers, states, onToggle, onPreset, onStart, onBack, rail }: Props) {
   const activePreset = PRESETS.find((p) =>
     ORDER.every((id) => p.layers[id] === layers[id]));
 
   return (
     <section className="screen">
-      <div className="wrap setup">
+      <div className={`wrap setup${rail ? " withrail" : ""}`}>
+        <div className="setup-main">
         <button className="setup-back" onClick={onBack}>← {t.layers.back}</button>
         <ScreenHeading as="h1" className="sr-only">{scenario.title}</ScreenHeading>
 
@@ -101,10 +104,16 @@ export function Setup({ t, lang, scenario, layers, states, onToggle, onPreset, o
 
         <button className="primary setup-go" onClick={onStart}>{t.layers.start}</button>
 
-        <div className="setup-explain">
-          <h3>{t.layers.explainHead}</h3>
-          <ul>{t.layers.explain.map((l, i) => <li key={i}>{l}</li>)}</ul>
+        {/* When there is a rail, the explainer belongs in it — beside the
+            toggles it explains, not below the button that leaves the screen. */}
+        {rail ? null : (
+          <div className="setup-explain">
+            <h3>{t.layers.explainHead}</h3>
+            <ul>{t.layers.explain.map((l, i) => <li key={i}>{l}</li>)}</ul>
+          </div>
+        )}
         </div>
+        {rail}
       </div>
     </section>
   );

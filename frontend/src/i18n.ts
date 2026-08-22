@@ -175,6 +175,10 @@ export interface Strings {
   };
   // first-turn coach bubble (practice/campaign/custom; withheld in exam).
   // {name} = counterpart name, substituted at render.
+  // Right-rail widgets of the "game" skin shell.
+  goal: { title: string };
+  rank: { title: string; toNext: string };  // toNext: "{n} XP до «{rank}»"
+  method: { title: string };
   // The optional modality layers: the pre-game setup screen, the in-log question
   // and its verdict. Reaction names double as the question's answer options.
   layers: {
@@ -611,6 +615,9 @@ export const I18N: Record<Lang, Strings> = {
         F: "Ещё учиться",
       },
     },
+    goal: { title: "Цель дня" },
+    rank: { title: "Ваш ранг", toNext: "{n} XP до «{rank}»" },
+    method: { title: "Метод" },
     layers: {
       head: "Слои",
       what: "что это",
@@ -1059,6 +1066,9 @@ export const I18N: Record<Lang, Strings> = {
         F: "Still learning",
       },
     },
+    goal: { title: "Daily goal" },
+    rank: { title: "Your rank", toNext: "{n} XP to \u00ab{rank}\u00bb" },
+    method: { title: "Method" },
     layers: {
       head: "Layers",
       what: "what is this",

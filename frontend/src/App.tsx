@@ -10,6 +10,7 @@ import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
 import { Setup } from "./components/Setup";
+import { ProgressCards, MethodCard, RailCard } from "./components/Rail";
 import { SCENARIO_MAP, toScenarioView } from "./data/scenarios";
 import { detectLayers, pruneLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
 import { Table } from "./components/Table";
@@ -417,13 +418,10 @@ export default function App() {
             {/* The game skin drops the marketing hero and the proof-of-method
                 explainer: in an app shell the product IS the path, and a juror
                 must reach a negotiation without scrolling past 1.4 screens of
-                pitch. The XP strip survives as a rail widget, and the heading
+                pitch. The XP strip moves into the right rail, and the heading
                 still exists for screen readers. */}
             {skin === "game" ? (
-              <>
-                <ScreenHeading as="h1" className="sr-only">{t.pickHead}</ScreenHeading>
-                <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} onSetGoal={setGoalTarget} />
-              </>
+              <ScreenHeading as="h1" className="sr-only">{t.pickHead}</ScreenHeading>
             ) : (
               <>
                 <div className="hero">
@@ -447,6 +445,9 @@ export default function App() {
                 <WhyTeaches t={t} lang={lang} />
               </>
             )}
+            {/* Three-part shell: the rail is what makes the layout read as an
+                app rather than a wide document. Absent in the dojo skin. */}
+            <div className={skin === "game" ? "withrail" : ""}>
             <div id="play">
             <ScenarioPicker
               t={t}
@@ -466,6 +467,13 @@ export default function App() {
               onExamNameChange={setExamName}
             />
             </div>
+            {skin === "game" ? (
+              <aside className="rail">
+                <ProgressCards t={t} lang={lang} profile={profile} />
+                <MethodCard t={t} />
+              </aside>
+            ) : null}
+            </div>
           </div>
         </section>
       )}
@@ -481,6 +489,16 @@ export default function App() {
           onPreset={setLayers}
           onStart={startWithLayers}
           onBack={goHome}
+          rail={skin === "game" ? (
+            <aside className="rail">
+              <RailCard title={t.layers.explainHead}>
+                <ul className="rc-method">
+                  {t.layers.explain.map((l, i) => <li key={i}>{l}</li>)}
+                </ul>
+              </RailCard>
+              <ProgressCards t={t} lang={lang} profile={profile} />
+            </aside>
+          ) : undefined}
         />
       )}
 
