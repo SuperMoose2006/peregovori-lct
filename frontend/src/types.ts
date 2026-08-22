@@ -99,6 +99,12 @@ export interface Debrief {
   tradeoffs: number;
   avg_arg: number;
   tips: string[];
+  // The AI mentor's closing word: it NARRATES the scorecard above, it never
+  // changes it. Present only when a live AI backend answered — every debrief
+  // must read complete with all three absent.
+  ai_verdict?: string;
+  ai_strength?: string;
+  ai_growth?: string;
   // The 1-2 moves that swung the negotiation most (backend may omit; older
   // debriefs / non-engine paths render nothing when absent).
   turning_points?: TurningPoint[];

@@ -229,6 +229,31 @@ def coach_facts(sess: "engine.Session", lang: str) -> dict:
     }
 
 
+def debrief_facts(sess: "engine.Session", deb: dict, lang: str) -> dict:
+    """Facts for the AI mentor's closing word.
+
+    The mirror image of `coach_facts`: the game is over, so the hidden interests
+    ARE included — the teaching moment is showing the player what they never
+    asked about. The engine's finished scorecard is passed in verbatim so the
+    mentor narrates it instead of inventing a second, competing verdict.
+    """
+    sc = engine.by_id(sess.scenario_id)
+    facts = {
+        "lang": lang,
+        "role": sc.role[lang],
+        "persona_name": sc.counterpart.name[lang],
+        "persona_desc": sc.counterpart.persona[lang],
+        "hidden_interests": list(sc.hidden_interests[lang]),
+        "transcript": _transcript(sess, lang, max_turns=14),
+    }
+    for k in ("grade", "overall", "economic", "relationship", "technique", "deal_text",
+              "status", "interests_found", "interests_total", "objective_criteria",
+              "tradeoffs", "threats"):
+        facts[k] = deb.get(k)
+    facts["engine_tips"] = list(deb.get("tips") or [])
+    return facts
+
+
 def _transcript(sess: "engine.Session", lang: str, max_turns: int = 6) -> str:
     """Recent dialogue so the opponent has memory of its own concessions/words.
     Excludes the current player line (that's passed separately as player_text)."""

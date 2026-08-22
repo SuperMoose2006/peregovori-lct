@@ -305,6 +305,29 @@ export function Debrief({
             </div>
           ) : null}
 
+          {d.ai_verdict ? (
+            <div className="mentor">
+              <h3>🎓 {t.mentor.title}</h3>
+              <p className="mn-verdict">{d.ai_verdict}</p>
+              {d.ai_strength || d.ai_growth ? (
+                <div className="mn-grid">
+                  {d.ai_strength ? (
+                    <div className="mn-cell good">
+                      <span className="mn-lab">{t.mentor.strength}</span>
+                      <p>{d.ai_strength}</p>
+                    </div>
+                  ) : null}
+                  {d.ai_growth ? (
+                    <div className="mn-cell grow">
+                      <span className="mn-lab">{t.mentor.growth}</span>
+                      <p>{d.ai_growth}</p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {d.turning_points && d.turning_points.length > 0 ? (
             <div className="tpoints">
               <h3>{t.turningPoints.title}</h3>

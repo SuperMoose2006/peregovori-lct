@@ -268,3 +268,17 @@ test("the hint's worked example follows the state, not a fixed script", async ()
   // using this scenario's own tradeable item — never a generic placeholder.
   assert.ok(!warm.includes("{item}"));
 });
+
+test("the offline debrief claims no mentor verdict", async () => {
+  // ai_verdict/ai_strength/ai_growth are markers that a LIVE model spoke. The
+  // mock has no model, so faking them would be the same lie as the judge-cam
+  // chips appearing without a judge. Offline the engine's tips stand alone.
+  const { newSession, scoreSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const s = newSession(SCENARIO_MAP["supplier"], "ru");
+  const d = scoreSession(s) as unknown as Record<string, unknown>;
+  assert.equal(d.ai_verdict, undefined);
+  assert.equal(d.ai_strength, undefined);
+  assert.equal(d.ai_growth, undefined);
+  assert.ok(Array.isArray(d.tips) && (d.tips as unknown[]).length > 0);
+});

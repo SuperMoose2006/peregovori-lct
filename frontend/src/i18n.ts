@@ -200,6 +200,13 @@ export interface Strings {
   // side-by-side of the player's line vs a principled master reformulation. The
   // SELECTION (weak turn + missing technique) is an engine fact; the reformulation
   // is a quality Harvard/SPIN template keyed to what the debrief shows was missing.
+  // The AI mentor's closing word on the debrief. Rendered only when the backend
+  // sent one (live AI); offline the engine's tips carry the debrief alone.
+  mentor: {
+    title: string;     // "Слово наставника"
+    strength: string;  // label above the one thing that worked
+    growth: string;    // label above the one thing to change next time
+  };
   master: {
     title: string;   // "Что сказал бы мастер"
     yours: string;   // "Ваша реплика"
@@ -529,6 +536,11 @@ export const I18N: Record<Lang, Strings> = {
         "Смотрите: их цена сдвинулась к вашей цели. Каждый удачный ход двигает её — следите за этой шкалой.",
     },
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
+    mentor: {
+      title: "Слово наставника",
+      strength: "Что сработало",
+      growth: "Что изменить в следующий раз",
+    },
     master: {
       title: "Что сказал бы мастер",
       yours: "Ваша реплика",
@@ -877,6 +889,11 @@ export const I18N: Record<Lang, Strings> = {
         "Look: their price slid toward your target. Every good move nudges it — keep an eye on this scale.",
     },
     turningPoints: { title: "Turning points", turn: "Turn" },
+    mentor: {
+      title: "A word from your mentor",
+      strength: "What worked",
+      growth: "What to change next time",
+    },
     master: {
       title: "What a master would say",
       yours: "Your line",

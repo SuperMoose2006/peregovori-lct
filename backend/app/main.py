@@ -43,6 +43,7 @@ from app.ai.graph import run_opponent_sync
 from app.ai.chat_models import describe_mode, ai_enabled
 from app.ai.judge import judge_turn, judge_enabled
 from app.ai.coach import suggest_line as coach_suggest
+from app.ai.debriefer import summarize as debrief_summarize
 from app import views
 from app.protocol import (
     StartMsg, TurnMsg, ScenarioView, StateView, WhatIfMsg,
@@ -266,6 +267,15 @@ async def ws(websocket: WebSocket) -> None:
                 if result.closed:
                     deb = views.debrief_view(sess).model_dump()
                     deb["turning_points"] = views.turning_points(sess)  # transcript-grounded
+                    # The mentor's closing word narrates the scorecard above; it
+                    # never changes it. Threaded like every other blocking AI call.
+                    if ai_enabled():
+                        dfacts = views.debrief_facts(sess, deb, lang)
+                        note = await asyncio.to_thread(debrief_summarize, dfacts, lang)
+                        if note:
+                            deb["ai_verdict"] = note.get("verdict")
+                            deb["ai_strength"] = note.get("strength")
+                            deb["ai_growth"] = note.get("growth")
                     await websocket.send_json({"type": "debrief", "debrief": deb})
 
             # ---- hint -----------------------------------------------------
