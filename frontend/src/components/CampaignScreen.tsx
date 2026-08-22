@@ -66,6 +66,7 @@ function ActRow({
   status,
   result,
   onCourse,
+  onWarmup,
 }: {
   t: Strings;
   lang: Lang;
@@ -75,6 +76,7 @@ function ActRow({
   status: "done" | "current" | "locked";
   result?: StageResult;
   onCourse?: (blockId: string) => void;
+  onWarmup?: (blockId: string) => void;
 }) {
   const node =
     status === "done" && result ? (
@@ -118,6 +120,14 @@ function ActRow({
                 {b.icon} {b.title[lang]}
               </button>
             ))}
+            {/* Разминка: два задания на приём этого акта — и сразу за стол.
+                Пропустить можно всегда, это разгон, а не пропуск в акт. */}
+            {onWarmup ? (
+              <button className="act-course-b warm"
+                      onClick={() => onWarmup(blocksForScenario(stage.scenario_id)[0].id)}>
+                {t.course.warmupCta}
+              </button>
+            ) : null}
           </p>
         ) : null}
       </div>
@@ -133,6 +143,7 @@ export function CampaignArc({
   progress,
   onBegin,
   onCourse,
+  onWarmup,
 }: {
   t: Strings;
   lang: Lang;
@@ -141,6 +152,8 @@ export function CampaignArc({
   onBegin: () => void;
   /** Открыть блок курса, который тренирует приём текущего акта. */
   onCourse?: (blockId: string) => void;
+  /** Разминка перед актом: два задания из того же блока, потом сразу стол. */
+  onWarmup?: (blockId: string) => void;
 }) {
   if (!campaign) {
     return <p className="lead" style={{ padding: "24px 0" }}>{t.connecting}</p>;
@@ -180,6 +193,7 @@ export function CampaignArc({
               status={i < idx ? "done" : i === idx ? "current" : "locked"}
               result={progress.results[i]}
               onCourse={onCourse}
+              onWarmup={onWarmup}
             />
           ))}
         </ol>

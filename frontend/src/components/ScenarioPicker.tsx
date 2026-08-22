@@ -47,6 +47,8 @@ interface Props {
   onCourse?: () => void;
   /** Открыть конкретный блок курса — из акта кампании. */
   onCourseBlock?: (blockId: string) => void;
+  /** Разминка перед актом кампании. */
+  onWarmup?: (blockId: string) => void;
   courseDone?: number;
   courseTotal?: number;
 }
@@ -70,7 +72,8 @@ export function ScenarioPicker({
   t, lang, mode, onSelectMode, onStart,
   situation, customError, onSituationChange, onStartCustom,
   campaign, campaignProgress, onBeginStage, profile,
-  examName, onExamNameChange, hideModes, onCourse, onCourseBlock, courseDone = 0, courseTotal = 0,
+  examName, onExamNameChange, hideModes, onCourse, onCourseBlock, onWarmup,
+  courseDone = 0, courseTotal = 0,
 }: Props) {
   const rows = catalog(lang);
   return (
@@ -121,7 +124,7 @@ export function ScenarioPicker({
         />
       ) : mode === "campaign" ? (
         <CampaignArc t={t} lang={lang} campaign={campaign} progress={campaignProgress}
-                     onBegin={onBeginStage} onCourse={onCourseBlock} />
+                     onBegin={onBeginStage} onCourse={onCourseBlock} onWarmup={onWarmup} />
       ) : (
         <>
           {mode === "exam" ? (

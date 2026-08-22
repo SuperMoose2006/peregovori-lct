@@ -2864,3 +2864,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .master-list li.done .ml-n { background: var(--trust); color: #fff; }
 .master-list b { display: block; font-size: 14px; margin-bottom: 3px; }
 .master-list span { font-size: 12.5px; color: var(--ink-dim); }
+/* Разминка перед актом: два задания на приём этого акта, и сразу за стол. */
+.act-course-b.warm { border-color: var(--brass); color: var(--brass); font-weight: 800; }
+.warm-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 13px; color: var(--ink-dim); margin-bottom: 10px; }
+.warm-tag { font-weight: 800; color: var(--brass); }
+.warm-skip { margin-left: auto; padding: 6px 12px; font-size: 12px; }

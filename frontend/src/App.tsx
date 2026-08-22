@@ -10,6 +10,7 @@ import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
 import { CourseScreen, type ExamCtx } from "./components/CourseScreen";
+import { Warmup } from "./components/Warmup";
 import {
   COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, checkDrill, nextStep,
 } from "./lib/course";
@@ -27,7 +28,7 @@ import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameRe
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 
-type Screen = "home" | "setup" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course";
+type Screen = "home" | "setup" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course" | "warmup";
 
 // How long the finished table stays on screen before the scorecard takes over.
 // Long enough to read the closing line and the outcome stamp, short enough that
@@ -257,6 +258,8 @@ export default function App() {
     [profile.course],
   );
   const [courseStart, setCourseStart] = useState<{ blockId: string; lesson: number | null } | null>(null);
+  // Разминка перед актом кампании: блок курса, из которого берутся задания.
+  const [warmupBlock, setWarmupBlock] = useState<string | null>(null);
   const openCourse = useCallback((at: { blockId: string; lesson: number | null } | null) => {
     setCourseStart(at);
     setScreen("course");
@@ -573,6 +576,7 @@ export default function App() {
               hideModes={skin === "game"}
               onCourse={() => openCourse(null)}
               onCourseBlock={(blockId) => openCourse({ blockId, lesson: null })}
+              onWarmup={(blockId) => { setWarmupBlock(blockId); setScreen("warmup"); }}
               courseDone={coursePassed}
               courseTotal={COURSE_BLOCKS.length}
             />
@@ -791,6 +795,18 @@ export default function App() {
 
       {screen === "profile" && (
         <SkillsProfile t={t} lang={lang} profile={profile} onHome={goHome} />
+      )}
+
+      {screen === "warmup" && warmupBlock && (
+        <Warmup
+          t={t}
+          lang={lang}
+          profile={profile}
+          onProfile={(p) => { setProfile(p); saveProfile(p); }}
+          blockId={warmupBlock}
+          onDone={() => { setWarmupBlock(null); beginStage(); }}
+          onSkip={() => { setWarmupBlock(null); setScreen("home"); }}
+        />
       )}
 
       {screen === "course" && (

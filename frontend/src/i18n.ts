@@ -257,6 +257,8 @@ export interface Strings {
     masterAgain: string; masterAbout: string; masterNext: string; masterPassed: string;
     masterPassedBody: string; masterKarlPass: string; masterKarlFail: string;
     masterProgress: string; masterDrillPass: string; masterDrillFail: string;
+    warmupTitle: string; warmupSkip: string; warmupReady: string; warmupToTable: string;
+    warmupKarl: string; warmupCta: string;
     drillStart: string; drillNote: string; drillPass: string; drillFail: string;
     backToCourse: string;
     karlTheory: string; karlPerfect: string; karlOk: string;
@@ -797,6 +799,12 @@ export const I18N: Record<Lang, Strings> = {
       masterProgress: "Партия {n} из {total}",
       masterDrillPass: "Партия экзамена сдана",
       masterDrillFail: "Партия экзамена не сдана",
+      warmupTitle: "Разминка",
+      warmupSkip: "Пропустить",
+      warmupReady: "Разминка пройдена",
+      warmupToTable: "За стол",
+      warmupKarl: "Теперь то же самое — но живьём, и цена будет двигаться по-настоящему.",
+      warmupCta: "⚡ Разминка · 2 задания",
       drillStart: "Начать мини-переговоры",
       drillNote: "Настоящая партия на {n} ходов. Оценивает движок — как всегда.",
       drillPass: "Капстоун сдан",
@@ -1371,6 +1379,12 @@ export const I18N: Record<Lang, Strings> = {
       masterProgress: "Negotiation {n} of {total}",
       masterDrillPass: "Exam negotiation passed",
       masterDrillFail: "Exam negotiation not passed",
+      warmupTitle: "Warm-up",
+      warmupSkip: "Skip",
+      warmupReady: "Warm-up done",
+      warmupToTable: "To the table",
+      warmupKarl: "Now the same thing — live, and the price will actually move.",
+      warmupCta: "⚡ Warm-up · 2 tasks",
       drillStart: "Start the mini-negotiation",
       drillNote: "A real {n}-turn negotiation. Scored by the engine, as always.",
       drillPass: "Capstone passed",

@@ -240,6 +240,9 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
             inputMode="decimal"
             value={num}
             onChange={(e) => setNum(e.target.value)}
+            // Enter проверяет: числовой ответ — это одно число, тянуться мышью
+            // к кнопке после каждого задания незачем.
+            onKeyDown={(e) => { if (e.key === "Enter" && ready()) submit(); }}
             disabled={locked}
             placeholder="0"
             aria-label={say(ex.prompt, lang)}
@@ -253,6 +256,11 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
+            // Ctrl/⌘+Enter — как в композере партии: обычный Enter в свободном
+            // ответе нужен для переноса строки.
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && ready()) submit();
+            }}
             disabled={locked}
             rows={3}
             placeholder={t.course.freeformHint}
