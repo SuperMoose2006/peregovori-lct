@@ -1,3 +1,28 @@
+/* Nunito, self-hosted. The skin's second pillar is "one rounded sans
+   everywhere", and it was never rendering: the family was named in the stack but
+   no font was ever loaded, so every screen fell through to system-ui.
+   Self-hosted rather than linked from Google: a demo on venue wifi must not wait
+   on fonts.gstatic.com to paint, and nothing here leaves the origin. Cyrillic +
+   Latin only, one variable file per subset — 60 KB for the pair. */
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/fonts/nunito-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: "Nunito";
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url("/fonts/nunito-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* styles.css — "lamplit table" visual identity. Ported from
    legacy-node/public/demo.html and extended for the React app. Theme-aware
    (light/dark via prefers-color-scheme + [data-theme]) and responsive. */
@@ -67,11 +92,10 @@
   --trust: #58cc02; --tension: #ff4b4b; --info: #1cb0f6; --leverage: #ce82ff;
   --shadow: 0 4px 0 var(--line-2);
   /* One family for everything: the serif is what makes the default skin read as
-     a document, so a skin that keeps it would not read as a game. Nunito is
-     named as a progressive enhancement only — NO webfont is linked, because a
-     demo on venue wifi must not wait on fonts.gstatic.com to paint. Machines
-     that have it get the rounded face; everything else gets system-ui, and the
-     skin still reads as a game on shape and weight alone. */
+     a document, so a skin that keeps it would not read as a game. Nunito is now
+     SELF-HOSTED (see the @font-face pair at the top of this file) — it used to be
+     named here and never loaded, so the rounded letterform, which is most of the
+     identity, never actually rendered. */
   --serif: "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
   --sans: "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
   --r: 16px;
@@ -2308,4 +2332,43 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    button IS the success signal, so a failed negotiation was closing on one. */
 :root[data-skin="game"] .outcome.breakdown .oc-go {
   background: var(--ink-dim); border-bottom-color: var(--ink);
+}
+
+/* ---------- The live HUD ----------
+   Four meters pinned to the top of the chat card. Only in the game skin, where
+   it REPLACES the rail's meter panel: keeping both would show the same numbers
+   twice. The dojo skin keeps its rail panel and never renders this. */
+.hud { display: none; }
+:root[data-skin="game"] .hud {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px;
+  padding: 11px 16px; border-bottom: 2px solid var(--line); background: var(--panel);
+}
+:root[data-skin="game"] .hud-m { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; }
+:root[data-skin="game"] .hud-m b {
+  font-weight: 800; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-faint); white-space: nowrap;
+}
+:root[data-skin="game"] .hud-bar {
+  flex: 1; min-width: 18px; height: 9px; border-radius: 999px;
+  background: var(--panel-2); overflow: hidden;
+}
+:root[data-skin="game"] .hud-bar i { display: block; height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+:root[data-skin="game"] .hud-m.trust .hud-bar i { background: var(--trust); }
+:root[data-skin="game"] .hud-m.tension .hud-bar i { background: var(--tension); }
+:root[data-skin="game"] .hud-m.info .hud-bar i { background: var(--info); }
+:root[data-skin="game"] .hud-m.leverage .hud-bar i { background: var(--leverage); }
+:root[data-skin="game"] .hud-m u { text-decoration: none; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* The rail's meter panel and the in-question duplicate both become redundant
+   once the HUD is always on screen. */
+:root[data-skin="game"] .side .meters,
+:root[data-skin="game"] .side .scorecard,
+:root[data-skin="game"] .pb-meters { display: none; }
+
+@media (max-width: 860px) {
+  /* The conversation comes FIRST on a phone. With both at order:0 the DOM won,
+     the rail stacked on top, and the composer sat 1443px down a 844px screen —
+     the player met a dashboard instead of the exercise. */
+  :root[data-skin="game"] .chat { order: 0; }
+  :root[data-skin="game"] .side { order: 1; }
+  :root[data-skin="game"] .hud { grid-template-columns: 1fr 1fr; padding: 10px 13px; }
 }

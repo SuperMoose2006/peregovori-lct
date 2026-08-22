@@ -409,6 +409,22 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
           </aside>
 
           <main className="chat">
+            {/* The live HUD. It lives in the CHAT card, not the rail, because the
+                rail is a nested scroller: at 1280x800 all four meters — the whole
+                "am I winning?" signal — scrolled out of sight inside it. This
+                strip never scrolls away at any width. Game skin only. */}
+            {st && !exam ? (
+              <div className="hud" role="img" aria-label={t.a11y.hud}>
+                {([["trust", st.trust], ["tension", st.tension],
+                   ["info", st.info], ["leverage", st.leverage]] as const).map(([k, v]) => (
+                  <span className={`hud-m ${k}`} key={k}>
+                    <b>{t.metersShort[k]}</b>
+                    <i className="hud-bar"><i style={{ width: `${v}%` }} /></i>
+                    <u>{v}</u>
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <div className="ch">
               {/* The game skin turns the turn counter into a spent-budget bar:
                   the same honest framing (budget, not countdown), but visible at
