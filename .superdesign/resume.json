@@ -52,6 +52,39 @@
           "currentVersion": 1
         }
       }
+    },
+    "/modalities": {
+      "targetKind": "new-target",
+      "projectId": "93a93892-1f68-4369-b240-ab79ad9158ac",
+      "activeDraftId": "88e07b10-50aa-4e8b-ac63-5185393d2538",
+      "designSystemPath": ".superdesign/design-system.md",
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        "docs/modalities-ux.md"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "e255938d07be55c9277606e92cd3996ac6988601615809cc0e1ef13110fec679",
+        "docs/modalities-ux.md": "497db3e0567de999716b04b19777d764b8ef08c80431384bbe3db1431785c452"
+      },
+      "drafts": {
+        "88e07b10-50aa-4e8b-ac63-5185393d2538": {
+          "title": "Pre-game setup — layers & presets",
+          "visualDirection": "layer toggles with three distinct states (on / off / unavailable) + presets",
+          "currentVersion": 1
+        },
+        "37b1f9da-d9eb-430a-9c27-2a64fc0562d4": {
+          "title": "Emotion-reading moment",
+          "visualDirection": "probe card inline in the log, avatar enlarged, composer blocked, meters kept visible",
+          "parentDraftId": "c42f80c0-5a95-4662-ac86-38b1b15703e4",
+          "currentVersion": 1
+        },
+        "fb405c20-23d2-4941-ba8e-de82703ecad1": {
+          "title": "Voice mode",
+          "visualDirection": "composer becomes a mic; live transcript editable before sending; no visible timer",
+          "parentDraftId": "c42f80c0-5a95-4662-ac86-38b1b15703e4",
+          "currentVersion": 1
+        }
+      }
     }
   }
 }
