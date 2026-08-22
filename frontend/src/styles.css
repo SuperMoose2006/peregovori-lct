@@ -234,10 +234,23 @@ h1, h2, h3, .serif { font-family: var(--serif); }
    large empty rectangle under it on any desktop viewport. The chat now fills the
    row. `.side` keeps `align-self: start` so its `position: sticky` still has
    somewhere to travel. */
+/* `align-items: stretch` (the default) is deliberate: the sidebar is the taller
+   column, so with `start` the chat card ended at its minimum and left a large
+   empty rectangle under it on any desktop viewport.
+
+   `height`, NOT `min-height`: a floor let the grid grow with the transcript, so
+   from about turn 4 the PAGE scrolled instead of the log — and the meters, the
+   deal tracker and the composer (the whole argument that this is a simulator and
+   not a chatbot) left the screen exactly when the negotiation got interesting.
+   A fixed row height plus `min-height: 0` on the children hands the overflow back
+   to `.log`, which is the only thing that should scroll. */
 .table { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 20px 0 40px;
-  min-height: calc(100vh - 210px); }
-.side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px;
-  align-self: start; }
+  height: calc(100vh - 190px); min-height: 520px; }
+.table > * { min-height: 0; }
+.side { display: flex; flex-direction: column; gap: 14px; align-self: stretch;
+  /* At 1280×800 the rail is taller than the row; it gets its own scroll rather
+     than pushing the page. Sticky is pointless once the row is bounded. */
+  max-height: 100%; overflow-y: auto; scrollbar-width: thin; }
 
 .opp { display: flex; gap: 13px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; }
 .opp .face { width: 52px; height: 52px; display: grid; place-items: center; background: var(--panel-2); border-radius: 11px; overflow: hidden; flex: 0 0 auto; }
@@ -673,9 +686,11 @@ textarea:focus { outline: none; border-color: var(--brass); }
 
 /* ---------- Tablet: collapse the two-column game to one column ---------- */
 @media (max-width: 860px) {
-  .table { grid-template-columns: 1fr; min-height: 0; }
+  /* Stacked: nothing to fill and nothing to bound — the page scrolls as a page,
+     so every desktop height rule has to be undone, not just softened. */
+  .table { grid-template-columns: 1fr; height: auto; min-height: 0; }
   .chat { height: auto; }
-  .side { position: static; }
+  .side { max-height: none; overflow: visible; }
   .gh { flex-direction: column; text-align: center; }
 }
 

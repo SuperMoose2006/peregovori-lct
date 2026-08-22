@@ -50,8 +50,17 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   // same suggestion refill the box after the player edited it away.
   const [prefill, setPrefill] = useState<{ text: string; nonce: number } | undefined>(undefined);
   const prefillNonce = useRef(1);
+  // On a phone the rail stacks above the chat, so the closing strip mounts far
+  // below the fold — the climax of the negotiation rendered where nobody was
+  // looking, and the hold expires before they find it. Bring it into view.
+  const outcomeRef = useRef<HTMLDivElement | null>(null);
   const st = state;
   const finished = !!st && st.status !== "active";
+  useEffect(() => {
+    if (!finished) return;
+    outcomeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [finished]);
+
   const iFound = st?.interests_found ?? 0;
   const iTotal = st?.interests_total ?? 0;
   // Exam is an assessment: all live coaching feedback (meters, interests tracker,
@@ -374,7 +383,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               </div>
             ) : null}
             {finished && onSeeDebrief ? (
-              <div className={`outcome ${st!.status}`} role="status">
+              <div className={`outcome ${st!.status}`} role="status" ref={outcomeRef}>
                 <div className="oc-stamp">
                   <span className="oc-mark" aria-hidden="true">
                     {st!.status === "agreement" ? "🤝" : "🚪"}
