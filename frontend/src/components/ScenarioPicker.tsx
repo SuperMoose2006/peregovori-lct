@@ -45,6 +45,8 @@ interface Props {
   /** Курс приёмов — не режим партии, но входить в него надо оттуда же.
       В скине «додзё» сайдбара нет вовсе, и без этой карточки курс недостижим. */
   onCourse?: () => void;
+  /** Открыть конкретный блок курса — из акта кампании. */
+  onCourseBlock?: (blockId: string) => void;
   courseDone?: number;
   courseTotal?: number;
 }
@@ -68,7 +70,7 @@ export function ScenarioPicker({
   t, lang, mode, onSelectMode, onStart,
   situation, customError, onSituationChange, onStartCustom,
   campaign, campaignProgress, onBeginStage, profile,
-  examName, onExamNameChange, hideModes, onCourse, courseDone = 0, courseTotal = 0,
+  examName, onExamNameChange, hideModes, onCourse, onCourseBlock, courseDone = 0, courseTotal = 0,
 }: Props) {
   const rows = catalog(lang);
   return (
@@ -118,7 +120,8 @@ export function ScenarioPicker({
           onGenerate={onStartCustom}
         />
       ) : mode === "campaign" ? (
-        <CampaignArc t={t} campaign={campaign} progress={campaignProgress} onBegin={onBeginStage} />
+        <CampaignArc t={t} lang={lang} campaign={campaign} progress={campaignProgress}
+                     onBegin={onBeginStage} onCourse={onCourseBlock} />
       ) : (
         <>
           {mode === "exam" ? (

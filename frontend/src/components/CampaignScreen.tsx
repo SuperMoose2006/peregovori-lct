@@ -2,8 +2,9 @@
 // acts on the home screen (CampaignArc), and the end-of-campaign summary
 // (CampaignComplete). The engine/backend own scoring; this only renders the
 // running narrative + reputation the App tracks between stages.
-import type { CampaignView } from "../types";
+import type { CampaignView, Lang } from "../types";
 import type { Strings } from "../i18n";
+import { COURSE_BLOCKS } from "../lib/course";
 
 // Per-stage record the App accumulates as the player advances the arc.
 export interface StageResult {
@@ -46,20 +47,34 @@ function Difficulty({ n }: { n: number }) {
 }
 
 // One act row in the arc. `status` drives the node glyph + badge.
+/** Блоки курса, которые тренируются на этом же сценарии.
+ *
+ *  Связь не выдумана «для красоты»: у блока курса ЕСТЬ сценарий, на котором он
+ *  ставит навык, и это ровно те же восемь сценариев, из которых собрана
+ *  кампания. Акт, у которого не сходится ни один блок, просто не покажет строку.
+ */
+function blocksForScenario(scenarioId: string) {
+  return COURSE_BLOCKS.filter((b) => b.scenario_id === scenarioId);
+}
+
 function ActRow({
   t,
+  lang,
   index,
   total,
   stage,
   status,
   result,
+  onCourse,
 }: {
   t: Strings;
+  lang: Lang;
   index: number;
   total: number;
   stage: CampaignView["stages"][number];
   status: "done" | "current" | "locked";
   result?: StageResult;
+  onCourse?: (blockId: string) => void;
 }) {
   const node =
     status === "done" && result ? (
@@ -95,6 +110,16 @@ function ActRow({
           <span className={`act-badge ${status}`}>{badge}</span>
         </div>
         {status === "current" ? <p className="act-intro">{stage.intro}</p> : null}
+        {status === "current" && onCourse && blocksForScenario(stage.scenario_id).length ? (
+          <p className="act-course">
+            <span>{t.course.actTeaches}:</span>
+            {blocksForScenario(stage.scenario_id).map((b) => (
+              <button key={b.id} className="act-course-b" onClick={() => onCourse(b.id)}>
+                {b.icon} {b.title[lang]}
+              </button>
+            ))}
+          </p>
+        ) : null}
       </div>
     </li>
   );
@@ -103,14 +128,19 @@ function ActRow({
 // The arc shown on the home screen when "Кампания" is selected.
 export function CampaignArc({
   t,
+  lang,
   campaign,
   progress,
   onBegin,
+  onCourse,
 }: {
   t: Strings;
+  lang: Lang;
   campaign: CampaignView | null;
   progress: CampaignProgress;
   onBegin: () => void;
+  /** Открыть блок курса, который тренирует приём текущего акта. */
+  onCourse?: (blockId: string) => void;
 }) {
   if (!campaign) {
     return <p className="lead" style={{ padding: "24px 0" }}>{t.connecting}</p>;
@@ -143,11 +173,13 @@ export function CampaignArc({
             <ActRow
               key={stage.scenario_id + i}
               t={t}
+              lang={lang}
               index={i}
               total={total}
               stage={stage}
               status={i < idx ? "done" : i === idx ? "current" : "locked"}
               result={progress.results[i]}
+              onCourse={onCourse}
             />
           ))}
         </ol>
@@ -163,12 +195,14 @@ export function CampaignArc({
 // The end-of-campaign summit screen: the four acts with their grades + a verdict.
 export function CampaignComplete({
   t,
+  lang,
   campaign,
   progress,
   onReplay,
   onHome,
 }: {
   t: Strings;
+  lang: Lang;
   campaign: CampaignView;
   progress: CampaignProgress;
   onReplay: () => void;
@@ -198,6 +232,7 @@ export function CampaignComplete({
               <ActRow
                 key={stage.scenario_id + i}
                 t={t}
+                lang={lang}
                 index={i}
                 total={campaign.stages.length}
                 stage={stage}

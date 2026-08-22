@@ -10,7 +10,7 @@ import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
 import { CourseScreen, type ExamCtx } from "./components/CourseScreen";
-import { COURSE_BLOCKS, checkDrill } from "./lib/course";
+import { COURSE_BLOCKS, blockById, checkDrill, nextStep } from "./lib/course";
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { recordExam, recordExercise } from "./lib/progress";
 import { Setup } from "./components/Setup";
@@ -238,6 +238,21 @@ export default function App() {
     });
   }, [drill, nego.debrief, nego.state]);
 
+  // Куда именно ведёт кнопка курса: первый незакрытый урок, а не «в курс».
+  const courseNext = useMemo(
+    () => nextStep(COURSE_BLOCKS.map((b) => ({
+      lessons: profile.course[b.id]?.lessons ?? [],
+      passed: profile.course[b.id]?.passed ?? false,
+    }))),
+    [profile.course],
+  );
+  const [courseStart, setCourseStart] = useState<{ blockId: string; lesson: number | null } | null>(null);
+  const openCourse = useCallback((at: { blockId: string; lesson: number | null } | null) => {
+    setCourseStart(at);
+    setScreen("course");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   const coursePassed = useMemo(
     () => COURSE_BLOCKS.filter((b) => profile.course[b.id]?.passed).length,
     [profile.course],
@@ -431,7 +446,7 @@ export default function App() {
           active={screen === "profile" ? "profile" : screen === "course" ? "course" : mode}
           onMode={(m) => { setMode(m); if (screen !== "home") goHome(); }}
           onProfile={openProfile}
-          onCourse={() => setScreen("course")}
+          onCourse={() => openCourse(null)}
         />
       ) : null}
       <div className="appbody">
@@ -544,7 +559,8 @@ export default function App() {
               examName={examName}
               onExamNameChange={setExamName}
               hideModes={skin === "game"}
-              onCourse={() => setScreen("course")}
+              onCourse={() => openCourse(null)}
+              onCourseBlock={(blockId) => openCourse({ blockId, lesson: null })}
               courseDone={coursePassed}
               courseTotal={COURSE_BLOCKS.length}
             />
@@ -560,8 +576,13 @@ export default function App() {
                       .replace("{total}", String(COURSE_BLOCKS.length))}
                   </p>
                   <span className="rc-bar"><i style={{ width: `${(coursePassed / COURSE_BLOCKS.length) * 100}%` }} /></span>
-                  <button className="btn primary rc-go" onClick={() => setScreen("course")}>
-                    {t.nav.course} →
+                  {courseNext ? (
+                    <p className="rc-next">
+                      {t.course.nextUp}: <b>{blockById(courseNext.blockId)?.title[lang]}</b>
+                    </p>
+                  ) : null}
+                  <button className="btn primary rc-go" onClick={() => openCourse(courseNext)}>
+                    {courseNext ? t.course.continue : t.nav.course} →
                   </button>
                 </RailCard>
                 <MethodCard t={t} />
@@ -746,6 +767,7 @@ export default function App() {
       {screen === "campaign_done" && campaign && (
         <CampaignComplete
           t={t}
+          lang={lang}
           campaign={campaign}
           progress={progress}
           onReplay={replayCampaign}
@@ -765,6 +787,7 @@ export default function App() {
           onProfile={(p) => { setProfile(p); saveProfile(p); }}
           onStartDrill={startDrill}
           onExit={goHome}
+          startAt={courseStart}
         />
       )}
 

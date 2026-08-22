@@ -251,7 +251,7 @@ export interface Strings {
     toTasks: string; lessonDone: string; lessonComplete: string; lessonScore: string;
     stepOf: string; next: string; checkIt: string; correct: string; wrong: string;
     reference: string; freeformHint: string; matchHint: string; examQuit: string;
-    recoveryTitle: string;
+    recoveryTitle: string; nextUp: string; continue: string; actTeaches: string;
     drillStart: string; drillNote: string; drillPass: string; drillFail: string;
     backToCourse: string;
     karlTheory: string; karlPerfect: string; karlOk: string;
@@ -774,6 +774,9 @@ export const I18N: Record<Lang, Strings> = {
       matchHint: "Выберите слева, затем справа — пара свяжется.",
       examQuit: "Прервать экзамен",
       recoveryTitle: "Повторить перед пересдачей",
+      nextUp: "Дальше",
+      continue: "Продолжить курс",
+      actTeaches: "Приём этого акта",
       drillStart: "Начать мини-переговоры",
       drillNote: "Настоящая партия на {n} ходов. Оценивает движок — как всегда.",
       drillPass: "Капстоун сдан",
@@ -1330,6 +1333,9 @@ export const I18N: Record<Lang, Strings> = {
       matchHint: "Pick on the left, then on the right — the pair links.",
       examQuit: "Leave the exam",
       recoveryTitle: "Revisit before the retake",
+      nextUp: "Next up",
+      continue: "Continue the course",
+      actTeaches: "The technique this act trains",
       drillStart: "Start the mini-negotiation",
       drillNote: "A real {n}-turn negotiation. Scored by the engine, as always.",
       drillPass: "Capstone passed",

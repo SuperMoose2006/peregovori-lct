@@ -2826,3 +2826,12 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .course-mini .cm-p { width: 40px; text-align: right; font-weight: 800; color: var(--ink-dim); }
 .course-mini li.done .cm-ic { color: var(--trust); }
 @media (max-width: 640px) { .course-mini .cm-t { flex: 1; } .course-mini .cm-bar { display: none; } }
+.rc-next { margin: 8px 0 0; font-size: 12px; color: var(--ink-dim); line-height: 1.4; }
+/* Акт кампании ↔ блок курса: связь настоящая (у блока есть свой сценарий),
+   поэтому строка появляется только там, где сценарии сходятся. */
+.act-course { display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 8px 0 0; font-size: 12px; color: var(--ink-dim); }
+.act-course-b { padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line-2);
+  background: var(--panel-2); color: inherit; font: inherit; font-size: 12px;
+  font-weight: 700; cursor: pointer; }
+.act-course-b:hover { border-color: var(--brass); }

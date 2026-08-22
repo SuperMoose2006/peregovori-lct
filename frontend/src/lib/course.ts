@@ -234,3 +234,29 @@ export function drawExam(blockId: string, attempt = 0): ExamDraw {
 }
 
 export const passed = (score: number, draw: ExamDraw) => score >= draw.passMark;
+
+// ------------------------------------------------------------ «что дальше»
+
+export interface NextStep {
+  blockId: string;
+  /** Урок, который стоит открыть; null — уроки пройдены, ждёт экзамен. */
+  lesson: number | null;
+}
+
+/**
+ * Первый незакрытый шаг курса.
+ *
+ * Нужен ровно для одного: на домашнем экране кнопка обязана вести В КОНКРЕТНОЕ
+ * место. «Открыть курс» заставляет вспоминать, где ты остановился, — а это и
+ * есть та секунда сомнения, на которой человек закрывает вкладку.
+ */
+export function nextStep(done: { lessons: number[]; passed: boolean }[]): NextStep | null {
+  for (let i = 0; i < COURSE_BLOCKS.length; i++) {
+    const block = COURSE_BLOCKS[i];
+    const p = done[i] ?? { lessons: [], passed: false };
+    const lesson = block.lessons.find((l) => !p.lessons.includes(l.idx));
+    if (lesson) return { blockId: block.id, lesson: lesson.idx };
+    if (!p.passed) return { blockId: block.id, lesson: null };
+  }
+  return null;
+}

@@ -33,6 +33,8 @@ interface Props {
   onStartDrill: (ex: Ex, ctx: { blockId: string; exam?: ExamCtx }) => void;
   /** Куда вернуться из курса «на стол». */
   onExit: () => void;
+  /** Открыть сразу нужный блок: домашняя кнопка ведёт в конкретное место. */
+  startAt?: { blockId: string; lesson: number | null } | null;
 }
 
 export interface ExamCtx {
@@ -48,8 +50,13 @@ type View =
   | { kind: "lesson"; id: string; lesson: number }
   | { kind: "exam"; id: string };
 
-export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit }: Props) {
-  const [view, setView] = useState<View>({ kind: "map" });
+export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit, startAt }: Props) {
+  const [view, setView] = useState<View>(() =>
+    startAt
+      ? (startAt.lesson === null
+          ? { kind: "block", id: startAt.blockId }
+          : { kind: "lesson", id: startAt.blockId, lesson: startAt.lesson })
+      : { kind: "map" });
 
   if (view.kind === "lesson") {
     return (
