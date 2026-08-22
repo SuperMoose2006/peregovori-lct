@@ -229,8 +229,15 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .screen { animation: fade 0.34s ease both; }
 @keyframes fade { from { transform: translateY(7px); } to { transform: translateY(0); } }
 
-.table { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 20px 0 40px; align-items: start; }
-.side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
+/* `align-items: stretch` (the default) is deliberate: the sidebar is the taller
+   column, so with `start` the chat card ended at its 540px minimum and left a
+   large empty rectangle under it on any desktop viewport. The chat now fills the
+   row. `.side` keeps `align-self: start` so its `position: sticky` still has
+   somewhere to travel. */
+.table { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 20px 0 40px;
+  min-height: calc(100vh - 210px); }
+.side { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px;
+  align-self: start; }
 
 .opp { display: flex; gap: 13px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; }
 .opp .face { width: 52px; height: 52px; display: grid; place-items: center; background: var(--panel-2); border-radius: 11px; overflow: hidden; flex: 0 0 auto; }
@@ -259,13 +266,18 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .dt-head .ob { text-align: left; }
 .dt-head .ob:last-child { text-align: right; }
 
-.dt-scale { position: relative; height: 48px; margin: 0 3px; }
+/* Marker labels are absolutely positioned at their own x on a single row, so
+   two marks landing near each other overlapped into unreadable mush — seen live
+   when the player's offer settled next to "старт". The fixed marks keep the top
+   row; the only label that MOVES ("ваша цена") gets a row to itself below, where
+   nothing can drift into it. Hence 62px rather than 48px. */
+.dt-scale { position: relative; height: 62px; margin: 0 3px; }
 .dt-axis { position: absolute; left: 0; right: 0; top: 21px; height: 4px; border-radius: 3px;
   background: linear-gradient(90deg, color-mix(in srgb, var(--brass) 40%, var(--line-2)), var(--line-2)); }
 .dt-good { position: absolute; top: 17px; height: 12px; border-radius: 4px;
   background: color-mix(in srgb, var(--trust) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--trust) 32%, transparent); }
-.dt-mark { position: absolute; top: 0; height: 48px; transform: translateX(-50%); pointer-events: none; }
+.dt-mark { position: absolute; top: 0; height: 62px; transform: translateX(-50%); pointer-events: none; }
 .dt-mark.theirs, .dt-mark.yours { transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
 .dt-mark .tick { display: block; width: 2px; height: 20px; margin: 13px auto 0; border-radius: 2px; }
 .dt-mark .dot { display: block; width: 14px; height: 14px; border-radius: 50%; margin: 16px auto 0;
@@ -276,6 +288,7 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .dt-mark.redline .tick { background: var(--tension); }
 .dt-mark.opening .tick { height: 14px; margin-top: 16px; background: var(--ink-faint); opacity: 0.55; }
 .dt-mark.opening .lbl { opacity: 0.7; }
+.dt-mark.theirs .lbl, .dt-mark.yours .lbl { top: 47px; }
 .dt-mark.theirs .dot { background: var(--info); box-shadow: 0 0 10px color-mix(in srgb, var(--info) 55%, transparent); }
 .dt-mark.yours .dot { width: 11px; height: 11px; margin-top: 17px; background: var(--brass-soft); }
 /* one-shot "settle" pop replayed via keyed remount when an offer moves */
@@ -351,14 +364,20 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .side-more-toggle { display: none; }
 
 /* chat */
-.chat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-height: 540px; overflow: hidden; }
+.chat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-height: 480px; height: 100%; overflow: hidden; }
 .chat .ch { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--line); }
 .turn { font-size: 12.5px; color: var(--ink-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
 .conn { font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 8px; margin-left: 8px; }
 .conn.mock { color: var(--brass-soft); border-color: color-mix(in srgb, var(--brass) 40%, transparent); }
 .hintb { font-size: 12.5px; color: var(--ink-dim); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 11px; transition: 0.15s; }
 .hintb:hover { border-color: var(--brass); color: var(--ink); }
-.log { flex: 1; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 13px; max-height: 52vh; }
+.log { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 13px; }
+/* Grow the conversation UP from the composer, the way every chat does. Without
+   this, turn 0 is one greeting pinned to the top of a tall empty card. An auto
+   top margin on the first bubble eats the free space and collapses to 0 the
+   moment the log overflows — unlike `justify-content: flex-end`, which clips
+   the scrolled-past top in several browsers. */
+.log > :first-child { margin-top: auto; }
 .msg { max-width: 84%; display: flex; flex-direction: column; gap: 5px; animation: pop 0.3s ease; }
 @keyframes pop { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
 .msg.opp { align-self: flex-start; }
@@ -433,6 +452,11 @@ textarea:focus { outline: none; border-color: var(--brass); }
 
 /* debrief */
 .debrief { max-width: 720px; margin: 0 auto; padding: 34px 0 50px; }
+.debrief:not(.cert) {
+  max-width: 780px; margin: 26px auto 40px; padding: 30px 30px 34px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--ground); box-shadow: var(--shadow);
+}
 .gh { display: flex; align-items: center; gap: 26px; margin-bottom: 30px; }
 .ring { width: 128px; height: 128px; border-radius: 50%; display: grid; place-items: center; position: relative; flex-shrink: 0; background: conic-gradient(var(--gc, var(--brass)) calc(var(--p, 0) * 1%), var(--panel-2) 0); }
 .ring::after { content: ""; position: absolute; inset: 11px; background: var(--ground); border-radius: 50%; }
@@ -457,7 +481,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .sbi .sbh b { font-variant-numeric: tabular-nums; }
 .sbt { height: 9px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
 .sbf { height: 100%; width: 0; border-radius: 5px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px; margin-bottom: 22px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 22px; }
 .st { background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 13px; text-align: center; }
 .st .n { font-family: var(--serif); font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .st .l { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
@@ -474,7 +498,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
   border: 1px solid color-mix(in srgb, var(--brass) 38%, transparent); border-radius: 999px; padding: 3px 11px; }
 .dbt-miss { font-size: 13px; color: var(--ink-dim); }
 /* turning points — the "replay the tape" section: the player's own lines quoted back */
-.tpoints { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; margin-bottom: 20px; }
+.tpoints { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--tension); border-radius: var(--r); padding: 20px; margin-bottom: 20px; }
 .tpoints h3 { margin: 0 0 15px; font-size: 17px; }
 .tpoints ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
 .tpoints li { border-left: 2.5px solid var(--brass); padding: 2px 0 2px 14px; }
@@ -485,7 +509,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .tp-what { font-size: 13.5px; color: var(--ink); line-height: 1.5; }
 .tp-coach { margin-top: 6px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
 .tp-coach::before { content: "— "; color: var(--brass); }
-.coach { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; margin-bottom: 22px; }
+.coach { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--info); border-radius: var(--r); padding: 20px; margin-bottom: 22px; }
 .coach h3 { margin: 0 0 13px; font-size: 17px; }
 .coach ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .coach li { display: flex; gap: 9px; font-size: 13.5px; color: var(--ink-dim); }
@@ -610,9 +634,35 @@ textarea:focus { outline: none; border-color: var(--brass); }
 
 .foot { border-top: 1px solid var(--line); padding: 18px 22px; max-width: 1120px; margin: 40px auto 0; display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink-faint); padding-bottom: max(18px, env(safe-area-inset-bottom)); }
 
+/* ---------- Wide desktop / projector (>=1440px) ----------
+   The whole stylesheet had breakpoints going DOWN and none going up, so a
+   1920px hackathon projector rendered a 1120px column of 10.5px chips adrift in
+   empty ground. This is the only rule that scales the app UP: a wider shell, a
+   wider rail, and — the point of it — a counterpart portrait large enough that
+   her expression changing with your tension meter is visible from the back row.
+   Type in the rail moves off footnote sizes at the same time. */
+@media (min-width: 1440px) {
+  .wrap, .top, .foot { max-width: 1360px; }
+  .table { grid-template-columns: 372px 1fr; gap: 24px; }
+
+  .opp { padding: 18px; gap: 16px; }
+  .opp .face { width: 92px; height: 92px; border-radius: 16px; }
+  .opp .nm { font-size: 19px; }
+  .opp .ps { font-size: 13px; }
+
+  /* The rail's explanatory chrome: 9-11.5px is unreadable past the third row. */
+  .ob .l, .dt-legend, .dt-mark .lbl { font-size: 11.5px; }
+  .dtm-explain, .interests-line { font-size: 12.5px; }
+  .tag, .arg, .deltas, .jc-chip, .sc-chip { font-size: 12px; }
+
+  .bub { font-size: 15.5px; }
+  .log { padding: 22px 20px; gap: 15px; }
+}
+
 /* ---------- Tablet: collapse the two-column game to one column ---------- */
 @media (max-width: 860px) {
-  .table { grid-template-columns: 1fr; }
+  .table { grid-template-columns: 1fr; min-height: 0; }
+  .chat { height: auto; }
   .side { position: static; }
   .gh { flex-direction: column; text-align: center; }
 }
@@ -726,6 +776,8 @@ textarea:focus { outline: none; border-color: var(--brass); }
   /* Debrief: single column, smaller ring, reflowed stats. */
   .debrief { padding: 22px 0 40px; }
   .debrief.cert { padding: 20px 16px 30px; }
+  /* On a phone the report IS the screen — an inset frame just steals width. */
+  .debrief:not(.cert) { padding: 20px 15px 30px; margin: 14px auto 28px; }
   .gh { flex-direction: column; text-align: center; gap: 16px; margin-bottom: 22px; }
   .ring { width: 108px; height: 108px; }
   .ring .gl { font-size: 38px; }
@@ -1524,8 +1576,11 @@ textarea:focus-visible,
   body { background: #fff !important; }
   .screen { padding: 0 !important; }
   .wrap { max-width: 100% !important; padding: 0 !important; }
-  .debrief, .debrief.cert {
+  /* `:not(.cert)` is here only to out-specify the screen frame added above —
+     print gets the brass certificate border, never the on-screen card. */
+  .debrief, .debrief.cert, .debrief:not(.cert) {
     max-width: 100%; margin: 0; padding: 40px 44px;
     border: 2.5px solid var(--brass); border-radius: 6px; background: #fff;
+    box-shadow: none;
   }
 }

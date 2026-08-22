@@ -549,7 +549,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "Что на самом деле было важно для второй стороны",
       found: "вы это вскрыли",
       missed: "вы не спросили",
-      allFound: "Вы вскрыли всё, что она скрывала. Именно поэтому сделка сошлась.",
+      allFound: "Вы вскрыли всё, что она скрывала, — за столом вы играли с открытыми картами.",
       noneFound: "Вы вели переговоры вслепую — ни один из интересов так и не прозвучал.",
     },
     mentor: {
@@ -909,7 +909,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "What the other side actually cared about",
       found: "you drew this out",
       missed: "you never asked",
-      allFound: "You surfaced everything they were protecting. That is why the deal closed.",
+      allFound: "You surfaced everything they were protecting — you played that table with open cards.",
       noneFound: "You negotiated blind — not one of their interests ever came up.",
     },
     mentor: {
