@@ -2835,3 +2835,8 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   background: var(--panel-2); color: inherit; font: inherit; font-size: 12px;
   font-weight: 700; cursor: pointer; }
 .act-course-b:hover { border-color: var(--brass); }
+/* Комментарий тренера к свободному ответу. Появляется только если ИИ ответил —
+   и подписан так, чтобы никто не подумал, будто зачёт ставил он. */
+.ex-coach { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line-2); }
+.ex-coach-n { display: block; margin-top: 6px; font-size: 11px; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink-faint); }

@@ -41,7 +41,7 @@ from fastapi.staticfiles import StaticFiles
 from app import engine
 from app.session import store
 from app import views
-from app.protocol import ScenarioView, StateView, WhatIfMsg
+from app.protocol import CourseCoachMsg, ScenarioView, StateView, WhatIfMsg
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
@@ -138,6 +138,45 @@ def _whatif_branch(scenario_id: str, lang: str, prefix: list[str], branch_text: 
         "state": views.state_view(sess).model_dump(),
         "opponent_line": line,
     }
+
+
+@app.post("/api/course/coach")
+async def course_coach(body: CourseCoachMsg) -> dict:
+    """Комментарий тренера к свободному ответу упражнения.
+
+    ЧТО ЭТО НЕ ДЕЛАЕТ: не решает, зачтено ли упражнение. Зачёт — детерминированный
+    предикат над `analyze()`, он уже отработал на клиенте. Здесь ИИ добавляет одну
+    подсказку по смыслу — то же самое, что судья делает в партии, и через тот же
+    промпт, оплаченный живым бейк-оффом.
+
+    Судья выключен, ключа нет, сеть легла, модель ответила мусором → `note: null`,
+    и экран просто не показывает карточку тренера. Курс от этого не ломается.
+    """
+    from app.course.bank import BY_ID as COURSE_BY_ID
+    from app.orchestrator.judge import judge_turn
+
+    item = COURSE_BY_ID.get(body.exerciseId)
+    if item is None or item.get("type") != "freeform":
+        raise HTTPException(status_code=400, detail="unknown exercise")
+
+    lang = "en" if body.lang == "en" else "ru"
+    text = (body.text or "")[:MAX_WHATIF_TEXT]
+    if not text.strip():
+        return {"note": None, "techniques": []}
+
+    sc = engine.by_id(item.get("scenario_id") or "") if item.get("scenario_id") else None
+    context = item["prompt"][lang]
+    if sc is not None:
+        context = f"{sc.briefing[lang]} — {context}"
+    interests = sc.hidden_interests[lang] if sc is not None else None
+    secondary = ([(s.id, s.label[lang]) for s in sc.secondary_issues]
+                 if sc is not None and sc.secondary_issues else None)
+
+    judgement = await judge_turn(context, text, lang, interests, secondary)
+    if not judgement:
+        return {"note": None, "techniques": []}
+    return {"note": judgement.get("note") or None,
+            "techniques": judgement.get("techniques") or []}
 
 
 @app.post("/api/whatif")

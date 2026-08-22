@@ -14,6 +14,8 @@ import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
 import { check, metersOptions, reactionOptions, type Verdict } from "../lib/course";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
+import { courseCoach } from "../api/courseCoach";
+import { Karl } from "./Mascot";
 
 interface Props {
   t: Strings;
@@ -37,6 +39,8 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
   const [activeLeft, setActiveLeft] = useState<string | null>(null);
   const [pick, setPick] = useState<string | null>(null);
   const [verdict, setVerdict] = useState<Verdict | null>(null);
+  // Комментарий тренера приходит ПОСЛЕ вердикта и никогда его не меняет.
+  const [coach, setCoach] = useState<string | null>(null);
 
   const chips = useMemo(
     () => (ex.type === "freeform" && !exam ? previewChips(text) : []),
@@ -75,6 +79,11 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
     play(v.ok ? "correct" : "wrong");
     haptic(v.ok ? 12 : 22);
     onDone(v.ok, v);
+    // Свободный ответ вне экзамена: просим у бэкенда одну подсказку по смыслу.
+    // Ответа может не быть — тогда ничего и не появится.
+    if (ex.type === "freeform" && !exam) {
+      courseCoach(ex.id, text, lang).then((c) => { if (c?.note) setCoach(c.note); });
+    }
   };
 
   const move = (i: number, d: number) => {
@@ -267,6 +276,14 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
                 <p className="ex-explain">{say(ex.explain, lang)}</p>
                 {ex.reference && ex.type === "freeform" ? (
                   <p className="ex-ref"><b>{t.course.reference}:</b> «{say(ex.reference, lang)}»</p>
+                ) : null}
+                {/* Карточка тренера появляется только когда ИИ реально ответил.
+                    Подпись честная: зачёт — движок, комментарий — тренер. */}
+                {coach ? (
+                  <div className="ex-coach">
+                    <Karl state="think" line={coach} name={t.mascot.karl} compact />
+                    <span className="ex-coach-n">{t.course.coachNote}</span>
+                  </div>
                 ) : null}
               </>
             ) : null}

@@ -252,6 +252,7 @@ export interface Strings {
     stepOf: string; next: string; checkIt: string; correct: string; wrong: string;
     reference: string; freeformHint: string; matchHint: string; examQuit: string;
     recoveryTitle: string; nextUp: string; continue: string; actTeaches: string;
+    coachNote: string;
     drillStart: string; drillNote: string; drillPass: string; drillFail: string;
     backToCourse: string;
     karlTheory: string; karlPerfect: string; karlOk: string;
@@ -777,6 +778,7 @@ export const I18N: Record<Lang, Strings> = {
       nextUp: "Дальше",
       continue: "Продолжить курс",
       actTeaches: "Приём этого акта",
+      coachNote: "зачтено движком · комментарий тренера",
       drillStart: "Начать мини-переговоры",
       drillNote: "Настоящая партия на {n} ходов. Оценивает движок — как всегда.",
       drillPass: "Капстоун сдан",
@@ -1336,6 +1338,7 @@ export const I18N: Record<Lang, Strings> = {
       nextUp: "Next up",
       continue: "Continue the course",
       actTeaches: "The technique this act trains",
+      coachNote: "scored by the engine · comment by the coach",
       drillStart: "Start the mini-negotiation",
       drillNote: "A real {n}-turn negotiation. Scored by the engine, as always.",
       drillPass: "Capstone passed",
