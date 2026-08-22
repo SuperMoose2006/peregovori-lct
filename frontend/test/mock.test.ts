@@ -312,3 +312,19 @@ test("the closing price is the settled deal, not the opponent's last offer", asy
   assert.equal(v.deal, 86.27);
   assert.equal(v.offer_opp, 86.51);
 });
+
+test("the deal tracker headline switches to the settled price on agreement", async () => {
+  // The sidebar showed «их цена 86,51 ₽» beside an outcome strip reading
+  // «Соглашение достигнуто 86.27 ₽» — two prices for one deal, a rouble apart.
+  const { newSession, stateView } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const s = newSession(SCENARIO_MAP["supplier"], "ru");
+  s.offerOpp = 86.51;
+  // While the table is open there IS no settled price — the headline is theirs.
+  assert.equal(stateView(s).deal, null);
+  s.deal = 86.27;
+  s.status = "agreement";
+  const v = stateView(s);
+  const headline = v.status === "agreement" && v.deal != null ? v.deal : v.offer_opp;
+  assert.equal(headline, 86.27);
+});

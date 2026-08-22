@@ -60,7 +60,11 @@ export function DealTracker({ scenario, state, t, lang }: Props) {
   const lowerIsBetter = target < redline;
 
   const opening = hist.length ? hist[0] : state?.offer_opp ?? redline;
-  const current = state?.offer_opp ?? opening;
+  // Once the table closes, the headline is the SETTLED price, not the last thing
+  // the opponent said — those differ (the deal closes at the meeting point), and
+  // showing offer_opp here contradicted the outcome strip a rouble away.
+  const settled = state?.status === "agreement" ? state?.deal ?? null : null;
+  const current = settled ?? state?.offer_opp ?? opening;
   const yours = state?.offer_player ?? null;
 
   // Axis spans every known mark, padded so nothing sits on the very edge.
@@ -94,7 +98,7 @@ export function DealTracker({ scenario, state, t, lang }: Props) {
     <div className="dealtracker" role="img" aria-label={ariaSummary}>
       <div className="dt-head" aria-hidden="true">
         <div className="ob">
-          <div className="l">{t.tracker.theirOffer}</div>
+          <div className="l">{settled != null ? t.tracker.settled : t.tracker.theirOffer}</div>
           <div className="v">{state ? fmt(current) : "—"}</div>
         </div>
         <div className="ob">

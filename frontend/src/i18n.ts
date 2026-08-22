@@ -49,6 +49,8 @@ export interface Strings {
     target: string;
     redline: string;
     theirOffer: string;
+    // headline label once the deal closes — the settled price, not their offer
+    settled: string;
     yourOffer: string;
     opening: string;
     history: string;
@@ -439,6 +441,7 @@ export const I18N: Record<Lang, Strings> = {
       target: "цель",
       redline: "красная линия",
       theirOffer: "их цена",
+      settled: "сделка",
       yourOffer: "ваша цена",
       opening: "старт",
       history: "динамика их цены",
@@ -821,6 +824,7 @@ export const I18N: Record<Lang, Strings> = {
       target: "target",
       redline: "red line",
       theirOffer: "their offer",
+      settled: "settled at",
       yourOffer: "your offer",
       opening: "opening",
       history: "their price over time",
