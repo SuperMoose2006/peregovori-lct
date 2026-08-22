@@ -10,7 +10,10 @@ import { clampInput } from "../lib/net";
 export type ChatEntry =
   | { id: number; kind: "opp"; text: string; streaming?: boolean }
   | { id: number; kind: "me"; text: string; analysis?: Analysis; deltas?: Deltas }
-  | { id: number; kind: "hint"; text: string; line?: string }
+  // `pending` marks the placeholder shown the instant 💡 is pressed. With a
+  // live AI coach the answer takes seconds, and without a placeholder the
+  // press produced no visible change at all.
+  | { id: number; kind: "hint"; text: string; line?: string; pending?: boolean }
   // coach: the semantic judge's per-turn nudge, threaded under the exchange.
   // Rendered by Chat (hidden in exam mode) — the hook stays modality/mode-agnostic.
   // techniques / reject ride along ONLY when the live judge scored this turn (the
@@ -116,7 +119,14 @@ export function useNegotiation(lang: Lang): Negotiation {
   }, []);
 
   const requestHint = useCallback(() => {
-    transportRef.current?.send({ type: "hint" });
+    setS((prev) => {
+      // One outstanding request at a time: repeated taps must not queue up a
+      // column of placeholders (or a column of answers when they all land).
+      if (prev.log.some((e) => e.kind === "hint" && e.pending)) return prev;
+      transportRef.current?.send({ type: "hint" });
+      const entry: ChatEntry = { id: nextId(), kind: "hint", text: "", pending: true };
+      return { ...prev, log: [...prev.log, entry] };
+    });
   }, []);
 
   const clearError = useCallback(() => {
@@ -188,8 +198,16 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
     case "debrief":
       return { ...prev, debrief: msg.debrief, busy: false };
 
-    case "hint":
-      return { ...prev, log: [...prev.log, { id: nextId(), kind: "hint", text: msg.text, line: msg.line }] };
+    case "hint": {
+      // Fill the placeholder in place if one is waiting, so the hint appears
+      // where the player was already looking rather than below the spinner.
+      const i = prev.log.findIndex((e) => e.kind === "hint" && e.pending);
+      const filled: ChatEntry = i >= 0
+        ? { ...(prev.log[i] as ChatEntry & { kind: "hint" }), text: msg.text, line: msg.line, pending: false }
+        : { id: nextId(), kind: "hint", text: msg.text, line: msg.line };
+      const log = i >= 0 ? prev.log.map((e, k) => (k === i ? filled : e)) : [...prev.log, filled];
+      return { ...prev, log };
+    }
 
     case "error":
       return { ...prev, busy: false, error: msg.message };

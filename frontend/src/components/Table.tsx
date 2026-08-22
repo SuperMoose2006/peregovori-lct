@@ -345,7 +345,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
               judgeBadge={t.judgeBadge}
               judgeReject={t.judgeReject}
               typing={typing}
+              tagLabels={t.tagLabels}
               typingLabel={t.typingLabel}
+              hintPendingLabel={t.hintPending}
             />
             {showFirstCoach ? (
               <div className="firstcoach" role="note">

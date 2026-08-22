@@ -4,7 +4,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Analysis, Deltas } from "../types";
-import type { MeterLabels } from "../i18n";
+import type { MeterLabels, Strings } from "../i18n";
+import { tagText } from "../lib/tagLabel";
 
 interface Props {
   log: ChatEntry[];
@@ -16,6 +17,7 @@ interface Props {
   // accessible name for the log live region
   logLabel: string;
   argLabel: string;
+  tagLabels: Strings["tagLabels"];
   // exam mode withholds per-turn technique badges + arg score + meter deltas +
   // the judge's live coach line (exam gives its feedback only at the debrief).
   exam?: boolean;
@@ -33,13 +35,15 @@ interface Props {
   // an opponent-styled "typing…" bubble so the wait doesn't read as a dead chat.
   typing?: boolean;
   typingLabel: string;
+  // shown inside the 💡 bubble while the coach's answer is in flight
+  hintPendingLabel: string;
   // Fills the composer with a coach-suggested line (the AI hint's worked
   // example). Absent ⇒ the line is shown but not offered as one tap.
   onUseLine?: (text: string) => void;
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, hintPendingLabel, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -65,6 +69,20 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
           // A hint with a `line` is a worked example — the strongest scaffold in
           // deliberate practice. It fills the composer, never sends: the move
           // stays the player's, and gets judged like anything they type.
+          if (e.pending) {
+            // The AI coach takes seconds to answer. Reuse the opponent's own
+            // waiting language so the player reads it as "someone is composing",
+            // not as a button that did nothing.
+            return (
+              <div className="hintbub pending" key={e.id} aria-live="polite">
+                <div>
+                  💡{" "}
+                  <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>{" "}
+                  <span className="typing-label">{hintPendingLabel}</span>
+                </div>
+              </div>
+            );
+          }
           return (
             <div className="hintbub" key={e.id}>
               <div>💡 {e.text}</div>
@@ -91,22 +109,31 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
           // honestly absent offline/mock, so no need to gate them on judgeActive.
           const chips = e.techniques ?? [];
           const hasCam = chips.length > 0 || e.reject === true;
+          // Two rows, not one run-on line: what the judge RECOGNIZED (chips +
+          // badge) reads as a verdict on the move, and the coach's sentence
+          // reads as advice. Inline they wrapped into a 12.5px blob and the
+          // strongest thing this product does arrived as fine print.
           return (
             <div className="coachline" key={e.id}>
-              <span className="coachline-b">💡 {coachLabel}:</span>
-              {e.text ? <> {e.text}</> : null}
-              {judgeActive ? (
-                <span className="judge-badge" title={judgeBadge.aria} aria-label={judgeBadge.aria}>
-                  ⚖ {judgeBadge.label}
-                </span>
-              ) : null}
-              {hasCam ? (
-                <span className="judgecam">
+              {hasCam || judgeActive ? (
+                <div className="cl-verdict">
                   {chips.map((label, i) => (
                     <span className="jc-chip on" key={i}>✓ {label}</span>
                   ))}
                   {e.reject ? <span className="jc-chip reject">{judgeReject}</span> : null}
-                </span>
+                  {judgeActive ? (
+                    <span className="judge-badge" title={judgeBadge.aria} aria-label={judgeBadge.aria}>
+                      ⚖ {judgeBadge.label}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+              {/* The label is a prefix for the note — without a note it dangled
+                  as a bare "💡 тренер:" above the chips. */}
+              {e.text ? (
+                <div className="cl-note">
+                  <span className="coachline-b">💡 {coachLabel}:</span> {e.text}
+                </div>
               ) : null}
               <button
                 className="coachline-x"
@@ -131,7 +158,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
         return (
           <div className="msg me" key={e.id}>
             <div className="bub">{e.text}</div>
-            {!exam && e.analysis ? <TagRow analysis={e.analysis} argLabel={argLabel} /> : null}
+            {!exam && e.analysis ? <TagRow analysis={e.analysis} argLabel={argLabel} tagLabels={tagLabels} /> : null}
             {!exam && e.deltas ? (
               <DeltaRow deltas={e.deltas} labels={metersShort} full={metersFull} deltaAria={deltaAria} />
             ) : null}
@@ -150,12 +177,14 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
   );
 }
 
-function TagRow({ analysis, argLabel }: { analysis: Analysis; argLabel: string }) {
+function TagRow({ analysis, argLabel, tagLabels }: {
+  analysis: Analysis; argLabel: string; tagLabels: Strings["tagLabels"];
+}) {
   return (
     <div className="tags">
       {analysis.tags.map((t, i) => (
         <span className={`tag ${t.key}`} key={i}>
-          {t.label}
+          {tagText(t, analysis, tagLabels)}
         </span>
       ))}
       <span className="arg">

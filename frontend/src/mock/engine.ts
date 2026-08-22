@@ -23,6 +23,10 @@ export function analyze(raw: string): RawAnalysis {
   const t = norm(raw);
   const moves = new Set<string>();
   const tags: Tag[] = [];
+  // `label` is a FALLBACK only — the client localizes tags from `key` via
+  // lib/tagLabel.ts, because this engine and the Python one hardcode their
+  // labels in different single languages. Keep the key stable; the string here
+  // is what shows only if the key is unknown to the label table.
   const addT = (key: string, label: string) => tags.push({ key, label });
   const q = t.includes("?");
   let spin: string | null = null;

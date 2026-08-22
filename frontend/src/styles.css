@@ -390,6 +390,8 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 @keyframes blink { 50% { opacity: 0; } }
 /* Opponent "typing…" indicator — an opponent-styled bubble with pulsing dots,
    shown while a reply is pending. reduced-motion (global block) freezes the dots. */
+.hintbub.pending { opacity: 0.85; }
+.hintbub.pending .typing-dots i { background: var(--brass); }
 .typing-msg .bub.typing { display: inline-flex; align-items: center; gap: 9px; }
 .typing-dots { display: inline-flex; gap: 4px; }
 .typing-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--brass); opacity: 0.35; animation: typedot 1.2s ease-in-out infinite; }
@@ -867,6 +869,15 @@ textarea:focus { outline: none; border-color: var(--brass); }
   animation: pop 0.3s ease;
 }
 .coachline-b { color: var(--brass); font-weight: 700; }
+/* Row 1: the judge's verdict on the move. Chips get their own line at a legible
+   size — they are the product's clearest claim ("we score meaning, not
+   keywords") and were previously buried mid-sentence at 10.5px. */
+.cl-verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cl-verdict .jc-chip { font-size: 11.5px; padding: 3px 9px; }
+.cl-verdict .judge-badge { margin-left: 2px; }
+/* Row 2: the coaching sentence, only rendered when there IS one. */
+.cl-note { margin-top: 6px; }
+.cl-verdict + .cl-note { padding-top: 6px; border-top: 1px dashed color-mix(in srgb, var(--brass) 22%, transparent); }
 .coachline-x {
   position: absolute; top: 4px; right: 6px; font-size: 15px; line-height: 1;
   color: var(--ink-faint); padding: 2px 5px; border-radius: 6px;

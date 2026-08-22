@@ -70,6 +70,8 @@ export interface Strings {
   hint: string;
   // button on a coach hint that drops its worked example into the composer
   useLine: string;
+  // placeholder text while the AI coach composes its answer
+  hintPending: string;
   quit: string;
   interests: string;
   interestToast: string; // celebratory toast when a hidden interest is uncovered
@@ -200,6 +202,29 @@ export interface Strings {
   // side-by-side of the player's line vs a principled master reformulation. The
   // SELECTION (weak turn + missing technique) is an engine fact; the reformulation
   // is a quality Harvard/SPIN template keyed to what the debrief shows was missing.
+  // Move tags shown under the player's line. Both engines hardcode their labels
+  // in ONE language (the backend in English, the mock in Russian), so the client
+  // localizes by the tag's stable `key` and treats the server label as a
+  // fallback for keys it does not know.
+  tagLabels: {
+    spinSituation: string;
+    spinProblem: string;
+    spinImplication: string;
+    spinNeedPayoff: string;
+    question: string;    // an open question that is not a SPIN stage
+    interests: string;
+    empathy: string;
+    criteria: string;
+    batna: string;
+    tradeoff: string;
+    threat: string;
+    hostile: string;
+    concession: string;
+    anchor: string;
+    accept: string;
+    rapport: string;
+    offer: string;
+  };
   // Debrief reveal: what the counterpart was actually protecting. Deterministic,
   // shown offline too — unlike `mentor` below.
   reveal: {
@@ -425,6 +450,7 @@ export const I18N: Record<Lang, Strings> = {
     turnOf: "ход {n} из {max}",
     hint: "подсказка",
     useLine: "Вставить",
+    hintPending: "Коуч подбирает реплику…",
     quit: "выйти",
     interests: "Раскрытые интересы",
     interestToast: "Вы вскрыли интерес",
@@ -545,6 +571,25 @@ export const I18N: Record<Lang, Strings> = {
         "Смотрите: их цена сдвинулась к вашей цели. Каждый удачный ход двигает её — следите за этой шкалой.",
     },
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
+    tagLabels: {
+      spinSituation: "SPIN · Ситуация",
+      spinProblem: "SPIN · Проблема",
+      spinImplication: "SPIN · Последствия",
+      spinNeedPayoff: "SPIN · Выгода",
+      question: "Открытый вопрос",
+      interests: "Вскрытие интересов",
+      empathy: "Активное слушание",
+      criteria: "Объективный критерий",
+      batna: "BATNA / рычаг",
+      tradeoff: "Размен",
+      threat: "Давление",
+      hostile: "Грубость",
+      concession: "Уступка",
+      anchor: "Якорь",
+      accept: "Закрытие",
+      rapport: "Контакт",
+      offer: "Оффер / число",
+    },
     reveal: {
       title: "Что на самом деле было важно для второй стороны",
       found: "вы это вскрыли",
@@ -785,6 +830,7 @@ export const I18N: Record<Lang, Strings> = {
     turnOf: "turn {n} of {max}",
     hint: "hint",
     useLine: "Use it",
+    hintPending: "Your coach is picking a line…",
     quit: "leave",
     interests: "Interests uncovered",
     interestToast: "Interest uncovered",
@@ -905,6 +951,25 @@ export const I18N: Record<Lang, Strings> = {
         "Look: their price slid toward your target. Every good move nudges it — keep an eye on this scale.",
     },
     turningPoints: { title: "Turning points", turn: "Turn" },
+    tagLabels: {
+      spinSituation: "SPIN · Situation",
+      spinProblem: "SPIN · Problem",
+      spinImplication: "SPIN · Implication",
+      spinNeedPayoff: "SPIN · Need-payoff",
+      question: "Open question",
+      interests: "Probing interests",
+      empathy: "Active listening",
+      criteria: "Objective criteria",
+      batna: "BATNA / leverage",
+      tradeoff: "Trade-off",
+      threat: "Pressure",
+      hostile: "Hostile tone",
+      concession: "Concession",
+      anchor: "Anchoring",
+      accept: "Closing",
+      rapport: "Rapport",
+      offer: "Offer / number",
+    },
     reveal: {
       title: "What the other side actually cared about",
       found: "you drew this out",

@@ -135,6 +135,26 @@ def whatif(body: WhatIfMsg) -> dict:
     return {"turnIndex": body.turnIndex, "original": original, "alternative": alternative}
 
 
+# Per-call ceilings on the AI layer, in seconds. The chat client's own timeout
+# (NEGO_AI_TIMEOUT, 30s) applies to ONE call, and a turn makes two of them in
+# series — judge, then opponent — so a bad minute could freeze the table for a
+# full 60s with no way out. These caps bound what the PLAYER waits: past them we
+# stop waiting and take the deterministic path, which always exists. The worker
+# thread is left to finish and be discarded (a thread cannot be cancelled); the
+# client timeout still ends it.
+JUDGE_BUDGET = float(os.environ.get("NEGO_JUDGE_BUDGET", "12"))
+OPPONENT_BUDGET = float(os.environ.get("NEGO_OPPONENT_BUDGET", "16"))
+DEBRIEF_BUDGET = float(os.environ.get("NEGO_DEBRIEF_BUDGET", "18"))
+
+
+async def _bounded(fn, *args, budget: float):
+    """Run a blocking AI call off the loop, giving up after `budget` seconds."""
+    try:
+        return await asyncio.wait_for(asyncio.to_thread(fn, *args), timeout=budget)
+    except Exception:  # TimeoutError included; CancelledError is a BaseException
+        return None
+
+
 async def _opponent_line(sess, result, templated: str) -> str:
     """Try the AI backend; fall back to the deterministic templated line.
 
@@ -144,7 +164,7 @@ async def _opponent_line(sess, result, templated: str) -> str:
     try:
         facts = views.build_facts(sess, result)
         facts["fallback"] = templated
-        out = await asyncio.to_thread(run_opponent_sync, facts)
+        out = await _bounded(run_opponent_sync, facts, budget=OPPONENT_BUDGET)
         if out:
             return out
     except Exception:
@@ -229,7 +249,8 @@ async def ws(websocket: WebSocket) -> None:
                     try:
                         ctx, interests = views.judge_context(sess)
                         secondary = views.judge_secondary(sess)
-                        judge = await asyncio.to_thread(judge_turn, ctx, text, lang, interests, secondary)
+                        judge = await _bounded(judge_turn, ctx, text, lang, interests, secondary,
+                                               budget=JUDGE_BUDGET)
                     except Exception:
                         judge = None
 
@@ -271,7 +292,7 @@ async def ws(websocket: WebSocket) -> None:
                     # never changes it. Threaded like every other blocking AI call.
                     if ai_enabled():
                         dfacts = views.debrief_facts(sess, deb, lang)
-                        note = await asyncio.to_thread(debrief_summarize, dfacts, lang)
+                        note = await _bounded(debrief_summarize, dfacts, lang, budget=DEBRIEF_BUDGET)
                         if note:
                             deb["ai_verdict"] = note.get("verdict")
                             deb["ai_strength"] = note.get("strength")
@@ -292,7 +313,7 @@ async def ws(websocket: WebSocket) -> None:
                 if ai_enabled():
                     facts = views.coach_facts(sess, lang)
                     facts["fallback_hint"] = base_hint
-                    tip = await asyncio.to_thread(coach_suggest, facts, lang)
+                    tip = await _bounded(coach_suggest, facts, lang, budget=OPPONENT_BUDGET)
                     if tip:
                         payload["text"] = tip.get("why") or base_hint
                         payload["line"] = tip.get("line")
