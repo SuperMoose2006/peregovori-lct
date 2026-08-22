@@ -8,6 +8,7 @@ import { whatIf } from "./api/whatif";
 import { ScenarioPicker } from "./components/ScenarioPicker";
 import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
+import { SideNav } from "./components/SideNav";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
@@ -303,7 +304,18 @@ export default function App() {
   }, [mode, currentScenario, start, startCustom]);
 
   return (
-    <>
+    // The "game" skin wraps everything in a two-column app shell; "dojo" keeps
+    // the plain single column, so `.app`/`.appbody` are inert there by default.
+    <div className="app">
+      {skin === "game" ? (
+        <SideNav
+          t={t}
+          active={screen === "profile" ? "profile" : mode}
+          onMode={(m) => { setMode(m); if (screen !== "home") goHome(); }}
+          onProfile={openProfile}
+        />
+      ) : null}
+      <div className="appbody">
       <div className="top">
         <div className="brand">
           <span className="mark">
@@ -350,25 +362,39 @@ export default function App() {
       {screen === "home" && (
         <section className="screen">
           <div className="wrap">
-            <div className="hero">
-              <div className="eyebrow">{t.eyebrow}</div>
-              <ScreenHeading as="h1" dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
-              <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} onSetGoal={setGoalTarget} />
-              {/* Mobile-only: a single clear call-to-action above the fold that jumps
-                  to the opponent picker. Desktop shows the picker inline, so it's hidden there. */}
-              <button className="hero-cta" onClick={scrollToPlay}>{t.heroCta}</button>
-              <p className="lead">{t.heroLead}</p>
-              <div className="rule" />
-              <div className="principles">
-                {t.principles.map((p, i) => (
-                  <span key={i} dangerouslySetInnerHTML={{ __html: p }} />
-                ))}
-              </div>
-            </div>
-            {/* Director's #8: proof-of-method for a cold visitor, between the hero
-                and the picker. Sits OUTSIDE #play so the CTA still lands on the
-                opponent picker, not this explainer. */}
-            <WhyTeaches t={t} lang={lang} />
+            {/* The game skin drops the marketing hero and the proof-of-method
+                explainer: in an app shell the product IS the path, and a juror
+                must reach a negotiation without scrolling past 1.4 screens of
+                pitch. The XP strip survives as a rail widget, and the heading
+                still exists for screen readers. */}
+            {skin === "game" ? (
+              <>
+                <ScreenHeading as="h1" className="sr-only">{t.pickHead}</ScreenHeading>
+                <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} onSetGoal={setGoalTarget} />
+              </>
+            ) : (
+              <>
+                <div className="hero">
+                  <div className="eyebrow">{t.eyebrow}</div>
+                  <ScreenHeading as="h1" dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
+                  <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} onSetGoal={setGoalTarget} />
+                  {/* Mobile-only: a single clear call-to-action above the fold that jumps
+                      to the opponent picker. Desktop shows the picker inline, so it's hidden there. */}
+                  <button className="hero-cta" onClick={scrollToPlay}>{t.heroCta}</button>
+                  <p className="lead">{t.heroLead}</p>
+                  <div className="rule" />
+                  <div className="principles">
+                    {t.principles.map((p, i) => (
+                      <span key={i} dangerouslySetInnerHTML={{ __html: p }} />
+                    ))}
+                  </div>
+                </div>
+                {/* Director's #8: proof-of-method for a cold visitor, between the hero
+                    and the picker. Sits OUTSIDE #play so the CTA still lands on the
+                    opponent picker, not this explainer. */}
+                <WhyTeaches t={t} lang={lang} />
+              </>
+            )}
             <div id="play">
             <ScenarioPicker
               t={t}
@@ -540,6 +566,7 @@ export default function App() {
         <span>Диалог · Negotiation Skills Simulator</span>
         <span>{t.footRight}</span>
       </div>
-    </>
+      </div>
+    </div>
   );
 }

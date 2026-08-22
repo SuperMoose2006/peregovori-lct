@@ -8,7 +8,8 @@
       "activeDraftId": "5055c1ab-54d8-472e-b4a1-0471f49ea13c",
       "designSystemPath": ".superdesign/design-system.md",
       "referenceIds": [
-        "734aa00e-6e82-4f1b-a79c-2f1a5518159b"
+        "734aa00e-6e82-4f1b-a79c-2f1a5518159b",
+        "cc0eb568-06a9-44ad-9a05-0f3391ec6902"
       ],
       "contextFiles": [
         ".superdesign/design-system.md",
@@ -36,11 +37,17 @@
           "title": "Duolingo App Shell — refined",
           "visualDirection": "full Duolingo: white/green, sidebar + stats strip + right rail + footer; invented features (shop, hearts) removed, real rank ladder, 3D lip on all primaries, wordmark contrast fixed",
           "parentDraftId": "6bd153e9-bc6b-4739-a26f-cc97376db66b",
-          "currentVersion": 4
+          "currentVersion": 5
         },
         "23ea35a2-f8e3-480b-b858-38f8415a81a7": {
           "title": "Negotiation Dojo - Duolingo Structure",
           "visualDirection": "Duolingo STRUCTURE with the dojo palette/serif kept",
+          "parentDraftId": "6bd153e9-bc6b-4739-a26f-cc97376db66b",
+          "currentVersion": 1
+        },
+        "c42f80c0-5a95-4662-ac86-38b1b15703e4": {
+          "title": "Game cockpit — Duolingo shell",
+          "visualDirection": "the negotiation cockpit inside the same shell: turn budget strip, chat centre, instruments in the right rail",
           "parentDraftId": "6bd153e9-bc6b-4739-a26f-cc97376db66b",
           "currentVersion": 1
         }

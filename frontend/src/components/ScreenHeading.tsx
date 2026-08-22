@@ -16,7 +16,11 @@ interface Props {
 export function ScreenHeading({ as = "h2", className, children, dangerouslySetInnerHTML }: Props) {
   const ref = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
-    ref.current?.focus();
+    // preventScroll matters: the point is to move SCREEN-READER focus, not to
+    // move the viewport. Each screen transition already scrolls itself to the
+    // top, and a plain focus() fights that — under the game skin's grid shell it
+    // dragged the page 715px down to the heading on first paint.
+    ref.current?.focus({ preventScroll: true });
   }, []);
   const Tag = as;
   return (

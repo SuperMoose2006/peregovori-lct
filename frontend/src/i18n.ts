@@ -175,6 +175,17 @@ export interface Strings {
   };
   // first-turn coach bubble (practice/campaign/custom; withheld in exam).
   // {name} = counterpart name, substituted at render.
+  // Left sidebar of the "game" skin's app shell. Only the entries that
+  // correspond to something the product actually has — inventing a shop or a
+  // leaderboard here would advertise what does not exist.
+  nav: {
+    training: string;
+    campaign: string;
+    custom: string;
+    exam: string;
+    progress: string;
+    profile: string;
+  };
   // Header control that swaps the visual skin (dojo <-> game).
   skin: { label: string; toGame: string; toDojo: string };
   firstTurnCoach: string;
@@ -382,6 +393,7 @@ export interface Strings {
     scoreBar: string;     // a score bar — "{label}"/"{v}" substituted
     deal: string;         // deal-tracker summary — target/redline/offer substituted
     delta: string;        // a per-turn meter delta chip — "{label}"/"{value}"
+    nav: string;          // aria-label for the game skin's left sidebar
   };
 }
 
@@ -569,6 +581,8 @@ export const I18N: Record<Lang, Strings> = {
         F: "Ещё учиться",
       },
     },
+    nav: { training: "Тренировка", campaign: "Кампания", custom: "Своя сделка",
+           exam: "Экзамен", progress: "Прогресс", profile: "Профиль" },
     skin: { label: "Оформление", toGame: "Игровое оформление", toDojo: "Оформление «додзё»" },
     opening: {
       title: "Стол накрыт",
@@ -763,6 +777,7 @@ export const I18N: Record<Lang, Strings> = {
       },
     },
     a11y: {
+      nav: "Разделы",
       chatLog: "Ход переговоров",
       gameHeading: "Переговоры: {name}",
       grade: "Оценка {grade}, {score} из 100",
@@ -964,6 +979,8 @@ export const I18N: Record<Lang, Strings> = {
         F: "Still learning",
       },
     },
+    nav: { training: "Training", campaign: "Campaign", custom: "Your deal",
+           exam: "Exam", progress: "Progress", profile: "Profile" },
     skin: { label: "Look", toGame: "Game look", toDojo: "Dojo look" },
     opening: {
       title: "The table is set",
@@ -1158,6 +1175,7 @@ export const I18N: Record<Lang, Strings> = {
       },
     },
     a11y: {
+      nav: "Sections",
       chatLog: "Negotiation transcript",
       gameHeading: "Negotiation: {name}",
       grade: "Grade {grade}, {score} out of 100",
