@@ -292,7 +292,15 @@ async def ws(websocket: WebSocket) -> None:
                 # Semantic judge (option C): score the line by MEANING and match
                 # the interest it targets. Off by default; engine still owns state.
                 judge = None
+                announced_phase = False
                 if judge_enabled():
+                    # Name the wait honestly. The judge runs BEFORE the opponent
+                    # can say anything (the engine cannot score the move without
+                    # it), so for these seconds the opponent is not "typing" —
+                    # the judge is reading. Saying so turns dead time into the
+                    # one moment that shows the product's differentiator.
+                    await websocket.send_json({"type": "phase", "phase": "judging"})
+                    announced_phase = True
                     try:
                         ctx, interests = views.judge_context(sess)
                         secondary = views.judge_secondary(sess)
@@ -312,6 +320,12 @@ async def ws(websocket: WebSocket) -> None:
                 sess.log.append({"role": "player", "text": text, "judge": judge,
                                  "turn": sess.turn, "deltas": result.deltas})
                 templated = engine.render_line(sess, result.reaction, result.closed)
+                # The judge is done; from here the opponent really is composing.
+                # Only worth saying if we announced the judging half — otherwise
+                # there was no wait to re-label and this is pure noise.
+                if announced_phase:
+                    await websocket.send_json({"type": "phase", "phase": "replying"})
+
                 async def send_chunk(chunk: str) -> None:
                     await websocket.send_json({"type": "opponent_delta", "chunk": chunk})
 

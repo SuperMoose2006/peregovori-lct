@@ -98,6 +98,11 @@ export interface Strings {
     aggression: string;  // a hostile line
   };
   typingLabel: string; // opponent "typing…" indicator while a reply is pending
+  // Shown INSTEAD of typingLabel while the semantic judge is still reading the
+  // player's line. During those seconds the opponent has not started composing —
+  // calling it "typing…" would be false, and naming the judge turns the wait into
+  // the moment the product's differentiator is visible.
+  judgingLabel: string;
   batna: string;
   // mobile: label for the collapsible briefing/BATNA section in the game side strip
   moreLabel: string;
@@ -478,6 +483,7 @@ export const I18N: Record<Lang, Strings> = {
       aggression: "агрессия",
     },
     typingLabel: "печатает…",
+    judgingLabel: "ИИ-судья разбирает вашу реплику…",
     batna: "BATNA",
     moreLabel: "Брифинг и BATNA",
     streakLabel: "🔥 {n} дн. подряд",
@@ -861,6 +867,7 @@ export const I18N: Record<Lang, Strings> = {
       aggression: "aggression",
     },
     typingLabel: "typing…",
+    judgingLabel: "the AI judge is reading your line…",
     batna: "BATNA",
     moreLabel: "Briefing & BATNA",
     streakLabel: "🔥 {n}-day streak",

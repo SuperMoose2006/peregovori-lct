@@ -393,6 +393,16 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .hintbub.pending { opacity: 0.85; }
 .hintbub.pending .typing-dots i { background: var(--brass); }
 .typing-msg .bub.typing { display: inline-flex; align-items: center; gap: 9px; }
+/* The judge's pass is NOT the counterpart speaking, so its bubble sheds the
+   opponent's styling and takes the judge's own colour (the same --info the
+   "graded by meaning" badge uses), tying the wait to the verdict it produces. */
+.typing-msg.judging .bub.typing {
+  background: color-mix(in srgb, var(--info) 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--info) 32%, var(--line));
+  border-bottom-left-radius: 13px;
+}
+.typing-msg.judging .typing-dots i { background: var(--info); }
+.typing-msg.judging .typing-label { color: var(--info); font-weight: 600; }
 .typing-dots { display: inline-flex; gap: 4px; }
 .typing-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--brass); opacity: 0.35; animation: typedot 1.2s ease-in-out infinite; }
 .typing-dots i:nth-child(2) { animation-delay: 0.18s; }

@@ -205,6 +205,18 @@ class DebriefMsg(BaseModel):
     debrief: Debrief
 
 
+class PhaseMsg(BaseModel):
+    """Which part of the turn the server is working on right now.
+
+    Purely presentational — it carries no state and the client must render a
+    correct turn without ever receiving one. It exists because the two AI calls
+    in a turn are sequential and visibly slow, and labelling the wait "opponent
+    is typing" during the judge's pass would be a plain lie.
+    """
+    type: Literal["phase"] = "phase"
+    phase: Literal["judging", "replying"]
+
+
 class HintReplyMsg(BaseModel):
     type: Literal["hint"] = "hint"
     text: str

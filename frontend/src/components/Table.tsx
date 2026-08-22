@@ -27,6 +27,9 @@ interface Props {
   state: StateView | null;
   log: ChatEntry[];
   busy: boolean;
+  // Which half of the wait we're in; null when the server never said (mock,
+  // judge disabled). See NegotiationState.phase.
+  phase?: "judging" | "replying" | null;
   // Whether the live semantic judge scored this session (drives the "graded by
   // meaning" badge on coach lines). False offline/mock — nothing to claim.
   judgeActive: boolean;
@@ -41,7 +44,7 @@ interface Props {
   onSeeDebrief?: () => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -83,6 +86,8 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
   // automatically when busy drops (opponent/error/debrief all reset it), and
   // never shown after the game is finished.
   const lastEntry = log[log.length - 1];
+  // The judge's pass and the opponent's reply are both "busy", but they are
+  // different waits and only the second one is anybody typing — see `phase`.
   const typing = busy && !finished && (!lastEntry || lastEntry.kind !== "opp");
 
   // First-90-seconds hook: a one-time, dismissible coach bubble nudging the new
@@ -352,7 +357,8 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, judgeAc
               judgeReject={t.judgeReject}
               typing={typing}
               tagLabels={t.tagLabels}
-              typingLabel={t.typingLabel}
+              typingLabel={phase === "judging" ? t.judgingLabel : t.typingLabel}
+              typingJudging={phase === "judging"}
               hintPendingLabel={t.hintPending}
             />
             {showFirstCoach ? (

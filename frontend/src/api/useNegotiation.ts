@@ -28,6 +28,11 @@ export interface NegotiationState {
   log: ChatEntry[];
   debrief: import("../types").Debrief | null;
   busy: boolean; // waiting for the opponent's reply
+  // What the server is doing during `busy`. "judging" means the semantic judge is
+  // reading the player's line (the engine cannot score the move without it, so
+  // the opponent has not started composing yet); "replying" means it has. Null
+  // when the server never said — the client must render fine either way.
+  phase: "judging" | "replying" | null;
   error: string | null;
   // Live WS health (mock is always "online"). Drives the mid-game reconnect banner.
   conn: ConnStatus;
@@ -53,6 +58,7 @@ const initialState: NegotiationState = {
   log: [],
   debrief: null,
   busy: false,
+  phase: null,
   error: null,
   conn: "online",
   judgeActive: false,
@@ -114,7 +120,7 @@ export function useNegotiation(lang: Lang): Negotiation {
       if (prev.busy || !prev.state || prev.state.status !== "active") return prev;
       const entry: ChatEntry = { id: nextId(), kind: "me", text: trimmed };
       transportRef.current?.send({ type: "turn", text: trimmed });
-      return { ...prev, busy: true, log: [...prev.log, entry] };
+      return { ...prev, busy: true, phase: null, log: [...prev.log, entry] };
     });
   }, []);
 
@@ -192,11 +198,14 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
       if (coachText || techniques || reject) {
         log.push({ id: nextId(), kind: "coach", text: coachText, techniques, reject });
       }
-      return { ...prev, state: msg.state, busy: false, log };
+      return { ...prev, state: msg.state, busy: false, phase: null, log };
     }
 
     case "debrief":
       return { ...prev, debrief: msg.debrief, busy: false };
+
+    case "phase":
+      return { ...prev, phase: msg.phase };
 
     case "hint": {
       // Fill the placeholder in place if one is waiting, so the hint appears

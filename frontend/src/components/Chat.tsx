@@ -35,6 +35,9 @@ interface Props {
   // an opponent-styled "typing…" bubble so the wait doesn't read as a dead chat.
   typing?: boolean;
   typingLabel: string;
+  // True while the label refers to the JUDGE, not the opponent. The bubble then
+  // drops its opponent styling — it is not the counterpart speaking.
+  typingJudging?: boolean;
   // shown inside the 💡 bubble while the coach's answer is in flight
   hintPendingLabel: string;
   // Fills the composer with a coach-suggested line (the AI hint's worked
@@ -43,7 +46,7 @@ interface Props {
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, hintPendingLabel, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, hintPendingLabel, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -166,7 +169,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
         );
       })}
       {typing ? (
-        <div className="msg opp typing-msg" aria-live="polite">
+        <div className={`msg opp typing-msg${typingJudging ? " judging" : ""}`} aria-live="polite">
           <div className="bub typing">
             <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
             <span className="typing-label">{typingLabel}</span>

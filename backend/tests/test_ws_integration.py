@@ -19,6 +19,18 @@ from app.main import app
 client = TestClient(app)
 
 
+
+def _recv(ws, want="opponent"):
+    """Read past presentational frames (`phase`, `opponent_delta`) to the next
+    message of substance. Those carry no state, so a test asserting on the turn's
+    result must not care whether they were sent."""
+    for _ in range(200):
+        m = ws.receive_json()
+        if m.get("type") == want:
+            return m
+    raise AssertionError(f"no {want!r} message arrived")
+
+
 def test_health():
     r = client.get("/api/health")
     assert r.status_code == 200
@@ -111,12 +123,12 @@ def test_judge_cam_surfaces_techniques_and_reject(monkeypatch):
         ws.receive_json()
 
         ws.send_json({"type": "turn", "text": "А что для вас важнее всего в этой сделке?"})
-        good = ws.receive_json()
+        good = _recv(ws)
         assert good["coach_techniques"] == ["вскрытие интереса", "объективный критерий"]
         assert good["coach_reject"] is False
 
         ws.send_json({"type": "turn", "text": "Гарвардский метод BATNA SPIN win-win."})
-        spam = ws.receive_json()
+        spam = _recv(ws)
         assert spam["coach_techniques"] == []
         assert spam["coach_reject"] is True
 
@@ -160,3 +172,33 @@ def test_aggressive_game_breaks_down():
                 break
         assert got_debrief is not None
         assert got_debrief["debrief"]["status"] == "breakdown"
+
+
+def test_phase_frames_bracket_the_judge_and_are_absent_without_one(monkeypatch):
+    """The judge runs BEFORE the opponent can speak, so those seconds get named
+    honestly instead of being labelled "opponent is typing". With no judge there
+    is no such wait, and announcing a phase would be pure noise."""
+    import app.main as main
+
+    with client.websocket_connect("/ws") as ws:  # judge off (conftest default)
+        ws.send_json({"type": "start", "scenarioId": "supplier", "lang": "ru", "mode": "practice"})
+        ws.receive_json()
+        ws.send_json({"type": "turn", "text": "А что для вас важнее всего?"})
+        assert ws.receive_json()["type"] == "opponent"  # nothing in between
+
+    monkeypatch.setattr(main, "judge_enabled", lambda: True)
+    monkeypatch.setattr(main, "judge_turn", lambda *a, **k: None)
+    with client.websocket_connect("/ws") as ws:
+        ws.send_json({"type": "start", "scenarioId": "supplier", "lang": "ru", "mode": "practice"})
+        ws.receive_json()
+        ws.send_json({"type": "turn", "text": "А что для вас важнее всего?"})
+        seen = []
+        for _ in range(10):
+            m = ws.receive_json()
+            if m["type"] == "phase":
+                seen.append(m["phase"])
+            elif m["type"] == "opponent":
+                break
+        # Judging is announced before the wait and closed out before the reply,
+        # so the client never leaves the label stuck on the judge.
+        assert seen == ["judging", "replying"]

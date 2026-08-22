@@ -190,5 +190,8 @@ export type ServerMsg =
   // hint.text is the coaching direction; hint.line is a ready-to-send worked
   // example the player can drop into the composer. The line is present only
   // when a live AI coach produced one — the deterministic hint has none.
+  // Which part of the turn the server is on. Presentational only — a turn must
+  // render correctly if this never arrives (offline/mock, or judge disabled).
+  | { type: "phase"; phase: "judging" | "replying" }
   | { type: "hint"; text: string; line?: string }
   | { type: "error"; message: string };

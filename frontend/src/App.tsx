@@ -421,6 +421,7 @@ export default function App() {
             state={nego.state}
             log={nego.log}
             busy={nego.busy}
+            phase={nego.phase}
             judgeActive={nego.judgeActive}
             onSend={nego.turn}
             onHint={nego.requestHint}
