@@ -58,13 +58,17 @@ export interface PassCondition {
   value: number | string;
 }
 
-/** Одно упражнение. Поля сверх общих зависят от `type` — см. bank.py. */
+/** Одно упражнение. Поля сверх общих зависят от `type` — см. bank.py.
+ *
+ *  `block`/`lesson`/`difficulty` необязательны: партии экзамена мастера
+ *  (`master.py`) не принадлежат ни блоку, ни уроку — они и есть финальная
+ *  проверка поверх всех блоков. */
 export interface Exercise {
   id: string;
-  block: string;
-  lesson: number;
+  block?: string;
+  lesson?: number;
   type: ExerciseType;
-  difficulty: number;
+  difficulty?: number;
   xp: number;
   prompt: L;
   explain: L;

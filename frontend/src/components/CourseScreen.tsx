@@ -14,10 +14,11 @@ import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex } from "../lib/courseTypes";
 import {
-  COURSE_BLOCKS, blockById, drawExam, exercisesOf, exercisesOfLesson, type ExamDraw,
+  COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, drawExam, exercisesOf,
+  exercisesOfLesson, masterUnlocked, type ExamDraw,
 } from "../lib/course";
 import {
-  blockCompletion, getBlockProgress, markLessonDone, recordExam, recordExercise,
+  MASTER_ID, blockCompletion, getBlockProgress, markLessonDone, recordExam, recordExercise,
   type Profile,
 } from "../lib/progress";
 import { Exercise } from "./Exercise";
@@ -47,6 +48,7 @@ export interface ExamCtx {
 
 type View =
   | { kind: "map" }
+  | { kind: "master" }
   | { kind: "block"; id: string }
   | { kind: "lesson"; id: string; lesson: number }
   | { kind: "exam"; id: string };
@@ -54,9 +56,11 @@ type View =
 export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit, startAt }: Props) {
   const [view, setView] = useState<View>(() =>
     startAt
-      ? (startAt.lesson === null
-          ? { kind: "block", id: startAt.blockId }
-          : { kind: "lesson", id: startAt.blockId, lesson: startAt.lesson })
+      ? (startAt.blockId === MASTER_ID
+          ? { kind: "master" }
+          : startAt.lesson === null
+            ? { kind: "block", id: startAt.blockId }
+            : { kind: "lesson", id: startAt.blockId, lesson: startAt.lesson })
       : { kind: "map" });
 
   if (view.kind === "lesson") {
@@ -90,13 +94,31 @@ export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit
     );
   }
 
-  return <CourseMap t={t} lang={lang} profile={profile} onOpen={(id) => setView({ kind: "block", id })} onExit={onExit} />;
+  if (view.kind === "master") {
+    return (
+      <MasterExam
+        t={t} lang={lang} profile={profile}
+        onStart={(ex) => onStartDrill(ex, { blockId: MASTER_ID })}
+        onBack={() => setView({ kind: "map" })}
+      />
+    );
+  }
+
+  return (
+    <CourseMap
+      t={t} lang={lang} profile={profile}
+      onOpen={(id) => setView({ kind: "block", id })}
+      onMaster={() => setView({ kind: "master" })}
+      onExit={onExit}
+    />
+  );
 }
 
 // ------------------------------------------------------------------ карта
 
-function CourseMap({ t, lang, profile, onOpen, onExit }: {
-  t: Strings; lang: Lang; profile: Profile; onOpen: (id: string) => void; onExit: () => void;
+function CourseMap({ t, lang, profile, onOpen, onMaster, onExit }: {
+  t: Strings; lang: Lang; profile: Profile; onOpen: (id: string) => void;
+  onMaster: () => void; onExit: () => void;
 }) {
   // Блок открыт, если предыдущий сдан ИЛИ хотя бы наполовину пройден: жёсткая
   // блокировка на демо злит быстрее, чем учит, а совсем без порядка курс
@@ -151,7 +173,77 @@ function CourseMap({ t, lang, profile, onOpen, onExit }: {
           })}
         </ol>
 
+        {/* Экзамен мастера стоит в конце тропы и до последнего блока закрыт:
+            три партии подряд на незнакомых столах — проверка навыка, а не разминка. */}
+        <div className={`master-card${masterUnlocked(doneCount) ? "" : " locked"}`}>
+          <span className="master-ic" aria-hidden="true">
+            {profile.course[MASTER_ID]?.passed ? "👑" : masterUnlocked(doneCount) ? "🎓" : "🔒"}
+          </span>
+          <div>
+            <h3>{t.course.masterTitle}</h3>
+            <p>{masterUnlocked(doneCount) ? t.course.masterLead : t.course.masterLocked}</p>
+          </div>
+          <button className="btn primary" disabled={!masterUnlocked(doneCount)} onClick={onMaster}>
+            {profile.course[MASTER_ID]?.passed ? t.course.masterAgain : t.course.masterStart}
+          </button>
+        </div>
+
         <Tikhon title={t.course.tikhonTitle}>{t.course.tikhonBody}</Tikhon>
+      </div>
+    </section>
+  );
+}
+
+// --------------------------------------------------------- экзамен мастера
+
+function MasterExam({ t, lang, profile, onStart, onBack }: {
+  t: Strings; lang: Lang; profile: Profile; onStart: (ex: Ex) => void; onBack: () => void;
+}) {
+  const p = getBlockProgress(profile, MASTER_ID);
+  const done = COURSE_MASTER.filter((x) => p.solved.includes(x.id)).length;
+  const next = COURSE_MASTER.find((x) => !p.solved.includes(x.id));
+
+  return (
+    <section className="screen course">
+      <div className="wrap lesson">
+        <button className="btn ghost back" onClick={onBack}>← {t.course.allBlocks}</button>
+        <ScreenHeading as="h1">👑 {t.course.masterTitle}</ScreenHeading>
+        {/* split/join, а не replace: «{n}» в строке встречается дважды, и с
+            обычной заменой второй плейсхолдер оставался в тексте как есть.
+            (replaceAll недоступен — цель сборки старше ES2021.) */}
+        <p className="lead">{t.course.masterAbout
+          .split("{n}").join(String(COURSE_MASTER.length))
+          .split("{pass}").join(String(MASTER_PASS_MARK))}</p>
+
+        <ol className="master-list">
+          {COURSE_MASTER.map((x, i) => {
+            const ok = p.solved.includes(x.id);
+            return (
+              <li key={x.id} className={ok ? "done" : ""}>
+                <span className="ml-n">{ok ? "✓" : i + 1}</span>
+                <div>
+                  <b>{x.prompt[lang]}</b>
+                  <span>🏁 {x.goal?.[lang]}</span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        {p.passed ? (
+          <Tikhon state="exam" title={t.course.masterPassed}>{t.course.masterPassedBody}</Tikhon>
+        ) : null}
+
+        {next ? (
+          <button className="btn primary" onClick={() => onStart(next)}>
+            {t.course.masterNext.replace("{n}", String(done + 1))
+              .replace("{total}", String(COURSE_MASTER.length))}
+          </button>
+        ) : (
+          <Karl state={p.passed ? "celebrate" : "concern"}
+                line={p.passed ? t.course.masterKarlPass : t.course.masterKarlFail}
+                name={t.mascot.karl} />
+        )}
       </div>
     </section>
   );

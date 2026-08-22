@@ -8,7 +8,7 @@
 // исполнение тех же предикатов.
 //
 // Зеркало: services/gateway/app/course/check.py. Менять синхронно.
-import { COURSE_BANK, COURSE_BLOCKS } from "../data/course.generated";
+import { COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK } from "../data/course.generated";
 import { SCENARIO_MAP } from "../data/scenarios";
 import type { Exercise, PassCondition } from "./courseTypes";
 import { REACTION_SCALE, type Reaction } from "./probe";
@@ -16,10 +16,13 @@ import { analyze, applyMove, newSession } from "../mock/engine";
 import { norm } from "./techniques";
 import type { Lang, StateView } from "../types";
 
-export { COURSE_BANK, COURSE_BLOCKS };
+export { COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK };
 export type { Exercise } from "./courseTypes";
 
 export const BLOCK_IDS = COURSE_BLOCKS.map((b) => b.id);
+/** Экзамен мастера открыт, когда сданы все девять блоков. Не раньше: три партии
+ *  подряд на незнакомых столах — это проверка навыка, а не разминка. */
+export const masterUnlocked = (passedBlocks: number) => passedBlocks >= COURSE_BLOCKS.length;
 export const blockById = (id: string) => COURSE_BLOCKS.find((b) => b.id === id);
 export const exercisesOf = (blockId: string) => COURSE_BANK.filter((x) => x.block === blockId);
 export const exercisesOfLesson = (blockId: string, lesson: number) =>

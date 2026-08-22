@@ -2393,3 +2393,116 @@ export const COURSE_BANK: Exercise[] = [
     }
   }
 ];
+
+// Экзамен мастера: три настоящие партии подряд на столах, которых нет в блоках.
+export const COURSE_MASTER: Exercise[] = [
+  {
+    "id": "ms-01",
+    "type": "drill",
+    "scenario_id": "freelance_rate",
+    "max_turns": 8,
+    "xp": 60,
+    "prompt": {
+      "ru": "Поднимите ставку до 17k в день, не подняв напряжение выше 50.",
+      "en": "Raise your rate to 17k a day without pushing tension above 50."
+    },
+    "goal": {
+      "ru": "Сделка ≥ 17k · напряжение ≤ 50",
+      "en": "Deal ≥ 17k · tension ≤ 50"
+    },
+    "pass": [
+      {
+        "field": "status",
+        "op": "==",
+        "value": "agreement"
+      },
+      {
+        "field": "deal",
+        "op": ">=",
+        "value": 17
+      },
+      {
+        "field": "tension",
+        "op": "<=",
+        "value": 50
+      }
+    ],
+    "explain": {
+      "ru": "Направление здесь обратное: выше — лучше. Тот же метод работает и в эту сторону — критерий вместо «я стою больше», размен вместо давления.",
+      "en": "The direction is reversed here: higher is better. The same method works this way too — a criterion instead of “I am worth more”, a trade instead of pressure."
+    }
+  },
+  {
+    "id": "ms-02",
+    "type": "drill",
+    "scenario_id": "investor",
+    "max_turns": 10,
+    "xp": 60,
+    "prompt": {
+      "ru": "Закройтесь на доле не выше 22%, вскрыв минимум два интереса инвестора.",
+      "en": "Close at 22% equity or less, having uncovered at least two of the investor's interests."
+    },
+    "goal": {
+      "ru": "Доля ≤ 22% · два интереса",
+      "en": "Equity ≤ 22% · two interests"
+    },
+    "pass": [
+      {
+        "field": "status",
+        "op": "==",
+        "value": "agreement"
+      },
+      {
+        "field": "deal",
+        "op": "<=",
+        "value": 22
+      },
+      {
+        "field": "interests_found",
+        "op": ">=",
+        "value": 2
+      }
+    ],
+    "explain": {
+      "ru": "У инвестора самая сильная альтернатива в игре, и давить бесполезно. Работает только то, что вы отрабатывали в блоках: вопросы, критерии, размен вторичных условий.",
+      "en": "The investor holds the strongest alternative in the game, so pressure goes nowhere. Only what the blocks trained works: questions, criteria, trading secondary terms."
+    }
+  },
+  {
+    "id": "ms-03",
+    "type": "drill",
+    "scenario_id": "used_car",
+    "max_turns": 8,
+    "xp": 60,
+    "prompt": {
+      "ru": "Купите не дороже 1100k, ни разу не подняв напряжение выше 45.",
+      "en": "Buy at 1100k or less, never pushing tension above 45."
+    },
+    "goal": {
+      "ru": "Сделка ≤ 1100k · напряжение ≤ 45",
+      "en": "Deal ≤ 1100k · tension ≤ 45"
+    },
+    "pass": [
+      {
+        "field": "status",
+        "op": "==",
+        "value": "agreement"
+      },
+      {
+        "field": "deal",
+        "op": "<=",
+        "value": 1100
+      },
+      {
+        "field": "tension",
+        "op": "<=",
+        "value": 45
+      }
+    ],
+    "explain": {
+      "ru": "Продавец привязан к машине: любая критика вещи читается как критика его самого. Якорь сбивается критерием, а не встречной цифрой.",
+      "en": "The seller is attached to the car: criticising the object reads as criticising him. An anchor is defused by a criterion, not by a counter-number."
+    }
+  }
+];
+export const MASTER_PASS_MARK = 2;

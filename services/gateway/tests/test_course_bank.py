@@ -135,3 +135,44 @@ def test_drill_predicate_uses_only_engine_fields(item: dict) -> None:
                "leverage", "turn", "terms_conceded", "offer_opp", "offer_player"}
     for cond in item["pass"]:
         assert cond["field"] in allowed, item["id"]
+
+
+# ---- экзамен мастера ------------------------------------------------------
+
+from app.course.master import MASTER, PASS_MARK  # noqa: E402
+
+
+@pytest.mark.parametrize("item", MASTER, ids=[x["id"] for x in MASTER])
+def test_master_drill_is_playable_and_engine_only(item: dict) -> None:
+    """Три партии подряд — но по тем же правилам, что и всё остальное."""
+    sc = by_id(item["scenario_id"])
+    assert sc is not None, item["id"]
+    allowed = {"status", "deal", "interests_found", "tension", "trust", "info",
+               "leverage", "turn", "terms_conceded"}
+    for cond in item["pass"]:
+        assert cond["field"] in allowed, item["id"]
+    assert item["max_turns"] >= 6, item["id"]
+    for key in ("prompt", "goal", "explain"):
+        assert item[key]["ru"] and item[key]["en"], f"{item['id']}/{key}"
+
+
+def test_master_uses_tables_the_blocks_do_not_train_on() -> None:
+    """Знакомый стол проверял бы память, а не навык."""
+    trained = {b.scenario_id for b in BLOCKS}
+    fresh = [x for x in MASTER if x["scenario_id"] not in trained]
+    assert fresh, "хотя бы один стол обязан быть новым"
+    assert 1 <= PASS_MARK <= len(MASTER)
+
+
+@pytest.mark.parametrize("item", MASTER, ids=[x["id"] for x in MASTER])
+def test_master_target_is_inside_the_deal_zone(item: dict) -> None:
+    """Условие прохода обязано быть достижимым: цель не за полом оппонента."""
+    sc = by_id(item["scenario_id"])
+    lower_better = sc.headline.dir == "lower_is_better"
+    deal = next((c for c in item["pass"] if c["field"] == "deal"), None)
+    if deal is None:
+        return
+    if lower_better:
+        assert deal["value"] >= sc.opponent_reservation, item["id"]
+    else:
+        assert deal["value"] <= sc.opponent_reservation, item["id"]

@@ -253,6 +253,10 @@ export interface Strings {
     reference: string; freeformHint: string; matchHint: string; examQuit: string;
     recoveryTitle: string; nextUp: string; continue: string; actTeaches: string;
     coachNote: string;
+    masterTitle: string; masterLead: string; masterLocked: string; masterStart: string;
+    masterAgain: string; masterAbout: string; masterNext: string; masterPassed: string;
+    masterPassedBody: string; masterKarlPass: string; masterKarlFail: string;
+    masterProgress: string; masterDrillPass: string; masterDrillFail: string;
     drillStart: string; drillNote: string; drillPass: string; drillFail: string;
     backToCourse: string;
     karlTheory: string; karlPerfect: string; karlOk: string;
@@ -779,6 +783,20 @@ export const I18N: Record<Lang, Strings> = {
       continue: "Продолжить курс",
       actTeaches: "Приём этого акта",
       coachNote: "зачтено движком · комментарий тренера",
+      masterTitle: "Экзамен мастера",
+      masterLead: "Три партии подряд на столах, которых не было в блоках. Слои выключены.",
+      masterLocked: "Откроется, когда сданы все девять блоков.",
+      masterStart: "Начать",
+      masterAgain: "Пройти снова",
+      masterAbout: "{n} настоящие партии подряд, каждая со своим условием. Зачёт — от {pass} из {n}. Приёмы никто не подсказывает: реальные переговоры тоже не сообщают, какой из них сейчас нужен.",
+      masterNext: "Партия {n} из {total} →",
+      masterPassed: "Экзамен мастера сдан",
+      masterPassedBody: "Три стола, ни одной подсказки, оценка тем же движком, что и всё остальное. Это и есть сравнимый результат.",
+      masterKarlPass: "Сдано. Теперь то же самое — но за настоящим столом.",
+      masterKarlFail: "Пока не сдано. Пройдите заново — партии те же, но играть их придётся иначе.",
+      masterProgress: "Партия {n} из {total}",
+      masterDrillPass: "Партия экзамена сдана",
+      masterDrillFail: "Партия экзамена не сдана",
       drillStart: "Начать мини-переговоры",
       drillNote: "Настоящая партия на {n} ходов. Оценивает движок — как всегда.",
       drillPass: "Капстоун сдан",
@@ -1339,6 +1357,20 @@ export const I18N: Record<Lang, Strings> = {
       continue: "Continue the course",
       actTeaches: "The technique this act trains",
       coachNote: "scored by the engine · comment by the coach",
+      masterTitle: "Master exam",
+      masterLead: "Three negotiations in a row, on tables the blocks never used. Layers off.",
+      masterLocked: "Unlocks once all nine blocks are passed.",
+      masterStart: "Start",
+      masterAgain: "Run it again",
+      masterAbout: "{n} real negotiations in a row, each with its own condition. You pass at {pass} of {n}. Nobody names the technique for you: real negotiations do not either.",
+      masterNext: "Negotiation {n} of {total} →",
+      masterPassed: "Master exam passed",
+      masterPassedBody: "Three tables, no hints, scored by the same engine as everything else. That is what makes the result comparable.",
+      masterKarlPass: "Passed. Now the same thing — at a real table.",
+      masterKarlFail: "Not passed yet. Run it again — same tables, but they will have to be played differently.",
+      masterProgress: "Negotiation {n} of {total}",
+      masterDrillPass: "Exam negotiation passed",
+      masterDrillFail: "Exam negotiation not passed",
       drillStart: "Start the mini-negotiation",
       drillNote: "A real {n}-turn negotiation. Scored by the engine, as always.",
       drillPass: "Capstone passed",

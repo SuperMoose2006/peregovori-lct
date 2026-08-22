@@ -10,9 +10,11 @@ import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
 import { CourseScreen, type ExamCtx } from "./components/CourseScreen";
-import { COURSE_BLOCKS, blockById, checkDrill, nextStep } from "./lib/course";
+import {
+  COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, checkDrill, nextStep,
+} from "./lib/course";
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
-import { recordExam, recordExercise } from "./lib/progress";
+import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { Setup } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard } from "./components/Rail";
 import { SCENARIO_MAP, toScenarioView } from "./data/scenarios";
@@ -229,10 +231,18 @@ export default function App() {
     const verdict = checkDrill(drill.ex, nego.state);
     setDrillVerdict({ ok: verdict.ok });
     setProfile((prev) => {
-      const next = drill.exam
+      let next = drill.exam
         ? recordExam(prev, drill.blockId, drill.exam.score + (verdict.ok ? 2 : 0),
                      drill.exam.total, drill.exam.passMark).profile
         : recordExercise(prev, drill.blockId, drill.ex.id, drill.ex.xp, verdict.ok).profile;
+      // Экзамен мастера считается по числу СДАННЫХ партий: две из трёх и он
+      // закрыт. Отдельной попытки не заводим — переигрывать можно любую.
+      if (drill.blockId === MASTER_ID) {
+        const solved = next.course[MASTER_ID]?.solved.length ?? 0;
+        if (solved >= MASTER_PASS_MARK && !next.course[MASTER_ID]?.passed) {
+          next = recordExam(next, MASTER_ID, solved, COURSE_MASTER.length, MASTER_PASS_MARK).profile;
+        }
+      }
       saveProfile(next);
       return next;
     });
@@ -299,11 +309,13 @@ export default function App() {
   );
 
   const backToCourse = useCallback(() => {
+    // Возврат ведёт туда, откуда пришли: экзамен мастера — свой экран, иначе карта.
+    setCourseStart(drill?.blockId === MASTER_ID ? { blockId: MASTER_ID, lesson: null } : null);
     setDrill(null);
     setDrillVerdict(null);
     nego.reset?.();
     setScreen("course");
-  }, [nego]);
+  }, [drill, nego]);
 
   const startWithLayers = useCallback(() => {
     if (!pendingScenario) return;
@@ -718,7 +730,9 @@ export default function App() {
       {screen === "debrief" && drillVerdict && drill ? (
         <div className="wrap">
           <div className={`drill-verdict ${drillVerdict.ok ? "ok" : "bad"}`}>
-            <b>{drillVerdict.ok ? t.course.drillPass : t.course.drillFail}</b>
+            <b>{drill.blockId === MASTER_ID
+              ? (drillVerdict.ok ? t.course.masterDrillPass : t.course.masterDrillFail)
+              : (drillVerdict.ok ? t.course.drillPass : t.course.drillFail)}</b>
             <span>{drill.ex.goal ? drill.ex.goal[lang] : ""}</span>
             <button className="btn primary" onClick={backToCourse}>{t.course.backToCourse}</button>
           </div>

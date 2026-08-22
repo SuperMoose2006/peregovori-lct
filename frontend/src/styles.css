@@ -2844,3 +2844,23 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .ex-coach { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line-2); }
 .ex-coach-n { display: block; margin-top: 6px; font-size: 11px; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--ink-faint); }
+/* Экзамен мастера: конец тропы. Закрыт до последнего сданного блока — три
+   партии подряд на незнакомых столах это проверка навыка, а не разминка. */
+.master-card { display: flex; align-items: center; gap: 14px; margin-top: 16px;
+  padding: 16px 18px; border-radius: var(--r); background: var(--panel);
+  border: 2px dashed var(--line-2); }
+.master-card.locked { opacity: 0.55; }
+.master-card h3 { margin: 0 0 3px; font-size: 16px; }
+.master-card p { margin: 0; font-size: 12.5px; color: var(--ink-dim); line-height: 1.45; }
+.master-card > div { flex: 1; min-width: 0; }
+.master-ic { font-size: 30px; }
+.master-list { list-style: none; margin: 0 0 18px; padding: 0;
+  display: flex; flex-direction: column; gap: 10px; }
+.master-list li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+  border-radius: var(--r); background: var(--panel-2); }
+.master-list li.done { background: color-mix(in srgb, var(--trust) 12%, var(--panel-2)); }
+.master-list .ml-n { width: 26px; height: 26px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--panel); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.master-list li.done .ml-n { background: var(--trust); color: #fff; }
+.master-list b { display: block; font-size: 14px; margin-bottom: 3px; }
+.master-list span { font-size: 12.5px; color: var(--ink-dim); }

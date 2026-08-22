@@ -575,6 +575,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "exam_clean", icon: "💯", name: { ru: "Без единой ошибки", en: "Flawless" }, desc: { ru: "Сдать экзамен блока на максимум", en: "Score full marks on a block exam" } },
   { id: "course_half", icon: "📘", name: { ru: "Половина пути", en: "Halfway" }, desc: { ru: "Сдать пять блоков курса", en: "Pass five course blocks" } },
   { id: "course_done", icon: "🎓", name: { ru: "Курс пройден", en: "Course complete" }, desc: { ru: "Сдать все девять блоков", en: "Pass all nine blocks" } },
+  { id: "master_exam", icon: "👑", name: { ru: "Мастер", en: "Master" }, desc: { ru: "Сдать экзамен мастера — три партии подряд", en: "Pass the master exam — three negotiations in a row" } },
 ];
 
 export function getAchievement(id: string): Achievement | undefined {
@@ -769,10 +770,15 @@ export function recordExercise(profile: Profile, blockId: string, exerciseId: st
  * Итог экзамена блока. Провал даёт долю XP, а не ноль: попытка чему-то научила,
  * но и бонуса за неё нет — та же честная логика, что у `xpForDebrief`.
  */
+export const MASTER_ID = "master";
+
 export function courseAchievements(profile: Profile, justScored?: { score: number; total: number }): string[] {
-  const blocks = Object.values(profile.course);
-  const passed = blocks.filter((b) => b.passed).length;
+  // Экзамен мастера живёт в том же словаре, но блоком не является: иначе он
+  // считался бы десятым и «курс пройден» выдавался бы за девять из десяти.
+  const passed = Object.entries(profile.course)
+    .filter(([id, b]) => id !== MASTER_ID && b.passed).length;
   const out: string[] = [];
+  if (profile.course[MASTER_ID]?.passed) out.push("master_exam");
   if (passed >= 1) out.push("block_passed");
   if (passed >= 5) out.push("course_half");
   if (passed >= 9) out.push("course_done");

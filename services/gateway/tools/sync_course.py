@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.course.bank import BANK  # noqa: E402
+from app.course.master import MASTER, PASS_MARK  # noqa: E402
 from app.course.blocks import BLOCKS  # noqa: E402
 
 TARGET = Path(__file__).resolve().parents[3] / "frontend" / "src" / "data" / "course.generated.ts"
@@ -43,7 +44,11 @@ export const COURSE_BLOCKS: CourseBlock[] = """
 def render() -> str:
     blocks = json.dumps([asdict(b) for b in BLOCKS], ensure_ascii=False, indent=2)
     bank = json.dumps(BANK, ensure_ascii=False, indent=2)
-    return f"{HEADER}{blocks};\n\nexport const COURSE_BANK: Exercise[] = {bank};\n"
+    master = json.dumps(MASTER, ensure_ascii=False, indent=2)
+    return (f"{HEADER}{blocks};\n\nexport const COURSE_BANK: Exercise[] = {bank};\n\n"
+            "// Экзамен мастера: три настоящие партии подряд на столах, которых нет в блоках.\n"
+            f"export const COURSE_MASTER: Exercise[] = {master};\n"
+            f"export const MASTER_PASS_MARK = {PASS_MARK};\n")
 
 
 def main() -> int:
