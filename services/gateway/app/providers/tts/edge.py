@@ -141,3 +141,62 @@ class _Mp3Decoder:
                 self._leftover = raw
             return b""
         return np.concatenate(out).astype(np.float32).tobytes()
+
+
+class _SilenceTrimmer:
+    """Срезает тишину по краям фразы, не ломая потоковость.
+
+    ЗАЧЕМ. Измерено на этом же провайдере: edge-tts добавляет ~0.25 с тишины
+    перед фразой и ~0.9 с после неё, независимо от её длины. Пока фраза одна,
+    это незаметно. Но мы режем реплику на фразы, чтобы синтезировать их
+    параллельно — и тогда паддинг умножается на число фраз:
+
+        «Знаете, если честно, для нас важнее тихий жилец.»
+          одной фразой      → 4.37 с (речи 3.29 с)
+          тремя фразами     → 7.10 с
+
+    То есть оппонент начинает делать секундные паузы между придаточными. Это
+    ровно то, по чему на слух отличают робота от человека, и это обесценило бы
+    весь выигрыш от параллельного синтеза.
+
+    КАК. Начало: пропускаем сэмплы, пока не встретим первый громкий. Конец:
+    держим хвост в буфере и отдаём его только тогда, когда за ним пришёл ещё
+    звук; то, что осталось тишиной на момент конца потока, не отдаём вовсе.
+    Запас `_TAIL_KEEP_S` оставляем, чтобы не срезать затухание согласной.
+    """
+
+    #: Порог громкости. Речь у edge-tts уверенно выше 0.01 (замерено); берём
+    #: половину, чтобы не съесть тихий вдох в начале слова.
+    _THRESHOLD = 0.005
+    #: Сколько звука оставить после последнего громкого сэмпла.
+    _TAIL_KEEP_S = 0.08
+
+    def __init__(self) -> None:
+        self._started = False
+        self._hold = np.empty(0, dtype=np.float32)
+        self._keep = int(_SilenceTrimmer._TAIL_KEEP_S * OUTPUT_SAMPLE_RATE)
+
+    def feed(self, pcm_bytes: bytes) -> bytes:
+        samples = np.frombuffer(pcm_bytes, dtype=np.float32)
+        if samples.size == 0:
+            return b""
+
+        if not self._started:
+            loud = np.flatnonzero(np.abs(samples) > self._THRESHOLD)
+            if loud.size == 0:
+                return b""          # вся пачка — вступительная тишина
+            self._started = True
+            samples = samples[loud[0]:]
+
+        self._hold = np.concatenate([self._hold, samples]) if self._hold.size else samples
+        loud = np.flatnonzero(np.abs(self._hold) > self._THRESHOLD)
+        if loud.size == 0:
+            return b""              # пока одна тишина — придержим
+        cut = min(self._hold.size, loud[-1] + 1 + self._keep)
+        out, self._hold = self._hold[:cut], self._hold[cut:]
+        return out.tobytes()
+
+    def flush(self) -> bytes:
+        """Конец фразы: оставшееся — это хвостовая тишина, её не отдаём."""
+        self._hold = np.empty(0, dtype=np.float32)
+        return b""

@@ -219,7 +219,11 @@ def _wire(session: RealtimeSession) -> tuple[NegotiationOrchestrator, Optional[V
             on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
             publish=session.bus.publish,
         )
-        voice = pipeline if pipeline.available else None
+        if pipeline.available:
+            voice = pipeline
+            # Замыкаем петлю: оркестратор знает, когда оппонент звучит, и
+            # пайплайн поднимает планку перебивания на это время.
+            orchestrator.on_speaking_change = pipeline.set_opponent_speaking
 
     return orchestrator, voice
 

@@ -143,5 +143,10 @@ class TurnDetector:
         return await orchat.complete(
             _SYSTEM.get(lang, _SYSTEM["ru"]), text,
             role="judge",                 # тот же быстрый эндпоинт, что у судьи
-            max_tokens=4, temperature=self.config.temperature, raw=True,
+            # Оригинал TEN ставит `max_tokens=1`: их модель `TEN_Turn_Detection`
+            # обучена отвечать ровно одним специальным токеном. Универсальная
+            # модель так не умеет — при бюджете в 4 токена gemini возвращала
+            # пустой ответ, и детектор молча вырождался в вечное «unfinished»,
+            # то есть ход не засчитывался никогда. Шестнадцати хватает.
+            max_tokens=16, temperature=self.config.temperature, raw=True,
         )

@@ -91,7 +91,8 @@ class EventBus:
             event = await self._q.get()
             if event is _SENTINEL:
                 break
-            if self.is_dead(event.get("generation_id")):
+            if (event.get("type") not in _ALWAYS_DELIVER
+                    and self.is_dead(event.get("generation_id"))):
                 self._dropped += 1
                 continue
             yield event
@@ -117,6 +118,17 @@ class EventBus:
 #: Стоп-метка для `drain()`. Отдельный объект, а не None: None — законное
 #: значение внутри событий, а спутать стоп с данными нельзя.
 _SENTINEL: dict = {"type": "__sentinel__"}
+
+#: События, которые проходят фильтр отмены ВСЕГДА, даже неся мёртвый
+#: `generation_id`.
+#:
+#: Нужно из-за ловушки, которая один раз уже сработала: уведомление
+#: `generation.cancelled` обязано называть погашенное поколение — иначе клиент
+#: не поймёт, чей пузырь стирать. Но тем самым оно попадает под собственный же
+#: фильтр и исчезает. Перебивание при этом работает (звук гаснет), а клиент об
+#: этом не узнаёт — и это худший вид ошибки: система ведёт себя правильно и
+#: молчит об этом.
+_ALWAYS_DELIVER = frozenset({"generation.cancelled"})
 
 
 _gen_counter = itertools.count(1)

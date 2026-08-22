@@ -41,7 +41,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional
+from typing import Callable, Optional
 
 from app import engine, views
 from app.ai.prompts import build_prompts
@@ -64,6 +64,14 @@ class NegotiationOrchestrator:
         self.tts = tts
         self.avatar = avatar
         self._generation_task: Optional[asyncio.Task] = None
+        #: Кому сообщать, звучит ли голос оппонента. Ставится извне
+        #: (`realtime/endpoint.py`) на голосовой пайплайн — без этого его защита
+        #: от самоподслушивания мертва.
+        self.on_speaking_change: Optional[Callable[[bool], None]] = None
+
+    def _set_speaking(self, speaking: bool) -> None:
+        if self.on_speaking_change:
+            self.on_speaking_change(speaking)
 
     # ------------------------------------------------------------------ ход
 
@@ -176,6 +184,7 @@ class NegotiationOrchestrator:
         """Отдать готовую реплику целиком (офлайн / таймаут партии)."""
         sess = self.session
         generation_id = sess.begin_generation()
+        self._set_speaking(True)
         sess.engine_session.log.append({"role": "opp", "text": line})
         sess.bus.publish(output_delta("text", generation_id=generation_id,
                                       turn_id=turn_id, text=line, final=True))
@@ -183,7 +192,7 @@ class NegotiationOrchestrator:
             self.tts.speak(line, generation_id=generation_id, turn_id=turn_id)
         sess.bus.publish(response_done(generation_id=generation_id, turn_id=turn_id,
                                        text=line, reason="turn_end"))
-        sess.generation_id = None
+        self._finish_generation()
 
     async def _stream_opponent(self, facts: dict, templated: str, turn_id: int) -> None:
         """Поток модели → фразы → одновременно текст на экран и звук в синтез.
@@ -193,6 +202,7 @@ class NegotiationOrchestrator:
         """
         sess = self.session
         generation_id = sess.begin_generation()
+        self._set_speaking(True)
         system, user = build_prompts(facts)
         divider = SentenceDivider(faster_first_response=True)
 
@@ -230,7 +240,23 @@ class NegotiationOrchestrator:
         sess.engine_session.log.append({"role": "opp", "text": final})
         sess.bus.publish(response_done(generation_id=generation_id, turn_id=turn_id,
                                        text=final, reason="turn_end"))
-        sess.generation_id = None
+        self._finish_generation()
+
+    def _finish_generation(self) -> None:
+        """Текст реплики закончен — но поколение ещё ЖИВО.
+
+        Это не педантизм, а исправление настоящей ошибки. `response.done` значит
+        «модель дописала текст»; звук в этот момент ещё синтезируется и играет
+        секундами дольше. Если обнулить `generation_id` здесь, то `interrupt()`
+        решит, что гасить нечего, и человек, заговоривший поверх звучащей
+        реплики, не сможет её перебить — самый заметный сбой из возможных.
+
+        Поколение закрывается только двумя способами: его гасит `interrupt()`
+        или его сменяет следующее (`begin_generation`).
+        """
+        # Услышанное дописано в историю обычной репликой — чтобы `interrupt()`
+        # не занёс её второй раз как оборванную.
+        self.session.spoken_so_far = ""
 
     # ------------------------------------------------------------ перебивание
 
@@ -255,6 +281,7 @@ class NegotiationOrchestrator:
                 pass
         self._generation_task = None
 
+        self._set_speaking(False)
         if self.tts:
             self.tts.clear()
         if self.avatar:

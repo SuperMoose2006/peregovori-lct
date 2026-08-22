@@ -305,3 +305,42 @@ def test_unsupported_mode_is_rejected():
     with pytest.raises(Exception):
         with client.websocket_connect("/v1/realtime?mode=hologram") as ws:
             ws.receive_json()
+
+
+@pytest.mark.asyncio
+async def test_cancellation_notice_survives_its_own_filter():
+    """Уведомление об отмене обязано доехать, хотя несёт мёртвый generation_id.
+
+    Регрессия на реальную ловушку. `generation.cancelled` называет погашенное
+    поколение — иначе клиент не поймёт, чей пузырь стирать, — и ровно поэтому
+    попадает под собственный фильтр. Симптом был худшим из возможных: звук
+    гаснет правильно, а клиент об этом не узнаёт и продолжает рисовать реплику.
+    """
+    bus = EventBus()
+    bus.cancel("g1")
+    bus.publish({"type": "generation.cancelled", "generation_id": "g1", "reason": "barge_in"})
+    bus.publish(output_delta("audio", generation_id="g1", turn_id=1, audio="хвост"))
+    bus.close()
+
+    seen = [e async for e in bus.drain()]
+    assert [e["type"] for e in seen] == ["generation.cancelled"]
+    assert seen[0]["generation_id"] == "g1"
+
+
+def test_generation_outlives_response_done():
+    """Текст кончился — реплика ещё звучит, значит гасить ещё есть что.
+
+    Регрессия: `generation_id` обнулялся на `response.done`, и человек,
+    заговоривший поверх звучащей реплики, не мог её перебить.
+    """
+    from app.orchestrator.negotiation import NegotiationOrchestrator
+
+    session = _session()
+    orchestrator = NegotiationOrchestrator(session)
+    session.begin_generation()
+    session.spoken_so_far = "Я готов уступить"
+
+    orchestrator._finish_generation()
+
+    assert session.generation_id is not None, "поколение закрылось вместе с текстом"
+    assert session.spoken_so_far == "", "иначе реплика попадёт в историю дважды"
