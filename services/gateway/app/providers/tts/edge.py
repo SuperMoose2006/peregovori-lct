@@ -62,6 +62,7 @@ class EdgeTTS(TTSProvider):
             return
 
         decoder = _Mp3Decoder()
+        trimmer = _SilenceTrimmer()
         buf = bytearray()
         comm = edge_tts.Communicate(text, self.voice_name(voice))
 
@@ -77,7 +78,9 @@ class EdgeTTS(TTSProvider):
                 pcm = decoder.feed(bytes(buf))
                 buf.clear()
                 if pcm:
-                    yield pcm
+                    out = trimmer.feed(pcm)
+                    if out:
+                        yield out
         except asyncio.CancelledError:
             # Перебивание: закрываем поток тихо, наверх ничего не выбрасываем —
             # оркестратор уже знает, что поколение погашено.
@@ -88,7 +91,12 @@ class EdgeTTS(TTSProvider):
 
         tail = decoder.feed(bytes(buf), flush=True)
         if tail:
-            yield tail
+            out = trimmer.feed(tail)
+            if out:
+                yield out
+        rest = trimmer.flush()
+        if rest:
+            yield rest
 
 
 class _Mp3Decoder:
