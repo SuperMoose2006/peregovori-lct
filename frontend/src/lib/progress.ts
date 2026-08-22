@@ -47,9 +47,27 @@ export interface Profile {
   dailyDoneDay: string; // YYYY-MM-DD the dailyDoneCount applies to ("" = none)
   dailyDoneCount: number; // finished games on dailyDoneDay (toward the goal ring)
   celebratedMilestones: string[]; // milestone ids already shown (never repeat)
+  // ---- курс приёмов v4 -------------------------------------------------------
+  // Прогресс по блокам курса. Отдельной валюты нет: XP тот же, ранги те же —
+  // курс и партии живут в одном профиле, иначе «прогресс» перестаёт быть общим.
+  course: Record<string, BlockProgress>;
 }
 
-const VERSION = 3;
+/** Что игрок сделал в одном блоке курса. */
+export interface BlockProgress {
+  lessons: number[];   // пройденные уроки (idx), без повторов
+  solved: string[];    // id упражнений, решённых верно с первого раза
+  examBest: number;    // лучший результат экзамена в очках
+  examTotal: number;   // из скольких очков (меняется вместе с банком)
+  passed: boolean;     // экзамен сдан хотя бы раз
+  attempts: number;    // попыток экзамена
+}
+
+export function emptyBlockProgress(): BlockProgress {
+  return { lessons: [], solved: [], examBest: 0, examTotal: 0, passed: false, attempts: 0 };
+}
+
+const VERSION = 4;
 const KEY = "dialog.progress.v1";
 
 // Streak-freeze economy (Duolingo's anxiety-reducer): a small buffer that eats a
@@ -78,7 +96,7 @@ export function emptyProfile(): Profile {
     version: VERSION, scenarios: {}, streak: 0, lastStreakDay: "", xp: 0,
     skills: emptySkills(), achievements: [],
     freezes: 0, dailyGoalTarget: DAILY_GOAL_DEFAULT, dailyDoneDay: "", dailyDoneCount: 0,
-    celebratedMilestones: [],
+    celebratedMilestones: [], course: {},
   };
 }
 
@@ -268,6 +286,7 @@ export function recordDebrief(
     dailyDoneDay: profile.dailyDoneDay,
     dailyDoneCount: profile.dailyDoneCount,
     celebratedMilestones: profile.celebratedMilestones,
+    course: profile.course,
   };
   return { profile: next, record, prevBest, improved, isFirst };
 }
@@ -326,10 +345,33 @@ export function loadProfile(): Profile {
       celebratedMilestones: Array.isArray(parsed.celebratedMilestones)
         ? parsed.celebratedMilestones.filter((a): a is string => typeof a === "string")
         : [],
+      // v4: любой более старый блоб загружается с пустым курсом — как и все
+      // предыдущие добавления, поле дефолтится, а не роняет профиль.
+      course: sanitizeCourse(parsed.course),
     };
   } catch {
     return emptyProfile();
   }
+}
+
+function sanitizeCourse(v: unknown): Record<string, BlockProgress> {
+  const out: Record<string, BlockProgress> = {};
+  if (!v || typeof v !== "object") return out;
+  for (const [id, val] of Object.entries(v as Record<string, unknown>)) {
+    if (!val || typeof val !== "object") continue;
+    const r = val as Record<string, unknown>;
+    const nums = (x: unknown) => (Array.isArray(x) ? x.filter((n): n is number => typeof n === "number") : []);
+    const strs = (x: unknown) => (Array.isArray(x) ? x.filter((n): n is string => typeof n === "string") : []);
+    out[id] = {
+      lessons: [...new Set(nums(r.lessons))],
+      solved: [...new Set(strs(r.solved))],
+      examBest: typeof r.examBest === "number" && r.examBest >= 0 ? Math.floor(r.examBest) : 0,
+      examTotal: typeof r.examTotal === "number" && r.examTotal >= 0 ? Math.floor(r.examTotal) : 0,
+      passed: r.passed === true,
+      attempts: typeof r.attempts === "number" && r.attempts >= 0 ? Math.floor(r.attempts) : 0,
+    };
+  }
+  return out;
 }
 
 function sanitizeSkills(v: unknown): Record<SkillId, SkillAgg> {
@@ -675,4 +717,81 @@ export function applyDebrief(
     celebrate,
     streakCounted,
   };
+}
+
+
+// ---------------------------------------------------------------- курс приёмов
+//
+// Чистые функции над профилем: то же правило, что и у остального прогресса —
+// математика без localStorage, поэтому её можно проверить тестом.
+
+function blockOf(profile: Profile, blockId: string): BlockProgress {
+  return profile.course[blockId] ?? emptyBlockProgress();
+}
+
+export function getBlockProgress(profile: Profile, blockId: string): BlockProgress {
+  return blockOf(profile, blockId);
+}
+
+/** Урок прочитан. XP за чтение не даём: платим за решённое, а не за пролистанное. */
+export function markLessonDone(profile: Profile, blockId: string, lesson: number): Profile {
+  const b = blockOf(profile, blockId);
+  if (b.lessons.includes(lesson)) return profile;
+  return {
+    ...profile,
+    course: { ...profile.course, [blockId]: { ...b, lessons: [...b.lessons, lesson].sort((x, y) => x - y) } },
+  };
+}
+
+/**
+ * Упражнение решено верно. XP начисляется ОДИН раз за упражнение — иначе
+ * фарм повтором превращает прогресс в счётчик усидчивости.
+ */
+export function recordExercise(profile: Profile, blockId: string, exerciseId: string,
+                               xp: number, correct: boolean): { profile: Profile; xpGain: number } {
+  const b = blockOf(profile, blockId);
+  if (!correct || b.solved.includes(exerciseId)) return { profile, xpGain: 0 };
+  const next: Profile = {
+    ...profile,
+    xp: profile.xp + xp,
+    course: { ...profile.course, [blockId]: { ...b, solved: [...b.solved, exerciseId] } },
+  };
+  return { profile: next, xpGain: xp };
+}
+
+/**
+ * Итог экзамена блока. Провал даёт долю XP, а не ноль: попытка чему-то научила,
+ * но и бонуса за неё нет — та же честная логика, что у `xpForDebrief`.
+ */
+export function recordExam(profile: Profile, blockId: string, score: number, total: number,
+                           passMark: number): { profile: Profile; xpGain: number; passed: boolean } {
+  const b = blockOf(profile, blockId);
+  const ok = score >= passMark;
+  const share = total > 0 ? score / total : 0;
+  const xpGain = ok && !b.passed ? 60 : Math.round(30 * share);
+  const next: Profile = {
+    ...profile,
+    xp: profile.xp + xpGain,
+    course: {
+      ...profile.course,
+      [blockId]: {
+        ...b,
+        attempts: b.attempts + 1,
+        examBest: Math.max(b.examBest, score),
+        examTotal: total,
+        passed: b.passed || ok,
+      },
+    },
+  };
+  return { profile: next, xpGain, passed: ok };
+}
+
+/** Доля блока, пройденная игроком (0..1): уроки + упражнения + экзамен. */
+export function blockCompletion(b: BlockProgress, lessons: number, exercises: number): number {
+  const parts = [
+    lessons > 0 ? Math.min(1, b.lessons.length / lessons) : 0,
+    exercises > 0 ? Math.min(1, b.solved.length / exercises) : 0,
+    b.passed ? 1 : 0,
+  ];
+  return parts.reduce((a, x) => a + x, 0) / parts.length;
 }

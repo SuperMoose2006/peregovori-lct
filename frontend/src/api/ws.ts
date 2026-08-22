@@ -76,6 +76,10 @@ export function createTransport(
       decided = true;
       inner?.close();
     },
+    // Прокси обязан пробрасывать всё, что появилось на выбранном транспорте:
+    // иначе полоска уровня и кнопка перебивания молча ничего не делают.
+    micLevel: () => inner?.micLevel?.() ?? 0,
+    interrupt: () => inner?.interrupt?.(),
   };
 
   const adopt = (transport: Transport, kind: TransportKind) => {

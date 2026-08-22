@@ -14,6 +14,8 @@ import { Meters } from "./Meters";
 import { Scorecard } from "./Scorecard";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
+import { LiveBar } from "./LiveBar";
+import { Karl, karlState } from "./Mascot";
 import { DealTracker } from "./DealTracker";
 import { DealTerms } from "./DealTerms";
 import { Onboarding, type CoachStep } from "./Onboarding";
@@ -48,13 +50,23 @@ interface Props {
   avatarState?: string | null;
   /** Оппонент звучит: честный индикатор речи, а не имитация губ. */
   oppSpeaking?: boolean;
+  /** Какие живые слои подняты. Выключенные не оставляют на экране следов. */
+  layers?: { voice?: boolean; camera?: boolean };
+  /** Игрок говорит прямо сейчас — по VAD сервера. */
+  userSpeaking?: boolean;
+  /** Промежуточная расшифровка: видна ДО того, как стала ходом. */
+  transcript?: string | null;
+  getMicLevel?: () => number;
+  onInterrupt?: () => void;
+  videoRef?: React.MutableRefObject<HTMLVideoElement | null>;
+  canvasRef?: React.MutableRefObject<HTMLCanvasElement | null>;
   // "Read her face" layer: a running "n of m" and the answer callback. Both
   // absent when the layer is off, and the chat then renders no question at all.
   probeTally?: string;
   onProbeAnswer?: (id: number, choice: number) => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -158,6 +170,29 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
       break;
     }
   }
+  // Карл берёт последнюю реплику тренера из ленты — своего текста у него нет.
+  // Подсказка (💡) важнее коуча: если игрок только что её попросил, показываем её.
+  // Ищем с конца: последняя подсказка и последняя строка тренера. Побеждает та,
+  // что свежее, — иначе только что запрошенная подсказка молча проигрывала бы
+  // коучу с прошлого хода.
+  let hintIdx = -1, coachIdx = -1, hintText = "", coachText = "", hintPending = false;
+  log.forEach((e, i) => {
+    if (e.kind === "hint") {
+      if (e.pending) hintPending = true;
+      else { hintIdx = i; hintText = e.text; }
+    } else if (e.kind === "coach") { coachIdx = i; coachText = e.text; }
+  });
+  const fresh = hintIdx > coachIdx ? hintText : coachText;
+  const karlLine = exam ? null
+    : hintPending ? t.mascot.thinking
+    : fresh || (st && st.turn === 0 ? t.mascot.greeting : null);
+  const karl = karlState({
+    phase, busy, hintPending,
+    deltas: lastDeltas,
+    status: st?.status ?? null,
+    grade: null,
+  });
+
   // Typing indicator: show while a turn is in flight (busy) but the opponent's
   // reply hasn't begun. Once opponent_delta pushes a streaming "opp" bubble it
   // becomes the last entry, so the indicator yields to the live reply. Cleared
@@ -408,6 +443,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 </div>
               </div>
             </div>
+            {/* Карл прилипает к низу рельса: постоянное место, но ни одной
+                новой колонки. В экзамене его нет — там подсказок не бывает. */}
+            {!exam ? <Karl state={karl} line={karlLine} name={t.mascot.karl} /> : null}
             <button className="quit" onClick={handleQuit}>
               ← {t.quit}
             </button>
@@ -543,6 +581,20 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 suggestion={!exam && !!st && st.turn === 0 ? t.suggestChip : undefined}
                 prefill={prefill}
               />
+              {videoRef && canvasRef && getMicLevel ? (
+                <LiveBar
+                  voice={!!layers?.voice}
+                  camera={!!layers?.camera}
+                  userSpeaking={userSpeaking}
+                  oppSpeaking={oppSpeaking}
+                  transcript={transcript}
+                  getMicLevel={getMicLevel}
+                  onInterrupt={onInterrupt}
+                  videoRef={videoRef}
+                  canvasRef={canvasRef}
+                  labels={t.live}
+                />
+              ) : null}
             </div>
           </main>
         </div>

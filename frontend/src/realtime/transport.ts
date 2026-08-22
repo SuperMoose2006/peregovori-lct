@@ -96,6 +96,11 @@ export class RealtimeTransport implements Transport {
     }
   }
 
+  /** Уровень входа 0..1 для полоски «вас слышно». Ноль, если микрофона нет. */
+  micLevel(): number {
+    return this.media?.level() ?? 0;
+  }
+
   /** Перебивание с кнопки. Голосовое сервер замечает сам, через VAD. */
   interrupt(): void {
     this.player?.stopAll();

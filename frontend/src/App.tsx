@@ -9,6 +9,10 @@ import { ScenarioPicker } from "./components/ScenarioPicker";
 import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
+import { CourseScreen, type ExamCtx } from "./components/CourseScreen";
+import { checkDrill } from "./lib/course";
+import type { Exercise as CourseExercise } from "./lib/courseTypes";
+import { recordExam, recordExercise } from "./lib/progress";
 import { Setup } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard } from "./components/Rail";
 import { SCENARIO_MAP, toScenarioView } from "./data/scenarios";
@@ -21,7 +25,7 @@ import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameRe
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 
-type Screen = "home" | "setup" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile";
+type Screen = "home" | "setup" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course";
 
 // How long the finished table stays on screen before the scorecard takes over.
 // Long enough to read the closing line and the outcome stamp, short enough that
@@ -83,6 +87,12 @@ export default function App() {
   // the just-finished run's personal-best delta to the Debrief screen.
   const [profile, setProfile] = useState<Profile>(() => loadProfile());
   const [lastGame, setLastGame] = useState<GameResult | null>(null);
+  // Капстоун курса: настоящая партия, запущенная из урока или экзамена блока.
+  // Она идёт по обычному пути (движок судит, слои выключены), а курс узнаёт
+  // результат из состояния партии — никакой отдельной «учебной» механики.
+  const [drill, setDrill] = useState<{ ex: CourseExercise; blockId: string; exam?: ExamCtx } | null>(null);
+  const [drillVerdict, setDrillVerdict] = useState<{ ok: boolean } | null>(null);
+  const recordedDrill = useRef<DebriefData | null>(null);
   const recordedProgress = useRef<DebriefData | null>(null);
   // Sound layer: local mirror of the persisted mute flag drives the header
   // toggle's icon; the cues themselves read the flag live from lib/sound.
@@ -93,7 +103,12 @@ export default function App() {
     initAudioUnlock();
   }, []);
 
-  const nego = useNegotiation(lang);
+  // Один <video> и один <canvas> на всё приложение: провайдер медиа привязывает
+  // к ним поток единожды. Пере-монтирование заставило бы браузер заново спросить
+  // доступ к камере — посреди партии это выглядит как сбой.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const nego = useNegotiation(lang, { videoRef, canvasRef });
   const t = I18N[lang];
 
   // Apply theme to the document root (drives the CSS variables).
@@ -205,6 +220,24 @@ export default function App() {
     }));
   }, [mode, nego.debrief, campaign]);
 
+  // Итог капстоуна снимается с ТОГО ЖЕ состояния, что и грейд: предикат смотрит
+  // только в поля движка, поэтому «сдал» здесь значит ровно то же, что в партии.
+  useEffect(() => {
+    if (!drill || !nego.debrief || !nego.state) return;
+    if (recordedDrill.current === nego.debrief) return;
+    recordedDrill.current = nego.debrief;
+    const verdict = checkDrill(drill.ex, nego.state);
+    setDrillVerdict({ ok: verdict.ok });
+    setProfile((prev) => {
+      const next = drill.exam
+        ? recordExam(prev, drill.blockId, drill.exam.score + (verdict.ok ? 2 : 0),
+                     drill.exam.total, drill.exam.passMark).profile
+        : recordExercise(prev, drill.blockId, drill.ex.id, drill.ex.xp, verdict.ok).profile;
+      saveProfile(next);
+      return next;
+    });
+  }, [drill, nego.debrief, nego.state]);
+
   const isDark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
@@ -227,6 +260,30 @@ export default function App() {
     },
     [mode, nego],
   );
+
+  const startDrill = useCallback(
+    (ex: CourseExercise, ctx: { blockId: string; exam?: ExamCtx }) => {
+      if (!ex.scenario_id) return;
+      setDrill({ ex, blockId: ctx.blockId, exam: ctx.exam });
+      setDrillVerdict(null);
+      recordedDrill.current = null;
+      // Слои выключены принудительно — капстоун обязан быть сравним с экзаменом.
+      setMode("practice");
+      setLayers(NO_LAYERS);
+      setCurrentScenario(ex.scenario_id);
+      nego.start(ex.scenario_id, "practice", undefined, undefined, NO_LAYERS);
+      setScreen("game");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [nego],
+  );
+
+  const backToCourse = useCallback(() => {
+    setDrill(null);
+    setDrillVerdict(null);
+    nego.reset?.();
+    setScreen("course");
+  }, [nego]);
 
   const startWithLayers = useCallback(() => {
     if (!pendingScenario) return;
@@ -366,9 +423,10 @@ export default function App() {
       {skin === "game" ? (
         <SideNav
           t={t}
-          active={screen === "profile" ? "profile" : mode}
+          active={screen === "profile" ? "profile" : screen === "course" ? "course" : mode}
           onMode={(m) => { setMode(m); if (screen !== "home") goHome(); }}
           onProfile={openProfile}
+          onCourse={() => setScreen("course")}
         />
       ) : null}
       <div className="appbody">
@@ -588,6 +646,13 @@ export default function App() {
             judgeActive={nego.judgeActive}
             avatarState={nego.avatarState}
             oppSpeaking={nego.oppSpeaking}
+            layers={{ voice: layers.voice, camera: layers.camera }}
+            userSpeaking={nego.userSpeaking}
+            transcript={nego.transcript}
+            getMicLevel={nego.getMicLevel}
+            onInterrupt={nego.interrupt}
+            videoRef={videoRef}
+            canvasRef={canvasRef}
             onSend={nego.turn}
             onHint={nego.requestHint}
             onQuit={goHome}
@@ -608,6 +673,16 @@ export default function App() {
           </div>
         </section>
       )}
+
+      {screen === "debrief" && drillVerdict && drill ? (
+        <div className="wrap">
+          <div className={`drill-verdict ${drillVerdict.ok ? "ok" : "bad"}`}>
+            <b>{drillVerdict.ok ? t.course.drillPass : t.course.drillFail}</b>
+            <span>{drill.ex.goal ? drill.ex.goal[lang] : ""}</span>
+            <button className="btn primary" onClick={backToCourse}>{t.course.backToCourse}</button>
+          </div>
+        </div>
+      ) : null}
 
       {screen === "debrief" && nego.debrief && (
         <Debrief
@@ -660,6 +735,17 @@ export default function App() {
 
       {screen === "profile" && (
         <SkillsProfile t={t} lang={lang} profile={profile} onHome={goHome} />
+      )}
+
+      {screen === "course" && (
+        <CourseScreen
+          t={t}
+          lang={lang}
+          profile={profile}
+          onProfile={(p) => { setProfile(p); saveProfile(p); }}
+          onStartDrill={startDrill}
+          onExit={goHome}
+        />
       )}
 
       {/* Milestone celebration rides over any screen; it self-dismisses per card and

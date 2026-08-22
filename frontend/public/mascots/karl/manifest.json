@@ -1,0 +1,13 @@
+{
+  "mascot": "karl",
+  "states": [
+    "celebrate",
+    "cheer",
+    "concern",
+    "idle",
+    "point",
+    "sad",
+    "think"
+  ],
+  "generated_by": "google/gemini-3.1-flash-image"
+}

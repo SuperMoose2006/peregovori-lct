@@ -1,0 +1,142 @@
+  /* Эмоции оппонента. Единственный случай во всём продукте, где эмоцию можно
+     показывать без оговорок: её не распознают — её ВЫЧИСЛИЛИ. reaction,
+     deltas и реплика, которая всё это сдвинула, лежат в движке готовыми.
+     Строить надо не измерение, а подачу. */
+  body{background:#eef0ef}
+  .doc{padding:24px 26px;display:flex;flex-direction:column;gap:15px}
+  .h{font-size:21px;font-weight:900;letter-spacing:-.4px;color:#26302c;margin:0}
+  .lede{font-size:13.5px;line-height:1.6;color:#46524d;margin:0;max-width:940px}
+  .lede b{color:#26302c}
+  .two{display:grid;grid-template-columns:400px minmax(0,1fr);gap:18px;align-items:start}
+
+  .read{background:var(--panel);border:2px solid var(--line);border-radius:var(--r);padding:16px 17px;
+        display:flex;flex-direction:column;gap:13px}
+  .read .top{display:flex;gap:13px;align-items:center}
+  .read .top img{width:78px;height:78px;border-radius:13px;border:2px solid var(--line);
+                 background:var(--panel2);object-fit:cover;flex:0 0 auto}
+  .read .nm{font-size:15px;font-weight:900;letter-spacing:-.2px}
+  .read .st{font-size:13px;font-weight:800;color:var(--tension);margin-top:2px}
+  .read .sub{font-size:12px;color:var(--dim);margin-top:2px}
+
+  .force{display:flex;flex-direction:column;gap:6px}
+  .force .lb{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:800}
+  .force .seg{display:flex;gap:4px}
+  .force .seg i{flex:1;height:9px;border-radius:999px;background:var(--panel2);display:block}
+  .force .seg i.on{background:var(--tension)}
+  .force .cap{font-size:12px;color:var(--dim)}
+  .force .cap b{color:var(--ink);font-weight:800}
+
+  .cause{border-top:2px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:6px}
+  .cause .lb{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:800}
+  .cause .q{font-size:13px;line-height:1.5;font-style:italic;color:var(--ink)}
+  .cause .d{display:flex;gap:6px;flex-wrap:wrap}
+  .dchip{font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 8px;
+         border:2px solid var(--line);color:var(--dim)}
+  .dchip.dn{color:var(--tension);border-color:color-mix(in srgb,var(--tension) 45%,transparent)}
+  .dchip.up{color:var(--trust);border-color:color-mix(in srgb,var(--trust) 45%,transparent)}
+
+  .trend{border-top:2px solid var(--line);padding-top:12px}
+  .trend .lb{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);
+             font-weight:800;margin-bottom:8px}
+  /* nowrap: строка тренда обязана читаться одной цепочкой. При переносе
+     стрелка оставалась сиротой в конце строки, а состояние уезжало вниз —
+     и последовательность переставала читаться как последовательность. */
+  .trend .row{display:flex;align-items:center;gap:5px;flex-wrap:nowrap}
+  .trend .s{font-size:11px;font-weight:800;padding:3px 7px;border-radius:999px;
+            background:var(--panel2);color:var(--dim);white-space:nowrap}
+  .trend .s.now{background:color-mix(in srgb,var(--tension) 13%,var(--panel));color:var(--tension)}
+  .trend .ar{color:var(--faint);font-weight:900}
+
+  .side{display:flex;flex-direction:column;gap:12px}
+  .blk{background:var(--panel);border:2px solid var(--line);border-radius:13px;padding:14px 16px}
+  .blk h4{margin:0 0 7px;font-size:14.5px;font-weight:900;letter-spacing:-.1px}
+  .blk p{margin:0;font-size:12.5px;line-height:1.55;color:var(--dim)}
+  .blk p b{color:var(--ink)}
+  .blk.warn{border-color:color-mix(in srgb,var(--tension) 40%,transparent);
+            background:color-mix(in srgb,var(--tension) 5%,var(--panel))}
+  .blk.ok{border-color:color-mix(in srgb,var(--soft) 50%,transparent);
+          background:color-mix(in srgb,var(--soft) 7%,var(--panel))}
+  .blk.ok h4{color:var(--brass)}
+
+  .flow{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .step{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;line-height:1.5}
+  .step .n{flex:0 0 auto;width:21px;height:21px;border-radius:7px;background:var(--panel2);
+           display:grid;place-items:center;font-size:11px;font-weight:900;color:var(--dim)}
+  .step b{font-weight:800}
+<!--SPLIT-->
+<div class="doc">
+  <h2 class="h">Эмоции оппонента — единственные, которые можно показывать без оговорок</h2>
+  <p class="lede">
+    Их не распознают — их <b>вычислили</b>. <code>reaction</code>, дельты шкал и реплика,
+    которая всё это сдвинула, уже лежат в движке. Строить надо не измерение, а подачу:
+    сейчас наружу выходит одна картинка из девяти, а знаем мы гораздо больше.
+  </p>
+
+  <div class="two">
+    <div class="read">
+      <div class="top">
+        <img src="lean_back.webp" alt="">
+        <div>
+          <div class="nm">Наталья, собственница</div>
+          <div class="st">Закрылась</div>
+          <div class="sub">была: раскрылась · ход 5</div>
+        </div>
+      </div>
+
+      <div class="force">
+        <div class="lb">Сила реакции</div>
+        <div class="seg"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+        <div class="cap"><b>Сильно.</b> Такой сдвиг за один ход — из редких.</div>
+      </div>
+
+      <div class="cause">
+        <div class="lb">Что её сдвинуло</div>
+        <div class="q">«Либо 64 000, либо мы смотрим другие варианты.»</div>
+        <div class="d">
+          <span class="dchip dn">Напряжение +12</span>
+          <span class="dchip dn">Доверие −7</span>
+          <span class="dchip">Ультиматум</span>
+        </div>
+      </div>
+
+      <div class="trend">
+        <div class="lb">Куда шла</div>
+        <div class="row">
+          <span class="s">нейтрально</span><span class="ar">→</span>
+          <span class="s">потеплела</span><span class="ar">→</span>
+          <span class="s">раскрылась</span><span class="ar">→</span>
+          <span class="s now">закрылась</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="blk warn">
+        <h4>Конфликт, который это создаёт</h4>
+        <p>Слой <b>«Читай лицо»</b> спрашивает ровно то же самое: «что с ней сейчас?».
+           Если игра показывает ответ на экране, спрашивать больше нечего — упражнение
+           обесценивается ровно тем, что мы добавили.</p>
+      </div>
+
+      <div class="blk ok">
+        <h4>Решение: readout — это ответ, а не подсказка</h4>
+        <p>Когда слой «Читай лицо» включён, панель <b>закрыта до вашего ответа</b> и
+           раскрывается сразу после него. Так подробный разбор становится не заменой
+           упражнению, а его наградой.</p>
+        <div class="flow">
+          <div class="step"><span class="n">1</span><span>Оппонент ответил. Панель закрыта: <b>«прочитайте сами»</b>.</span></div>
+          <div class="step"><span class="n">2</span><span>Вы выбираете из четырёх вариантов.</span></div>
+          <div class="step"><span class="n">3</span><span>Панель раскрывается целиком — с силой, причиной и трендом.</span></div>
+          <div class="step"><span class="n">4</span><span>Ошиблись — видно <b>чем именно</b> «под давлением» отличается от «закрылась»: у первого напряжение растёт, доверие стоит; у второго падает и доверие.</span></div>
+        </div>
+      </div>
+
+      <div class="blk">
+        <h4>Без слоя «Читай лицо» — панель открыта всегда</h4>
+        <p>Это не поблажка: человек, который не взял упражнение, всё равно должен
+           понимать, <b>почему цена не двигается</b>. Иначе переговоры превращаются
+           в угадайку, а тренажёр — в лотерею.</p>
+      </div>
+    </div>
+  </div>
+</div>

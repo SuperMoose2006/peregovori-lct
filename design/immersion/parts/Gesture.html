@@ -1,0 +1,159 @@
+  /* Жесты: чем ловить и что про них говорить.
+     Здесь две разные границы, и их легко перепутать. Первая — та же, что с
+     лицом: описание можно, толкование нельзя. Вторая новая и техническая:
+     чем ловить движение — локальной разметкой или моделью зрения. Ответ
+     оказался «обоими, но на разных ролях». */
+  body{background:#eef0ef}
+  .doc{padding:24px 26px;display:flex;flex-direction:column;gap:15px}
+  .h{font-size:21px;font-weight:900;letter-spacing:-.4px;color:#26302c;margin:0}
+  .lede{font-size:13.5px;line-height:1.6;color:#46524d;margin:0;max-width:1000px}
+  .lede b{color:#26302c}
+
+  .split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+  .col{background:var(--panel);border:2px solid var(--line);border-radius:13px;padding:15px 16px}
+  .col.yes{border-color:color-mix(in srgb,var(--soft) 50%,transparent);
+           background:color-mix(in srgb,var(--soft) 6%,var(--panel))}
+  .col.no{border-color:color-mix(in srgb,var(--tension) 40%,transparent);
+          background:color-mix(in srgb,var(--tension) 5%,var(--panel))}
+  .col h4{margin:0 0 4px;font-size:14.5px;font-weight:900;letter-spacing:-.1px}
+  .col.yes h4{color:var(--brass)} .col.no h4{color:var(--tension)}
+  .col .sub{font-size:11.5px;color:var(--dim);margin-bottom:11px}
+  .lst{display:flex;flex-direction:column;gap:7px}
+  .lst .i{display:flex;gap:9px;font-size:12.5px;line-height:1.45}
+  .lst .i .m{flex:0 0 auto;font-weight:900}
+  .col.yes .m{color:var(--brass)} .col.no .m{color:var(--tension)}
+  .col .note{margin-top:11px;font-size:12px;line-height:1.5;color:var(--dim);
+             border-top:2px solid var(--line);padding-top:10px}
+  .col .note b{color:var(--ink)}
+
+  .arch{background:var(--panel);border:2px solid var(--line);border-radius:var(--r);padding:16px 17px}
+  .arch h4{margin:0 0 3px;font-size:15px;font-weight:900;letter-spacing:-.2px}
+  .arch .sub{font-size:12.5px;color:var(--dim);margin-bottom:13px}
+  .pipe{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:11px;align-items:stretch}
+  .node{background:var(--panel2);border-radius:12px;padding:12px 13px;display:flex;
+        flex-direction:column;gap:5px}
+  .node .tag{font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;color:var(--faint)}
+  .node .nm{font-size:13.5px;font-weight:900;letter-spacing:-.1px}
+  .node .d{font-size:12px;line-height:1.45;color:var(--dim)}
+  .node.local{background:color-mix(in srgb,var(--soft) 11%,var(--panel))}
+  .node.local .tag{color:var(--brass)}
+  .node.cloud{background:color-mix(in srgb,var(--info) 11%,var(--panel))}
+  .node.cloud .tag{color:var(--info)}
+  .arr{display:grid;place-items:center;font-size:19px;font-weight:900;color:var(--faint)}
+  .math{display:flex;gap:22px;flex-wrap:wrap;margin-top:13px;border-top:2px solid var(--line);padding-top:12px}
+  .math .m{display:flex;flex-direction:column;gap:2px}
+  .math .m .n{font-size:19px;font-weight:900;letter-spacing:-.4px}
+  .math .m .n.bad{color:var(--tension)} .math .m .n.good{color:var(--brass)}
+  .math .m .l{font-size:11.5px;color:var(--dim)}
+
+  .frame-issue{display:grid;grid-template-columns:250px minmax(0,1fr);gap:16px;align-items:center;
+               background:var(--panel);border:2px solid color-mix(in srgb,var(--tension) 40%,transparent);
+               border-radius:13px;padding:15px 16px}
+  .cam{background:var(--panel2);border-radius:11px;height:150px;position:relative;overflow:hidden}
+  .cam .head{position:absolute;left:50%;top:26px;transform:translateX(-50%);
+             width:52px;height:52px;border-radius:999px;background:var(--line2)}
+  .cam .torso{position:absolute;left:50%;top:80px;transform:translateX(-50%);
+              width:112px;height:70px;border-radius:20px 20px 0 0;background:var(--line2)}
+  .cam .cut{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--tension)}
+  .cam .hands{position:absolute;left:50%;bottom:-30px;transform:translateX(-50%);
+              display:flex;gap:22px;opacity:.4}
+  .cam .hands i{width:24px;height:24px;border-radius:8px;background:var(--tension);display:block}
+  .cam .lbl{position:absolute;right:8px;bottom:6px;font-size:10px;font-weight:800;
+            color:var(--tension);letter-spacing:.04em}
+  .frame-issue .bd h4{margin:0 0 6px;font-size:14.5px;font-weight:900;color:var(--tension)}
+  .frame-issue .bd p{margin:0 0 7px;font-size:12.5px;line-height:1.55;color:var(--dim)}
+  .frame-issue .bd p:last-child{margin:0}
+  .frame-issue .bd p b{color:var(--ink)}
+<!--SPLIT-->
+<div class="doc">
+  <h2 class="h">Жесты: чем ловить и что про них говорить</h2>
+  <p class="lede">
+    Да, модель зрения жесты <b>видит</b> — и это не то же самое, что «читать эмоции».
+    Поднятая ладонь и скрещённые руки — <b>физические события</b>, их распознают надёжно.
+    Граница проходит на шаг дальше: между тем, чтобы <b>описать</b> жест, и тем, чтобы
+    сказать, что он <b>значит</b>.
+  </p>
+
+  <div class="split">
+    <div class="col yes">
+      <h4>Описывать — можно</h4>
+      <div class="sub">Событие, которое было в кадре</div>
+      <div class="lst">
+        <div class="i"><span class="m">✓</span><span>Развели руками, говоря «это максимум»</span></div>
+        <div class="i"><span class="m">✓</span><span>Подняли ладонь, останавливая</span></div>
+        <div class="i"><span class="m">✓</span><span>Показали цифру пальцами</span></div>
+        <div class="i"><span class="m">✓</span><span>Достали документ и положили на стол</span></div>
+        <div class="i"><span class="m">✓</span><span>Скрестили руки на груди</span></div>
+      </div>
+      <div class="note">Это проверяемо: включите запись и посмотрите — было или не было.
+        <b>Модель здесь работает как свидетель</b>, а не как эксперт.</div>
+    </div>
+
+    <div class="col no">
+      <h4>Толковать — нет</h4>
+      <div class="sub">Та же ловушка, что с мимикой</div>
+      <div class="lst">
+        <div class="i"><span class="m">✕</span><span>«Скрещённые руки — закрыт для предложения»</span></div>
+        <div class="i"><span class="m">✕</span><span>«Открытые ладони — искренность»</span></div>
+        <div class="i"><span class="m">✕</span><span>«Жестикуляция 7/10 — убедительно»</span></div>
+      </div>
+      <div class="note">Руки скрещивают, потому что холодно, потому что удобно и потому что
+        их некуда деть. <b>За «закрытой позой» нет данных</b> — это поп-психология
+        семидесятых, которую с тех пор не подтвердили.</div>
+    </div>
+  </div>
+
+  <div class="arch">
+    <h4>Архитектура, которая из этого следует</h4>
+    <div class="sub">Локальная разметка ловит, модель зрения описывает. Роли разные — и это дёшево.</div>
+    <div class="pipe">
+      <div class="node local">
+        <span class="tag">в браузере · бесплатно</span>
+        <span class="nm">MediaPipe Pose / Hands</span>
+        <span class="d">33 точки тела, 21 на руку, 30 кадров в секунду. Отвечает на один вопрос: <b>«движение было?»</b></span>
+      </div>
+      <div class="arr">→</div>
+      <div class="node">
+        <span class="tag">триггер</span>
+        <span class="nm">Руки вошли в кадр<br>или резко двинулись</span>
+        <span class="d">Порог по смещению точек. Никакого толкования — только факт события.</span>
+      </div>
+      <div class="arr">→</div>
+      <div class="node cloud">
+        <span class="tag">облако · по событию</span>
+        <span class="nm">Модель зрения</span>
+        <span class="d">Один кадр, один вопрос: <b>«что человек сделал руками?»</b> Ответ одной фразой.</span>
+      </div>
+    </div>
+    <div class="math">
+      <div class="m"><span class="n bad">18 000</span><span class="l">кадров за 10-минутную партию,<br>если слать всё подряд</span></div>
+      <div class="m"><span class="n good">~10</span><span class="l">кадров по триггеру<br>за ту же партию</span></div>
+      <div class="m"><span class="n">×1800</span><span class="l">разница в стоимости<br>и в трафике</span></div>
+    </div>
+    <div class="note" style="margin-top:12px;border-top:2px solid var(--line);padding-top:11px;font-size:12.5px;line-height:1.55;color:var(--dim)">
+      Побочный выигрыш: это <b>чинит нынешний сэмплер зрения</b>. Сейчас он ходит в модель
+      по таймеру раз в 8 секунд и сравнивает размер JPEG — жест длиной в секунду он
+      пропустит целиком, а на неподвижной картинке потратит вызов впустую.
+      Триггер по движению точнее таймера в обе стороны.
+    </div>
+  </div>
+
+  <div class="frame-issue">
+    <div class="cam">
+      <span class="head"></span><span class="torso"></span>
+      <span class="hands"><i></i><i></i></span>
+      <span class="cut"></span>
+      <span class="lbl">руки вне кадра</span>
+    </div>
+    <div class="bd">
+      <h4>И вот что, скорее всего, всё решит</h4>
+      <p>Ноутбук стоит на столе, камера — на уровне глаз. В кадре <b>голова и плечи</b>.
+        Руки лежат на клавиатуре, то есть <b>ниже нижней границы кадра</b> — и никакая
+        модель их там не увидит.</p>
+      <p>Значит слой жестов заработает у меньшинства: внешняя камера, ноутбук на
+        коленях, человек стоит. <b>Прежде чем строить — проверить на живых людях</b>,
+        у скольких руки вообще попадают в кадр. Если у одного из пяти, это не слой
+        продукта, а демо на одну сцену.</p>
+    </div>
+  </div>
+</div>

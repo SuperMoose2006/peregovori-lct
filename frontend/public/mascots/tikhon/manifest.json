@@ -1,0 +1,9 @@
+{
+  "mascot": "tikhon",
+  "states": [
+    "exam",
+    "idle",
+    "remember"
+  ],
+  "generated_by": "google/gemini-3.1-flash-image"
+}

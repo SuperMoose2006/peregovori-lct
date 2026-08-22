@@ -199,6 +199,20 @@ export interface Strings {
     explainHead: string;
     explain: string[];
   };
+  // Маскоты. Карл ничего не придумывает — эти строки только про него самого,
+  // а всё содержательное он берёт из строки тренера.
+  mascot: {
+    karl: string;
+    tikhon: string;
+    greeting: string;        // единственная реплика, которую он говорит сам
+    thinking: string;        // пока думает над подсказкой
+    rememberTitle: string;   // заголовок карточки Тихона в разборе
+  };
+  // Полоса живых слоёв под композером.
+  live: {
+    micOn: string; hearing: string; interrupt: string;
+    inFrame: string; outFrame: string; peekNote: string; peekOpen: string;
+  };
   probe: {
     ask: string;             // "Что с ней сейчас?"
     readFace: string;        // label above the enlarged portrait
@@ -220,9 +234,34 @@ export interface Strings {
     training: string;
     campaign: string;
     custom: string;
+    course: string;
     exam: string;
     progress: string;
     profile: string;
+  };
+  // Курс приёмов: блоки, уроки, девять типов заданий, экзамен блока.
+  // Ярлыки приёмов и реакций берутся из тех же ключей, что и в движке, —
+  // чтобы разбор упражнения говорил ровно то же, что чип под репликой.
+  course: {
+    title: string; lead: string; blocksDone: string; blockOf: string; toTable: string;
+    allBlocks: string; tasksN: string; theory: string;
+    examTitle: string; examLead: string; examBest: string; examPassed: string;
+    examStart: string; examMode: string; examFinish: string; examPass: string;
+    examFail: string; examResult: string;
+    toTasks: string; lessonDone: string; lessonComplete: string; lessonScore: string;
+    stepOf: string; next: string; checkIt: string; correct: string; wrong: string;
+    reference: string; freeformHint: string; matchHint: string; examQuit: string;
+    drillStart: string; drillNote: string; drillPass: string; drillFail: string;
+    backToCourse: string;
+    karlTheory: string; karlPerfect: string; karlOk: string;
+    karlExamPass: string; karlExamFail: string;
+    tikhonTitle: string; tikhonBody: string;
+    types: Record<string, string>;
+    meters: Record<string, string>;
+    reactions: Record<string, string>;
+    moves: Record<string, string>;
+    why: { missing: string; missingAny: string; forbidden: string; missingTerm: string;
+           tooShort: string; weak: string; noNumber: string; generic: string };
   };
   // Header control that swaps the visual skin (dojo <-> game).
   skin: { label: string; toGame: string; toDojo: string };
@@ -655,6 +694,22 @@ export const I18N: Record<Lang, Strings> = {
         "В экзамене слои выключены, чтобы сертификаты были сравнимы.",
       ],
     },
+    mascot: {
+      karl: "Карл",
+      tikhon: "Тихон",
+      greeting: "Не торопитесь с ценой. Сначала выясните, что для неё важно.",
+      thinking: "Секунду, смотрю…",
+      rememberTitle: "Тихон помнит",
+    },
+    live: {
+      micOn: "микрофон активен",
+      hearing: "слышу вас",
+      interrupt: "перебить",
+      inFrame: "камера · в кадре",
+      outFrame: "камера · вне кадра",
+      peekNote: "видно только вам",
+      peekOpen: "проверить свет",
+    },
     probe: {
       ask: "Что с ней сейчас?",
       readFace: "Читайте лицо",
@@ -684,7 +739,84 @@ export const I18N: Record<Lang, Strings> = {
       observation: "наблюдение · не влияет на оценку",
     },
     nav: { training: "Тренировка", campaign: "Кампания", custom: "Своя сделка",
-           exam: "Экзамен", progress: "Прогресс", profile: "Профиль" },
+           course: "Курс", exam: "Экзамен", progress: "Прогресс", profile: "Профиль" },
+    course: {
+      title: "Курс приёмов",
+      lead: "Девять блоков: вопрос → эмоция → легитимность → сила → числа → создание ценности → защита → закрытие. В каждом уроки, задания и экзамен.",
+      blocksDone: "Сдано блоков: {n} из {total}",
+      blockOf: "блок {n} из {total}",
+      toTable: "За стол →",
+      allBlocks: "Все блоки",
+      tasksN: "{n} заданий",
+      theory: "теория",
+      examTitle: "Экзамен блока",
+      examLead: "{n} заданий, порог {pass} из {total} очков. Подсказки выключены, разбор — после сдачи.",
+      examBest: "Лучший результат: {best} из {total}",
+      examPassed: "сдан",
+      examStart: "Сдавать экзамен",
+      examMode: "экзамен",
+      examFinish: "Завершить",
+      examPass: "Экзамен сдан",
+      examFail: "Экзамен не сдан",
+      examResult: "{score} из {total} очков, порог — {pass}. Пересдать можно сразу: выборка будет другой.",
+      toTasks: "К заданиям →",
+      lessonDone: "Урок пройден",
+      lessonComplete: "Урок пройден",
+      lessonScore: "Верно: {n} из {total}",
+      stepOf: "задание {n} из {total}",
+      next: "Дальше",
+      checkIt: "Проверить",
+      correct: "Верно",
+      wrong: "Не то",
+      reference: "Как можно было",
+      freeformHint: "Напишите реплику своими словами…",
+      matchHint: "Выберите слева, затем справа — пара свяжется.",
+      examQuit: "Прервать экзамен",
+      drillStart: "Начать мини-переговоры",
+      drillNote: "Настоящая партия на {n} ходов. Оценивает движок — как всегда.",
+      drillPass: "Капстоун сдан",
+      drillFail: "Капстоун не сдан",
+      backToCourse: "← В курс",
+      karlTheory: "Прочитали — теперь проверим на заданиях. Теория без применения выветривается за день.",
+      karlPerfect: "Ни одной ошибки. Это и есть навык.",
+      karlOk: "Нормально. Ошибка в тренажёре стоит дешевле, чем за столом.",
+      karlExamPass: "Сдано. Следующий блок открыт.",
+      karlExamFail: "Пока нет. Разберите промахи и заходите снова — выборка будет другой.",
+      tikhonTitle: "Тихон помнит",
+      tikhonBody: "Курс и партии живут в одном профиле: XP, ранги и стрик общие. Экзамен блока идёт без слоёв — чтобы результаты были сравнимы.",
+      types: {
+        choice: "Выбор реплики", spot_error: "Найти ошибку", order: "Порядок",
+        match: "Соответствие", numeric: "Расчёт", freeform: "Своими словами",
+        reaction: "Читай реакцию", meters: "Предскажи шкалы", drill: "Капстоун",
+      },
+      meters: { trust: "Доверие", tension: "Напряжение", info: "Информация",
+                leverage: "Рычаг", up: "Вырастет", down: "Упадёт" },
+      reactions: {
+        walked_out: "Встала из-за стола", offended: "Оскорблена", hardened: "Закрылась",
+        pressured: "Под давлением", not_yet: "Пока не готова", neutral: "Нейтральна",
+        collaborated: "Готова сотрудничать", persuaded: "Убеждена данными",
+        opened_up: "Приоткрылась", warmed: "Потеплела",
+      },
+      moves: {
+        interests_probe: "вскрытие интереса", acknowledge: "активное слушание",
+        objective_criteria: "объективный критерий", batna: "альтернатива",
+        tradeoff: "размен", threat: "ультиматум", hostile: "грубость",
+        accept: "закрытие", concession: "уступка", anchor: "якорь", offer: "предложение цены",
+        spin_situation: "SPIN · ситуация", spin_problem: "SPIN · проблема",
+        spin_implication: "SPIN · последствия", spin_needpayoff: "SPIN · выгода",
+        open_question: "открытый вопрос", statement: "заявление", rapport: "контакт",
+      },
+      why: {
+        missing: "Не хватает приёма: {move}",
+        missingAny: "Нужен хотя бы один из: {moves}",
+        forbidden: "Здесь нельзя: {move}",
+        missingTerm: "Не назван вторичный вопрос, который вы разменивали",
+        tooShort: "Слишком коротко — движку не из чего судить",
+        weak: "Аргумент слабый: нет обоснования, цифры или источника",
+        noNumber: "Нужна конкретная цифра",
+        generic: "Ответ не подошёл",
+      },
+    },
     skin: { label: "Оформление", toGame: "Игровое оформление", toDojo: "Оформление «додзё»" },
     opening: {
       title: "Стол накрыт",
@@ -1117,6 +1249,22 @@ export const I18N: Record<Lang, Strings> = {
         "The exam keeps them off so certificates stay comparable.",
       ],
     },
+    mascot: {
+      karl: "Karl",
+      tikhon: "Tikhon",
+      greeting: "Don't rush to the number. Find out what matters to her first.",
+      thinking: "One moment, looking…",
+      rememberTitle: "Tikhon remembers",
+    },
+    live: {
+      micOn: "microphone live",
+      hearing: "hearing you",
+      interrupt: "cut in",
+      inFrame: "camera · in frame",
+      outFrame: "camera · out of frame",
+      peekNote: "only you can see this",
+      peekOpen: "check your light",
+    },
     probe: {
       ask: "What is she feeling now?",
       readFace: "Read the face",
@@ -1146,7 +1294,84 @@ export const I18N: Record<Lang, Strings> = {
       observation: "observation · does not affect the grade",
     },
     nav: { training: "Training", campaign: "Campaign", custom: "Your deal",
-           exam: "Exam", progress: "Progress", profile: "Profile" },
+           course: "Course", exam: "Exam", progress: "Progress", profile: "Profile" },
+    course: {
+      title: "Technique course",
+      lead: "Nine blocks: question → emotion → legitimacy → power → numbers → value creation → defence → closing. Each has lessons, drills and an exam.",
+      blocksDone: "Blocks passed: {n} of {total}",
+      blockOf: "block {n} of {total}",
+      toTable: "To the table →",
+      allBlocks: "All blocks",
+      tasksN: "{n} tasks",
+      theory: "theory",
+      examTitle: "Block exam",
+      examLead: "{n} tasks, pass mark {pass} of {total} points. Hints off, review after you finish.",
+      examBest: "Best result: {best} of {total}",
+      examPassed: "passed",
+      examStart: "Take the exam",
+      examMode: "exam",
+      examFinish: "Finish",
+      examPass: "Exam passed",
+      examFail: "Exam not passed",
+      examResult: "{score} of {total} points, pass mark {pass}. Retake right away — the draw will differ.",
+      toTasks: "To the tasks →",
+      lessonDone: "Lesson done",
+      lessonComplete: "Lesson complete",
+      lessonScore: "Correct: {n} of {total}",
+      stepOf: "task {n} of {total}",
+      next: "Next",
+      checkIt: "Check",
+      correct: "Correct",
+      wrong: "Not quite",
+      reference: "One way to say it",
+      freeformHint: "Write the line in your own words…",
+      matchHint: "Pick on the left, then on the right — the pair links.",
+      examQuit: "Leave the exam",
+      drillStart: "Start the mini-negotiation",
+      drillNote: "A real {n}-turn negotiation. Scored by the engine, as always.",
+      drillPass: "Capstone passed",
+      drillFail: "Capstone not passed",
+      backToCourse: "← Back to the course",
+      karlTheory: "Read it — now let us test it. Theory without practice evaporates in a day.",
+      karlPerfect: "Not a single miss. That is what a skill looks like.",
+      karlOk: "Fine. A mistake here costs less than one at the table.",
+      karlExamPass: "Passed. The next block is open.",
+      karlExamFail: "Not yet. Read the misses and come back — the draw will differ.",
+      tikhonTitle: "Tikhon remembers",
+      tikhonBody: "Course and games share one profile: XP, ranks and the streak are the same. Block exams run with no layers, so results stay comparable.",
+      types: {
+        choice: "Pick the line", spot_error: "Spot the error", order: "Put in order",
+        match: "Match pairs", numeric: "Compute", freeform: "In your own words",
+        reaction: "Read the reaction", meters: "Predict the meters", drill: "Capstone",
+      },
+      meters: { trust: "Trust", tension: "Tension", info: "Information",
+                leverage: "Leverage", up: "Rises", down: "Falls" },
+      reactions: {
+        walked_out: "Walked out", offended: "Offended", hardened: "Hardened",
+        pressured: "Pressured", not_yet: "Not yet", neutral: "Neutral",
+        collaborated: "Ready to cooperate", persuaded: "Persuaded by data",
+        opened_up: "Opened up", warmed: "Warmed up",
+      },
+      moves: {
+        interests_probe: "interest probe", acknowledge: "active listening",
+        objective_criteria: "objective criterion", batna: "alternative",
+        tradeoff: "trade", threat: "ultimatum", hostile: "rudeness",
+        accept: "closing", concession: "concession", anchor: "anchor", offer: "price offer",
+        spin_situation: "SPIN · situation", spin_problem: "SPIN · problem",
+        spin_implication: "SPIN · implication", spin_needpayoff: "SPIN · need-payoff",
+        open_question: "open question", statement: "statement", rapport: "rapport",
+      },
+      why: {
+        missing: "Missing move: {move}",
+        missingAny: "At least one of these is needed: {moves}",
+        forbidden: "Not allowed here: {move}",
+        missingTerm: "The secondary issue you were trading is not named",
+        tooShort: "Too short — the engine has nothing to judge",
+        weak: "Weak argument: no grounding, number or source",
+        noNumber: "A concrete number is required",
+        generic: "That answer did not pass",
+      },
+    },
     skin: { label: "Look", toGame: "Game look", toDojo: "Dojo look" },
     opening: {
       title: "The table is set",

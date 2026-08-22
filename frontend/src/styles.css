@@ -2483,3 +2483,323 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   .face__voice i { animation: none; height: 7px; }
 }
+
+/* ============================================================
+   Маскоты: ворон Карл (тренер) и слон Тихон (память)
+   ------------------------------------------------------------
+   Карл прилипает к низу рельса — постоянное место, но ни одной новой колонки.
+   Он молчит по умолчанию: пузырь появляется, только когда тренеру есть что
+   сказать. Маскот, комментирующий каждую секунду, становится помехой за одну
+   партию; молчащий по умолчанию — за десять становится своим.
+   ============================================================ */
+/* Прилипает к низу рельса, а не просто лежит там: рельс — свой скролл-контейнер
+   (`.side { overflow-y: auto }`), и тренер, лежащий последним, оказывался ниже
+   сгиба ровно в те моменты, ради которых он существует. Подложка с градиентом
+   нужна, чтобы карточки уезжали ЗА него, а не сквозь. */
+.karl { margin-top: auto; padding-top: 14px; display: flex; flex-direction: column; gap: 8px;
+  position: sticky; bottom: 0; z-index: 2;
+  background: linear-gradient(to bottom, transparent, var(--ground) 18px); }
+.karl-row { display: flex; align-items: flex-end; gap: 9px; }
+.karl-row img { width: 92px; height: 92px; object-fit: contain; flex: 0 0 auto; }
+.karl-nm { font-size: 11.5px; font-weight: 800; color: var(--ink-dim); padding-bottom: 10px; }
+
+.karl-bub {
+  position: relative; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; padding: 11px 13px; font-size: 12.5px; line-height: 1.5;
+  animation: karlpop 0.32s ease;
+}
+:root[data-skin="game"] .karl-bub { border-width: 2px; }
+.karl-bub::after {
+  content: ""; position: absolute; left: 26px; bottom: -8px; width: 12px; height: 12px;
+  background: var(--panel); border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line); transform: rotate(45deg);
+}
+:root[data-skin="game"] .karl-bub::after { border-right-width: 2px; border-bottom-width: 2px; }
+@keyframes karlpop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+/* Одобрение и тревога подсвечивают пузырь — тем же цветом, что и шкалы,
+   которые их вызвали. Другого источника у настроения Карла нет. */
+.karl--cheer .karl-bub, .karl--celebrate .karl-bub {
+  border-color: color-mix(in srgb, var(--trust) 50%, transparent);
+  background: color-mix(in srgb, var(--trust) 8%, var(--panel));
+}
+.karl--cheer .karl-bub::after, .karl--celebrate .karl-bub::after {
+  border-color: color-mix(in srgb, var(--trust) 50%, transparent);
+  background: color-mix(in srgb, var(--trust) 8%, var(--panel));
+}
+.karl--concern .karl-bub, .karl--sad .karl-bub {
+  border-color: color-mix(in srgb, var(--tension) 45%, transparent);
+  background: color-mix(in srgb, var(--tension) 7%, var(--panel));
+}
+.karl--concern .karl-bub::after, .karl--sad .karl-bub::after {
+  border-color: color-mix(in srgb, var(--tension) 45%, transparent);
+  background: color-mix(in srgb, var(--tension) 7%, var(--panel));
+}
+
+/* Телефон: фигура в рост съела бы половину экрана, поэтому значок в ленте. */
+.karl-mini { display: inline-flex; align-items: flex-start; gap: 9px; }
+.karl-mini img { width: 34px; height: 34px; object-fit: contain; flex: 0 0 auto; }
+.karl-mini-t { font-size: 13px; line-height: 1.5; }
+
+.tikhon {
+  display: flex; gap: 13px; align-items: center; background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px;
+}
+:root[data-skin="game"] .tikhon { border-width: 2px; }
+.tikhon img { width: 76px; height: 76px; object-fit: contain; flex: 0 0 auto; }
+.tikhon-bd { min-width: 0; }
+.tikhon-bd h4 { margin: 0 0 4px; font-size: 14px; font-weight: 800; }
+.tikhon-bd p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
+
+@media (max-width: 860px) {
+  /* На телефоне рельс схлопывается над лентой — фигура в рост там не к месту,
+     и прилипать не к чему: скроллится страница целиком, а не рельс. */
+  .karl-row img { width: 64px; height: 64px; }
+  .karl { position: static; background: none; }
+}
+
+/* ============================================================
+   Полоса живых слоёв: микрофон, камера, расшифровка
+   ------------------------------------------------------------
+   Выключенные слои не оставляют следов — компонент не рендерится вовсе,
+   и под него не резервируется место. Это тот же инвариант раскладки,
+   что и у всего остального.
+   ============================================================ */
+.livebar {
+  display: flex; align-items: center; gap: 11px; flex-wrap: wrap;
+  margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line);
+  position: relative;
+}
+:root[data-skin="game"] .livebar { border-top-width: 2px; }
+.lb-dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
+
+.lb-mic {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 12px; font-weight: 700; color: var(--ink-dim);
+}
+.lb-mic.hot { color: var(--brass); }
+.lb-bars { display: inline-flex; align-items: flex-end; gap: 3px; height: 18px; }
+.lb-bars i {
+  width: 3px; border-radius: 2px; background: var(--line-2); display: block;
+  transition: height 0.08s linear;
+}
+.lb-mic.hot .lb-bars i { background: var(--trust); }
+
+.lb-cam {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700;
+  color: var(--ink-dim); border: 1px solid var(--line-2); border-radius: 999px;
+  padding: 4px 11px; min-height: 30px;
+}
+:root[data-skin="game"] .lb-cam { border-width: 2px; }
+.lb-cam .lb-dot { background: var(--trust); }
+.lb-cam.out { color: var(--tension); border-color: color-mix(in srgb, var(--tension) 45%, transparent); }
+.lb-cam.out .lb-dot { background: var(--tension); }
+.lb-cam:hover { border-color: var(--brass); }
+
+.lb-cut {
+  font-size: 12px; font-weight: 800; color: var(--tension);
+  border: 1px solid color-mix(in srgb, var(--tension) 50%, transparent);
+  border-radius: 999px; padding: 4px 12px; min-height: 30px;
+}
+:root[data-skin="game"] .lb-cut { border-width: 2px; }
+.lb-tr { font-size: 12.5px; color: var(--ink-faint); font-style: italic; min-width: 0; }
+
+/* Самопревью. Всплывает по клику и закрывается тем же кликом — оно для
+   проверки света перед стартом, а не для сопровождения партии:
+   человек, видящий себя, начинает следить за собой. */
+.lb-peek {
+  position: absolute; right: 0; bottom: calc(100% + 8px); width: 148px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 13px;
+  padding: 8px; box-shadow: var(--shadow); z-index: 6;
+  opacity: 0; visibility: hidden; transform: translateY(6px);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
+}
+:root[data-skin="game"] .lb-peek { border-width: 2px; }
+.lb-peek.on { opacity: 1; visibility: visible; transform: none; }
+.lb-peek video {
+  width: 100%; height: 100px; object-fit: cover; border-radius: 9px;
+  background: var(--panel-2); display: block; transform: scaleX(-1);
+}
+.lb-peek-n {
+  display: block; margin-top: 6px; text-align: center;
+  font-size: 10.5px; font-weight: 700; color: var(--ink-faint);
+}
+
+/* ============================================================
+   Курс приёмов: карта блоков, урок, упражнение, экзамен
+   ------------------------------------------------------------
+   Форма повторяет путь кампании намеренно: игрок уже научился читать
+   вертикальную дорожку с узлами, и второй язык навигации в одном
+   продукте был бы налогом на внимание, а не разнообразием.
+   ============================================================ */
+.course .lead { margin-bottom: 14px; }
+.course-top { display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 6px 0 18px; }
+.course-count { font-size: 13px; font-weight: 800; color: var(--ink-dim); }
+
+.course-path { list-style: none; margin: 0; padding: 0; display: flex;
+  flex-direction: column; gap: 14px; }
+.cnode { display: flex; gap: 14px; align-items: center; padding: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+:root[data-skin="game"] .cnode { border-width: 2px; }
+.cnode.locked { opacity: 0.55; }
+.cnode-btn { width: 64px; height: 64px; flex: 0 0 auto; border-radius: 50%;
+  border: 2px solid var(--line-2); background: var(--panel-2); font-size: 26px;
+  display: grid; place-items: center; cursor: pointer; }
+.cnode.current .cnode-btn { border-color: var(--brass); background: var(--brass-soft); }
+.cnode.done .cnode-btn { border-color: var(--trust); color: var(--trust); }
+.cnode.locked .cnode-btn { cursor: not-allowed; }
+.cnode-body { min-width: 0; flex: 1; }
+.cnode-t { font-weight: 800; font-size: 15px; }
+.cnode-s { font-size: 12.5px; color: var(--ink-dim); line-height: 1.45; margin-top: 2px; }
+.cnode-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.cnode-of { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-faint); }
+.cnode-bar { flex: 1; height: 8px; border-radius: 4px; background: var(--panel-2);
+  overflow: hidden; max-width: 220px; }
+.cnode-bar i { display: block; height: 100%; background: var(--trust); }
+.cnode-pct { font-size: 11.5px; font-weight: 800; color: var(--ink-dim); }
+
+.lesson-list { list-style: none; margin: 0 0 20px; padding: 0;
+  display: flex; flex-direction: column; gap: 8px; }
+.lesson-list button { width: 100%; display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r); cursor: pointer; text-align: left; color: inherit; font: inherit; }
+:root[data-skin="game"] .lesson-list button { border-width: 2px; }
+.lesson-list .done button { border-color: var(--trust); }
+.ll-n { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--panel-2); display: grid; place-items: center;
+  font-weight: 800; font-size: 13px; }
+.lesson-list .done .ll-n { background: var(--trust); color: #fff; }
+.ll-t { flex: 1; font-weight: 700; font-size: 14px; }
+.ll-x { font-size: 11.5px; color: var(--ink-faint); }
+
+.exam-card { background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 16px 18px; }
+:root[data-skin="game"] .exam-card { border-width: 2px; }
+.exam-card h3 { margin: 0 0 6px; font-size: 16px; }
+.exam-card p { margin: 0 0 10px; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+.exam-best { font-weight: 700; color: var(--ink); }
+
+.wrap.lesson { max-width: 720px; }
+.lesson-body p { font-size: 15px; line-height: 1.65; margin: 0 0 14px; }
+.lesson-bar { height: 10px; border-radius: 5px; background: var(--panel-2);
+  overflow: hidden; margin: 10px 0 6px; }
+.lesson-bar i { display: block; height: 100%; background: var(--trust);
+  transition: width 0.3s ease; }
+.lesson-step { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-faint); margin-bottom: 12px; display: flex; gap: 10px; align-items: center; }
+.exam-flag { color: var(--brass); font-weight: 800; }
+.lesson-xp { font-weight: 800; color: var(--brass); font-size: 18px; }
+.btn.back { margin-bottom: 10px; }
+
+/* ---- упражнение ---- */
+.ex { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 16px 18px; }
+:root[data-skin="game"] .ex { border-width: 2px; }
+.ex.ok { border-color: var(--trust); }
+.ex.bad { border-color: var(--tension); }
+.ex-kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--ink-faint); font-weight: 800; }
+.ex-prompt { font-size: 15.5px; line-height: 1.55; font-weight: 700; margin: 6px 0 12px; }
+.ex-quote { margin: 0 0 12px; padding: 10px 12px; border-left: 3px solid var(--line-2);
+  background: var(--panel-2); border-radius: 0 10px 10px 0; font-size: 14px; line-height: 1.5; }
+.ex-quote.mine { border-left-color: var(--brass); }
+.ex-state { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12.5px;
+  color: var(--ink-dim); margin-bottom: 10px; }
+.ex-opts { list-style: none; margin: 0 0 12px; padding: 0; display: flex;
+  flex-direction: column; gap: 8px; }
+.ex-opts.row { flex-direction: row; flex-wrap: wrap; }
+.ex-opt { width: 100%; text-align: left; padding: 11px 13px; font: inherit; color: inherit;
+  background: var(--panel-2); border: 2px solid transparent; border-radius: 12px;
+  cursor: pointer; line-height: 1.45; font-size: 14px; }
+.ex-opts.row .ex-opt { width: auto; }
+.ex-opt.on { border-color: var(--brass); }
+.ex-opt.right { border-color: var(--trust); background: color-mix(in srgb, var(--trust) 12%, var(--panel-2)); }
+.ex-opt.wrong { border-color: var(--tension); background: color-mix(in srgb, var(--tension) 12%, var(--panel-2)); }
+.ex-opt.tied em { display: block; font-size: 12px; color: var(--ink-dim); font-style: normal; margin-top: 3px; }
+.ex-opt:disabled { cursor: default; }
+
+.ex-order { list-style: none; margin: 0 0 12px; padding: 0; display: flex;
+  flex-direction: column; gap: 8px; counter-reset: none; }
+.ex-order li { display: flex; align-items: center; gap: 10px; padding: 9px 11px;
+  background: var(--panel-2); border: 2px solid transparent; border-radius: 12px; }
+.ex-order li.right { border-color: var(--trust); }
+.ex-order li.wrong { border-color: var(--tension); }
+.ex-ord-n { width: 24px; height: 24px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--panel); display: grid; place-items: center; font-weight: 800; font-size: 12px; }
+.ex-ord-t { flex: 1; font-size: 13.5px; line-height: 1.4; }
+.ex-ord-btns { display: flex; gap: 4px; }
+.ex-ord-btns button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel); cursor: pointer; color: inherit; }
+.ex-ord-btns button:disabled { opacity: 0.35; cursor: default; }
+
+.ex-match { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.ex-match ul { list-style: none; margin: 0; padding: 0; display: flex;
+  flex-direction: column; gap: 8px; }
+
+.ex-num { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ex-num input { width: 140px; padding: 10px 12px; font: inherit; font-size: 16px;
+  border: 2px solid var(--line); border-radius: 12px; background: var(--panel-2); color: inherit; }
+.ex-num span { font-size: 13px; color: var(--ink-dim); }
+
+.ex-free textarea { width: 100%; padding: 11px 13px; font: inherit; font-size: 14.5px;
+  border: 2px solid var(--line); border-radius: 12px; background: var(--panel-2);
+  color: inherit; resize: vertical; }
+.ex-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+
+.ex-drill { background: var(--panel-2); border-radius: 12px; padding: 12px 14px; }
+.ex-goal { margin: 0 0 4px; font-weight: 800; font-size: 14px; }
+.ex-goal-n { margin: 0 0 10px; font-size: 12.5px; color: var(--ink-dim); }
+
+.ex-go { margin-top: 4px; }
+.ex-verdict { margin-top: 12px; padding: 12px 14px; border-radius: 12px;
+  background: var(--panel-2); font-size: 13.5px; line-height: 1.55; }
+.ex-verdict.ok { background: color-mix(in srgb, var(--trust) 12%, var(--panel-2)); }
+.ex-verdict.bad { background: color-mix(in srgb, var(--tension) 12%, var(--panel-2)); }
+.ex-verdict b { display: block; margin-bottom: 4px; }
+.ex-why { margin: 0 0 8px; padding-left: 18px; font-size: 13px; color: var(--ink-dim); }
+.ex-explain { margin: 0; }
+.ex-ref { margin: 8px 0 0; font-size: 13px; color: var(--ink-dim); }
+
+.exam-review { list-style: none; margin: 16px 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.exam-review li { padding: 10px 12px; border-radius: 12px; background: var(--panel-2);
+  font-size: 13px; line-height: 1.5; border-left: 3px solid var(--line-2); }
+.exam-review li.ok { border-left-color: var(--trust); }
+.exam-review li.bad { border-left-color: var(--tension); }
+.exam-review b { display: block; margin-bottom: 3px; }
+
+/* Итог капстоуна над разбором: он приходит из ТОГО ЖЕ состояния, что и грейд. */
+.drill-verdict { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 14px 16px; margin: 16px 0 0; border-radius: var(--r);
+  border: 2px solid var(--line); background: var(--panel); }
+.drill-verdict.ok { border-color: var(--trust); }
+.drill-verdict.bad { border-color: var(--tension); }
+.drill-verdict b { font-size: 16px; }
+.drill-verdict span { flex: 1; font-size: 13px; color: var(--ink-dim); }
+
+@media (max-width: 640px) {
+  .ex-match { grid-template-columns: 1fr; }
+  .cnode-btn { width: 52px; height: 52px; font-size: 22px; }
+}
+
+/* Кнопки курса. Продукт уже использует голые `.primary`/`.ghost`, но там они
+   всегда живут в flex-строке действий; в курсе кнопка стоит одна, поэтому ей
+   нужна собственная база, а не растягивание на всю ширину от `flex: 1`. */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px;
+  border-radius: 12px; border: 2px solid transparent; background: var(--panel-2);
+  color: inherit; font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
+.btn:hover { filter: brightness(1.05); }
+.btn.primary { flex: 0 0 auto; background: var(--brass); color: #fff; }
+:root[data-theme="dark"] .btn.primary { color: #10190c; }
+:root[data-skin="game"] .btn.primary { box-shadow: 0 4px 0 var(--edge); }
+:root[data-skin="game"] .btn.primary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--edge); }
+.btn.ghost { background: transparent; border-color: var(--line-2); color: var(--ink-dim); }
+.btn:disabled { opacity: 0.45; cursor: default; filter: none; }
+
+/* Пузырь тренера в уроке не должен растягиваться на всю колонку: реплика в
+   две строки шириной в экран читается как баннер, а не как реплика. */
+.wrap.lesson .karl-bub, .course .karl-bub { max-width: 520px; }
+.ex-hint { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-faint); }
+.exam-quit { margin-left: auto; padding: 6px 12px; font-size: 12px; }

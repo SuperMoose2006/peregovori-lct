@@ -66,12 +66,16 @@ export interface Negotiation extends NegotiationState {
   // situation is the free-text brief for mode "custom" (ignored otherwise).
   // reputation (-100..100) carries a campaign result into the next stage's trust.
   start: (scenarioId: string, mode: Mode, situation?: string, reputation?: number,
-          layers?: { probe?: boolean; voice?: boolean; camera?: boolean }) => void;
+          layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean }) => void;
   turn: (text: string) => void;
   requestHint: () => void;
   answerProbe: (id: number, choice: number) => void;
   clearError: () => void;
   reset: () => void;
+  /** Уровень микрофона 0..1 для полоски «вас слышно». Ссылка стабильна. */
+  getMicLevel: () => number;
+  /** Оборвать реплику оппонента кнопкой. Голосом сервер перебивает сам. */
+  interrupt: () => void;
 }
 
 const initialState: NegotiationState = {
@@ -94,10 +98,13 @@ const initialState: NegotiationState = {
 };
 
 /** Куда рисовать картинку с камеры. Сами слои выбираются на экране подготовки
- *  и едут в сообщении `start` — здесь только DOM-узлы, которых у протокола нет. */
+ *  и едут в сообщении `start` — здесь только DOM-узлы, которых у протокола нет.
+ *
+ *  Именно ref-объекты, а не элементы: на первом рендере узлов ещё нет, а
+ *  транспорт создаётся позже. Разыменование отложено до этого момента. */
 export interface RealtimeOptions {
-  videoEl?: HTMLVideoElement | null;
-  canvasEl?: HTMLCanvasElement | null;
+  videoRef?: React.MutableRefObject<HTMLVideoElement | null>;
+  canvasRef?: React.MutableRefObject<HTMLCanvasElement | null>;
 }
 
 export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Negotiation {
@@ -139,8 +146,8 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
         {
           // Голос и камера сюда не передаются: их выбирают на экране
           // подготовки, и они приезжают в сообщении `start` (см. transport.ts).
-          videoEl: realtimeRef.current.videoEl,
-          canvasEl: realtimeRef.current.canvasEl,
+          videoEl: realtimeRef.current.videoRef?.current ?? null,
+          canvasEl: realtimeRef.current.canvasRef?.current ?? null,
           onAvatar: (avatarState) =>
             setS((p) => ({ ...p, avatarState, oppSpeaking: avatarState === "speaking" })),
           onObservation: (text) =>
@@ -209,7 +216,12 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
     setS({ ...initialState });
   }, [teardown]);
 
-  return { ...s, start, turn, requestHint, answerProbe, clearError, reset };
+  // Стабильные ссылки: LiveBar опрашивает уровень по таймеру, и меняющаяся
+  // каждый рендер функция пересоздавала бы таймер шестьдесят раз в секунду.
+  const getMicLevel = useCallback(() => transportRef.current?.micLevel?.() ?? 0, []);
+  const interrupt = useCallback(() => transportRef.current?.interrupt?.(), []);
+
+  return { ...s, start, turn, requestHint, answerProbe, clearError, reset, getMicLevel, interrupt };
 }
 
 // Pure reducer over the ServerMsg stream.

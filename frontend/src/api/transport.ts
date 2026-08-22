@@ -11,6 +11,11 @@ export interface Transport {
   send(msg: ClientMsg): void;
   /** Tear down the connection / cancel pending timers. */
   close(): void;
+  /** Мгновенный уровень микрофона 0..1. Локальный, поэтому без задержки сети.
+   *  Офлайн-ядро микрофона не держит и его не реализует. */
+  micLevel?(): number;
+  /** Оборвать реплику оппонента вручную (кнопка, а не голос). */
+  interrupt?(): void;
 }
 
 export type TransportKind = "ws" | "mock";
