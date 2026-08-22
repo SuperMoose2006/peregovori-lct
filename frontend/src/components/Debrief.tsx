@@ -117,6 +117,13 @@ export function Debrief({
   // pushes the score bars far down, so on mobile it starts collapsed behind a
   // teaser + CTA and expands in place. Desktop ignores this (CSS always shows it).
   const [wiOpen, setWiOpen] = useState(false);
+  // The debrief used to be one 2750px document. It is now three beats with one
+  // action each — the shape a lesson-complete flow needs. The certificate keeps
+  // its single page: a certificate is a document, and paging one is absurd.
+  const [beat, setBeat] = useState(0);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const paged = mode !== "exam";
+  const at = (n: number) => !paged || beat === n;
 
   // Technique-floor rule (item 4): a great price with thin method caps the grade.
   // Surfacing the rule makes a capped grade read as principled, not harsh.
@@ -230,7 +237,7 @@ export function Debrief({
               pivotal-turn replay is the jury's magnet — an inviting teaser + the
               player's own costly line, before the metric bars. Deterministic
               replay logic is unchanged; only its position moved. */}
-          {showWhatIf && pivotal && pivotIdx !== null ? (
+          {at(0) && showWhatIf && pivotal && pivotIdx !== null ? (
             <div className={`whatif-wrap${wiOpen ? " open" : ""}`}>
               <button
                 type="button"
@@ -255,6 +262,8 @@ export function Debrief({
             </div>
           ) : null}
 
+          {at(0) ? (
+          <>
           <div className="sb">
             {bars.map((b, i) => (
               <div
@@ -283,8 +292,10 @@ export function Debrief({
               <span>{t.techniqueFloor}</span>
             </div>
           ) : null}
+          </>
+          ) : null}
 
-          {d.interests && d.interests.length > 0 ? (
+          {at(1) && d.interests && d.interests.length > 0 ? (
             <div className="reveal">
               <h3>🔎 {t.reveal.title}</h3>
               <ul>
@@ -304,6 +315,9 @@ export function Debrief({
             </div>
           ) : null}
 
+          {/* Numbers live in the details drawer: they are reference, not the
+              lesson, and they were the densest block on the old single page. */}
+          {at(2) && (!paged || detailsOpen) ? (
           <div className="stats">
             {cells.map((c, i) => (
               <div className="st" key={i} role="img" aria-label={`${c.l}: ${c.n}`}>
@@ -312,8 +326,9 @@ export function Debrief({
               </div>
             ))}
           </div>
+          ) : null}
 
-          {showTerms ? (
+          {at(1) && showTerms ? (
             <div className={`dbterms${tradedLabels.length ? "" : " none"}`}>
               <span className="dbt-label">🔄 {t.terms.debriefLabel}</span>
               {tradedLabels.length ? (
@@ -332,7 +347,7 @@ export function Debrief({
               shared "observation" badge, because how well you read her is not
               part of the grade — unlike the interests card above, whose
               interests_found genuinely feeds `technique`. */}
-          {probeStats && probeStats.asked > 0 ? (
+          {at(1) && probeStats && probeStats.asked > 0 ? (
             <div className="obs">
               <div className="obs-head">
                 <h3>🎭 {t.probe.debriefHead}</h3>
@@ -349,7 +364,7 @@ export function Debrief({
             </div>
           ) : null}
 
-          {d.ai_verdict ? (
+          {at(2) && d.ai_verdict ? (
             <div className="mentor">
               <h3>🎓 {t.mentor.title}</h3>
               <p className="mn-verdict">{d.ai_verdict}</p>
@@ -372,7 +387,7 @@ export function Debrief({
             </div>
           ) : null}
 
-          {d.turning_points && d.turning_points.length > 0 ? (
+          {at(2) && d.turning_points && d.turning_points.length > 0 ? (
             <div className="tpoints">
               <h3>{t.turningPoints.title}</h3>
               <ol>
@@ -390,7 +405,7 @@ export function Debrief({
             </div>
           ) : null}
 
-          {master ? (
+          {at(2) && master ? (
             <div className="master">
               <h3>✦ {t.master.title}</h3>
               <div className="ms-grid">
@@ -409,6 +424,7 @@ export function Debrief({
             </div>
           ) : null}
 
+          {at(2) && (!paged || detailsOpen) ? (
           <div className="coach">
             <h3>{t.coachTitle}</h3>
             <ul>
@@ -417,7 +433,37 @@ export function Debrief({
               ))}
             </ul>
           </div>
+          ) : null}
 
+          {paged ? (
+            <div className="beats">
+              {/* One action per beat — the shape a lesson-complete flow needs.
+                  The dots double as a progress read and as direct navigation. */}
+              <div className="beat-dots" role="tablist" aria-label={t.beats.label}>
+                {[0, 1, 2].map((i) => (
+                  <button
+                    key={i}
+                    role="tab"
+                    aria-selected={beat === i}
+                    aria-label={t.beats.names[i]}
+                    className={`beat-dot${beat === i ? " on" : ""}${beat > i ? " done" : ""}`}
+                    onClick={() => setBeat(i)}
+                  />
+                ))}
+              </div>
+              {beat < 2 ? (
+                <button className="primary beat-go" onClick={() => setBeat((n) => n + 1)}>
+                  {t.beats.next.replace("{name}", t.beats.names[beat + 1])}
+                </button>
+              ) : (
+                <button className="beat-more" onClick={() => setDetailsOpen((o) => !o)}>
+                  {detailsOpen ? t.beats.less : t.beats.more}
+                </button>
+              )}
+            </div>
+          ) : null}
+
+          {(!paged || beat === 2) ? (
           <div className="dacts">
             {onNext ? (
               <button className="primary" onClick={onNext}>
@@ -432,6 +478,7 @@ export function Debrief({
               {t.toHome}
             </button>
           </div>
+          ) : null}
         </div>
       </div>
     </section>

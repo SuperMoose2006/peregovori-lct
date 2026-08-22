@@ -2372,3 +2372,33 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   :root[data-skin="game"] .side { order: 1; }
   :root[data-skin="game"] .hud { grid-template-columns: 1fr 1fr; padding: 10px 13px; }
 }
+
+/* ---------- Debrief beats ----------
+   Navigation for the paged debrief. The dots are both a progress read and
+   direct navigation — a player who wants the missed interests again should not
+   have to walk forward through the whole sequence. */
+.beats { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 26px 0 6px; }
+.beat-dots { display: inline-flex; gap: 2px; }
+/* The BUTTON is the 44px target and the dot is drawn inside it. An earlier
+   version kept an 11px button and grew the hit area with `::after { inset: -14px }`
+   — at a 20px pitch those overlays overlapped, so tapping one dot activated its
+   neighbour. Sizing the control itself is the only version that cannot overlap. */
+.beat-dot {
+  width: 44px; height: 44px; padding: 0; background: none;
+  display: grid; place-items: center;
+}
+.beat-dot::before {
+  content: ""; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--line-2); transition: 0.18s;
+}
+.beat-dot.done::before { background: color-mix(in srgb, var(--brass) 55%, var(--line-2)); }
+.beat-dot.on::before { background: var(--brass); transform: scale(1.35); }
+.beat-go { width: 100%; max-width: 420px; font-size: 15px; padding: 14px; }
+.beat-more {
+  font-size: 13px; font-weight: 700; color: var(--ink-dim);
+  border: 2px solid var(--line-2); border-radius: 999px; padding: 9px 18px;
+}
+.beat-more:hover { border-color: var(--brass); color: var(--ink); }
+:root[data-skin="game"] .beat-go { border-bottom: 4px solid var(--edge); border-radius: 14px;
+  text-transform: uppercase; letter-spacing: 0.04em; font-weight: 800; }
+:root[data-skin="game"] .beat-go:active { transform: translateY(3px); border-bottom-width: 1px; }

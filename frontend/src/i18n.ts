@@ -175,6 +175,9 @@ export interface Strings {
   };
   // first-turn coach bubble (practice/campaign/custom; withheld in exam).
   // {name} = counterpart name, substituted at render.
+  // The debrief's three beats. It used to be one 2750px document; now it is
+  // Итог → Что вы упустили → Что сказал бы мастер, one action each.
+  beats: { label: string; names: string[]; next: string; more: string; less: string };
   // Right-rail widgets of the "game" skin shell.
   goal: { title: string };
   rank: { title: string; toNext: string };  // toNext: "{n} XP до «{rank}»"
@@ -616,6 +619,13 @@ export const I18N: Record<Lang, Strings> = {
         D: "Есть над чем поработать",
         F: "Ещё учиться",
       },
+    },
+    beats: {
+      label: "Части разбора",
+      names: ["Итог", "Что вы упустили", "Что сказал бы мастер"],
+      next: "Дальше: {name} →",
+      more: "Подробный разбор ▾",
+      less: "Свернуть подробности ▴",
     },
     goal: { title: "Цель дня" },
     rank: { title: "Ваш ранг", toNext: "{n} XP до «{rank}»" },
@@ -1069,6 +1079,13 @@ export const I18N: Record<Lang, Strings> = {
         D: "Room to grow",
         F: "Still learning",
       },
+    },
+    beats: {
+      label: "Debrief sections",
+      names: ["Outcome", "What you missed", "What a master would say"],
+      next: "Next: {name} →",
+      more: "Full breakdown ▾",
+      less: "Hide details ▴",
     },
     goal: { title: "Daily goal" },
     rank: { title: "Your rank", toNext: "{n} XP to \u00ab{rank}\u00bb" },
