@@ -77,7 +77,12 @@ function ActRow({
 
   return (
     <li className={`act ${status}`}>
-      <div className="act-node">{node}</div>
+      <div className="act-node">
+        {node}
+        {/* The bouncing flag over the current node: on a path, the player must
+            never have to read to find out where they are. */}
+        {status === "current" ? <span className="act-flag">{t.campaign.startFlag}</span> : null}
+      </div>
       <div className="act-body">
         <div className="act-label">{stage.act}</div>
         <div className="act-title">

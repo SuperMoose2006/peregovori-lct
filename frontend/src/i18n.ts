@@ -166,6 +166,7 @@ export interface Strings {
     current: string; // current-act badge
     done: string; // completed-act badge
     reputation: string; // running-reputation chip label
+    startFlag: string;  // flag above the current node on the path
     actOf: string; // "Act {n} of {total}" — {n}/{total} substituted
     completeEyebrow: string; // kicker on the completion screen
     completeTitle: string;
@@ -607,6 +608,7 @@ export const I18N: Record<Lang, Strings> = {
       current: "сейчас",
       done: "пройдено",
       reputation: "Репутация",
+    startFlag: "Старт",
       actOf: "Акт {n} из {total}",
       completeEyebrow: "Восхождение · итог",
       completeTitle: "Путь пройден",
@@ -1067,6 +1069,7 @@ export const I18N: Record<Lang, Strings> = {
       current: "now",
       done: "cleared",
       reputation: "Reputation",
+    startFlag: "Start",
       actOf: "Act {n} of {total}",
       completeEyebrow: "The Climb · summary",
       completeTitle: "The climb is complete",

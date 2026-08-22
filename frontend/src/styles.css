@@ -2402,3 +2402,61 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 :root[data-skin="game"] .beat-go { border-bottom: 4px solid var(--edge); border-radius: 14px;
   text-transform: uppercase; letter-spacing: 0.04em; font-weight: 800; }
 :root[data-skin="game"] .beat-go:active { transform: translateY(3px); border-bottom-width: 1px; }
+
+/* ---------- Campaign as a PATH (game skin) ----------
+   The dojo skin keeps the timeline: a vertical list of 42px circles is a fine
+   story arc for a document. A game needs a path — the single strongest habit
+   device Duolingo has — so the node becomes the object you press, big enough to
+   read from across a room, with the connector reading as the road between them.
+   Markup is unchanged; this is presentation only. */
+:root[data-skin="game"] .act { gap: 20px; padding-bottom: 30px; }
+:root[data-skin="game"] .act::before {
+  left: 43px; top: 88px; width: 6px; border-radius: 3px;
+  background: var(--line); bottom: -6px;
+}
+:root[data-skin="game"] .act.done::before { background: color-mix(in srgb, var(--brass) 45%, var(--line)); }
+:root[data-skin="game"] .act-node {
+  width: 88px; height: 88px; border-width: 3px; border-radius: 50%;
+  font-family: var(--sans); font-weight: 900;
+  border-bottom-width: 7px;
+  transition: transform 0.08s;
+}
+:root[data-skin="game"] .act-node .grade { font-size: 36px; }
+:root[data-skin="game"] .act-node .num { font-size: 30px; }
+:root[data-skin="game"] .act-node .lock { font-size: 30px; }
+:root[data-skin="game"] .act.done .act-node {
+  background: var(--brass); border-color: var(--edge); color: #fff;
+}
+:root[data-skin="game"] .act.done .act-node .grade { color: #fff; }
+:root[data-skin="game"] .act.current .act-node {
+  border-color: var(--edge); background: color-mix(in srgb, var(--brass) 16%, var(--panel));
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--brass) 18%, transparent);
+}
+:root[data-skin="game"] .act.locked .act-node { border-bottom-width: 7px; }
+
+/* The flag: where am I, answered without reading. */
+.act-flag { display: none; }
+:root[data-skin="game"] .act.current .act-flag {
+  display: block; position: absolute; left: 50%; top: -26px; transform: translateX(-50%);
+  background: var(--brass); color: #fff; border-radius: 999px; padding: 4px 12px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  white-space: nowrap; animation: flagbob 1.6s ease-in-out infinite;
+}
+:root[data-skin="game"] .act.current .act-flag::after {
+  content: ""; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%);
+  border-left: 6px solid transparent; border-right: 6px solid transparent;
+  border-top: 6px solid var(--brass);
+}
+@keyframes flagbob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -5px); } }
+
+:root[data-skin="game"] .act-title { font-family: var(--sans); font-weight: 800; font-size: 19px; }
+:root[data-skin="game"] .act-label { font-size: 12px; }
+:root[data-skin="game"] .act-badge { font-size: 11px; border-width: 2px; padding: 3px 11px; }
+:root[data-skin="game"] .act-intro { border-radius: var(--r); border-left-width: 4px; font-size: 14px; }
+
+@media (max-width: 640px) {
+  :root[data-skin="game"] .act-node { width: 68px; height: 68px; }
+  :root[data-skin="game"] .act-node .num, :root[data-skin="game"] .act-node .grade { font-size: 24px; }
+  :root[data-skin="game"] .act::before { left: 33px; top: 68px; }
+  :root[data-skin="game"] .act-title { font-size: 17px; }
+}
