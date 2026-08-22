@@ -19,16 +19,6 @@ from app.engine import engine  # noqa: E402
 from app.protocol import Debrief  # noqa: E402
 
 
-class _Stub:
-    def __init__(self, raw):
-        self.raw = raw
-        self.seen = []
-
-    def generate(self, system, user, raw=False):
-        self.seen.append((system, user))
-        return self.raw
-
-
 @pytest.fixture
 def facts():
     sess = engine.create_session("supplier", "ru")
@@ -37,33 +27,29 @@ def facts():
     return views.debrief_facts(sess, deb, "ru")
 
 
-def test_off_backend_yields_nothing(facts):
-    """NEGO_AI=off (the test default): the debrief keeps only engine tips."""
-    assert debriefer.summarize(facts, "ru") is None
-
-
-def test_parses_three_parts(monkeypatch, facts):
-    monkeypatch.setattr(debriefer, "get_chat_backend", lambda: _Stub(
+def test_parses_three_parts():
+    out = debriefer.parse(
         '{"verdict": "Вы вели переговоры мягко и вскрыли один интерес из трёх.",'
         ' "strength": "Вопрос про срок оплаты снял напряжение.",'
-        ' "growth": "Просите объективный критерий цены, а не скидку."}'))
-    out = debriefer.summarize(facts, "ru")
+        ' "growth": "Просите объективный критерий цены, а не скидку."}', "ru")
     assert out["strength"] == "Вопрос про срок оплаты снял напряжение."
     assert out["growth"].startswith("Просите объективный критерий")
     assert len(out["verdict"]) > 20
 
 
-def test_junk_and_empty_verdicts_are_refused(monkeypatch, facts):
+def test_junk_and_empty_verdicts_are_refused():
+    """Односложное «Хорошо» хуже, чем собственные подсказки движка.
+
+    Поэтому у вердикта есть порог длины: наставник либо говорит по делу, либо
+    молчит, и разбор рисуется ровно так же, как офлайн.
+    """
     for raw in ("no json", "", '{"strength": "ok"}', '{"verdict": "Хорошо"}'):
-        monkeypatch.setattr(debriefer, "get_chat_backend", lambda raw=raw: _Stub(raw))
-        assert debriefer.summarize(facts, "ru") is None, raw
+        assert debriefer.parse(raw, "ru") is None, raw
 
 
-def test_overlong_verdict_is_trimmed(monkeypatch, facts):
+def test_overlong_verdict_is_trimmed():
     long = "Вы держались уверенно и задавали правильные вопросы. " * 20
-    monkeypatch.setattr(debriefer, "get_chat_backend",
-                        lambda: _Stub('{"verdict": "%s", "strength": "s", "growth": "g"}' % long.strip()))
-    out = debriefer.summarize(facts, "ru")
+    out = debriefer.parse('{"verdict": "%s", "strength": "s", "growth": "g"}' % long.strip(), "ru")
     assert out and len(out["verdict"]) <= debriefer.MAX_VERDICT + 1
 
 

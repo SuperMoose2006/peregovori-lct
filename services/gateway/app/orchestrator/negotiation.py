@@ -235,7 +235,7 @@ class NegotiationOrchestrator:
 
         # Авторитетный итог. Дельты были сырыми; санитайзер судит реплику
         # целиком и может её отвергнуть — тогда остаётся шаблон движка.
-        from app.ai.chat_models import sanitize
+        from app.ai.sanitize import sanitize
         final = sanitize(" ".join(collected)) or templated
         sess.engine_session.log.append({"role": "opp", "text": final})
         sess.bus.publish(response_done(generation_id=generation_id, turn_id=turn_id,

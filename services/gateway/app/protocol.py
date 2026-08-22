@@ -1,12 +1,17 @@
-"""protocol.py — SHARED CONTRACT between backend and frontend.
+"""protocol.py — общие value objects контракта с фронтендом.
 
-Modality-agnostic "turn" protocol carried over WebSocket (REST fallback mirrors
-these payloads). The core is always TEXT; voice (STT/TTS) will be edge adapters
-that produce/consume `Turn.text` and `Opponent.text` — nothing here changes.
+Здесь то, что ходит ВНУТРИ realtime-событий: разбор хода, дельты шкал, срез
+состояния, карточка сценария, разбор партии. Зеркало на клиенте —
+`frontend/src/types.ts`, менять синхронно.
 
-Frontend mirror: frontend/src/types.ts (keep in sync).
+ЧТО ОТСЮДА УШЛО. Раньше файл описывал сообщения протокола «запрос-ответ»
+(`StartMsg`, `TurnMsg`, `OpponentMsg`, `PhaseMsg`…). Ручка `/ws` удалена, и эти
+классы вместе с ней: словарь realtime-протокола живёт в `realtime/events.py`,
+где его форма — накопление ввода и поток независимых веток вывода — описана
+целиком.
 
-Wire format: every message is a JSON object with a `type` discriminator.
+`WhatIfMsg` остался: «что-если» — единственное место, где игровая логика идёт
+по REST, а не по сессии, потому что это не ход, а контрфактический реплей.
 """
 
 from __future__ import annotations
@@ -143,20 +148,6 @@ class Debrief(BaseModel):
 
 # ---- client -> server -------------------------------------------------------
 
-class StartMsg(BaseModel):
-    type: Literal["start"] = "start"
-    scenarioId: str = ""          # empty for mode="custom" (scenario is generated)
-    lang: Lang = "ru"
-    mode: Mode = "practice"
-    situation: Optional[str] = None  # free-text for mode="custom" scenario generation
-    reputation: Optional[float] = None  # campaign carry (-100..100): nudges initial trust
-
-
-class TurnMsg(BaseModel):
-    type: Literal["turn"] = "turn"
-    text: str
-
-
 class WhatIfMsg(BaseModel):
     """REST body for the deterministic "А что если…" replay.
 
@@ -170,62 +161,3 @@ class WhatIfMsg(BaseModel):
     moves: list[str] = Field(default_factory=list)  # player's actual lines, in order
     turnIndex: int                                   # 0-based move to replace
     altText: str                                     # the "what if I'd said…" line
-
-
-class HintMsg(BaseModel):
-    type: Literal["hint"] = "hint"
-
-
-# ---- server -> client -------------------------------------------------------
-
-class GreetingMsg(BaseModel):
-    type: Literal["greeting"] = "greeting"
-    sessionId: str
-    scenario: ScenarioView
-    state: StateView
-    text: str  # opponent's opening line
-
-
-class OpponentDeltaMsg(BaseModel):
-    """Streaming chunk of the opponent's reply (token streaming / future TTS)."""
-    type: Literal["opponent_delta"] = "opponent_delta"
-    chunk: str
-
-
-class OpponentMsg(BaseModel):
-    type: Literal["opponent"] = "opponent"
-    text: str
-    analysis: Analysis
-    deltas: Deltas
-    state: StateView
-
-
-class DebriefMsg(BaseModel):
-    type: Literal["debrief"] = "debrief"
-    debrief: Debrief
-
-
-class PhaseMsg(BaseModel):
-    """Which part of the turn the server is working on right now.
-
-    Purely presentational — it carries no state and the client must render a
-    correct turn without ever receiving one. It exists because the two AI calls
-    in a turn are sequential and visibly slow, and labelling the wait "opponent
-    is typing" during the judge's pass would be a plain lie.
-    """
-    type: Literal["phase"] = "phase"
-    phase: Literal["judging", "replying"]
-
-
-class HintReplyMsg(BaseModel):
-    type: Literal["hint"] = "hint"
-    text: str
-    # A ready-to-send line the player can drop straight into the composer.
-    # Present only when the AI coach produced one; the deterministic hint has
-    # no worked example, so the client must render fine without it.
-    line: Optional[str] = None
-
-
-class ErrorMsg(BaseModel):
-    type: Literal["error"] = "error"
-    message: str

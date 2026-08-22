@@ -1,23 +1,29 @@
-"""AI dialogue layer — generates ONLY the opponent's spoken line, in character.
+"""Языковой слой: промпты, судья, тренер, разборщик, генератор сценариев.
 
-Hard boundary (see CLAUDE.md main invariant): this layer NEVER computes game
-state or scoring. The deterministic engine owns meters, offers, ZOPA and the
-final grade. On any error/timeout the layer returns None so the caller uses the
-engine's templated fallback line, keeping the simulator fully playable offline.
+Жёсткая граница (главный инвариант, см. CLAUDE.md): этот слой НИКОГДА не считает
+состояние игры и оценку. Метрики, цену, ZOPA и грейд считает детерминированный
+движок. При любой ошибке или таймауте слой возвращает None, и вызывающий берёт
+шаблонную реплику движка — поэтому продукт полностью играбелен офлайн.
 
-It is deliberately DECOUPLED from engine internals: it consumes a plain `facts`
-dict (not the engine/session object), so the engine can evolve independently.
+Слой намеренно ОТВЯЗАН от внутренностей движка: он принимает обычный dict
+`facts`, а не объект сессии, и движок может меняться независимо.
+
+ЧТО ЗДЕСЬ БЫЛО И ЧЕГО БОЛЬШЕ НЕТ. Раньше пакет содержал `graph.py` — граф
+LangGraph, который синхронно звал модель и возвращал реплику оппонента. Он
+удалён вместе со старой ручкой `/ws`: в дуплексе реплика стримится и режется на
+фразы, и этим занимается `app/orchestrator/negotiation.py`.
+
+Что осталось и почему. Промпты, валидация судьи, тренер и разборщик — это
+продуктовая работа, оплаченная живым бейк-оффом (docs/model-bakeoff.md), и она
+не зависит от транспорта. Асинхронный путь переиспользует её через публичные
+`build_prompts` / `parse` каждого модуля.
 """
 
-from .graph import run_opponent, run_opponent_sync
-from .chat_models import get_chat_backend, describe_mode
+from .sanitize import sanitize
 from .prompts import build_prompts, build_system, build_user
 
 __all__ = [
-    "run_opponent",
-    "run_opponent_sync",
-    "get_chat_backend",
-    "describe_mode",
+    "sanitize",
     "build_prompts",
     "build_system",
     "build_user",

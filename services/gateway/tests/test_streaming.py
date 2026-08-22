@@ -1,80 +1,131 @@
-"""Tests for the opponent's token stream (app.ai.graph.stream_opponent_sync).
+"""Поток реплики оппонента: сырые дельты, санитизированный итог.
 
-The contract that matters: chunks are RAW and the returned line is SANITIZED, so
-a line that fails the guards is rejected even though its text was already sent.
-The caller must then use the deterministic fallback — which the WebSocket does by
-following every stream with an authoritative `opponent` message.
+Контракт, который здесь защищается, один и он важный:
+
+    дельты СЫРЫЕ, а `response.done` — АВТОРИТЕТНЫЙ.
+
+Санитайзер судит реплику целиком: он может отвергнуть её за чужой алфавит, за
+выход из роли или за markdown — уже после того, как её текст улетел клиенту
+кусками. Поэтому за потоком всегда идёт итоговое событие, и клиент заменяет им
+накопленный пузырь. Без этого правила отвергнутая реплика оставалась бы на
+экране.
+
+Раньше этот контракт проверялся против `app.ai.graph.stream_opponent_sync`.
+Граф удалён вместе со старой ручкой; проверка переехала на оркестратор, потому
+что контракт принадлежит протоколу, а не транспорту.
 """
 
-import sys
-from pathlib import Path
+from __future__ import annotations
 
-BACKEND_ROOT = Path(__file__).resolve().parents[1]
-if str(BACKEND_ROOT) not in sys.path:
-    sys.path.insert(0, str(BACKEND_ROOT))
+import asyncio
 
-from app.ai import graph  # noqa: E402
+import pytest
 
-
-class _Streaming:
-    def __init__(self, chunks):
-        self.chunks = chunks
-
-    def stream(self, system, user):
-        for c in self.chunks:
-            yield c
-
-    def generate(self, system, user, raw=False):  # pragma: no cover - unused here
-        return "".join(self.chunks)
+from app import engine
+from app.orchestrator.negotiation import NegotiationOrchestrator
+from app.realtime.session import RealtimeSession
 
 
-class _NoStream:
-    def generate(self, system, user, raw=False):
-        return "whatever"
+def _session():
+    eng = engine.create_session("supplier", "ru")
+    return RealtimeSession(session_id="sess_stream", engine_session=eng, lang="ru")
 
 
-FACTS = {"lang": "ru", "role": "Вы закупщик.", "persona_name": "Ирина",
-         "persona_desc": "Опытная.", "offer_opp": 100, "unit": " ₽",
-         "trust": 40, "tension": 20, "info": 0, "reaction": "neutral",
-         "fallback": "Шаблонная реплика."}
+def _run(chunks: list[str], monkeypatch) -> tuple[list[dict], RealtimeSession]:
+    """Прогнать заданный поток токенов через оркестратор."""
+    from app.providers.openrouter import chat as orchat
+
+    monkeypatch.setattr(orchat, "available", lambda: True)
+
+    async def fake_stream(*args, **kwargs):
+        for chunk in chunks:
+            yield chunk
+
+    monkeypatch.setattr(orchat, "stream", fake_stream)
+
+    session = _session()
+    events: list[dict] = []
+    monkeypatch.setattr(session.bus, "publish", events.append)
+    orchestrator = NegotiationOrchestrator(session)
+    asyncio.run(orchestrator.on_player_turn("А что для вас важнее всего в этой сделке?"))
+    return events, session
 
 
-def test_off_backend_has_no_stream():
-    """NEGO_AI=off (the test default) — the caller must not try to stream."""
-    assert graph.backend_streams() is False
+def _deltas(events: list[dict]) -> list[str]:
+    return [e["text"] for e in events
+            if e["type"] == "response.output.delta" and e.get("kind") == "text"]
 
 
-def test_chunks_arrive_in_order_and_the_line_is_joined(monkeypatch):
-    seen = []
-    monkeypatch.setattr(graph, "get_chat_backend",
-                        lambda: _Streaming(["Хорошо, ", "давайте ", "обсудим."]))
-    out = graph.stream_opponent_sync(FACTS, seen.append)
-    assert seen == ["Хорошо, ", "давайте ", "обсудим."]
-    assert out == "Хорошо, давайте обсудим."
+def _final(events: list[dict]) -> str:
+    done = [e for e in events if e["type"] == "response.done"]
+    assert done, "авторитетное завершение реплики не пришло"
+    return done[0]["text"]
+
+
+def test_chunks_arrive_in_order_and_join_into_the_line(monkeypatch):
+    events, _session = _run(["Хорошо,", " давайте", " обсудим."], monkeypatch)
+    assert _deltas(events) == ["Хорошо,", " давайте", " обсудим."]
+    assert _final(events) == "Хорошо, давайте обсудим."
 
 
 def test_a_line_that_fails_the_guards_is_rejected_after_streaming(monkeypatch):
-    """The foreign-script guard needs the whole line, so the chunks go out first
-    and the verdict comes after. Returning None is what makes the caller send the
-    templated line as the authoritative text."""
-    seen = []
-    monkeypatch.setattr(graph, "get_chat_backend", lambda: _Streaming(["Хорошо, ", "价格 ", "нормально."]))
-    assert graph.stream_opponent_sync(FACTS, seen.append) is None
-    assert len(seen) == 3  # they WERE sent — hence the mandatory final message
+    """Реплика на чужом алфавите отвергается — уже после того, как улетела.
 
-
-def test_a_backend_without_stream_declines(monkeypatch):
-    monkeypatch.setattr(graph, "get_chat_backend", lambda: _NoStream())
-    assert graph.stream_opponent_sync(FACTS, lambda c: None) is None
+    Это и есть причина, по которой `response.done` авторитетен: запретить
+    отправку дельт нельзя (тогда реплика не печаталась бы), а оставить мусор на
+    экране — тем более.
+    """
+    events, _session = _run(["你好", "，这是中文"], monkeypatch)
+    assert _deltas(events), "дельты обязаны были уйти — иначе печать не работает"
+    final = _final(events)
+    assert "你好" not in final, "санитайзер пропустил чужой алфавит"
+    assert final, "вместо отвергнутой реплики обязан встать шаблон движка"
 
 
 def test_a_stream_that_breaks_midway_falls_back(monkeypatch):
-    class _Broken:
-        def stream(self, system, user):
-            yield "Начал "
-            raise RuntimeError("connection reset")
+    """Обрыв на середине — не катастрофа: остаётся шаблонная реплика движка."""
+    from app.providers.openrouter import chat as orchat
 
-    monkeypatch.setattr(graph, "get_chat_backend", lambda: _Broken())
-    seen = []
-    assert graph.stream_opponent_sync(FACTS, seen.append) is None
-    assert seen == ["Начал "]
+    monkeypatch.setattr(orchat, "available", lambda: True)
+
+    async def broken_stream(*args, **kwargs):
+        yield "Начал говорить"
+        raise RuntimeError("сеть отвалилась")
+
+    monkeypatch.setattr(orchat, "stream", broken_stream)
+
+    session = _session()
+    events: list[dict] = []
+    monkeypatch.setattr(session.bus, "publish", events.append)
+    asyncio.run(NegotiationOrchestrator(session).on_player_turn("Что для вас важно?"))
+
+    assert _final(events), "оппонент обязан что-то сказать даже после обрыва"
+    assert session.engine_session.turn == 1, "ход всё равно посчитан"
+
+
+def test_offline_backend_delivers_the_templated_line_whole(monkeypatch):
+    """Без облака реплика приходит целиком, одной дельтой и итогом.
+
+    `conftest.py` держит `NEGO_AI=off`, поэтому это путь по умолчанию в тестах.
+    """
+    session = _session()
+    events: list[dict] = []
+    monkeypatch.setattr(session.bus, "publish", events.append)
+    asyncio.run(NegotiationOrchestrator(session).on_player_turn(
+        "А что для вас важнее всего в этой сделке?"))
+
+    deltas = _deltas(events)
+    assert len(deltas) == 1, "офлайн реплика не стримится по токенам"
+    assert deltas[0] == _final(events)
+
+
+def test_every_delta_carries_its_generation(monkeypatch):
+    """Без `generation_id` в каждом куске перебивание протекает."""
+    events, _session = _run(["Раз", " два"], monkeypatch)
+    streamed = [e for e in events if e["type"] == "response.output.delta"]
+    assert streamed
+    generations = {e.get("generation_id") for e in streamed}
+    assert len(generations) == 1 and None not in generations
+    assert _final(events) is not None
+    done = [e for e in events if e["type"] == "response.done"][0]
+    assert done["generation_id"] in generations, "итог принадлежит другому поколению"

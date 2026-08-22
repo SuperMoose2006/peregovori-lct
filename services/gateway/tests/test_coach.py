@@ -19,48 +19,38 @@ from app.ai import coach  # noqa: E402
 from app.engine import engine  # noqa: E402
 
 
-class _Stub:
-    """Stands in for a chat backend: returns whatever raw text we hand it."""
-
-    def __init__(self, raw):
-        self.raw = raw
-        self.seen = []
-
-    def generate(self, system, user, raw=False):
-        self.seen.append((system, user))
-        return self.raw
-
-
 @pytest.fixture
 def sess():
     return engine.create_session("supplier", "ru")
 
 
-def test_off_backend_yields_no_suggestion(sess):
-    """NEGO_AI=off (the test default): caller keeps the deterministic hint."""
-    assert coach.suggest_line(views.coach_facts(sess, "ru"), "ru") is None
-
-
-def test_parses_line_and_reason(monkeypatch, sess):
-    stub = _Stub('{"why": "нужно вскрыть интерес", "line": "Что для вас важнее всего в этой сделке?"}')
-    monkeypatch.setattr(coach, "get_chat_backend", lambda: stub)
-    tip = coach.suggest_line(views.coach_facts(sess, "ru"), "ru")
+def test_parses_line_and_reason():
+    """Тренер отдаёт готовую реплику, которую игрок может отправить как есть."""
+    tip = coach.parse(
+        '{"why": "нужно вскрыть интерес", "line": "Что для вас важнее всего в этой сделке?"}', "ru")
     assert tip == {"why": "нужно вскрыть интерес", "line": "Что для вас важнее всего в этой сделке?"}
 
 
-def test_junk_and_stub_lines_are_refused(monkeypatch, sess):
-    facts = views.coach_facts(sess, "ru")
+def test_junk_and_stub_lines_are_refused():
+    """Двухсловное «будьте твёрже» — не реплика, которую можно отправить.
+
+    Подсказка движка полезнее такого ответа, поэтому валидация его отвергает.
+    """
     for raw in ("no json here", '{"why": "x"}', '{"line": "да"}', ""):
-        monkeypatch.setattr(coach, "get_chat_backend", lambda raw=raw: _Stub(raw))
-        assert coach.suggest_line(facts, "ru") is None, raw
+        assert coach.parse(raw, "ru") is None, raw
 
 
-def test_overlong_line_is_trimmed(monkeypatch, sess):
+def test_overlong_line_is_trimmed():
     long_line = "Давайте обсудим условия поставки подробно. " * 20
-    monkeypatch.setattr(coach, "get_chat_backend",
-                        lambda: _Stub('{"why": "w", "line": "%s"}' % long_line.strip()))
-    tip = coach.suggest_line(views.coach_facts(sess, "ru"), "ru")
-    assert tip and len(tip["line"]) <= coach.MAX_LINE + 1  # +1 for the ellipsis
+    tip = coach.parse('{"why": "w", "line": "%s"}' % long_line.strip(), "ru")
+    assert tip and len(tip["line"]) <= coach.MAX_LINE + 1  # +1 на многоточие
+
+
+def test_prompt_is_shared_with_the_live_path(sess):
+    """Промпт строится одной функцией — иначе асинхронный путь тихо разойдётся."""
+    system, user = coach.build_prompts(views.coach_facts(sess, "ru"), "ru")
+    assert system and user
+    assert "Ситуация" in user or "Situation" in user
 
 
 def test_coach_never_sees_undiscovered_interests(sess):

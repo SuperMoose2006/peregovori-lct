@@ -28,7 +28,7 @@ from typing import AsyncIterator, Optional
 
 import httpx
 
-from app.ai.chat_models import sanitize  # проверенная санитизация — переиспользуем
+from app.ai.sanitize import sanitize  # проверенная санитизация — переиспользуем
 from app.providers.routing import Role, model_for
 
 _BASE_URL = "https://openrouter.ai/api/v1"

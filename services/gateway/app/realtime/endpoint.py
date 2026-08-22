@@ -189,7 +189,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
 
     if payload.gameMode == "custom":
         from app.ai.scenario_gen import generate_scenario
-        generated = await asyncio.to_thread(generate_scenario, payload.situation or "", payload.lang)
+        generated = await generate_scenario(payload.situation or "", payload.lang)
         if generated is None:
             return None, ("Не удалось сгенерировать сценарий. Попробуйте переформулировать ситуацию."
                           if payload.lang == "ru" else

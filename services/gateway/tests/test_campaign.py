@@ -36,11 +36,17 @@ def test_reputation_nudges_initial_trust():
     assert abs(down.state.trust - base) <= 15.001
 
 
-def test_campaign_start_over_ws_applies_reputation():
-    with client.websocket_connect("/ws") as ws:
-        ws.send_json({"type": "start", "scenarioId": "conflict", "lang": "ru",
-                      "mode": "campaign", "reputation": 100})
-        greet = ws.receive_json()
-        assert greet["type"] == "greeting"
-        # conflict base trust is 40; +100 reputation → +12 → ~52
-        assert greet["state"]["trust"] > 45
+def test_campaign_start_applies_reputation():
+    """Репутация из прошлых актов приезжает в стартовое доверие оппонента.
+
+    Через realtime-протокол: старая ручка `/ws` удалена, а инвариант — нет.
+    """
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        assert ws.receive_json()["type"] == "session.queue_done"
+        ws.send_json({"type": "session.init", "payload": {
+            "scenarioId": "conflict", "lang": "ru",
+            "gameMode": "campaign", "reputation": 100}})
+        created = ws.receive_json()
+        assert created["type"] == "session.created"
+        # базовое доверие в «конфликте» — 40; +100 репутации → +12 → ~52
+        assert created["state"]["trust"] > 45

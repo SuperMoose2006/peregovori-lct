@@ -21,7 +21,6 @@ import json
 import re
 from typing import Optional
 
-from app.ai.chat_models import get_chat_backend
 
 MAX_VERDICT = 340
 MAX_LINE = 180
@@ -129,22 +128,6 @@ def parse(raw: str, lang: str = "ru") -> Optional[dict]:
         return None
     verdict = _trim(d.get("verdict"), MAX_VERDICT)
     if len(verdict) < 20:
-        return None
-    return {
-        "verdict": verdict,
-        "strength": _trim(d.get("strength"), MAX_LINE),
-        "growth": _trim(d.get("growth"), MAX_LINE),
-    }
-
-
-def summarize(facts: dict, lang: str = "ru") -> Optional[dict]:
-    """{'verdict','strength','growth'} narrating the engine's verdict, or None."""
-    raw = get_chat_backend().generate(*build_prompts(facts, lang), raw=True)
-    d = _extract_json(raw or "")
-    if not d:
-        return None
-    verdict = _trim(d.get("verdict"), MAX_VERDICT)
-    if len(verdict) < 20:  # a one-word "good" is worse than the engine's own tips
         return None
     return {
         "verdict": verdict,

@@ -22,7 +22,6 @@ import json
 import re
 from typing import Optional
 
-from app.ai.chat_models import get_chat_backend
 
 MAX_LINE = 220
 
@@ -109,8 +108,3 @@ def parse(raw: str, lang: str = "ru") -> Optional[dict]:
     if len(line) > MAX_LINE:
         line = re.sub(r"\s+\S*$", "", line[:MAX_LINE]) + "…"
     return {"why": why[:160], "line": line}
-
-
-def suggest_line(facts: dict, lang: str = "ru") -> Optional[dict]:
-    """{'why': str, 'line': str} the player can send, or None to fall back."""
-    return parse(get_chat_backend().generate(*build_prompts(facts, lang), raw=True) or "", lang)

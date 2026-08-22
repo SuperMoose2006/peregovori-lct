@@ -1,5 +1,19 @@
-// types.ts — SHARED CONTRACT mirror of backend/app/protocol.py. Keep in sync.
-// Modality-agnostic "turn" protocol over WebSocket (REST fallback mirrors these).
+// types.ts — внутренний словарь между экранами и транспортом.
+//
+// ЧТО ЭТО ТЕПЕРЬ. `ClientMsg`/`ServerMsg` больше НЕ провод: по проводу ходит
+// realtime-протокол (`services/gateway/app/realtime/events.py`). Это словарь
+// уровнем выше, и у него две реализации:
+//
+//   RealtimeTransport — переводит его в realtime-события и обратно;
+//   MockServer        — исполняет его целиком в браузере (офлайн-ядро).
+//
+// Такое разделение оставлено сознательно: кампания, экзамен, разбор и
+// «что-если» написаны против этого словаря и работают. Менять их одновременно с
+// транспортом значило бы отлаживать две новые вещи сразу, не имея ни одной
+// опорной.
+//
+// Value objects ниже (Analysis, Deltas, StateView, ScenarioView, Debrief) —
+// настоящее зеркало `services/gateway/app/protocol.py`. Менять синхронно.
 
 export type Lang = "ru" | "en";
 export type Mode = "practice" | "campaign" | "custom" | "exam";
@@ -167,12 +181,12 @@ export interface CampaignView {
 export type ClientMsg =
   // scenarioId is "" for mode "custom"; situation carries the user's free-text;
   // reputation (-100..100) carries a campaign result into the next stage's trust
-  // CONTRACT(layers): `layers` is honoured by the mock only. protocol.py has no
-  //   such field yet, so against the live backend the optional layers are simply
-  //   not offered. Real when: StartMsg gains `capabilities` and the engine emits
-  //   `probe` — deliberately NOT read by score_session. See docs/modalities.md §0.
+  // `layers` доезжает и до сервера (`session.init.layers`), и до офлайн-ядра.
+  // Слои включают КАНАЛЫ и никогда не входят в оценку — сервер отвечает на них
+  // честным `capabilities`, где выключено то, чего окружение не может дать.
   | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string;
-      reputation?: number; layers?: { probe?: boolean; voice?: boolean; camera?: boolean } }
+      reputation?: number;
+      layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean } }
   | { type: "turn"; text: string }
   | { type: "hint" };
 

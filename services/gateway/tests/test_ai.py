@@ -17,8 +17,8 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
-from app.ai import build_prompts, describe_mode, run_opponent_sync  # noqa: E402
-from app.ai.chat_models import get_chat_backend, sanitize  # noqa: E402
+from app.ai import build_prompts  # noqa: E402
+from app.ai.sanitize import sanitize  # noqa: E402
 
 
 RU_FACTS = {
@@ -53,16 +53,20 @@ def _clean_env(monkeypatch):
     yield
 
 
-def test_off_returns_none_fast():
-    """Default / off backend: no AI, returns None so the fallback is used."""
-    assert os.environ.get("NEGO_AI") is None
-    assert get_chat_backend().generate("s", "u") is None
-    assert run_opponent_sync(RU_FACTS) is None
+def test_off_returns_none(monkeypatch):
+    """`NEGO_AI=off` — облака нет, провайдер молчит, берётся шаблон движка.
 
+    Проверка того, что офлайн-реплика действительно доезжает до клиента, живёт
+    в `test_streaming.py` и `test_resilience.py`: там она идёт через
+    оркестратор, то есть по настоящему пути.
+    """
+    import asyncio
 
-def test_off_explicit_returns_none(monkeypatch):
+    from app.providers.openrouter import chat as orchat
+
     monkeypatch.setenv("NEGO_AI", "off")
-    assert run_opponent_sync(EN_FACTS) is None
+    assert orchat.available() is False
+    assert asyncio.run(orchat.complete("s", "u")) is None
 
 
 def test_ru_prompt_contains_offer_and_mood():
@@ -111,26 +115,15 @@ def test_sanitize_caps_length():
     assert len(out) <= 401  # MAX_LEN + ellipsis
 
 
-def test_describe_mode_for_each_backend(monkeypatch):
-    monkeypatch.setenv("NEGO_AI", "off")
-    assert describe_mode().startswith("off")
-    monkeypatch.setenv("NEGO_AI", "cli")
-    assert describe_mode().startswith("cli")
-    monkeypatch.setenv("NEGO_AI", "api")
-    assert describe_mode().startswith("api")
+def test_health_names_the_model_for_every_role():
+    """На демо всегда должно быть видно, какой моделью говорит оппонент.
 
+    Раньше это делал `describe_mode()` одной строкой на весь слой. Ролей стало
+    пять, и молчаливая подмена любой из них — самый неприятный способ узнать,
+    что реплики стали хуже.
+    """
+    from app.providers.routing import describe
 
-@pytest.mark.skipif(
-    shutil.which("claude") is None,
-    reason="claude CLI not available; skipping live bridge smoke test",
-)
-def test_cli_smoke_generates_line(monkeypatch):
-    """Best-effort live check that the CLI bridge yields a short in-character line."""
-    monkeypatch.setenv("NEGO_AI", "cli")
-    monkeypatch.setenv("NEGO_MODEL", "claude-haiku-4-5-20251001")
-    monkeypatch.setenv("NEGO_AI_TIMEOUT", "60")
-    line = run_opponent_sync(EN_FACTS)
-    # The bridge may still return None (offline/quota); only assert shape if present.
-    if line is not None:
-        assert isinstance(line, str)
-        assert 0 < len(line) <= 401
+    roles = describe()
+    assert set(roles) == {"opponent", "judge", "vision", "reasoning", "asr"}
+    assert all(model for model in roles.values())

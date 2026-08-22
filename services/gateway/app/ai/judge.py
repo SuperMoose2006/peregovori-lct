@@ -24,7 +24,6 @@ import os
 import re
 from typing import Optional
 
-from app.ai.chat_models import get_chat_backend
 
 
 def judge_enabled() -> bool:
@@ -173,33 +172,6 @@ def parse_judgement(raw: str, lang: str = "ru", interests: Optional[list] = None
     bounds check are what keep a cheap model from corrupting engine state.
     """
     d = _extract_json(raw or "")
-    if not d:
-        return None
-    return _validate(d, lang, interests, secondary)
-
-
-def judge_turn(context: str, player_text: str, lang: str = "ru",
-               interests: Optional[list] = None,
-               secondary: Optional[list] = None) -> Optional[dict]:
-    """Semantic judgement of the player's last line, or None on any problem.
-
-    Returns: {arg_score:int 0-100, interest_targeted:int|None,
-              secondary_conceded:str|None, criteria_legitimate:bool,
-              note:str, techniques:list[str]}.
-    `interests` is the localized list of the opponent's hidden interests so the
-    judge can say WHICH one the question actually targets (index), not fixed order.
-    `secondary` is an optional list of (id, label) pairs for the scenario's
-    tradeable secondary issues, so the judge can name which one the player concedes.
-    """
-    if not (player_text or "").strip():
-        return None
-    backend = get_chat_backend()
-    sys_p, user_p = build_prompts(context, player_text, lang, interests, secondary)
-    d = None
-    for _ in range(2):
-        d = _extract_json(backend.generate(sys_p, user_p, raw=True) or "")
-        if d:
-            break
     if not d:
         return None
     return _validate(d, lang, interests, secondary)

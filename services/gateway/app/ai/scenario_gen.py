@@ -19,7 +19,6 @@ import secrets
 from typing import Optional
 
 from app.engine.scenarios import Scenario, Counterpart, Headline, Batna, register_runtime_scenario
-from app.ai.chat_models import get_chat_backend
 
 _STYLES = {"relationship", "tough", "analytical"}
 
@@ -128,15 +127,21 @@ def _dual_list(items: list) -> dict[str, list[str]]:
     return {"ru": lst, "en": lst}
 
 
-def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2) -> Optional[Scenario]:
-    # The CLI backend is intermittently noisy (occasional non-JSON preamble),
-    # so retry a couple of times before giving up. The API backend parses first try.
-    backend = get_chat_backend()
-    sys = _sys_prompt(lang)
+async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2) -> Optional[Scenario]:
+    """Сгенерировать сценарий под свободное описание ситуации.
+
+    Роль `reasoning`, а не `opponent`: это происходит ОДИН раз за партию и вне
+    realtime-петли, поэтому здесь можно позволить модели думать дольше и лучше.
+    Ретрай — потому что дешёвые модели иногда предваряют JSON болтовнёй.
+    """
+    from app.providers.openrouter import chat as orchat
+
+    system = _sys_prompt(lang)
     user = (situation or "").strip()[:1500]
     d = None
     for _ in range(max(1, attempts)):
-        raw = backend.generate(sys, user, raw=True)
+        raw = await orchat.complete(system, user, role="reasoning",
+                                    max_tokens=1400, temperature=0.7, raw=True)
         d = _extract_json(raw or "")
         if d:
             break

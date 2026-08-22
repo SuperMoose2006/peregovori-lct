@@ -44,15 +44,25 @@ def test_normalize_handles_degenerate_equal_numbers():
 
 
 def test_generate_returns_none_without_ai(monkeypatch):
+    """Без облака «своя сделка» честно недоступна, а не выдаёт пустышку.
+
+    Генератор перешёл на асинхронного провайдера OpenRouter (роль `reasoning`):
+    это происходит один раз за партию и вне realtime-петли, поэтому там можно
+    позволить модели думать дольше.
+    """
+    import asyncio
+
     monkeypatch.setenv("NEGO_AI", "off")
-    assert generate_scenario("Договориться об аренде офиса", "ru") is None
+    assert asyncio.run(generate_scenario("Договориться об аренде офиса", "ru")) is None
 
 
-@pytest.mark.skipif(os.environ.get("NEGO_AI") not in ("cli", "api"),
-                    reason="live AI generation needs NEGO_AI=cli|api")
+@pytest.mark.skipif(os.environ.get("NEGO_AI") == "off",
+                    reason="живая генерация требует облачного ключа")
 def test_generate_and_play_custom_scenario():
-    sc = generate_scenario(
-        "Я арендатор, хочу снизить арендную ставку за офис, не съезжая.", "ru")
+    import asyncio
+
+    sc = asyncio.run(generate_scenario(
+        "Я арендатор, хочу снизить арендную ставку за офис, не съезжая.", "ru"))
     assert isinstance(sc, Scenario)
     assert sc.id.startswith("custom_")
     # plugs into the real engine and produces a valid opening state
