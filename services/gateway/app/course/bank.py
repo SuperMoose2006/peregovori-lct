@@ -127,6 +127,21 @@ BANK: list[dict] = [
             "always louder than an interest — that is why you hear one and not the other."),
     },
 
+
+    {
+        "id": "fo-06", "block": "foundations", "lesson": 4, "type": "meters",
+        "difficulty": 2, "xp": 10, "scenario_id": "rent",
+        "state": {"trust": 40, "tension": 25, "info": 0, "leverage": 12, "turn": 2},
+        "player_line": T("Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
+                         "Natalia, what matters most to you in a tenant — and what concerns you?"),
+        "ask": "largest_delta", "answer": "info",
+        "prompt": T("Какая шкала сдвинется сильнее всего?", "Which meter moves the most?"),
+        "explain": T(
+            "Информация +24 — больше, чем даёт любой другой ход. Доверие тоже подрастает, но "
+            "заметно меньше: вопрос про интерес нужен ради того, что вы УЗНАЁТЕ, а не ради тепла.",
+            "Information +24 — more than any other move grants. Trust rises too, but far less: an "
+            "interest question is for what you LEARN, not for warmth."),
+    },
     # ---------------- 2. spin-ladder --------------------------------------
     {
         "id": "sp-01", "block": "spin-ladder", "lesson": 1, "type": "order",
@@ -223,6 +238,43 @@ BANK: list[dict] = [
             "sequence, not a checklist."),
     },
 
+
+    {
+        "id": "sp-06", "block": "spin-ladder", "lesson": 2, "type": "freeform",
+        "difficulty": 2, "xp": 15, "scenario_id": "supplier",
+        "prompt": T("Ирина рассказала, как устроено производство. Задайте вопрос ступени P — про то, что мешает.",
+                    "Irina described how production runs. Ask a stage-P question — about what gets in the way."),
+        "check": {"require_moves": ["spin_problem"], "forbid_moves": ["threat", "hostile"],
+                  "min_arg": 30, "min_words": 5},
+        "reference": T("С какими сложностями вы сталкиваетесь при неравномерной загрузке?",
+                       "What difficulties do you hit when the load is uneven?"),
+        "explain": T(
+            "P — первый вопрос, где собеседник произносит вслух то, что ему не нравится. С этого "
+            "момента разговор уже не про вашу цену, а про его положение.",
+            "P is the first question where the other side says out loud what they do not like. From "
+            "that moment the conversation is about their position, not your price."),
+    },
+    {
+        "id": "sp-07", "block": "spin-ladder", "lesson": 4, "type": "choice",
+        "difficulty": 2, "xp": 10, "scenario_id": "supplier",
+        "prompt": T("Ирина признала, что простои дорого обходятся. Какой вопрос — ступень N?",
+                    "Irina admitted idle time is costly. Which question is stage N?"),
+        "options": [
+            T("Насколько важно было бы закрыть загрузку на год вперёд?",
+              "How valuable would it be to lock the year's utilization now?"),
+            T("Сколько вы теряете, если линия стоит месяц?",
+              "What does that cost you when the line is idle for a month?"),
+            T("Как сейчас устроено планирование заказов?",
+              "How is order planning set up today?"),
+            T("Мы предлагаем 88 ₽ за штуку.", "We propose 88 per unit."),
+        ],
+        "answer": 0, "expect_moves": ["spin_needpayoff"],
+        "explain": T(
+            "N — единственный вопрос, где выгоду формулирует не вы, а собеседник. То, что человек "
+            "сказал сам, он потом не оспаривает: в этом вся хитрость четвёртой ступени.",
+            "N is the one question where the value is spoken by the other side, not by you. What "
+            "people say themselves they do not argue with later — that is the trick of the fourth rung."),
+    },
     # ---------------- 3. active-listening ---------------------------------
     {
         "id": "al-01", "block": "active-listening", "lesson": 1, "type": "choice",
@@ -408,6 +460,26 @@ BANK: list[dict] = [
             "Not “how much you got”, but “how far you travelled from your red line to your target”."),
     },
 
+
+    {
+        "id": "oc-06", "block": "objective-criteria", "lesson": 1, "type": "choice",
+        "difficulty": 2, "xp": 10, "scenario_id": "salary",
+        "prompt": T("Дмитрий: «У нас в компании такие бюджеты, и точка». Что переводит спор из мнений в критерии?",
+                    "Dmitry: “These are our budgets, full stop.” What turns a clash of opinions into a clash of criteria?"),
+        "options": [
+            T("Бюджеты у всех, а я стою больше.", "Everyone has budgets, and I am worth more."),
+            T("Отраслевой обзор зарплат по этой роли даёт медиану 225k — вот три независимых источника.",
+              "The industry salary survey puts the median for this role at 225k — three independent sources."),
+            T("Тогда я поищу другое место.", "Then I will look elsewhere."),
+            T("Хорошо, я согласен на ваш бюджет.", "Fine, I accept your budget."),
+        ],
+        "answer": 1, "expect_moves": ["objective_criteria"],
+        "explain": T(
+            "Спор двух мнений выигрывает упрямый; спор двух критериев — тот, чей критерий уместнее. "
+            "И проигравшему не приходится капитулировать: он уступает стандарту, а не человеку.",
+            "A clash of opinions is won by the stubborn one; a clash of criteria by whoever's standard "
+            "fits better. And the loser never capitulates: they yield to a standard, not to a person."),
+    },
     # ---------------- 5. batna-zopa ---------------------------------------
     {
         "id": "bz-01", "block": "batna-zopa", "lesson": 1, "type": "numeric",
@@ -496,6 +568,23 @@ BANK: list[dict] = [
             "fact stated without the ultimatum would give leverage and barely raise tension."),
     },
 
+
+    {
+        "id": "bz-06", "block": "batna-zopa", "lesson": 4, "type": "meters",
+        "difficulty": 2, "xp": 10, "scenario_id": "salary",
+        "state": {"trust": 45, "tension": 30, "info": 20, "leverage": 30, "turn": 4},
+        "player_line": T("Или вы даёте 230k, или я ухожу к конкуренту.",
+                         "Either you give me 230k or I walk to your competitor."),
+        "ask": "sign_of:trust", "answer": "down",
+        "prompt": T("Что произойдёт с доверием?", "What happens to trust?"),
+        "explain": T(
+            "Доверие −14, напряжение вверх сразу на треть шкалы. Альтернатива, поданная как "
+            "ультиматум, делает любое движение оппонента капитуляцией — а человеку, который "
+            "отчитывается перед кем-то, капитулировать нельзя.",
+            "Trust −14 and tension up by a third of the scale at once. An alternative delivered as an "
+            "ultimatum turns any movement into a surrender — and someone who reports to a boss cannot "
+            "afford to surrender."),
+    },
     # ---------------- 6. anchoring ----------------------------------------
     {
         "id": "an-01", "block": "anchoring", "lesson": 1, "type": "numeric",
@@ -673,6 +762,25 @@ BANK: list[dict] = [
             "on a hidden interest. The secondary issues are not invented — they are derived from them."),
     },
 
+
+    {
+        "id": "lr-06", "block": "logrolling", "lesson": 1, "type": "freeform",
+        "difficulty": 2, "xp": 15, "scenario_id": "supplier",
+        "prompt": T("Спор идёт только про цену. Добавьте вторую ось: свяжите условие контракта с ценой.",
+                    "The argument is about price only. Add a second axis: link a contract term to the price."),
+        # Порог по аргументу низкий намеренно: урок про ВТОРУЮ ОСЬ, а не про
+        # цифры. Связка «если … то» без числа и есть правильный ответ здесь,
+        # а движок за отсутствие числа снимает прибавку за размен.
+        "check": {"require_moves": ["tradeoff"], "forbid_moves": ["threat", "hostile"],
+                  "min_arg": 26, "min_words": 8},
+        "reference": T("Давайте свяжем срок контракта с ценой: если мы даём годовой объём, вы двигаетесь по цене?",
+                       "Let us link the term to the price: if we give an annual volume, can you move on price?"),
+        "explain": T(
+            "Пока обсуждается одна цена, выигрыш одного равен проигрышу другого. Второй вопрос — "
+            "срок, объём, график платежей — создаёт варианты, где выигрывают оба.",
+            "While only price is on the table, one side's gain is the other's loss. A second issue — "
+            "term, volume, payment schedule — creates options where both sides win."),
+    },
     # ---------------- 8. pressure-defense ---------------------------------
     {
         "id": "pd-01", "block": "pressure-defense", "lesson": 1, "type": "choice",

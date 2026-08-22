@@ -112,6 +112,7 @@ LEX: dict[str, list[str]] = {
         "или мы уходим", "или мы уйдем", "или я уйд", "или я ухож", "в противном случае",
         "вы обязаны", "у вас нет выбора", "немедленно", "требую", "иначе разрываем",
         "это неприемлемо и точка", "take it or leave it", "final offer", "or else",
+        "or i walk", "or we walk", "or i go elsewhere", "otherwise we",
         "you have no choice", "i demand", "right now or", "non-negotiable",
     ],
     "hostile": [
@@ -258,9 +259,16 @@ def analyze(raw_text: Optional[str]) -> Analysis:
 
     # --- Argumentation quality -------------------------------------------------
     words = len([w for w in t.split(" ") if w])
+    # `substance` — цифра или связка «потому что». Дешёвая проверка на то, что за
+    # словом «рынок» что-то стоит: без неё «по рынку это дорого» получало ту же
+    # прибавку, что и «по трём независимым прайсам медиана 88». Правило пришло из
+    # браузерного зеркала движка, где оно было с самого начала, — и до этой правки
+    # одна и та же реплика получала РАЗНЫЙ балл онлайн и офлайн.
+    rationale_n = _count_matches(t, LEX["rationale"])
+    substance = rationale_n > 0 or any(ch.isdigit() for ch in t)
     arg = 20
-    arg += min(20, _count_matches(t, LEX["rationale"]) * 12)
-    if "objective_criteria" in moves:
+    arg += min(20, rationale_n * 12)
+    if "objective_criteria" in moves and substance:
         arg += 18
     if spin:
         arg += 14
@@ -268,7 +276,7 @@ def analyze(raw_text: Optional[str]) -> Analysis:
         arg += 12
     if "acknowledge" in moves:
         arg += 10
-    if "tradeoff" in moves:
+    if "tradeoff" in moves and substance:
         arg += 10
     if number is not None:
         arg += 6

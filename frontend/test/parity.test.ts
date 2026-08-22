@@ -161,3 +161,42 @@ test("одиночное числительное без единицы НЕ с�
   assert.equal(analyze("Три, четыре пункта").number, null);
   assert.notEqual(analyze("У меня три условия.").primary, "offer");
 });
+
+// ---------------------------------------------------------------------------
+// Классификатор хода: буквальная сверка с Python по фикстуре.
+//
+// Раньше паритет проверялся поведением партии целиком — и этого оказалось мало:
+// в TS-зеркале была проверка `substance` (цифра или связка «потому что») на
+// прибавку за критерий и размен, а в Python её не было. Одна и та же реплика
+// получала 38 очков аргумента онлайн и 28 офлайн, и упражнение курса зачитывалось
+// по-разному в зависимости от того, была ли сеть.
+//
+// Фикстура генерируется из настоящего Python-движка:
+//   cd services/gateway && python tools/gen_analyze_fixtures.py
+// Тест `tests/test_analyze_fixtures.py` на той стороне следит, чтобы она не
+// протухла. Здесь — что зеркало отвечает то же самое.
+import fixtures from "./fixtures/analyze.json" with { type: "json" };
+
+test("классификатор в браузере отвечает ровно как движок в Python", () => {
+  const bad: string[] = [];
+  // `words` в фикстуре есть, но в TS-анализе его нет как поля — он участвует
+  // только внутри расчёта арг-качества, и расхождение по нему проявилось бы в `arg`.
+  for (const c of fixtures.cases as {
+    text: string; moves: string[]; arg: number;
+    number: number | null; spin: string | null; primary: string;
+  }[]) {
+    const a = analyze(c.text);
+    if (JSON.stringify([...a.moves].sort()) !== JSON.stringify([...c.moves].sort())) {
+      bad.push(`«${c.text}» приёмы: ${a.moves} ≠ ${c.moves}`);
+    } else if (a.arg !== c.arg) {
+      bad.push(`«${c.text}» аргумент: ${a.arg} ≠ ${c.arg}`);
+    } else if (a.number !== c.number) {
+      bad.push(`«${c.text}» число: ${a.number} ≠ ${c.number}`);
+    } else if ((a.spin ?? null) !== (c.spin ?? null)) {
+      bad.push(`«${c.text}» SPIN: ${a.spin} ≠ ${c.spin}`);
+    } else if (a.primary !== c.primary) {
+      bad.push(`«${c.text}» главный приём: ${a.primary} ≠ ${c.primary}`);
+    }
+  }
+  assert.equal(bad.length, 0, `\n${bad.slice(0, 12).join("\n")}\n(всего ${bad.length})`);
+});
