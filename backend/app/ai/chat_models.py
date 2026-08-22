@@ -223,6 +223,20 @@ class ApiBackend:
         except Exception:
             return None
 
+    def stream(self, system: str, user: str):
+        """Yield the line token by token. See OpenAIBackend.stream for why the
+        chunks are raw and why that is safe."""
+        if self._llm is None:
+            return
+        from langchain_core.messages import SystemMessage, HumanMessage
+
+        for part in self._llm.stream([SystemMessage(content=system), HumanMessage(content=user)]):
+            text = getattr(part, "content", None)
+            if isinstance(text, list):
+                text = "".join(b.get("text", "") if isinstance(b, dict) else str(b) for b in text)
+            if text:
+                yield text
+
     def describe_mode(self) -> str:
         if self.available:
             return f"api — ChatAnthropic (model={_model()})"
@@ -349,6 +363,28 @@ class OpenAIBackend:
             return (content or "").strip() if raw else sanitize(content)
         except Exception:
             return None
+
+    def stream(self, system: str, user: str):
+        """Yield the opponent's line token by token.
+
+        Chunks are raw — `sanitize()` needs the WHOLE text to judge it, so it
+        cannot run here. That is safe only because the caller always follows a
+        stream with the authoritative `opponent` message: if the finished line
+        turns out unusable (foreign script, markdown noise), the templated
+        fallback replaces whatever was streamed. Raises nothing; a broken stream
+        simply ends early and the caller falls back.
+        """
+        if self._llm is None:
+            return
+        from langchain_core.messages import SystemMessage, HumanMessage
+
+        llm = self._llm.bind(max_tokens=200)
+        for part in llm.stream([SystemMessage(content=system), HumanMessage(content=user)]):
+            text = getattr(part, "content", None)
+            if isinstance(text, list):
+                text = "".join(b.get("text", "") if isinstance(b, dict) else str(b) for b in text)
+            if text:
+                yield text
 
     def describe_mode(self) -> str:
         if not self.available:

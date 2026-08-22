@@ -39,7 +39,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import engine
 from app.session import store
-from app.ai.graph import run_opponent_sync
+from app.ai.graph import run_opponent_sync, stream_opponent_sync, backend_streams
 from app.ai.chat_models import describe_mode, ai_enabled
 from app.ai.judge import judge_turn, judge_enabled
 from app.ai.coach import suggest_line as coach_suggest
@@ -155,16 +155,63 @@ async def _bounded(fn, *args, budget: float):
         return None
 
 
-async def _opponent_line(sess, result, templated: str) -> str:
+async def _stream_opponent(facts: dict, send_chunk, budget: float) -> str | None:
+    """Run the blocking token stream on a worker thread and hand each chunk to
+    `send_chunk` on the event loop. Returns the finished (sanitized) line, or
+    None to fall back.
+
+    A thread cannot be cancelled, so the deadline is enforced on the WAIT: past
+    it we stop consuming and answer with the templated line. Whatever partial
+    text the player already saw is replaced by the authoritative `opponent`
+    message that always follows.
+    """
+    loop = asyncio.get_running_loop()
+    queue: asyncio.Queue = asyncio.Queue()
+    END = object()  # a chunk is always a non-empty str, so this can't collide
+
+    def on_chunk(chunk: str) -> None:
+        loop.call_soon_threadsafe(queue.put_nowait, chunk)
+
+    def work() -> str | None:
+        try:
+            return stream_opponent_sync(facts, on_chunk)
+        finally:
+            loop.call_soon_threadsafe(queue.put_nowait, END)
+
+    worker = asyncio.ensure_future(asyncio.to_thread(work))
+    deadline = loop.time() + budget
+    try:
+        while True:
+            left = deadline - loop.time()
+            if left <= 0:
+                raise asyncio.TimeoutError
+            item = await asyncio.wait_for(queue.get(), timeout=left)
+            if item is END:
+                break
+            await send_chunk(item)
+        return await asyncio.wait_for(worker, timeout=max(0.5, deadline - loop.time()))
+    except Exception:
+        worker.cancel()
+        return None
+
+
+async def _opponent_line(sess, result, templated: str, send_chunk=None) -> str:
     """Try the AI backend; fall back to the deterministic templated line.
 
     The AI call is a blocking subprocess (CLI) / network call (API); run it off
     the event loop so the WebSocket stays responsive (keepalive) during it.
+
+    With `send_chunk` and a backend that can stream, the line arrives token by
+    token instead of appearing as a block after several silent seconds. Backends
+    that cannot stream (off / cli / tmux / sdk) take the same path as before.
     """
     try:
         facts = views.build_facts(sess, result)
         facts["fallback"] = templated
-        out = await _bounded(run_opponent_sync, facts, budget=OPPONENT_BUDGET)
+        if send_chunk is not None and backend_streams():
+            out = await _stream_opponent(facts, send_chunk, OPPONENT_BUDGET)
+        else:
+            out = await _bounded(run_opponent_sync, facts, budget=OPPONENT_BUDGET)
         if out:
             return out
     except Exception:
@@ -265,7 +312,11 @@ async def ws(websocket: WebSocket) -> None:
                 sess.log.append({"role": "player", "text": text, "judge": judge,
                                  "turn": sess.turn, "deltas": result.deltas})
                 templated = engine.render_line(sess, result.reaction, result.closed)
-                reply = views.timeout_line(lang) if timeout else await _opponent_line(sess, result, templated)
+                async def send_chunk(chunk: str) -> None:
+                    await websocket.send_json({"type": "opponent_delta", "chunk": chunk})
+
+                reply = (views.timeout_line(lang) if timeout
+                         else await _opponent_line(sess, result, templated, send_chunk))
                 sess.log.append({"role": "opp", "text": reply})
 
                 opp_payload = {

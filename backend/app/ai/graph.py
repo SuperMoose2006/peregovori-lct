@@ -76,3 +76,38 @@ def run_opponent_sync(facts: dict) -> Optional[str]:
     except Exception:
         return None
     return result.get("line")
+
+
+def backend_streams() -> bool:
+    """Whether the configured backend can produce a token stream at all."""
+    return hasattr(get_chat_backend(), "stream")
+
+
+def stream_opponent_sync(facts: dict, on_chunk) -> Optional[str]:
+    """Stream the opponent's line, calling `on_chunk(text)` per token, and return
+    the SANITIZED whole line (or None to fall back).
+
+    This deliberately bypasses the compiled graph. LangGraph's streaming is about
+    node-level events, and this graph is a single generate node — wrapping a token
+    stream in it would add a layer without adding a step. The prompt building is
+    the shared part, and that is reused directly. When the graph grows real steps
+    (plan -> draft -> self-check), only the final step streams, and that is where
+    this hook moves.
+
+    The chunks are RAW: `sanitize()` judges the whole line and may reject it. The
+    caller must therefore always follow the stream with the authoritative text —
+    the client replaces the streamed bubble with it.
+    """
+    backend = get_chat_backend()
+    stream = getattr(backend, "stream", None)
+    if stream is None:
+        return None
+    try:
+        system, user = build_prompts(facts)
+        parts: list[str] = []
+        for chunk in stream(system, user):
+            parts.append(chunk)
+            on_chunk(chunk)
+        return sanitize("".join(parts))
+    except Exception:
+        return None
