@@ -569,6 +569,12 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "no_threat_deal", icon: "🤝", name: { ru: "Чистая сделка", en: "Clean deal" }, desc: { ru: "Сделка без единой угрозы", en: "Close a deal with zero threats" } },
   { id: "criteria_tradeoff", icon: "⚖️", name: { ru: "Критерий и размен", en: "Criterion & trade" }, desc: { ru: "Критерий и размен в одной игре", en: "Use an objective criterion and a trade-off in one game" } },
   { id: "five_scenarios", icon: "🗺️", name: { ru: "Пять столов", en: "Five tables" }, desc: { ru: "Сыграть 5 разных сценариев", en: "Play 5 different scenarios" } },
+  // Курсовые. Дают ту же валюту, что и партии: у игрока одна история обучения,
+  // а не две параллельных полки значков.
+  { id: "block_passed", icon: "📗", name: { ru: "Первый блок", en: "First block" }, desc: { ru: "Сдать экзамен блока", en: "Pass a block exam" } },
+  { id: "exam_clean", icon: "💯", name: { ru: "Без единой ошибки", en: "Flawless" }, desc: { ru: "Сдать экзамен блока на максимум", en: "Score full marks on a block exam" } },
+  { id: "course_half", icon: "📘", name: { ru: "Половина пути", en: "Halfway" }, desc: { ru: "Сдать пять блоков курса", en: "Pass five course blocks" } },
+  { id: "course_done", icon: "🎓", name: { ru: "Курс пройден", en: "Course complete" }, desc: { ru: "Сдать все девять блоков", en: "Pass all nine blocks" } },
 ];
 
 export function getAchievement(id: string): Achievement | undefined {
@@ -763,13 +769,26 @@ export function recordExercise(profile: Profile, blockId: string, exerciseId: st
  * Итог экзамена блока. Провал даёт долю XP, а не ноль: попытка чему-то научила,
  * но и бонуса за неё нет — та же честная логика, что у `xpForDebrief`.
  */
+export function courseAchievements(profile: Profile, justScored?: { score: number; total: number }): string[] {
+  const blocks = Object.values(profile.course);
+  const passed = blocks.filter((b) => b.passed).length;
+  const out: string[] = [];
+  if (passed >= 1) out.push("block_passed");
+  if (passed >= 5) out.push("course_half");
+  if (passed >= 9) out.push("course_done");
+  if (justScored && justScored.total > 0 && justScored.score >= justScored.total) out.push("exam_clean");
+  return out;
+}
+
 export function recordExam(profile: Profile, blockId: string, score: number, total: number,
-                           passMark: number): { profile: Profile; xpGain: number; passed: boolean } {
+                           passMark: number): {
+  profile: Profile; xpGain: number; passed: boolean; newAchievements: string[];
+} {
   const b = blockOf(profile, blockId);
   const ok = score >= passMark;
   const share = total > 0 ? score / total : 0;
   const xpGain = ok && !b.passed ? 60 : Math.round(30 * share);
-  const next: Profile = {
+  const withBlock: Profile = {
     ...profile,
     xp: profile.xp + xpGain,
     course: {
@@ -783,7 +802,14 @@ export function recordExam(profile: Profile, blockId: string, score: number, tot
       },
     },
   };
-  return { profile: next, xpGain, passed: ok };
+  // Значки считаются ПОСЛЕ записи блока — иначе «первый сданный блок» никогда
+  // не выпадет на том экзамене, который его и сдал.
+  const earned = courseAchievements(withBlock, { score, total });
+  const fresh = earned.filter((id) => !withBlock.achievements.includes(id));
+  const next: Profile = fresh.length
+    ? { ...withBlock, achievements: [...withBlock.achievements, ...fresh] }
+    : withBlock;
+  return { profile: next, xpGain, passed: ok, newAchievements: fresh };
 }
 
 /** Доля блока, пройденная игроком (0..1): уроки + упражнения + экзамен. */

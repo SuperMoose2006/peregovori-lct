@@ -509,3 +509,70 @@ test("applyDebrief: a 7-day streak milestone fires once, and never on a breakdow
   assert.deepEqual(gb.newMilestones, [], "but a collapse is never a celebration");
   assert.deepEqual(gb.profile.celebratedMilestones, [], "and nothing is marked celebrated");
 });
+
+// ---------------------------------------------------------------------------
+// Курс приёмов в профиле: XP платится за решённое, а не за повторно открытое.
+import {
+  blockCompletion, courseAchievements, emptyBlockProgress, getBlockProgress,
+  markLessonDone, recordExam, recordExercise,
+} from "../src/lib/progress";
+
+test("урок отмечается один раз и не дублируется", () => {
+  let p = emptyProfile();
+  p = markLessonDone(p, "foundations", 1);
+  p = markLessonDone(p, "foundations", 1);
+  p = markLessonDone(p, "foundations", 3);
+  assert.deepEqual(getBlockProgress(p, "foundations").lessons, [1, 3]);
+});
+
+test("XP за упражнение платится ровно один раз и только за верный ответ", () => {
+  let p = emptyProfile();
+  const wrong = recordExercise(p, "foundations", "fo-01", 10, false);
+  assert.equal(wrong.xpGain, 0);
+  assert.equal(wrong.profile.xp, 0);
+
+  const first = recordExercise(p, "foundations", "fo-01", 10, true);
+  assert.equal(first.xpGain, 10);
+  p = first.profile;
+  const again = recordExercise(p, "foundations", "fo-01", 10, true);
+  assert.equal(again.xpGain, 0, "повтор того же упражнения не фармится");
+  assert.equal(again.profile.xp, 10);
+});
+
+test("экзамен: провал даёт долю XP, сдача — бонус один раз", () => {
+  let p = emptyProfile();
+  const fail = recordExam(p, "foundations", 2, 6, 5);
+  assert.ok(fail.xpGain > 0 && fail.xpGain < 60, "провал — доля, не ноль и не бонус");
+  assert.equal(fail.passed, false);
+  p = fail.profile;
+  assert.equal(getBlockProgress(p, "foundations").attempts, 1);
+
+  const pass = recordExam(p, "foundations", 6, 6, 5);
+  assert.equal(pass.passed, true);
+  assert.equal(pass.xpGain, 60);
+  p = pass.profile;
+  assert.equal(getBlockProgress(p, "foundations").examBest, 6);
+  assert.ok(p.achievements.includes("block_passed"));
+  assert.ok(p.achievements.includes("exam_clean"), "максимум — свой значок");
+
+  const twice = recordExam(p, "foundations", 6, 6, 5);
+  assert.ok(twice.xpGain < 60, "второй раз бонус не платится");
+  assert.deepEqual(twice.newAchievements, [], "уже полученные значки не повторяются");
+});
+
+test("значки курса выдаются по числу СДАННЫХ блоков", () => {
+  let p = emptyProfile();
+  for (const id of ["a", "b", "c", "d", "e", "f", "g", "h", "i"]) {
+    p = { ...p, course: { ...p.course, [id]: { ...emptyBlockProgress(), passed: true } } };
+  }
+  const earned = courseAchievements(p);
+  assert.ok(earned.includes("course_half") && earned.includes("course_done"));
+});
+
+test("доля блока считается по урокам, упражнениям и экзамену", () => {
+  const b = { ...emptyBlockProgress(), lessons: [1, 2], solved: ["x"], passed: false };
+  const share = blockCompletion(b, 4, 4);
+  assert.ok(share > 0 && share < 1);
+  assert.equal(
+    blockCompletion({ ...b, lessons: [1, 2, 3, 4], solved: ["a", "b", "c", "d"], passed: true }, 4, 4), 1);
+});

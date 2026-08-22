@@ -22,6 +22,7 @@ import {
 } from "../lib/progress";
 import { Exercise } from "./Exercise";
 import { Karl, Tikhon } from "./Mascot";
+import { AchievementToasts } from "./Gamification";
 import { ScreenHeading } from "./ScreenHeading";
 
 interface Props {
@@ -300,7 +301,7 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState(false);
   const [results, setResults] = useState<{ id: string; ok: boolean }[]>([]);
-  const [saved, setSaved] = useState<{ xp: number; passed: boolean } | null>(null);
+  const [saved, setSaved] = useState<{ xp: number; passed: boolean; badges: string[] } | null>(null);
 
   const ex = draw.items[step];
   const isLast = step >= draw.items.length - 1;
@@ -316,7 +317,7 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
     // вовсе: здесь только банк и движок.
     const res = recordExam(profile, blockId, score, draw.total, draw.passMark);
     onProfile(res.profile);
-    setSaved({ xp: res.xpGain, passed: res.passed });
+    setSaved({ xp: res.xpGain, passed: res.passed, badges: res.newAchievements });
     setStep(draw.items.length);
   };
 
@@ -366,6 +367,9 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
             })}
           </ul>
           <button className="btn primary" onClick={onBack}>← {block.title[lang]}</button>
+          {/* Значки курса всплывают тем же компонентом, что и после партии:
+              одна история обучения — одна полка наград. */}
+          {saved?.badges.length ? <AchievementToasts t={t} lang={lang} ids={saved.badges} /> : null}
         </div>
       </section>
     );
