@@ -66,6 +66,7 @@ export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit
       <ExamRunner
         t={t} lang={lang} profile={profile} onProfile={onProfile} blockId={view.id}
         onStartDrill={(ex, ctx) => onStartDrill(ex, { blockId: view.id, exam: ctx })}
+        onLesson={(n) => setView({ kind: "lesson", id: view.id, lesson: n })}
         onBack={() => setView({ kind: "block", id: view.id })}
       />
     );
@@ -281,9 +282,9 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
 
 // ---------------------------------------------------------------- экзамен
 
-function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onBack }: {
+function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLesson, onBack }: {
   t: Strings; lang: Lang; profile: Profile; onProfile: (p: Profile) => void; blockId: string;
-  onStartDrill: (ex: Ex, ctx: ExamCtx) => void; onBack: () => void;
+  onStartDrill: (ex: Ex, ctx: ExamCtx) => void; onLesson: (n: number) => void; onBack: () => void;
 }) {
   const block = blockById(blockId)!;
   const attempt = getBlockProgress(profile, blockId).attempts;
@@ -314,6 +315,10 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onBack
 
   if (step >= draw.items.length) {
     const passed = saved?.passed ?? false;
+    // Уроки, к которым ведут промахи, — по одному разу и в порядке курса.
+    const recovery = [...new Set(results.filter((r) => !r.ok)
+      .map((r) => draw.items.find((x) => x.id === r.id)?.lesson)
+      .filter((n): n is number => typeof n === "number"))].sort((a, b) => a - b);
     return (
       <section className="screen course">
         <div className="wrap lesson done">
@@ -325,6 +330,23 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onBack
           <Karl state={passed ? "celebrate" : "concern"}
                 line={passed ? t.course.karlExamPass : t.course.karlExamFail} name={t.mascot.karl} />
           {/* Разбор откладывается до конца — во время экзамена подсказок нет. */}
+          {/* Урок восстановления: провал обязан заканчиваться маршрутом, а не
+              констатацией. Уроки берутся из промахов, а не из общего списка. */}
+          {!passed && recovery.length ? (
+            <div className="recovery">
+              <h4>{t.course.recoveryTitle}</h4>
+              <ul>
+                {recovery.map((n) => {
+                  const l = block.lessons.find((x) => x.idx === n);
+                  return l ? (
+                    <li key={n}>
+                      <button className="btn ghost" onClick={() => onLesson(n)}>↻ {l.title[lang]}</button>
+                    </li>
+                  ) : null;
+                })}
+              </ul>
+            </div>
+          ) : null}
           <ul className="exam-review">
             {results.map((r) => {
               const item = draw.items.find((x) => x.id === r.id)!;

@@ -10,7 +10,7 @@
 // real pointer/key event via `initAudioUnlock()`. All browser globals are
 // guarded so the module imports and its pure bits run under Node (tests).
 
-export type CueName = "send" | "reveal" | "xp" | "levelup" | "grade";
+export type CueName = "send" | "reveal" | "xp" | "levelup" | "grade" | "correct" | "wrong";
 
 const STORAGE_KEY = "dialog.muted";
 
@@ -164,6 +164,18 @@ export function play(name: CueName, opts?: { grade?: string }): void {
       chord.forEach((f, i) => tone(c, m, { freq: f, dur: 0.32, type: "triangle", gain: 0.075, delay: i * 0.05 }));
       break;
     }
+    case "correct": {
+      // Короткая восходящая терция: подтверждение, а не фанфары — в уроке таких
+      // событий десятки, и празднование каждого быстро становится шумом.
+      tone(c, m, { freq: 784, dur: 0.09, type: "sine", gain: 0.07 });
+      tone(c, m, { freq: 1047, dur: 0.14, type: "sine", gain: 0.07, delay: 0.07 });
+      break;
+    }
+    case "wrong":
+      // Один низкий мягкий тон. Не «ошибка!», а «не то» — тон не должен
+      // наказывать: ошибка в тренажёре и есть способ учиться.
+      tone(c, m, { freq: 233, dur: 0.16, type: "sine", gain: 0.06 });
+      break;
     case "grade": {
       const s = GRADE_STING[opts?.grade ?? "C"] ?? GRADE_STING.C;
       tone(c, m, { freq: s.f1, dur: 0.16, type: s.type, gain: 0.1 });

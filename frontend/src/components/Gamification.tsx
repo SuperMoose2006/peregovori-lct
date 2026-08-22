@@ -7,10 +7,11 @@ import { useEffect, useRef, useState } from "react";
 import type { Lang } from "../types";
 import type { Strings } from "../i18n";
 import { ScreenHeading } from "./ScreenHeading";
+import { COURSE_BLOCKS, exercisesOf } from "../lib/course";
 import { haptic, play } from "../lib/sound";
 import {
-  ACHIEVEMENTS, DAILY_GOAL_MAX, DAILY_GOAL_MIN, dailyGoalView, getAchievement, rankForXp,
-  skillViews, strongestWeakest,
+  ACHIEVEMENTS, DAILY_GOAL_MAX, DAILY_GOAL_MIN, blockCompletion, dailyGoalView, getAchievement,
+  getBlockProgress, rankForXp, skillViews, strongestWeakest,
   type GameResult, type MilestoneHit, type Profile, type SkillId,
 } from "../lib/progress";
 
@@ -186,6 +187,24 @@ export function SkillsProfile({
             })}
           </div>
           ) : null}
+
+          {/* Курс — часть того же прогресса, поэтому он здесь, а не в своём
+              отдельном «профиле курса»: у игрока одна история обучения. */}
+          <h3 className="badges-title">{t.course.title}</h3>
+          <ul className="course-mini">
+            {COURSE_BLOCKS.map((b) => {
+              const bp = getBlockProgress(profile, b.id);
+              const pct = Math.round(blockCompletion(bp, b.lessons.length, exercisesOf(b.id).length) * 100);
+              return (
+                <li key={b.id} className={bp.passed ? "done" : ""}>
+                  <span className="cm-ic" aria-hidden="true">{bp.passed ? "★" : b.icon}</span>
+                  <span className="cm-t">{b.title[lang]}</span>
+                  <span className="cm-bar"><i style={{ width: `${pct}%` }} /></span>
+                  <span className="cm-p">{pct}%</span>
+                </li>
+              );
+            })}
+          </ul>
 
           <h3 className="badges-title">{t.gam.achievementsTitle}</h3>
           <div className="badges">

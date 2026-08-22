@@ -10,7 +10,7 @@ import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
 import { CourseScreen, type ExamCtx } from "./components/CourseScreen";
-import { checkDrill } from "./lib/course";
+import { COURSE_BLOCKS, checkDrill } from "./lib/course";
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { recordExam, recordExercise } from "./lib/progress";
 import { Setup } from "./components/Setup";
@@ -237,6 +237,11 @@ export default function App() {
       return next;
     });
   }, [drill, nego.debrief, nego.state]);
+
+  const coursePassed = useMemo(
+    () => COURSE_BLOCKS.filter((b) => profile.course[b.id]?.passed).length,
+    [profile.course],
+  );
 
   const isDark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
@@ -539,11 +544,26 @@ export default function App() {
               examName={examName}
               onExamNameChange={setExamName}
               hideModes={skin === "game"}
+              onCourse={() => setScreen("course")}
+              courseDone={coursePassed}
+              courseTotal={COURSE_BLOCKS.length}
             />
             </div>
             {skin === "game" ? (
               <aside className="rail">
                 <ProgressCards t={t} lang={lang} profile={profile} />
+                {/* Курс живёт в сайдбаре, но с домашнего экрана его надо ещё и
+                    ВИДЕТЬ: строка меню не рассказывает, что внутри девять блоков. */}
+                <RailCard title={t.course.title}>
+                  <p className="rc-note">
+                    {t.course.blocksDone.replace("{n}", String(coursePassed))
+                      .replace("{total}", String(COURSE_BLOCKS.length))}
+                  </p>
+                  <span className="rc-bar"><i style={{ width: `${(coursePassed / COURSE_BLOCKS.length) * 100}%` }} /></span>
+                  <button className="btn primary rc-go" onClick={() => setScreen("course")}>
+                    {t.nav.course} →
+                  </button>
+                </RailCard>
                 <MethodCard t={t} />
               </aside>
             ) : null}

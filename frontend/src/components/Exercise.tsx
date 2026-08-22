@@ -13,6 +13,7 @@ import type { Lang } from "../types";
 import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
 import { check, metersOptions, reactionOptions, type Verdict } from "../lib/course";
 import { previewChips } from "../lib/techniques";
+import { haptic, play } from "../lib/sound";
 
 interface Props {
   t: Strings;
@@ -69,6 +70,10 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
     if (verdict) return;
     const v = check(ex, answer(), lang);
     setVerdict(v);
+    // Звук — часть обратной связи, а не украшение: он приходит раньше, чем глаз
+    // находит цветную рамку. Глушится общим переключателем, как всё остальное.
+    play(v.ok ? "correct" : "wrong");
+    haptic(v.ok ? 12 : 22);
     onDone(v.ok, v);
   };
 

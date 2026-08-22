@@ -42,6 +42,11 @@ interface Props {
   onExamNameChange: (v: string) => void;
   /** True in the game skin, whose sidebar already lists the modes. */
   hideModes?: boolean;
+  /** Курс приёмов — не режим партии, но входить в него надо оттуда же.
+      В скине «додзё» сайдбара нет вовсе, и без этой карточки курс недостижим. */
+  onCourse?: () => void;
+  courseDone?: number;
+  courseTotal?: number;
 }
 
 // Best-grade chip in a card's difficulty-row: the letter + best score in brass
@@ -63,7 +68,7 @@ export function ScenarioPicker({
   t, lang, mode, onSelectMode, onStart,
   situation, customError, onSituationChange, onStartCustom,
   campaign, campaignProgress, onBeginStage, profile,
-  examName, onExamNameChange, hideModes,
+  examName, onExamNameChange, hideModes, onCourse, courseDone = 0, courseTotal = 0,
 }: Props) {
   const rows = catalog(lang);
   return (
@@ -91,6 +96,14 @@ export function ScenarioPicker({
             </button>
           );
         })}
+        {onCourse ? (
+          <button className="mode course-mode" onClick={onCourse}>
+            <span className="mt">{t.course.title}</span>
+            <span className="md">
+              {t.course.blocksDone.replace("{n}", String(courseDone)).replace("{total}", String(courseTotal))}
+            </span>
+          </button>
+        ) : null}
       </div>
       </>
       )}

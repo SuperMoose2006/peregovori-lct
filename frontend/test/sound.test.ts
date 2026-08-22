@@ -49,7 +49,7 @@ test("toggleMuted flips and returns the new value", async () => {
 test("cues and haptics are guarded no-ops headless (no WebAudio / vibrate)", async () => {
   const sound = await import("../src/lib/sound");
   sound.setMuted(false); // even unmuted, there is no AudioContext in Node
-  for (const name of ["send", "reveal", "xp", "levelup", "grade"] as const) {
+  for (const name of ["send", "reveal", "xp", "levelup", "grade", "correct", "wrong"] as const) {
     assert.doesNotThrow(() => sound.play(name));
   }
   assert.doesNotThrow(() => sound.play("grade", { grade: "A" }));
