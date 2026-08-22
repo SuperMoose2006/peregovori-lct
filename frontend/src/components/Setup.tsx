@@ -61,6 +61,10 @@ export function Setup({ t, lang, scenario, layers, states, onToggle, onPreset, o
           {ORDER.map((id) => {
             const st = states[id];
             const on = layers[id];
+            // `aria-disabled`, never the native `disabled`: a disabled control
+            // leaves the tab order, so a keyboard user would never meet the
+            // unavailable layers nor learn why they are off. The reason is
+            // linked with aria-describedby rather than merely sitting nearby.
             const cls = !st.available ? "off na" : on ? "on" : "off";
             return (
               <div className={`layer ${cls}`} key={id}>
@@ -74,14 +78,15 @@ export function Setup({ t, lang, scenario, layers, states, onToggle, onPreset, o
                   role="switch"
                   aria-checked={on}
                   aria-label={t.layers.names[id]}
-                  disabled={!st.available}
-                  onClick={() => onToggle(id)}
+                  aria-disabled={!st.available || undefined}
+                  aria-describedby={`ly-note-${id}`}
+                  onClick={() => (st.available ? onToggle(id) : undefined)}
                 >
                   <span className="ly-knob" />
                 </button>
                 {/* The promise sits on the control itself; when the layer cannot
                     run at all, its reason takes that slot instead. */}
-                <span className={`ly-note${st.available ? "" : " na"}`}>
+                <span id={`ly-note-${id}`} className={`ly-note${st.available ? "" : " na"}`}>
                   {st.available ? t.layers.sameGrade : reasonText(st, lang)}
                 </span>
               </div>

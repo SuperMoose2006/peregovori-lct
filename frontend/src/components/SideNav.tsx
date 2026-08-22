@@ -21,6 +21,9 @@ const ICONS: Record<string, string> = {
 };
 
 export function SideNav({ t, active, onMode, onProfile }: Props) {
+  // Every row carries an explicit aria-label: at phone widths the visible label
+  // is display:none on all but the current tab and the icon is aria-hidden, so
+  // without it the primary navigation announces as five unnamed buttons.
   const rows: { key: string; label: string; go: () => void }[] = [
     { key: "practice", label: t.nav.training, go: () => onMode("practice") },
     { key: "campaign", label: t.nav.campaign, go: () => onMode("campaign") },
@@ -41,6 +44,7 @@ export function SideNav({ t, active, onMode, onProfile }: Props) {
               className={`sn-row${active === r.key ? " on" : ""}`}
               onClick={r.go}
               aria-current={active === r.key ? "page" : undefined}
+              aria-label={r.label}
             >
               <span className="sn-ic" aria-hidden="true">{ICONS[r.key]}</span>
               <span className="sn-lb">{r.label}</span>

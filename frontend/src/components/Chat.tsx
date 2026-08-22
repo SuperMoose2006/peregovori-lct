@@ -40,6 +40,8 @@ interface Props {
   probeTally?: string;
   /** Compact meters shown inside an open question on narrow screens. */
   probeMeters?: React.ReactNode;
+  /** Lets the parent move focus onto a question when it opens. */
+  registerProbe?: (id: number, el: HTMLDivElement | null) => void;
   onProbeAnswer?: (id: number, choice: number) => void;
   // Rendered at the top of an otherwise-empty log (turn 0). The log bottom-aligns
   // its content, which is right for a filling chat and leaves a tall void in an
@@ -56,7 +58,7 @@ interface Props {
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, probeMeters, onProbeAnswer, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, probeMeters, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -72,13 +74,18 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
   return (
     // The log is a polite live region: new opponent replies and coach lines are
     // announced to screen readers as they arrive, without stealing focus.
+    //
+    // `aria-relevant` is "additions" and NOT "additions text": with "text" every
+    // streamed chunk re-announced the half-built sentence — measured 8
+    // announcements for one reply, three of them fragments of the same line —
+    // and the authoritative message then announced it once more.
     <div
       className={`log${opening ? " has-opening" : ""}`}
       ref={ref}
       role="log"
       aria-label={logLabel}
       aria-live="polite"
-      aria-relevant="additions text"
+      aria-relevant="additions"
       aria-atomic="false"
     >
       {opening}
@@ -92,7 +99,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
             // waiting language so the player reads it as "someone is composing",
             // not as a button that did nothing.
             return (
-              <div className="hintbub pending" key={e.id} aria-live="polite">
+              <div className="hintbub pending" key={e.id}>
                 <div>
                   💡{" "}
                   <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>{" "}
@@ -126,9 +133,20 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
           const answered = e.picked !== undefined;
           const right = answered && e.picked === e.answer;
           return (
-            <div className={`probe${answered ? (right ? " right" : " wrong") : ""}`} key={e.id}>
+            // A radiogroup, not four loose buttons: the options belong to the
+            // question, and `aria-labelledby` is what says so. Focusable via
+            // tabIndex so opening the question can move focus here instead of
+            // dropping it to <body> when the composer is disabled underneath.
+            <div
+              className={`probe${answered ? (right ? " right" : " wrong") : ""}`}
+              key={e.id}
+              ref={(el) => registerProbe?.(e.id, el)}
+              tabIndex={-1}
+              role="radiogroup"
+              aria-labelledby={`pb-q-${e.id}`}
+            >
               <div className="pb-head">
-                <b>🎭 {probeLabels.ask}</b>
+                <b id={`pb-q-${e.id}`}>🎭 {probeLabels.ask}</b>
                 {probeTally ? <span className="pb-tally">{probeTally}</span> : null}
               </div>
               {/* On a phone the instrument rail sits far above the question, so
@@ -142,8 +160,13 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
                     <button
                       key={i}
                       className={`pb-opt${mark}`}
-                      disabled={answered}
-                      onClick={() => onProbeAnswer?.(e.id, i)}
+                      role="radio"
+                      aria-checked={e.picked === i}
+                      // aria-disabled, not `disabled`: a native disabled button is
+                      // pulled out of the tab order, and blanking focus mid-turn
+                      // teleports a keyboard user to the top of the document.
+                      aria-disabled={answered || undefined}
+                      onClick={() => (answered ? undefined : onProbeAnswer?.(e.id, i))}
                     >
                       {probeLabels.reactions[o] ?? o}
                       {answered && i === e.answer ? <span aria-hidden="true"> ✓</span> : null}
@@ -154,7 +177,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
               </div>
               {/* Marking an answer wrong teaches nothing; the reason does. */}
               {answered ? (
-                <div className="pb-why">
+                <div className="pb-why" role="status">
                   <b>{right ? probeLabels.right : probeLabels.wrong}</b>{" "}
                   {probeLabels.why[e.options[e.answer]] ?? ""}
                 </div>
@@ -210,7 +233,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
             <div className="msg opp" key={e.id}>
               <div className="bub">
                 {e.text}
-                {e.streaming ? <span className="caret">▍</span> : null}
+                {e.streaming ? <span className="caret" aria-hidden="true">▍</span> : null}
               </div>
             </div>
           );
@@ -226,7 +249,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
         );
       })}
       {typing ? (
-        <div className={`msg opp typing-msg${typingJudging ? " judging" : ""}`} aria-live="polite">
+        <div className={`msg opp typing-msg${typingJudging ? " judging" : ""}`}>
           <div className="bub typing">
             <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
             <span className="typing-label">{typingLabel}</span>

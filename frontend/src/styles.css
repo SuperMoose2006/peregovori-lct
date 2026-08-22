@@ -785,7 +785,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .brand .mark { font-size: 22px; }
   .brand .sub { display: none; }               /* the tagline is decorative — reclaim the width */
   .controls { gap: 8px; flex-shrink: 0; }
-  .seg button { padding: 9px 13px; font-size: 13px; min-height: 40px; }
+  .seg button { padding: 9px 13px; font-size: 13px; min-height: 44px; }
 
   /* Hero: tighter, still the "lamplit" serif voice. Reordered for thumbs — the
      rank strip and a single clear CTA lead above the fold; the long lead paragraph
@@ -874,7 +874,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
   /* Quick-chips: wrap, and scroll sideways if they still overflow. */
   .quick { flex-wrap: nowrap; overflow-x: auto; margin-top: 8px; padding-bottom: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .quick::-webkit-scrollbar { display: none; }
-  .quick button { flex-shrink: 0; padding: 9px 13px; font-size: 12.5px; min-height: 40px; }
+  .quick button { flex-shrink: 0; padding: 9px 13px; font-size: 12.5px; min-height: 44px; }
   .live { margin-bottom: 6px; }
 
   /* Debrief: single column, smaller ring, reflowed stats. */
@@ -1317,7 +1317,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 @media (max-width: 640px) {
   .onb-tip { padding: 15px 15px 12px; }
   .onb-action { min-height: 46px; }
-  .onb-skip, .onb-next { min-height: 40px; }
+  .onb-skip, .onb-next { min-height: 44px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2222,4 +2222,15 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
      so it wraps onto its own full-width line rather than squeezing to 20px. */
   :root[data-skin="game"] .ch { flex-wrap: wrap; row-gap: 9px; }
   :root[data-skin="game"] .turnbar { order: 9; flex: 1 0 100%; max-width: none; margin: 0; }
+}
+
+/* Dismiss buttons measured 22.6x19 and 20.3x17 — below even the 24x24 floor of
+   WCAG 2.5.8, and they appear on every graded turn. The glyph stays the same
+   size; the hit area grows around it. */
+.coachline-x, .firstcoach-x { min-width: 32px; min-height: 32px; display: grid; place-items: center; }
+@media (max-width: 640px) {
+  .coachline-x, .firstcoach-x { min-width: 44px; min-height: 44px; }
+  .setup-back { min-height: 44px; display: inline-flex; align-items: center; }
+  .sp-pill { min-height: 44px; }
+  .ly-sw { min-height: 32px; }
 }

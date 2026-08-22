@@ -58,6 +58,15 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   // below the fold — the climax of the negotiation rendered where nobody was
   // looking, and the hold expires before they find it. Bring it into view.
   const outcomeRef = useRef<HTMLDivElement | null>(null);
+  // Focus follows the question: opening one disables the composer under the
+  // player's cursor, which would otherwise drop focus to <body> mid-turn. When
+  // it resolves, focus goes back to the composer so typing continues naturally.
+  const probeEls = useRef(new Map<number, HTMLDivElement>());
+  const focusedProbe = useRef<number | null>(null);
+  const registerProbe = useCallback((id: number, el: HTMLDivElement | null) => {
+    if (el) probeEls.current.set(id, el);
+    else probeEls.current.delete(id);
+  }, []);
   const st = state;
   const finished = !!st && st.status !== "active";
   // An unanswered question blocks the composer (but never the transcript): the
@@ -67,6 +76,23 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     if (!finished) return;
     outcomeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [finished]);
+
+  const openProbeId = (() => {
+    for (let i = log.length - 1; i >= 0; i--) {
+      const e = log[i];
+      if (e.kind === "probe") return e.picked === undefined ? e.id : null;
+    }
+    return null;
+  })();
+  useEffect(() => {
+    if (openProbeId != null) {
+      probeEls.current.get(openProbeId)?.focus({ preventScroll: false });
+      focusedProbe.current = openProbeId;
+    } else if (focusedProbe.current != null) {
+      focusedProbe.current = null;
+      composeRef.current?.querySelector("textarea")?.focus({ preventScroll: true });
+    }
+  }, [openProbeId]);
 
   const iFound = st?.interests_found ?? 0;
   const iTotal = st?.interests_total ?? 0;
@@ -427,6 +453,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               hintPendingLabel={t.hintPending}
               probeLabels={t.probe}
               probeTally={probeTally}
+              registerProbe={registerProbe}
               probeMeters={
                 st ? (
                   <>
