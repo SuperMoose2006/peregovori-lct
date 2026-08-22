@@ -38,6 +38,80 @@
   --shadow: 0 12px 44px rgba(0, 0, 0, 0.5);
 }
 
+/* ============================================================
+   SKIN: "Игра" (data-skin="game") — the Duolingo-style look.
+   ------------------------------------------------------------
+   A parallel axis to data-theme, not a replacement: the default "додзё" skin
+   (lamplit serif, brass on parchment) stays, and this one can be switched on to
+   compare. It works because every surface in this file already routes through
+   the tokens above — so a skin is mostly a token override plus a few shape
+   rules, and no component needs to know which skin is live.
+
+   What actually makes it read as Duolingo, in order of importance:
+     1. shape — fat 16px radii, 2px borders, no soft shadows;
+     2. weight — one rounded sans everywhere (the serif is retired), heavier text;
+     3. the 3D button — a 4px darker bottom edge that compresses on press;
+     4. colour — white ground, one saturated green for "go", the meter colours
+        turned up to full saturation.
+
+   Contrast note: Duolingo's own #58cc02 with white text is ~2.2:1, which fails
+   WCAG outright. `--brass` here is therefore the darker #3f8f00 (~4.2:1 on
+   white), and the bright green lives in `--brass-soft` where nothing sits on
+   top of it. The look survives; the legibility does too.
+   ============================================================ */
+:root[data-skin="game"] {
+  --ground: #ffffff; --panel: #ffffff; --panel-2: #f7f7f7;
+  --ink: #3c3c3c; --ink-dim: #777777; --ink-faint: #afafaf;
+  --line: #e5e5e5; --line-2: #d8d8d8;
+  --brass: #3f8f00; --brass-soft: #58cc02;
+  --trust: #58cc02; --tension: #ff4b4b; --info: #1cb0f6; --leverage: #ce82ff;
+  --shadow: 0 4px 0 var(--line-2);
+  /* One family for everything: the serif is what makes the default skin read as
+     a document, so a skin that keeps it would not read as a game. Nunito is
+     named as a progressive enhancement only — NO webfont is linked, because a
+     demo on venue wifi must not wait on fonts.gstatic.com to paint. Machines
+     that have it get the rounded face; everything else gets system-ui, and the
+     skin still reads as a game on shape and weight alone. */
+  --serif: "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sans: "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 16px;
+  /* The button's bottom edge. A skin-local token so the default skin, which has
+     no such edge, is not forced to define one. */
+  --edge: #2f6b00;
+}
+/* Dark variant. `:not([data-theme="light"])` alone would match whenever no
+   explicit theme is set — i.e. it would force the dark skin on system-light
+   users. It has to sit INSIDE the media query, with a second, unconditional
+   block below for the explicit toggle. */
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="game"]:not([data-theme="light"]) {
+    --ground: #131f24; --panel: #1b2b32; --panel-2: #22353d;
+    --ink: #f1f7fb; --ink-dim: #a3b3bc; --ink-faint: #7b8c96;
+    --line: #2c444d; --line-2: #37525c;
+    --brass: #58cc02; --brass-soft: #7ee32b;
+    --trust: #58cc02; --tension: #ff5b5b; --info: #1cb0f6; --leverage: #ce82ff;
+    --shadow: 0 4px 0 var(--line-2);
+    --edge: #3f8f00;
+  }
+}
+:root[data-skin="game"][data-theme="dark"] {
+  --ground: #131f24; --panel: #1b2b32; --panel-2: #22353d;
+  --ink: #f1f7fb; --ink-dim: #a3b3bc; --ink-faint: #7b8c96;
+  --line: #2c444d; --line-2: #37525c;
+  --brass: #58cc02; --brass-soft: #7ee32b;
+  --trust: #58cc02; --tension: #ff5b5b; --info: #1cb0f6; --leverage: #ce82ff;
+  --shadow: 0 4px 0 var(--line-2);
+  --edge: #3f8f00;
+}
+:root[data-skin="game"][data-theme="light"] {
+  --ground: #ffffff; --panel: #ffffff; --panel-2: #f7f7f7;
+  --ink: #3c3c3c; --ink-dim: #777777; --ink-faint: #afafaf;
+  --line: #e5e5e5; --line-2: #d8d8d8;
+  --brass: #3f8f00; --brass-soft: #58cc02;
+  --trust: #58cc02; --tension: #ff4b4b; --info: #1cb0f6; --leverage: #ce82ff;
+  --edge: #2f6b00;
+}
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
@@ -1689,3 +1763,90 @@ textarea:focus-visible,
     box-shadow: none;
   }
 }
+
+/* ---------- SKIN "game": shape rules ----------
+   Everything above is tokens; these are the handful of places where the look
+   needs different GEOMETRY, not different colour. Kept together and scoped to
+   the skin so the default one is provably untouched. */
+
+/* Borders carry the structure instead of shadows — 2px, flat, no blur. */
+:root[data-skin="game"] .card,
+:root[data-skin="game"] .panel,
+:root[data-skin="game"] .chat,
+:root[data-skin="game"] .opp,
+:root[data-skin="game"] .offers,
+:root[data-skin="game"] .dealtracker,
+:root[data-skin="game"] .meters,
+:root[data-skin="game"] .camp,
+:root[data-skin="game"] .reveal,
+:root[data-skin="game"] .mentor,
+:root[data-skin="game"] .tpoints,
+:root[data-skin="game"] .coach,
+:root[data-skin="game"] .master,
+:root[data-skin="game"] .opening,
+:root[data-skin="game"] .debrief:not(.cert) { border-width: 2px; box-shadow: none; }
+
+/* The 3D button: a solid darker edge that the press visibly compresses. This
+   single detail does more for the "it's a game" read than any colour change. */
+:root[data-skin="game"] .primary,
+:root[data-skin="game"] .send,
+:root[data-skin="game"] .oc-go,
+:root[data-skin="game"] .hintline-use,
+:root[data-skin="game"] .milestone-go {
+  border-bottom: 4px solid var(--edge);
+  border-radius: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+  transition: transform 0.06s, filter 0.15s;
+}
+:root[data-skin="game"] .primary:active,
+:root[data-skin="game"] .oc-go:active,
+:root[data-skin="game"] .send:active,
+:root[data-skin="game"] .hintline-use:active,
+:root[data-skin="game"] .milestone-go:active {
+  transform: translateY(3px);
+  border-bottom-width: 1px;
+}
+/* Secondary buttons get the same physical edge in neutral grey, so the pair
+   reads as one system rather than one styled button beside a plain one. */
+:root[data-skin="game"] .quit,
+:root[data-skin="game"] .op-line,
+:root[data-skin="game"] .wi-preset {
+  border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 14px;
+  transition: transform 0.06s;
+}
+:root[data-skin="game"] .quit:active,
+:root[data-skin="game"] .op-line:active,
+:root[data-skin="game"] .wi-preset:active { transform: translateY(3px); border-bottom-width: 2px; }
+
+/* Chat bubbles: rounder, and the player's own line keeps white-on-green. */
+:root[data-skin="game"] .bub { border-radius: 18px; font-weight: 600; }
+:root[data-skin="game"] .msg.opp .bub { border-width: 2px; border-bottom-left-radius: 6px; }
+:root[data-skin="game"] .msg.me .bub { border-bottom-right-radius: 6px; }
+
+/* Meters become the thick rounded bars Duolingo uses for lesson progress. */
+:root[data-skin="game"] .track { height: 14px; border-radius: 999px; }
+:root[data-skin="game"] .sbt { height: 16px; border-radius: 999px; }
+:root[data-skin="game"] .fill,
+:root[data-skin="game"] .sbf { border-radius: 999px; }
+/* `.sb` and `.meters` are cards too, and the 2px rule above already caught
+   `.meters`; the score-bar panel needs it by its own name. */
+:root[data-skin="game"] .sb { border-width: 2px; box-shadow: none; }
+
+/* No serif anywhere — including the places that ask for it by name. */
+:root[data-skin="game"] .hero h1,
+:root[data-skin="game"] .ring .gl,
+:root[data-skin="game"] .op-scene,
+:root[data-skin="game"] .oc-title,
+:root[data-skin="game"] .mn-verdict,
+:root[data-skin="game"] .ms-q { font-family: var(--sans); font-weight: 800; font-style: normal; }
+
+/* Segmented controls read as chunky pills. */
+:root[data-skin="game"] .seg { border-radius: 999px; border-width: 2px; }
+:root[data-skin="game"] .seg button { font-weight: 800; }
+:root[data-skin="game"] .seg button.on { border-radius: 999px; }
+
+/* Scenario cards lift instead of casting — a shadowless system needs a
+   different hover cue than "add a shadow". */
+:root[data-skin="game"] .card:hover { transform: translateY(-4px); box-shadow: none; border-color: var(--brass-soft); }

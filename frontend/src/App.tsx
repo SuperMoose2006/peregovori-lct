@@ -23,6 +23,11 @@ type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campai
 // nobody reaches for the button first.
 const OUTCOME_HOLD_MS = 2200;
 type Theme = "light" | "dark" | null;
+// Visual skin, orthogonal to light/dark. "dojo" is the default lamplit-serif
+// identity; "game" is the Duolingo-style one. Persisted so a juror's choice
+// survives a reload mid-demo.
+type Skin = "dojo" | "game";
+const SKIN_KEY = "dialog.skin.v1";
 
 const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -30,6 +35,15 @@ const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n
 export default function App() {
   const [lang, setLang] = useState<Lang>("ru");
   const [theme, setTheme] = useState<Theme>(null);
+  const [skin, setSkin] = useState<Skin>(() => {
+    // Storage can throw (private mode, blocked site data) — the default skin is
+    // always a correct answer, so never let a read break the app.
+    try {
+      return localStorage.getItem(SKIN_KEY) === "game" ? "game" : "dojo";
+    } catch {
+      return "dojo";
+    }
+  });
   const [screen, setScreen] = useState<Screen>("home");
   const [mode, setMode] = useState<Mode>("practice");
   const [currentScenario, setCurrentScenario] = useState<string | null>(null);
@@ -73,6 +87,19 @@ export default function App() {
     if (theme) root.setAttribute("data-theme", theme);
     else root.removeAttribute("data-theme");
   }, [theme]);
+
+  // The skin drives the same CSS variables from a parallel attribute, so the
+  // default one is the plain absence of it.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (skin === "game") root.setAttribute("data-skin", "game");
+    else root.removeAttribute("data-skin");
+    try {
+      localStorage.setItem(SKIN_KEY, skin);
+    } catch {
+      /* not being able to remember the choice is not a reason to refuse it */
+    }
+  }, [skin]);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -296,6 +323,16 @@ export default function App() {
           <div className="seg">
             <button onClick={toggleTheme} aria-label="theme">
               {isDark ? "☀" : "◐"}
+            </button>
+          </div>
+          <div className="seg">
+            <button
+              onClick={() => setSkin(skin === "game" ? "dojo" : "game")}
+              aria-label={t.skin.label}
+              aria-pressed={skin === "game"}
+              title={skin === "game" ? t.skin.toDojo : t.skin.toGame}
+            >
+              {skin === "game" ? "🎮" : "🎓"}
             </button>
           </div>
           <div className="seg">

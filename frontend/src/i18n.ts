@@ -175,6 +175,8 @@ export interface Strings {
   };
   // first-turn coach bubble (practice/campaign/custom; withheld in exam).
   // {name} = counterpart name, substituted at render.
+  // Header control that swaps the visual skin (dojo <-> game).
+  skin: { label: string; toGame: string; toDojo: string };
   firstTurnCoach: string;
   // "Table setting" card filling the empty chat at turn 0. The opening frame a
   // juror stares at longest, and the moment a first-timer decides whether they
@@ -567,6 +569,7 @@ export const I18N: Record<Lang, Strings> = {
         F: "Ещё учиться",
       },
     },
+    skin: { label: "Оформление", toGame: "Игровое оформление", toDojo: "Оформление «додзё»" },
     opening: {
       title: "Стол накрыт",
       scene: "{role} Напротив — {name}. Её цена: {offer}. Ваша цель: {target}, красная линия: {red}.",
@@ -961,6 +964,7 @@ export const I18N: Record<Lang, Strings> = {
         F: "Still learning",
       },
     },
+    skin: { label: "Look", toGame: "Game look", toDojo: "Dojo look" },
     opening: {
       title: "The table is set",
       scene: "{role} Across from you: {name}. Their price: {offer}. Your target: {target}, red line: {red}.",
