@@ -40,6 +40,8 @@ interface Props {
   // exam-mode wiring: the (optional) name printed on a passing certificate.
   examName: string;
   onExamNameChange: (v: string) => void;
+  /** True in the game skin, whose sidebar already lists the modes. */
+  hideModes?: boolean;
 }
 
 // Best-grade chip in a card's difficulty-row: the letter + best score in brass
@@ -61,11 +63,16 @@ export function ScenarioPicker({
   t, lang, mode, onSelectMode, onStart,
   situation, customError, onSituationChange, onStartCustom,
   campaign, campaignProgress, onBeginStage, profile,
-  examName, onExamNameChange,
+  examName, onExamNameChange, hideModes,
 }: Props) {
   const rows = catalog(lang);
   return (
     <>
+      {/* The game skin's sidebar already carries all four modes, so the row is a
+          duplicate there. Removed rather than CSS-hidden: a hidden-but-focusable
+          copy of the navigation is worse for keyboard users than none at all. */}
+      {hideModes ? null : (
+      <>
       <div className="section-head">{t.modesHead}</div>
       <div className="modes">
         {MODES.map((m) => {
@@ -85,6 +92,8 @@ export function ScenarioPicker({
           );
         })}
       </div>
+      </>
+      )}
 
       {mode === "custom" ? (
         <CustomSituation

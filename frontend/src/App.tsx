@@ -370,6 +370,18 @@ export default function App() {
       ) : null}
       <div className="appbody">
       <div className="top">
+        {/* Live counters, the way a game shows them. Only in the game skin —
+            the dojo header is a wordmark and controls, deliberately quiet. */}
+        {skin === "game" ? (
+          <div className="stats" aria-label={t.a11y.stats}>
+            <span className="st-c" title={t.streakLabel.replace("{n}", String(profile.streak))}>
+              <b aria-hidden="true">🔥</b> {profile.streak}
+            </span>
+            <span className="st-c">
+              <b aria-hidden="true">💎</b> {profile.xp} XP
+            </span>
+          </div>
+        ) : null}
         <div className="brand">
           <span className="mark">
             Диалог<span className="dot">.</span>
@@ -465,6 +477,7 @@ export default function App() {
               profile={profile}
               examName={examName}
               onExamNameChange={setExamName}
+              hideModes={skin === "game"}
             />
             </div>
             {skin === "game" ? (

@@ -428,6 +428,7 @@ export interface Strings {
     deal: string;         // deal-tracker summary — target/redline/offer substituted
     delta: string;        // a per-turn meter delta chip — "{label}"/"{value}"
     nav: string;          // aria-label for the game skin's left sidebar
+    stats: string;        // aria-label for the game skin's counter strip
   };
 }
 
@@ -865,6 +866,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     a11y: {
       nav: "Разделы",
+      stats: "Ваш прогресс",
       chatLog: "Ход переговоров",
       gameHeading: "Переговоры: {name}",
       grade: "Оценка {grade}, {score} из 100",
@@ -1316,6 +1318,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     a11y: {
       nav: "Sections",
+      stats: "Your progress",
       chatLog: "Negotiation transcript",
       gameHeading: "Negotiation: {name}",
       grade: "Grade {grade}, {score} out of 100",

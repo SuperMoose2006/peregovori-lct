@@ -384,6 +384,14 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
 
           <main className="chat">
             <div className="ch">
+              {/* The game skin turns the turn counter into a spent-budget bar:
+                  the same honest framing (budget, not countdown), but visible at
+                  a glance from the back of a room. */}
+              {st ? (
+                <div className="turnbar" aria-hidden="true">
+                  <i style={{ width: `${Math.round(((st.turn ?? 0) / Math.max(1, st.max_turns)) * 100)}%` }} />
+                </div>
+              ) : null}
               <div className="turn">
                 {/* Budget, not a countdown: before the first move show the turn
                     BUDGET ("12 ходов"); once play starts show "ход {n} из {max}"

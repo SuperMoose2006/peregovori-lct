@@ -1940,9 +1940,10 @@ textarea:focus-visible,
   :root[data-skin="game"] .appbody { padding-bottom: 72px; }
 }
 
-/* The top strip is `space-between`, and hiding the brand left the controls
-   floating in the middle. Push them to the right edge where they belong. */
-:root[data-skin="game"] .top { justify-content: flex-end; }
+/* The brand moved to the sidebar, so the strip would have had a single child
+   floating in the middle. It now carries the live counters on the left and the
+   controls on the right — back to a genuine two-end layout. */
+:root[data-skin="game"] .top { justify-content: space-between; }
 /* Denser card grid: three columns, so eight opponents fit without the page
    turning into a scroll. */
 :root[data-skin="game"] .cards { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
@@ -2187,3 +2188,34 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   text-align: center; transition: transform 0.06s;
 }
 :root[data-skin="game"] .card:active .go { transform: translateY(3px); border-bottom-width: 1px; }
+
+/* ---------- Game skin: the counter strip and the turn budget ---------- */
+.stats { display: flex; align-items: center; gap: 18px; }
+.st-c {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.st-c b { font-size: 17px; font-weight: 400; }
+/* The dojo header has no counters; only the game skin shows them. */
+.stats { display: none; }
+:root[data-skin="game"] .stats { display: flex; }
+
+.turnbar { display: none; }
+:root[data-skin="game"] .turnbar {
+  display: block; flex: 1; max-width: 340px; height: 10px; margin: 0 16px;
+  border-radius: 999px; background: var(--panel-2); overflow: hidden; order: 2;
+}
+:root[data-skin="game"] .turnbar i {
+  display: block; height: 100%; border-radius: 999px; background: var(--brass);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+:root[data-skin="game"] .ch .turn { order: 1; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+
+@media (max-width: 640px) {
+  .stats { gap: 12px; }
+  .st-c { font-size: 13px; }
+  /* The chat header has no room for a bar beside the label and the mode chip,
+     so it wraps onto its own full-width line rather than squeezing to 20px. */
+  :root[data-skin="game"] .ch { flex-wrap: wrap; row-gap: 9px; }
+  :root[data-skin="game"] .turnbar { order: 9; flex: 1 0 100%; max-width: none; margin: 0; }
+}
