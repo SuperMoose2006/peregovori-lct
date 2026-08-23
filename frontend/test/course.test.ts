@@ -8,7 +8,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  COURSE_BANK, COURSE_BLOCKS, check, checkFreeform, drawExam, exercisesOf,
+  COURSE_BANK, COURSE_BLOCKS, SKILL_BLOCK, blockForWeakest, check, checkFreeform, drawExam,
+  exercisesOf,
   metersOptions, reactionOptions, shuffledOptions, shuffledRight, simulate, startingOrder,
 } from "../src/lib/course";
 import type { Lang } from "../src/types";
@@ -143,4 +144,21 @@ test("позиция верного варианта перемешана и н�
   const worst = Math.max(...Object.values(counts));
   assert.ok(worst <= Math.ceil(picks.length * 0.5),
     `верный вариант слишком часто на одной позиции: ${JSON.stringify(counts)}`);
+});
+
+test("разбор указывает на блок, который тренирует самый слабый навык", () => {
+  // Просадка в вопросах ведёт в SPIN, в интересах — в «позиции и интересы»,
+  // и так далее. Ровный разбор не предлагает ничего: подтягивать нечего.
+  assert.equal(blockForWeakest({ questions: 0, interests: 90, criteria: 90,
+    listening: 90, tradeoff: 90, tension: 90 }), "spin-ladder");
+  assert.equal(blockForWeakest({ questions: 90, interests: 10, criteria: 90,
+    listening: 90, tradeoff: 90, tension: 90 }), "foundations");
+  assert.equal(blockForWeakest({ questions: 90, interests: 90, criteria: 90,
+    listening: 90, tradeoff: 90, tension: 30 }), "pressure-defense");
+  assert.equal(blockForWeakest({ questions: 100, interests: 100, criteria: 100,
+    listening: 100, tradeoff: 100, tension: 100 }), null);
+  // Каждый навык обязан вести в существующий блок, иначе кнопка ведёт в никуда.
+  for (const id of Object.values(SKILL_BLOCK)) {
+    assert.ok(COURSE_BLOCKS.some((b) => b.id === id), id);
+  }
 });

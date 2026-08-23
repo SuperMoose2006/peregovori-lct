@@ -771,6 +771,7 @@ export default function App() {
           // terms_conceded rides on the last StateView, retained through debrief.
           secondaryIssues={nego.scenario?.secondary_issues}
           termsConceded={nego.state?.terms_conceded}
+          onCourse={(blockId) => openCourse({ blockId, lesson: null })}
           onNext={mode === "campaign" ? nextAct : undefined}
           nextLabel={
             mode === "campaign"

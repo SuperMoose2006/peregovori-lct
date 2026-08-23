@@ -2921,3 +2921,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   color: inherit; font: inherit; cursor: pointer; text-align: left; }
 .redo-card b { font-size: 14px; }
 .redo-card span:last-child { margin-left: auto; font-size: 12.5px; color: var(--ink-dim); }
+/* «Потренировать это» в разборе: разбор говорит, где просели, курс знает, где
+   этому учат — связь не должна быть догадкой игрока. */
+.coach-course { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px;
+  padding: 9px 14px; border-radius: 999px; border: 2px solid var(--brass);
+  background: transparent; color: var(--brass); font: inherit; font-size: 13px;
+  font-weight: 800; cursor: pointer; }
+.coach-course:hover { background: color-mix(in srgb, var(--brass) 10%, transparent); }

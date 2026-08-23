@@ -288,6 +288,29 @@ export function shuffledRight(ex: Exercise): ItemWithId[] {
   return out;
 }
 
+// ------------------------------------------------- какой блок подтянуть
+//
+// Разбор говорит, где вы просели; курс знает, где этому учат. Связь между ними
+// не должна быть догадкой игрока — это тот же приём, что «приём этого акта» в
+// кампании, только в обратную сторону.
+export const SKILL_BLOCK: Record<string, string> = {
+  questions: "spin-ladder",
+  interests: "foundations",
+  criteria: "objective-criteria",
+  listening: "active-listening",
+  tradeoff: "logrolling",
+  tension: "pressure-defense",
+};
+
+/** Блок курса под самый слабый сигнал разбора (или null, если всё ровно). */
+export function blockForWeakest(signals: Record<string, number>): string | null {
+  const entries = Object.entries(signals).filter(([k]) => k in SKILL_BLOCK);
+  if (!entries.length) return null;
+  const [weakest, value] = entries.reduce((a, b) => (b[1] < a[1] ? b : a));
+  // Всё выше 70 — не «просадка», и предлагать подтянуть нечего.
+  return value <= 70 ? SKILL_BLOCK[weakest] ?? null : null;
+}
+
 // ------------------------------------------------------------ «что дальше»
 
 export interface NextStep {

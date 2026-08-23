@@ -1,9 +1,10 @@
 // Debrief.tsx — post-negotiation report: grade ring (A–F), three score bars
 // (economic / relationship / technique), stat cells, coaching tips, retry/home.
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, WhatIfBranch, WhatIfRequest, WhatIfResponse } from "../types";
 import type { Strings } from "../i18n";
-import type { GameResult, RecordResult } from "../lib/progress";
+import { skillSignals, type GameResult, type RecordResult } from "../lib/progress";
+import { blockById, blockForWeakest } from "../lib/course";
 import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
 import { formatDeal, plural } from "../lib/format";
 import { play } from "../lib/sound";
@@ -56,14 +57,22 @@ interface Props {
   // Absent/empty secondaryIssues ⇒ the line doesn't render (non-logrolling games).
   secondaryIssues?: SecondaryIssueView[];
   termsConceded?: string[];
+  /** Открыть блок курса, который тренирует просевший навык. Экзамен — без него:
+   *  там сопровождение выключено до конца, включая рекомендации. */
+  onCourse?: (blockId: string) => void;
 }
 
 export function Debrief({
   t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, onRetry, onHome, onNext, nextLabel,
   runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
-  secondaryIssues, termsConceded,
+  secondaryIssues, termsConceded, onCourse,
 }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
+  // Самый слабый сигнал разбора → блок курса, который его тренирует.
+  const weakBlock = useMemo(() => {
+    const id = blockForWeakest(skillSignals(d));
+    return id ? blockById(id) ?? null : null;
+  }, [d]);
   // Exam reads like a certificate: same score/stats/tips, ceremonial framing.
   const exam = mode === "exam";
   // A passing exam earns a named, printable certificate (A/B/C — not D/F). Only
@@ -433,6 +442,14 @@ export function Debrief({
                 <li key={i}>{tip}</li>
               ))}
             </ul>
+            {/* Разбор говорит, где вы просели; курс знает, где этому учат.
+                Связь не должна быть догадкой игрока. В экзамене её нет: там
+                сопровождение выключено до конца. */}
+            {!exam && onCourse && weakBlock ? (
+              <button className="coach-course" onClick={() => onCourse(weakBlock.id)}>
+                {weakBlock.icon} {t.course.trainThis}: <b>{weakBlock.title[lang]}</b> →
+              </button>
+            ) : null}
           </div>
           ) : null}
 
