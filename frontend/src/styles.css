@@ -1892,6 +1892,10 @@ textarea:focus-visible,
 :root[data-skin="game"] .wrap,
 :root[data-skin="game"] .top,
 :root[data-skin="game"] .foot { max-width: none; }
+/* Исключение — колонка урока: задание это текст, а не таблица. На проекторе
+   вариант ответа шириной в 1600px читается как строка кода, а не как реплика,
+   поэтому длина строки остаётся комфортной, сколько бы места вокруг ни было. */
+:root[data-skin="game"] .wrap.lesson { max-width: 860px; }
 /* `max-width: none` alone left the footer shrink-wrapped around its two spans,
    so they sat centred instead of at the edges. */
 :root[data-skin="game"] .foot { margin: auto 0 0; width: 100%; border-top-width: 2px; padding: 20px 26px; }
