@@ -179,7 +179,7 @@ export interface Strings {
   // The debrief's three beats. It used to be one 2750px document; now it is
   // Итог → Что вы упустили → Что сказал бы мастер, one action each.
   beats: { label: string; names: string[]; next: string; more: string; less: string };
-  // Right-rail widgets of the "game" skin shell.
+  // Виджеты правого рейла оболочки.
   goal: { title: string };
   rank: { title: string; toNext: string };  // toNext: "{n} XP до «{rank}»"
   method: { title: string };
@@ -227,7 +227,7 @@ export interface Strings {
     debriefHead: string;     // "Как вы читали оппонента"
     observation: string;     // shared badge: "наблюдение · не влияет на оценку"
   };
-  // Left sidebar of the "game" skin's app shell. Only the entries that
+  // Левое меню оболочки. Только те пункты, что
   // correspond to something the product actually has — inventing a shop or a
   // leaderboard here would advertise what does not exist.
   nav: {
@@ -274,8 +274,6 @@ export interface Strings {
     why: { missing: string; missingAny: string; forbidden: string; missingTerm: string;
            tooShort: string; weak: string; noNumber: string; generic: string };
   };
-  // Header control that swaps the visual skin (dojo <-> game).
-  skin: { label: string; toGame: string; toDojo: string };
   firstTurnCoach: string;
   // "Table setting" card filling the empty chat at turn 0. The opening frame a
   // juror stares at longest, and the moment a first-timer decides whether they
@@ -499,8 +497,8 @@ export interface Strings {
     scoreBar: string;     // a score bar — "{label}"/"{v}" substituted
     deal: string;         // deal-tracker summary — target/redline/offer substituted
     delta: string;        // a per-turn meter delta chip — "{label}"/"{value}"
-    nav: string;          // aria-label for the game skin's left sidebar
-    stats: string;        // aria-label for the game skin's counter strip
+    nav: string;          // aria-label левого меню
+    stats: string;        // aria-label полосы счётчиков
     hud: string;          // aria-label for the always-visible meter strip
   };
 }
@@ -874,7 +872,6 @@ export const I18N: Record<Lang, Strings> = {
         generic: "Ответ не подошёл",
       },
     },
-    skin: { label: "Оформление", toGame: "Игровое оформление", toDojo: "Оформление «додзё»" },
     opening: {
       title: "Стол накрыт",
       scene: "{role} Напротив — {name}. Её цена: {offer}. Ваша цель: {target}, красная линия: {red}.",
@@ -1103,7 +1100,7 @@ export const I18N: Record<Lang, Strings> = {
     ],
   },
   en: {
-    tagline: "negotiation dojo",
+    tagline: "negotiation trainer",
     sound: { mute: "Mute sound", unmute: "Unmute sound" },
     eyebrow: "Harvard method · SPIN · BATNA",
     heroTitle: "Learn to <em>negotiate</em> — at the table, not from a textbook.",
@@ -1467,7 +1464,6 @@ export const I18N: Record<Lang, Strings> = {
         generic: "That answer did not pass",
       },
     },
-    skin: { label: "Look", toGame: "Game look", toDojo: "Dojo look" },
     opening: {
       title: "The table is set",
       scene: "{role} Across from you: {name}. Their price: {offer}. Your target: {target}, red line: {red}.",

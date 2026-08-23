@@ -1,9 +1,8 @@
-// SideNav.tsx — the left rail of the "game" skin's app shell.
+// SideNav.tsx — левое меню оболочки приложения.
 //
-// Only rendered when `data-skin="game"`; the default "dojo" skin keeps its thin
-// top header and has no sidebar at all. The nav lists ONLY what the product
-// actually has — an earlier design draft invented a shop and a lives counter,
-// and advertising features that do not exist is the one thing a jury will catch.
+// Меню перечисляет ТОЛЬКО то, что в продукте есть на самом деле: ранний макет
+// придумал магазин и счётчик жизней, а реклама несуществующих возможностей —
+// ровно то, что жюри ловит первым.
 import type { Strings } from "../i18n";
 import type { Mode } from "../types";
 

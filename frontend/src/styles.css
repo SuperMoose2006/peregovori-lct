@@ -27,98 +27,60 @@
    legacy-node/public/demo.html and extended for the React app. Theme-aware
    (light/dark via prefers-color-scheme + [data-theme]) and responsive. */
 
-:root {
-  --ground: #f3eee3; --panel: #fbf8f1; --panel-2: #efe8d9;
-  --ink: #241e16; --ink-dim: #6b6152; --ink-faint: #7d7359;
-  --line: #e0d7c5; --line-2: #cfc4ad;
-  --brass: #b07c2e; --brass-soft: #c0883c;
-  --trust: #2e9e6e; --tension: #d2564b; --info: #3f72d8; --leverage: #7c68c8;
-  --shadow: 0 10px 40px rgba(60, 45, 20, 0.12);
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --r: 12px;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ground: #14110d; --panel: #1d1913; --panel-2: #262019;
-    --ink: #ece4d5; --ink-dim: #a99e8a; --ink-faint: #7a6f5c;
-    --line: #2e2820; --line-2: #40382c;
-    --brass: #d4a24e; --brass-soft: #c0883c;
-    --trust: #46c08a; --tension: #e0665a; --info: #6c97ec; --leverage: #9987da;
-    --shadow: 0 12px 44px rgba(0, 0, 0, 0.5);
-  }
-}
-:root[data-theme="light"] {
-  --ground: #f3eee3; --panel: #fbf8f1; --panel-2: #efe8d9;
-  --ink: #241e16; --ink-dim: #6b6152; --ink-faint: #7d7359;
-  --line: #e0d7c5; --line-2: #cfc4ad;
-  --brass: #b07c2e; --trust: #2e9e6e; --tension: #d2564b; --info: #3f72d8; --leverage: #7c68c8;
-  --shadow: 0 10px 40px rgba(60, 45, 20, 0.12);
-}
-:root[data-theme="dark"] {
-  --ground: #14110d; --panel: #1d1913; --panel-2: #262019;
-  --ink: #ece4d5; --ink-dim: #a99e8a; --ink-faint: #7a6f5c;
-  --line: #2e2820; --line-2: #40382c;
-  --brass: #d4a24e; --trust: #46c08a; --tension: #e0665a; --info: #6c97ec; --leverage: #9987da;
-  --shadow: 0 12px 44px rgba(0, 0, 0, 0.5);
-}
-
 /* ============================================================
-   SKIN: "Игра" (data-skin="game") — the Duolingo-style look.
+   ТОКЕНЫ. Одно оформление, игровое.
    ------------------------------------------------------------
-   A parallel axis to data-theme, not a replacement: the default "додзё" skin
-   (lamplit serif, brass on parchment) stays, and this one can be switched on to
-   compare. It works because every surface in this file already routes through
-   the tokens above — so a skin is mostly a token override plus a few shape
-   rules, and no component needs to know which skin is live.
+   Раньше здесь была вторая ось — `data-skin`, и скинов было два: «додзё»
+   (лампа, засечки, латунь по пергаменту) лежал в этом самом `:root`, а игровой
+   надстраивался поверх переопределениями. Ось убрана: игровой скин поднят сюда,
+   «додзё» удалён целиком.
 
-   What actually makes it read as Duolingo, in order of importance:
-     1. shape — fat 16px radii, 2px borders, no soft shadows;
-     2. weight — one rounded sans everywhere (the serif is retired), heavier text;
-     3. the 3D button — a 4px darker bottom edge that compresses on press;
-     4. colour — white ground, one saturated green for "go", the meter colours
-        turned up to full saturation.
+   ПОЧЕМУ УБРАН, А НЕ ОСТАВЛЕН ПРО ЗАПАС. Второй скин стоил не только своего
+   блока токенов: полторы сотни правил формы по всему файлу несли префикс
+   `:root`, и каждая новая правка требовала думать за оба
+   оформления сразу. Продукт показывается в одном — за второй платили постоянно,
+   а пользовались никогда.
 
-   Contrast note: Duolingo's own #58cc02 with white text is ~2.2:1, which fails
-   WCAG outright. `--brass` here is therefore the darker #3f8f00 (~4.2:1 on
-   white), and the bright green lives in `--brass-soft` where nothing sits on
-   top of it. The look survives; the legibility does too.
+   Что делает оформление игровым, по важности:
+     1. форма — радиусы 16px, рамки 2px, никаких мягких теней;
+     2. вес — один скруглённый гротеск везде, тяжёлое начертание;
+     3. трёхмерная кнопка — тёмная нижняя кромка 4px, вжимается при нажатии;
+     4. цвет — белая подложка, один насыщенный зелёный «вперёд».
+
+   КОНТРАСТ. Дуолинговский #58cc02 под белым текстом даёт 2.17:1 — провал WCAG.
+   Поэтому `--brass` здесь тёмный #3f8f00, а яркий зелёный живёт в
+   `--brass-soft`, где на нём ничего не написано.
    ============================================================ */
-:root[data-skin="game"] {
+:root {
   --ground: #ffffff; --panel: #ffffff; --panel-2: #f7f7f7;
   --ink: #3c3c3c; --ink-dim: #777777; --ink-faint: #afafaf;
   --line: #e5e5e5; --line-2: #d8d8d8;
   --brass: #3f8f00; --brass-soft: #58cc02;
   --trust: #58cc02; --tension: #ff4b4b; --info: #1cb0f6; --leverage: #ce82ff;
   --shadow: 0 4px 0 var(--line-2);
-  /* One family for everything: the serif is what makes the default skin read as
-     a document, so a skin that keeps it would not read as a game. Nunito is now
-     SELF-HOSTED (see the @font-face pair at the top of this file) — it used to be
-     named here and never loaded, so the rounded letterform, which is most of the
-     identity, never actually rendered. */
+  /* Нижняя кромка кнопки — та самая «трёхмерность», которая и читается как игра. */
+  --edge: #2f6b00;
+  /* Один шрифт на всё. Nunito самохостится (пара @font-face в начале файла):
+     когда-то он был только назван здесь и не загружался, и скруглённая
+     литера — а это и есть половина узнаваемости — не рисовалась никогда. */
   --serif: "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
   --sans: "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
   --r: 16px;
-  /* The button's bottom edge. A skin-local token so the default skin, which has
-     no such edge, is not forced to define one. */
-  --edge: #2f6b00;
 }
-/* Dark variant. `:not([data-theme="light"])` alone would match whenever no
-   explicit theme is set — i.e. it would force the dark skin on system-light
-   users. It has to sit INSIDE the media query, with a second, unconditional
-   block below for the explicit toggle. */
+/* Тёмный вариант. `:not([data-theme="light"])` обязателен: без него правило
+   сработало бы и тогда, когда пользователь ЯВНО выбрал светлую тему. */
 @media (prefers-color-scheme: dark) {
-  :root[data-skin="game"]:not([data-theme="light"]) {
-    --ground: #131f24; --panel: #1b2b32; --panel-2: #22353d;
-    --ink: #f1f7fb; --ink-dim: #a3b3bc; --ink-faint: #7b8c96;
-    --line: #2c444d; --line-2: #37525c;
-    --brass: #58cc02; --brass-soft: #7ee32b;
-    --trust: #58cc02; --tension: #ff5b5b; --info: #1cb0f6; --leverage: #ce82ff;
-    --shadow: 0 4px 0 var(--line-2);
-    --edge: #3f8f00;
+  :root:not([data-theme="light"]) {
+  --ground: #131f24; --panel: #1b2b32; --panel-2: #22353d;
+  --ink: #f1f7fb; --ink-dim: #a3b3bc; --ink-faint: #7b8c96;
+  --line: #2c444d; --line-2: #37525c;
+  --brass: #58cc02; --brass-soft: #7ee32b;
+  --trust: #58cc02; --tension: #ff5b5b; --info: #1cb0f6; --leverage: #ce82ff;
+  --shadow: 0 4px 0 var(--line-2);
+  --edge: #3f8f00;
   }
 }
-:root[data-skin="game"][data-theme="dark"] {
+:root[data-theme="dark"] {
   --ground: #131f24; --panel: #1b2b32; --panel-2: #22353d;
   --ink: #f1f7fb; --ink-dim: #a3b3bc; --ink-faint: #7b8c96;
   --line: #2c444d; --line-2: #37525c;
@@ -127,12 +89,14 @@
   --shadow: 0 4px 0 var(--line-2);
   --edge: #3f8f00;
 }
-:root[data-skin="game"][data-theme="light"] {
+:root[data-theme="light"] {
   --ground: #ffffff; --panel: #ffffff; --panel-2: #f7f7f7;
   --ink: #3c3c3c; --ink-dim: #777777; --ink-faint: #afafaf;
   --line: #e5e5e5; --line-2: #d8d8d8;
   --brass: #3f8f00; --brass-soft: #58cc02;
   --trust: #58cc02; --tension: #ff4b4b; --info: #1cb0f6; --leverage: #ce82ff;
+  --shadow: 0 4px 0 var(--line-2);
+  /* Нижняя кромка кнопки — та самая «трёхмерность», которая и читается как игра. */
   --edge: #2f6b00;
 }
 
@@ -1794,29 +1758,29 @@ textarea:focus-visible,
    the skin so the default one is provably untouched. */
 
 /* Borders carry the structure instead of shadows — 2px, flat, no blur. */
-:root[data-skin="game"] .card,
-:root[data-skin="game"] .panel,
-:root[data-skin="game"] .chat,
-:root[data-skin="game"] .opp,
-:root[data-skin="game"] .offers,
-:root[data-skin="game"] .dealtracker,
-:root[data-skin="game"] .meters,
-:root[data-skin="game"] .camp,
-:root[data-skin="game"] .reveal,
-:root[data-skin="game"] .mentor,
-:root[data-skin="game"] .tpoints,
-:root[data-skin="game"] .coach,
-:root[data-skin="game"] .master,
-:root[data-skin="game"] .opening,
-:root[data-skin="game"] .debrief:not(.cert) { border-width: 2px; box-shadow: none; }
+:root .card,
+:root .panel,
+:root .chat,
+:root .opp,
+:root .offers,
+:root .dealtracker,
+:root .meters,
+:root .camp,
+:root .reveal,
+:root .mentor,
+:root .tpoints,
+:root .coach,
+:root .master,
+:root .opening,
+:root .debrief:not(.cert) { border-width: 2px; box-shadow: none; }
 
 /* The 3D button: a solid darker edge that the press visibly compresses. This
    single detail does more for the "it's a game" read than any colour change. */
-:root[data-skin="game"] .primary,
-:root[data-skin="game"] .send,
-:root[data-skin="game"] .oc-go,
-:root[data-skin="game"] .hintline-use,
-:root[data-skin="game"] .milestone-go {
+:root .primary,
+:root .send,
+:root .oc-go,
+:root .hintline-use,
+:root .milestone-go {
   border-bottom: 4px solid var(--edge);
   border-radius: 14px;
   text-transform: uppercase;
@@ -1824,84 +1788,84 @@ textarea:focus-visible,
   font-weight: 800;
   transition: transform 0.06s, filter 0.15s;
 }
-:root[data-skin="game"] .primary:active,
-:root[data-skin="game"] .oc-go:active,
-:root[data-skin="game"] .send:active,
-:root[data-skin="game"] .hintline-use:active,
-:root[data-skin="game"] .milestone-go:active {
+:root .primary:active,
+:root .oc-go:active,
+:root .send:active,
+:root .hintline-use:active,
+:root .milestone-go:active {
   transform: translateY(3px);
   border-bottom-width: 1px;
 }
 /* Secondary buttons get the same physical edge in neutral grey, so the pair
    reads as one system rather than one styled button beside a plain one. */
-:root[data-skin="game"] .quit,
-:root[data-skin="game"] .op-line,
-:root[data-skin="game"] .wi-preset {
+:root .quit,
+:root .op-line,
+:root .wi-preset {
   border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 14px;
   transition: transform 0.06s;
 }
-:root[data-skin="game"] .quit:active,
-:root[data-skin="game"] .op-line:active,
-:root[data-skin="game"] .wi-preset:active { transform: translateY(3px); border-bottom-width: 2px; }
+:root .quit:active,
+:root .op-line:active,
+:root .wi-preset:active { transform: translateY(3px); border-bottom-width: 2px; }
 
 /* Chat bubbles: rounder, and the player's own line keeps white-on-green. */
-:root[data-skin="game"] .bub { border-radius: 18px; font-weight: 600; }
-:root[data-skin="game"] .msg.opp .bub { border-width: 2px; border-bottom-left-radius: 6px; }
-:root[data-skin="game"] .msg.me .bub { border-bottom-right-radius: 6px; }
+:root .bub { border-radius: 18px; font-weight: 600; }
+:root .msg.opp .bub { border-width: 2px; border-bottom-left-radius: 6px; }
+:root .msg.me .bub { border-bottom-right-radius: 6px; }
 
 /* Meters become the thick rounded bars Duolingo uses for lesson progress. */
-:root[data-skin="game"] .track { height: 14px; border-radius: 999px; }
-:root[data-skin="game"] .sbt { height: 16px; border-radius: 999px; }
-:root[data-skin="game"] .fill,
-:root[data-skin="game"] .sbf { border-radius: 999px; }
+:root .track { height: 14px; border-radius: 999px; }
+:root .sbt { height: 16px; border-radius: 999px; }
+:root .fill,
+:root .sbf { border-radius: 999px; }
 /* `.sb` and `.meters` are cards too, and the 2px rule above already caught
    `.meters`; the score-bar panel needs it by its own name. */
-:root[data-skin="game"] .sb { border-width: 2px; box-shadow: none; }
+:root .sb { border-width: 2px; box-shadow: none; }
 
 /* No serif anywhere — including the places that ask for it by name. */
-:root[data-skin="game"] .hero h1,
-:root[data-skin="game"] .ring .gl,
-:root[data-skin="game"] .op-scene,
-:root[data-skin="game"] .oc-title,
-:root[data-skin="game"] .mn-verdict,
-:root[data-skin="game"] .ms-q { font-family: var(--sans); font-weight: 800; font-style: normal; }
+:root .hero h1,
+:root .ring .gl,
+:root .op-scene,
+:root .oc-title,
+:root .mn-verdict,
+:root .ms-q { font-family: var(--sans); font-weight: 800; font-style: normal; }
 
 /* Segmented controls read as chunky pills. */
-:root[data-skin="game"] .seg { border-radius: 999px; border-width: 2px; }
-:root[data-skin="game"] .seg button { font-weight: 800; }
-:root[data-skin="game"] .seg button.on { border-radius: 999px; }
+:root .seg { border-radius: 999px; border-width: 2px; }
+:root .seg button { font-weight: 800; }
+:root .seg button.on { border-radius: 999px; }
 
 /* Scenario cards lift instead of casting — a shadowless system needs a
    different hover cue than "add a shadow". */
-:root[data-skin="game"] .card:hover { transform: translateY(-4px); box-shadow: none; border-color: var(--brass-soft); }
+:root .card:hover { transform: translateY(-4px); box-shadow: none; border-color: var(--brass-soft); }
 
 /* ---------- SKIN "game": the app shell ----------
    Structure, not just colour: a persistent left sidebar beside the content,
    the way Duolingo lays out its web app. Inert in the default skin — `.app`
-   and `.appbody` are plain blocks there, so the dojo layout is untouched. */
+   */
 .app { display: block; }
 .appbody { display: block; min-width: 0; }
 
-:root[data-skin="game"] .app {
+:root .app {
   display: grid;
   grid-template-columns: 256px minmax(0, 1fr);
   min-height: 100vh;
 }
-:root[data-skin="game"] .appbody { display: flex; flex-direction: column; min-height: 100vh; }
+:root .appbody { display: flex; flex-direction: column; min-height: 100vh; }
 /* The content column owns its own width once the sidebar takes the left edge. */
-:root[data-skin="game"] .wrap,
-:root[data-skin="game"] .top,
-:root[data-skin="game"] .foot { max-width: none; }
+:root .wrap,
+:root .top,
+:root .foot { max-width: none; }
 /* Исключение — колонка урока: задание это текст, а не таблица. На проекторе
    вариант ответа шириной в 1600px читается как строка кода, а не как реплика,
    поэтому длина строки остаётся комфортной, сколько бы места вокруг ни было. */
-:root[data-skin="game"] .wrap.lesson { max-width: 860px; }
+:root .wrap.lesson { max-width: 860px; }
 /* `max-width: none` alone left the footer shrink-wrapped around its two spans,
    so they sat centred instead of at the edges. */
-:root[data-skin="game"] .foot { margin: auto 0 0; width: 100%; border-top-width: 2px; padding: 20px 26px; }
+:root .foot { margin: auto 0 0; width: 100%; border-top-width: 2px; padding: 20px 26px; }
 /* The brand lives in the sidebar now; the top strip is for live counters. */
-:root[data-skin="game"] .top .brand { display: none; }
-:root[data-skin="game"] .top { border-bottom: 2px solid var(--line); }
+:root .top .brand { display: none; }
+:root .top { border-bottom: 2px solid var(--line); }
 
 .sidenav {
   border-right: 2px solid var(--line); background: var(--panel);
@@ -1937,7 +1901,7 @@ textarea:focus-visible,
    Order matters: `order: 2` puts it after the content in the DOM-independent
    grid flow, so screen readers still meet the content first. */
 @media (max-width: 860px) {
-  :root[data-skin="game"] .app { grid-template-columns: 1fr; }
+  :root .app { grid-template-columns: 1fr; }
   .sidenav {
     /* `top: auto` is load-bearing: the desktop rule sets `top: 0` for sticky, and
        leaving it set pins the bar to the TOP of the viewport instead. */
@@ -1965,18 +1929,18 @@ textarea:focus-visible,
   }
   .sn-row.on { border-color: transparent; }
   /* Give the page room so the fixed bar never covers the last control. */
-  :root[data-skin="game"] .appbody { padding-bottom: 72px; }
+  :root .appbody { padding-bottom: 72px; }
 }
 
 /* The brand moved to the sidebar, so the strip would have had a single child
    floating in the middle. It now carries the live counters on the left and the
    controls on the right — back to a genuine two-end layout. */
-:root[data-skin="game"] .top { justify-content: space-between; }
+:root .top { justify-content: space-between; }
 /* Denser card grid: three columns, so eight opponents fit without the page
    turning into a scroll. */
-:root[data-skin="game"] .cards { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+:root .cards { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 @media (min-width: 1200px) {
-  :root[data-skin="game"] .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  :root .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* ---------- Modality layers: setup screen ----------
@@ -2150,7 +2114,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    The shell is sidebar · content · rail. Without the rail the content column is
    the whole width and the layout stops reading as an app — that was the gap
    between the canvas design and what the code first shipped. */
-:root[data-skin="game"] .withrail {
+:root .withrail {
   display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start;
 }
 .rail { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; }
@@ -2164,12 +2128,23 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .rc-goal { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .rc-goal b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .rc-steps { display: inline-flex; gap: 5px; }
-.rc-steps i {
+/* Кружки цели дня. Кнопка и `i` выглядят одинаково: показ и выбор — одно место,
+   но когда обработчика нет, разметка остаётся не кликабельной. */
+.rc-steps i,
+.rc-steps button {
   width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
   font-style: normal; font-size: 11px; font-weight: 800;
   background: var(--panel-2); color: var(--ink-faint);
+  border: 2px solid transparent; padding: 0; font-family: inherit;
 }
-.rc-steps i.on { background: var(--brass); color: #fff; }
+.rc-steps button { cursor: pointer; }
+.rc-steps i.on,
+.rc-steps button.on { background: var(--brass); color: #fff; }
+/* Выбранная цель обведена — иначе не видно, ЧТО именно выбрано, когда цель
+   ещё не достигнута и ни один кружок не залит. */
+.rc-steps button.tgt { border-color: var(--brass); color: var(--ink); }
+.rc-steps button.on.tgt { border-color: var(--edge); }
+.rc-steps button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
 .rc-rank { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .rc-rank b { font-size: 16px; }
 .rc-rank span { font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
@@ -2189,70 +2164,70 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 /* The game screen already HAS an instrument rail — the canvas design puts it on
    the RIGHT, beside the transcript, so the conversation gets the left-to-right
    reading position. One `order` swap, no markup change. */
-:root[data-skin="game"] .table { grid-template-columns: minmax(0, 1fr) 340px; }
-:root[data-skin="game"] .side { order: 2; }
-:root[data-skin="game"] .chat { order: 1; }
+:root .table { grid-template-columns: minmax(0, 1fr) 340px; }
+:root .side { order: 2; }
+:root .chat { order: 1; }
 
 @media (max-width: 1100px) {
-  :root[data-skin="game"] .withrail { grid-template-columns: 1fr; }
+  :root .withrail { grid-template-columns: 1fr; }
   .rail { position: static; flex-direction: row; flex-wrap: wrap; }
   .rail .rc { flex: 1 1 240px; }
 }
 @media (max-width: 860px) {
-  /* Stacked: the instruments go back above the transcript, as in the dojo skin. */
-  :root[data-skin="game"] .table { grid-template-columns: 1fr; }
-  :root[data-skin="game"] .side { order: 0; }
-  :root[data-skin="game"] .chat { order: 0; }
+  /* Столбиком: инструменты возвращаются над лентой. */
+  :root .table { grid-template-columns: 1fr; }
+  :root .side { order: 0; }
+  :root .chat { order: 0; }
 }
 
 /* The canvas design makes the card's call to action a real button, not a text
    link — full width, uppercase, with the same pressable lip as every other
    primary. It is the single most-clicked control on the screen. */
-:root[data-skin="game"] .go {
+:root .go {
   display: block; width: 100%; margin-top: 12px; padding: 11px;
   background: var(--brass); color: #fff; border-radius: 14px;
   border-bottom: 4px solid var(--edge);
   font-size: 13px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
   text-align: center; transition: transform 0.06s;
 }
-:root[data-skin="game"] .card:active .go { transform: translateY(3px); border-bottom-width: 1px; }
+:root .card:active .go { transform: translateY(3px); border-bottom-width: 1px; }
 /* `width: 100%` alone does nothing inside the footer's flex row — the button
    needs its own line for that to mean anything. */
-:root[data-skin="game"] .card .cf { flex-wrap: wrap; row-gap: 4px; }
-:root[data-skin="game"] .card .cf .go { flex: 1 0 100%; }
+:root .card .cf { flex-wrap: wrap; row-gap: 4px; }
+:root .card .cf .go { flex: 1 0 100%; }
 
 /* ---------- Game skin: the counter strip and the turn budget ----------
    Named `hudstats`, NOT `stats`: `.stats` is already the debrief's 7-tile
    statistics grid, and reusing it here made the header's `display: none`
-   fallback delete that grid outright in the dojo skin. */
+   fallback delete that grid outright. */
 .hudstats { display: flex; align-items: center; gap: 18px; }
 .st-c {
   display: inline-flex; align-items: baseline; gap: 6px;
   font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink);
 }
 .st-c b { font-size: 17px; font-weight: 400; }
-/* The dojo header has no counters; only the game skin shows them. */
+/* Счётчики в шапке. */
 .hudstats { display: none; }
-:root[data-skin="game"] .hudstats { display: flex; }
+:root .hudstats { display: flex; }
 
 .turnbar { display: none; }
-:root[data-skin="game"] .turnbar {
+:root .turnbar {
   display: block; flex: 1; max-width: 340px; height: 10px; margin: 0 16px;
   border-radius: 999px; background: var(--panel-2); overflow: hidden; order: 2;
 }
-:root[data-skin="game"] .turnbar i {
+:root .turnbar i {
   display: block; height: 100%; border-radius: 999px; background: var(--brass);
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
-:root[data-skin="game"] .ch .turn { order: 1; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+:root .ch .turn { order: 1; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
 
 @media (max-width: 640px) {
   .hudstats { gap: 12px; }
   .st-c { font-size: 13px; }
   /* The chat header has no room for a bar beside the label and the mode chip,
      so it wraps onto its own full-width line rather than squeezing to 20px. */
-  :root[data-skin="game"] .ch { flex-wrap: wrap; row-gap: 9px; }
-  :root[data-skin="game"] .turnbar { order: 9; flex: 1 0 100%; max-width: none; margin: 0; }
+  :root .ch { flex-wrap: wrap; row-gap: 9px; }
+  :root .turnbar { order: 9; flex: 1 0 100%; max-width: none; margin: 0; }
 }
 
 /* Dismiss buttons measured 22.6x19 and 20.3x17 — below even the 24x24 floor of
@@ -2274,107 +2249,107 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 /* The header shrank to its content (406px of a 1344px column) because the base
    `.top` centres with `margin: 0 auto` and the skin removed its max-width — so
    its bottom border drew as a stub rule in mid-air. `.foot` already got this. */
-:root[data-skin="game"] .top { margin: 0; width: 100%; }
+:root .top { margin: 0; width: 100%; }
 
 /* The achievement toast fires after EVERY finished negotiation and sat on top of
    the mobile tab bar, blanking five of six tabs for its lifetime. */
 @media (max-width: 860px) {
-  :root[data-skin="game"] .ach-toasts { bottom: calc(78px + env(safe-area-inset-bottom)); }
+  :root .ach-toasts { bottom: calc(78px + env(safe-area-inset-bottom)); }
 }
 
 /* The certificate and the campaign summit were explicitly opted OUT by a
    `:not(.cert)` — two screens, not one, kept the parchment gradient. */
-:root[data-skin="game"] .debrief.cert {
+:root .debrief.cert {
   border-width: 2px; box-shadow: none; background: var(--panel);
 }
-:root[data-skin="game"] .camp-done-head .verdict { font-style: normal; }
+:root .camp-done-head .verdict { font-style: normal; }
 
 /* Milestone: an 82%-white scrim with a blurred backdrop over a white page left
    the card barely separated — and a blur is the one thing this skin's own
    comment forbids. Ink-based scrim, solid card. */
-:root[data-skin="game"] .milestone-scrim {
+:root .milestone-scrim {
   background: color-mix(in srgb, var(--ink) 55%, transparent); backdrop-filter: none;
 }
-:root[data-skin="game"] .milestone-card {
+:root .milestone-card {
   background: var(--panel); border-width: 2px; border-radius: var(--r);
 }
-:root[data-skin="game"] .onb-scrim, :root[data-skin="game"] .onb-hole {
+:root .onb-scrim, :root .onb-hole {
   background: color-mix(in srgb, var(--ink) 45%, transparent);
 }
 
 /* Onboarding: its primary action read as a disabled control beside the
    composer's 3D send button. Same treatment as every other primary. */
-:root[data-skin="game"] .onb-next {
+:root .onb-next {
   background: var(--brass); color: #fff; border: none;
   border-bottom: 4px solid var(--edge); border-radius: 14px;
   text-transform: uppercase; letter-spacing: 0.04em; font-weight: 800;
 }
-:root[data-skin="game"] .onb-next:active { transform: translateY(3px); border-bottom-width: 1px; }
-:root[data-skin="game"] .onb-tip { border-width: 2px; border-radius: var(--r); }
+:root .onb-next:active { transform: translateY(3px); border-bottom-width: 1px; }
+:root .onb-tip { border-width: 2px; border-radius: var(--r); }
 
 /* The remaining hairline cards: generation, profile furniture. */
-:root[data-skin="game"] .gen,
-:root[data-skin="game"] .badge,
-:root[data-skin="game"] .skills-empty,
-:root[data-skin="game"] .conn-lost { border-width: 2px; box-shadow: none; }
-:root[data-skin="game"] .ghost,
-:root[data-skin="game"] .skills-back {
+:root .gen,
+:root .badge,
+:root .skills-empty,
+:root .conn-lost { border-width: 2px; box-shadow: none; }
+:root .ghost,
+:root .skills-back {
   border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 14px;
 }
-:root[data-skin="game"] .ghost:active,
-:root[data-skin="game"] .skills-back:active { transform: translateY(3px); border-bottom-width: 2px; }
+:root .ghost:active,
+:root .skills-back:active { transform: translateY(3px); border-bottom-width: 2px; }
 
 /* Connection states were centred on the viewport, not the content column, so
    they landed on the header controls beside the sidebar. */
-:root[data-skin="game"] .conn-banner { top: 76px; }
-:root[data-skin="game"] .conn-lost::before {
+:root .conn-banner { top: 76px; }
+:root .conn-lost::before {
   content: ""; position: fixed; inset: 0; z-index: -1;
   background: color-mix(in srgb, var(--ink) 55%, transparent);
 }
 
 /* A walk-out ending on a saturated green button: in this grammar the green 3D
    button IS the success signal, so a failed negotiation was closing on one. */
-:root[data-skin="game"] .outcome.breakdown .oc-go {
+:root .outcome.breakdown .oc-go {
   background: var(--ink-dim); border-bottom-color: var(--ink);
 }
 
 /* ---------- The live HUD ----------
    Four meters pinned to the top of the chat card. Only in the game skin, where
    it REPLACES the rail's meter panel: keeping both would show the same numbers
-   twice. The dojo skin keeps its rail panel and never renders this. */
+   twice. */
 .hud { display: none; }
-:root[data-skin="game"] .hud {
+:root .hud {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px;
   padding: 11px 16px; border-bottom: 2px solid var(--line); background: var(--panel);
 }
-:root[data-skin="game"] .hud-m { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; }
-:root[data-skin="game"] .hud-m b {
+:root .hud-m { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; }
+:root .hud-m b {
   font-weight: 800; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--ink-faint); white-space: nowrap;
 }
-:root[data-skin="game"] .hud-bar {
+:root .hud-bar {
   flex: 1; min-width: 18px; height: 9px; border-radius: 999px;
   background: var(--panel-2); overflow: hidden;
 }
-:root[data-skin="game"] .hud-bar i { display: block; height: 100%; border-radius: 999px; transition: width 0.5s ease; }
-:root[data-skin="game"] .hud-m.trust .hud-bar i { background: var(--trust); }
-:root[data-skin="game"] .hud-m.tension .hud-bar i { background: var(--tension); }
-:root[data-skin="game"] .hud-m.info .hud-bar i { background: var(--info); }
-:root[data-skin="game"] .hud-m.leverage .hud-bar i { background: var(--leverage); }
-:root[data-skin="game"] .hud-m u { text-decoration: none; font-weight: 800; font-variant-numeric: tabular-nums; }
+:root .hud-bar i { display: block; height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+:root .hud-m.trust .hud-bar i { background: var(--trust); }
+:root .hud-m.tension .hud-bar i { background: var(--tension); }
+:root .hud-m.info .hud-bar i { background: var(--info); }
+:root .hud-m.leverage .hud-bar i { background: var(--leverage); }
+:root .hud-m u { text-decoration: none; font-weight: 800; font-variant-numeric: tabular-nums; }
 /* The rail's meter panel and the in-question duplicate both become redundant
    once the HUD is always on screen. */
-:root[data-skin="game"] .side .meters,
-:root[data-skin="game"] .side .scorecard,
-:root[data-skin="game"] .pb-meters { display: none; }
+:root .side .meters,
+:root .side .scorecard,
+:root .pb-meters { display: none; }
 
 @media (max-width: 860px) {
   /* The conversation comes FIRST on a phone. With both at order:0 the DOM won,
      the rail stacked on top, and the composer sat 1443px down a 844px screen —
      the player met a dashboard instead of the exercise. */
-  :root[data-skin="game"] .chat { order: 0; }
-  :root[data-skin="game"] .side { order: 1; }
-  :root[data-skin="game"] .hud { grid-template-columns: 1fr 1fr; padding: 10px 13px; }
+  :root .chat { order: 0; }
+  :root .side { order: 1; }
+  :root .hud { grid-template-columns: 1fr 1fr; padding: 10px 13px; }
 }
 
 /* ---------- Debrief beats ----------
@@ -2403,66 +2378,66 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   border: 2px solid var(--line-2); border-radius: 999px; padding: 9px 18px;
 }
 .beat-more:hover { border-color: var(--brass); color: var(--ink); }
-:root[data-skin="game"] .beat-go { border-bottom: 4px solid var(--edge); border-radius: 14px;
+:root .beat-go { border-bottom: 4px solid var(--edge); border-radius: 14px;
   text-transform: uppercase; letter-spacing: 0.04em; font-weight: 800; }
-:root[data-skin="game"] .beat-go:active { transform: translateY(3px); border-bottom-width: 1px; }
+:root .beat-go:active { transform: translateY(3px); border-bottom-width: 1px; }
 
 /* ---------- Campaign as a PATH (game skin) ----------
-   The dojo skin keeps the timeline: a vertical list of 42px circles is a fine
+   Вертикальный список кружков 42px — тоже приемлемая раскладка,
    story arc for a document. A game needs a path — the single strongest habit
    device Duolingo has — so the node becomes the object you press, big enough to
    read from across a room, with the connector reading as the road between them.
    Markup is unchanged; this is presentation only. */
-:root[data-skin="game"] .act { gap: 20px; padding-bottom: 30px; }
-:root[data-skin="game"] .act::before {
+:root .act { gap: 20px; padding-bottom: 30px; }
+:root .act::before {
   left: 43px; top: 88px; width: 6px; border-radius: 3px;
   background: var(--line); bottom: -6px;
 }
-:root[data-skin="game"] .act.done::before { background: color-mix(in srgb, var(--brass) 45%, var(--line)); }
-:root[data-skin="game"] .act-node {
+:root .act.done::before { background: color-mix(in srgb, var(--brass) 45%, var(--line)); }
+:root .act-node {
   width: 88px; height: 88px; border-width: 3px; border-radius: 50%;
   font-family: var(--sans); font-weight: 900;
   border-bottom-width: 7px;
   transition: transform 0.08s;
 }
-:root[data-skin="game"] .act-node .grade { font-size: 36px; }
-:root[data-skin="game"] .act-node .num { font-size: 30px; }
-:root[data-skin="game"] .act-node .lock { font-size: 30px; }
-:root[data-skin="game"] .act.done .act-node {
+:root .act-node .grade { font-size: 36px; }
+:root .act-node .num { font-size: 30px; }
+:root .act-node .lock { font-size: 30px; }
+:root .act.done .act-node {
   background: var(--brass); border-color: var(--edge); color: #fff;
 }
-:root[data-skin="game"] .act.done .act-node .grade { color: #fff; }
-:root[data-skin="game"] .act.current .act-node {
+:root .act.done .act-node .grade { color: #fff; }
+:root .act.current .act-node {
   border-color: var(--edge); background: color-mix(in srgb, var(--brass) 16%, var(--panel));
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--brass) 18%, transparent);
 }
-:root[data-skin="game"] .act.locked .act-node { border-bottom-width: 7px; }
+:root .act.locked .act-node { border-bottom-width: 7px; }
 
 /* The flag: where am I, answered without reading. */
 .act-flag { display: none; }
-:root[data-skin="game"] .act.current .act-flag {
+:root .act.current .act-flag {
   display: block; position: absolute; left: 50%; top: -26px; transform: translateX(-50%);
   background: var(--brass); color: #fff; border-radius: 999px; padding: 4px 12px;
   font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
   white-space: nowrap; animation: flagbob 1.6s ease-in-out infinite;
 }
-:root[data-skin="game"] .act.current .act-flag::after {
+:root .act.current .act-flag::after {
   content: ""; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%);
   border-left: 6px solid transparent; border-right: 6px solid transparent;
   border-top: 6px solid var(--brass);
 }
 @keyframes flagbob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -5px); } }
 
-:root[data-skin="game"] .act-title { font-family: var(--sans); font-weight: 800; font-size: 19px; }
-:root[data-skin="game"] .act-label { font-size: 12px; }
-:root[data-skin="game"] .act-badge { font-size: 11px; border-width: 2px; padding: 3px 11px; }
-:root[data-skin="game"] .act-intro { border-radius: var(--r); border-left-width: 4px; font-size: 14px; }
+:root .act-title { font-family: var(--sans); font-weight: 800; font-size: 19px; }
+:root .act-label { font-size: 12px; }
+:root .act-badge { font-size: 11px; border-width: 2px; padding: 3px 11px; }
+:root .act-intro { border-radius: var(--r); border-left-width: 4px; font-size: 14px; }
 
 @media (max-width: 640px) {
-  :root[data-skin="game"] .act-node { width: 68px; height: 68px; }
-  :root[data-skin="game"] .act-node .num, :root[data-skin="game"] .act-node .grade { font-size: 24px; }
-  :root[data-skin="game"] .act::before { left: 33px; top: 68px; }
-  :root[data-skin="game"] .act-title { font-size: 17px; }
+  :root .act-node { width: 68px; height: 68px; }
+  :root .act-node .num, :root .act-node .grade { font-size: 24px; }
+  :root .act::before { left: 33px; top: 68px; }
+  :root .act-title { font-size: 17px; }
 }
 
 /* ---------- Лицо оппонента: сгенерированные состояния ---------- */
@@ -2515,13 +2490,13 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   border-radius: 14px; padding: 11px 13px; font-size: 12.5px; line-height: 1.5;
   animation: karlpop 0.32s ease;
 }
-:root[data-skin="game"] .karl-bub { border-width: 2px; }
+:root .karl-bub { border-width: 2px; }
 .karl-bub::after {
   content: ""; position: absolute; left: 26px; bottom: -8px; width: 12px; height: 12px;
   background: var(--panel); border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line); transform: rotate(45deg);
 }
-:root[data-skin="game"] .karl-bub::after { border-right-width: 2px; border-bottom-width: 2px; }
+:root .karl-bub::after { border-right-width: 2px; border-bottom-width: 2px; }
 @keyframes karlpop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
 
 /* Одобрение и тревога подсвечивают пузырь — тем же цветом, что и шкалы,
@@ -2552,7 +2527,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   display: flex; gap: 13px; align-items: center; background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px;
 }
-:root[data-skin="game"] .tikhon { border-width: 2px; }
+:root .tikhon { border-width: 2px; }
 .tikhon img { width: 76px; height: 76px; object-fit: contain; flex: 0 0 auto; }
 .tikhon-bd { min-width: 0; }
 .tikhon-bd h4 { margin: 0 0 4px; font-size: 14px; font-weight: 800; }
@@ -2578,7 +2553,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line);
   position: relative;
 }
-:root[data-skin="game"] .livebar { border-top-width: 2px; }
+:root .livebar { border-top-width: 2px; }
 .lb-dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
 
 .lb-mic {
@@ -2598,7 +2573,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   color: var(--ink-dim); border: 1px solid var(--line-2); border-radius: 999px;
   padding: 4px 11px; min-height: 30px;
 }
-:root[data-skin="game"] .lb-cam { border-width: 2px; }
+:root .lb-cam { border-width: 2px; }
 .lb-cam .lb-dot { background: var(--trust); }
 .lb-cam.out { color: var(--tension); border-color: color-mix(in srgb, var(--tension) 45%, transparent); }
 .lb-cam.out .lb-dot { background: var(--tension); }
@@ -2609,7 +2584,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   border: 1px solid color-mix(in srgb, var(--tension) 50%, transparent);
   border-radius: 999px; padding: 4px 12px; min-height: 30px;
 }
-:root[data-skin="game"] .lb-cut { border-width: 2px; }
+:root .lb-cut { border-width: 2px; }
 .lb-tr { font-size: 12.5px; color: var(--ink-faint); font-style: italic; min-width: 0; }
 
 /* Самопревью. Всплывает по клику и закрывается тем же кликом — оно для
@@ -2622,7 +2597,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   opacity: 0; visibility: hidden; transform: translateY(6px);
   transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
 }
-:root[data-skin="game"] .lb-peek { border-width: 2px; }
+:root .lb-peek { border-width: 2px; }
 .lb-peek.on { opacity: 1; visibility: visible; transform: none; }
 .lb-peek video {
   width: 100%; height: 100px; object-fit: cover; border-radius: 9px;
@@ -2649,7 +2624,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   flex-direction: column; gap: 14px; }
 .cnode { display: flex; gap: 14px; align-items: center; padding: 12px;
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
-:root[data-skin="game"] .cnode { border-width: 2px; }
+:root .cnode { border-width: 2px; }
 .cnode.locked { opacity: 0.55; }
 .cnode-btn { width: 64px; height: 64px; flex: 0 0 auto; border-radius: 50%;
   border: 2px solid var(--line-2); background: var(--panel-2); font-size: 26px;
@@ -2673,7 +2648,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .lesson-list button { width: 100%; display: flex; align-items: center; gap: 12px;
   padding: 12px 14px; background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--r); cursor: pointer; text-align: left; color: inherit; font: inherit; }
-:root[data-skin="game"] .lesson-list button { border-width: 2px; }
+:root .lesson-list button { border-width: 2px; }
 .lesson-list .done button { border-color: var(--trust); }
 .ll-n { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 50%;
   background: var(--panel-2); display: grid; place-items: center;
@@ -2684,7 +2659,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .exam-card { background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--r); padding: 16px 18px; }
-:root[data-skin="game"] .exam-card { border-width: 2px; }
+:root .exam-card { border-width: 2px; }
 .exam-card h3 { margin: 0 0 6px; font-size: 16px; }
 .exam-card p { margin: 0 0 10px; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
 .exam-best { font-weight: 700; color: var(--ink); }
@@ -2704,7 +2679,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 /* ---- упражнение ---- */
 .ex { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
   padding: 16px 18px; }
-:root[data-skin="game"] .ex { border-width: 2px; }
+:root .ex { border-width: 2px; }
 .ex.ok { border-color: var(--trust); }
 .ex.bad { border-color: var(--tension); }
 .ex-kind { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em;
@@ -2801,8 +2776,8 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn:hover { filter: brightness(1.05); }
 .btn.primary { flex: 0 0 auto; background: var(--brass); color: #fff; }
 :root[data-theme="dark"] .btn.primary { color: #10190c; }
-:root[data-skin="game"] .btn.primary { box-shadow: 0 4px 0 var(--edge); }
-:root[data-skin="game"] .btn.primary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--edge); }
+:root .btn.primary { box-shadow: 0 4px 0 var(--edge); }
+:root .btn.primary:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--edge); }
 .btn.ghost { background: transparent; border-color: var(--line-2); color: var(--ink-dim); }
 .btn:disabled { opacity: 0.45; cursor: default; filter: none; }
 
@@ -2881,29 +2856,29 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    Разметка не меняется, это только оформление. */
 .course-path { position: relative; }
 .cnode { position: relative; }
-:root[data-skin="game"] .course-path { gap: 34px; }  /* воздух под флажок «старт» */
-:root[data-skin="game"] .cnode { background: none; border: none; padding: 0 0 4px; gap: 20px; }
-:root[data-skin="game"] .cnode::before {
+:root .course-path { gap: 34px; }  /* воздух под флажок «старт» */
+:root .cnode { background: none; border: none; padding: 0 0 4px; gap: 20px; }
+:root .cnode::before {
   /* дорога до следующего узла */
   content: ""; position: absolute; left: 43px; top: 92px; bottom: -38px; width: 6px;
   border-radius: 3px; background: var(--line);
 }
-:root[data-skin="game"] .cnode:last-child::before { display: none; }
-:root[data-skin="game"] .cnode.done::before { background: color-mix(in srgb, var(--brass) 45%, var(--line)); }
-:root[data-skin="game"] .cnode-btn {
+:root .cnode:last-child::before { display: none; }
+:root .cnode.done::before { background: color-mix(in srgb, var(--brass) 45%, var(--line)); }
+:root .cnode-btn {
   /* relative — чтобы флажок вставал над САМИМ узлом, а не по центру строки */
   position: relative;
   width: 88px; height: 88px; border-width: 3px; border-bottom-width: 7px;
   font-size: 34px; transition: transform 0.08s;
 }
-:root[data-skin="game"] .cnode-btn:not(:disabled):active { transform: translateY(3px); border-bottom-width: 4px; }
-:root[data-skin="game"] .cnode.current .cnode-btn {
+:root .cnode-btn:not(:disabled):active { transform: translateY(3px); border-bottom-width: 4px; }
+:root .cnode.current .cnode-btn {
   border-color: var(--edge); background: color-mix(in srgb, var(--brass) 16%, var(--panel));
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--brass) 18%, transparent);
 }
-:root[data-skin="game"] .cnode.done .cnode-btn { background: var(--brass); border-color: var(--edge); color: #fff; }
+:root .cnode.done .cnode-btn { background: var(--brass); border-color: var(--edge); color: #fff; }
 .cnode-flag { display: none; }
-:root[data-skin="game"] .cnode.current .cnode-flag {
+:root .cnode.current .cnode-flag {
   display: block; position: absolute; left: 50%; top: -22px; transform: translateX(-50%);
   padding: 3px 10px; border-radius: 999px; background: var(--brass); color: #fff;
   font-size: 10px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase;
@@ -2914,8 +2889,8 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
                    50% { transform: translateX(-50%) translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .cnode-flag { animation: none !important; } }
 @media (max-width: 640px) {
-  :root[data-skin="game"] .cnode-btn { width: 64px; height: 64px; font-size: 26px; }
-  :root[data-skin="game"] .cnode::before { left: 31px; top: 68px; bottom: -26px; width: 5px; }
+  :root .cnode-btn { width: 64px; height: 64px; font-size: 26px; }
+  :root .cnode::before { left: 31px; top: 68px; bottom: -26px; width: 5px; }
 }
 /* Работа над ошибками. Карточка появляется, только когда есть что исправлять,
    и исчезает, когда исправили: ничего не висит вечно и не копится молча. */

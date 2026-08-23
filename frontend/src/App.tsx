@@ -6,7 +6,6 @@ import { useNegotiation } from "./api/useNegotiation";
 import { getCampaigns } from "./api/campaigns";
 import { whatIf } from "./api/whatif";
 import { ScenarioPicker } from "./components/ScenarioPicker";
-import { WhyTeaches } from "./components/WhyTeaches";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
 import { CourseScreen, type ExamCtx } from "./components/CourseScreen";
@@ -18,12 +17,12 @@ import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { Setup } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard } from "./components/Rail";
+import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { SCENARIO_MAP, toScenarioView } from "./data/scenarios";
 import { detectLayers, pruneLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
 import { Table } from "./components/Table";
 import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
-import { HeroStats, SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameResult, type Profile } from "./lib/progress";
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
@@ -35,11 +34,6 @@ type Screen = "home" | "setup" | "generating" | "gen_error" | "game" | "debrief"
 // nobody reaches for the button first.
 const OUTCOME_HOLD_MS = 2200;
 type Theme = "light" | "dark" | null;
-// Visual skin, orthogonal to light/dark. "dojo" is the default lamplit-serif
-// identity; "game" is the Duolingo-style one. Persisted so a juror's choice
-// survives a reload mid-demo.
-type Skin = "dojo" | "game";
-const SKIN_KEY = "dialog.skin.v1";
 
 const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -54,18 +48,6 @@ export default function App() {
   const [layers, setLayers] = useState<Layers>(NO_LAYERS);
   const [pendingScenario, setPendingScenario] = useState<string | null>(null);
 
-  const [skin, setSkin] = useState<Skin>(() => {
-    // "game" is the DEFAULT: it is the product's current face, and requiring a
-    // click to reach it meant every first visit — including a jury's — landed on
-    // the older look. "dojo" survives as an explicit opt-out, not as the fallback.
-    // Storage can throw (private mode, blocked site data), and the default is
-    // always a correct answer, so never let a read break the app.
-    try {
-      return localStorage.getItem(SKIN_KEY) === "dojo" ? "dojo" : "game";
-    } catch {
-      return "game";
-    }
-  });
   const [screen, setScreen] = useState<Screen>("home");
   const [mode, setMode] = useState<Mode>("practice");
   const [currentScenario, setCurrentScenario] = useState<string | null>(null);
@@ -121,18 +103,6 @@ export default function App() {
     else root.removeAttribute("data-theme");
   }, [theme]);
 
-  // The skin drives the same CSS variables from a parallel attribute, so the
-  // default one is the plain absence of it.
-  useEffect(() => {
-    const root = document.documentElement;
-    if (skin === "game") root.setAttribute("data-skin", "game");
-    else root.removeAttribute("data-skin");
-    try {
-      localStorage.setItem(SKIN_KEY, skin);
-    } catch {
-      /* not being able to remember the choice is not a reason to refuse it */
-    }
-  }, [skin]);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -441,10 +411,6 @@ export default function App() {
 
   // Mobile hero CTA: bring the opponent picker into view (it sits just below the
   // hero on the same home screen). Reduced-motion callers still land there.
-  const scrollToPlay = useCallback(() => {
-    const el = document.getElementById("play");
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
 
   const retry = useCallback(() => {
     if (mode === "custom") startCustom();
@@ -452,32 +418,26 @@ export default function App() {
   }, [mode, currentScenario, start, startCustom]);
 
   return (
-    // The "game" skin wraps everything in a two-column app shell; "dojo" keeps
-    // the plain single column, so `.app`/`.appbody` are inert there by default.
+    // Двухколоночная оболочка приложения: слева меню, справа тело.
     <div className="app">
-      {skin === "game" ? (
-        <SideNav
-          t={t}
-          active={screen === "profile" ? "profile" : screen === "course" ? "course" : mode}
-          onMode={(m) => { setMode(m); if (screen !== "home") goHome(); }}
-          onProfile={openProfile}
-          onCourse={() => openCourse(null)}
-        />
-      ) : null}
+      <SideNav
+        t={t}
+        active={screen === "profile" ? "profile" : screen === "course" ? "course" : mode}
+        onMode={(m) => { setMode(m); if (screen !== "home") goHome(); }}
+        onProfile={openProfile}
+        onCourse={() => openCourse(null)}
+      />
       <div className="appbody">
       <div className="top">
-        {/* Live counters, the way a game shows them. Only in the game skin —
-            the dojo header is a wordmark and controls, deliberately quiet. */}
-        {skin === "game" ? (
-          <div className="hudstats" aria-label={t.a11y.stats}>
-            <span className="st-c" title={t.streakLabel.replace("{n}", String(profile.streak))}>
-              <b aria-hidden="true">🔥</b> {profile.streak}
-            </span>
-            <span className="st-c">
-              <b aria-hidden="true">💎</b> {profile.xp} XP
-            </span>
-          </div>
-        ) : null}
+        {/* Живые счётчики так, как их показывает игра. */}
+        <div className="hudstats" aria-label={t.a11y.stats}>
+          <span className="st-c" title={t.streakLabel.replace("{n}", String(profile.streak))}>
+            <b aria-hidden="true">🔥</b> {profile.streak}
+          </span>
+          <span className="st-c">
+            <b aria-hidden="true">💎</b> {profile.xp} XP
+          </span>
+        </div>
         <div className="brand">
           <span className="mark">
             Диалог<span className="dot">.</span>
@@ -500,16 +460,6 @@ export default function App() {
           </div>
           <div className="seg">
             <button
-              onClick={() => setSkin(skin === "game" ? "dojo" : "game")}
-              aria-label={t.skin.label}
-              aria-pressed={skin === "game"}
-              title={skin === "game" ? t.skin.toDojo : t.skin.toGame}
-            >
-              {skin === "game" ? "🎮" : "🎓"}
-            </button>
-          </div>
-          <div className="seg">
-            <button
               onClick={() => setMuted(toggleMuted())}
               aria-label={muted ? t.sound.unmute : t.sound.mute}
               aria-pressed={muted}
@@ -523,39 +473,14 @@ export default function App() {
       {screen === "home" && (
         <section className="screen">
           <div className="wrap">
-            {/* The game skin drops the marketing hero and the proof-of-method
-                explainer: in an app shell the product IS the path, and a juror
-                must reach a negotiation without scrolling past 1.4 screens of
-                pitch. The XP strip moves into the right rail, and the heading
-                still exists for screen readers. */}
-            {skin === "game" ? (
-              <ScreenHeading as="h1" className="sr-only">{t.pickHead}</ScreenHeading>
-            ) : (
-              <>
-                <div className="hero">
-                  <div className="eyebrow">{t.eyebrow}</div>
-                  <ScreenHeading as="h1" dangerouslySetInnerHTML={{ __html: t.heroTitle }} />
-                  <HeroStats t={t} lang={lang} profile={profile} onOpenProfile={openProfile} onSetGoal={setGoalTarget} />
-                  {/* Mobile-only: a single clear call-to-action above the fold that jumps
-                      to the opponent picker. Desktop shows the picker inline, so it's hidden there. */}
-                  <button className="hero-cta" onClick={scrollToPlay}>{t.heroCta}</button>
-                  <p className="lead">{t.heroLead}</p>
-                  <div className="rule" />
-                  <div className="principles">
-                    {t.principles.map((p, i) => (
-                      <span key={i} dangerouslySetInnerHTML={{ __html: p }} />
-                    ))}
-                  </div>
-                </div>
-                {/* Director's #8: proof-of-method for a cold visitor, between the hero
-                    and the picker. Sits OUTSIDE #play so the CTA still lands on the
-                    opponent picker, not this explainer. */}
-                <WhyTeaches t={t} lang={lang} />
-              </>
-            )}
-            {/* Three-part shell: the rail is what makes the layout read as an
-                app rather than a wide document. Absent in the dojo skin. */}
-            <div className={skin === "game" ? "withrail" : ""}>
+            {/* Оболочка приложения не показывает маркетинговую шапку: здесь продукт
+                и ЕСТЬ путь, и до переговоров надо доходить без пролистывания
+                полутора экранов питча. Полоса XP живёт в правом рейле, а
+                заголовок остаётся для экранных дикторов. */}
+            <ScreenHeading as="h1" className="sr-only">{t.pickHead}</ScreenHeading>
+            {/* Трёхчастная раскладка: именно правый рейл заставляет экран
+                читаться приложением, а не широким документом. */}
+            <div className="withrail">
             <div id="play">
             <ScenarioPicker
               t={t}
@@ -573,7 +498,7 @@ export default function App() {
               profile={profile}
               examName={examName}
               onExamNameChange={setExamName}
-              hideModes={skin === "game"}
+              hideModes
               onCourse={() => openCourse(null)}
               onCourseBlock={(blockId) => openCourse({ blockId, lesson: null })}
               onWarmup={(blockId) => { setWarmupBlock(blockId); setScreen("warmup"); }}
@@ -581,9 +506,8 @@ export default function App() {
               courseTotal={COURSE_BLOCKS.length}
             />
             </div>
-            {skin === "game" ? (
-              <aside className="rail">
-                <ProgressCards t={t} lang={lang} profile={profile} />
+            <aside className="rail">
+                <ProgressCards t={t} lang={lang} profile={profile} onSetGoal={setGoalTarget} />
                 {/* Курс живёт в сайдбаре, но с домашнего экрана его надо ещё и
                     ВИДЕТЬ: строка меню не рассказывает, что внутри девять блоков. */}
                 <RailCard title={t.course.title}>
@@ -602,8 +526,7 @@ export default function App() {
                   </button>
                 </RailCard>
                 <MethodCard t={t} />
-              </aside>
-            ) : null}
+            </aside>
             </div>
           </div>
         </section>
@@ -620,16 +543,16 @@ export default function App() {
           onPreset={setLayers}
           onStart={startWithLayers}
           onBack={goHome}
-          rail={skin === "game" ? (
+          rail={(
             <aside className="rail">
               <RailCard title={t.layers.explainHead}>
                 <ul className="rc-method">
                   {t.layers.explain.map((l, i) => <li key={i}>{l}</li>)}
                 </ul>
               </RailCard>
-              <ProgressCards t={t} lang={lang} profile={profile} />
+              <ProgressCards t={t} lang={lang} profile={profile} onSetGoal={setGoalTarget} />
             </aside>
-          ) : undefined}
+          )}
         />
       )}
 
