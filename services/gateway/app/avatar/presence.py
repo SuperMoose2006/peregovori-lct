@@ -23,7 +23,7 @@ OpenRouter один раз и кладёт в `frontend/public/avatars/<persona>
 
 MOCK(avatar-motion): состояние сейчас статично — картинка меняется, дыхания и
   микродвижений нет. Настоящим станет: короткие зацикленные клипы на состояние
-  (та же раскладка файлов, `.webm` вместо `.webp`) либо провайдер `livetalking`.
+  (та же раскладка файлов, `.webm` вместо `.webp`).
 """
 
 from __future__ import annotations

@@ -31,7 +31,7 @@ import abc
 from dataclasses import dataclass, field
 
 #: Состояния лица. Надмножество запрошенного в задании; каждое обязано иметь
-#: либо картинку/клип (presence), либо хореографию (livetalking).
+#: картинку или клип — то, что умеет `presence`.
 AVATAR_STATES = (
     "idle", "listening", "thinking", "speaking", "hesitation",
     "nod", "shake_head", "lean_back", "lean_forward",
@@ -78,7 +78,11 @@ class AvatarCapabilities:
 
 
 class AvatarProvider(abc.ABC):
-    """Лицо оппонента. Реализации: presence (по умолчанию), livetalking (GPU)."""
+    """Лицо оппонента. Единственная реализация — `presence`.
+
+    Липсинк делает OpenTalking; наш собственный GPU-провайдер удалён, потому
+    что не работал (см. docs/upstream-patches.md).
+    """
 
     @abc.abstractmethod
     def capabilities(self) -> AvatarCapabilities:

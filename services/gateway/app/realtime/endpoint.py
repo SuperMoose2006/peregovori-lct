@@ -28,7 +28,6 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from app import engine, views
 from app.avatar.base import AvatarProvider
-from app.avatar.livetalking import AVATAR_URL, LiveTalkingAvatar
 from app.avatar.presence import PresenceAvatar
 from app.orchestrator.judge import judge_enabled
 from app.orchestrator.negotiation import NegotiationOrchestrator
@@ -263,14 +262,15 @@ def _wire(session: RealtimeSession) -> tuple[
 
 
 def _make_avatar(session: RealtimeSession) -> AvatarProvider:
-    """Выбор провайдера лица. Одна переменная переключает липсинк на GPU-хосте.
+    """Лицо оппонента. Всегда `presence`: картинка меняется по реакции движка.
 
-    Порядок намеренный: `livetalking` берётся, только если задан его адрес.
-    Иначе — `presence`, который работает всегда и ничего не обещает сверх того,
-    что умеет. Пустого лица не бывает ни в одном из случаев.
+    Здесь был второй путь — провайдер `livetalking` на GPU-хосте, включавшийся
+    переменной `NEGO_AVATAR_URL`. Он удалён: липсинк там так и не заработал
+    (два STUB — согласование WebRTC и подача PCM не были подключены), а
+    настоящий липсинк теперь делает OpenTalking семью своими рендерерами.
+    Держать нерабочую вторую ветку рядом с работающей чужой — это обещать
+    возможность, которой нет.
     """
-    if AVATAR_URL:
-        return LiveTalkingAvatar(session.session_id, session.bus.publish)
     return PresenceAvatar(session.engine_session.scenario_id, session.bus.publish)
 
 

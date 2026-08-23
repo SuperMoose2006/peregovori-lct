@@ -61,8 +61,7 @@ services/gateway/        FastAPI :8010 — партия, курс, разбор
     ├─ realtime/         шина с владением поколениями, дуплекс
     ├─ perception/       VAD → детектор конца хода → распознавание
     ├─ orchestrator/     ход, судья, синтез речи
-    └─ avatar/           presence (состояния) | livetalking (GPU)
-services/avatar/         LiveTalking + MuseTalk, только с CUDA
+    └─ avatar/           presence (состояния); липсинк — у OpenTalking
 legacy-node/             первый прототип — эталон поведения
 ```
 

@@ -14,9 +14,6 @@ gateway:                       ## realtime gateway on :8010
 frontend:                      ## Vite dev server on :5173 (proxies /ws and /v1 to :8010)
 	cd frontend && npm run dev
 
-avatar:                        ## LiveTalking avatar worker on :8020 (needs CUDA GPU)
-	cd services/avatar && ./run.sh
-
 test: test-py test-js          ## everything
 
 test-py:
@@ -33,4 +30,5 @@ e2e:                           ## браузерная проверка (нуж�
 	cd frontend && node e2e/course.mjs --out /tmp/dialog-e2e
 
 # Локально: `make gateway` и `make frontend` в двух терминалах.
-# Аватар — отдельный сервис, поднимается там, где есть GPU (см. services/avatar/README.md).
+# Липсинк аватара делает OpenTalking (.upstream/opentalking, нужен GPU) —
+# наш собственный GPU-провайдер удалён, см. docs/upstream-patches.md.

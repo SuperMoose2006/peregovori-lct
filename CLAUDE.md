@@ -54,10 +54,9 @@ services/gateway/            Python 3.12, FastAPI, :8010
     perception/              vad · turn_detect · voice_pipeline · vision
     orchestrator/            ход, судья, синтез речи
     providers/               маршрутизация «роль → модель»
-    avatar/                  presence | livetalking
+    avatar/                  presence (липсинк делает OpenTalking)
     vendor/                  перенесённый upstream-код
   tests/
-services/avatar/             LiveTalking + MuseTalk (GPU, опционально)
 frontend/
   src/realtime/vendor/       перенесённый код MiniCPM-o (Apache-2.0)
   src/mock/                  ОФЛАЙН-ЯДРО: та же игра целиком в браузере
@@ -121,7 +120,9 @@ realtime, можно думать дольше». Живой замер сказ
 
 Прочие переменные: `NEGO_JUDGE` (0/1, включён при наличии ключа),
 `NEGO_TURN_DETECT` (0 выключает детектор конца реплики),
-`NEGO_AVATAR_URL` (пусто → провайдер `presence`), `NEGO_AI=off` — полный офлайн.
+`NEGO_AI=off` — полный офлайн.
+`NEGO_HTTP_PASSWORD` (пусто → открыто; задан → внешние запросы просят пароль,
+локальные не трогаются).
 
 Секреты — в `services/gateway/.env` (gitignored), **не в командной строке**.
 **Тесты всегда офлайн**: `conftest.py` принудительно ставит `NEGO_AI=off`.
@@ -172,7 +173,6 @@ WCAG. Поэтому `--brass` это тёмный `#3f8f00`, а яркий зе
 make install          # venv гейтвея + npm
 make gateway          # :8010
 make frontend         # :5173, проксирует /ws и /v1 на :8010
-make avatar           # :8020, нужен CUDA-GPU
 make test             # бэкенд + фронтенд
 make preflight        # проверка перед показом одной командой
 ```
