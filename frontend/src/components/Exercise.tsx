@@ -12,8 +12,8 @@ import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
 import {
-  check, metersOptions, reactionOptions, shuffledOptions, shuffledRight, startingOrder,
-  type Verdict,
+  check, faceImage, metersOptions, reactionOptions, shuffledOptions, shuffledRight,
+  startingOrder, type Verdict,
 } from "../lib/course";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
@@ -64,7 +64,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       case "match": return pairs;
       case "numeric": return num.trim() === "" ? null : parseFloat(num.replace(",", "."));
       case "freeform": return text;
-      case "reaction": case "meters": return pick;
+      case "reaction": case "meters": case "face": return pick;
       default: return null;
     }
   };
@@ -74,7 +74,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       case "choice": case "spot_error": return picked !== null;
       case "numeric": return num.trim() !== "";
       case "freeform": return text.trim().length > 0;
-      case "reaction": case "meters": return pick !== null;
+      case "reaction": case "meters": case "face": return pick !== null;
       case "match": return Object.keys(pairs).length === (ex.left?.length ?? 0);
       default: return true;
     }
@@ -172,12 +172,21 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
         </ul>
       ) : null}
 
-      {(ex.type === "reaction" || ex.type === "meters") ? (
+      {/* «Прочитай лицо»: та же картинка состояния, что показывает оппонент в
+          партии. Мимики здесь не изобретают — это ровно тот кадр, который движок
+          выбирает своей реакцией, поэтому ответ проверяем, а не «на глаз». */}
+      {ex.type === "face" && faceImage(ex) ? (
+        <div className="ex-face">
+          <img src={faceImage(ex)!} alt="" width={200} height={200} />
+        </div>
+      ) : null}
+
+      {(ex.type === "reaction" || ex.type === "meters" || ex.type === "face") ? (
         <ul className="ex-opts row">
-          {(ex.type === "reaction" ? reactionOptions(ex) : metersOptions(ex)).map((o) => {
-            const label = ex.type === "reaction"
-              ? t.course.reactions[o as keyof Strings["course"]["reactions"]]
-              : (t.course.meters as Record<string, string>)[o] ?? o;
+          {(ex.type === "meters" ? metersOptions(ex) : reactionOptions(ex)).map((o) => {
+            const label = ex.type === "meters"
+              ? (t.course.meters as Record<string, string>)[o] ?? o
+              : t.course.reactions[o as keyof Strings["course"]["reactions"]];
             const right = locked && o === ex.answer;
             const wrong = locked && o === pick && o !== ex.answer;
             return (

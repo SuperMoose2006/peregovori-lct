@@ -214,7 +214,7 @@ export interface Strings {
     inFrame: string; outFrame: string; peekNote: string; peekOpen: string;
   };
   probe: {
-    ask: string;             // "Что с ней сейчас?"
+    ask: string;             // "Что с ним сейчас происходит?"
     readFace: string;        // label above the enlarged portrait
     blocked: string;         // composer placeholder while the question is open
     tally: string;           // "прочитано {n} из {m}"
@@ -224,7 +224,7 @@ export interface Strings {
     reactions: Record<string, string>;
     // reaction id -> one line explaining why it was that, shown after a miss
     why: Record<string, string>;
-    debriefHead: string;     // "Как вы читали её"
+    debriefHead: string;     // "Как вы читали оппонента"
     observation: string;     // shared badge: "наблюдение · не влияет на оценку"
   };
   // Left sidebar of the "game" skin's app shell. Only the entries that
@@ -724,7 +724,7 @@ export const I18N: Record<Lang, Strings> = {
     mascot: {
       karl: "Карл",
       tikhon: "Тихон",
-      greeting: "Не торопитесь с ценой. Сначала выясните, что для неё важно.",
+      greeting: "Не торопитесь с ценой. Сначала выясните, что важно второй стороне.",
       thinking: "Секунду, смотрю…",
       rememberTitle: "Тихон помнит",
     },
@@ -738,31 +738,34 @@ export const I18N: Record<Lang, Strings> = {
       peekOpen: "проверить свет",
     },
     probe: {
-      ask: "Что с ней сейчас?",
+      ask: "Что с ним сейчас происходит?",
       readFace: "Читайте лицо",
       blocked: "Ответьте на вопрос, чтобы продолжить",
       tally: "прочитано {n} из {m}",
       right: "Верно.",
       wrong: "Мимо.",
+      // Формулировки НЕЙТРАЛЬНЫ по роду: за столом бывают и Наталья, и Виктор,
+      // а «Закрылась» под портретом мужчины читается как недоделка.
       reactions: {
-        warmed: "Потеплела", opened_up: "Приоткрылась", persuaded: "Убеждена данными",
-        collaborated: "Готова сотрудничать", neutral: "Держит нейтралитет",
-        not_yet: "Ещё не готова", pressured: "Под давлением",
-        hardened: "Закрылась", offended: "Обиделась", walked_out: "Встаёт из-за стола",
+        warmed: "Теплеет", opened_up: "Приоткрывается", persuaded: "Принимает довод",
+        collaborated: "Идёт навстречу", neutral: "Держит нейтралитет",
+        not_yet: "Пока не соглашается", pressured: "Под давлением",
+        hardened: "Закрывается", offended: "Принимает на свой счёт",
+        walked_out: "Встаёт из-за стола",
       },
       why: {
-        warmed: "Доверие выросло — вы попали в её интерес.",
-        opened_up: "Информация подскочила: она поделилась тем, что скрывала.",
-        persuaded: "Рычаг вырос — её убедил объективный критерий, а не нажим.",
+        warmed: "Доверие выросло — вы попали в интерес второй стороны.",
+        opened_up: "Информация подскочила: вам рассказали то, что скрывали.",
+        persuaded: "Рычаг вырос — убедил объективный критерий, а не нажим.",
         collaborated: "Напряжение упало, доверие выросло: вы предложили размен.",
-        neutral: "Счётчики почти не двинулись — ход прошёл мимо неё.",
-        not_yet: "Она не отказала, но и не сдвинулась: рано закрывать.",
-        pressured: "Напряжение выросло — она восприняла это как нажим.",
-        hardened: "Напряжение выросло, доверие упало — она закрылась.",
+        neutral: "Счётчики почти не двинулись — ход прошёл мимо.",
+        not_yet: "Отказа нет, но и движения нет: закрывать рано.",
+        pressured: "Напряжение выросло — это восприняли как нажим.",
+        hardened: "Напряжение выросло, доверие упало — вторая сторона закрылась.",
         offended: "Доверие обвалилось: резкий тон бьёт сильнее аргумента.",
-        walked_out: "Она встаёт из-за стола — напряжение дошло до предела.",
+        walked_out: "Оппонент встаёт из-за стола — напряжение дошло до предела.",
       },
-      debriefHead: "Как вы читали её",
+      debriefHead: "Как вы читали оппонента",
       observation: "наблюдение · не влияет на оценку",
     },
     nav: { training: "Тренировка", campaign: "Кампания", custom: "Своя сделка",
@@ -844,15 +847,18 @@ export const I18N: Record<Lang, Strings> = {
       types: {
         choice: "Выбор реплики", spot_error: "Найти ошибку", order: "Порядок",
         match: "Соответствие", numeric: "Расчёт", freeform: "Своими словами",
-        reaction: "Читай реакцию", meters: "Предскажи шкалы", drill: "Капстоун",
+        reaction: "Читай реакцию", meters: "Предскажи шкалы", face: "Прочитай лицо",
+        drill: "Капстоун",
       },
       meters: { trust: "Доверие", tension: "Напряжение", info: "Информация",
                 leverage: "Рычаг", up: "Вырастет", down: "Упадёт" },
+      // Нейтрально по роду — задание «прочитай лицо» показывает и мужские портреты.
       reactions: {
-        walked_out: "Встала из-за стола", offended: "Оскорблена", hardened: "Закрылась",
-        pressured: "Под давлением", not_yet: "Пока не готова", neutral: "Нейтральна",
-        collaborated: "Готова сотрудничать", persuaded: "Убеждена данными",
-        opened_up: "Приоткрылась", warmed: "Потеплела",
+        walked_out: "Встаёт из-за стола", offended: "Принимает на свой счёт",
+        hardened: "Закрывается", pressured: "Под давлением",
+        not_yet: "Пока не соглашается", neutral: "Держит нейтралитет",
+        collaborated: "Идёт навстречу", persuaded: "Принимает довод",
+        opened_up: "Приоткрывается", warmed: "Теплеет",
       },
       moves: {
         interests_probe: "вскрытие интереса", acknowledge: "активное слушание",
@@ -878,7 +884,7 @@ export const I18N: Record<Lang, Strings> = {
     opening: {
       title: "Стол накрыт",
       scene: "{role} Напротив — {name}. Её цена: {offer}. Ваша цель: {target}, красная линия: {red}.",
-      hint: "У неё три скрытых интереса. Пока вы их не вскрыли, спор идёт только о цене — а там выигрывает тот, кто сильнее давит.",
+      hint: "У второй стороны три скрытых интереса. Пока вы их не вскрыли, спор идёт только о цене — а там выигрывает тот, кто сильнее давит.",
       lines: [
         { tag: "🎯 Интерес", text: "Что для вас важнее всего в этой сделке — и почему именно это?" },
         { tag: "📊 Критерий", text: "Прежде чем спорить о цифре: на какие данные мы оба могли бы опереться?" },
@@ -939,7 +945,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "Что на самом деле было важно для второй стороны",
       found: "вы это вскрыли",
       missed: "вы не спросили",
-      allFound: "Вы вскрыли всё, что она скрывала, — за столом вы играли с открытыми картами.",
+      allFound: "Вы вскрыли всё, что от вас скрывали, — за столом вы играли с открытыми картами.",
       noneFound: "Вы вели переговоры вслепую — ни один из интересов так и не прозвучал.",
     },
     mentor: {
@@ -1442,7 +1448,8 @@ export const I18N: Record<Lang, Strings> = {
       types: {
         choice: "Pick the line", spot_error: "Spot the error", order: "Put in order",
         match: "Match pairs", numeric: "Compute", freeform: "In your own words",
-        reaction: "Read the reaction", meters: "Predict the meters", drill: "Capstone",
+        reaction: "Read the reaction", meters: "Predict the meters", face: "Read the face",
+        drill: "Capstone",
       },
       meters: { trust: "Trust", tension: "Tension", info: "Information",
                 leverage: "Leverage", up: "Rises", down: "Falls" },

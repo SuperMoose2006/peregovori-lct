@@ -33,7 +33,7 @@ export interface CourseBlock {
 
 export type ExerciseType =
   | "choice" | "spot_error" | "order" | "match"
-  | "numeric" | "freeform" | "reaction" | "meters" | "drill";
+  | "numeric" | "freeform" | "reaction" | "meters" | "face" | "drill";
 
 export interface FreeformCheck {
   require_moves?: string[];

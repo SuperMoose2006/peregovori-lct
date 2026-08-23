@@ -1269,6 +1269,24 @@ export const COURSE_BANK: Exercise[] = [
     }
   },
   {
+    "id": "al-06",
+    "block": "active-listening",
+    "lesson": 3,
+    "type": "face",
+    "difficulty": 2,
+    "xp": 10,
+    "scenario_id": "sla_renewal",
+    "answer": "pressured",
+    "prompt": {
+      "ru": "Виктор откинулся назад. Что с ним произошло?",
+      "en": "Viktor has leaned back. What just happened to him?"
+    },
+    "explain": {
+      "ru": "Отстранение — реакция на давление: вы назвали альтернативу или надавили, и он прибавил дистанцию. Рычаг у вас вырос, но и напряжение тоже — а выше 55 оно режет уступки на 40%.",
+      "en": "Pulling back is the reaction to pressure: you named an alternative or pushed, and he added distance. Your leverage grew — so did tension, and above 55 it cuts concessions by 40%."
+    }
+  },
+  {
     "id": "oc-01",
     "block": "objective-criteria",
     "lesson": 2,
@@ -1847,6 +1865,24 @@ export const COURSE_BANK: Exercise[] = [
     }
   },
   {
+    "id": "an-06",
+    "block": "anchoring",
+    "lesson": 4,
+    "type": "face",
+    "difficulty": 1,
+    "xp": 10,
+    "scenario_id": "used_car",
+    "answer": "offended",
+    "prompt": {
+      "ru": "Вы сказали, что машина столько не стоит. Что теперь с Сергеем?",
+      "en": "You said the car is not worth that. Where is Sergey now?"
+    },
+    "explain": {
+      "ru": "Он привязан к машине: критика вещи прочитана как критика его самого. Доверие −22, напряжение +26 — и дальше механика мстит, потому что уступки уже урезаны.",
+      "en": "He is attached to the car: criticising the object read as criticising him. Trust −22, tension +26 — and the mechanics take revenge, because concessions are already cut."
+    }
+  },
+  {
     "id": "lr-01",
     "block": "logrolling",
     "lesson": 2,
@@ -2229,6 +2265,24 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "Угроза: доверие вниз, напряжение вверх, цена почти не двигается — против заметного движения от размена. Угроза перебивает вопрос в определении реакции, потому что её блок выполняется позже.",
       "en": "A threat: trust down, tension up, and the price barely moves — against a clear move from a trade. The threat overrides the question in the reaction, because its block runs later."
+    }
+  },
+  {
+    "id": "pd-06",
+    "block": "pressure-defense",
+    "lesson": 4,
+    "type": "face",
+    "difficulty": 3,
+    "xp": 15,
+    "scenario_id": "conflict",
+    "answer": "walked_out",
+    "prompt": {
+      "ru": "Что означает это лицо и почему партия на этом заканчивается?",
+      "en": "What does this face mean, and why does the negotiation end here?"
+    },
+    "explain": {
+      "ru": "Он встал из-за стола. Движок закрывает партию, когда напряжение доходит до предела или доверие падает почти до нуля: за этой точкой переговоров уже нет — ни при какой аргументации.",
+      "en": "He has got up to leave. The engine ends the session when tension hits the ceiling or trust falls to almost nothing: past that point there is no negotiation left, whatever the argument."
     }
   },
   {

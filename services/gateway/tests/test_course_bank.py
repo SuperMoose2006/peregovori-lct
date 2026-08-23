@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from app.course.bank import BANK, BY_ID
@@ -20,7 +22,7 @@ from app.engine.techniques import analyze
 
 LANGS = ("ru", "en")
 TYPES = {"choice", "spot_error", "order", "match", "numeric", "freeform",
-         "reaction", "meters", "drill"}
+         "reaction", "meters", "face", "drill"}
 
 CHOICE = [x for x in BANK if x["type"] == "choice" and x.get("expect_moves")]
 FREEFORM = [x for x in BANK if x["type"] == "freeform"]
@@ -176,3 +178,57 @@ def test_master_target_is_inside_the_deal_zone(item: dict) -> None:
         assert deal["value"] >= sc.opponent_reservation, item["id"]
     else:
         assert deal["value"] <= sc.opponent_reservation, item["id"]
+
+
+# ---- «прочитай лицо»: картинка обязана быть однозначной ------------------
+
+from app.avatar.base import REACTION_TO_STATE  # noqa: E402
+
+#: Псевдонимы фронтенда: не для каждого состояния нарисована своя картинка.
+#: Зеркало `ALIASES` в components/OpponentFace.tsx.
+_DRAWN_ALIAS = {"nod": "warm", "smile": "warm", "shake_head": "annoyed",
+                "idle": "listening", "hesitation": "thinking"}
+
+
+def _drawn(reaction: str) -> str:
+    state = REACTION_TO_STATE.get(reaction, "listening")
+    return _DRAWN_ALIAS.get(state, state)
+
+
+FACE = [x for x in BANK if x["type"] == "face"]
+
+
+@pytest.mark.parametrize("item", FACE, ids=_ids(FACE))
+def test_face_answer_has_its_own_picture(item: dict) -> None:
+    """Ни один дистрактор не должен выглядеть ТАК ЖЕ, как верный ответ.
+
+    Картинок меньше, чем реакций: `nod` и `smile` рисуются как `warm`, а
+    `shake_head` — как `annoyed`. Если в вариантах окажется реакция с той же
+    картинкой, у задания будет два одинаково верных ответа — и это ровно та
+    тихая ложь, ради которой банк вообще проверяется тестами.
+    """
+    from app.course.simulate import METERS  # noqa: F401  (держим импорт локальным)
+
+    scale = ["walked_out", "offended", "hardened", "pressured", "not_yet",
+             "neutral", "collaborated", "persuaded", "opened_up", "warmed"]
+    answer = item["answer"]
+    assert answer in scale, item["id"]
+    i = scale.index(answer)
+    near = []
+    d = 1
+    while len(near) < 3 and d < len(scale):
+        for j in (i - d, i + d):
+            if 0 <= j < len(scale) and len(near) < 3:
+                near.append(scale[j])
+        d += 1
+    for other in near:
+        assert _drawn(other) != _drawn(answer), (
+            f"{item['id']}: «{other}» рисуется так же, как «{answer}»")
+
+
+@pytest.mark.parametrize("item", FACE, ids=_ids(FACE))
+def test_face_picture_exists(item: dict) -> None:
+    """Картинка обязана лежать на диске — иначе задание показывает пустоту."""
+    root = Path(__file__).resolve().parents[3] / "frontend" / "public" / "avatars"
+    path = root / item["scenario_id"] / f"{_drawn(item['answer'])}.webp"
+    assert path.is_file(), path

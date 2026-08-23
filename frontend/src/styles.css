@@ -2940,3 +2940,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .ex-opt.on .ex-num-k { border-color: var(--brass); color: var(--brass); }
 .ex-opt.right .ex-num-k { border-color: var(--trust); color: var(--trust); }
 .ex-opt.wrong .ex-num-k { border-color: var(--tension); color: var(--tension); }
+/* «Прочитай лицо»: тот же кадр, что показывает оппонент за столом. */
+.ex-face { display: flex; justify-content: center; margin: 4px 0 14px; }
+.ex-face img { width: 200px; height: 200px; border-radius: var(--r); object-fit: cover;
+  border: 2px solid var(--line); background: var(--panel-2); }

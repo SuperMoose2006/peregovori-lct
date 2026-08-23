@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   COURSE_BANK, COURSE_BLOCKS, SKILL_BLOCK, blockForWeakest, check, checkFreeform, drawExam,
-  exercisesOf,
+  exercisesOf, faceImage,
   metersOptions, reactionOptions, shuffledOptions, shuffledRight, simulate, startingOrder,
 } from "../src/lib/course";
 import type { Lang } from "../src/types";
@@ -160,5 +160,23 @@ test("разбор указывает на блок, который тренир
   // Каждый навык обязан вести в существующий блок, иначе кнопка ведёт в никуда.
   for (const id of Object.values(SKILL_BLOCK)) {
     assert.ok(COURSE_BLOCKS.some((b) => b.id === id), id);
+  }
+});
+
+test("«прочитай лицо»: картинка есть, ответ среди вариантов, дистракторы не совпадают", () => {
+  // Картинок меньше, чем реакций (nod и smile рисуются как warm, shake_head —
+  // как annoyed). Если дистрактор выглядит так же, как ответ, у задания два
+  // одинаково верных ответа — и это тихая ложь, а не сложность.
+  const drawn = (r: string) => faceImage({ id: "x", type: "face", scenario_id: "rent",
+    answer: r } as never);
+  for (const ex of COURSE_BANK.filter((x) => x.type === "face")) {
+    const img = faceImage(ex);
+    assert.ok(img && img.endsWith(".webp"), ex.id);
+    const options = reactionOptions(ex);
+    assert.ok(options.includes(ex.answer as never), ex.id);
+    for (const other of options) {
+      if (other === ex.answer) continue;
+      assert.notEqual(drawn(other), drawn(String(ex.answer)), `${ex.id}: ${other}`);
+    }
   }
 });

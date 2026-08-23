@@ -140,7 +140,8 @@ export function check(ex: Exercise, answer: unknown, lang: Lang): Verdict {
     case "numeric": return checkNumeric(ex, answer as number | null);
     case "freeform": return checkFreeform(ex, String(answer ?? ""), lang);
     case "reaction":
-    case "meters": return checkPick(ex, String(answer ?? ""));
+    case "meters":
+    case "face": return checkPick(ex, String(answer ?? ""));
     case "drill": return checkDrill(ex, answer as StateView);
   }
 }
@@ -163,6 +164,20 @@ export function reactionOptions(ex: Exercise): Reaction[] {
 }
 
 export const METER_IDS = ["trust", "tension", "info", "leverage"] as const;
+
+/** Реакция → нарисованное состояние лица. Зеркало avatar/base.py + ALIASES. */
+const REACTION_TO_DRAWN: Record<string, string> = {
+  neutral: "listening", warmed: "warm", opened_up: "lean_forward",
+  persuaded: "warm", collaborated: "warm", pressured: "lean_back",
+  hardened: "annoyed", offended: "offended", not_yet: "annoyed",
+  walked_out: "walk_out",
+};
+
+/** Картинка для задания «прочитай лицо». Однозначность гарантирует тест банка. */
+export function faceImage(ex: Exercise): string | null {
+  const state = REACTION_TO_DRAWN[String(ex.answer)];
+  return ex.scenario_id && state ? `/avatars/${ex.scenario_id}/${state}.webp` : null;
+}
 
 /** Варианты для `meters`: либо четыре шкалы, либо вверх/вниз. */
 export function metersOptions(ex: Exercise): string[] {
