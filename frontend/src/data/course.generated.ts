@@ -100,7 +100,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "S and P: facts and pain"
         },
         "body": {
-          "ru": "Ситуационные вопросы дешевы для собеседника и дороги для вас: их легко задать, но много подряд утомляют. Два-три — и переходите к проблеме.\n\nПроблемный вопрос — первый, где собеседник произносит вслух то, что ему не нравится. С этого момента разговор уже не про вашу цену, а про его положение.",
+          "ru": "Ситуационные вопросы дёшевы для собеседника и дороги для вас: их легко задать, но много подряд утомляют. Два-три — и переходите к проблеме.\n\nПроблемный вопрос — первый, где собеседник произносит вслух то, что ему не нравится. С этого момента разговор уже не про вашу цену, а про его положение.",
           "en": "Situation questions are cheap for your counterpart and expensive for you: easy to ask, tiring in a row. Two or three, then move to the problem.\n\nA problem question is the first one where the other side says out loud what they do not like. From that moment the conversation is about their position, not your price."
         }
       },
@@ -118,7 +118,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       {
         "idx": 4,
         "title": {
-          "ru": "N — пусть он назовёт ценность",
+          "ru": "N — пусть ценность назовёт собеседник",
           "en": "N — let them name the value"
         },
         "body": {
@@ -181,7 +181,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The reaction ladder"
         },
         "body": {
-          "ru": "Оппонент всегда находится в одном из десяти состояний: ушёл · оскорблён · закрылся · под давлением · нейтрален · пока нет · приоткрылся · убеждён данными · готов сотрудничать · потеплел.\n\nЧитать это состояние — отдельный навык. Одна и та же ваша реплика на «потеплел» и на «оскорблён» даёт разный результат, потому что уступки режутся напряжением.",
+          "ru": "Оппонент всегда находится в одном из десяти состояний: встаёт из-за стола · принимает на свой счёт · закрывается · под давлением · пока не соглашается · держит нейтралитет · идёт навстречу · принимает довод · приоткрывается · теплеет. Теми же словами они подписаны в игре и в заданиях — чтобы урок и стол говорили на одном языке.\n\nЧитать это состояние — отдельный навык. Одна и та же ваша реплика на «теплеет» и на «принимает на свой счёт» даёт разный результат, потому что уступки режутся напряжением.",
           "en": "Your counterpart is always in one of ten states: walked out · offended · hardened · pressured · neutral · not yet · opened up · persuaded · collaborated · warmed.\n\nReading that state is a skill of its own. The same line of yours lands differently on “warmed” and on “offended”, because tension cuts concessions."
         }
       },
