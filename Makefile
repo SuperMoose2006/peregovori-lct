@@ -1,4 +1,4 @@
-.PHONY: install gateway frontend avatar test test-py test-js e2e dev
+.PHONY: install gateway frontend avatar test test-py test-js e2e preflight dev
 
 PY  := services/gateway/.venv/bin/python
 PIP := services/gateway/.venv/bin/pip
@@ -24,6 +24,9 @@ test-py:
 
 test-js:
 	cd frontend && npm test
+
+preflight:                     ## проверка перед показом (нужен поднятый gateway)
+	cd services/gateway && .venv/bin/python tools/preflight.py
 
 e2e:                           ## браузерная проверка (нужен поднятый gateway)
 	cd frontend && node e2e/smoke.mjs --out /tmp/dialog-e2e
