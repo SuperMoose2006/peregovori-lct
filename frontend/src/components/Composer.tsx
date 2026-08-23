@@ -19,6 +19,8 @@ interface Props {
   onSend: (text: string) => void;
   onHint: () => void;
   hintEnabled: boolean;
+  /** Имя кнопки подсказки для диктора: сам значок 💡 помечен aria-hidden. */
+  hintLabel: string;
   // showChips=false (exam mode) suppresses the live technique preview so the
   // player gets no read on how their line is being classified.
   showChips: boolean;
@@ -37,7 +39,7 @@ interface Props {
 }
 
 export function Composer({
-  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote, charForms, suggestion, prefill,
+  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, hintLabel, showChips, limitNote, charForms, suggestion, prefill,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -129,8 +131,8 @@ export function Composer({
       ) : null}
       <div className="quick">
         {hintEnabled ? (
-          <button onClick={onHint} disabled={disabled}>
-            💡
+          <button onClick={onHint} disabled={disabled} aria-label={hintLabel} title={hintLabel}>
+            <span aria-hidden="true">💡</span>
           </button>
         ) : null}
         {quickMoves.map((q, i) => (

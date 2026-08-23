@@ -179,7 +179,11 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
             const status = p.passed ? "done" : open ? "current" : "locked";
             return (
               <li key={b.id} className={`cnode ${status}`}>
-                <button className="cnode-btn" onClick={() => open && onOpen(b.id)} disabled={!open}>
+                {/* Значок помечен aria-hidden, поэтому имя кнопки нужно задать явно:
+                    без него запертые узлы читались диктору как «кнопка 🔒» — пять
+                    одинаковых безымянных кнопок подряд. */}
+                <button className="cnode-btn" onClick={() => open && onOpen(b.id)} disabled={!open}
+                        aria-label={`${b.title[lang]} — ${p.passed ? t.course.blockDone : open ? t.course.blockOpen : t.course.blockLocked}`}>
                   <span className="cnode-ic" aria-hidden="true">{p.passed ? "★" : open ? b.icon : "🔒"}</span>
                   {/* Флажок над текущим узлом: «где я» — без чтения, как в кампании. */}
                   {status === "current" ? <span className="cnode-flag">{t.campaign.startFlag}</span> : null}
@@ -206,7 +210,7 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
             {profile.course[MASTER_ID]?.passed ? "👑" : masterUnlocked(doneCount) ? "🎓" : "🔒"}
           </span>
           <div>
-            <h3>{t.course.masterTitle}</h3>
+            <h2>{t.course.masterTitle}</h2>
             <p>{masterUnlocked(doneCount) ? t.course.masterLead : t.course.masterLocked}</p>
           </div>
           <button className="btn primary" disabled={!masterUnlocked(doneCount)} onClick={onMaster}>
@@ -369,7 +373,7 @@ function BlockView({ t, lang, profile, blockId, onLesson, onExam, onBack }: {
         </ol>
 
         <div className="exam-card">
-          <h3>🎓 {t.course.examTitle}</h3>
+          <h2>🎓 {t.course.examTitle}</h2>
           <p>{t.course.examLead
             .replace("{n}", String(draw.items.length))
             .replace("{pass}", String(draw.passMark))
@@ -525,7 +529,7 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
               констатацией. Уроки берутся из промахов, а не из общего списка. */}
           {!passed && recovery.length ? (
             <div className="recovery">
-              <h4>{t.course.recoveryTitle}</h4>
+              <h3>{t.course.recoveryTitle}</h3>
               <ul>
                 {recovery.map((n) => {
                   const l = block.lessons.find((x) => x.idx === n);

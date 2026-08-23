@@ -108,8 +108,66 @@ const PROBE = `(() => {
       out.contrast.push(ratio.toFixed(2) + ":1 (нужно " + need + ") " + Math.round(size) + "px " + s.color + " на rgb(" + bg.join(",") + ") :: " + txt.slice(0, 40));
     }
   }
+
+  // ——— семантика ———
+  // Кнопка без доступного имени — немая для диктора.
+  out.unnamed = [];
+  for (const el of document.querySelectorAll("button, a[href]")) {
+    if (!vis(el)) continue;
+    const name = (el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim();
+    // текст только из значков именем не считается
+    if (!name || !/[\\p{L}\\p{N}]/u.test(name)) out.unnamed.push((el.className || el.tagName) + " " + name.slice(0, 12));
+  }
+
+  // Порядок заголовков: пропуск уровня ломает навигацию по разделам.
+  out.headings = [];
+  let prev = 0;
+  for (const h of document.querySelectorAll("h1,h2,h3,h4,h5,h6")) {
+    if (!vis(h)) continue;
+    const lvl = +h.tagName[1];
+    if (prev && lvl > prev + 1) out.headings.push("h" + prev + " → h" + lvl + ": " + (h.textContent||"").trim().slice(0,32));
+    prev = lvl;
+  }
+
+  // Поле ввода без подписи.
+  out.unlabelled = [];
+  for (const el of document.querySelectorAll("input:not([type=hidden]), textarea, select")) {
+    if (!vis(el)) continue;
+    const id = el.id;
+    const lab = (id && document.querySelector('label[for="' + id + '"]')) || el.closest("label")
+      || el.getAttribute("aria-label") || el.getAttribute("aria-labelledby") || el.getAttribute("placeholder");
+    if (!lab) out.unlabelled.push((el.className || el.tagName) + " " + (el.type || ""));
+  }
+
   return out;
 })()`;
+
+// :focus-visible не включается от программного .focus() — только от настоящей
+// клавиатуры. Поэтому жмём Tab и сравниваем вид элемента с его же видом без фокуса.
+async function keyboardFocus(page, where) {
+  const bad = await page.evaluate(async () => {
+    const out = [];
+    const seen = new Set();
+    const els = [...document.querySelectorAll("button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])")]
+      .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+    return els.length;
+  });
+  const n = Math.min(bad, 30);
+  const problems = [];
+  for (let i = 0; i < n; i++) {
+    await page.keyboard.press("Tab");
+    const r = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el || el === document.body) return null;
+      const cs = getComputedStyle(el);
+      const visible = (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0)
+        || /inset|rgb/.test(cs.boxShadow) && cs.boxShadow !== "none";
+      return { visible, id: (el.className || el.tagName) + "::" + (el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 24) };
+    });
+    if (r && !r.visible && !problems.includes(r.id)) problems.push(r.id);
+  }
+  return problems;
+}
 
 async function probe(page, where, tag) {
   const r = await page.evaluate(PROBE);
@@ -120,6 +178,12 @@ async function probe(page, where, tag) {
   for (const d of r.dupIds.slice(0, 3)) add("WARN", where, "dupid", "повтор id: " + d);
   if (r.noAlt) add("WARN", where, "alt", r.noAlt + " img без alt");
   for (const c of r.contrast.slice(0, 6)) add("WARN", where, "contrast", c);
+  for (const u of (r.unnamed || []).slice(0, 5)) add("BAD", where, "name", "кнопка без имени: " + u);
+  if (tag === "desk") {
+    for (const f of (await keyboardFocus(page, where)).slice(0, 4)) add("BAD", where, "focus", "фокус не виден при Tab: " + f);
+  }
+  for (const h of (r.headings || []).slice(0, 3)) add("WARN", where, "heading", "пропуск уровня " + h);
+  for (const u of (r.unlabelled || []).slice(0, 3)) add("BAD", where, "label", "поле без подписи: " + u);
   await page.screenshot({ path: `${OUT}/${tag}-${where.replace(/[^\w-]/g, "_")}.png`, fullPage: tag === "desk" });
 }
 

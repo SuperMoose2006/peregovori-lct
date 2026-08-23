@@ -170,7 +170,7 @@ export function CampaignArc({
         <div className="camp-head">
           <div className="camp-ic">{campaign.icon}</div>
           <div className="camp-heading">
-            <h3 className="camp-title">{campaign.title}</h3>
+            <h2 className="camp-title">{campaign.title}</h2>
             <p className="camp-tag">{campaign.tagline}</p>
           </div>
           {progress.results.length > 0 ? (

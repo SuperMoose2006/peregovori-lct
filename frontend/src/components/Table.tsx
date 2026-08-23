@@ -567,6 +567,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
             ) : null}
             <div ref={composeRef} className="onb-anchor" hidden={finished && !!onSeeDebrief}>
               <Composer
+                hintLabel={t.hint}
                 disabled={busy || finished || probeOpen || !st}
                 blocked={probeOpen}
                 placeholder={probeOpen ? t.probe.blocked : placeholder}

@@ -244,6 +244,8 @@ export interface Strings {
   // чтобы разбор упражнения говорил ровно то же, что чип под репликой.
   course: {
     title: string; lead: string; blocksDone: string; blockOf: string; toTable: string;
+    /* Состояние узла — только для диктора: значок помечен aria-hidden. */
+    blockDone: string; blockOpen: string; blockLocked: string;
     allBlocks: string; tasksN: string; taskForms: [string, string, string]; theory: string;
     examTitle: string; examLead: string; examBest: string; examPassed: string;
     examStart: string; examMode: string; examFinish: string; examPass: string;
@@ -775,6 +777,9 @@ export const I18N: Record<Lang, Strings> = {
       lead: "Девять блоков: вопрос → эмоция → легитимность → сила → числа → создание ценности → защита → закрытие. В каждом уроки, задания и экзамен.",
       blocksDone: "Сдано блоков: {n} из {total}",
       blockOf: "блок {n} из {total}",
+      blockDone: "пройден",
+      blockOpen: "открыт",
+      blockLocked: "закрыт",
       toTable: "За стол →",
       allBlocks: "Все блоки",
       tasksN: "{n} заданий",
@@ -1367,6 +1372,9 @@ export const I18N: Record<Lang, Strings> = {
       lead: "Nine blocks: question → emotion → legitimacy → power → numbers → value creation → defence → closing. Each has lessons, drills and an exam.",
       blocksDone: "Blocks passed: {n} of {total}",
       blockOf: "block {n} of {total}",
+      blockDone: "completed",
+      blockOpen: "open",
+      blockLocked: "locked",
       toTable: "To the table →",
       allBlocks: "All blocks",
       tasksN: "{n} tasks",

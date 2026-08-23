@@ -113,7 +113,9 @@ export function Tikhon({ state = "remember", title, children }: TikhonProps) {
     <div className="tikhon">
       <img src={`/mascots/tikhon/${state}.png`} alt="Тихон помнит" width={76} height={76} />
       <div className="tikhon-bd">
-        <h4>{title}</h4>
+        {/* h3: карточки рейла — h2, и прыжок через уровень ломает навигацию
+            по разделам у экранного диктора. */}
+        <h3>{title}</h3>
         <p>{children}</p>
       </div>
     </div>

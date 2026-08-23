@@ -12,7 +12,9 @@ import { dailyGoalView, rankForXp, DAILY_GOAL_MAX } from "../lib/progress";
 export function RailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rc">
-      <h3>{title}</h3>
+      {/* h2, а не h3: на странице есть h1, и прыжок через уровень ломает
+          навигацию по разделам у экранного диктора. */}
+      <h2>{title}</h2>
       {children}
     </section>
   );
