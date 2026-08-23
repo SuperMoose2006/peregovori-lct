@@ -17,3 +17,4 @@ frontend/dist/
 # avatar service model weights
 services/avatar/models/
 services/avatar/avatars/
+frontend/dist-mock/
