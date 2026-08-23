@@ -601,3 +601,22 @@ test("ошибка попадает в работу над ошибками и �
   const clean = recordExercise(p, "foundations", "fo-02", 10, true);
   assert.equal(clean.xpGain, 10);
 });
+
+test("день с уроком или экзаменом курса засчитывается в серию", () => {
+  // Серия росла только за партии — человек, который каждый день проходит урок,
+  // выглядел для продукта бездельником. Дневная ЦЕЛЬ при этом остаётся про
+  // партии: урок — это «я был здесь», а не «я сыграл».
+  const mon = new Date("2026-08-10T10:00:00Z");
+  const tue = new Date("2026-08-11T10:00:00Z");
+  let p = emptyProfile();
+  p = markLessonDone(p, "foundations", 1, mon);
+  assert.equal(p.streak, 1);
+  assert.equal(p.dailyDoneCount, 0, "цель дня — про партии, урок её не двигает");
+
+  // Второй урок в тот же день серию не удваивает.
+  p = markLessonDone(p, "foundations", 2, mon);
+  assert.equal(p.streak, 1);
+
+  p = markLessonDone(p, "foundations", 3, tue);
+  assert.equal(p.streak, 2);
+});

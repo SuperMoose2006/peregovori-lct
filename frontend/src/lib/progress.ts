@@ -742,14 +742,30 @@ export function getBlockProgress(profile: Profile, blockId: string): BlockProgre
   return blockOf(profile, blockId);
 }
 
+/**
+ * День засчитан в серию.
+ *
+ * Серия росла только за законченные партии — а человек, который каждый день
+ * проходит по уроку, для продукта выглядел бездельником. Дневная ЦЕЛЬ при этом
+ * остаётся про партии: пройденный урок — это «я был здесь», а не «я сыграл».
+ */
+export function touchStreak(profile: Profile, now: Date = new Date()): Profile {
+  const today = dayKey(now);
+  if (profile.lastStreakDay === today) return profile;
+  const next = updateStreak(
+    { streak: profile.streak, freezes: profile.freezes }, profile.lastStreakDay, today);
+  return { ...profile, streak: next.streak, freezes: next.freezes, lastStreakDay: today };
+}
+
 /** Урок прочитан. XP за чтение не даём: платим за решённое, а не за пролистанное. */
-export function markLessonDone(profile: Profile, blockId: string, lesson: number): Profile {
+export function markLessonDone(profile: Profile, blockId: string, lesson: number,
+                               now: Date = new Date()): Profile {
   const b = blockOf(profile, blockId);
   if (b.lessons.includes(lesson)) return profile;
-  return {
+  return touchStreak({
     ...profile,
     course: { ...profile.course, [blockId]: { ...b, lessons: [...b.lessons, lesson].sort((x, y) => x - y) } },
-  };
+  }, now);
 }
 
 /**
@@ -835,11 +851,12 @@ export function recordExam(profile: Profile, blockId: string, score: number, tot
   };
   // Значки считаются ПОСЛЕ записи блока — иначе «первый сданный блок» никогда
   // не выпадет на том экзамене, который его и сдал.
-  const earned = courseAchievements(withBlock, { score, total });
-  const fresh = earned.filter((id) => !withBlock.achievements.includes(id));
+  const withDay = touchStreak(withBlock);
+  const earned = courseAchievements(withDay, { score, total });
+  const fresh = earned.filter((id) => !withDay.achievements.includes(id));
   const next: Profile = fresh.length
-    ? { ...withBlock, achievements: [...withBlock.achievements, ...fresh] }
-    : withBlock;
+    ? { ...withDay, achievements: [...withDay.achievements, ...fresh] }
+    : withDay;
   return { profile: next, xpGain, passed: ok, newAchievements: fresh };
 }
 
