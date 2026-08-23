@@ -1,4 +1,4 @@
-.PHONY: install gateway frontend avatar test test-py test-js dev
+.PHONY: install gateway frontend avatar test test-py test-js e2e dev
 
 PY  := services/gateway/.venv/bin/python
 PIP := services/gateway/.venv/bin/pip
@@ -24,6 +24,9 @@ test-py:
 
 test-js:
 	cd frontend && npm test
+
+e2e:                           ## обход экранов в браузере (нужен поднятый gateway)
+	cd frontend && node e2e/smoke.mjs --out /tmp/dialog-e2e
 
 # Локально: `make gateway` и `make frontend` в двух терминалах.
 # Аватар — отдельный сервис, поднимается там, где есть GPU (см. services/avatar/README.md).
