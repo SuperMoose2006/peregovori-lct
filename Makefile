@@ -25,8 +25,9 @@ test-py:
 test-js:
 	cd frontend && npm test
 
-e2e:                           ## обход экранов в браузере (нужен поднятый gateway)
+e2e:                           ## браузерная проверка (нужен поднятый gateway)
 	cd frontend && node e2e/smoke.mjs --out /tmp/dialog-e2e
+	cd frontend && node e2e/course.mjs --out /tmp/dialog-e2e
 
 # Локально: `make gateway` и `make frontend` в двух терминалах.
 # Аватар — отдельный сервис, поднимается там, где есть GPU (см. services/avatar/README.md).
