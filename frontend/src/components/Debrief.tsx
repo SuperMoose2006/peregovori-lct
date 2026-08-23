@@ -10,6 +10,7 @@ import { formatDeal, plural } from "../lib/format";
 import { play } from "../lib/sound";
 import { ScreenHeading } from "./ScreenHeading";
 import { XpAward } from "./Gamification";
+import { Tikhon } from "./Mascot";
 
 const GRADE_COLOR: Record<string, string> = {
   A: "var(--trust)",
@@ -445,6 +446,17 @@ export function Debrief({
             {/* Разбор говорит, где вы просели; курс знает, где этому учат.
                 Связь не должна быть догадкой игрока. В экзамене её нет: там
                 сопровождение выключено до конца. */}
+            {/* Тихон помнит прошлую попытку на этом же столе. Это единственное
+                место, где продукт сравнивает вас с ВАМИ ЖЕ, а не с эталоном —
+                и данные для сравнения у него настоящие, из профиля. */}
+            {!exam && record && record.prevBest && record.prevBest.grade ? (
+              <Tikhon title={t.mascot.rememberTitle}>
+                {t.lastTime
+                  .replace("{grade}", record.prevBest.grade)
+                  .replace("{score}", String(record.prevBest.score))
+                  .replace("{now}", String(d.overall))}
+              </Tikhon>
+            ) : null}
             {!exam && onCourse && weakBlock ? (
               <button className="coach-course" onClick={() => onCourse(weakBlock.id)}>
                 {weakBlock.icon} {t.course.trainThis}: <b>{weakBlock.title[lang]}</b> →

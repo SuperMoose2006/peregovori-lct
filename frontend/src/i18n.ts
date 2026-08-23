@@ -405,6 +405,8 @@ export interface Strings {
   };
   debriefTitle: string;
   coachTitle: string;
+  // Тихон в разборе: сравнение с ВАШЕЙ прошлой попыткой на этом же столе.
+  lastTime: string;
   retry: string;
   toHome: string;
   outcome: {
@@ -989,6 +991,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
+    lastTime: "В прошлый раз за этим столом вы закрыли на {grade} ({score}). Сейчас — {now}. Сравнивайте себя с собой: у стола, где вы уже были, изменилась только ваша игра.",
     retry: "Пройти снова",
     toHome: "К сценариям",
     outcome: {
@@ -1586,6 +1589,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",
+    lastTime: "Last time at this table you closed at {grade} ({score}). Now — {now}. Compare yourself with yourself: at a table you have played before, the only thing that changed is your play.",
     retry: "Try again",
     toHome: "To scenarios",
     outcome: {
