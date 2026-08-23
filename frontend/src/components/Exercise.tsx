@@ -7,7 +7,7 @@
 //
 // Вердикт считает `lib/course.ts` тем же движком, что и партия. Здесь нет ни
 // одной собственной оценки — компонент только собирает ответ и рисует итог.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
@@ -109,6 +109,22 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
 
   const locked = verdict !== null;
 
+  // Цифры 1–4 выбирают вариант, Enter проверяет. Курс проходят десятками
+  // заданий подряд — тянуться мышью к каждому варианту это и есть та самая
+  // усталость, из-за которой бросают на третьем уроке.
+  useEffect(() => {
+    if (locked || !(ex.type === "choice" || ex.type === "spot_error")) return;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
+      const n = Number(e.key);
+      if (n >= 1 && n <= opts.options.length) { setPicked(n - 1); e.preventDefault(); }
+      else if (e.key === "Enter" && picked !== null) { submit(); e.preventDefault(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   return (
     <div className={`ex ex--${ex.type}${locked ? (verdict!.ok ? " ok" : " bad") : ""}`}>
       <div className="ex-kind">{t.course.types[ex.type]}</div>
@@ -132,7 +148,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
 
       {/* ---- варианты ---- */}
       {(ex.type === "choice" || ex.type === "spot_error") ? (
-        <ul className="ex-opts">
+        <ul className="ex-opts" role="listbox" aria-label={say(ex.prompt, lang)}>
           {opts.options.map((o, i) => {
             const right = locked && i === opts.answer;
             const wrong = locked && i === picked && i !== opts.answer;
@@ -142,6 +158,8 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
                   className={`ex-opt${picked === i ? " on" : ""}${right ? " right" : ""}${wrong ? " wrong" : ""}`}
                   onClick={() => !locked && setPicked(i)}
                   disabled={locked}
+                  role="option"
+                  aria-selected={picked === i}
                 >
                   {say(o as L, lang)}
                 </button>
@@ -287,7 +305,9 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       {/* ---- итог ---- */}
       {ex.type !== "drill" ? (
         locked ? (
-          <div className={`ex-verdict ${verdict!.ok ? "ok" : "bad"}`}>
+          // Вердикт объявляется скринридеру: без live-региона незрячий игрок
+          // узнаёт результат, только наткнувшись на него табом.
+          <div className={`ex-verdict ${verdict!.ok ? "ok" : "bad"}`} role="status" aria-live="polite">
             <b>{verdict!.ok ? t.course.correct : t.course.wrong}</b>
             {!verdict!.ok && verdict!.reasons.length ? (
               <ul className="ex-why">
