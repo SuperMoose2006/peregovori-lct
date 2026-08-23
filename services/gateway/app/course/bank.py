@@ -209,8 +209,8 @@ BANK: list[dict] = [
         "prompt": T("Что произошло с Ириной?", "What happened to Irina?"),
         "explain": T(
             "SPIN-вопрос вскрывает интерес: Информация +22, доверие вверх, напряжение вниз. Это "
-            "«приоткрылась» — не «потеплела» (для этого нужно активное слушание) и не «убеждена "
-            "данными» (для этого нужен критерий).",
+            "«приоткрывается» — не «теплеет» (для этого нужно активное слушание) и не «принимает "
+            "довод» (для этого нужен критерий).",
             "A SPIN question uncovers an interest: Information +22, trust up, tension down. That is "
             "“opened up” — not “warmed” (that needs active listening) and not “persuaded” (that needs "
             "a criterion)."),
@@ -758,7 +758,7 @@ BANK: list[dict] = [
         "answer": "collaborated",
         "prompt": T("Что произошло с Ириной?", "What happened to Irina?"),
         "explain": T(
-            "Размен — единственный ход, дающий «готова сотрудничать». Он же двигает её цену сильнее "
+            "Размен — единственный ход, дающий «идёт навстречу». Он же двигает её цену сильнее "
             "всего в игре: к базовой уступке добавляется вклад годового контракта.",
             "A trade is the only move that yields “collaborated”. It also moves her price more than "
             "anything else in the game: the annual commitment stacks on the base concession."),
@@ -882,7 +882,7 @@ BANK: list[dict] = [
         ],
         "answer": 1, "fault_key": "repeat_same_line",
         "explain": T(
-            "Первый раз эта реплика даёт «убеждена данными» и рычаг +16. Второй — качество аргумента "
+            "Первый раз эта реплика даёт «принимает довод» и рычаг +16. Второй — качество аргумента "
             "≤12 и уступка ×0.15. Анти-гейминг встроен в движок: одно и то же, сказанное громче, не работает.",
             "The first send yields “persuaded” and leverage +16. The second: argument quality ≤12 and "
             "concession ×0.15. Anti-gaming is built into the engine: the same thing said louder does "

@@ -347,7 +347,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "Anchor only with a criterion"
         },
         "body": {
-          "ru": "Голая цифра — это заявка на упрямство, и она приглашает такую же в ответ. Цифра, выведенная из внешнего источника, делает вашу систему координат общей.\n\nВ движке разница видна: голый контр-якорь даёт качество аргумента 26, тот же якорь с критерием — реакцию «убеждена данными» и рычаг +16.",
+          "ru": "Голая цифра — это заявка на упрямство, и она приглашает такую же в ответ. Цифра, выведенная из внешнего источника, делает вашу систему координат общей.\n\nВ движке разница видна: голый контр-якорь даёт качество аргумента 26, тот же якорь с критерием — реакцию «принимает довод» и рычаг +16.",
           "en": "A bare number is a bid for stubbornness, and it invites the same in return. A number derived from an outside source makes your frame the shared one.\n\nThe engine shows the gap: a bare counter-anchor scores argument quality 26; the same anchor with a criterion yields “persuaded by data” and leverage +16."
         }
       },
@@ -406,7 +406,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The cheap-to-me / dear-to-them matrix"
         },
         "body": {
-          "ru": "Годовой контракт стоит вам 0.2, а для поставщика стоит 0.85 — идеальная фишка. Предоплата 30% стоит вам 0.45, а ценит она её на 0.55 — посредственная.\n\nПорядок размена именно такой: сперва то, где разрыв больше. Отдать сначала дорогое для себя — значит потратить всю доброжелательность на полдороге.",
+          "ru": "Годовой контракт стоит вам 0.2, а для поставщика он стоит 0.85 — идеальная фишка. Предоплата 30% обходится вам в 0.45, а ценится всего в 0.55 — посредственная.\n\nПорядок размена именно такой: сперва то, где разрыв больше. Отдать сначала дорогое для себя — значит потратить всю доброжелательность на полдороге.",
           "en": "An annual commitment costs you 0.2 and is worth 0.85 to the supplier — a perfect chip. A 30% prepayment costs you 0.45 and is worth 0.55 — a mediocre one.\n\nTrade in that order: the widest gap first. Giving away what is expensive to you first spends all the goodwill halfway."
         }
       },
@@ -513,7 +513,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The meeting point"
         },
         "body": {
-          "ru": "Сделка закрывается не на последней цифре оппонента, а в точке offer_opp + (offer_player − offer_opp) · (0.3 + 0.45 · гибкость).\n\nГибкость собрана из доверия, информации и рычага — из всего, что вы делали предыдущие десять ходов. Именно здесь эта работа превращается в деньги.",
+          "ru": "Сделка закрывается не на последней цифре оппонента, а в точке\nих цифра + (ваша цифра − их цифра) · (0.3 + 0.45 · гибкость).\n\nГибкость собрана из доверия, информации и рычага — из всего, что вы делали предыдущие десять ходов. Именно здесь эта работа превращается в деньги.",
           "en": "The deal does not settle at their last number, but at offer_opp + (offer_player − offer_opp) · (0.3 + 0.45 · flexibility).\n\nFlexibility is built from trust, information and leverage — from everything you did over the previous ten turns. This is where that work turns into money."
         }
       },
@@ -938,7 +938,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "What happened to Irina?"
     },
     "explain": {
-      "ru": "SPIN-вопрос вскрывает интерес: Информация +22, доверие вверх, напряжение вниз. Это «приоткрылась» — не «потеплела» (для этого нужно активное слушание) и не «убеждена данными» (для этого нужен критерий).",
+      "ru": "SPIN-вопрос вскрывает интерес: Информация +22, доверие вверх, напряжение вниз. Это «приоткрывается» — не «теплеет» (для этого нужно активное слушание) и не «принимает довод» (для этого нужен критерий).",
       "en": "A SPIN question uncovers an interest: Information +22, trust up, tension down. That is “opened up” — not “warmed” (that needs active listening) and not “persuaded” (that needs a criterion)."
     }
   },
@@ -1998,7 +1998,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "What happened to Irina?"
     },
     "explain": {
-      "ru": "Размен — единственный ход, дающий «готова сотрудничать». Он же двигает её цену сильнее всего в игре: к базовой уступке добавляется вклад годового контракта.",
+      "ru": "Размен — единственный ход, дающий «идёт навстречу». Он же двигает её цену сильнее всего в игре: к базовой уступке добавляется вклад годового контракта.",
       "en": "A trade is the only move that yields “collaborated”. It also moves her price more than anything else in the game: the annual commitment stacks on the base concession."
     }
   },
@@ -2236,7 +2236,7 @@ export const COURSE_BANK: Exercise[] = [
     "answer": 1,
     "fault_key": "repeat_same_line",
     "explain": {
-      "ru": "Первый раз эта реплика даёт «убеждена данными» и рычаг +16. Второй — качество аргумента ≤12 и уступка ×0.15. Анти-гейминг встроен в движок: одно и то же, сказанное громче, не работает.",
+      "ru": "Первый раз эта реплика даёт «принимает довод» и рычаг +16. Второй — качество аргумента ≤12 и уступка ×0.15. Анти-гейминг встроен в движок: одно и то же, сказанное громче, не работает.",
       "en": "The first send yields “persuaded” and leverage +16. The second: argument quality ≤12 and concession ×0.15. Anti-gaming is built into the engine: the same thing said louder does not work."
     }
   },
