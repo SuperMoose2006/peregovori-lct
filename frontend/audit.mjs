@@ -17,7 +17,8 @@ const VPS = [
   { w: 1440, h: 900, tag: "dark-attr", scheme: "dark",  attr: "dark" },
 ];
 const findings = [];
-const add = (sev, where, kind, msg) => findings.push({ sev, where, kind, msg });
+let VP = "";
+const add = (sev, where, kind, msg) => findings.push({ sev, where: where + "@" + VP, kind, msg });
 
 // ——— проверки, которые гоняются на каждом состоянии ———
 const PROBE = `(() => {
@@ -38,18 +39,20 @@ const PROBE = `(() => {
     return r.width > 0 && r.height > 0;
   };
 
-  // текст, вылезающий за свой контейнер
+  // Текст, который РЕАЛЬНО обрезается. Прошлая версия считала переполнением
+  // любой выход за родителя — и ловила обычную вертикальную прокрутку рейла.
+  // Признак настоящей беды один: контейнер клипует, а содержимое шире.
   for (const el of document.querySelectorAll("body *")) {
     if (!vis(el)) continue;
     const s = getComputedStyle(el);
-    if (s.overflow !== "visible" && s.overflow !== "" ) continue;
-    if (el.children.length) continue;
-    const p = el.parentElement; if (!p) continue;
-    const ps = getComputedStyle(p);
-    if (ps.overflow === "visible") continue;
-    const r = el.getBoundingClientRect(), pr = p.getBoundingClientRect();
-    if (r.right > pr.right + 2 || r.bottom > pr.bottom + 2) {
-      out.overflow.push((el.className || el.tagName) + " :: " + (el.textContent || "").trim().slice(0, 40));
+    const clipsX = s.overflowX === "hidden" || s.overflowX === "clip";
+    if (!clipsX) continue;
+    // sr-only обрезан НАМЕРЕННО: это коробка 1×1 для экранного диктора.
+    if (el.clientWidth <= 2 || el.clientHeight <= 2) continue;
+    if (/\bsr-only\b/.test(el.className || "")) continue;
+    if (el.scrollWidth > el.clientWidth + 1) {
+      const t = (el.textContent || "").trim();
+      if (t) out.overflow.push(Math.round(el.scrollWidth - el.clientWidth) + "px срезано :: " + (el.className || el.tagName) + " :: " + t.slice(0, 40));
     }
   }
 
@@ -123,6 +126,7 @@ async function probe(page, where, tag) {
 const browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] });
 
 for (const vp of VPS) {
+  VP = vp.tag;
   const ctx = await browser.newContext({ viewport: { width: vp.w, height: vp.h }, deviceScaleFactor: 1, colorScheme: vp.scheme });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => add("BAD", "*", "js", "PAGEERROR " + String(e).slice(0, 120)));
@@ -154,6 +158,75 @@ for (const vp of VPS) {
   // Профиль
   await page.click('text=ПРОФИЛЬ').catch(()=>{});
   await page.waitForTimeout(1200); await probe(page, "profile", vp.tag);
+
+  // ——— глубокие состояния ———
+  // Курс: блок → урок → упражнение
+  await page.click('text=КУРС').catch(()=>{});
+  await page.waitForTimeout(1200);
+  const blockBtn = page.locator(".cnode-btn:not(:disabled)").first();
+  if (await blockBtn.count()) {
+    await blockBtn.click().catch(()=>{});
+    await page.waitForTimeout(1200); await probe(page, "course-block", vp.tag);
+    const lesson = page.locator(".lesson-list button").first();
+    if (await lesson.count()) {
+      await lesson.click().catch(()=>{});
+      await page.waitForTimeout(1000); await probe(page, "course-lesson", vp.tag);
+    }
+    // упражнения: пройти сколько получится, снимая каждый ВСТРЕЧЕННЫЙ тип
+    const seen = new Set();
+    for (let i = 0; i < 14; i++) {
+      const kind = await page.evaluate(() => {
+        const ex = document.querySelector(".ex");
+        return ex ? (ex.getAttribute("data-kind") || ex.className) : null;
+      });
+      if (!kind) break;
+      if (!seen.has(kind)) { seen.add(kind); await probe(page, "ex-" + String(kind).replace(/\s+/g,"-").slice(0,24), vp.tag); }
+      const nextBtn = page.locator(".ex button:not(:disabled)").first();
+      if (!await nextBtn.count()) break;
+      await nextBtn.click().catch(()=>{});
+      await page.waitForTimeout(700);
+    }
+  }
+
+  // Тренировка → подготовка со слоями → партия → исход → разбор
+  await page.click('text=ТРЕНИРОВКА').catch(()=>{});
+  await page.waitForTimeout(1200);
+  await page.locator(".card .go, .card button").first().click().catch(()=>{});
+  await page.waitForTimeout(1400);
+  if (await page.locator(".setup, .ly").count()) await probe(page, "setup-layers", vp.tag);
+  await page.locator("button:has-text('НАЧАТЬ'), button:has-text('ЗА СТОЛ')").first().click().catch(()=>{});
+  await page.waitForSelector(".chat", { timeout: 20000 }).catch(()=>{});
+  await page.waitForTimeout(1600);
+  await probe(page, "game-turn0", vp.tag);
+
+  const LINES = ["Что для вас важнее всего в этой сделке и почему именно это?",
+    "А почему для вас важен денежный поток — предоплата помогла бы?",
+    "По рынку аналог идёт 86-88; ориентир — 86.",
+    "Если дадим годовой контракт и 30% предоплату — подвинетесь к 86?",
+    "Договорились: 86 ₽/шт, годовой контракт, предоплата 30%. Фиксируем?"];
+  let shotMid = false, shotOut = false;
+  for (let i = 0; i < 14; i++) {
+    if (await page.locator(".debrief").count()) break;
+    try {
+      await page.fill("textarea", LINES[i % LINES.length], { timeout: 3500 });
+      await page.click(".send", { timeout: 5000 });
+    } catch { break; }
+    await page.waitForTimeout(1300);
+    if (!shotMid && i === 1) { shotMid = true; await probe(page, "game-mid", vp.tag); }
+    if (!shotOut && await page.locator(".outcome").count()) { shotOut = true; await probe(page, "outcome", vp.tag); }
+  }
+  await page.waitForSelector(".debrief", { timeout: 20000 }).catch(()=>{});
+  await page.waitForTimeout(1200);
+  if (await page.locator(".debrief").count()) {
+    await probe(page, "debrief-beat1", vp.tag);
+    for (let b = 2; b <= 3; b++) {
+      const next = page.locator(".beat-go, .beat-dot").nth(b - 1);
+      if (!await next.count()) break;
+      await next.click().catch(()=>{});
+      await page.waitForTimeout(900);
+      await probe(page, "debrief-beat" + b, vp.tag);
+    }
+  }
 
   await ctx.close();
 }

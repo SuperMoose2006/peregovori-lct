@@ -9,7 +9,7 @@ import type { Mode } from "../types";
 interface Props {
   t: Strings;
   /** Which entry reads as current. Modes map 1:1 onto the first four rows. */
-  active: Mode | "progress" | "profile" | "course";
+  active: Mode | "profile" | "course";
   onMode: (m: Mode) => void;
   onProfile: () => void;
   /** Курс приёмов — отдельный экран, а не режим партии. */
@@ -17,21 +17,23 @@ interface Props {
 }
 
 const ICONS: Record<string, string> = {
-  practice: "🎯", campaign: "🏆", course: "📚", custom: "🎲", exam: "🎓",
-  progress: "📊", profile: "👤",
+  practice: "🎯", campaign: "🏆", course: "📚", custom: "🎲", exam: "🎓", profile: "👤",
 };
 
 export function SideNav({ t, active, onMode, onProfile, onCourse }: Props) {
-  // Every row carries an explicit aria-label: at phone widths the visible label
-  // is display:none on all but the current tab and the icon is aria-hidden, so
-  // without it the primary navigation announces as five unnamed buttons.
+  // Явный aria-label на каждой строке: значок помечен aria-hidden, поэтому без
+  // него меню читалось бы диктору как несколько безымянных кнопок.
   const rows: { key: string; label: string; go: () => void }[] = [
     { key: "practice", label: t.nav.training, go: () => onMode("practice") },
     { key: "campaign", label: t.nav.campaign, go: () => onMode("campaign") },
     { key: "course", label: t.nav.course, go: onCourse },
     { key: "custom", label: t.nav.custom, go: () => onMode("custom") },
     { key: "exam", label: t.nav.exam, go: () => onMode("exam") },
-    { key: "progress", label: t.nav.progress, go: onProfile },
+    // «Прогресс» отсюда убран: он вёл на ТОТ ЖЕ экран профиля и вдобавок не мог
+    // подсветиться текущим — App.tsx считает активным «profile» в обоих случаях.
+    // Мёртвый пункт стоил седьмой вкладки, из-за которой на 390px подписи не
+    // влезали ни при одном читаемом размере (замер: 7 вкладок = 52px, «Своя
+    // сделка» требует 49px уже при 8px).
     { key: "profile", label: t.nav.profile, go: onProfile },
   ];
   return (
