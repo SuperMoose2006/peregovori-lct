@@ -13,9 +13,11 @@ scenarios — the engine remains the source of truth for state and scoring.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import secrets
+import time
 from typing import Optional
 
 from app.engine.scenarios import Scenario, Counterpart, Headline, Batna, register_runtime_scenario
@@ -127,21 +129,40 @@ def _dual_list(items: list) -> dict[str, list[str]]:
     return {"ru": lst, "en": lst}
 
 
+#: Общий бюджет на генерацию, включая ретрай. Клиент ждёт 30 с и показывает
+#: «не удалось» — значит сервер обязан сдаться РАНЬШЕ и с внятным ответом.
+#: Без этого потолка медленная модель просто вешала запрос: замер на glm-5.3
+#: дал 142 с на две попытки, и пользователь видел таймаут вместо объяснения.
+GEN_BUDGET_S = 22.0
+
+
 async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2) -> Optional[Scenario]:
     """Сгенерировать сценарий под свободное описание ситуации.
 
-    Роль `reasoning`, а не `opponent`: это происходит ОДИН раз за партию и вне
-    realtime-петли, поэтому здесь можно позволить модели думать дольше и лучше.
+    Роль `reasoning` — та же, что у финального разбора: это происходит ОДИН раз
+    за партию и вне realtime-петли. Но «вне петли» не значит «сколько угодно»:
+    человек смотрит в экран ожидания, поэтому есть общий бюджет.
+
     Ретрай — потому что дешёвые модели иногда предваряют JSON болтовнёй.
     """
     from app.providers.openrouter import chat as orchat
 
     system = _sys_prompt(lang)
     user = (situation or "").strip()[:1500]
+    deadline = time.perf_counter() + GEN_BUDGET_S
     d = None
     for _ in range(max(1, attempts)):
-        raw = await orchat.complete(system, user, role="reasoning",
-                                    max_tokens=1400, temperature=0.7, raw=True)
+        remaining = deadline - time.perf_counter()
+        if remaining <= 0.5:
+            break
+        try:
+            raw = await asyncio.wait_for(
+                orchat.complete(system, user, role="reasoning",
+                                max_tokens=1400, temperature=0.7, raw=True),
+                timeout=remaining,
+            )
+        except (asyncio.TimeoutError, asyncio.CancelledError):
+            return None
         d = _extract_json(raw or "")
         if d:
             break
