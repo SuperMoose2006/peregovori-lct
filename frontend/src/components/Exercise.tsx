@@ -161,6 +161,9 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
                   role="option"
                   aria-selected={picked === i}
                 >
+                  {/* Номер — и подсказка про клавиши, и опора для взгляда:
+                      «второй» проще держать в голове, чем полстроки текста. */}
+                  <span className="ex-num-k" aria-hidden="true">{i + 1}</span>
                   {say(o as L, lang)}
                 </button>
               </li>

@@ -2932,3 +2932,11 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   background: transparent; color: var(--brass); font: inherit; font-size: 13px;
   font-weight: 800; cursor: pointer; }
 .coach-course:hover { background: color-mix(in srgb, var(--brass) 10%, transparent); }
+/* Номер варианта: подсказка про клавиши 1–4 и опора для взгляда. */
+.ex-opts .ex-opt { display: flex; align-items: flex-start; gap: 10px; }
+.ex-num-k { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 6px;
+  background: var(--panel); border: 1px solid var(--line-2); color: var(--ink-faint);
+  font-size: 11px; font-weight: 800; display: grid; place-items: center; margin-top: 1px; }
+.ex-opt.on .ex-num-k { border-color: var(--brass); color: var(--brass); }
+.ex-opt.right .ex-num-k { border-color: var(--trust); color: var(--trust); }
+.ex-opt.wrong .ex-num-k { border-color: var(--tension); color: var(--tension); }
