@@ -13,7 +13,10 @@
 //
 //   node e2e/smoke.mjs [--url http://127.0.0.1:8010] [--out /tmp/shots]
 //
-// Нужен установленный chromium из playwright-core (см. README).
+// playwright-core объявлен в devDependencies, но БРАУЗЕР он с собой не тащит:
+// путь к chromium берётся из CHROME_PATH или из кэша playwright по умолчанию.
+// Нет браузера — прогон честно падает с понятной ошибкой, а не «зелёный, потому
+// что ничего не проверял».
 import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
 
@@ -30,7 +33,14 @@ const EXE = process.env.CHROME_PATH
 mkdirSync(OUT, { recursive: true });
 
 const problems = [];
-const browser = await chromium.launch({ executablePath: EXE });
+let browser;
+try {
+  browser = await chromium.launch({ executablePath: EXE });
+} catch (e) {
+  console.error(`не удалось запустить chromium (${EXE}).\n` +
+    "Укажите путь через CHROME_PATH=… или поставьте браузер: npx playwright install chromium\n" + e);
+  process.exit(2);
+}
 
 /** Профиль со всеми сданными блоками — иначе половина курса заперта. */
 const UNLOCKED = `(() => {
