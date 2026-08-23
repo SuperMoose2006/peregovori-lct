@@ -267,7 +267,9 @@ export interface Strings {
     tikhonTitle: string; tikhonBody: string;
     types: Record<string, string>;
     meters: Record<string, string>;
-    reactions: Record<string, string>;
+    // Ярлыков реакций здесь НЕТ намеренно: они живут в `probe.reactions` и
+    // используются оттуда же. Две копии одного словаря разошлись бы — и урок
+    // называл бы состояние иначе, чем подпись под портретом в партии.
     moves: Record<string, string>;
     why: { missing: string; missingAny: string; forbidden: string; missingTerm: string;
            tooShort: string; weak: string; noNumber: string; generic: string };
@@ -852,14 +854,6 @@ export const I18N: Record<Lang, Strings> = {
       },
       meters: { trust: "Доверие", tension: "Напряжение", info: "Информация",
                 leverage: "Рычаг", up: "Вырастет", down: "Упадёт" },
-      // Нейтрально по роду — задание «прочитай лицо» показывает и мужские портреты.
-      reactions: {
-        walked_out: "Встаёт из-за стола", offended: "Принимает на свой счёт",
-        hardened: "Закрывается", pressured: "Под давлением",
-        not_yet: "Пока не соглашается", neutral: "Держит нейтралитет",
-        collaborated: "Идёт навстречу", persuaded: "Принимает довод",
-        opened_up: "Приоткрывается", warmed: "Теплеет",
-      },
       moves: {
         interests_probe: "вскрытие интереса", acknowledge: "активное слушание",
         objective_criteria: "объективный критерий", batna: "альтернатива",
@@ -1328,7 +1322,7 @@ export const I18N: Record<Lang, Strings> = {
     mascot: {
       karl: "Karl",
       tikhon: "Tikhon",
-      greeting: "Don't rush to the number. Find out what matters to her first.",
+      greeting: "Don't rush to the number. Find out what matters to the other side first.",
       thinking: "One moment, looking…",
       rememberTitle: "Tikhon remembers",
     },
@@ -1342,7 +1336,7 @@ export const I18N: Record<Lang, Strings> = {
       peekOpen: "check your light",
     },
     probe: {
-      ask: "What is she feeling now?",
+      ask: "What is going on with them right now?",
       readFace: "Read the face",
       blocked: "Answer the question to continue",
       tally: "read {n} of {m}",
@@ -1355,18 +1349,18 @@ export const I18N: Record<Lang, Strings> = {
         hardened: "Closed off", offended: "Offended", walked_out: "Leaving the table",
       },
       why: {
-        warmed: "Trust rose — you hit her actual interest.",
-        opened_up: "Information jumped: she shared what she had been holding back.",
-        persuaded: "Leverage rose — an objective criterion convinced her, not pressure.",
+        warmed: "Trust rose — you hit their actual interest.",
+        opened_up: "Information jumped: they shared what they had been holding back.",
+        persuaded: "Leverage rose — an objective criterion convinced them, not pressure.",
         collaborated: "Tension fell and trust rose: you offered a trade.",
-        neutral: "The meters barely moved — the move passed her by.",
-        not_yet: "She did not refuse, but did not move either: too early to close.",
-        pressured: "Tension rose — she read that as a push.",
-        hardened: "Tension rose and trust fell — she closed off.",
+        neutral: "The meters barely moved — the move passed them by.",
+        not_yet: "No refusal, but no movement either: too early to close.",
+        pressured: "Tension rose — they read that as a push.",
+        hardened: "Tension rose and trust fell — they closed off.",
         offended: "Trust collapsed: a harsh tone hits harder than any argument.",
-        walked_out: "She is getting up — tension hit its limit.",
+        walked_out: "They are getting up — tension hit its limit.",
       },
-      debriefHead: "How well you read her",
+      debriefHead: "How well you read them",
       observation: "observation · does not affect the grade",
     },
     nav: { training: "Training", campaign: "Campaign", custom: "Your deal",
@@ -1453,12 +1447,6 @@ export const I18N: Record<Lang, Strings> = {
       },
       meters: { trust: "Trust", tension: "Tension", info: "Information",
                 leverage: "Leverage", up: "Rises", down: "Falls" },
-      reactions: {
-        walked_out: "Walked out", offended: "Offended", hardened: "Hardened",
-        pressured: "Pressured", not_yet: "Not yet", neutral: "Neutral",
-        collaborated: "Ready to cooperate", persuaded: "Persuaded by data",
-        opened_up: "Opened up", warmed: "Warmed up",
-      },
       moves: {
         interests_probe: "interest probe", acknowledge: "active listening",
         objective_criteria: "objective criterion", batna: "alternative",

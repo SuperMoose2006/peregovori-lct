@@ -186,7 +186,9 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
           {(ex.type === "meters" ? metersOptions(ex) : reactionOptions(ex)).map((o) => {
             const label = ex.type === "meters"
               ? (t.course.meters as Record<string, string>)[o] ?? o
-              : t.course.reactions[o as keyof Strings["course"]["reactions"]];
+              // Ярлыки реакций берём из слоя «Читай лицо»: один словарь на
+              // урок, задание и подпись под портретом в партии.
+              : t.probe.reactions[o] ?? o;
             const right = locked && o === ex.answer;
             const wrong = locked && o === pick && o !== ex.answer;
             return (
