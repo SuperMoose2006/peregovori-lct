@@ -5,7 +5,7 @@ import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, WhatIfBran
 import type { Strings } from "../i18n";
 import type { GameResult, RecordResult } from "../lib/progress";
 import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
-import { formatDeal } from "../lib/format";
+import { formatDeal, plural } from "../lib/format";
 import { play } from "../lib/sound";
 import { ScreenHeading } from "./ScreenHeading";
 import { XpAward } from "./Gamification";
@@ -145,11 +145,12 @@ export function Debrief({
 
   const cells: Array<{ n: string; l: string }> = [
     { n: `${d.spin_stages}/3`, l: t.stat.spin },
-    { n: String(d.objective_criteria), l: t.stat.criteria },
-    { n: String(d.empathy), l: t.stat.empathy },
+    // Подпись согласуется с числом: «1 критерий», а не «1 критериев».
+    { n: String(d.objective_criteria), l: plural(d.objective_criteria, t.statForms.criteria) },
+    { n: String(d.empathy), l: plural(d.empathy, t.statForms.empathy) },
     { n: `${d.interests_found}/${d.interests_total}`, l: t.stat.interests },
-    { n: String(d.tradeoffs), l: t.stat.tradeoffs },
-    { n: String(d.threats), l: t.stat.threats },
+    { n: String(d.tradeoffs), l: plural(d.tradeoffs, t.statForms.tradeoffs) },
+    { n: String(d.threats), l: plural(d.threats, t.statForms.threats) },
     { n: String(d.avg_arg), l: t.stat.arg },
   ];
 

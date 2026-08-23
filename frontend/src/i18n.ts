@@ -423,6 +423,15 @@ export interface Strings {
     threats: string;
     arg: string;
   };
+  // Счётные подписи в разборе. Родительный падеж под цифрой давал «1 критериев»
+  // — тренажёр, который учит формулировкам, так писать не может. Формы:
+  // [1, 2–4, 5+]; английский передаёт две одинаковые формы множественного.
+  statForms: {
+    criteria: [string, string, string];
+    empathy: [string, string, string];
+    tradeoffs: [string, string, string];
+    threats: [string, string, string];
+  };
   footRight: string;
   quickMoves: QuickMove[];
   // gamification (localStorage): XP/ranks, daily goal, skill mastery, achievements
@@ -986,6 +995,12 @@ export const I18N: Record<Lang, Strings> = {
       tradeoffs: "разменов",
       threats: "угроз",
       arg: "аргументация",
+    },
+    statForms: {
+      criteria: ["критерий", "критерия", "критериев"],
+      empathy: ["слушание", "слушания", "слушаний"],
+      tradeoffs: ["размен", "размена", "разменов"],
+      threats: ["угроза", "угрозы", "угроз"],
     },
     footRight: "исход зависит от вашей стратегии",
     gam: {
@@ -1567,6 +1582,12 @@ export const I18N: Record<Lang, Strings> = {
       tradeoffs: "trade-offs",
       threats: "threats",
       arg: "argumentation",
+    },
+    statForms: {
+      criteria: ["criterion", "criteria", "criteria"],
+      empathy: ["listen", "listens", "listens"],
+      tradeoffs: ["trade-off", "trade-offs", "trade-offs"],
+      threats: ["threat", "threats", "threats"],
     },
     footRight: "the outcome depends on your strategy",
     gam: {
