@@ -48,8 +48,13 @@ export interface RealtimeTransportOptions extends RealtimeExtras {
   // транспорт создан. Читать их из опций конструктора значило бы читать
   // состояние на такт раньше, чем оно установлено, — и микрофон включался бы
   // с опозданием на одну партию.
-  videoEl?: HTMLVideoElement | null;
-  canvasEl?: HTMLCanvasElement | null;
+  /* ССЫЛКИ, А НЕ ЭЛЕМЕНТЫ. Раньше сюда клали `ref.current`, и значение читалось
+     в момент создания транспорта — то есть ДО того, как смонтируется панель с
+     <video>. Запоминался null, поток камеры привязывать было не к чему, кадры
+     не снимались, и слой камеры молча ничего не делал. Разрешаем ссылку в
+     момент запуска камеры, когда элемент уже на месте. */
+  videoEl?: { current: HTMLVideoElement | null } | null;
+  canvasEl?: { current: HTMLCanvasElement | null } | null;
 }
 
 export class RealtimeTransport implements Transport {
@@ -152,7 +157,9 @@ export class RealtimeTransport implements Transport {
         text: String(created.greeting ?? ""),
         judge_active: Boolean((created.capabilities as Record<string, unknown>)?.judge),
       });
-      if (this.voiceWanted) await this.startVoice();
+      // Камера — самостоятельный слой: без этого условия она включалась
+      // только заодно с голосом, а сама по себе молча не работала.
+      if (this.voiceWanted || this.cameraWanted) await this.startMedia();
     } catch (error) {
       this.emit({ type: "error", message: (error as Error).message });
       this.onConn("lost");
@@ -166,26 +173,35 @@ export class RealtimeTransport implements Transport {
    * пустого экрана человек видит ошибку и продолжает. Обратный порядок сделал
    * бы отказ в микрофоне отказом в игре.
    */
-  private async startVoice(): Promise<void> {
-    this.player = new AudioPlayer({ outputSampleRate: 24000 });
-    this.player.init();
+  private async startMedia(): Promise<void> {
+    if (this.voiceWanted) {
+      this.player = new AudioPlayer({ outputSampleRate: 24000 });
+      this.player.init();
+    }
 
     if (!MediaProvider.supported()) {
-      this.emit({ type: "error", message: "Микрофон недоступен: нужен HTTPS." });
+      this.emit({ type: "error", message: this.voiceWanted
+        ? "Микрофон недоступен: нужен HTTPS."
+        : "Камера недоступна: нужен HTTPS." });
       return;
     }
     this.media = new MediaProvider({
-      video: this.options.videoEl ?? undefined,
-      canvas: this.options.canvasEl ?? undefined,
+      video: this.options.videoEl?.current ?? undefined,
+      canvas: this.options.canvasEl?.current ?? undefined,
+      videoRef: this.options.videoEl ?? null,
+      canvasRef: this.options.canvasEl ?? null,
     });
     this.media.onChunk = ({ audio, frame }) => {
       this.session?.sendAudio(toBase64(audio.buffer), frame);
     };
+    this.media.onFrame = (frame) => { this.session?.sendFrame(frame); };
     try {
-      await this.media.start({ camera: this.cameraWanted });
+      await this.media.start({ camera: this.cameraWanted, mic: this.voiceWanted });
     } catch (error) {
       this.media = null;
-      this.emit({ type: "error", message: `Микрофон не включился: ${(error as Error).message}` });
+      this.emit({ type: "error", message: this.voiceWanted
+        ? `Микрофон не включился: ${(error as Error).message}`
+        : `Камера не включилась: ${(error as Error).message}` });
     }
   }
 

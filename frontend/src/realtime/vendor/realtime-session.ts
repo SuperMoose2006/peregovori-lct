@@ -129,6 +129,15 @@ export class RealtimeSession {
     this.send({ type: "input.append", input }, /* quiet */ true);
   }
 
+  /**
+   * Кадр без звука. Нужен, когда включена ОДНА камера: кадры ездили прицепом
+   * к звуковым чанкам, поэтому без микрофона на сервер не уходило ничего —
+   * слой камеры рисовал окно и молча не работал.
+   */
+  sendFrame(frame: string): void {
+    this.send({ type: "input.append", input: { video_frames: [frame] } }, /* quiet */ true);
+  }
+
   /** Явное «я закончил» — когда человек не хочет ждать детектора конца хода. */
   commit(): void {
     this.send({ type: "input.commit" });

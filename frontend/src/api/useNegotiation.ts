@@ -146,14 +146,27 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
         {
           // Голос и камера сюда не передаются: их выбирают на экране
           // подготовки, и они приезжают в сообщении `start` (см. transport.ts).
-          videoEl: realtimeRef.current.videoRef?.current ?? null,
-          canvasEl: realtimeRef.current.canvasRef?.current ?? null,
+          videoEl: realtimeRef.current.videoRef ?? null,
+          canvasEl: realtimeRef.current.canvasRef ?? null,
           onAvatar: (avatarState) =>
             setS((p) => ({ ...p, avatarState, oppSpeaking: avatarState === "speaking" })),
           onObservation: (text) =>
             setS((p) => ({ ...p, observations: [...p.observations, text] })),
+          // ГОЛОС И КЛАВИАТУРА ОБЯЗАНЫ ДАВАТЬ ОДИН И ТОТ ЖЕ ХОД — включая то, что
+          // человек видит. Раньше финальная расшифровка просто гасила живой
+          // предпросмотр (`transcript: null`), а сам текст выбрасывался: партия
+          // голосом шла без единой своей реплики в ленте, и игрок не мог
+          // проверить, что именно услышала система. Теперь финал становится
+          // обычной репликой «me» — и получает чипы приёмов и дельты от судьи
+          // тем же кодом, что и напечатанная (см. attach ниже по файлу).
           onTranscript: (text, final) =>
-            setS((p) => ({ ...p, transcript: final ? null : text })),
+            setS((p) => {
+              if (!final) return { ...p, transcript: text };
+              const said = text.trim();
+              if (!said) return { ...p, transcript: null };
+              return { ...p, transcript: null,
+                       log: [...p.log, { id: nextId(), kind: "me", text: said }] };
+            }),
           onSpeech: (userSpeaking) => setS((p) => ({ ...p, userSpeaking })),
           onCapabilities: (capabilities) => setS((p) => ({ ...p, capabilities })),
         },

@@ -671,6 +671,7 @@ export default function App() {
           t={t}
           d={nego.debrief}
           probeStats={layers.probe ? probeStats : undefined}
+          observations={layers.camera ? nego.observations : undefined}
           mode={mode}
           lang={lang}
           scenarioTitle={nego.scenario?.title}

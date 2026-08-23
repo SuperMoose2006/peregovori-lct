@@ -84,6 +84,12 @@ export interface MediaProviderOptions {
   /** Куда рисовать кадры перед кодированием. Может быть скрытым. */
   canvas?: HTMLCanvasElement;
   video?: HTMLVideoElement;
+  /* ССЫЛКИ НА ЕЩЁ НЕ СМОНТИРОВАННЫЕ ЭЛЕМЕНТЫ. Камера поднимается по
+     `session.created`, а панель с <video> появляется только следующей
+     перерисовкой — на момент старта элементов ещё нет. Держим ссылки и
+     привязываемся, как только они появятся. */
+  videoRef?: { current: HTMLVideoElement | null } | null;
+  canvasRef?: { current: HTMLCanvasElement | null } | null;
   /** Как часто снимать кадр. Транспорт камеры и обращение к модели — разные вещи:
    *  сервер сам решает, какой кадр показать модели (`perception/vision.py`). */
   frameIntervalMs?: number;
@@ -102,16 +108,23 @@ export class MediaProvider {
   private canvas: HTMLCanvasElement | null;
   private video: HTMLVideoElement | null;
   private ctx2d: CanvasRenderingContext2D | null = null;
+  private videoRef: { current: HTMLVideoElement | null } | null = null;
+  private canvasRef: { current: HTMLCanvasElement | null } | null = null;
   private lastFrameAt = 0;
   private readonly frameIntervalMs: number;
 
   private micEnabled = true;
   running = false;
   onChunk: ((chunk: MediaChunk) => void) | null = null;
+  /** Кадр без звука — путь для режима «камера без микрофона». */
+  onFrame: ((frame: string) => void) | null = null;
+  private frameTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: MediaProviderOptions = {}) {
     this.canvas = options.canvas ?? null;
     this.video = options.video ?? null;
+    this.videoRef = options.videoRef ?? null;
+    this.canvasRef = options.canvasRef ?? null;
     this.frameIntervalMs = options.frameIntervalMs ?? 1000;
   }
 
@@ -120,11 +133,27 @@ export class MediaProvider {
     return typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
   }
 
-  async start(options: { camera?: boolean } = {}): Promise<void> {
+  /**
+   * `mic` отделён от `camera` НАМЕРЕННО. Раньше метод всегда открывал микрофон,
+   * поэтому слой камеры не мог работать сам по себе: включив одну камеру,
+   * человек молча отдавал и микрофон. Просить больше, чем включил пользователь,
+   * — это не мелочь интерфейса, а нарушение обещания на экране подготовки.
+   */
+  async start(options: { camera?: boolean; mic?: boolean } = {}): Promise<void> {
     if (!MediaProvider.supported()) {
       throw new Error("Браузер не даёт доступ к микрофону. Нужен HTTPS.");
     }
     if (options.camera) await this.startCamera();
+    if (options.mic === false) {
+      // Без микрофона нет и звукового конвейера, к чанкам которого прицеплены
+      // кадры. Заводим собственный такт с тем же интервалом.
+      this.running = true;
+      this.frameTimer = setInterval(() => {
+        const f = this.grabFrame();
+        if (f) this.onFrame?.(f);
+      }, this.frameIntervalMs);
+      return;
+    }
 
     this.audioStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -212,6 +241,7 @@ export class MediaProvider {
       }
     }
     this.ctx = null;
+    if (this.frameTimer) { clearInterval(this.frameTimer); this.frameTimer = null; }
     if (this.workletUrl) {
       URL.revokeObjectURL(this.workletUrl);
       this.workletUrl = null;
@@ -225,6 +255,7 @@ export class MediaProvider {
       audio: false,
       video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
     });
+    this.bindElements();
     if (this.video) {
       this.video.srcObject = this.videoStream;
       await this.video.play().catch(() => {
@@ -234,7 +265,23 @@ export class MediaProvider {
     if (this.canvas) this.ctx2d = this.canvas.getContext("2d");
   }
 
+  /** Привязать поток к элементам, как только они появились в разметке. */
+  private bindElements(): void {
+    if (!this.video && this.videoRef?.current) {
+      this.video = this.videoRef.current;
+      if (this.videoStream) {
+        this.video.srcObject = this.videoStream;
+        void this.video.play().catch(() => { /* политика автоплея */ });
+      }
+    }
+    if (!this.canvas && this.canvasRef?.current) {
+      this.canvas = this.canvasRef.current;
+      this.ctx2d = this.canvas.getContext("2d");
+    }
+  }
+
   private grabFrame(): string | null {
+    this.bindElements();
     if (!this.videoStream || !this.video || !this.canvas || !this.ctx2d) return null;
     const now = performance.now();
     if (now - this.lastFrameAt < this.frameIntervalMs) return null;

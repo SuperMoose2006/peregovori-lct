@@ -38,6 +38,10 @@ interface Props {
   /** How many "read her face" questions were asked and answered correctly.
    *  Absent when the layer was off — the card then does not render at all. */
   probeStats?: { asked: number; right: number };
+  /** Наблюдения слоя камеры. Они идут в контекст оппонента и НИКОГДА в счёт —
+   *  но экран подготовки обещает игроку «кто в кадре, куда смотрите», поэтому
+   *  показать их надо: иначе слой обещает то, чего человек не увидит. */
+  observations?: string[];
   onRetry: () => void;
   onHome: () => void;
   // Campaign mode: the primary action advances the arc instead of replaying.
@@ -64,7 +68,7 @@ interface Props {
 }
 
 export function Debrief({
-  t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, onRetry, onHome, onNext, nextLabel,
+  t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, observations, onRetry, onHome, onNext, nextLabel,
   runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
   secondaryIssues, termsConceded, onCourse,
 }: Props) {
@@ -372,6 +376,18 @@ export function Debrief({
                   ))}
                 </span>
               </div>
+            </div>
+          ) : null}
+
+          {at(1) && observations && observations.length > 0 ? (
+            <div className="obs">
+              <div className="obs-head">
+                <h3>📷 {t.layers.seenHead}</h3>
+                <span className="obs-badge">{t.probe.observation}</span>
+              </div>
+              <ul className="obs-list">
+                {observations.slice(-4).map((o, i) => <li key={i}>{o}</li>)}
+              </ul>
             </div>
           ) : null}
 

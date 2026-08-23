@@ -190,6 +190,8 @@ export interface Strings {
     what: string;            // "[i] что это"
     sameGrade: string;       // caption on every toggle — the honesty guarantee
     unavailable: string;     // badge on a layer the environment cannot deliver
+    /** Заголовок карточки наблюдений камеры в разборе. */
+    seenHead: string;
     presets: string;
     start: string;
     back: string;
@@ -704,6 +706,7 @@ export const I18N: Record<Lang, Strings> = {
       head: "Слои",
       what: "что это",
       sameGrade: "оценка та же",
+      seenHead: "Что видела камера",
       unavailable: "недоступно",
       presets: "Пресеты",
       start: "Начать переговоры",
@@ -1302,6 +1305,7 @@ export const I18N: Record<Lang, Strings> = {
       head: "Layers",
       what: "what is this",
       sameGrade: "same grading",
+      seenHead: "What the camera saw",
       unavailable: "unavailable",
       presets: "Presets",
       start: "Start the negotiation",
