@@ -31,3 +31,21 @@ export function teachingPlaceholder(turn: number, base: string, nudges: string[]
   if (turn < 0 || nudges.length === 0) return base;
   return turn < nudges.length ? nudges[turn] : base;
 }
+
+
+/**
+ * Русская тройка форм: 1 задание · 2 задания · 5 заданий.
+ *
+ * Нужна ровно потому, что «1 заданий» на экране блока читается как недоделка —
+ * а курс, который учит формулировкам, обязан сам говорить грамотно. Для
+ * английского вызывающая сторона передаёт две одинаковые формы множественного.
+ */
+export function plural(n: number, forms: [string, string, string]): string {
+  const abs = Math.abs(Math.trunc(n));
+  const tens = abs % 100;
+  if (tens >= 11 && tens <= 14) return forms[2];
+  const ones = abs % 10;
+  if (ones === 1) return forms[0];
+  if (ones >= 2 && ones <= 4) return forms[1];
+  return forms[2];
+}

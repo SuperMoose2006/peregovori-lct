@@ -44,3 +44,23 @@ test("teachingPlaceholder: defensive — empty nudges or negative turn → base"
   assert.equal(teachingPlaceholder(0, "base", []), "base");
   assert.equal(teachingPlaceholder(-1, "base", ["x"]), "base");
 });
+
+// ---------------------------------------------------------------------------
+// Русская тройка форм. «1 заданий» на экране читается как недоделка, а курс,
+// который учит формулировкам, обязан сам говорить грамотно.
+import { plural } from "../src/lib/format";
+
+test("plural выбирает русскую форму по последним цифрам", () => {
+  const forms: [string, string, string] = ["задание", "задания", "заданий"];
+  const say = (n: number) => `${n} ${plural(n, forms)}`;
+  assert.equal(say(1), "1 задание");
+  assert.equal(say(2), "2 задания");
+  assert.equal(say(4), "4 задания");
+  assert.equal(say(5), "5 заданий");
+  assert.equal(say(11), "11 заданий", "одиннадцать — исключение");
+  assert.equal(say(12), "12 заданий");
+  assert.equal(say(21), "21 задание");
+  assert.equal(say(24), "24 задания");
+  assert.equal(say(111), "111 заданий");
+  assert.equal(say(0), "0 заданий");
+});

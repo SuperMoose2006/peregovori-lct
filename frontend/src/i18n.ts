@@ -244,7 +244,7 @@ export interface Strings {
   // чтобы разбор упражнения говорил ровно то же, что чип под репликой.
   course: {
     title: string; lead: string; blocksDone: string; blockOf: string; toTable: string;
-    allBlocks: string; tasksN: string; theory: string;
+    allBlocks: string; tasksN: string; taskForms: [string, string, string]; theory: string;
     examTitle: string; examLead: string; examBest: string; examPassed: string;
     examStart: string; examMode: string; examFinish: string; examPass: string;
     examFail: string; examResult: string;
@@ -756,6 +756,7 @@ export const I18N: Record<Lang, Strings> = {
       toTable: "За стол →",
       allBlocks: "Все блоки",
       tasksN: "{n} заданий",
+      taskForms: ["задание", "задания", "заданий"],
       theory: "теория",
       examTitle: "Экзамен блока",
       examLead: "{n} заданий, порог {pass} из {total} очков. Подсказки выключены, разбор — после сдачи.",
@@ -1336,6 +1337,7 @@ export const I18N: Record<Lang, Strings> = {
       toTable: "To the table →",
       allBlocks: "All blocks",
       tasksN: "{n} tasks",
+      taskForms: ["task", "tasks", "tasks"],
       theory: "theory",
       examTitle: "Block exam",
       examLead: "{n} tasks, pass mark {pass} of {total} points. Hints off, review after you finish.",

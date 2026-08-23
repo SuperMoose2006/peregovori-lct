@@ -23,7 +23,9 @@ import {
 } from "../lib/progress";
 import { Exercise } from "./Exercise";
 import { Karl, Tikhon } from "./Mascot";
+import { plural } from "../lib/format";
 import { AchievementToasts } from "./Gamification";
+import { play } from "../lib/sound";
 import { ScreenHeading } from "./ScreenHeading";
 
 interface Props {
@@ -277,7 +279,9 @@ function BlockView({ t, lang, profile, blockId, onLesson, onExam, onBack }: {
                 <button onClick={() => onLesson(l.idx)}>
                   <span className="ll-n">{done ? "✓" : l.idx}</span>
                   <span className="ll-t">{l.title[lang]}</span>
-                  <span className="ll-x">{n ? t.course.tasksN.replace("{n}", String(n)) : t.course.theory}</span>
+                  {/* «1 заданий» на экране блока читается как недоделка, а курс,
+                      который учит формулировкам, обязан сам говорить грамотно. */}
+                  <span className="ll-x">{n ? `${n} ${plural(n, t.course.taskForms)}` : t.course.theory}</span>
                 </button>
               </li>
             );
@@ -411,6 +415,8 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
     // вовсе: здесь только банк и движок.
     const res = recordExam(profile, blockId, score, draw.total, draw.passMark);
     onProfile(res.profile);
+    // Сдача блока звучит как повышение ранга — это и есть повышение.
+    play(res.passed ? "levelup" : "wrong");
     setSaved({ xp: res.xpGain, passed: res.passed, badges: res.newAchievements });
     setStep(draw.items.length);
   };
