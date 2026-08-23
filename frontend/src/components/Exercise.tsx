@@ -18,6 +18,7 @@ import {
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
 import { courseCoach } from "../api/courseCoach";
+import { plural } from "../lib/format";
 import { Karl } from "./Mascot";
 
 interface Props {
@@ -276,7 +277,9 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       {ex.type === "drill" ? (
         <div className="ex-drill">
           <p className="ex-goal">🏁 {say(ex.goal, lang)}</p>
-          <p className="ex-goal-n">{t.course.drillNote.replace("{n}", String(ex.max_turns ?? 6))}</p>
+          <p className="ex-goal-n">{t.course.drillNote
+            .replace("{n}", String(ex.max_turns ?? 6))
+            .replace("{form}", plural(ex.max_turns ?? 6, t.forms.turns))}</p>
           <button className="btn primary" onClick={() => onStartDrill?.(ex)}>{t.course.drillStart}</button>
         </div>
       ) : null}

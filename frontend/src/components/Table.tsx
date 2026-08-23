@@ -576,6 +576,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 hintEnabled={!exam}
                 showChips={!exam}
                 limitNote={t.composerLimit}
+                charForms={t.forms.chars}
                 // Turn-1 only opener (before any move): a one-tap interest probe
                 // that pre-fills the box. Withheld in exam (no live help there).
                 suggestion={!exam && !!st && st.turn === 0 ? t.suggestChip : undefined}

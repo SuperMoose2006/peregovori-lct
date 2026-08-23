@@ -423,9 +423,16 @@ export interface Strings {
     threats: string;
     arg: string;
   };
-  // Счётные подписи в разборе. Родительный падеж под цифрой давал «1 критериев»
-  // — тренажёр, который учит формулировкам, так писать не может. Формы:
-  // [1, 2–4, 5+]; английский передаёт две одинаковые формы множественного.
+  // Счётные формы [1, 2–4, 5+]. Родительный падеж под цифрой давал «1 критериев»
+  // и «1 игр» — тренажёр, который учит формулировкам, так писать не может.
+  // Английский передаёт две одинаковые формы множественного: вызывающая сторона
+  // от языка не зависит.
+  forms: {
+    chars: [string, string, string];
+    games: [string, string, string];
+    days: [string, string, string];
+    turns: [string, string, string];
+  };
   statForms: {
     criteria: [string, string, string];
     empathy: [string, string, string];
@@ -622,7 +629,7 @@ export const I18N: Record<Lang, Strings> = {
     argLabel: "аргум.",
     connecting: "Соединение…",
     usingMock: "демо-режим (без сервера)",
-    composerLimit: "Осталось {n} символов",
+    composerLimit: "Осталось {n} {form}",
     conn: {
       reconnecting: "Соединение потеряно — переподключаемся…",
       lostTitle: "Связь с сервером прервана",
@@ -816,7 +823,7 @@ export const I18N: Record<Lang, Strings> = {
       warmupKarl: "Теперь то же самое — но живьём, и цена будет двигаться по-настоящему.",
       warmupCta: "⚡ Разминка · 2 задания",
       drillStart: "Начать мини-переговоры",
-      drillNote: "Настоящая партия на {n} ходов. Оценивает движок — как всегда.",
+      drillNote: "Настоящая партия на {n} {form}. Оценивает движок — как всегда.",
       drillPass: "Капстоун сдан",
       drillFail: "Капстоун не сдан",
       backToCourse: "← В курс",
@@ -996,6 +1003,12 @@ export const I18N: Record<Lang, Strings> = {
       threats: "угроз",
       arg: "аргументация",
     },
+    forms: {
+      chars: ["символ", "символа", "символов"],
+      games: ["игра", "игры", "игр"],
+      days: ["день", "дня", "дней"],
+      turns: ["ход", "хода", "ходов"],
+    },
     statForms: {
       criteria: ["критерий", "критерия", "критериев"],
       empathy: ["слушание", "слушания", "слушаний"],
@@ -1024,7 +1037,7 @@ export const I18N: Record<Lang, Strings> = {
       milestone: {
         kicker: "Веха",
         dismiss: "Продолжить",
-        streakTitle: "{n} дней подряд",
+        streakTitle: "{n} {form} подряд",
         streakDetail: "Неделя за столом. Привычка договариваться закрепляется.",
         streakUnit: "дней",
         rankKicker: "Новый ранг",
@@ -1038,7 +1051,7 @@ export const I18N: Record<Lang, Strings> = {
       workOn: "Подтяни",
       noGames: "Сыграйте первую переговорку, чтобы увидеть, где вы растёте.",
       back: "← Назад",
-      gamesCount: "{n} игр",
+      gamesCount: "{n} {form}",
       achievementsTitle: "Достижения",
       unlockedToast: "Достижение получено",
       locked: "ещё не получено",
@@ -1209,7 +1222,7 @@ export const I18N: Record<Lang, Strings> = {
     argLabel: "arg.",
     connecting: "Connecting…",
     usingMock: "demo mode (no server)",
-    composerLimit: "{n} characters left",
+    composerLimit: "{n} {form} left",
     conn: {
       reconnecting: "Connection lost — reconnecting…",
       lostTitle: "Lost connection to the server",
@@ -1403,7 +1416,7 @@ export const I18N: Record<Lang, Strings> = {
       warmupKarl: "Now the same thing — live, and the price will actually move.",
       warmupCta: "⚡ Warm-up · 2 tasks",
       drillStart: "Start the mini-negotiation",
-      drillNote: "A real {n}-turn negotiation. Scored by the engine, as always.",
+      drillNote: "A real negotiation of {n} {form}. Scored by the engine, as always.",
       drillPass: "Capstone passed",
       drillFail: "Capstone not passed",
       backToCourse: "← Back to the course",
@@ -1583,6 +1596,12 @@ export const I18N: Record<Lang, Strings> = {
       threats: "threats",
       arg: "argumentation",
     },
+    forms: {
+      chars: ["character", "characters", "characters"],
+      games: ["game", "games", "games"],
+      days: ["day", "days", "days"],
+      turns: ["turn", "turns", "turns"],
+    },
     statForms: {
       criteria: ["criterion", "criteria", "criteria"],
       empathy: ["listen", "listens", "listens"],
@@ -1611,7 +1630,7 @@ export const I18N: Record<Lang, Strings> = {
       milestone: {
         kicker: "Milestone",
         dismiss: "Continue",
-        streakTitle: "{n} days in a row",
+        streakTitle: "{n} {form} in a row",
         streakDetail: "A week at the table. The habit of negotiating is sticking.",
         streakUnit: "days",
         rankKicker: "New rank",
@@ -1625,7 +1644,7 @@ export const I18N: Record<Lang, Strings> = {
       workOn: "Work on",
       noGames: "Play your first negotiation to see where you're growing.",
       back: "← Back",
-      gamesCount: "{n} games",
+      gamesCount: "{n} {form}",
       achievementsTitle: "Achievements",
       unlockedToast: "Achievement unlocked",
       locked: "not yet earned",

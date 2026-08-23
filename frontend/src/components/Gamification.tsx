@@ -8,6 +8,7 @@ import type { Lang } from "../types";
 import type { Strings } from "../i18n";
 import { ScreenHeading } from "./ScreenHeading";
 import { COURSE_BLOCKS, exercisesOf } from "../lib/course";
+import { plural } from "../lib/format";
 import { haptic, play } from "../lib/sound";
 import {
   ACHIEVEMENTS, DAILY_GOAL_MAX, DAILY_GOAL_MIN, blockCompletion, dailyGoalView, getAchievement,
@@ -176,7 +177,7 @@ export function SkillsProfile({
                     {enough ? (
                       <>
                         {t.gam.skillHints[s.id]}
-                        <span className="skb-games"> · {sub(t.gam.gamesCount, { n: s.n })}</span>
+                        <span className="skb-games"> · {sub(t.gam.gamesCount, { n: s.n, form: plural(s.n, t.forms.games) })}</span>
                       </>
                     ) : (
                       <span className="skb-lowdata">{t.gam.lowData}</span>
@@ -344,7 +345,7 @@ function MilestoneHero({
       {isRank ? (
         <div className="milestone-rank">{game.rankAfter.rank.name[lang]}</div>
       ) : (
-        <div className="milestone-title">{sub(t.gam.milestone.streakTitle, { n: hit.value })}</div>
+        <div className="milestone-title">{sub(t.gam.milestone.streakTitle, { n: hit.value, form: plural(hit.value, t.forms.days) })}</div>
       )}
       <div className="milestone-count">
         <b>{n}</b> <span>{isRank ? t.gam.milestone.rankUnit : t.gam.milestone.streakUnit}</span>

@@ -2,6 +2,7 @@
 // quick-move chips, hint button, send.
 import { useEffect, useRef, useState } from "react";
 import type { QuickMove } from "../i18n";
+import { plural } from "../lib/format";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
 import { MAX_INPUT, clampInput, inputRemaining, showInputNote } from "../lib/net";
@@ -23,6 +24,8 @@ interface Props {
   showChips: boolean;
   // gentle "N chars left" note as the input nears the cap — "{n}" substituted.
   limitNote: string;
+  /** Формы «символ/символа/символов» — подпись обязана согласоваться с числом. */
+  charForms: [string, string, string];
   // Turn-1 opener: a single tappable chip that pre-fills (never sends) an
   // interest-probing SPIN opener. Provided only on the very first move; hidden
   // here the moment the box is non-empty. Absent ⇒ no chip.
@@ -34,7 +37,7 @@ interface Props {
 }
 
 export function Composer({
-  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote, suggestion, prefill,
+  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, showChips, limitNote, charForms, suggestion, prefill,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -120,7 +123,8 @@ export function Composer({
       </div>
       {nearLimit ? (
         <div className="compose-note" role="status">
-          {limitNote.replace("{n}", String(inputRemaining(text)))}
+          {limitNote.replace("{n}", String(inputRemaining(text)))
+            .replace("{form}", plural(inputRemaining(text), charForms))}
         </div>
       ) : null}
       <div className="quick">
