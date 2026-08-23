@@ -12,7 +12,9 @@ internals), so this file stays stable as the engine evolves.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -205,6 +207,22 @@ def whatif(body: WhatIfMsg) -> dict:
 # вместе с графом LangGraph, который её обслуживал: её покрытие переехало в
 # tests/test_realtime_integration.py, а сам протокол — в realtime/events.py.
 # ---------------------------------------------------------------------------
+
+# ---- OpenTalking: движок как OpenAI-совместимая модель -----------------------
+# Тонкий шов к upstream-стеку (.upstream/opentalking). Он берёт ответы у
+# OpenAI-совместимого LLM — значит достаточно им прикинуться, и весь его
+# realtime (STT, TTS, WebRTC, перебивание, аватар) работает поверх нашего
+# движка БЕЗ единой правки в его коде. См. adapters/opentalking_negotiation.py
+# и docs/upstream-patches.md.
+_ADAPTERS = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if _ADAPTERS not in sys.path:
+    sys.path.insert(0, _ADAPTERS)
+try:
+    from adapters.opentalking_negotiation import router as _opentalking_router
+    app.include_router(_opentalking_router)
+except Exception as _exc:  # адаптер опционален: без него продукт работает как раньше
+    logging.getLogger(__name__).warning("OpenTalking adapter not mounted: %s", _exc)
+
 
 @app.websocket("/v1/realtime")
 async def realtime(websocket: WebSocket) -> None:
