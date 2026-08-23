@@ -18,3 +18,4 @@ frontend/dist/
 services/avatar/models/
 services/avatar/avatars/
 frontend/dist-mock/
+services/gateway/certs/

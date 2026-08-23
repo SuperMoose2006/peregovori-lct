@@ -60,6 +60,65 @@ async def _lifespan(_app: FastAPI):
 
 app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_lifespan)
 
+# --------------------------------------------------------------------- доступ
+#
+# ПОЧЕМУ ЗАМОК ВООБЩЕ ЕСТЬ. На localhost гейтвей открыт — и это правильно: так
+# он и разрабатывается. Но у машины публичный адрес, и как только он выставлен
+# наружу по HTTPS, любой прохожий может жечь ключ OpenRouter, который лежит в
+# .env рядом. Поэтому: пароль задан переменной → внешние запросы просят его,
+# переменная пуста → поведение ровно прежнее, ничего не ломается.
+#
+# Локальные обращения НЕ проверяются: через них ходят OpenTalking (:8210),
+# скриншотные прогоны и сам фронтенд при разработке. Замок стоит на входе с
+# улицы, а не между комнатами.
+_HTTP_PASSWORD = os.getenv("NEGO_HTTP_PASSWORD", "").strip()
+_LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost"}
+
+
+@app.middleware("http")
+async def _gate(request, call_next):
+    if _HTTP_PASSWORD and (request.client.host if request.client else "") not in _LOCAL_HOSTS:
+        import base64 as _b64
+        import hmac as _hmac
+        header = request.headers.get("authorization", "")
+        ok = False
+        if header.startswith("Basic "):
+            try:
+                _, _, given = _b64.b64decode(header[6:]).decode().partition(":")
+                ok = _hmac.compare_digest(given, _HTTP_PASSWORD)
+            except Exception:
+                ok = False
+        if not ok:
+            from starlette.responses import Response as _Resp
+            return _Resp(status_code=401, headers={"WWW-Authenticate": 'Basic realm="Dialog"'})
+        # HTTP-middleware НЕ ВИДИТ веб-сокет: у него другой scope, и `/v1/realtime`
+        # остался бы открытым настежь — а это самый дорогой вход, он ходит в
+        # модели. Браузер не умеет слать заголовок Authorization при рукопожатии
+        # сокета, зато шлёт куки того же origin. Поэтому успешная проверка
+        # оставляет метку, а сокет проверяет её.
+        response = await call_next(request)
+        response.set_cookie("dlg_ok", _ws_ticket(), httponly=True, samesite="lax", max_age=86400)
+        return response
+    return await call_next(request)
+
+
+def _ws_ticket() -> str:
+    """Метка «этот браузер уже назвал пароль». Производная от пароля, а не он сам."""
+    import hashlib
+    return hashlib.sha256(("dlg|" + _HTTP_PASSWORD).encode()).hexdigest()[:32]
+
+
+def ws_allowed(websocket: "WebSocket") -> bool:
+    """Пускать ли соединение. Локальные — всегда: через них ходит OpenTalking."""
+    if not _HTTP_PASSWORD:
+        return True
+    host = websocket.client.host if websocket.client else ""
+    if host in _LOCAL_HOSTS:
+        return True
+    import hmac as _hmac
+    return _hmac.compare_digest(websocket.cookies.get("dlg_ok", ""), _ws_ticket())
+
+
 # Dev CORS: the Vite dev server runs on another origin.
 app.add_middleware(
     CORSMiddleware,
@@ -226,6 +285,9 @@ except Exception as _exc:  # адаптер опционален: без нег�
 
 @app.websocket("/v1/realtime")
 async def realtime(websocket: WebSocket) -> None:
+    if not ws_allowed(websocket):
+        await websocket.close(code=4401)   # 4401: «назовите пароль на странице»
+        return
     from app.realtime.endpoint import realtime_ws
     await realtime_ws(websocket)
 
