@@ -14,12 +14,12 @@ import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex } from "../lib/courseTypes";
 import {
-  COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, drawExam, exercisesOf,
-  exercisesOfLesson, masterUnlocked, type ExamDraw,
+  COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, drawExam,
+  exercisesOf, exercisesOfLesson, masterUnlocked, type ExamDraw,
 } from "../lib/course";
 import {
-  MASTER_ID, blockCompletion, getBlockProgress, markLessonDone, recordExam, recordExercise,
-  type Profile,
+  MASTER_ID, blockCompletion, getBlockProgress, markLessonDone, missedExercises, recordExam,
+  recordExercise, type Profile,
 } from "../lib/progress";
 import { Exercise } from "./Exercise";
 import { Karl, Tikhon } from "./Mascot";
@@ -51,6 +51,7 @@ export interface ExamCtx {
 type View =
   | { kind: "map" }
   | { kind: "master" }
+  | { kind: "redo" }
   | { kind: "block"; id: string }
   | { kind: "lesson"; id: string; lesson: number }
   | { kind: "exam"; id: string };
@@ -96,6 +97,15 @@ export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit
     );
   }
 
+  if (view.kind === "redo") {
+    return (
+      <RedoRunner
+        t={t} lang={lang} profile={profile} onProfile={onProfile}
+        onBack={() => setView({ kind: "map" })}
+      />
+    );
+  }
+
   if (view.kind === "master") {
     return (
       <MasterExam
@@ -111,6 +121,7 @@ export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit
       t={t} lang={lang} profile={profile}
       onOpen={(id) => setView({ kind: "block", id })}
       onMaster={() => setView({ kind: "master" })}
+      onRedo={() => setView({ kind: "redo" })}
       onExit={onExit}
     />
   );
@@ -118,10 +129,11 @@ export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit
 
 // ------------------------------------------------------------------ карта
 
-function CourseMap({ t, lang, profile, onOpen, onMaster, onExit }: {
+function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
   t: Strings; lang: Lang; profile: Profile; onOpen: (id: string) => void;
-  onMaster: () => void; onExit: () => void;
+  onMaster: () => void; onRedo: () => void; onExit: () => void;
 }) {
+  const missed = missedExercises(profile);
   // Блок открыт, если предыдущий сдан ИЛИ хотя бы наполовину пройден: жёсткая
   // блокировка на демо злит быстрее, чем учит, а совсем без порядка курс
   // перестаёт быть лестницей.
@@ -143,6 +155,16 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onExit }: {
       <div className="wrap">
         <ScreenHeading as="h1">{t.course.title}</ScreenHeading>
         <p className="lead">{t.course.lead}</p>
+        {/* Работа над ошибками: список живёт ровно до тех пор, пока ошибка не
+            исправлена. Ничего не «висит» вечно и не копится молча. */}
+        {missed.length ? (
+          <button className="redo-card" onClick={onRedo}>
+            <span aria-hidden="true">↻</span>
+            <b>{t.course.redoTitle}</b>
+            <span>{missed.length} {plural(missed.length, t.course.taskForms)}</span>
+          </button>
+        ) : null}
+
         <div className="course-top">
           <span className="course-count">{t.course.blocksDone
             .replace("{n}", String(doneCount)).replace("{total}", String(COURSE_BLOCKS.length))}</span>
@@ -193,6 +215,64 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onExit }: {
         </div>
 
         <Tikhon title={t.course.tikhonTitle}>{t.course.tikhonBody}</Tikhon>
+      </div>
+    </section>
+  );
+}
+
+// ------------------------------------------------------ работа над ошибками
+
+const REDO_MAX = 5;
+
+function RedoRunner({ t, lang, profile, onProfile, onBack }: {
+  t: Strings; lang: Lang; profile: Profile; onProfile: (p: Profile) => void; onBack: () => void;
+}) {
+  // Список фиксируется на входе: если брать его из профиля на каждом шаге,
+  // исправленная ошибка исчезнет из-под ног и прогон «сам себя» перепрыгнет.
+  const [queue] = useState(() => missedExercises(profile).slice(0, REDO_MAX));
+  const [step, setStep] = useState(0);
+  const [answered, setAnswered] = useState(false);
+  const [fixed, setFixed] = useState(0);
+
+  const entry = queue[step];
+  const ex = entry ? COURSE_BANK.find((x) => x.id === entry.id) : undefined;
+
+  if (!entry || !ex) {
+    return (
+      <section className="screen course">
+        <div className="wrap lesson done">
+          <ScreenHeading as="h1">{t.course.redoDone}</ScreenHeading>
+          <p className="lead">{t.course.lessonScore
+            .replace("{n}", String(fixed)).replace("{total}", String(queue.length))}</p>
+          <Karl state={fixed === queue.length && queue.length > 0 ? "cheer" : "idle"}
+                line={t.course.redoKarl} name={t.mascot.karl} />
+          <button className="btn primary" onClick={onBack}>← {t.course.allBlocks}</button>
+        </div>
+      </section>
+    );
+  }
+
+  const onDone = (correct: boolean) => {
+    setAnswered(true);
+    if (correct) setFixed((n) => n + 1);
+    const res = recordExercise(profile, entry.blockId, ex.id, ex.xp, correct);
+    onProfile(res.profile);
+  };
+
+  return (
+    <section className="screen course">
+      <div className="wrap lesson">
+        <button className="btn ghost back" onClick={onBack}>← {t.course.allBlocks}</button>
+        <div className="lesson-step">
+          ↻ {t.course.redoTitle} · {t.course.stepOf
+            .replace("{n}", String(step + 1)).replace("{total}", String(queue.length))}
+        </div>
+        <Exercise key={ex.id} t={t} lang={lang} ex={ex} onDone={onDone} />
+        {answered ? (
+          <button className="btn primary" onClick={() => { setAnswered(false); setStep(step + 1); }}>
+            {t.course.next} →
+          </button>
+        ) : null}
       </div>
     </section>
   );
@@ -329,8 +409,11 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
     setAnswered(true);
     if (correct) setRight((n) => n + 1);
     const ex = items[step];
+    // Профиль обновляем ВСЕГДА, а не только когда начислен XP: ошибка тоже
+    // меняет профиль — она попадает в работу над ошибками.
     const res = recordExercise(profile, blockId, ex.id, ex.xp, correct);
-    if (res.xpGain) { onProfile(res.profile); setGained((x) => x + res.xpGain); }
+    onProfile(res.profile);
+    if (res.xpGain) setGained((x) => x + res.xpGain);
   };
 
   const next = () => { setAnswered(false); setStep((s) => s + 1); };

@@ -51,8 +51,9 @@ export function Warmup({ t, lang, profile, onProfile, blockId, onDone, onSkip }:
     setAnswered(true);
     if (correct) setRight((n) => n + 1);
     const ex = items[step];
+    // Как и в уроке: ошибка тоже меняет профиль (попадает в работу над ошибками).
     const res = recordExercise(profile, blockId, ex.id, ex.xp, correct);
-    if (res.xpGain) onProfile(res.profile);
+    onProfile(res.profile);
   };
 
   if (step >= items.length) {

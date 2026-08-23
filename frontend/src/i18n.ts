@@ -259,6 +259,7 @@ export interface Strings {
     masterProgress: string; masterDrillPass: string; masterDrillFail: string;
     warmupTitle: string; warmupSkip: string; warmupReady: string; warmupToTable: string;
     warmupKarl: string; warmupCta: string;
+    redoTitle: string; redoDone: string; redoKarl: string;
     drillStart: string; drillNote: string; drillPass: string; drillFail: string;
     backToCourse: string;
     karlTheory: string; karlPerfect: string; karlOk: string;
@@ -822,6 +823,9 @@ export const I18N: Record<Lang, Strings> = {
       warmupToTable: "За стол",
       warmupKarl: "Теперь то же самое — но живьём, и цена будет двигаться по-настоящему.",
       warmupCta: "⚡ Разминка · 2 задания",
+      redoTitle: "Работа над ошибками",
+      redoDone: "Ошибки разобраны",
+      redoKarl: "Исправленная ошибка стоит половину XP — и всё равно это лучшая сделка в продукте.",
       drillStart: "Начать мини-переговоры",
       drillNote: "Настоящая партия на {n} {form}. Оценивает движок — как всегда.",
       drillPass: "Капстоун сдан",
@@ -1415,6 +1419,9 @@ export const I18N: Record<Lang, Strings> = {
       warmupToTable: "To the table",
       warmupKarl: "Now the same thing — live, and the price will actually move.",
       warmupCta: "⚡ Warm-up · 2 tasks",
+      redoTitle: "Fix your misses",
+      redoDone: "Misses cleared",
+      redoKarl: "A fixed mistake is worth half the XP — and it is still the best deal in this product.",
       drillStart: "Start the mini-negotiation",
       drillNote: "A real negotiation of {n} {form}. Scored by the engine, as always.",
       drillPass: "Capstone passed",

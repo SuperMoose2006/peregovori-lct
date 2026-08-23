@@ -514,7 +514,7 @@ test("applyDebrief: a 7-day streak milestone fires once, and never on a breakdow
 // Курс приёмов в профиле: XP платится за решённое, а не за повторно открытое.
 import {
   blockCompletion, courseAchievements, emptyBlockProgress, getBlockProgress,
-  markLessonDone, recordExam, recordExercise,
+  markLessonDone, missedExercises, recordExam, recordExercise,
 } from "../src/lib/progress";
 
 test("урок отмечается один раз и не дублируется", () => {
@@ -575,4 +575,29 @@ test("доля блока считается по урокам, упражнен
   assert.ok(share > 0 && share < 1);
   assert.equal(
     blockCompletion({ ...b, lessons: [1, 2, 3, 4], solved: ["a", "b", "c", "d"], passed: true }, 4, 4), 1);
+});
+
+test("ошибка попадает в работу над ошибками и уходит из неё при исправлении", () => {
+  let p = emptyProfile();
+  const miss = recordExercise(p, "foundations", "fo-01", 10, false);
+  assert.equal(miss.xpGain, 0);
+  p = miss.profile;
+  assert.deepEqual(getBlockProgress(p, "foundations").missed, ["fo-01"]);
+  assert.deepEqual(missedExercises(p), [{ blockId: "foundations", id: "fo-01" }]);
+
+  // Повторная ошибка не дублирует запись.
+  p = recordExercise(p, "foundations", "fo-01", 10, false).profile;
+  assert.deepEqual(getBlockProgress(p, "foundations").missed, ["fo-01"]);
+
+  // Исправление: половина XP (иначе выгодно ошибаться нарочно) и запись уходит.
+  const fix = recordExercise(p, "foundations", "fo-01", 10, true);
+  assert.equal(fix.xpGain, 5);
+  p = fix.profile;
+  assert.deepEqual(getBlockProgress(p, "foundations").missed, []);
+  assert.deepEqual(getBlockProgress(p, "foundations").solved, ["fo-01"]);
+  assert.deepEqual(missedExercises(p), []);
+
+  // Верный ответ с первого раза платит полностью.
+  const clean = recordExercise(p, "foundations", "fo-02", 10, true);
+  assert.equal(clean.xpGain, 10);
 });

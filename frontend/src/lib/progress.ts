@@ -57,6 +57,7 @@ export interface Profile {
 export interface BlockProgress {
   lessons: number[];   // пройденные уроки (idx), без повторов
   solved: string[];    // id упражнений, решённых верно с первого раза
+  missed: string[];    // id упражнений, где ошиблись и ещё не переделали
   examBest: number;    // лучший результат экзамена в очках
   examTotal: number;   // из скольких очков (меняется вместе с банком)
   passed: boolean;     // экзамен сдан хотя бы раз
@@ -64,7 +65,7 @@ export interface BlockProgress {
 }
 
 export function emptyBlockProgress(): BlockProgress {
-  return { lessons: [], solved: [], examBest: 0, examTotal: 0, passed: false, attempts: 0 };
+  return { lessons: [], solved: [], missed: [], examBest: 0, examTotal: 0, passed: false, attempts: 0 };
 }
 
 const VERSION = 4;
@@ -365,6 +366,7 @@ function sanitizeCourse(v: unknown): Record<string, BlockProgress> {
     out[id] = {
       lessons: [...new Set(nums(r.lessons))],
       solved: [...new Set(strs(r.solved))],
+      missed: [...new Set(strs(r.missed))],
       examBest: typeof r.examBest === "number" && r.examBest >= 0 ? Math.floor(r.examBest) : 0,
       examTotal: typeof r.examTotal === "number" && r.examTotal >= 0 ? Math.floor(r.examTotal) : 0,
       passed: r.passed === true,
@@ -757,13 +759,36 @@ export function markLessonDone(profile: Profile, blockId: string, lesson: number
 export function recordExercise(profile: Profile, blockId: string, exerciseId: string,
                                xp: number, correct: boolean): { profile: Profile; xpGain: number } {
   const b = blockOf(profile, blockId);
-  if (!correct || b.solved.includes(exerciseId)) return { profile, xpGain: 0 };
+  // Ошибка попадает в список на переделку и НЕ считается решённой. Верный ответ
+  // снимает её оттуда — «работа над ошибками» существует ровно до тех пор, пока
+  // ошибка не исправлена, а не вечно.
+  if (!correct) {
+    if (b.missed.includes(exerciseId) || b.solved.includes(exerciseId)) return { profile, xpGain: 0 };
+    return {
+      profile: { ...profile, course: { ...profile.course, [blockId]: { ...b, missed: [...b.missed, exerciseId] } } },
+      xpGain: 0,
+    };
+  }
+  const missed = b.missed.filter((id) => id !== exerciseId);
+  if (b.solved.includes(exerciseId)) {
+    if (missed.length === b.missed.length) return { profile, xpGain: 0 };
+    return { profile: { ...profile, course: { ...profile.course, [blockId]: { ...b, missed } } }, xpGain: 0 };
+  }
+  // XP за исправленную ошибку платится половиной: навык тот же, но узнавание с
+  // первого раза стоит дороже — иначе выгодно ошибаться нарочно.
+  const gain = b.missed.includes(exerciseId) ? Math.round(xp / 2) : xp;
   const next: Profile = {
     ...profile,
-    xp: profile.xp + xp,
-    course: { ...profile.course, [blockId]: { ...b, solved: [...b.solved, exerciseId] } },
+    xp: profile.xp + gain,
+    course: { ...profile.course, [blockId]: { ...b, solved: [...b.solved, exerciseId], missed } },
   };
-  return { profile: next, xpGain: xp };
+  return { profile: next, xpGain: gain };
+}
+
+/** Все нерешённые ошибки по всему курсу: (блок, id упражнения). */
+export function missedExercises(profile: Profile): { blockId: string; id: string }[] {
+  return Object.entries(profile.course)
+    .flatMap(([blockId, b]) => b.missed.map((id) => ({ blockId, id })));
 }
 
 /**
