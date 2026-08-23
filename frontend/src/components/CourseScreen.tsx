@@ -157,6 +157,8 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onExit }: {
               <li key={b.id} className={`cnode ${status}`}>
                 <button className="cnode-btn" onClick={() => open && onOpen(b.id)} disabled={!open}>
                   <span className="cnode-ic" aria-hidden="true">{p.passed ? "★" : open ? b.icon : "🔒"}</span>
+                  {/* Флажок над текущим узлом: «где я» — без чтения, как в кампании. */}
+                  {status === "current" ? <span className="cnode-flag">{t.campaign.startFlag}</span> : null}
                 </button>
                 <div className="cnode-body">
                   <div className="cnode-t">{b.title[lang]}</div>

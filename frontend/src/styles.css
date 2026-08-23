@@ -2870,3 +2870,46 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   font-size: 13px; color: var(--ink-dim); margin-bottom: 10px; }
 .warm-tag { font-weight: 800; color: var(--brass); }
 .warm-skip { margin-left: auto; padding: 6px 12px; font-size: 12px; }
+
+/* ---- Курс как тропа (игровой скин) --------------------------------------
+   Кампания уже читается как путь с узлами и дорогой между ними; курс — тот же
+   жанр, и второй язык навигации в одном продукте был бы налогом на внимание.
+   Разметка не меняется, это только оформление. */
+.course-path { position: relative; }
+.cnode { position: relative; }
+:root[data-skin="game"] .course-path { gap: 24px; }
+:root[data-skin="game"] .cnode { background: none; border: none; padding: 0 0 4px; gap: 20px; }
+:root[data-skin="game"] .cnode::before {
+  /* дорога до следующего узла */
+  content: ""; position: absolute; left: 43px; top: 92px; bottom: -28px; width: 6px;
+  border-radius: 3px; background: var(--line);
+}
+:root[data-skin="game"] .cnode:last-child::before { display: none; }
+:root[data-skin="game"] .cnode.done::before { background: color-mix(in srgb, var(--brass) 45%, var(--line)); }
+:root[data-skin="game"] .cnode-btn {
+  /* relative — чтобы флажок вставал над САМИМ узлом, а не по центру строки */
+  position: relative;
+  width: 88px; height: 88px; border-width: 3px; border-bottom-width: 7px;
+  font-size: 34px; transition: transform 0.08s;
+}
+:root[data-skin="game"] .cnode-btn:not(:disabled):active { transform: translateY(3px); border-bottom-width: 4px; }
+:root[data-skin="game"] .cnode.current .cnode-btn {
+  border-color: var(--edge); background: color-mix(in srgb, var(--brass) 16%, var(--panel));
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--brass) 18%, transparent);
+}
+:root[data-skin="game"] .cnode.done .cnode-btn { background: var(--brass); border-color: var(--edge); color: #fff; }
+.cnode-flag { display: none; }
+:root[data-skin="game"] .cnode.current .cnode-flag {
+  display: block; position: absolute; left: 50%; top: -22px; transform: translateX(-50%);
+  padding: 3px 10px; border-radius: 999px; background: var(--brass); color: #fff;
+  font-size: 10px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase;
+  white-space: nowrap; box-shadow: 0 3px 0 var(--edge);
+  animation: cflag 1.6s ease-in-out infinite;
+}
+@keyframes cflag { 0%, 100% { transform: translateX(-50%) translateY(0); }
+                   50% { transform: translateX(-50%) translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .cnode-flag { animation: none !important; } }
+@media (max-width: 640px) {
+  :root[data-skin="game"] .cnode-btn { width: 64px; height: 64px; font-size: 26px; }
+  :root[data-skin="game"] .cnode::before { left: 31px; top: 68px; bottom: -26px; width: 5px; }
+}
