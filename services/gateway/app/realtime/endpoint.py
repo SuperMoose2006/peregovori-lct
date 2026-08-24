@@ -40,7 +40,9 @@ from app.providers.asr.openrouter import OpenRouterASR
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import describe as describe_models
 from app.providers.tts.base import Voice
+from app.providers.tts.base import TTSProvider
 from app.providers.tts.edge import EdgeTTS
+from app.providers.tts.openai_speech import OpenAISpeechTTS
 from app.realtime.events import SessionInit, error, session_closed
 from app.realtime.session import Layers, RealtimeSession
 from app.session import store
@@ -232,7 +234,15 @@ def _wire(session: RealtimeSession) -> tuple[
 
     tts: Optional[TTSTaskManager] = None
     if session.layers.voice:
-        provider = EdgeTTS()
+        # ПОРЯДОК ПО ЗАМЕРУ, А НЕ ПО ЦЕНЕ. На заведомо новом тексте — а в игре
+        # каждая реплика новая — edge даёт медиану 2318 мс до первого звука,
+        # openai 936 мс. Прежняя цифра edge «570 мс» оказалась артефактом:
+        # эндпоинт Microsoft кэширует уже произнесённый текст, и повторный
+        # прогон той же фразы мерил кэш, а не синтез.
+        # Edge остаётся запасным: он бесплатен и не требует ключа.
+        provider: TTSProvider = OpenAISpeechTTS()
+        if not provider.available():
+            provider = EdgeTTS()
         if provider.available():
             tts = TTSTaskManager(provider, session.bus.publish,
                                  Voice(id="", lang=session.lang,

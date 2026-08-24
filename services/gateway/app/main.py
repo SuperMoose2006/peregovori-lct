@@ -58,6 +58,17 @@ async def _lifespan(_app: FastAPI):
     await orchat.aclose()
 
 
+def _tts_describe() -> str | None:
+    """Кто сейчас говорит. Тот же порядок, что в endpoint.py — иначе health
+    рассказывал бы про одного провайдера, а звучал бы другой."""
+    from app.providers.tts.edge import EdgeTTS
+    from app.providers.tts.openai_speech import OpenAISpeechTTS
+    for provider in (OpenAISpeechTTS(), EdgeTTS()):
+        if provider.available():
+            return provider.describe()
+    return None
+
+
 app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_lifespan)
 
 # --------------------------------------------------------------------- доступ
@@ -148,7 +159,8 @@ def health() -> dict:
         "cloud_ai": orchat.available(),
         "judge": judge_enabled(),
         "models": describe_models(),
-        "tts": EdgeTTS().describe() if EdgeTTS().available() else None,
+        # Правда о синтезе: на демо должно быть видно, чей это голос.
+        "tts": _tts_describe(),
     }
 
 
