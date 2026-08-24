@@ -216,8 +216,17 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
                 <span className="ex-ord-n">{i + 1}</span>
                 <span className="ex-ord-t">{say(item, lang)}</span>
                 <span className="ex-ord-btns">
-                  <button onClick={() => !locked && move(i, -1)} disabled={locked || i === 0} aria-label="↑">↑</button>
-                  <button onClick={() => !locked && move(i, 1)} disabled={locked || i === order.length - 1} aria-label="↓">↓</button>
+                  {/* Имя кнопки называет и действие, и ЧТО двигают: «↑» диктору
+                      ничего не говорит, а пять одинаковых стрелок подряд —
+                      тем более. Сам знак помечен aria-hidden. */}
+                  <button onClick={() => !locked && move(i, -1)} disabled={locked || i === 0}
+                          aria-label={t.course.moveUp.replace("{item}", say(item, lang))}>
+                    <span aria-hidden="true">↑</span>
+                  </button>
+                  <button onClick={() => !locked && move(i, 1)} disabled={locked || i === order.length - 1}
+                          aria-label={t.course.moveDown.replace("{item}", say(item, lang))}>
+                    <span aria-hidden="true">↓</span>
+                  </button>
                 </span>
               </li>
             );

@@ -231,25 +231,49 @@ for (const vp of VPS) {
   if (await blockBtn.count()) {
     await blockBtn.click().catch(()=>{});
     await page.waitForTimeout(1200); await probe(page, "course-block", vp.tag);
-    const lesson = page.locator(".lesson-list button").first();
-    if (await lesson.count()) {
-      await lesson.click().catch(()=>{});
-      await page.waitForTimeout(1000); await probe(page, "course-lesson", vp.tag);
-    }
-    // упражнения: пройти сколько получится, снимая каждый ВСТРЕЧЕННЫЙ тип
+    // Задания разбиты ПО УРОКАМ, а не по блоку целиком: на урок приходится
+    // одно-два. Чтобы увидеть все десять типов, надо обойти уроки, а если типов
+    // всё ещё не хватает — и соседние блоки.
     const seen = new Set();
-    for (let i = 0; i < 14; i++) {
-      const kind = await page.evaluate(() => {
-        const ex = document.querySelector(".ex");
-        return ex ? (ex.getAttribute("data-kind") || ex.className) : null;
-      });
-      if (!kind) break;
-      if (!seen.has(kind)) { seen.add(kind); await probe(page, "ex-" + String(kind).replace(/\s+/g,"-").slice(0,24), vp.tag); }
-      const nextBtn = page.locator(".ex button:not(:disabled)").first();
-      if (!await nextBtn.count()) break;
-      await nextBtn.click().catch(()=>{});
-      await page.waitForTimeout(700);
+    const lessonsCount = await page.locator(".lesson-list button").count();
+    for (let li = 0; li < Math.min(lessonsCount, 4); li++) {
+      const lessons = page.locator(".lesson-list button");
+      if (await lessons.count() <= li) break;
+      await lessons.nth(li).click().catch(()=>{});
+      await page.waitForTimeout(900);
+      if (li === 0) await probe(page, "course-lesson", vp.tag);
+      const toTasks = page.locator('button:has-text("К заданиям")').first();
+      if (await toTasks.count()) { await toTasks.click().catch(()=>{}); await page.waitForTimeout(1100); }
+
+      for (let i = 0; i < 8; i++) {
+        const kind = await page.evaluate(() => {
+          const ex = document.querySelector(".ex");
+          if (!ex) return null;
+          const m = /ex--([a-z_]+)/.exec(ex.className);
+          return m ? m[1] : "ex";
+        });
+        if (!kind) break;
+        if (!seen.has(kind)) { seen.add(kind); await probe(page, "ex-" + kind, vp.tag); }
+        for (const box of await page.locator(".ex textarea, .ex input[type=text]").all()) {
+          await box.fill("Что для вас важнее всего в этой сделке и почему именно это?").catch(()=>{});
+        }
+        for (const num of await page.locator(".ex input[type=number]").all()) {
+          await num.fill("86").catch(()=>{});
+        }
+        const opt = page.locator(".ex button:not(:disabled)").first();
+        if (await opt.count()) { await opt.click().catch(()=>{}); await page.waitForTimeout(300); }
+        const check = page.locator(".ex-go").first();
+        if (await check.count()) { await check.click().catch(()=>{}); await page.waitForTimeout(750); }
+        const next = page.locator("button:has-text('Дальше'), button:has-text('Далее')").first();
+        if (!await next.count()) break;
+        await next.click().catch(()=>{});
+        await page.waitForTimeout(850);
+      }
+      // Вернуться к списку уроков блока.
+      const back = page.locator("button:has-text('←')").first();
+      if (await back.count()) { await back.click().catch(()=>{}); await page.waitForTimeout(900); }
     }
+    if (vp.tag === "desk") console.log("  типов упражнений увидено:", [...seen].sort().join(", ") || "НИ ОДНОГО");
   }
 
   // Тренировка → подготовка со слоями → партия → исход → разбор

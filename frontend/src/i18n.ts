@@ -254,6 +254,8 @@ export interface Strings {
     examFail: string; examResult: string;
     toTasks: string; lessonDone: string; lessonComplete: string; lessonScore: string;
     stepOf: string; next: string; checkIt: string; correct: string; wrong: string;
+    /* Подписи стрелок в упражнении «порядок»: для диктора «↑» именем не является. */
+    moveUp: string; moveDown: string;
     reference: string; freeformHint: string; matchHint: string; examQuit: string;
     recoveryTitle: string; nextUp: string; continue: string; actTeaches: string;
     coachNote: string;
@@ -805,6 +807,8 @@ export const I18N: Record<Lang, Strings> = {
       stepOf: "задание {n} из {total}",
       next: "Дальше",
       checkIt: "Проверить",
+      moveUp: "Переместить выше: {item}",
+      moveDown: "Переместить ниже: {item}",
       correct: "Верно",
       wrong: "Не то",
       reference: "Как можно было",
@@ -1401,6 +1405,8 @@ export const I18N: Record<Lang, Strings> = {
       stepOf: "task {n} of {total}",
       next: "Next",
       checkIt: "Check",
+      moveUp: "Move up: {item}",
+      moveDown: "Move down: {item}",
       correct: "Correct",
       wrong: "Not quite",
       reference: "One way to say it",

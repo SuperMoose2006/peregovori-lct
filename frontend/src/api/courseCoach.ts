@@ -15,6 +15,13 @@ export interface CoachNote {
 }
 
 export async function courseCoach(exerciseId: string, text: string, lang: string): Promise<CoachNote | null> {
+  // В офлайн-сборке (VITE_MOCK=1) бэкенда нет по определению — тот же флаг
+  // подменяет и транспорт партии. Запрос всё равно завершался бы ничем, но
+  // сначала стучался в пустоту и писал ошибку в консоль на каждом упражнении.
+  // Не ходить туда, где заведомо никого нет, — часть того же обещания
+  // «курс проходим без единого запроса».
+  if (import.meta.env.VITE_MOCK === "1") return null;
+
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {

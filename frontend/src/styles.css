@@ -2976,6 +2976,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   /* Остаток целей ниже порога 44px: ссылки на блок курса из карточки акта,
      поле имени на экзамене и кнопка возврата из навыков. */
   .act-course-b { min-height: 44px; }
+  /* Стрелки порядка в упражнении «order»: 28×28 при пороге 44. Ширину не
+     трогаем — иначе строка ответа расползётся, — а высоту доводим до нормы. */
+  .ex-ord-btns button { min-height: 44px; min-width: 36px; }
   .exam-name input, .skills-back { min-height: 44px; }
   .suggest-chip { min-height: 44px; padding-top: 10px; padding-bottom: 10px; }
   .beat-more { min-height: 44px; }
