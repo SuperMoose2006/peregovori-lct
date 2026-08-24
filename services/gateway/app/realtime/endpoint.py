@@ -171,6 +171,14 @@ async def realtime_ws(websocket: WebSocket) -> None:
 # Сборка сессии
 # ---------------------------------------------------------------------------
 
+def _layers_for(payload: "SessionInit") -> Layers:
+    """Слои сессии. На экзамене — принудительно выключенные, что бы ни прислал
+    клиент: правило, которое соблюдает только браузер, правилом не является."""
+    if payload.gameMode == "exam":
+        return Layers.for_exam()
+    return Layers.from_dict(payload.layers)
+
+
 async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession], Optional[str]]:
     """Создать партию — или вернуться в брошенную. Возвращает (сессия, отказ)."""
     # Возвращение после обрыва. Сессия та же, ход тот же, шкалы те же: их
@@ -185,7 +193,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
                 lang=payload.lang,
                 mode=payload.mode,
                 game_mode=payload.gameMode,
-                layers=Layers.from_dict(payload.layers),
+                layers=_layers_for(payload),
             ), None
 
     scenario_id = payload.scenarioId
@@ -215,7 +223,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
         lang=payload.lang,
         mode=payload.mode,
         game_mode=payload.gameMode,
-        layers=Layers.from_dict(payload.layers),
+        layers=_layers_for(payload),
     ), None
 
 

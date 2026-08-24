@@ -246,3 +246,25 @@ def test_turning_points_include_recognized_techniques():
     tp2 = next((t for t in tps if t["turn"] == 2), None)
     if tp2 is not None:
         assert "coach_techniques" not in tp2
+
+
+def test_exam_forces_layers_off():
+    """Экзамен обязан выключать слои НА СЕРВЕРЕ, а не только в браузере.
+
+    Правило «экзамен фиксирует слои выключенными» держит сравнимость грейдов, а
+    значит и смысл сертификата. Клиент их выключает сам, но `session.init`
+    приходит из браузера: пока сервер принимал присланное как есть, правило
+    существовало только на честном слове проверяемого.
+    """
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        ws.receive_json()                       # session.queue_done
+        ws.send_json({"type": "session.init", "payload": {
+            "scenarioId": "supplier", "lang": "ru", "gameMode": "exam",
+            # Клиент, который «забыл» выключить слои, или просто чужой клиент.
+            "layers": {"probe": True, "voice": True, "camera": True, "avatar": True},
+        }})
+        created = ws.receive_json()
+        caps = created["capabilities"]
+        assert caps["voice"] is False, "экзамен не должен включать голос"
+        assert caps["camera"] is False, "экзамен не должен включать камеру"
+        assert caps["avatar"]["available"] is False, "экзамен не должен включать аватар"
