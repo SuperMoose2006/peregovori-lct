@@ -36,6 +36,11 @@ export interface RealtimeExtras {
   onTranscript?: (text: string, final: boolean) => void;
   /** Игрок заговорил / замолчал (по VAD сервера). */
   onSpeech?: (speaking: boolean) => void;
+  /** Говорит ли ОППОНЕНТ — по собственному звуку клиента, а не по слою аватара.
+   *  Раньше это состояние приходило только из `avatar.state`, поэтому в режиме
+   *  «только голос» кнопка перебивания не появлялась вовсе: слой аватара выключен
+   *  → событий нет → клиент считает, что оппонент молчит, хотя он звучит. */
+  onOppAudio?: (speaking: boolean) => void;
   /** Что умеет эта сессия — из `session.created`. */
   onCapabilities?: (capabilities: Record<string, unknown>) => void;
   /** Лента протокола: незаменима при отладке перебивания. */
@@ -205,6 +210,29 @@ export class RealtimeTransport implements Transport {
     }
   }
 
+  // -- «оппонент звучит» ----------------------------------------------------
+
+  private oppAudio = false;
+  private drainTimer: ReturnType<typeof setInterval> | null = null;
+
+  private markOppAudio(on: boolean): void {
+    if (this.oppAudio === on) return;
+    this.oppAudio = on;
+    this.options.onOppAudio?.(on);
+    if (!on && this.drainTimer) { clearInterval(this.drainTimer); this.drainTimer = null; }
+  }
+
+  /** `response.done` значит «модель дописала», а звук играет секундами дольше —
+   *  поэтому конец речи ловим по опустевшему проигрывателю, а не по событию. */
+  private watchDrain(): void {
+    if (this.drainTimer) return;
+    let quiet = 0;
+    this.drainTimer = setInterval(() => {
+      if (this.player?.isPlaying) { quiet = 0; return; }
+      if (++quiet >= 2) this.markOppAudio(false);   // 2 × 200 мс тишины
+    }, 200);
+  }
+
   // -- перевод событий -----------------------------------------------------
 
   private route(event: ServerEvent): void {
@@ -249,6 +277,7 @@ export class RealtimeTransport implements Transport {
           this.emit({ type: "opponent_delta", chunk: String(event.text ?? "") });
         } else if (kind === "audio") {
           this.player?.playChunk(String(event.audio ?? ""));
+          this.markOppAudio(true);
         } else if (kind === "transcript") {
           this.options.onTranscript?.(String(event.text ?? ""), Boolean(event.final));
         }
@@ -257,10 +286,12 @@ export class RealtimeTransport implements Transport {
 
       case "response.done":
         this.player?.endTurn();
+        this.watchDrain();
         this.flushTurn(String(event.text ?? ""));
         return;
 
       case "generation.cancelled":
+        this.markOppAudio(false);
         // Сервер погасил реплику. Звук, уже стоящий в расписании браузера,
         // остановит только это — вторая половина перебивания живёт здесь.
         this.player?.stopAll();

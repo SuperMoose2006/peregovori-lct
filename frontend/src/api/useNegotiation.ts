@@ -52,6 +52,8 @@ export interface NegotiationState {
   avatarState: string | null;
   /** Оппонент сейчас звучит. Управляет честным индикатором речи, а не губами. */
   oppSpeaking: boolean;
+  /** Звучит ли оппонент в динамиках — независимо от слоя аватара. */
+  oppAudio: boolean;
   /** Игрок сейчас говорит (VAD сервера). */
   userSpeaking: boolean;
   /** Расшифровка речи игрока — показывается, пока он не отправил ход. */
@@ -91,6 +93,7 @@ const initialState: NegotiationState = {
   judgeActive: false,
   avatarState: null,
   oppSpeaking: false,
+  oppAudio: false,
   userSpeaking: false,
   transcript: null,
   observations: [],
@@ -148,8 +151,16 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
           // подготовки, и они приезжают в сообщении `start` (см. transport.ts).
           videoEl: realtimeRef.current.videoRef ?? null,
           canvasEl: realtimeRef.current.canvasRef ?? null,
+          // Лицо и звук — два независимых признака речи. Аватар может быть
+          // выключен, а оппонент всё равно звучит: тогда «говорит» приходит из
+          // собственного проигрывателя (onOppAudio). Складываем оба, иначе в
+          // режиме «только голос» перебить оппонента нечем.
           onAvatar: (avatarState) =>
-            setS((p) => ({ ...p, avatarState, oppSpeaking: avatarState === "speaking" })),
+            setS((p) => ({ ...p, avatarState,
+                           oppSpeaking: avatarState === "speaking" || p.oppAudio })),
+          onOppAudio: (speaking) =>
+            setS((p) => ({ ...p, oppAudio: speaking,
+                           oppSpeaking: speaking || p.avatarState === "speaking" })),
           onObservation: (text) =>
             setS((p) => ({ ...p, observations: [...p.observations, text] })),
           // ГОЛОС И КЛАВИАТУРА ОБЯЗАНЫ ДАВАТЬ ОДИН И ТОТ ЖЕ ХОД — включая то, что
