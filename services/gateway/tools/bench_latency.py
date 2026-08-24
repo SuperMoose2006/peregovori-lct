@@ -150,8 +150,10 @@ async def measure_barge_in(url: str) -> dict:
 
         # 1. Обычный голосовой ход, чтобы оппонент начал говорить.
         speech_started = None
-        asr_ms = None
+        partial_ms = None      # первая ГИПОТЕЗА — может прийти ещё во время речи
+        asr_ms = None          # ОКОНЧАТЕЛЬНАЯ расшифровка
         turn_ms = None
+        audio_ms = None
         voice_start = time.perf_counter()
         await send(opener)
         # Момент, когда человек ЗАМОЛЧАЛ. Всё, что после, — это задержка системы;
@@ -168,11 +170,20 @@ async def measure_barge_in(url: str) -> dict:
                 break
             if event["type"] == "user.speech.started" and speech_started is None:
                 speech_started = (stamp - voice_start) * 1000
-            elif event["type"] == "user.transcript" and asr_ms is None:
-                asr_ms = (stamp - speech_end) * 1000
+            elif event["type"] == "user.transcript":
+                # Realtime-конвейер шлёт гипотезы ПО ХОДУ речи, поэтому частичную
+                # и окончательную нельзя мерить одной вехой: первая показывает,
+                # когда текст появился на экране, вторая — когда ход можно судить.
+                if not event.get("final"):
+                    if partial_ms is None:
+                        partial_ms = (stamp - voice_start) * 1000
+                elif asr_ms is None:
+                    asr_ms = (stamp - speech_end) * 1000
             elif event["type"] == "turn.analysis" and turn_ms is None:
                 turn_ms = (stamp - speech_end) * 1000
             elif event["type"] == "response.output.delta" and event.get("kind") == "audio":
+                if audio_ms is None:
+                    audio_ms = (stamp - speech_end) * 1000
                 speaking = True
                 break
 
@@ -207,7 +218,9 @@ async def measure_barge_in(url: str) -> dict:
     return {
         "длительность реплики игрока": round((speech_end - voice_start) * 1000),
         "VAD: речь замечена (от её начала)": round(speech_started) if speech_started is not None else None,
+        "первая гипотеза на экране (от начала речи)": round(partial_ms) if partial_ms else None,
         "расшифровка готова (от конца речи)": round(asr_ms) if asr_ms else None,
+        "ПЕРВЫЙ ЗВУК ОТВЕТА (от конца речи)": round(audio_ms) if audio_ms else None,
         "ход дошёл до движка (от конца речи)": round(turn_ms) if turn_ms else None,
         "ПЕРЕБИВАНИЕ: отмена подтверждена": round(barge_ms) if barge_ms else None,
         "чанков просочилось после отмены": leaked,
