@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import os
 from typing import Optional
 
 import numpy as np
@@ -33,6 +34,7 @@ from app.orchestrator.judge import judge_enabled
 from app.orchestrator.negotiation import NegotiationOrchestrator
 from app.orchestrator.tts_manager import TTSTaskManager
 from app.perception.vision import VisionSampler
+from app.perception.realtime_voice import RealtimeVoicePipeline
 from app.perception.voice_pipeline import VoicePipeline
 from app.providers.asr.openrouter import OpenRouterASR
 from app.providers.openrouter import chat as orchat
@@ -238,14 +240,30 @@ def _wire(session: RealtimeSession) -> tuple[
 
     orchestrator = NegotiationOrchestrator(session, tts=tts, avatar=avatar)
 
-    voice: Optional[VoicePipeline] = None
+    voice = None
     if session.mode == "voice" and session.layers.voice:
-        pipeline = VoicePipeline(
-            asr=OpenRouterASR(), lang=session.lang,
+        # ДВА КОНВЕЙЕРА, ОДНА ПОВЕРХНОСТЬ. Realtime-сессия OpenAI распознаёт по
+        # ходу речи и отдаёт текст через ~0.45 с после того, как человек
+        # замолчал; старый путь копил звук и слал файлом — 3.3 с. Берём
+        # realtime, когда для него есть ключ, и падаем на старый, когда нет:
+        # без сети продукт обязан оставаться играбельным (инвариант 5).
+        # NEGO_VOICE=classic принудительно возвращает старый путь. Нужен не для
+        # красоты: это и аварийный выход, если realtime-сессия начнёт капризничать
+        # на показе, и способ честно сравнить два конвейера на одной записи.
+        want_classic = os.getenv("NEGO_VOICE", "").strip().lower() == "classic"
+        pipeline = None if want_classic else RealtimeVoicePipeline(
+            lang=session.lang,
             on_turn=orchestrator.on_player_turn,
             on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
             publish=session.bus.publish,
         )
+        if pipeline is None or not pipeline.available:
+            pipeline = VoicePipeline(
+                asr=OpenRouterASR(), lang=session.lang,
+                on_turn=orchestrator.on_player_turn,
+                on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
+                publish=session.bus.publish,
+            )
         if pipeline.available:
             voice = pipeline
             # Замыкаем петлю: оркестратор знает, когда оппонент звучит, и
