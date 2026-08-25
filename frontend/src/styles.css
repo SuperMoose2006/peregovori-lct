@@ -2989,3 +2989,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    ровно это и сообщает, без чтения текста. */
 .obs-list { margin: 12px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
 .obs-list li { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+
+/* Частичный зачёт в вердикте упражнения: «3 из 5 уже на месте». Тише самого
+   вердикта — это не приговор, а зацепка, с которой ученик поправит ответ. */
+.ex-hits { margin: 6px 0 0; font-size: 13px; font-weight: 700; color: var(--ink-dim); }

@@ -12,8 +12,8 @@ import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
 import {
-  check, faceImage, metersOptions, reactionOptions, shuffledOptions, shuffledRight,
-  startingOrder, type Verdict,
+  check, faceImage, matchHits, metersOptions, orderHits, reactionOptions,
+  shuffledOptions, shuffledRight, startingOrder, type Verdict,
 } from "../lib/course";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
@@ -336,6 +336,18 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
           // узнаёт результат, только наткнувшись на него табом.
           <div className={`ex-verdict ${verdict!.ok ? "ok" : "bad"}`} role="status" aria-live="polite">
             <b>{verdict!.ok ? t.course.correct : t.course.wrong}</b>
+            {/* ЧАСТИЧНЫЙ ЗАЧЁТ. «Неверно» без подробностей ничему не учит, когда
+                из пяти шагов четыре стоят правильно. Считалки были написаны с
+                обеих сторон — и на сервере, и здесь — и не использовались нигде. */}
+            {!verdict!.ok && (ex.type === "order" || ex.type === "match") ? (
+              <p className="ex-hits">{t.course.hits
+                .replace("{n}", String(ex.type === "order"
+                  ? orderHits(ex, order)
+                  : matchHits(ex, pairs)))
+                .replace("{total}", String(ex.type === "order"
+                  ? (ex.answer as string[]).length
+                  : Object.keys(ex.answer as Record<string, string>).length))}</p>
+            ) : null}
             {!verdict!.ok && verdict!.reasons.length ? (
               <ul className="ex-why">
                 {verdict!.reasons.map((r) => <li key={r}>{reasonLabel(t, r)}</li>)}
