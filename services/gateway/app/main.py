@@ -58,6 +58,27 @@ async def _lifespan(_app: FastAPI):
     await orchat.aclose()
 
 
+def _voice_describe() -> str:
+    """Кто РЕАЛЬНО распознаёт речь в голосовом режиме.
+
+    В `models.asr` лежит модель запасного пути (chat-completions через
+    OpenRouter). После перевода голоса на realtime-сессию OpenAI это поле стало
+    ложным: health называл gemini, а слушал gpt-4o-mini-transcribe. Слой,
+    который «выглядит настоящим, а внутри другой», — ровно то состояние,
+    которого в продукте не бывает; на демо должно быть видно, кто слушает.
+    """
+    import os
+
+    from app.perception.realtime_voice import MODEL as RT_MODEL, VAD_SILENCE_MS
+    from app.providers.routing import model_for
+
+    if os.getenv("NEGO_VOICE", "").strip().lower() == "classic":
+        return f"classic (ASR {model_for('asr')} файлом, VAD свой)"
+    if os.getenv("OPENAI_REALTIME_KEY", "").strip():
+        return f"openai-realtime ({RT_MODEL}, VAD {VAD_SILENCE_MS} мс, потоком)"
+    return f"classic (ASR {model_for('asr')} файлом, VAD свой) — ключа realtime нет"
+
+
 def _tts_describe() -> str | None:
     """Кто сейчас говорит. Тот же порядок, что в endpoint.py — иначе health
     рассказывал бы про одного провайдера, а звучал бы другой."""
@@ -161,6 +182,8 @@ def health() -> dict:
         "models": describe_models(),
         # Правда о синтезе: на демо должно быть видно, чей это голос.
         "tts": _tts_describe(),
+        # Кто слушает: realtime-сессия или запасной путь файлом.
+        "voice": _voice_describe(),
     }
 
 
