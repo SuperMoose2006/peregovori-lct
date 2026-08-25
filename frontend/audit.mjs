@@ -227,14 +227,50 @@ for (const vp of VPS) {
   // Курс: блок → урок → упражнение
   await page.click('text=КУРС').catch(()=>{});
   await page.waitForTimeout(1200);
-  const blockBtn = page.locator(".cnode-btn:not(:disabled)").first();
-  if (await blockBtn.count()) {
-    await blockBtn.click().catch(()=>{});
-    await page.waitForTimeout(1200); await probe(page, "course-block", vp.tag);
+  // Глубокий обход курса — только на светлой теме и телефоне. Тёмные варианты
+  // для упражнений почти ничего не добавляют (те же токены, что везде), а время
+  // прогона учетверяют.
+  const deepCourse = vp.tag === "desk" || vp.tag === "mob";
+
+  // Профиль подставляем ЕЩЁ РАЗ, прямо перед обходом курса. Между экранами его
+  // успевает перезаписать сам продукт (серия, цель дня), и посеянный на старте
+  // прогресс к этому моменту исчезал — обходчик видел один открытый блок вместо
+  // семи и не доходил до четырёх типов упражнений.
+  await page.evaluate(() => {
+    const blocks = ["foundations","spin-ladder","active-listening","objective-criteria",
+                    "batna-zopa","anchoring","logrolling","pressure-defense","closing"];
+    const course = {};
+    for (const b of blocks) {
+      course[b] = { lessons:[1,2,3,4], solved:[], missed:[], examBest:5, examTotal:5,
+                    passed:true, attempts:1 };
+    }
+    const raw = localStorage.getItem("dialog.progress.v1");
+    const prof = raw ? JSON.parse(raw) : {};
+    prof.course = course; prof.xp = 900;
+    localStorage.setItem("dialog.progress.v1", JSON.stringify(prof));
+  }).catch(()=>{});
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(2000);
+  await page.click('text=КУРС').catch(()=>{});
+  await page.waitForTimeout(1300);
+
+  const ALL_KINDS = ["choice","spot_error","order","freeform","match","meters",
+                     "numeric","reaction","face","drill"];
+  const seen = new Set();
+  // Типы упражнений разложены по РАЗНЫМ блокам, поэтому одного блока мало.
+  // Идём по блокам, пока не увидим все десять или пока блоки не кончатся.
+  const blockCount = deepCourse ? await page.locator(".cnode-btn:not(:disabled)").count() : 0;
+  if (vp.tag === "desk") console.log("  открытых блоков:", blockCount);
+  for (let bi = 0; bi < Math.min(blockCount, 6) && seen.size < ALL_KINDS.length; bi++) {
+    const blocks = page.locator(".cnode-btn:not(:disabled)");
+    if (await blocks.count() <= bi) break;
+    await blocks.nth(bi).click().catch(()=>{});
+    await page.waitForTimeout(1100);
+    if (vp.tag === "desk") console.log("    блок", bi, "→", await page.evaluate(()=>document.querySelector(".screen h1, .screen h2")?.innerText?.slice(0,28)));
+    if (bi === 0) await probe(page, "course-block", vp.tag);
     // Задания разбиты ПО УРОКАМ, а не по блоку целиком: на урок приходится
     // одно-два. Чтобы увидеть все десять типов, надо обойти уроки, а если типов
     // всё ещё не хватает — и соседние блоки.
-    const seen = new Set();
     const lessonsCount = await page.locator(".lesson-list button").count();
     for (let li = 0; li < Math.min(lessonsCount, 4); li++) {
       const lessons = page.locator(".lesson-list button");
@@ -272,8 +308,29 @@ for (const vp of VPS) {
       // Вернуться к списку уроков блока.
       const back = page.locator("button:has-text('←')").first();
       if (await back.count()) { await back.click().catch(()=>{}); await page.waitForTimeout(900); }
+      if (seen.size >= ALL_KINDS.length) break;
     }
-    if (vp.tag === "desk") console.log("  типов упражнений увидено:", [...seen].sort().join(", ") || "НИ ОДНОГО");
+    // Вернуться к списку блоков. Кнопка «←» ведёт на уровень вверх, а сколько
+    // уровней мы прошли — зависит от того, где оборвался обход упражнений.
+    // Поэтому не гадаем: жмём назад, а если списка блоков не видно — заходим
+    // в курс заново через меню. Иначе обходчик застревал на первом блоке и
+    // четыре типа упражнений оставались непроверенными.
+    for (let back = 0; back < 3; back++) {
+      if (await page.locator(".cnode-btn").count()) break;
+      const b = page.locator("button:has-text('←')").first();
+      if (!await b.count()) break;
+      await b.click().catch(()=>{});
+      await page.waitForTimeout(700);
+    }
+    if (!await page.locator(".cnode-btn").count()) {
+      await page.click('text=КУРС').catch(()=>{});
+      await page.waitForTimeout(1200);
+    }
+  }
+  if (vp.tag === "desk") {
+    const missing = ALL_KINDS.filter(k => !seen.has(k));
+    console.log("  типов упражнений увидено:", [...seen].sort().join(", ") || "НИ ОДНОГО");
+    if (missing.length) console.log("  НЕ УВИДЕНО:", missing.join(", "));
   }
 
   // Тренировка → подготовка со слоями → партия → исход → разбор

@@ -256,6 +256,9 @@ export interface Strings {
     stepOf: string; next: string; checkIt: string; correct: string; wrong: string;
     /* Подписи стрелок в упражнении «порядок»: для диктора «↑» именем не является. */
     moveUp: string; moveDown: string;
+    /* Подпись к лицу в упражнении «face». НЕ описывает выражение: картинка
+       выводится из ответа, и описание было бы подсказкой. */
+    faceAlt: string;
     reference: string; freeformHint: string; matchHint: string; examQuit: string;
     recoveryTitle: string; nextUp: string; continue: string; actTeaches: string;
     coachNote: string;
@@ -807,6 +810,7 @@ export const I18N: Record<Lang, Strings> = {
       stepOf: "задание {n} из {total}",
       next: "Дальше",
       checkIt: "Проверить",
+      faceAlt: "Лицо оппонента в этот момент разговора",
       moveUp: "Переместить выше: {item}",
       moveDown: "Переместить ниже: {item}",
       correct: "Верно",
@@ -1405,6 +1409,7 @@ export const I18N: Record<Lang, Strings> = {
       stepOf: "task {n} of {total}",
       next: "Next",
       checkIt: "Check",
+      faceAlt: "The opponent's face at this moment",
       moveUp: "Move up: {item}",
       moveDown: "Move down: {item}",
       correct: "Correct",

@@ -177,7 +177,11 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
           выбирает своей реакцией, поэтому ответ проверяем, а не «на глаз». */}
       {ex.type === "face" && faceImage(ex) ? (
         <div className="ex-face">
-          <img src={faceImage(ex)!} alt="" width={200} height={200} />
+          {/* Подпись НЕ описывает выражение: картинка выводится из ответа, и
+              описание стало бы подсказкой. Но и пустая alt не годится — тогда
+              для экранного диктора задание пустое, а картинка здесь и есть
+              вопрос. Называем, что это, не называя ответа. */}
+          <img src={faceImage(ex)!} alt={t.course.faceAlt} width={200} height={200} />
         </div>
       ) : null}
 
