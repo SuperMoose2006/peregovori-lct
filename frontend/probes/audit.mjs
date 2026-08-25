@@ -83,14 +83,30 @@ const PROBE = `(() => {
   };
   const parse = (s) => { if (!/^rgba?\\(/.test(s)) return null; const m = s.match(/\\d+(\\.\\d+)?/g); return m ? m.slice(0,3).map(Number) : null; };
   const bgOf = (el) => {
+    // Фон ищем только среди предков, НА КОТОРЫХ ЭЛЕМЕНТ ВИЗУАЛЬНО ЛЕЖИТ.
+    // Абсолютно спозиционированная подпись часто вынесена ЗА свой контейнер
+    // (top: -20px), и наивный подъём по дереву приписывал ей фон полоски,
+    // под которой она не находится: прибор дважды обвинял в провале контраста
+    // текст, лежащий на обычном белом.
+    const r0 = el.getBoundingClientRect();
+    const cx = r0.left + r0.width / 2, cy = r0.top + r0.height / 2;
     let n = el;
     while (n && n !== document.documentElement) {
       const s = getComputedStyle(n); const c = parse(s.backgroundColor);
       const a = s.backgroundColor.startsWith("rgba") ? Number(s.backgroundColor.match(/[\\d.]+\\)$/)?.[0].slice(0,-1) ?? 1) : 1;
-      if (c && a > 0.5) return c;
+      if (c && a > 0.5) {
+        const r = n.getBoundingClientRect();
+        const covers = cx >= r.left - 1 && cx <= r.right + 1 && cy >= r.top - 1 && cy <= r.bottom + 1;
+        if (covers || n === el) return c;
+      }
       n = n.parentElement;
     }
-    return [255,255,255];
+    // Умолчание — НЕ белый: в тёмной теме фон тёмный, и подстановка белого
+    // превращала прибор в генератор ложных провалов контраста. Берём то, чем
+    // страница реально закрашена.
+    const rootBg = parse(getComputedStyle(document.body).backgroundColor)
+                || parse(getComputedStyle(document.documentElement).backgroundColor);
+    return rootBg || [255,255,255];
   };
   const checked = new Set();
   for (const el of document.querySelectorAll("body *")) {

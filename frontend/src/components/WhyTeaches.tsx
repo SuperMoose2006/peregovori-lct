@@ -12,11 +12,15 @@ import type { Strings } from "../i18n";
 
 // Method-tag → meter color, so the pedagogy reads in the same visual language as
 // the live game (Information/Leverage/Trust drive these very techniques).
+// ЧИТАЕМЫЕ варианты цветов шкал. Яркие (--info, --leverage) заливают полосы
+// метрик, где поверх ничего не написано; тем же цветом набранный чип на белом
+// даёт 2.44:1 и 2.54:1. Компонент писался до общей правки контраста и в аудит
+// не попадал, потому что не показывался нигде.
 const TAG_COLOR: Record<string, string> = {
-  SPIN: "var(--info)",
+  SPIN: "var(--info-ink)",
   Гарвард: "var(--brass)",
   Harvard: "var(--brass)",
-  BATNA: "var(--leverage)",
+  BATNA: "var(--leverage-ink)",
 };
 
 export function WhyTeaches({ t, lang }: { t: Strings; lang: Lang }) {
