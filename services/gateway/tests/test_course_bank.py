@@ -232,3 +232,56 @@ def test_face_picture_exists(item: dict) -> None:
     root = Path(__file__).resolve().parents[3] / "frontend" / "public" / "avatars"
     path = root / item["scenario_id"] / f"{_drawn(item['answer'])}.webp"
     assert path.is_file(), path
+
+
+# ---- предикаты, которыми судят игрока -------------------------------------
+#
+# Выше проверено, что эталон проходит собственный предикат у `choice` и
+# `freeform`. У остальных типов предикат не вызывался НИ РАЗУ — ни в приложении
+# (проверку ведёт офлайн-ядро фронтенда), ни в тестах. То есть для `match`,
+# `reaction`, `meters` и `face` главное обещание курса — «правильный ответ
+# обязан быть правильным» — держалось ни на чём.
+
+MATCH = [x for x in BANK if x["type"] == "match"]
+PICKED = [x for x in BANK if x["type"] in ("reaction", "meters", "face")]
+ORDERED = [x for x in BANK if x["type"] == "order"]
+
+
+@pytest.mark.parametrize("item", MATCH, ids=_ids(MATCH))
+def test_match_answer_passes_its_own_check(item: dict) -> None:
+    """Заявленное соответствие обязано проходить предикат `check_match`."""
+    from app.course.check import check_match
+    assert check_match(item, item["answer"]), item["id"]
+
+
+@pytest.mark.parametrize("item", MATCH, ids=_ids(MATCH))
+def test_match_rejects_a_swapped_pair(item: dict) -> None:
+    """И обязано ОТВЕРГАТЬ перепутанное — иначе предикат принимает что угодно."""
+    from app.course.check import check_match
+    pairs = dict(item["answer"])
+    if len(pairs) < 2:
+        pytest.skip("нечего менять местами")
+    keys = list(pairs)
+    pairs[keys[0]], pairs[keys[1]] = pairs[keys[1]], pairs[keys[0]]
+    assert not check_match(item, pairs), f"{item['id']}: перепутанные пары зачтены"
+
+
+@pytest.mark.parametrize("item", PICKED, ids=_ids(PICKED))
+def test_picked_answer_passes_its_own_check(item: dict) -> None:
+    """`reaction`, `meters`, `face`: заявленный ответ обязан проходить предикат."""
+    from app.course.check import check_pick
+    assert check_pick(item, item["answer"]), item["id"]
+    assert not check_pick(item, str(item["answer"]) + "_нет"), f"{item['id']}: предикат принимает что угодно"
+
+
+@pytest.mark.parametrize("item", ORDERED, ids=_ids(ORDERED))
+def test_order_partial_credit_counts_hits(item: dict) -> None:
+    """`order_hits` считает частичное попадание — на нём держится подсказка
+    «сколько шагов уже на месте». Полный порядок обязан давать полный счёт."""
+    from app.course.check import order_hits
+    right = list(item["answer"])
+    assert order_hits(item, right) == len(right), item["id"]
+    if len(right) >= 2:
+        swapped = right[:]
+        swapped[0], swapped[1] = swapped[1], swapped[0]
+        assert order_hits(item, swapped) < len(right), f"{item['id']}: перестановка не замечена"
