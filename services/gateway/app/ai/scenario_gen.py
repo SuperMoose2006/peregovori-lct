@@ -92,6 +92,11 @@ def _num(v, default: float = 0.0) -> float:
         return default
 
 
+#: Насколько дно оппонента заходит ЗА цель игрока, долей расстояния «старт → цель».
+#: Медиана рукотворных сценариев — см. комментарий в `_normalize_zopa`.
+_OPP_FLOOR_BEYOND_TARGET = 0.143
+
+
 def _normalize_zopa(d: dict) -> tuple[float, float, float, float]:
     """Return (opponent_open, opponent_reservation, player_target, player_reservation)
     as a strictly-ordered, guaranteed-playable ZOPA for the given direction."""
@@ -112,9 +117,26 @@ def _normalize_zopa(d: dict) -> tuple[float, float, float, float]:
     lower = str(d.get("dir", "lower_is_better")) != "higher_is_better"
     if lower:
         # player wants LOW: floor=a, target=b, reservation=c, open=d
-        return dd, a, b, c
-    # player wants HIGH: open=a, reservation=b, target=c, opp_reservation=d
-    return a, dd, c, b
+        opp_open, opp_res, target, player_res = dd, a, b, c
+    else:
+        # player wants HIGH: open=a, reservation=b, target=c, opp_reservation=d
+        opp_open, opp_res, target, player_res = a, dd, c, b
+
+    # ДНО ОППОНЕНТА ПРИЖИМАЕТСЯ К ЦЕЛИ. Сортировка выше гарантирует играбельность,
+    # но ставит дно в КРАЙ диапазона — то есть оппонент готов уйти далеко за цель
+    # игрока, и цель берётся почти даром. Замер это подтвердил: одна и та же
+    # сильная игра давала в своей сделке экономику 100 и общий 72, а в рукотворных
+    # сценариях — 76 и 62. Десять баллов разницы означают, что грейд «своей
+    # сделки» несопоставим с грейдом тренировки, а сопоставимость — то, ради чего
+    # весь счёт и считается движком.
+    #
+    # Константа взята ИЗ РУКОТВОРНЫХ сценариев, а не придумана: у восьми готовых
+    # медианный зазор дна за целью равен 14.3% расстояния «старт → цель»
+    # (supplier +14.3%, rent +18.2%, used_car +14.3%, freelance_rate +14.3%).
+    span = abs(opp_open - target) or 1.0
+    gap = round(span * _OPP_FLOOR_BEYOND_TARGET, 2)
+    opp_res = round(target - gap, 2) if lower else round(target + gap, 2)
+    return opp_open, opp_res, target, player_res
 
 
 def _dual(text: str) -> dict[str, str]:
