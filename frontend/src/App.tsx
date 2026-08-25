@@ -35,12 +35,33 @@ type Screen = "home" | "setup" | "generating" | "gen_error" | "game" | "debrief"
 const OUTCOME_HOLD_MS = 2200;
 type Theme = "light" | "dark" | null;
 
+const LANG_KEY = "dialog.lang.v1";
+const THEME_KEY = "dialog.theme.v1";
+
 const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 export default function App() {
-  const [lang, setLang] = useState<Lang>("ru");
-  const [theme, setTheme] = useState<Theme>(null);
+  // ЯЗЫК И ТЕМА ПЕРЕЖИВАЮТ ПЕРЕЗАГРУЗКУ. Оба жили только в состоянии React:
+  // англоязычный человек переключал язык, обновлял страницу — и снова видел
+  // русский. Чтение защищено try/catch, как и профиль: приватный режим и
+  // запрет на данные сайта бросают исключение прямо из localStorage, а
+  // умолчание всегда остаётся верным ответом.
+  const [lang, setLang] = useState<Lang>(() => {
+    try {
+      return localStorage.getItem(LANG_KEY) === "en" ? "en" : "ru";
+    } catch {
+      return "ru";
+    }
+  });
+  const [theme, setTheme] = useState<Theme>(() => {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return saved === "dark" || saved === "light" ? saved : null;
+    } catch {
+      return null;
+    }
+  });
   // Optional modality layers. `detectLayers` is the single source of truth for
   // what this environment can actually deliver — a saved preset can never switch
   // on something that does not exist (see pruneLayers).
@@ -101,11 +122,22 @@ export default function App() {
     const root = document.documentElement;
     if (theme) root.setAttribute("data-theme", theme);
     else root.removeAttribute("data-theme");
+    try {
+      if (theme) localStorage.setItem(THEME_KEY, theme);
+      else localStorage.removeItem(THEME_KEY);
+    } catch {
+      /* не суметь запомнить выбор — не повод его не применить */
+    }
   }, [theme]);
 
 
   useEffect(() => {
     document.documentElement.lang = lang;
+    try {
+      localStorage.setItem(LANG_KEY, lang);
+    } catch {
+      /* приватный режим — выбор просто не переживёт перезагрузку */
+    }
   }, [lang]);
 
   // Hold on the table for a beat when the debrief arrives, instead of swapping

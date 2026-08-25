@@ -15,6 +15,10 @@ const VPS = [
   // [data-theme="dark"] в нём не срабатывают.
   { w: 1440, h: 900, tag: "dark-sys",  scheme: "dark",  attr: null },
   { w: 1440, h: 900, tag: "dark-attr", scheme: "dark",  attr: "dark" },
+  // Английская локаль: инвариант требует RU/EN во ВС�ём пользовательском тексте,
+  // а непереведённая строка выглядит как работающий интерфейс — её видно только
+  // если специально искать кириллицу там, где её быть не должно.
+  { w: 1440, h: 900, tag: "en",        scheme: "light", attr: null, lang: "en" },
 ];
 const findings = [];
 let VP = "";
@@ -22,7 +26,7 @@ const add = (sev, where, kind, msg) => findings.push({ sev, where: where + "@" +
 
 // ——— проверки, которые гоняются на каждом состоянии ———
 const PROBE = `(() => {
-  const out = { hscroll: false, overflow: [], small: [], leak: [], dupIds: [], noAlt: 0, contrast: [] };
+  const out = { hscroll: false, overflow: [], small: [], leak: [], dupIds: [], noAlt: 0, contrast: [], cyr: [] };
   const de = document.documentElement;
   out.hscroll = de.scrollWidth > de.clientWidth + 1;
 
@@ -139,6 +143,18 @@ const PROBE = `(() => {
     if (!lab) out.unlabelled.push((el.className || el.tagName) + " " + (el.type || ""));
   }
 
+  // Собираем кириллицу отдельно: сравнивать надо ВИДИМЫЙ текст, а не разметку.
+  for (const el of document.querySelectorAll("body *")) {
+    if (el.children.length || !vis(el)) continue;
+    const t = (el.textContent || "").trim();
+    if (t.length < 2) continue;
+    // «Диалог» — ИМЯ ПРОДУКТА, а не непереведённая строка: бренд не переводят,
+    // как не переводят Duolingo. Единственное законное исключение; всё
+    // остальное кириллическое в английском интерфейсе — ошибка.
+    if (t.indexOf("Диалог") === 0) continue;
+    if (/[\\u0400-\\u04FF]/.test(t)) out.cyr.push((el.className || el.tagName) + " :: " + t.slice(0, 46));
+  }
+
   return out;
 })()`;
 
@@ -184,6 +200,9 @@ async function probe(page, where, tag) {
   }
   for (const h of (r.headings || []).slice(0, 3)) add("WARN", where, "heading", "пропуск уровня " + h);
   for (const u of (r.unlabelled || []).slice(0, 3)) add("BAD", where, "label", "поле без подписи: " + u);
+  if (tag === "en") {
+    for (const c of (r.cyr || []).slice(0, 6)) add("BAD", where, "i18n", "непереведено: " + c);
+  }
   await page.screenshot({ path: `${OUT}/${tag}-${where.replace(/[^\w-]/g, "_")}.png`, fullPage: tag === "desk" });
 }
 
@@ -201,6 +220,10 @@ for (const vp of VPS) {
   }, vp.attr);
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2200);
+  if (vp.lang === "en") {
+    await page.locator('.seg button:has-text("EN")').first().click().catch(()=>{});
+    await page.waitForTimeout(900);
+  }
 
   await probe(page, "home", vp.tag);
 
@@ -251,6 +274,14 @@ for (const vp of VPS) {
   }).catch(()=>{});
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2000);
+  // Язык живёт в состоянии React и перезагрузку не переживает — после reload
+  // интерфейс снова русский. Без этой строки прибор пометил бы русские подписи
+  // как «непереведено» и обвинил продукт в том, чего в нём нет: снимок экрана
+  // показывал ровно TRAINING, CAMPAIGN, YOUR DEAL.
+  if (vp.lang === "en") {
+    await page.locator('.seg button:has-text("EN")').first().click().catch(()=>{});
+    await page.waitForTimeout(800);
+  }
   await page.click('text=КУРС').catch(()=>{});
   await page.waitForTimeout(1300);
 
