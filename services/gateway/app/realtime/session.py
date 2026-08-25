@@ -60,6 +60,9 @@ class RealtimeSession:
     lang: str = "ru"
     mode: str = "text"                  # text | voice
     game_mode: str = "practice"         # practice | campaign | custom | exam
+    #: Репутация, принесённая из прошлых актов кампании. Нужна не только для
+    #: сдвига доверия: с ней оппонент здоровается иначе — «наслышан о вас».
+    reputation: Optional[float] = None
     layers: Layers = field(default_factory=Layers)
     bus: EventBus = field(default_factory=EventBus)
 

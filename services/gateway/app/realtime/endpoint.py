@@ -194,6 +194,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
                 mode=payload.mode,
                 game_mode=payload.gameMode,
                 layers=_layers_for(payload),
+                reputation=payload.reputation,
             ), None
 
     scenario_id = payload.scenarioId
@@ -224,6 +225,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
         mode=payload.mode,
         game_mode=payload.gameMode,
         layers=_layers_for(payload),
+        reputation=payload.reputation,
     ), None
 
 
@@ -334,7 +336,15 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
     """
     engine_session = session.engine_session
     scenario = engine.by_id(engine_session.scenario_id)
+    # «Ваша репутация вас опережает». Строка была написана на двух языках и НЕ
+    # ВЫЗЫВАЛАСЬ НИОТКУДА: кампания обещает, что репутация переносится между
+    # актами, а игрок видел только безымянный сдвиг доверия — без объяснения,
+    # откуда он взялся. Теперь оппонент говорит об этом вслух.
+    intro = (views.reputation_intro(session.reputation, session.lang)
+             if session.game_mode == "campaign" else "")
     greeting = views.greeting_line(engine_session, session.lang)
+    if intro:
+        greeting = intro + " " + greeting
 
     capabilities = {
         "voice": bool(session.layers.voice),
