@@ -18,12 +18,16 @@ import {
 } from "../src/lib/net";
 
 // ---- reconnect backoff -----------------------------------------------------
+// Числа сверены с ТЕМ, ЧТО РАБОТАЕТ: раньше эти тесты проверяли базу 500 мс и
+// три попытки, а realtime-session.ts переподключался с базой 400 и делал четыре
+// — политика жила в двух местах и разошлась. Теперь она одна, здесь.
 test("reconnectDelay is exponential and capped", () => {
-  assert.equal(reconnectDelay(1), 500);
-  assert.equal(reconnectDelay(2), 1000);
-  assert.equal(reconnectDelay(3), 2000);
+  assert.equal(reconnectDelay(1), 400);
+  assert.equal(reconnectDelay(2), 800);
+  assert.equal(reconnectDelay(3), 1600);
+  assert.equal(reconnectDelay(4), 3200);
   // Cap holds beyond the retry budget.
-  assert.equal(reconnectDelay(4), 4000);
+  assert.equal(reconnectDelay(5), 4000);
   assert.equal(reconnectDelay(10), 4000);
 });
 
@@ -32,9 +36,9 @@ test("reconnectDelay is monotonic non-decreasing and floors junk input", () => {
     assert.ok(reconnectDelay(a + 1) >= reconnectDelay(a), `attempt ${a}`);
   }
   // Defensive against sub-1 / fractional attempts.
-  assert.equal(reconnectDelay(0), 500);
-  assert.equal(reconnectDelay(-5), 500);
-  assert.equal(reconnectDelay(2.9), 1000);
+  assert.equal(reconnectDelay(0), 400);
+  assert.equal(reconnectDelay(-5), 400);
+  assert.equal(reconnectDelay(2.9), 800);
 });
 
 test("canReconnect allows exactly MAX attempts then gives up", () => {

@@ -26,6 +26,11 @@
 // отладке перебивания: без ленты событий «звук идёт после отмены» отлаживается
 // гаданием. Стоит он один массив на двести записей.
 
+// ЧТО ДОБАВЛЕНО НАМИ. Политика переподключения берётся из lib/net.ts, а не
+// пишется числами здесь: раньше она существовала дважды и разошлась — тесты
+// проверяли три попытки с базой 500 мс, работали четыре с базой 400.
+import { canReconnect, reconnectDelay } from "../../lib/net";
+
 export type ServerEvent = Record<string, unknown> & { type: string };
 
 export interface ProtocolEntry {
@@ -241,12 +246,14 @@ export class RealtimeSession {
       return;
     }
     this.attempt += 1;
-    if (this.attempt > 4) {
+    // Политика переподключения живёт в lib/net.ts и покрыта тестами —
+    // здесь она раньше дублировалась вписанными числами и разошлась с ними.
+    if (!canReconnect(this.attempt)) {
       this.onStatus?.("lost");
       return;
     }
     this.onStatus?.("reconnecting");
-    const delay = Math.min(4000, 400 * 2 ** (this.attempt - 1));
+    const delay = reconnectDelay(this.attempt);
     setTimeout(() => {
       if (this.closing || !this.initPayload) return;
       // Возвращаемся в ТУ ЖЕ партию, а не начинаем новую. Без `resume` человек

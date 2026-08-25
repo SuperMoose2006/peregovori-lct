@@ -7,8 +7,16 @@
 // Reconnect backoff (mid-game WS drop). We probe quickly at first, then back
 // off, and give up after a small cap so we never hammer a downed server.
 // ---------------------------------------------------------------------------
-export const MAX_RECONNECT_ATTEMPTS = 3;
-const RECONNECT_BASE_MS = 500;
+// ЕДИНСТВЕННЫЙ ИСТОЧНИК ПОЛИТИКИ ПЕРЕПОДКЛЮЧЕНИЯ. Раньше она существовала
+// дважды: здесь — с тестами, и вписанными числами в realtime-session.ts, где
+// работала на самом деле. Числа разошлись: тесты проверяли три попытки с базой
+// 500 мс, продукт делал четыре с базой 400. То есть тест охранял политику,
+// которой в приложении не было.
+//
+// Побеждают числа РАБОТАЮЩЕЙ ветки: четыре попытки щадят человека, у которого
+// моргнул wifi, больше трёх (суммарно 6 с ожидания против 3.5).
+export const MAX_RECONNECT_ATTEMPTS = 4;
+const RECONNECT_BASE_MS = 400;
 const RECONNECT_CAP_MS = 4000;
 
 // 1-based attempt number → delay (ms) to wait before making that attempt.
