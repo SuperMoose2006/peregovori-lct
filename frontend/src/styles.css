@@ -2993,3 +2993,18 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Частичный зачёт в вердикте упражнения: «3 из 5 уже на месте». Тише самого
    вердикта — это не приговор, а зацепка, с которой ученик поправит ответ. */
 .ex-hits { margin: 6px 0 0; font-size: 13px; font-weight: 700; color: var(--ink-dim); }
+
+/* «Почему это учит» на экране курса. Свёрнуто по умолчанию: ответ на «зачем»
+   нужен НЕ каждому и не каждый раз, но должен быть под рукой — а не исчезать
+   вместе с оформлением, в котором его когда-то поселили. */
+.course-why { margin: 18px 0 6px; border: 2px solid var(--line); border-radius: var(--r); background: var(--panel); }
+.course-why > summary {
+  cursor: pointer; padding: 14px 18px; font-weight: 800; font-size: 14px;
+  list-style: none; display: flex; align-items: center; gap: 10px; min-height: 44px;
+}
+.course-why > summary::before { content: "▸"; color: var(--brass); font-size: 13px; transition: transform 0.15s; }
+.course-why[open] > summary::before { transform: rotate(90deg); }
+.course-why > summary::-webkit-details-marker { display: none; }
+.course-why > summary:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+.course-why .teach { border: none; box-shadow: none; padding: 0 18px 18px; }
+.course-why .teach-head { display: none; }

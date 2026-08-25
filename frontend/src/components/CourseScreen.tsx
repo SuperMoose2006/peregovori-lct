@@ -26,6 +26,7 @@ import { Karl, Tikhon } from "./Mascot";
 import { plural } from "../lib/format";
 import { AchievementToasts } from "./Gamification";
 import { play } from "../lib/sound";
+import { WhyTeaches } from "./WhyTeaches";
 import { ScreenHeading } from "./ScreenHeading";
 
 interface Props {
@@ -164,6 +165,17 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
             <span>{missed.length} {plural(missed.length, t.course.taskForms)}</span>
           </button>
         ) : null}
+
+        {/* «ПОЧЕМУ ЭТО УЧИТ» — четыре панели метода с примерами из партии.
+            Текст был написан на двух языках, задокументирован и никому не
+            показывался: он жил в маркетинговой шапке удалённого скина, и вместе
+            с ней исчез. Курс объясняет КАК, а зачем вообще Гарвард, SPIN и
+            BATNA — не объяснял никто. Место выбрано по тому же принципу:
+            вопрос «зачем» возникает ДО первого блока, а не после. */}
+        <details className="course-why">
+          <summary>{t.teach.head}</summary>
+          <WhyTeaches t={t} lang={lang} />
+        </details>
 
         <div className="course-top">
           <span className="course-count">{t.course.blocksDone
