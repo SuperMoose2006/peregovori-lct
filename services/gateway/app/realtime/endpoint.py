@@ -312,19 +312,44 @@ def _make_avatar(session: RealtimeSession) -> AvatarProvider:
     return PresenceAvatar(session.engine_session.scenario_id, session.bus.publish)
 
 
-def _persona_is_female(scenario) -> bool:
-    """Пол голоса берём из сценария, а не угадываем синтезом.
+#: Мужские имена, оканчивающиеся на «а»/«я». Нужны только для СГЕНЕРИРОВАННЫХ
+#: персон: у готовых сценариев пол объявлен полем и не угадывается вовсе.
+#: Только ОДНОЗНАЧНО мужские. «Саша» и «Женя» тоже кончаются на «а»/«я», но они
+#: двуполые — записать их сюда значило бы заменить одну выдумку другой.
+_MALE_NAMES_ENDING_IN_A = frozenset({
+    "никита", "илья", "кузьма", "лука", "фома", "савва", "данила", "гаврила",
+    "добрыня", "мина", "сила",
+})
 
-    STUB(persona-gender): в сценариях пока нет поля пола — читаем по окончанию
-      имени, что для русского работает, но не для всех имён.
-      Настоящим станет: поле `counterpart.female` в `engine/scenarios.py`,
-      заполненное вместе с персоной. См. docs/upstream-code-map.md.
+
+def _persona_is_female(scenario) -> bool:
+    """Пол голоса берём ИЗ СЦЕНАРИЯ, а не угадываем по имени.
+
+    Угадывание стояло здесь как STUB и ошибалось на половине столов: строка
+    имени это «Имя, должность», и эвристика по окончанию читала ДОЛЖНОСТЬ.
+    «Ирина, глава продаж» кончается на «продаж» → мужской голос; «Алексей,
+    руководитель смежного отдела» → на «отдела» → женский; «Павел, основатель
+    стартапа» → на «стартапа» → женский. Четыре оппонента из восьми говорили
+    чужим голосом, и на слух это заметно сразу.
+
+    У сгенерированных сценариев поля может не быть — там остаётся догадка, но
+    уже по ПЕРВОМУ слову, то есть по имени, а не по должности.
     """
+    female = getattr(getattr(scenario, "counterpart", None), "female", None)
+    if isinstance(female, bool):
+        return female
     try:
         name = scenario.counterpart.name.get("ru", "")
     except Exception:
         return True
-    return bool(name) and name.rstrip().endswith(("а", "я"))
+    first = name.split(",")[0].strip()
+    if not first:
+        return True
+    # Мужские имена на -а/-я: их в русском немного, и без списка догадка
+    # уверенно ошибается на самых обычных — Никита, Илья, Данила.
+    if first.lower() in _MALE_NAMES_ENDING_IN_A:
+        return False
+    return first.endswith(("а", "я"))
 
 
 def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -> dict:

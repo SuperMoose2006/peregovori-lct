@@ -19,6 +19,12 @@ class Counterpart:
     name: dict[str, str]
     persona: dict[str, str]
     style: str  # relationship | tough | analytical
+    #: Пол — для выбора голоса синтеза. Раньше он УГАДЫВАЛСЯ по окончанию
+    #: строки имени, а строка это «Имя, должность»: догадка читала должность.
+    #: «Ирина, глава продаж» кончается на «продаж» → мужской голос; «Павел,
+    #: основатель стартапа» → на «стартапа» → женский. Половина оппонентов
+    #: говорила чужим голосом.
+    female: bool = True
 
 
 @dataclass(frozen=True)
@@ -101,6 +107,7 @@ SCENARIOS: list[Scenario] = [
                 "ru": "Опытная, ориентирована на отношения, не любит давление.",
                 "en": "Experienced, relationship-oriented, dislikes pressure.",
             },
+            female=True,
             style="relationship",
         ),
         headline=Headline(unit={"ru": "₽/шт", "en": "/unit"}, dir="lower_is_better"),
@@ -190,6 +197,7 @@ SCENARIOS: list[Scenario] = [
                 "ru": "Прагматичный, ценит цифры и рыночные данные.",
                 "en": "Pragmatic, respects numbers and market data.",
             },
+            female=False,
             style="analytical",
         ),
         headline=Headline(unit={"ru": "k ₽/мес", "en": "k/mo"}, dir="higher_is_better"),
@@ -271,6 +279,7 @@ SCENARIOS: list[Scenario] = [
                 "ru": "Под давлением, раздражён, изначально настроен обвинять.",
                 "en": "Under pressure, irritated, starts out blaming.",
             },
+            female=False,
             style="tough",
         ),
         headline=Headline(unit={"ru": "дней сдвига", "en": "days of slip"}, dir="lower_is_better"),
@@ -359,6 +368,7 @@ SCENARIOS: list[Scenario] = [
                 "ru": "Аналитична, жёсткая на цифрах, но ценит сильные BATNA.",
                 "en": "Analytical, hard on numbers, respects a strong BATNA.",
             },
+            female=True,
             style="analytical",
         ),
         headline=Headline(unit={"ru": "% доли", "en": "% equity"}, dir="lower_is_better"),
@@ -445,6 +455,7 @@ SCENARIOS: list[Scenario] = [
                 "ru": "Доброжелательная, боится проблемных жильцов, ценит порядочность и спокойствие.",
                 "en": "Warm, wary of troublesome tenants, values decency and a quiet life.",
             },
+            female=True,
             style="relationship",
         ),
         headline=Headline(unit={"ru": "k ₽/мес", "en": "k/mo"}, dir="lower_is_better"),
@@ -538,6 +549,7 @@ SCENARIOS: list[Scenario] = [
                 "ru": "Упрямый, слегка на нервах, привязан к машине и не терпит, когда её ругают.",
                 "en": "Stubborn, a bit on edge, attached to the car and hates hearing it trashed.",
             },
+            female=False,
             style="tough",
         ),
         headline=Headline(unit={"ru": "k ₽", "en": "k"}, dir="lower_is_better"),
@@ -632,6 +644,7 @@ SCENARIOS: list[Scenario] = [
                 "ru": "Считает каждый рубль, мыслит юнит-экономикой, убеждается цифрами, а не эмоциями.",
                 "en": "Counts every ruble, thinks in unit economics, persuaded by numbers, not emotion.",
             },
+            female=False,
             style="analytical",
         ),
         headline=Headline(unit={"ru": "k ₽/день", "en": "k/day"}, dir="higher_is_better"),
@@ -726,6 +739,7 @@ SCENARIOS: list[Scenario] = [
                 "ru": "Жёсткий переговорщик, защищает маржу, не любит связывать себя строгими штрафами.",
                 "en": "A hard bargainer, protects his margin, dislikes binding himself to strict penalties.",
             },
+            female=False,
             style="tough",
         ),
         headline=Headline(unit={"ru": "% аптайм", "en": "% uptime"}, dir="higher_is_better"),
