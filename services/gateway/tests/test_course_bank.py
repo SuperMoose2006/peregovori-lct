@@ -285,3 +285,45 @@ def test_order_partial_credit_counts_hits(item: dict) -> None:
         swapped = right[:]
         swapped[0], swapped[1] = swapped[1], swapped[0]
         assert order_hits(item, swapped) < len(right), f"{item['id']}: перестановка не замечена"
+
+
+# ---- проходимость капстоунов ----------------------------------------------
+#
+# Выше проверено, что предикат опирается только на поля движка и что цена цели
+# лежит внутри зоны сделки. Не проверено было главное: выполнимы ли условия
+# ВМЕСТЕ. «Сделка ≤ 88 И два интереса И напряжение ≤ 45 за шесть ходов» — три
+# требования разом, и правка баланса может сделать их несовместимыми, оставив
+# курс с воротами, которые не открываются.
+#
+# Играем принципиальную линию — вопрос на интерес, SPIN, объективный критерий,
+# размен, закрытие — и требуем, чтобы она проходила. Сценарий фиксирован
+# намеренно: если завтра баланс разъедется с курсом, тест обязан упасть.
+
+_PRINCIPLED = [
+    "Что для вас важнее всего в этой сделке и почему именно это?",
+    "А почему для вас важен именно этот срок — предоплата помогла бы?",
+    "По рыночным данным справедливый ориентир другой; давайте опираться на них.",
+    "Если дадим годовой контракт и предоплату — сможете пойти навстречу?",
+    "Договорились, фиксируем на этих условиях?",
+]
+
+CAPSTONES = [x for x in BANK if x["type"] == "drill"] + list(MASTER)
+
+
+@pytest.mark.parametrize("item", CAPSTONES, ids=[x["id"] for x in CAPSTONES])
+def test_capstone_is_actually_winnable(item: dict) -> None:
+    """Условие прохода обязано выполняться принципиальной игрой целиком."""
+    from app import engine, views
+    from app.course.check import check_drill
+
+    sess = engine.create_session(item["scenario_id"], "ru")
+    for line in _PRINCIPLED[: item.get("max_turns", 8)]:
+        sess.turn += 1
+        if engine.apply_move(sess, engine.analyze(line), line).closed:
+            break
+
+    verdict = check_drill(item, views.state_view(sess).model_dump())
+    assert verdict["ok"], (
+        f"{item['id']}: принципиальная игра не проходит капстоун — "
+        f"не выполнено: {', '.join(verdict['failed'])}"
+    )
