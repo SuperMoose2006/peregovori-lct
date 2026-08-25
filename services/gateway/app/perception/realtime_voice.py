@@ -366,8 +366,28 @@ class RealtimeVoicePipeline:
     # ------------------------------------------------------------ конец хода
 
     def _joined(self) -> str:
-        parts = [*self._parts, self._live] if self._live else list(self._parts)
-        return " ".join(p for p in parts if p).strip()
+        """Склеить куски в одну реплику, зашив швы.
+
+        Серверный VAD режет речь по паузам ВНУТРИ фразы, и каждый кусок
+        расшифровывается как самостоятельное высказывание: с заглавной буквы и
+        с точкой на конце. Наивная склейка через пробел давала «По рыночным
+        данным... Справедливый ориентир. восемьдесят шесть» — предложение,
+        разорванное там, где человек просто перевёл дыхание.
+
+        Правило простое и проверяемое: если следующий кусок начинается со
+        СТРОЧНОЙ буквы, значит фраза продолжается, и точку на стыке надо снять.
+        Заглавная буква после точки — вероятно, действительно новое предложение,
+        и его не трогаем.
+        """
+        parts = [p.strip() for p in ([*self._parts, self._live] if self._live else self._parts) if p and p.strip()]
+        if not parts:
+            return ""
+        out = parts[0]
+        for nxt in parts[1:]:
+            if nxt[:1].islower() and out.rstrip()[-1:] in ".!":
+                out = out.rstrip()[:-1]
+            out = out + " " + nxt
+        return out.strip()
 
     def _arm_quiet(self) -> None:
         self._cancel_quiet()
