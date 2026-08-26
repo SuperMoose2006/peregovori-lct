@@ -41,16 +41,31 @@ class FakeAudioContext {
   async close() { this.state = "closed"; }
 }
 
-function install(grant: { camera: boolean; mic: boolean }) {
+interface Grant {
+  camera: boolean;
+  mic: boolean;
+  /** Имя ошибки вместо NotAllowedError — чтобы играть отказы разного рода. */
+  as?: string;
+  /** Отказ только на СУЖЕННЫЙ запрос: голый `video: true` проходит. */
+  onlyConstrained?: boolean;
+  /** Что вернёт enumerateDevices. */
+  devices?: { kind: string }[];
+}
+
+function install(grant: Grant) {
   const asked: string[] = [];
   const g = globalThis as Record<string, unknown>;
   g.navigator = {
     mediaDevices: {
+      enumerateDevices: async () => grant.devices ?? [],
       getUserMedia: async (c: { video?: unknown; audio?: unknown }) => {
         const wantsVideo = !!c.video;
-        asked.push(wantsVideo ? "camera" : "mic");
+        const constrained = wantsVideo && typeof c.video === "object";
+        asked.push(wantsVideo ? (constrained ? "camera:узко" : "camera:любая") : "mic");
         const ok = wantsVideo ? grant.camera : grant.mic;
-        if (!ok) { const e = new Error("Permission denied"); e.name = "NotAllowedError"; throw e; }
+        if (!ok || (grant.onlyConstrained && constrained)) {
+          const e = new Error("no device"); e.name = grant.as ?? "NotAllowedError"; throw e;
+        }
         return new FakeStream([new FakeTrack(wantsVideo ? "video" : "audio")]) as unknown as MediaStream;
       },
     },
@@ -112,4 +127,45 @@ test("stop() гасит дорожки обоих устройств — ина�
   assert.equal(tracks.length, 2, "оба потока обязаны существовать");
   await p.stop();
   assert.ok(tracks.every((t) => t.stopped), "после stop() ни одна дорожка не осталась живой");
+});
+
+test("узкий запрос отвергнут — камера просится ещё раз, уже без требований", async () => {
+  // Живая камера, которая не любит facingMode: первая попытка отвергнута,
+  // вторая обязана пройти. Человек, нажавший «разрешить», обязан получить
+  // картинку, а не «устройство не найдено».
+  const asked = install({ camera: true, mic: false, as: "NotFoundError", onlyConstrained: true,
+                          devices: [{ kind: "videoinput" }] });
+  const { MediaProvider } = await load();
+  const p = new MediaProvider();
+  const report = await p.start({ camera: true, mic: false });
+  assert.equal(report.camera, "ok", "вторая попытка без требований обязана поднять камеру");
+  assert.deepEqual(asked, ["camera:узко", "camera:любая"], "ровно две попытки, вторая — голая");
+  await p.stop();
+});
+
+test("отказ пользователя НЕ переспрашивают вторым запросом", async () => {
+  const asked = install({ camera: false, mic: false, as: "NotAllowedError",
+                          devices: [{ kind: "videoinput" }] });
+  const { MediaProvider } = await load();
+  const p = new MediaProvider();
+  const report = await p.start({ camera: true, mic: false });
+  assert.match(String(report.camera), /не разрешён/);
+  assert.equal(asked.length, 1, "второй запрос был бы повторным вопросом там, где человек сказал «нет»");
+  await p.stop();
+});
+
+test("«не найдено» договаривает: камеры нет вовсе или она занята", async () => {
+  const { MediaProvider } = await load();
+
+  install({ camera: false, mic: false, as: "NotFoundError", devices: [] });
+  let report = await new MediaProvider().start({ camera: true, mic: false });
+  assert.match(String(report.camera), /камер в системе нет/,
+    "пустой список — говорим прямо, что подключать нечего");
+
+  install({ camera: false, mic: false, as: "NotFoundError",
+            devices: [{ kind: "videoinput" }, { kind: "videoinput" }] });
+  report = await new MediaProvider().start({ camera: true, mic: false });
+  assert.match(String(report.camera), /в системе: 2/,
+    "камеры есть — значит дело не в их отсутствии, и об этом обязана быть строка");
+  assert.match(String(report.camera), /занято другой программой/);
 });

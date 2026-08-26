@@ -181,7 +181,7 @@ export class MediaProvider {
       try {
         await this.startCamera();
       } catch (error) {
-        report.camera = describeMediaError(error);
+        report.camera = await explainMediaError(error, "videoinput");
       }
     }
 
@@ -189,7 +189,7 @@ export class MediaProvider {
       try {
         await this.startMic();
       } catch (error) {
-        report.mic = describeMediaError(error);
+        report.mic = await explainMediaError(error, "audioinput");
       }
     }
 
@@ -303,11 +303,32 @@ export class MediaProvider {
 
   // -- камера --------------------------------------------------------------
 
+  /**
+   * ДВЕ ПОПЫТКИ, И ЭТО НЕ ПЕРЕСТРАХОВКА. `facingMode`, ширина и высота — это
+   * ПОЖЕЛАНИЯ (`ideal`), выполнять их браузер не обязан. Но часть сборок
+   * (внешние камеры без сведений об ориентации, виртуальные устройства
+   * OBS/Zoom, часть Android) отвечает на такой запрос отказом `NotFoundError`
+   * или `OverconstrainedError` — при живой камере. Человек, который только что
+   * нажал «разрешить», получал «устройство не найдено» и был прав, не поверив.
+   *
+   * Поэтому вторая попытка идёт вообще без требований: любая камера лучше, чем
+   * никакой, а 640×480 нам нужны только чтобы не гонять лишние байты — кадр всё
+   * равно ужимается до 320 в `grabFrame`. Второго вопроса о разрешении при этом
+   * не будет: доступ уже выдан, повторный `getUserMedia` его не переспрашивает.
+   */
   private async startCamera(): Promise<void> {
-    this.videoStream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
-    });
+    try {
+      this.videoStream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+      });
+    } catch (error) {
+      const name = (error as { name?: string })?.name ?? "";
+      // Отказ пользователя переспрашивать нельзя — это был бы второй запрос
+      // разрешения там, где человек уже сказал «нет».
+      if (name === "NotAllowedError" || name === "SecurityError") throw error;
+      this.videoStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+    }
     this.bindElements();
     if (this.video) {
       this.video.srcObject = this.videoStream;
@@ -379,10 +400,38 @@ export function describeMediaError(error: unknown): string {
   const name = (error as { name?: string })?.name ?? "";
   if (name === "NotAllowedError" || name === "SecurityError")
     return "доступ не разрешён — браузер отказал в устройстве";
-  if (name === "NotFoundError" || name === "OverconstrainedError")
+  if (name === "NotFoundError")
     return "устройство не найдено";
+  if (name === "OverconstrainedError")
+    return "устройство есть, но не отдаёт нужный формат";
   if (name === "NotReadableError")
     return "устройство занято другой программой";
   const message = (error as { message?: string })?.message;
   return message ? String(message) : "не удалось включить";
+}
+
+/**
+ * «Устройство не найдено» — плохая новость не потому, что плохая, а потому, что
+ * человек не знает, что с ней делать: камеры нет вовсе или она есть и занята?
+ * Ответ лежит в одном вызове. Пересчитываем входы и говорим прямо; счёт берётся
+ * ПОСЛЕ неудачной попытки, когда разрешение уже спрошено, поэтому список
+ * настоящий, а не обрезанный из соображений приватности.
+ */
+export async function explainMediaError(error: unknown, kind: "videoinput" | "audioinput"): Promise<string> {
+  const why = describeMediaError(error);
+  const name = (error as { name?: string })?.name ?? "";
+  if (name !== "NotFoundError" && name !== "OverconstrainedError") return why;
+
+  let count: number | null = null;
+  try {
+    const list = await navigator.mediaDevices.enumerateDevices();
+    count = list.filter((d) => d.kind === kind).length;
+  } catch {
+    count = null;
+  }
+  const thing = kind === "videoinput" ? "камер" : "микрофонов";
+  if (count === 0) return `${thing} в системе нет — подключите устройство`;
+  if (count && count > 0)
+    return `${why} (${thing} в системе: ${count} — возможно, устройство занято другой программой)`;
+  return why;
 }
