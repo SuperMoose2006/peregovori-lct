@@ -5,13 +5,20 @@
 // вовсе (нет флага --use-fake-ui-for-media-stream), поэтому getUserMedia
 // отказывает по-настоящему.
 import { chromium } from "playwright-core";
+// Пароль НЕ живёт в репозитории (CLAUDE.md: секреты — в services/gateway/.env).
+// Прибор берёт его оттуда же, откуда его берёт сам гейтвей.
+import { readFileSync } from "node:fs";
+const PASS = (process.env.NEGO_HTTP_PASSWORD
+  ?? (readFileSync(new URL("../../services/gateway/.env", import.meta.url), "utf8")
+        .match(/^NEGO_HTTP_PASSWORD=(.*)$/m)?.[1] ?? "")).trim();
+const HOST = process.env.DIALOG_HOST ?? "https://185-154-194-88.nip.io/";
 const b = await chromium.launch({ executablePath:"/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
   args:["--no-sandbox","--no-proxy-server","--use-fake-device-for-media-stream","--autoplay-policy=no-user-gesture-required"] });
 const ctx = await b.newContext({ viewport:{width:1440,height:900},
-  httpCredentials:{username:"dialog",password:"jIL3Kpz77lOr"} });
+  httpCredentials:{username:"dialog",password:PASS} });
 const p = await ctx.newPage();
 await p.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1","1"); } catch {} });
-await p.goto("https://185-154-194-88.nip.io/", { waitUntil:"domcontentloaded", timeout:40000 });
+await p.goto(HOST, { waitUntil:"domcontentloaded", timeout:40000 });
 await p.waitForTimeout(2500);
 await p.locator(".card .go, .card button").first().click().catch(()=>{});
 await p.waitForTimeout(1600);
