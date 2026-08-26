@@ -353,6 +353,38 @@ h1, h2, h3, .serif { font-family: var(--serif); }
    to `.log`, which is the only thing that should scroll. */
 .table { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 20px 0 40px;
   height: calc(100vh - 190px); min-height: 520px; }
+
+/* ---------- Стол занимает окно целиком ----------------------------------
+   ПОЧЕМУ НЕ `calc(100vh - 190px)`. Высота стола была магическим числом: 190 —
+   это верхняя полоса плюс подвал плюс их отступы, сложенные руками один раз.
+   Число сошлось для той шапки и с тех пор врало при каждой её правке: внизу
+   оставалось до 120 пустых пикселей, и платила за них лента реплик — та
+   единственная часть экрана, ради которой сюда приходят.
+
+   Теперь высоту раздаёт флекс. Колонка приложения ровно в окно, стол забирает
+   остаток, `min-height: 0` возвращает переполнение туда, где ему место, — в
+   `.log`. Переписывать число больше не придётся никогда.
+
+   Только за столом и только на большом экране: ниже 860px раскладка
+   складывается в одну колонку и страница обязана листаться страницей. */
+@media (min-width: 861px) {
+  .appbody.playing { height: 100dvh; min-height: 0; overflow: hidden; }
+  .appbody.playing > .screen { flex: 1 1 auto; min-height: 0; display: flex; }
+  .appbody.playing > .screen > .wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .appbody.playing .table { flex: 1 1 auto; height: auto; min-height: 0; padding: 14px 0 16px; }
+  /* Подвал за столом — украшение ценой в 95 пикселей ленты (сорок отступа
+     плюс собственная высота). Он не сообщает ничего, чего не видно вокруг. */
+  .appbody.playing .foot { display: none; }
+
+  /* РЕЛЬС В ОКНО. Он на полтораста пикселей выше окна, и лишними были не
+     карточки, а воздух между ними: семь промежутков по 14 и щедрые поля
+     внутри. Ужимаем воздух, а не содержание — ни одна строка не пропадает. */
+  .appbody.playing .side { gap: 10px; }
+  .appbody.playing .opp { padding: 11px; gap: 11px; }
+  .appbody.playing .offers { padding: 10px; }
+  .appbody.playing .karl-row img { width: 74px; height: 74px; }
+  .appbody.playing .side-foot { gap: 8px; }
+}
 .table > * { min-height: 0; }
 .side { display: flex; flex-direction: column; gap: 14px; align-self: stretch;
   /* At 1280×800 the rail is taller than the row; it gets its own scroll rather
@@ -479,9 +511,21 @@ h1, h2, h3, .serif { font-family: var(--serif); }
    is hidden and the body always shows (brief + batna stack like plain siblings).
    On phones (see the ≤640 block) it collapses behind the toggle to keep the
    game strip short. */
-.side-more { display: flex; flex-direction: column; gap: 14px; }
-.side-more-body { display: flex; flex-direction: column; gap: 14px; }
-.side-more-toggle { display: none; }
+/* Брифинг под кнопкой НА ЛЮБОЙ ШИРИНЕ. На телефоне он сворачивался всегда, а
+   на большом экране стоял развёрнутым — «места же хватает». Не хватало:
+   рельс и без него на восемьдесят пикселей выше окна, а сам брифинг ничего не
+   добавляет к шкале ZOPA над ним и к карточке «Стол накрыт» в ленте. Кнопка
+   честно называет, что внутри, и открывается одним нажатием. */
+.side-more { display: flex; flex-direction: column; gap: 0; }
+.side-more-toggle {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+  min-height: 42px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--ink-dim);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.side-more-toggle .chev { transition: transform 0.2s ease; color: var(--brass); }
+.side-more.open .side-more-toggle .chev { transform: rotate(180deg); }
+.side-more-body { display: none; padding-top: 10px; flex-direction: column; gap: 14px; }
+.side-more.open .side-more-body { display: flex; }
 
 /* chat */
 .chat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-height: 480px; height: 100%; overflow: hidden; }
@@ -870,16 +914,9 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .m { padding: 4px; min-height: 44px; }        /* comfortable tap/focus target for the tooltip */
 
   /* Briefing + BATNA collapse behind a tappable header. */
-  .side-more { gap: 0; }
-  .side-more-toggle {
-    display: flex; align-items: center; justify-content: space-between; width: 100%;
-    min-height: 46px; padding: 11px 14px; font-size: 13.5px; font-weight: 600; color: var(--ink-dim);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-  }
-  .side-more-toggle .chev { transition: transform 0.2s ease; color: var(--brass); }
-  .side-more.open .side-more-toggle .chev { transform: rotate(180deg); }
-  .side-more-body { display: none; padding-top: 10px; gap: 10px; }
-  .side-more.open .side-more-body { display: flex; }
+  /* На телефоне кнопка крупнее — палец, а не курсор. Остальное общее. */
+  .side-more-toggle { min-height: 46px; padding: 11px 14px; font-size: 13.5px; }
+  .side-more-body { gap: 10px; }
 
   .quit { min-height: 46px; }
 
@@ -2526,11 +2563,13 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    (`.side { overflow-y: auto }`), и тренер, лежащий последним, оказывался ниже
    сгиба ровно в те моменты, ради которых он существует. Подложка с градиентом
    нужна, чтобы карточки уезжали ЗА него, а не сквозь. */
-.karl { margin-top: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;
+/* Липнет теперь ГРУППА «тренер + выход», а не один тренер: см. Table.tsx. */
+.side-foot { margin-top: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 10px;
   position: sticky; bottom: 0; z-index: 2; background: var(--ground); }
+.karl { display: flex; flex-direction: column; gap: 8px; }
 /* Растворение НАД тренером, а не под ним: с полупрозрачной подложкой карточки
    рельса просвечивали сквозь пузырь и это читалось как сбой отрисовки. */
-.karl::before { content: ""; position: absolute; left: 0; right: 0; top: -18px; height: 18px;
+.side-foot::before { content: ""; position: absolute; left: 0; right: 0; top: -18px; height: 18px;
   background: linear-gradient(to bottom, transparent, var(--ground)); pointer-events: none; }
 .karl-row { display: flex; align-items: flex-end; gap: 9px; }
 .karl-row img { width: 92px; height: 92px; object-fit: contain; flex: 0 0 auto; }

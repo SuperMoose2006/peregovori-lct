@@ -459,7 +459,10 @@ export default function App() {
         onProfile={openProfile}
         onCourse={() => openCourse(null)}
       />
-      <div className="appbody">
+      {/* `playing` включает заполнение окна: за столом высоту раздаёт флекс, а
+          не магическое число в CSS. На остальных экранах страница листается
+          как страница — там это было бы вредно. */}
+      <div className={`appbody${screen === "game" ? " playing" : ""}`}>
       <div className="top">
         {/* Живые счётчики так, как их показывает игра. */}
         <div className="hudstats" aria-label={t.a11y.stats}>

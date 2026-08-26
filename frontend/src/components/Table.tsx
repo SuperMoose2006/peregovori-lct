@@ -406,6 +406,18 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               <DealTracker scenario={scenario} state={st} t={t} lang={lang} />
             </div>
 
+            {/* BATNA НАРУЖУ И ВЫСОКО, брифинг под кнопку. Раньше оба лежали в
+                одной развёрнутой панели на 162 пикселя внизу рельса — то есть
+                за краем окна. Брифинг из них — чистый повтор: цель и красную
+                линию показывает шкала ZOPA прямо над ним, а «у второй стороны
+                скрытые интересы, спрашивайте» стоит в карточке «Стол накрыт».
+                BATNA не повторяется нигде, и её место здесь, рядом с ценой:
+                сила уйти читается вместе с цифрой, против которой она стоит. */}
+            <div className="batna">
+              <b>🛡 {t.batna}</b>
+              <span>{scenario.batna}</span>
+            </div>
+
             {/* Visible logrolling: the tradeable "package" forming, right under
                 the price tracker so the price move and the trade read together.
                 Renders only for scenarios that carry secondary issues. */}
@@ -443,18 +455,18 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               </button>
               <div className="side-more-body">
                 <div className="brief">{scenario.briefing}</div>
-                <div className="batna">
-                  <b>🛡 {t.batna}</b>
-                  <span>{scenario.batna}</span>
-                </div>
               </div>
             </div>
-            {/* Карл прилипает к низу рельса: постоянное место, но ни одной
-                новой колонки. В экзамене его нет — там подсказок не бывает. */}
-            {!exam ? <Karl state={karl} line={karlLine} name={t.mascot.karl} /> : null}
-            <button className="quit" onClick={handleQuit}>
-              ← {t.quit}
-            </button>
+            {/* Карл и выход прилипают к низу рельса ВМЕСТЕ. Прилипал один Карл,
+                а кнопка выхода стояла под ним — то есть за краем окна: уйти со
+                стола можно было только прокрутив рельс. Выход не бывает
+                «где-то ниже». В экзамене Карла нет — там подсказок не бывает. */}
+            <div className="side-foot">
+              {!exam ? <Karl state={karl} line={karlLine} name={t.mascot.karl} /> : null}
+              <button className="quit" onClick={handleQuit}>
+                ← {t.quit}
+              </button>
+            </div>
           </aside>
 
           <main className="chat">
