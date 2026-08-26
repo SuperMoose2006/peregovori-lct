@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Диалог · проверка оборудования</title>
+<!--
+  check.html — отдельная страница, а не экран приложения, и это осознанно.
+
+  Когда микрофон или камера не поднимаются, приложение — плохой свидетель: оно
+  само может быть причиной. Эта страница не знает про движок, сборку и React,
+  у неё нет зависимостей и она умещается в один файл. Всё, что она делает, —
+  спрашивает у браузера ровно то, что спрашивает игра, и показывает ОТВЕТ
+  БРАУЗЕРА дословно: имя ошибки, число устройств, состояние разрешения.
+
+  Отчёт копируется одной кнопкой, потому что «камера не работает» — это не
+  сведения, а «NotReadableError, videoinput: 1, permission granted» — сведения.
+-->
+<style>
+  :root { color-scheme: light dark; --bg:#f3eee3; --ink:#14110d; --dim:#6b6b6b;
+          --ok:#2f7a00; --bad:#c62828; --card:#fff; --edge:#0002; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14110d; --ink:#f0ece4; --dim:#a09a90; --ok:#58cc02; --bad:#ff7a7a;
+            --card:#1e1a15; --edge:#fff2; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px 16px 64px; background:var(--bg); color:var(--ink);
+         font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:720px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.sub { color:var(--dim); margin:0 0 24px; font-size:14px; }
+  section { background:var(--card); border:1px solid var(--edge); border-radius:12px;
+            padding:14px 16px; margin:0 0 12px; }
+  h2 { font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim);
+       margin:0 0 10px; font-weight:600; }
+  .row { display:flex; gap:10px; align-items:baseline; padding:4px 0; font-size:15px; }
+  .row b { flex:0 0 auto; min-width:150px; font-weight:600; }
+  .row span { color:var(--dim); word-break:break-word; }
+  .ok { color:var(--ok); font-weight:600; }
+  .bad { color:var(--bad); font-weight:600; }
+  video { width:100%; max-width:360px; border-radius:10px; background:#000; display:block; margin-top:10px; }
+  button { font:inherit; font-weight:600; padding:11px 18px; border-radius:10px;
+           border:1px solid var(--edge); background:var(--ok); color:#fff; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--ink); }
+  .acts { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+  textarea { width:100%; height:190px; margin-top:12px; font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;
+             background:var(--bg); color:var(--ink); border:1px solid var(--edge);
+             border-radius:10px; padding:10px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Проверка оборудования</h1>
+  <p class="sub">Страница спрашивает у браузера ровно то же, что спрашивает игра, и показывает его ответ дословно.</p>
+
+  <section><h2>Страница</h2><div id="page"></div></section>
+  <section><h2>Разрешения</h2><div id="perm"></div></section>
+  <section><h2>Устройства</h2><div id="dev"></div></section>
+  <section>
+    <h2>Живая проверка</h2>
+    <div id="live"><div class="row"><span>Нажмите «Проверить» — браузер спросит доступ.</span></div></div>
+    <video id="v" muted playsinline autoplay></video>
+  </section>
+
+  <div class="acts">
+    <button id="go">Проверить микрофон и камеру</button>
+    <button id="copy" class="ghost">Скопировать отчёт</button>
+  </div>
+  <textarea id="out" readonly placeholder="Отчёт появится здесь"></textarea>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const lines = [];
+function row(host, label, value, state) {
+  const cls = state === true ? "ok" : state === false ? "bad" : "";
+  const d = document.createElement("div");
+  d.className = "row";
+  d.innerHTML = '<b></b><span class="' + cls + '"></span>';
+  d.querySelector("b").textContent = label;
+  d.querySelector("span").textContent = value;
+  host.appendChild(d);
+  lines.push(label + ": " + value);
+}
+
+// --- страница --------------------------------------------------------------
+row($("page"), "Адрес", location.origin);
+row($("page"), "Защищённый контекст", String(window.isSecureContext), window.isSecureContext);
+row($("page"), "getUserMedia", navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? "есть" : "НЕТ",
+    !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+row($("page"), "Браузер", navigator.userAgent);
+
+// --- разрешения ------------------------------------------------------------
+// permissions.query по камере есть не везде (Safari до 16 его не знал), поэтому
+// отсутствие ответа — это «браузер не говорит», а не «запрещено».
+(async () => {
+  for (const name of ["camera", "microphone"]) {
+    let state = "браузер не отвечает на запрос о состоянии";
+    let good = null;
+    try {
+      const r = await navigator.permissions.query({ name });
+      state = r.state;
+      good = r.state === "granted" ? true : r.state === "denied" ? false : null;
+    } catch (e) { state = "недоступно (" + e.name + ")"; }
+    row($("perm"), name === "camera" ? "Камера" : "Микрофон", state, good);
+  }
+  await listDevices();
+})();
+
+async function listDevices() {
+  $("dev").innerHTML = "";
+  try {
+    const all = await navigator.mediaDevices.enumerateDevices();
+    const cams = all.filter((d) => d.kind === "videoinput");
+    const mics = all.filter((d) => d.kind === "audioinput");
+    row($("dev"), "Камер", String(cams.length), cams.length > 0);
+    cams.forEach((d, i) => row($("dev"), "  камера " + (i + 1), d.label || "(имя скрыто до разрешения)"));
+    row($("dev"), "Микрофонов", String(mics.length), mics.length > 0);
+    mics.forEach((d, i) => row($("dev"), "  микрофон " + (i + 1), d.label || "(имя скрыто до разрешения)"));
+  } catch (e) {
+    row($("dev"), "Список устройств", "ошибка: " + e.name + " " + e.message, false);
+  }
+}
+
+// --- живая проверка --------------------------------------------------------
+// Две попытки по камере — ровно те же, что в игре: сначала с пожеланиями к
+// формату, потом без единого требования. Их расхождение и есть диагноз.
+async function tryCam(constraints, label, host) {
+  try {
+    const s = await navigator.mediaDevices.getUserMedia(constraints);
+    const t = s.getVideoTracks()[0];
+    const st = t ? t.getSettings() : {};
+    row(host, label, "поток есть · " + (t ? t.label : "?") + " · " + (st.width || "?") + "×" + (st.height || "?"), true);
+    return s;
+  } catch (e) {
+    row(host, label, e.name + " — " + e.message, false);
+    return null;
+  }
+}
+
+$("go").onclick = async () => {
+  $("live").innerHTML = "";
+  lines.length = 0;
+  row($("live"), "Запущено", new Date().toISOString());
+
+  let stream = await tryCam({ audio: false, video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } },
+                            "Камера, как просит игра", $("live"));
+  if (!stream) stream = await tryCam({ audio: false, video: true }, "Камера без требований", $("live"));
+
+  if (stream) {
+    $("v").srcObject = stream;
+    try { await $("v").play(); } catch (e) { /* политика автоплея */ }
+    // Картинка на экране — не доказательство: элемент может быть привязан, а
+    // кадров не приходить. Дожидаемся ненулевого размера и говорим о нём.
+    const t0 = Date.now();
+    while (!$("v").videoWidth && Date.now() - t0 < 4000) await new Promise((r) => setTimeout(r, 100));
+    row($("live"), "Кадр дошёл", $("v").videoWidth ? $("v").videoWidth + "×" + $("v").videoHeight : "НЕТ — поток есть, картинки нет",
+        !!$("v").videoWidth);
+  }
+
+  try {
+    const a = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+    const t = a.getAudioTracks()[0];
+    row($("live"), "Микрофон", "поток есть · " + (t ? t.label : "?"), true);
+    a.getTracks().forEach((x) => x.stop());
+  } catch (e) {
+    row($("live"), "Микрофон", e.name + " — " + e.message, false);
+  }
+
+  await listDevices();
+  $("out").value = lines.join("\n");
+};
+
+$("copy").onclick = async () => {
+  if (!$("out").value) $("out").value = lines.join("\n");
+  try { await navigator.clipboard.writeText($("out").value); $("copy").textContent = "Скопировано"; }
+  catch (e) { $("out").select(); }
+};
+</script>
+</body>
+</html>
