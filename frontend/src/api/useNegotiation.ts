@@ -65,6 +65,9 @@ export interface NegotiationState {
   transcript: string | null;
   /** Наблюдения камеры. НИКОГДА не влияют на оценку — только на разбор. */
   observations: string[];
+  /** Сколько кадров камеры ушло на сервер. Ноль при поднятой камере значит,
+   *  что поток открыт, а картинка никуда не едет — и чип обязан это сказать. */
+  framesSent: number;
   /** Что умеет эта сессия (из `session.created`). Null до начала партии. */
   capabilities: Record<string, unknown> | null;
 }
@@ -103,6 +106,7 @@ const initialState: NegotiationState = {
   userSpeaking: false,
   transcript: null,
   observations: [],
+  framesSent: 0,
   capabilities: null,
 };
 
@@ -169,6 +173,7 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
                            oppSpeaking: speaking || p.avatarState === "speaking" })),
           onObservation: (text) =>
             setS((p) => ({ ...p, observations: [...p.observations, text] })),
+          onCameraFrame: () => setS((p) => ({ ...p, framesSent: p.framesSent + 1 })),
           // ГОЛОС И КЛАВИАТУРА ОБЯЗАНЫ ДАВАТЬ ОДИН И ТОТ ЖЕ ХОД — включая то, что
           // человек видит. Раньше финальная расшифровка просто гасила живой
           // предпросмотр (`transcript: null`), а сам текст выбрасывался: партия

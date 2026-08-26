@@ -214,6 +214,7 @@ export interface Strings {
   live: {
     micOn: string; hearing: string; interrupt: string;
     inFrame: string; outFrame: string; peekNote: string; peekOpen: string;
+    seen: string;
     // Слой просили, но устройство не встало. Переключатель включён, а внутри
     // пусто — запрещённое состояние; поэтому у него есть свои слова.
     offVoice: string; offCamera: string; offHow: string;
@@ -747,10 +748,13 @@ export const I18N: Record<Lang, Strings> = {
       micOn: "микрофон активен",
       hearing: "слышу вас",
       interrupt: "перебить",
-      inFrame: "камера · в кадре",
-      outFrame: "камера · вне кадра",
+      // Не «в кадре»: детектора лица у нас нет, и обещать его чипом нельзя.
+      // Чип говорит ровно то, что мы знаем — уходят кадры или нет.
+      inFrame: "камера · кадры идут",
+      outFrame: "камера · кадры не уходят",
       peekNote: "видно только вам",
       peekOpen: "проверить свет",
+      seen: "модель видит:",
       offVoice: "Голос не включился",
       offCamera: "Камера не включилась",
       offHow: "Партия продолжается текстом. Разрешите доступ в браузере и начните заново.",
@@ -1353,10 +1357,11 @@ export const I18N: Record<Lang, Strings> = {
       micOn: "microphone live",
       hearing: "hearing you",
       interrupt: "cut in",
-      inFrame: "camera · in frame",
-      outFrame: "camera · out of frame",
+      inFrame: "camera · frames flowing",
+      outFrame: "camera · no frames",
       peekNote: "only you can see this",
       peekOpen: "check your light",
+      seen: "the model sees:",
       offVoice: "Voice did not start",
       offCamera: "Camera did not start",
       offHow: "The round continues in text. Allow access in the browser and start again.",

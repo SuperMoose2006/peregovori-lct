@@ -21,6 +21,13 @@ interface Props {
   voice: boolean;
   /** Камера поднята: чип состояния + доступное самопревью. */
   camera: boolean;
+  /** Сколько кадров УЖЕ ушло на сервер. Ноль — поток открыт, а картинка никуда
+   *  не едет; на экране это выглядит ровно как работающая камера, поэтому чип
+   *  обязан различать эти два случая. */
+  frames: number;
+  /** Последнее, что разглядела модель зрения. Единственное настоящее
+   *  доказательство того, что камера дошла до конца пути. */
+  observation: string | null;
   /** Игрок сейчас говорит — по VAD сервера, а не по локальной громкости. */
   userSpeaking: boolean;
   /** Оппонент сейчас звучит: подсказываем, что его можно перебить. */
@@ -36,20 +43,24 @@ interface Props {
   labels: {
     micOn: string; hearing: string; interrupt: string;
     inFrame: string; outFrame: string; peekNote: string; peekOpen: string;
+    seen: string;
   };
 }
 
 const BARS = 6;
 
 export function LiveBar({
-  voice, camera, userSpeaking, oppSpeaking, transcript,
+  voice, camera, frames, observation, userSpeaking, oppSpeaking, transcript,
   getMicLevel, onInterrupt, videoRef, canvasRef, labels,
 }: Props) {
   const [peek, setPeek] = useState(false);
   const [level, setLevel] = useState(0);
-  // Кадрирование: пока настоящего детектора лица нет, «в кадре» = камера
-  // отдаёт поток. Честно — чип говорит про камеру, а не про ваше лицо.
-  const inFrame = camera;
+  // ЧИП ГОРИТ ОТ УШЕДШЕГО КАДРА, А НЕ ОТ ОТКРЫТОГО ПОТОКА. Раньше здесь стояло
+  // `inFrame = camera`, то есть «камера включена, значит работает». Открытый
+  // поток, из которого не уходит ни одного кадра, выглядит на экране в точности
+  // как работающая камера — и человеку нечем отличить одно от другого. Теперь
+  // отличает: кадр ушёл — горит, не ушёл — так и написано.
+  const flowing = camera && frames > 0;
   const rafRef = useRef<number | null>(null);
 
   // Опрос уровня на ~12 кадрах в секунду. Не rAF: полоска из шести делений не
@@ -86,13 +97,13 @@ export function LiveBar({
       {camera ? (
         <button
           type="button"
-          className={`lb-cam${inFrame ? "" : " out"}`}
+          className={`lb-cam${flowing ? "" : " out"}`}
           onClick={() => setPeek((p) => !p)}
           aria-expanded={peek}
           title={labels.peekOpen}
         >
           <i className="lb-dot" />
-          {inFrame ? labels.inFrame : labels.outFrame}
+          {flowing ? labels.inFrame : labels.outFrame}
         </button>
       ) : null}
 
@@ -112,6 +123,12 @@ export function LiveBar({
           <video ref={videoRef} muted playsInline autoPlay />
           <canvas ref={canvasRef} hidden />
           <span className="lb-peek-n">{labels.peekNote}</span>
+          {/* Самопревью показывает, что камера отдаёт картинку БРАУЗЕРУ. Что она
+              дошла до модели зрения — доказывает только это: её собственные
+              слова о том, что она разглядела. Оценки они не касаются. */}
+          {observation ? (
+            <span className="lb-peek-obs"><b>{labels.seen}</b> {observation}</span>
+          ) : null}
         </div>
       ) : null}
     </div>

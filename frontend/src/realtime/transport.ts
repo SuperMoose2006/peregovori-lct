@@ -32,6 +32,10 @@ export interface RealtimeExtras {
   onAvatar?: (state: string, reaction: string | null, lipsync: boolean) => void;
   /** Наблюдение камеры. НИКОГДА не влияет на оценку — плашка едет в событии. */
   onObservation?: (text: string) => void;
+  /** Кадр ДЕЙСТВИТЕЛЬНО ушёл на сервер. Чип камеры обязан гореть от этого, а
+   *  не от факта, что поток открыт: открытый поток без кадров выглядит на
+   *  экране точно так же, как работающая камера. */
+  onCameraFrame?: () => void;
   /** Расшифровка речи игрока. */
   onTranscript?: (text: string, final: boolean) => void;
   /** Игрок заговорил / замолчал (по VAD сервера). */
@@ -197,8 +201,12 @@ export class RealtimeTransport implements Transport {
     });
     this.media.onChunk = ({ audio, frame }) => {
       this.session?.sendAudio(toBase64(audio.buffer), frame);
+      if (frame) this.options.onCameraFrame?.();
     };
-    this.media.onFrame = (frame) => { this.session?.sendFrame(frame); };
+    this.media.onFrame = (frame) => {
+      this.session?.sendFrame(frame);
+      this.options.onCameraFrame?.();
+    };
     // `start` больше не бросает на отказ устройства: отказ — это ответ
     // пользователя, а не сбой. Он возвращает отчёт по каждому слою, и каждый
     // невставший слой называется на экране поимённо.

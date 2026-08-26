@@ -2642,7 +2642,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    проверки света перед стартом, а не для сопровождения партии:
    человек, видящий себя, начинает следить за собой. */
 .lb-peek {
-  position: absolute; right: 0; bottom: calc(100% + 8px); width: 148px;
+  position: absolute; right: 0; bottom: calc(100% + 8px); width: 208px;
   background: var(--panel); border: 1px solid var(--line-2); border-radius: 13px;
   padding: 8px; box-shadow: var(--shadow); z-index: 6;
   opacity: 0; visibility: hidden; transform: translateY(6px);
@@ -2658,6 +2658,13 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   display: block; margin-top: 6px; text-align: center;
   font-size: 10.5px; font-weight: 700; color: var(--ink-faint);
 }
+/* Слова модели зрения. Картинка доказывает, что камера отдаёт поток БРАУЗЕРУ;
+   что он дошёл до модели — доказывают только они. */
+.lb-peek-obs {
+  display: block; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line-2);
+  font-size: 11px; line-height: 1.4; color: var(--ink-dim);
+}
+.lb-peek-obs b { color: var(--ink-faint); font-weight: 700; }
 
 /* ============================================================
    Курс приёмов: карта блоков, урок, упражнение, экзамен

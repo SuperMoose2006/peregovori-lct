@@ -55,6 +55,9 @@ interface Props {
   /** Слой просили, но устройство не встало. Ключ есть — слой мёртв, и об этом
    *  обязана быть строка на экране, а не пустой чип живого слоя. */
   layerFail?: { voice?: string; camera?: string };
+  /** Сколько кадров камеры реально ушло, и что на них разглядела модель. */
+  framesSent?: number;
+  observations?: string[];
   /** Игрок говорит прямо сейчас — по VAD сервера. */
   userSpeaking?: boolean;
   /** Промежуточная расшифровка: видна ДО того, как стала ходом. */
@@ -69,7 +72,7 @@ interface Props {
   onProbeAnswer?: (id: number, choice: number) => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, layerFail, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -606,6 +609,8 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 <LiveBar
                   voice={!!layers?.voice && !layerFail?.voice}
                   camera={!!layers?.camera && !layerFail?.camera}
+                  frames={framesSent}
+                  observation={observations?.length ? observations[observations.length - 1] : null}
                   userSpeaking={userSpeaking}
                   oppSpeaking={oppSpeaking}
                   transcript={transcript}
