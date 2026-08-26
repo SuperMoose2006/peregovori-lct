@@ -52,6 +52,9 @@ interface Props {
   oppSpeaking?: boolean;
   /** Какие живые слои подняты. Выключенные не оставляют на экране следов. */
   layers?: { voice?: boolean; camera?: boolean };
+  /** Слой просили, но устройство не встало. Ключ есть — слой мёртв, и об этом
+   *  обязана быть строка на экране, а не пустой чип живого слоя. */
+  layerFail?: { voice?: string; camera?: string };
   /** Игрок говорит прямо сейчас — по VAD сервера. */
   userSpeaking?: boolean;
   /** Промежуточная расшифровка: видна ДО того, как стала ходом. */
@@ -66,7 +69,7 @@ interface Props {
   onProbeAnswer?: (id: number, choice: number) => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, layerFail, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -583,10 +586,26 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 suggestion={!exam && !!st && st.turn === 0 ? t.suggestChip : undefined}
                 prefill={prefill}
               />
+              {/* Слой рисуется живым, ТОЛЬКО если устройство действительно
+                  поднялось. Иначе чип «микрофон активен» стоял бы над мёртвым
+                  микрофоном — то самое четвёртое состояние. */}
+              {layerFail?.voice || layerFail?.camera ? (
+                <p className="layer-off" role="status">
+                  <b>{[layerFail.voice ? t.live.offVoice : null,
+                       layerFail.camera ? t.live.offCamera : null].filter(Boolean).join(" · ")}</b>
+                  {" — "}
+                  {/* Причина у обоих слоёв чаще всего одна и та же — браузер
+                      отказал разом. Повторять её дважды значит удваивать текст
+                      и не добавлять ни бита. */}
+                  {[...new Set([layerFail.voice, layerFail.camera].filter(Boolean))].join("; ")}
+                  {". "}
+                  {t.live.offHow}
+                </p>
+              ) : null}
               {videoRef && canvasRef && getMicLevel ? (
                 <LiveBar
-                  voice={!!layers?.voice}
-                  camera={!!layers?.camera}
+                  voice={!!layers?.voice && !layerFail?.voice}
+                  camera={!!layers?.camera && !layerFail?.camera}
                   userSpeaking={userSpeaking}
                   oppSpeaking={oppSpeaking}
                   transcript={transcript}

@@ -41,6 +41,11 @@ export interface NegotiationState {
   // when the server never said — the client must render fine either way.
   phase: "judging" | "replying" | null;
   error: string | null;
+  // Слой, который не поднялся, и почему. Ключ появляется ТОЛЬКО когда слой
+  // просили и он не встал: интерфейс обязан либо показать живой слой, либо
+  // сказать «недоступно» словами. Третьего — включённого переключателя над
+  // мёртвым устройством — в продукте не бывает (CLAUDE.md, принцип 2).
+  layerFail: { voice?: string; camera?: string };
   // Live WS health (mock is always "online"). Drives the mid-game reconnect banner.
   conn: ConnStatus;
   // Whether the semantic judge is live for this session (from the greeting). Drives
@@ -89,6 +94,7 @@ const initialState: NegotiationState = {
   busy: false,
   phase: null,
   error: null,
+  layerFail: {},
   conn: "online",
   judgeActive: false,
   avatarState: null,
@@ -323,6 +329,10 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
       const log = i >= 0 ? prev.log.map((e, k) => (k === i ? filled : e)) : [...prev.log, filled];
       return { ...prev, log };
     }
+
+    case "layer_failed":
+      // Партия НЕ прерывается: `busy` не трогаем, ход играется текстом.
+      return { ...prev, layerFail: { ...prev.layerFail, [msg.layer]: msg.reason } };
 
     case "error":
       return { ...prev, busy: false, error: msg.message };

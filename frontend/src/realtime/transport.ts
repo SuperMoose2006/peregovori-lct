@@ -185,9 +185,8 @@ export class RealtimeTransport implements Transport {
     }
 
     if (!MediaProvider.supported()) {
-      this.emit({ type: "error", message: this.voiceWanted
-        ? "Микрофон недоступен: нужен HTTPS."
-        : "Камера недоступна: нужен HTTPS." });
+      if (this.voiceWanted) this.emit({ type: "layer_failed", layer: "voice", reason: "нужен https или localhost" });
+      if (this.cameraWanted) this.emit({ type: "layer_failed", layer: "camera", reason: "нужен https или localhost" });
       return;
     }
     this.media = new MediaProvider({
@@ -200,13 +199,20 @@ export class RealtimeTransport implements Transport {
       this.session?.sendAudio(toBase64(audio.buffer), frame);
     };
     this.media.onFrame = (frame) => { this.session?.sendFrame(frame); };
-    try {
-      await this.media.start({ camera: this.cameraWanted, mic: this.voiceWanted });
-    } catch (error) {
+    // `start` больше не бросает на отказ устройства: отказ — это ответ
+    // пользователя, а не сбой. Он возвращает отчёт по каждому слою, и каждый
+    // невставший слой называется на экране поимённо.
+    const report = await this.media.start({ camera: this.cameraWanted, mic: this.voiceWanted });
+    if (this.voiceWanted && report.mic !== "ok")
+      this.emit({ type: "layer_failed", layer: "voice", reason: String(report.mic) });
+    if (this.cameraWanted && report.camera !== "ok")
+      this.emit({ type: "layer_failed", layer: "camera", reason: String(report.camera) });
+    // Провайдер выбрасывается, только если не встало НИЧЕГО: пока жив хоть один
+    // слой, он держит его поток — и обязан дожить до `stop()`, иначе дорожка
+    // останется гореть.
+    if (report.mic !== "ok" && report.camera !== "ok") {
+      await this.media.stop().catch(() => { /* нечего гасить */ });
       this.media = null;
-      this.emit({ type: "error", message: this.voiceWanted
-        ? `Микрофон не включился: ${(error as Error).message}`
-        : `Камера не включилась: ${(error as Error).message}` });
     }
   }
 

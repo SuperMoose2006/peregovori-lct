@@ -659,6 +659,7 @@ export default function App() {
             avatarState={nego.avatarState}
             oppSpeaking={nego.oppSpeaking}
             layers={{ voice: layers.voice, camera: layers.camera }}
+            layerFail={nego.layerFail}
             userSpeaking={nego.userSpeaking}
             transcript={nego.transcript}
             getMicLevel={nego.getMicLevel}

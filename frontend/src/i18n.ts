@@ -214,6 +214,9 @@ export interface Strings {
   live: {
     micOn: string; hearing: string; interrupt: string;
     inFrame: string; outFrame: string; peekNote: string; peekOpen: string;
+    // Слой просили, но устройство не встало. Переключатель включён, а внутри
+    // пусто — запрещённое состояние; поэтому у него есть свои слова.
+    offVoice: string; offCamera: string; offHow: string;
   };
   probe: {
     ask: string;             // "Что с ним сейчас происходит?"
@@ -748,6 +751,9 @@ export const I18N: Record<Lang, Strings> = {
       outFrame: "камера · вне кадра",
       peekNote: "видно только вам",
       peekOpen: "проверить свет",
+      offVoice: "Голос не включился",
+      offCamera: "Камера не включилась",
+      offHow: "Партия продолжается текстом. Разрешите доступ в браузере и начните заново.",
     },
     probe: {
       ask: "Что с ним сейчас происходит?",
@@ -1351,6 +1357,9 @@ export const I18N: Record<Lang, Strings> = {
       outFrame: "camera · out of frame",
       peekNote: "only you can see this",
       peekOpen: "check your light",
+      offVoice: "Voice did not start",
+      offCamera: "Camera did not start",
+      offHow: "The round continues in text. Allow access in the browser and start again.",
     },
     probe: {
       ask: "What is going on with them right now?",

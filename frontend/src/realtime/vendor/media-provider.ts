@@ -80,6 +80,17 @@ export interface MediaChunk {
   frame: string | null;
 }
 
+/**
+ * Итог подъёма устройств. «ok» — слой работает, «off» — его не просили,
+ * любая другая строка — причина, которую человек обязан увидеть на экране.
+ */
+export type LayerStart = "ok" | "off" | (string & {});
+
+export interface MediaStartReport {
+  camera: LayerStart;
+  mic: LayerStart;
+}
+
 export interface MediaProviderOptions {
   /** Куда рисовать кадры перед кодированием. Может быть скрытым. */
   canvas?: HTMLCanvasElement;
@@ -138,23 +149,65 @@ export class MediaProvider {
    * поэтому слой камеры не мог работать сам по себе: включив одну камеру,
    * человек молча отдавал и микрофон. Просить больше, чем включил пользователь,
    * — это не мелочь интерфейса, а нарушение обещания на экране подготовки.
+   *
+   * ПОЧЕМУ ЗДЕСЬ БОЛЬШЕ НЕТ `throw`. Устройства поднимались подряд в одном
+   * потоке: сначала камера, потом микрофон. Отказ камеры выбрасывал исключение
+   * ДО микрофона — и человек, разрешивший микрофон и запретивший камеру,
+   * оставался без обоих. Хуже того, вызывающий видел одно исключение и называл
+   * виновником микрофон, который никто не спрашивал.
+   *
+   * Отказ в устройстве — это НЕ сбой программы, это ответ пользователя. Поэтому
+   * каждый слой поднимается в своей попытке, а метод возвращает отчёт по обоим:
+   * «ok», «off» (не просили) или текст причины. Кто из них не встал — обязан
+   * быть назван на экране поимённо, иначе получается запрещённое четвёртое
+   * состояние: переключатель включён, а внутри пусто.
    */
-  async start(options: { camera?: boolean; mic?: boolean } = {}): Promise<void> {
+  async start(options: { camera?: boolean; mic?: boolean } = {}): Promise<MediaStartReport> {
+    const wantCamera = options.camera === true;
+    const wantMic = options.mic !== false;
+    const report: MediaStartReport = {
+      camera: wantCamera ? "ok" : "off",
+      mic: wantMic ? "ok" : "off",
+    };
+
     if (!MediaProvider.supported()) {
-      throw new Error("Браузер не даёт доступ к микрофону. Нужен HTTPS.");
+      const why = "браузер не отдаёт устройства: нужен https или localhost";
+      if (wantCamera) report.camera = why;
+      if (wantMic) report.mic = why;
+      return report;
     }
-    if (options.camera) await this.startCamera();
-    if (options.mic === false) {
-      // Без микрофона нет и звукового конвейера, к чанкам которого прицеплены
-      // кадры. Заводим собственный такт с тем же интервалом.
+
+    if (wantCamera) {
+      try {
+        await this.startCamera();
+      } catch (error) {
+        report.camera = describeMediaError(error);
+      }
+    }
+
+    if (wantMic) {
+      try {
+        await this.startMic();
+      } catch (error) {
+        report.mic = describeMediaError(error);
+      }
+    }
+
+    // Без звукового конвейера кадры не к чему прицепить: они уходят вместе с
+    // чанками микрофона. Значит камера, оставшаяся одна — по выбору человека
+    // или потому что микрофон не дали, — заводит собственный такт.
+    if (report.mic !== "ok" && report.camera === "ok") {
       this.running = true;
       this.frameTimer = setInterval(() => {
         const f = this.grabFrame();
         if (f) this.onFrame?.(f);
       }, this.frameIntervalMs);
-      return;
     }
 
+    return report;
+  }
+
+  private async startMic(): Promise<void> {
     this.audioStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         channelCount: 1,
@@ -315,4 +368,21 @@ export function toBase64(buffer: ArrayBufferLike): string {
     parts.push(String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + 8192))));
   }
   return btoa(parts.join(""));
+}
+
+/**
+ * Отказ устройства человеку показывают словами, а не именем класса ошибки.
+ * `NotAllowedError` на экране — это не сообщение, а расписка в том, что текст
+ * никто не писал.
+ */
+export function describeMediaError(error: unknown): string {
+  const name = (error as { name?: string })?.name ?? "";
+  if (name === "NotAllowedError" || name === "SecurityError")
+    return "доступ не разрешён — браузер отказал в устройстве";
+  if (name === "NotFoundError" || name === "OverconstrainedError")
+    return "устройство не найдено";
+  if (name === "NotReadableError")
+    return "устройство занято другой программой";
+  const message = (error as { message?: string })?.message;
+  return message ? String(message) : "не удалось включить";
 }

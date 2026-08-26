@@ -215,4 +215,10 @@ export type ServerMsg =
   | { type: "probe"; turn: number; options: string[]; answer: number }
   | { type: "phase"; phase: "judging" | "replying" }
   | { type: "hint"; text: string; line?: string }
+  // Устройство слоя не поднялось. Отдельно от `error`, потому что это НЕ сбой
+  // партии: игра продолжается текстом, а честно назвать нужно ровно тот слой,
+  // который отвалился, и ровно ту причину. Общая ошибка на весь сеанс здесь
+  // соврала бы дважды: обвинила бы не то устройство и сделала бы вид, что
+  // сломалось всё.
+  | { type: "layer_failed"; layer: "voice" | "camera"; reason: string }
   | { type: "error"; message: string };
