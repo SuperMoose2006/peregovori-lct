@@ -223,7 +223,12 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
           </span>
           <div>
             <h2>{t.course.masterTitle}</h2>
-            <p>{masterUnlocked(doneCount) ? t.course.masterLead : t.course.masterLocked}</p>
+            {/* Число блоков ПОДСТАВЛЯЕТСЯ, а не пишется словом: строка обещала «все
+                девять блоков», когда их стало десять, — то есть экран говорил
+                неправду ровно про то условие, которое сам и проверяет. */}
+            <p>{masterUnlocked(doneCount)
+              ? t.course.masterLead
+              : t.course.masterLocked.replace("{n}", String(COURSE_BLOCKS.length))}</p>
           </div>
           <button className="btn primary" disabled={!masterUnlocked(doneCount)} onClick={onMaster}>
             {profile.course[MASTER_ID]?.passed ? t.course.masterAgain : t.course.masterStart}
@@ -541,7 +546,7 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
               констатацией. Уроки берутся из промахов, а не из общего списка. */}
           {!passed && recovery.length ? (
             <div className="recovery">
-              <h3>{t.course.recoveryTitle}</h3>
+              <h2>{t.course.recoveryTitle}</h2>
               <ul>
                 {recovery.map((n) => {
                   const l = block.lessons.find((x) => x.idx === n);

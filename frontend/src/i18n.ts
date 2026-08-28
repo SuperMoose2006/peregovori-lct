@@ -539,6 +539,8 @@ export interface Strings {
     nav: string;          // aria-label левого меню
     stats: string;        // aria-label полосы счётчиков
     hud: string;          // aria-label for the always-visible meter strip
+    skip: string;         // ссылка «к содержимому» — первая остановка Tab
+    speaking: string;     // индикатор речи оппонента рядом с лицом
     send: string;         // главная кнопка композера
     dismiss: string;      // крестик карточки тренера в ленте
     themeDark: string;    // переключатель темы, сейчас включена тёмная
@@ -885,7 +887,7 @@ export const I18N: Record<Lang, Strings> = {
       coachNote: "зачтено движком · комментарий тренера",
       masterTitle: "Экзамен мастера",
       masterLead: "Три партии подряд на столах, которых не было в блоках. Слои выключены.",
-      masterLocked: "Откроется, когда сданы все девять блоков.",
+      masterLocked: "Откроется, когда сданы все {n} блоков курса.",
       masterStart: "Начать",
       masterAgain: "Пройти снова",
       masterAbout: "{n} настоящие партии подряд, каждая со своим условием. Зачёт — от {pass} из {n}. Приёмы никто не подсказывает: реальные переговоры тоже не сообщают, какой из них сейчас нужен.",
@@ -1164,6 +1166,8 @@ export const I18N: Record<Lang, Strings> = {
       scoreBar: "{label}: {v} из 100",
       deal: "Сделка. Ваша цель {target}, красная линия {redline}, их текущая цена {offer}.",
       delta: "{label}: {value}",
+      skip: "К содержимому",
+      speaking: "Оппонент говорит",
       send: "Отправить реплику",
       dismiss: "Скрыть подсказку тренера",
       themeDark: "Тёмная тема",
@@ -1513,7 +1517,7 @@ export const I18N: Record<Lang, Strings> = {
       coachNote: "scored by the engine · comment by the coach",
       masterTitle: "Master exam",
       masterLead: "Three negotiations in a row, on tables the blocks never used. Layers off.",
-      masterLocked: "Unlocks once all nine blocks are passed.",
+      masterLocked: "Unlocks once all {n} course blocks are passed.",
       masterStart: "Start",
       masterAgain: "Run it again",
       masterAbout: "{n} real negotiations in a row, each with its own condition. You pass at {pass} of {n}. Nobody names the technique for you: real negotiations do not either.",
@@ -1792,6 +1796,8 @@ export const I18N: Record<Lang, Strings> = {
       scoreBar: "{label}: {v} out of 100",
       deal: "Deal. Your target {target}, red line {redline}, their current offer {offer}.",
       delta: "{label}: {value}",
+      skip: "Skip to content",
+      speaking: "The counterpart is speaking",
       send: "Send message",
       dismiss: "Dismiss coach note",
       themeDark: "Dark theme",
