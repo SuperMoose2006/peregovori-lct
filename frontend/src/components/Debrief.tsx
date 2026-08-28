@@ -1,7 +1,7 @@
 // Debrief.tsx — post-negotiation report: grade ring (A–F), three score bars
 // (economic / relationship / technique), stat cells, coaching tips, retry/home.
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, WhatIfBranch, WhatIfRequest, WhatIfResponse } from "../types";
+import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, VisionNote, WhatIfBranch, WhatIfRequest, WhatIfResponse } from "../types";
 import type { Strings } from "../i18n";
 import { skillSignals, type GameResult, type RecordResult } from "../lib/progress";
 import { blockById, blockForWeakest } from "../lib/course";
@@ -13,6 +13,43 @@ import { XpAward } from "./Gamification";
 import { Karl, MascotImg, Tikhon, type KarlState } from "./Mascot";
 import { RematchOffer } from "./Rematch";
 import type { PastRun } from "../lib/progress";
+
+/** Сколько строк ленты помещается в карточку. Партия на двенадцать ходов
+ *  успевает набрать вчетверо больше (взгляд не чаще раза в 8 секунд), а разбор
+ *  читают целиком — поэтому показываем хвост и ЧЕСТНО говорим, сколько осталось
+ *  за кадром, вместо того чтобы молча обрезать. */
+export const VISION_TAPE_ROWS = 12;
+
+/** Форматирование времени наблюдения: «м:сс» от начала партии. */
+export function visionClock(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/**
+ * Лента наблюдений для карточки: хвост плюс число спрятанных строк.
+ *
+ * Отсекает всё, что не является записью с ходом: разбор может прийти и от
+ * старого сервера, где `observations` были плоскими строками. Строка без хода —
+ * ровно то, от чего эта карточка уходит, и рисовать её пустой строкой значит
+ * подсунуть человеку «наблюдение» без наблюдения. По той же причине отсюда
+ * не выходит строка, которой нечего сказать: ни текста, ни выражения на лице.
+ */
+export function visionTape(notes: unknown, rows: number = VISION_TAPE_ROWS):
+  { tape: VisionNote[]; hidden: number } {
+  const all: VisionNote[] = [];
+  for (const raw of Array.isArray(notes) ? notes : []) {
+    if (!raw || typeof raw !== "object") continue;
+    const n = raw as Partial<VisionNote>;
+    if (typeof n.turn !== "number") continue;
+    const text = typeof n.text === "string" ? n.text : "";
+    const expressive = n.expressive === true ? true : n.expressive === false ? false : null;
+    if (!text && expressive !== true) continue;
+    all.push({ turn: n.turn, at_ms: typeof n.at_ms === "number" ? n.at_ms : 0,
+               text, expressive });
+  }
+  return { tape: all.slice(-rows), hidden: Math.max(0, all.length - rows) };
+}
 
 const GRADE_COLOR: Record<string, string> = {
   A: "var(--trust)",
@@ -40,9 +77,14 @@ interface Props {
   /** How many "read her face" questions were asked and answered correctly.
    *  Absent when the layer was off — the card then does not render at all. */
   probeStats?: { asked: number; right: number };
-  /** Наблюдения слоя камеры. Они идут в контекст оппонента и НИКОГДА в счёт —
-   *  но экран подготовки обещает игроку «кто в кадре, куда смотрите», поэтому
-   *  показать их надо: иначе слой обещает то, чего человек не увидит. */
+  /** Живые наблюдения слоя камеры, накопленные за партию. ЛЕНТУ РИСУЕТ НЕ ОН:
+   *  содержимое карточки берётся из `d.observations` — того же, что видел
+   *  сервер, с ходами и временем. Клиентский список короче настоящего ровно на
+   *  то, что пришло, пока сокет был оборван, а лента, теряющая куски при
+   *  переподключении, честной не бывает.
+   *
+   *  Здесь он остался тем, чем всегда и был по смыслу: отметкой «слой в этой
+   *  партии был включён». `undefined` — камеры не просили, карточки нет. */
   observations?: string[];
   /** «Покерфейс»: сколько раз лицо несло явное выражение, и по скольким кадрам
    *  слой вообще успел высказаться. Второе число обязательно: без него «ноль
@@ -85,6 +127,9 @@ export function Debrief({
   secondaryIssues, termsConceded, onCourse, rematch,
 }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
+  // Лента камеры приезжает в самом разборе — с ходами и временем, посчитанными
+  // там же, где живёт партия.
+  const visTape = useMemo(() => visionTape(d.observations), [d.observations]);
   // Самый слабый сигнал разбора → блок курса, который его тренирует.
   const weakBlock = useMemo(() => {
     const id = blockForWeakest(skillSignals(d));
@@ -424,15 +469,46 @@ export function Debrief({
             </div>
           ) : null}
 
-          {at(1) && observations && observations.length > 0 ? (
+          {/* Лента камеры: на каком ходу что было видно. Рисуется, ТОЛЬКО если
+              слой и правда высказался — сервер не присылает ключ, когда модель
+              не сказала ни слова, и «ноль наблюдений» под невставшей камерой
+              нарисовать нечем. Данные берутся из разбора, а не из накопленных
+              живых событий: после переподключения посреди партии клиентский
+              список короче настоящего, и лента врала бы про начало игры. */}
+          {at(1) && observations && visTape.tape.length > 0 ? (
             <div className="obs">
               <div className="obs-head">
                 <h2>📷 {t.layers.seenHead}</h2>
                 <span className="obs-badge">{t.probe.observation}</span>
               </div>
-              <ul className="obs-list">
-                {observations.slice(-4).map((o, i) => <li key={i}>{o}</li>)}
-              </ul>
+              <div className="vis-lead">
+                <MascotImg dir="karl" state="study" alt={t.mascot.alt.study} size={44} />
+                <p>{t.layers.seenNote}</p>
+              </div>
+              <ol className="vis-tape">
+                {visTape.tape.map((n, i) => (
+                  <li key={i} className={n.expressive ? "tell" : undefined}>
+                    <span className="vis-when">
+                      {n.turn > 0
+                        ? t.layers.seenTurn.replace("{n}", String(n.turn))
+                        : t.layers.seenStart}
+                      <i>{visionClock(n.at_ms)}</i>
+                    </span>
+                    {n.text ? <p className="vis-what">{n.text}</p> : null}
+                    {/* Отметка только на «да». `null` — модель про лицо не
+                        сказала, и это не «нет»: рисовать «лицо спокойно» там,
+                        где никто ничего не говорил, значит придумать данные. */}
+                    {n.expressive ? (
+                      <span className="vis-tell">{t.layers.seenTell}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+              {visTape.hidden > 0 ? (
+                <p className="vis-more">
+                  {t.layers.seenMore.replace("{n}", String(visTape.hidden))}
+                </p>
+              ) : null}
             </div>
           ) : null}
 

@@ -3128,8 +3128,37 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    ровно это и сообщает, без чтения текста. */
 .obs-tells { margin: 8px 0 0; font-size: 14px; color: var(--ink-dim); }
 .obs-tells b { font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
-.obs-list { margin: 12px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
-.obs-list li { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+
+/* Лента наблюдений: слева — когда, справа — что было видно. Именно лента, а не
+   список: карточка отвечает на вопрос «когда», и порядок строк несёт здесь
+   столько же смысла, сколько их текст. Раньше тут лежали четыре последние
+   фразы без времени и хода — прочитать их можно было, связать с партией нет. */
+.vis-lead { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.vis-lead p { margin: 0; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+.vis-tape {
+  list-style: none; margin: 14px 0 0; padding: 2px 0 2px 18px;
+  border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 13px;
+}
+.vis-tape li { position: relative; }
+/* Точка на рельсе. Сиреневая — там, где лицо себя выдало: тот же цвет, что у
+   левой кромки карточки, то есть «наблюдение», а не «ошибка». */
+.vis-tape li::before {
+  content: ""; position: absolute; left: -23px; top: 4px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--line-2);
+}
+.vis-tape li.tell::before { background: var(--leverage); }
+.vis-when {
+  display: flex; align-items: baseline; gap: 8px; font-size: 10.5px;
+  letter-spacing: 0.06em; text-transform: uppercase; font-weight: 700; color: var(--ink-faint);
+}
+.vis-when i { font-style: normal; font-variant-numeric: tabular-nums; opacity: 0.75; }
+.vis-what { margin: 3px 0 0; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+.vis-tell {
+  display: inline-block; margin-top: 5px; font-size: 10px; letter-spacing: 0.06em;
+  text-transform: uppercase; font-weight: 700; color: var(--leverage);
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px;
+}
+.vis-more { margin: 12px 0 0; font-size: 12px; color: var(--ink-faint); }
 
 /* Частичный зачёт в вердикте упражнения: «3 из 5 уже на месте». Тише самого
    вердикта — это не приговор, а зацепка, с которой ученик поправит ответ. */

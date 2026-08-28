@@ -198,6 +198,18 @@ export interface Strings {
     close: string;           // aria-label крестика шторки
     /** Заголовок карточки наблюдений камеры в разборе. */
     seenHead: string;
+    /** Подпись под заголовком ленты: зачем она и чего не делает. */
+    seenNote: string;
+    /** Отметка времени в ленте: наблюдение ДО первого хода. */
+    seenStart: string;
+    /** Отметка времени в ленте: «после хода {n}». Именно после — кадр приходит
+     *  между ходами, и приписывать его следующему, которого ещё не было,
+     *  значило бы датировать наблюдение будущим. */
+    seenTurn: string;
+    /** Отметка на строке ленты, где лицо несло явное выражение. */
+    seenTell: string;
+    /** «И ещё {n} раньше» — хвост ленты, не поместившийся в карточку. */
+    seenMore: string;
     presets: string;
     start: string;
     back: string;
@@ -220,6 +232,8 @@ export interface Strings {
     alt: {
       idle: string; think: string; cheer: string; concern: string;
       point: string; celebrate: string; sad: string;
+      /** Поза «изучает данные» — лента наблюдений камеры в разборе. */
+      study: string;
     };
   };
   // Полоса живых слоёв под композером.
@@ -269,6 +283,9 @@ export interface Strings {
     examStart: string; examMode: string; examFinish: string; examPass: string;
     examFail: string; examResult: string;
     toTasks: string; lessonDone: string; lessonComplete: string; lessonScore: string;
+    /* Заголовок набора заданий — только для диктора: на экране его место
+       занимают полоса прогресса и счётчик «задание N из M». */
+    tasksTitle: string;
     stepOf: string; next: string; checkIt: string; correct: string; wrong: string;
     /* Подписи стрелок в упражнении «порядок»: для диктора «↑» именем не является. */
     moveUp: string; moveDown: string;
@@ -752,6 +769,11 @@ export const I18N: Record<Lang, Strings> = {
       lockedStarted: "Стол уже идёт: слои выбираются до первого хода",
       close: "Закрыть слои",
       seenHead: "Что видела камера",
+      seenNote: "Что происходило за столом — и что в это время происходило с вами. В грейд не входило ничего из этого.",
+      seenStart: "до первого хода",
+      seenTurn: "после хода {n}",
+      seenTell: "лицо себя выдало",
+      seenMore: "и ещё {n} раньше",
       unavailable: "недоступно",
       presets: "Пресеты",
       start: "Начать переговоры",
@@ -787,6 +809,7 @@ export const I18N: Record<Lang, Strings> = {
         point: "Карл подсказывает",
         celebrate: "Карл празднует",
         sad: "Карл расстроен",
+        study: "Карл изучает данные",
       },
     },
     live: {
@@ -866,6 +889,7 @@ export const I18N: Record<Lang, Strings> = {
       lessonDone: "Урок пройден",
       lessonComplete: "Урок пройден",
       lessonScore: "Верно: {n} из {total}",
+      tasksTitle: "Задания · {lesson}",
       stepOf: "задание {n} из {total}",
       next: "Дальше",
       checkIt: "Проверить",
@@ -1387,6 +1411,11 @@ export const I18N: Record<Lang, Strings> = {
       lockedStarted: "The table is already running: layers are chosen before the first move",
       close: "Close layers",
       seenHead: "What the camera saw",
+      seenNote: "What was happening at the table — and what was happening to you meanwhile. None of it counted towards the grade.",
+      seenStart: "before the first move",
+      seenTurn: "after move {n}",
+      seenTell: "your face gave you away",
+      seenMore: "and {n} more, earlier",
       unavailable: "unavailable",
       presets: "Presets",
       start: "Start the negotiation",
@@ -1422,6 +1451,7 @@ export const I18N: Record<Lang, Strings> = {
         point: "Karl is pointing something out",
         celebrate: "Karl is celebrating",
         sad: "Karl is downcast",
+        study: "Karl is studying the data",
       },
     },
     live: {
@@ -1496,6 +1526,7 @@ export const I18N: Record<Lang, Strings> = {
       lessonDone: "Lesson done",
       lessonComplete: "Lesson complete",
       lessonScore: "Correct: {n} of {total}",
+      tasksTitle: "Tasks · {lesson}",
       stepOf: "task {n} of {total}",
       next: "Next",
       checkIt: "Check",

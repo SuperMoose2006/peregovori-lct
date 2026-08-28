@@ -100,6 +100,24 @@ export interface TurningPoint {
   coach?: string; // optional coach note on the move
 }
 
+// Одно наблюдение слоя камеры, привязанное к ходу. Приезжает В РАЗБОРЕ, с
+// сервера (`endpoint.py::_attach_vision_tape`), а не собирается на клиенте из
+// живых событий: события идут только пока держится сокет, и после
+// переподключения посреди партии клиентская лента была бы короче настоящей.
+// На оценку ничто отсюда не влияет — лента живёт вне `score_session`.
+export interface VisionNote {
+  /** Сколько ходов было СДЕЛАНО к моменту кадра. 0 — до первого хода. */
+  turn: number;
+  /** Миллисекунд от начала партии. */
+  at_ms: number;
+  /** Что увидела модель. Пусто — кадр не сказал ничего про обстановку, и
+   *  строка существует только ради выражения на лице. */
+  text: string;
+  /** Несло ли лицо явное выражение. `null` — модель об этом не сказала, и это
+   *  НЕ «нет»: молчание модели и спокойное лицо разные вещи. */
+  expressive: boolean | null;
+}
+
 export interface Debrief {
   overall: number;
   grade: string; // A|B|C|D|F
@@ -129,6 +147,11 @@ export interface Debrief {
   // The 1-2 moves that swung the negotiation most (backend may omit; older
   // debriefs / non-engine paths render nothing when absent).
   turning_points?: TurningPoint[];
+  // Лента слоя камеры: что было видно и на каком ходу. Ключа НЕТ вовсе, если
+  // слой не высказался ни разу, — карточки тогда не должно быть, а не пустой
+  // (принцип 2: слоя нет — так и сказано). Офлайн и без ключа камера не
+  // работает вовсе, и поле не приходит никогда.
+  observations?: VisionNote[];
 }
 
 // "А что если…" — the deterministic what-if replay. Because the engine is a pure

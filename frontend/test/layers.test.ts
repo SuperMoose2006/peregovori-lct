@@ -3,6 +3,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { NO_LAYERS, PRESETS, pruneLayers, sessionLayers, detectLayers, type Layers } from "../src/lib/layers";
+import { visionTape, visionClock, VISION_TAPE_ROWS } from "../src/components/Debrief";
+import type { VisionNote } from "../src/types";
 import { I18N } from "../src/i18n";
 
 const ON: Layers = { probe: true, voice: true, camera: true, avatar: true, pokerface: true };
@@ -113,4 +115,89 @@ test("строка счётчика переведена и несёт подс�
     assert.ok(s.trim().length > 10, `${lang}: строка пуста`);
   }
   assert.ok(!/[а-яё]/i.test(I18N.en.layers.tellsOf), "кириллица в английском");
+});
+
+
+// ---------------------------------------------------------------------------
+// Лента наблюдений камеры в разборе
+//
+// Карточка отвечает на вопрос «когда»: на каком ходу что было видно и где лицо
+// себя выдало. До неё это были четыре последние фразы списком — прочитать
+// можно, связать с партией нельзя.
+// ---------------------------------------------------------------------------
+
+const note = (o: Partial<VisionNote>): VisionNote =>
+  ({ turn: 0, at_ms: 0, text: "", expressive: null, ...o });
+
+test("лента берётся из разбора, а не из накопленных живых событий", () => {
+  // Живые события идут, только пока держится сокет. После переподключения
+  // посреди партии клиентский список короче настоящего — и лента врала бы про
+  // начало игры, показывая полную. В разборе едет то, что видел сервер.
+  const fromServer = [note({ turn: 0, text: "человек в кадре" }),
+                      note({ turn: 3, text: "в кадре появился второй" })];
+  assert.deepEqual(visionTape(fromServer).tape.map((n) => n.turn), [0, 3]);
+});
+
+test("камера не поднялась — карточки нет, а не пустая лента", () => {
+  // Ключа в разборе просто не будет: сервер не присылает пустую ленту. Ноль
+  // наблюдений под невставшей камерой — это обещание, выданное за наблюдение.
+  for (const empty of [undefined, null, []]) {
+    assert.equal(visionTape(empty).tape.length, 0, "нечего показать — не показываем");
+  }
+});
+
+test("строка, которой нечего сказать, в ленту не попадает", () => {
+  // Ни текста, ни выражения на лице — это не наблюдение, а его отсутствие.
+  // Нарисованная строкой, она обещала бы, что камера что-то заметила.
+  const empty = [note({ turn: 2 }), note({ turn: 3, expressive: false })];
+  assert.equal(visionTape(empty).tape.length, 0);
+  assert.equal(visionTape([note({ turn: 4, expressive: true })]).tape.length, 1);
+});
+
+test("строка без хода в ленту не попадает", () => {
+  // Разбор может прийти и от старого сервера, где наблюдения были плоскими
+  // строками. Пустая строка «наблюдения» без наблюдения — ровно то, от чего
+  // эта карточка уходит.
+  const mixed = ["строка от старого сервера", null, note({ turn: 2, text: "видно" })];
+  assert.deepEqual(visionTape(mixed).tape.map((n) => n.text), ["видно"]);
+});
+
+test("длинная лента показывает хвост и честно считает спрятанное", () => {
+  const many = Array.from({ length: VISION_TAPE_ROWS + 5 },
+                          (_, i) => note({ turn: i, text: `кадр ${i}` }));
+  const { tape, hidden } = visionTape(many);
+  assert.equal(tape.length, VISION_TAPE_ROWS);
+  assert.equal(hidden, 5, "спрятанные строки обязаны быть названы числом");
+  assert.equal(tape[tape.length - 1].turn, VISION_TAPE_ROWS + 4, "показан хвост, а не начало");
+});
+
+test("время наблюдения читается как время, а не как миллисекунды", () => {
+  assert.equal(visionClock(0), "0:00");
+  assert.equal(visionClock(9_000), "0:09");
+  assert.equal(visionClock(65_000), "1:05");
+  assert.equal(visionClock(-5), "0:00");
+});
+
+test("строки ленты переведены и несут подстановку хода", () => {
+  for (const lang of ["ru", "en"] as const) {
+    const l = I18N[lang].layers;
+    assert.ok(l.seenTurn.includes("{n}"), `${lang}: в отметке хода нет подстановки`);
+    assert.ok(l.seenMore.includes("{n}"), `${lang}: в хвосте ленты нет числа`);
+    for (const s of [l.seenNote, l.seenStart, l.seenTell]) {
+      assert.ok(s.trim().length > 3, `${lang}: пустая строка ленты`);
+    }
+  }
+  const cyr = /[а-яё]/i;
+  for (const [k, v] of Object.entries(I18N.en.layers)) {
+    if (typeof v === "string") assert.ok(!cyr.test(v), `кириллица в английском: ${k}`);
+  }
+});
+
+test("лента не обещает спокойное лицо там, где модель промолчала", () => {
+  // `null` — не «нет». Отметка ставится только на явном «да»; остальное
+  // остаётся без отметки, а не превращается в «лицо спокойно».
+  const rows = visionTape([note({ turn: 1, expressive: null, text: "а" }),
+                           note({ turn: 2, expressive: false, text: "б" }),
+                           note({ turn: 3, expressive: true, text: "в" })]).tape;
+  assert.deepEqual(rows.map((n) => n.expressive === true), [false, false, true]);
 });

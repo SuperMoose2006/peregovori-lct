@@ -18,17 +18,20 @@ def _sampler(monkeypatch, *, online: bool = True, interval: float = 8.0):
     """Сэмплер с подменённым обращением к модели: считаем вызовы, не ходим в сеть."""
     calls: list[str] = []
     events: list[dict] = []
-    notes: list[str] = []
+    notes: list[dict] = []
 
-    sampler = VisionSampler("ru", events.append, notes.append, min_interval_s=interval)
+    def record(text: str = "", *, turn: int = 0, expressive=None) -> None:
+        notes.append({"text": text, "turn": turn, "expressive": expressive})
+
+    sampler = VisionSampler("ru", events.append, record, min_interval_s=interval)
     monkeypatch.setattr(sampler, "available", lambda: online)
 
-    async def fake_look(frame_b64: str) -> None:
+    async def fake_look(frame_b64: str, turn: int = 0) -> None:
         calls.append(frame_b64)
         sampler.stats.calls_made += 1
-        notes.append("наблюдение")
+        record("наблюдение", turn=turn)
         events.append({"type": "vision.observation", "text": "наблюдение",
-                       "affects_score": False})
+                       "turn": turn, "affects_score": False})
 
     monkeypatch.setattr(sampler, "_look", fake_look)
     return sampler, calls, events, notes
@@ -142,3 +145,22 @@ async def _settle(sampler) -> None:
     await asyncio.sleep(0)
     if sampler._task:
         await sampler._task
+
+
+# ------------------------------------------------------- ход, на котором видно
+
+@pytest.mark.asyncio
+async def test_the_frame_carries_the_turn_it_arrived_on(monkeypatch):
+    """Наблюдение без хода — фраза без места в партии.
+
+    Ход снимается там, где кадр пришёл (`offer`), а не там, где вернулась
+    модель: взгляд длится около секунды, и за неё человек успевает отправить
+    ход. Записанное «текущим» номером наблюдение датировалось бы чужим ходом.
+    """
+    sampler, _calls, events, notes = _sampler(monkeypatch, interval=0.0)
+
+    sampler.offer(["кадр"], change=0.5, turn=3)
+    await _settle(sampler)
+
+    assert notes and notes[0]["turn"] == 3
+    assert events and events[0]["turn"] == 3

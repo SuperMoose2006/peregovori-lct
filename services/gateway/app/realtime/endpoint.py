@@ -44,7 +44,8 @@ from app.providers.tts.base import TTSProvider
 from app.providers.tts.edge import EdgeTTS
 from app.providers.tts.openai_speech import OpenAISpeechTTS
 from app.realtime.events import SessionInit, error, session_closed
-from app.realtime.session import Layers, RealtimeSession
+from app.realtime.session import (Layers, RealtimeSession, keep_for_resume,
+                                  restore_from_resume)
 from app.session import store
 
 
@@ -105,7 +106,12 @@ async def realtime_ws(websocket: WebSocket) -> None:
                     if vision is not None:
                         # «Кадр изменился» считает браузер: у него кадр уже в
                         # canvas, а по сжатому JPEG честной разницы не получить.
-                        vision.offer(frames, change=data.get("frame_change"))
+                        # Номер хода снимается ЗДЕСЬ, а не там, где вернётся
+                        # модель: взгляд длится секунду, за которую человек
+                        # успевает отправить ход, и наблюдение уехало бы в
+                        # ленту с чужим номером.
+                        vision.offer(frames, change=data.get("frame_change"),
+                                     turn=session.turn_id)
                 audio_b64 = data.get("audio")
                 if audio_b64 and voice is not None:
                     pcm = np.frombuffer(base64.b64decode(audio_b64), dtype=np.int16)
@@ -163,6 +169,12 @@ async def realtime_ws(websocket: WebSocket) -> None:
             # Отпускаем, а не удаляем: сокет мог оборваться сам. Явное
             # `session.close` уже удалило сессию выше.
             store.release(session.session_id)
+            # Лента камеры живёт в этой сессии, а она сейчас умрёт вместе с
+            # сокетом. Откладываем на тот же срок, что и саму партию — и только
+            # если возвращаться есть куда: после явного `session.close` партии
+            # уже нет в хранилище, и держать её ленту не за чем.
+            if store.get(session.session_id) is not None:
+                keep_for_resume(session)
         if writer is not None:
             writer.cancel()
             with contextlib.suppress(asyncio.CancelledError, Exception):
@@ -189,7 +201,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     if payload.resume:
         existing = store.claim(payload.resume)
         if existing is not None:
-            return RealtimeSession(
+            resumed = RealtimeSession(
                 session_id=payload.resume,
                 engine_session=existing,
                 lang=payload.lang,
@@ -197,7 +209,13 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
                 game_mode=payload.gameMode,
                 layers=_layers_for(payload),
                 reputation=payload.reputation,
-            ), None
+            )
+            # Ходы и шкалы вернул движок, наблюдения камеры вернуть некому:
+            # `RealtimeSession` здесь новая. Без этой строки разбор после метро
+            # показывал ленту с середины партии и молчал о том, что начала он не
+            # знает, — а дыры в ленте не видно, в отличие от её отсутствия.
+            restore_from_resume(resumed, payload.resume)
+            return resumed, None
 
     scenario_id = payload.scenarioId
 
@@ -312,7 +330,10 @@ def _wire(session: RealtimeSession) -> tuple[
     vision: Optional[VisionSampler] = None
     if session.layers.camera:
         sampler = VisionSampler(session.lang, session.bus.publish,
-                                session.observations.append,
+                                # Не `observations.append`: одна запись ведёт
+                                # обе формы — плоскую для промпта оппонента и
+                                # ленту с ходами для разбора.
+                                session.note_vision,
                                 pokerface=session.layers.pokerface)
         vision = sampler if sampler.available() else None
 
@@ -429,10 +450,35 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
     }
 
 
+def _attach_vision_tape(event: dict, session: RealtimeSession) -> None:
+    """Подшить к разбору ленту наблюдений — ту, что с ходами и временем.
+
+    ПОЧЕМУ ЗДЕСЬ, А НЕ В ОРКЕСТРАТОРЕ. Разбор считает движок, оркестратор его
+    собирает — но «на каком ходу это было видно» это факт РАЗГОВОРА, и живёт
+    он в `RealtimeSession` ровно затем, чтобы `score_session` до него не
+    дотягивался. Оркестратор кладёт в `deb["observations"]` плоские строки (всё,
+    что у него есть); realtime-слой, который и владеет проводом, заменяет их той
+    же правдой в полной форме.
+
+    КЛЮЧА НЕТ ВОВСЕ, если слой не высказался ни разу: пустая лента под
+    невставшей камерой — это обещание, выданное за наблюдение (принцип 2).
+    Без ключа сэмплер не создаётся, записей нет, карточки на клиенте нет.
+    """
+    deb = event.get("debrief")
+    if not isinstance(deb, dict):
+        return
+    if session.vision_notes:
+        deb["observations"] = list(session.vision_notes)
+    else:
+        deb.pop("observations", None)
+
+
 async def _pump(websocket: WebSocket, session: RealtimeSession) -> None:
     """Писатель: шина → сокет. Хвосты погашенных поколений отсеивает `drain()`."""
     try:
         async for event in session.bus.drain():
+            if event.get("type") == "debrief":
+                _attach_vision_tape(event, session)
             await websocket.send_json(event)
     except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
         return

@@ -36,6 +36,14 @@
 влияет на оценку» и в `score_session` не входит: держать лицо — упражнение, а
 не критерий сделки.
 
+КУДА ЭТО ЛОЖИТСЯ. Не строкой в общий список, а записью с номером хода и
+временем от начала партии (`RealtimeSession.note_vision`). Без хода лента в
+разборе была списком из четырёх последних фраз, ни к чему не привязанных:
+человек читал «в кадре появился второй» и не мог сказать, случилось это на
+приветствии или на последнем торге. Номер хода берётся НА МОМЕНТ КАДРА и едет
+через `offer()`: пока модель смотрит, ход успевает смениться, и записать
+результат «текущим» значило бы датировать наблюдение чужим ходом.
+
 «КАДР ЗАМЕТНО ИЗМЕНИЛСЯ» СЧИТАЕТ БРАУЗЕР. Кадр там и так рисуется в canvas,
 поэтому проход по решётке яркостей стоит одного цикла, и наружу едет доля
 изменившихся проб. Прежний прокси — «размер JPEG изменился» — ловил смену
@@ -195,7 +203,7 @@ class VisionSampler:
     """Поток кадров внутрь — редкие наблюдения наружу."""
 
     def __init__(self, lang: str, publish: Callable[[dict], None],
-                 record: Callable[[str], None],
+                 record: Callable[..., None],
                  min_interval_s: float = _MIN_INTERVAL_S,
                  pokerface: bool = False) -> None:
         self._lang = lang
@@ -214,11 +222,13 @@ class VisionSampler:
 
     # ------------------------------------------------------------------ вход
 
-    def offer(self, frames: list[str], *, change: float | None = None) -> None:
+    def offer(self, frames: list[str], *, change: float | None = None,
+              turn: int = 0) -> None:
         """Предложить кадры. Решение «смотреть или нет» принимается здесь.
 
         Вызывающему не нужно ничего знать про частоту и бюджет — он просто
-        отдаёт всё, что пришло с камеры.
+        отдаёт всё, что пришло с камеры, и говорит, сколько ходов уже сделано:
+        это единственный момент, когда номер хода ещё точно относится к кадру.
         """
         if not frames or not self.available():
             return
@@ -242,7 +252,7 @@ class VisionSampler:
             return                              # предыдущий взгляд ещё не вернулся
 
         self._last_call = now
-        self._task = asyncio.create_task(self._look(frame))
+        self._task = asyncio.create_task(self._look(frame, turn))
 
     def _changed(self, size: int) -> bool:
         previous, self._last_size = self._last_size, size
@@ -284,7 +294,7 @@ class VisionSampler:
         text = (response.json()["choices"][0]["message"]["content"] or "").strip()
         return parse_calibration(text)
 
-    async def _look(self, frame_b64: str) -> None:
+    async def _look(self, frame_b64: str, turn: int = 0) -> None:
         started = time.perf_counter()
         payload = {
             "model": model_for("vision"),
@@ -320,19 +330,32 @@ class VisionSampler:
                 "type": "vision.tell",
                 "expressive": tell,
                 "total": self.stats.tells,
+                # Ход едет вместе с событием по той же причине, что и у
+                # наблюдения: «лицо себя выдало» без ответа на вопрос «когда»
+                # — это число, а не наблюдение.
+                "turn": turn,
                 # Та же плашка, что и у наблюдения, и по той же причине:
                 # держать лицо — упражнение, а не критерий сделки.
                 "affects_score": False,
             })
 
         if not text or text.strip().lower().rstrip(".") in ("нет", "no"):
+            text = ""
+        else:
+            text = text.strip().strip('"«»').strip()[:200]
+
+        # ОДНА ЗАПИСЬ НА ОДИН ВЗГЛЯД. Обстановку и лицо модель сняла с одного
+        # кадра одним вызовом — значит, и в ленте это одна строка. Пустой текст
+        # при спокойном лице записью не становится: решает `note_vision`.
+        self._record(text, turn=turn, expressive=tell)
+
+        if not text:
             return
 
-        text = text.strip().strip('"«»').strip()[:200]
-        self._record(text)
         self._publish({
             "type": "vision.observation",
             "text": text,
+            "turn": turn,
             # Плашка едет вместе с наблюдением, чтобы клиенту не приходилось
             # помнить правило. На карточке скрытых интересов такой плашки нет и
             # быть не должно — те входят в technique и влияют на оценку.
