@@ -40,6 +40,40 @@ export function extractNum(t: string): number | null {
   return isFinite(v) ? v : null;
 }
 
+// Денежный суффикс вплотную к числу — сам по себе доказательство цены.
+// Зеркало services/gateway/app/engine/techniques.py::_MONEY_SUFFIX_RE.
+const MONEY_SUFFIX = /^\s*(%|руб|rub|k\b|к\b|тыс|тысяч|млн|usd|\$|€|eur|долл|евро)/i;
+
+/** Число реплики, если это ОФФЕР; иначе null.
+ *
+ * Цифра сама по себе ничего не значит: «Мне 30 лет, я работаю тут 5 лет»
+ * читалось как зарплата 30 там, где шкала 180–240, а «Ага 1.» — как цена
+ * 1 ₽/шт. Число становится офертой, только когда реплика несёт намерение
+ * назвать цену: приём (якорь, уступка, размен, закрытие), денежный суффикс,
+ * слово ценового контекста — или вся реплика и есть число. Слово-единица сразу
+ * после числа («лет», «инженеров») перебивает всё.
+ *
+ * Зеркало services/gateway/app/engine/techniques.py::offer_number — менять
+ * синхронно (инвариант 8). */
+export function offerNumber(t: string, moves: Iterable<string>): number | null {
+  const m = t.match(MONEY);
+  if (!m) return null;
+  const v = parseFloat(m[1].replace(/ /g, "").replace(",", "."));
+  if (!isFinite(v)) return null;
+
+  const tail = t.slice((m.index ?? 0) + m[0].length);
+  const trimmed = tail.trim();
+  const after = trimmed ? trimmed.split(" ")[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
+  if (after && LEX.nonPriceUnits.some((u) => after.startsWith(u))) return null;
+
+  const mv = new Set(moves);
+  if (["anchor", "concession", "accept", "tradeoff"].some((k) => mv.has(k))) return v;
+  if (MONEY_SUFFIX.test(tail)) return v;
+  if (has(t, LEX.priceContext)) return v;
+  if (t.split(" ").filter(Boolean).length <= 1) return v;
+  return null;
+}
+
 // Lightweight, client-side preview chips shown live while the player types.
 // (Independent of the engine so it works even against the real backend.)
 export interface PreviewChip {

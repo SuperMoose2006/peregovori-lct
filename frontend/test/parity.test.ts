@@ -40,10 +40,13 @@ test("honest reveal: a specific question uncovers the RIGHT interest, not next-i
   play(s, "Что для вас важнее всего в долгосрочном контракте и почему именно это?");
   assert.deepEqual(s.interests, [2], "long-term interest revealed, not interest 0");
 
-  // A vague probe with no keyword hit falls back to the smallest hidden index.
+  // Общий вопрос без попадания в ключевые слова не вскрывает НИЧЕГО: запасной
+  // ход «отдай следующий по списку» убран — три одинаковых «Почему?» вскрывали
+  // все три интереса. Зеркало backend _reveal_index_offline.
   const s2 = newSession(SCENARIO_MAP.supplier, "ru");
-  play(s2, "А что для вас важнее всего в этой сделке?");
-  assert.deepEqual(s2.interests, [0], "vague probe → next-in-order (index 0)");
+  const r2 = play(s2, "А что для вас важнее всего в этой сделке?");
+  assert.deepEqual(s2.interests, [], "vague probe → ничего не вскрыто");
+  assert.equal(r2.reaction, "probe_vague", "оппонент переспрашивает, а не выдаёт секрет");
 });
 
 test("anti-gaming: repeating the exact same strong line barely moves the opponent", () => {

@@ -19,6 +19,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Optional
 
+from .format import format_deal, format_number
 from .scenarios import Scenario, by_id
 from .techniques import Analysis, analyze, norm
 
@@ -73,6 +74,10 @@ class Metrics:
     objective_criteria: int = 0
     spin_stages: set = field(default_factory=set)
     interest_probes: int = 0
+    #: Сумма сходства ходов с уже сказанным (0..1 за ход) и число ходов —
+    #: доля партии, потраченная на повторы. Техника считает её в минус.
+    repeat_sum: float = 0
+    repeat_n: int = 0
 
 
 @dataclass
@@ -88,6 +93,11 @@ class Session:
     metrics: Metrics
     log: list = field(default_factory=list)
     last_player_norm: str = ""  # anti-gaming: detect repeated identical lines
+    # Анти-гейминг с памятью на ВСЮ партию: (множество слов, множество приёмов)
+    # каждого хода игрока. Памяти на одну прошлую реплику не хватало —
+    # чередование A,B,A,B обходило проверку целиком, потому что «предыдущая»
+    # всегда была другой. См. _repeat_strength.
+    move_history: list = field(default_factory=list)
 
 
 @dataclass
@@ -150,6 +160,82 @@ def _concede(sess: Session, fraction: float) -> None:
     s.offer_opp = _round2(s.offer_opp + dist * fraction)
 
 
+def _retract(sess: Session, fraction: float) -> None:
+    """Обратный ход: оппонент снимает часть уже данной уступки.
+
+    Цена уходит НАЗАД, к его стартовому якорю, на долю пройденного пути. Этого у
+    движка не было вовсе: нагрубить стоило только шкал, а цифра на столе всё
+    равно продолжала ползти к игроку. Наказание, которого не видно в цифре, —
+    не наказание. Якорь ограничивает откат сам собой: дальше открытия не уедет.
+    """
+    sc = by_id(sess.scenario_id)
+    s = sess.state
+    dist = sc.opponent_open - s.offer_opp  # знаковое; ПРОЧЬ от игрока
+    s.offer_opp = _round2(s.offer_opp + dist * fraction)
+
+
+def _tokens(cur_norm: str) -> frozenset:
+    """Слова реплики без краевой пунктуации — основа лексической близости.
+
+    Зеркало `tokensOf` в mock/engine.ts; расходиться им нельзя (инвариант 8)."""
+    out = set()
+    for w in cur_norm.split(" "):
+        w = w.strip(".,?!-")
+        if w:
+            out.add(w)
+    return frozenset(out)
+
+
+#: Порог «это та же реплика»: жёсткий штраф (как за дословный повтор).
+REPEAT_HARD = 0.85
+#: Порог «это перепев»: мягкий штраф, растущий со сходством.
+REPEAT_SOFT = 0.5
+
+
+def _repeat_strength(sess: Session, tokens: frozenset, moves: frozenset) -> float:
+    """Насколько сильно ход повторяет ЛЮБОЙ прошлый ход этой партии (0..1).
+
+    Прежняя проверка помнила ровно одну прошлую реплику и сравнивала на точное
+    равенство, поэтому чередование двух сильных строк A,B,A,B проходило её
+    насквозь. Здесь память на всю партию, а мера — Жаккар по словам, поднятый
+    на 0.15, если совпало ещё и множество приёмов: один и тот же приём теми же
+    словами — это повтор, даже если переставлена цифра.
+    """
+    best = 0.0
+    for prev_tokens, prev_moves in sess.move_history:
+        union = tokens | prev_tokens
+        if not union:
+            continue
+        j = len(tokens & prev_tokens) / len(union)
+        if moves and moves == prev_moves:
+            j = min(1.0, j + 0.15)
+        if j > best:
+            best = j
+    return best
+
+
+def _plausible_offer(sc: Scenario, number: float) -> Optional[float]:
+    """Цена это или просто число? Возвращает цену в единицах сценария либо None.
+
+    «Мне 30 лет» и «Ага 1.» не должны становиться офертой на 30 и на 1 — а
+    становились: любая цифра при подходящем намерении шла в `offer_player`.
+    Коридор — [0.5×, 2×] от масштаба сценария: за его пределами число к торгу
+    отношения не имеет. Ветка ×1000 оставлена ТОЛЬКО для единиц самого
+    сценария (сказали «1040», когда сценарий считает в тысячах), и только если
+    после умножения число попадает в тот же коридор.
+    """
+    scale = (sc.opponent_open + sc.opponent_reservation
+             + sc.player_target + sc.player_reservation) / 4
+    if scale <= 0:
+        return number
+    lo, hi = 0.5 * scale, 2.0 * scale
+    if lo <= number <= hi:
+        return number
+    if lo <= number * 1000 <= hi:
+        return number * 1000
+    return None
+
+
 def _acceptable(sess: Session, number: float) -> bool:
     """Is a proposed number acceptable to the opponent given their floor?"""
     sc = by_id(sess.scenario_id)
@@ -162,24 +248,22 @@ def _reveal_index_offline(sc: Scenario, cur_norm: str, lang: str,
                           found: list[int]) -> Optional[int]:
     """Which hidden interest does an OFFLINE probe uncover (judge is None)?
 
-    Honesty first: if the player's words match the keywords of an interest that
-    is still hidden, uncover THAT interest — so the opponent only ever speaks to
-    what was actually asked. If the words hit no unrevealed interest (a generic
-    "почему?" / "что для вас важно?"), fall back to the smallest still-hidden
-    index — i.e. next-in-order, exactly the previous behaviour. This preserves the
-    per-probe reveal COUNT (one interest per genuine probe) so scoring/balance is
-    unchanged; only WHICH interest a specific question reveals becomes honest.
-    Returns None when everything is already uncovered."""
+    Интерес вскрывается ТОЛЬКО по теме вопроса: слова игрока обязаны попасть в
+    ключевые слова ещё не вскрытого интереса. Прежде здесь стоял запасной ход —
+    «не совпало ни с чем, отдай следующий по списку», — и он опрокидывал главный
+    тезис продукта: три одинаковых общих «Почему для вас это важно?» вскрывали
+    все три интереса. Выигрывал не тот, кто вскрыл интересы, а тот, кто трижды
+    нажал подсказанную кнопку. Не совпало — не вскрыли, и оппонент честно
+    переспрашивает (реакция probe_vague). Возвращает None и когда всё уже
+    вскрыто."""
     total = len(sc.hidden_interests[lang])
     kw = sc.hidden_interest_keywords.get(lang) if sc.hidden_interest_keywords else None
-    if kw:
-        for i in range(min(total, len(kw))):
-            if i in found:
-                continue
-            if any(k in cur_norm for k in kw[i]):
-                return i
-    for i in range(total):
-        if i not in found:
+    if not kw:
+        return None
+    for i in range(min(total, len(kw))):
+        if i in found:
+            continue
+        if any(k in cur_norm for k in kw[i]):
             return i
     return None
 
@@ -228,13 +312,21 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     if judge is not None and judge.get("arg_score") is not None:
         analysis.arg_quality = int(judge["arg_score"])
 
-    # Anti-gaming: repeating the exact same line barely works — the opponent
-    # notices, and it stops padding your technique score.
+    # Анти-гейминг с памятью на всю партию. Точное равенство с ОДНОЙ прошлой
+    # репликой ловило только самый ленивый спам: чередование A,B,A,B проходило
+    # насквозь, а тот же абзац с переставленной цифрой — тем более. Считаем
+    # сходство со всеми ходами партии и штрафуем непрерывно.
     cur_norm = norm(raw_text)
-    repeated = bool(cur_norm) and cur_norm == sess.last_player_norm
+    cur_tokens = _tokens(cur_norm)
+    cur_moves = frozenset(analysis.moves)
+    repeat = _repeat_strength(sess, cur_tokens, cur_moves) if cur_norm else 0.0
+    sess.move_history.append((cur_tokens, cur_moves))
     sess.last_player_norm = cur_norm
+    repeated = repeat >= REPEAT_HARD
     if repeated:
         analysis.arg_quality = min(analysis.arg_quality, 12)
+    elif repeat >= REPEAT_SOFT:
+        analysis.arg_quality = min(analysis.arg_quality, _js_round(100 * (1 - repeat)))
 
     before = {
         "trust": s.trust,
@@ -248,6 +340,10 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     m.move_counts[analysis.primary] = m.move_counts.get(analysis.primary, 0) + 1
     m.arg_quality_sum += analysis.arg_quality
     m.arg_quality_n += 1
+    # В счёт идёт только сходство ВЫШЕ мягкого порога: живая партия неизбежно
+    # повторяет слова («почему для вас важ…»), и штрафовать за это нельзя.
+    m.repeat_sum += max(0.0, repeat - REPEAT_SOFT) / (1 - REPEAT_SOFT)
+    m.repeat_n += 1
     if analysis.spin:
         m.spin_stages.add(analysis.spin)
 
@@ -256,9 +352,19 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
 
     reaction = "neutral"
     concession_fraction = 0.0
+    # Что в ЭТОМ ходе заработало движение цены. Пусто — оппонент не двигается.
+    # Раньше к дроби уступки безусловно прибавлялась база 0.10 + 0.34·flex, и
+    # цена капала сама: двенадцать реплик «Ага N.» проходили 15 из 16 рублей до
+    # дна оппонента, не сказав ничего. Уступка обязана иметь причину.
+    events: list[str] = []
+    # Обратный ход: доля уже данной уступки, которую оппонент снимает.
+    rollback = 0.0
 
     # --- Empathy / active listening: always cools tension, builds trust. -------
-    if has("acknowledge"):
+    # Повтор не слушают — его вставляют. Отражение чужих слов работает один
+    # раз: иначе одиннадцать копий одного абзаца поднимали доверие до потолка
+    # и давали спамеру relationship 100.
+    if has("acknowledge") and not repeated:
         s.trust = clamp(s.trust + 8)
         s.tension = clamp(s.tension - 10)
         m.empathy += 1
@@ -275,23 +381,34 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
                 s.interests_found.append(judge_interest)
                 revealed = True
             elif judge is None:
-                # Offline: reveal the interest the probe ACTUALLY targets (honest);
-                # a generic probe falls back to next-in-order. Deterministic.
+                # Offline: вскрывается только тот интерес, в который вопрос
+                # попал по теме. Не попал — не вскрыли. Детерминированно.
                 idx = _reveal_index_offline(sc, cur_norm, sess.lang, s.interests_found)
                 if idx is not None:
                     s.interests_found.append(idx)
                     revealed = True
         gain_base = 22 if analysis.spin in ("implication", "need-payoff") else 14
         gain = gain_base + (10 if has("interests_probe") else 0)
-        # With the judge on, a vague question that hit no real interest earns little.
-        if judge is not None and not revealed:
+        # Общий вопрос, не попавший ни в один живой интерес, приносит крохи —
+        # и с судьёй, и офлайн. `info` — это доля ВСКРЫТОГО, а не число
+        # заданных вопросов; иначе шкала растёт от нажатий, а не от работы.
+        if not revealed:
             gain = min(gain, 5)
         s.info = clamp(s.info + gain)
         s.trust = clamp(s.trust + 4)
         s.tension = clamp(s.tension - 3)
         if has("interests_probe") or judge_interest is not None:
             m.interest_probes += 1
-        reaction = "warmed" if reaction == "warmed" else "opened_up"
+        if revealed:
+            events.append("interest")
+            reaction = "warmed" if reaction == "warmed" else "opened_up"
+        elif reaction != "warmed":
+            # «Почему?» — а что именно вас интересует? Оппонент переспрашивает,
+            # вместо того чтобы выложить следующий секрет по списку. Реакция
+            # обязана быть отдельной: `opened_up` подставляет в реплику текст
+            # интереса, и на невскрытом вопросе это была бы выдача секрета за
+            # спиной у счётчика — ровно то, чего второй принцип не разрешает.
+            reaction = "probe_vague"
 
     # --- Objective criteria: legitimate leverage. ------------------------------
     if has("objective_criteria"):
@@ -300,6 +417,11 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         m.objective_criteria += 1
         if style == "analytical":
             s.leverage = clamp(s.leverage + 6)
+        # Критерий засчитан событием только с опорой: голое слово «рынок» без
+        # цифры и без «потому что» — это не критерий, а его имитация.
+        # `arg_quality` уже несёт эту проверку (см. techniques.substance).
+        if analysis.arg_quality >= 35:
+            events.append("criteria")
         reaction = "persuaded"
 
     # --- BATNA / alternatives: leverage, but risky. ----------------------------
@@ -309,6 +431,10 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         s.tension = clamp(s.tension + (4 if backed else 14))
         if style == "relationship":
             s.tension = clamp(s.tension + 6)
+        # Двигает цену ОБОСНОВАННАЯ альтернатива. Названная вслух и ничем не
+        # подкреплённая — только поднимает напряжение.
+        if backed:
+            events.append("batna")
         reaction = "pressured"
 
     # --- Trade-off / logrolling: value creation. -------------------------------
@@ -317,6 +443,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         s.tension = clamp(s.tension - 4)
         bonus = 0.12 + 0.18 * (s.info / 100)
         concession_fraction += bonus
+        events.append("tradeoff")
         tset = sc.tradeoffs[sess.lang]
         if len(s.tradeoffs_used) < len(tset):
             s.tradeoffs_used.append(len(s.tradeoffs_used))
@@ -330,6 +457,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
             if iss.id not in s.terms_conceded:
                 s.terms_conceded.append(iss.id)
                 concession_fraction += 0.10 + 0.30 * iss.opp_value
+                events.append("term:" + iss.id)
                 s.trust = clamp(s.trust + 3 + 4 * iss.opp_value)
 
     # --- Threat / ultimatum: leverage up, relationship down. -------------------
@@ -340,6 +468,10 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         s.leverage = clamp(s.leverage + 6)
         if style == "tough":
             s.tension = clamp(s.tension + 8)
+        # Повторная угроза — обратный ход: оппонент снимает часть уступки.
+        # Один ультиматум ещё можно списать на нервы, второй — это стиль.
+        if m.threats >= 2:
+            rollback = max(rollback, 0.20)
         reaction = "hardened"
 
     # --- Hostility: pure damage. -----------------------------------------------
@@ -347,20 +479,32 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         m.hostiles += 1
         s.tension = clamp(s.tension + 26)
         s.trust = clamp(s.trust - 22)
+        # Хамство откатывает цену назад, к стартовому якорю: за столом это
+        # «раз так — моё предложение снова прежнее», а не молчаливая скидка.
+        rollback = max(rollback, 0.35)
         reaction = "offended"
 
     # --- Rapport / small talk early is fine. -----------------------------------
-    if has("rapport"):
+    if has("rapport") and not repeated:
         s.trust = clamp(s.trust + 5)
         s.tension = clamp(s.tension - 4)
 
     # --- Player states an offer number (incl. while closing). ------------------
+    # Намерение назвать цену — необходимое условие, но не достаточное: число
+    # обязано ещё и попасть в коридор масштаба сценария. Иначе «Ага 1.»
+    # становилось офертой в 1 ₽/шт, а «Мне 30 лет» — зарплатой в 30 там, где
+    # шкала 180–240.
+    priced = None
     if analysis.number is not None and (
         has("offer") or has("anchor") or has("concession") or has("accept") or has("tradeoff")
     ):
-        s.offer_player = analysis.number
+        priced = _plausible_offer(sc, analysis.number)
+        if priced is not None:
+            s.offer_player = priced
 
     # --- Compute concession from productive pressure. --------------------------
+    # Гибкость больше НЕ порождает движение сама по себе: она лишь превращает
+    # заработанное событие в рубли. Нет события — нет и хода цены.
     flex = flexibility(sess)
     concession_fraction += 0.10 + 0.34 * flex
     if has("objective_criteria"):
@@ -375,36 +519,82 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         gap = (s.offer_opp - s.offer_player) if sess.lower_better else (s.offer_player - s.offer_opp)
         if gap > 0:
             concession_fraction += min(0.08, gap * 0.01)
+    if not events:
+        # Ни одного события — оппонент не двигается ВООБЩЕ. Прежде здесь текла
+        # безусловная база: двенадцать «Ага N.» проходили почти весь путь до
+        # дна, ничего не сказав. Хорошая атмосфера и удачные вопросы делают
+        # уступку крупнее, но не заменяют повода её сделать.
+        concession_fraction = 0.0
     if s.tension > 75:
         concession_fraction *= 0.25
     elif s.tension > 55:
         concession_fraction *= 0.6
-    if repeated:
-        concession_fraction *= 0.15  # repeating the same line won't move them
+    # Повтор — не ход: чем ближе реплика к уже сказанному, тем меньше от неё
+    # движения. Непрерывно, чтобы перефразировка спама не давала полный эффект.
+    if repeat >= REPEAT_SOFT:
+        concession_fraction *= max(0.15, 1 - repeat)
     concession_fraction = clamp(concession_fraction, 0, 0.7)
 
-    if concession_fraction > 0.01:
+    # Обратный ход старше уступки: в ход, где нагрубили или дожали второй
+    # угрозой, цена уходит назад, а не вперёд.
+    if rollback > 0:
+        concession_fraction = 0.0
+        _retract(sess, rollback)
+    elif concession_fraction > 0.01:
         _concede(sess, concession_fraction)
+
+    # Повтор не заставляет оппонента реагировать ЗАНОВО. Он уже ответил на эту
+    # реплику — второй раз она не поднимает ни доверия, ни информации. Иначе
+    # один и тот же абзац, вставленный одиннадцать раз, докручивал отношения до
+    # ста из ста. Грубость и угрозы — исключение: их повтор ранит каждый раз,
+    # иначе агрессивная партия перестала бы срываться (инвариант 2).
+    if repeated and not (has("hostile") or has("threat")):
+        s.trust = before["trust"]
+        s.tension = before["tension"]
+        s.info = before["info"]
+        s.leverage = before["leverage"]
+        # …но раздражает: «вы это уже говорили» — цена терпения.
+        s.tension = clamp(s.tension + 6)
+        reaction = "neutral"
 
     # --- Closing: player tries to accept / lock a deal. ------------------------
     closed = False
     if has("accept"):
-        if s.offer_player is not None:
-            w = 0.3 + 0.45 * flex
-            meeting = s.offer_opp + (s.offer_player - s.offer_opp) * w
-            if sess.lower_better:
-                meeting = max(meeting, sc.opponent_reservation)
+        # Число вне коридора сценария — это не оферта, а провал закрытия.
+        # Прежде «Договорились, 42» проходило через `max(meeting, floor)` и
+        # сходилось РОВНО на дне оппонента: одна фраза первым ходом давала
+        # economic 100. Клампа больше нет — сходимся от того, что назвал игрок.
+        stated_unpriced = analysis.number is not None and priced is None
+        no_bridge = False
+        if priced is not None:
+            gap = ((s.offer_opp - priced) if sess.lower_better
+                   else (priced - s.offer_opp))
+            # Хвостик в пару процентов от хода якоря — это уже рукопожатие,
+            # а не разрыв: спорить из-за копейки никто не станет.
+            near = abs(gap) <= 0.02 * abs(sc.opponent_open - sc.opponent_reservation)
+            if gap <= 0 or near:
+                # Игрок назвал число не лучше того, что уже лежит на столе, —
+                # то есть сам пришёл к оппоненту. Тут спорить не о чем.
+                meeting = priced
             else:
-                meeting = min(meeting, sc.opponent_reservation)
-            meeting = _round2(meeting)
+                # Разрыв закрывают ТЕМ ЖЕ, чем двигают цену: заработанным
+                # событием. Слово «договорились» само по себе не событие.
+                w = (0.3 + 0.45 * flex) if events else 0.0
+                meeting = _round2(s.offer_opp + (priced - s.offer_opp) * w)
+                no_bridge = not events
         else:
+            # Голое «договорились» — это согласие на ТО, ЧТО ЛЕЖИТ НА СТОЛЕ.
+            # Считать его попыткой дожать цифру, названную три хода назад,
+            # значит отказывать игроку в закрытии, которого он и просит.
             meeting = s.offer_opp
-        if _acceptable(sess, meeting):
+        if stated_unpriced or no_bridge or not _acceptable(sess, meeting):
+            # Не сошлись — и это стоит нервов обеим сторонам.
+            s.tension = clamp(s.tension + 8)
+            reaction = "not_yet"
+        else:
             s.deal = meeting
             s.status = "agreement"
             closed = True
-        else:
-            reaction = "not_yet"
 
     # --- Breakdown check. ------------------------------------------------------
     if s.tension >= 100 or s.trust <= 3:
@@ -642,6 +832,35 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "Фиксирую: текущая цифра {offer}{unit}.",
                 "По состоянию на сейчас — {offer}{unit}.",
                 "Если по фактам — на столе {offer}{unit}.",
+            ],
+        },
+        # Общий вопрос, не попавший ни в один интерес. Отдельная реакция нужна
+        # ради второго принципа: `opened_up` подставляет в реплику текст
+        # интереса, и на невскрытом вопросе оппонент выдал бы секрет, которого
+        # счётчик не засчитал. Здесь он честно переспрашивает.
+        "probe_vague": {
+            "base": [
+                "Почему — а что именно вас интересует? Спросите конкретнее.",
+                "Смотря о чём вы. Что именно вам важно понять?",
+                "Вопрос широкий. Про что конкретно спрашиваете?",
+                "Так сразу и не ответишь. Уточните, о чём речь?",
+                "Про что именно? Тем тут хватает.",
+                "Можно поконкретнее? Иначе отвечу общими словами.",
+            ],
+            "relationship": [
+                "Я бы рада ответить, но вы спросите поконкретнее — о чём именно?",
+                "Давайте по-человечески: что именно вас интересует?",
+                "Мне бы понять, о чём вы. Уточните, пожалуйста?",
+            ],
+            "tough": [
+                "Что именно? Общие вопросы — общие ответы.",
+                "Конкретнее. Про что спрашиваете?",
+                "Так не работает. Спросите по делу.",
+            ],
+            "analytical": [
+                "Вопрос сформулирован широко. Уточните предмет.",
+                "О каком именно факторе речь?",
+                "Давайте сузим вопрос — иначе ответ будет ни о чём.",
             ],
         },
         "not_yet": {
@@ -921,6 +1140,32 @@ LINES: dict[str, dict[str, dict[str, list[str]]]] = {
                 "On the facts — {offer}{unit} is on the table.",
             ],
         },
+        # A generic question that hit no live interest — see the RU bank above.
+        "probe_vague": {
+            "base": [
+                "Why — but what exactly are you asking about? Be specific.",
+                "Depends what you mean. What is it you want to understand?",
+                "That's a broad question. About what exactly?",
+                "Hard to answer like that. Narrow it down?",
+                "About what specifically? There's plenty here.",
+                "Could you be more concrete? Otherwise you'll get platitudes.",
+            ],
+            "relationship": [
+                "I'd love to answer, but ask me something specific — about what?",
+                "Let's keep it human: what exactly matters to you here?",
+                "I'd like to follow you. Could you narrow it down?",
+            ],
+            "tough": [
+                "What exactly? Generic questions get generic answers.",
+                "Be specific. What are you asking?",
+                "That doesn't work. Ask something concrete.",
+            ],
+            "analytical": [
+                "The question is stated too broadly. Specify the subject.",
+                "Which factor exactly are we talking about?",
+                "Let's narrow the question — otherwise the answer says nothing.",
+            ],
+        },
         "not_yet": {
             "base": [
                 "Too early to shake hands — {offer}{unit} is where I am.",
@@ -1049,9 +1294,15 @@ def render_line(sess: Session, reaction: str, closed: bool) -> str:
         last_interest = interest_list[s.interests_found[-1]]
     else:
         last_interest = interest_list[0]
+    # Реплику оппонента и озвучивают, и читают глазами, поэтому цифра в ней
+    # печатается по тем же правилам, что и в разборе: разделитель по языку и
+    # узкий пробел перед знаком валюты (иначе «100₽/шт» слипается в один глиф).
     return (
-        line.replace("{offer}", _js_num(s.offer_opp))
-        .replace("{deal}", _js_num(s.deal) if s.deal is not None else _js_num(s.offer_opp))
+        line.replace("{offer}{unit}", format_deal(s.offer_opp, unit, lang))
+        .replace("{deal}{unit}",
+                 format_deal(s.deal if s.deal is not None else s.offer_opp, unit, lang))
+        .replace("{offer}", format_number(s.offer_opp, lang))
+        .replace("{deal}", format_number(s.deal if s.deal is not None else s.offer_opp, lang))
         .replace("{unit}", unit)
         .replace("{interest}", (last_interest or "").lower())
     )
@@ -1075,7 +1326,9 @@ def score_session(sess: Session) -> dict:
         r = sc.player_reservation
         ratio = (s.deal - r) / (t - r)
         economic = clamp(_js_round(ratio * 100))
-        deal_text = f"{_js_num(s.deal)}{unit}"
+        # Печатаем на языке сессии, а не по-джаваскриптовому: разбор и стол
+        # обязаны показывать одно и то же число одними и теми же знаками.
+        deal_text = format_deal(s.deal, unit, lang)
     elif s.status == "breakdown":
         economic = 0
         deal_text = "Сделка сорвалась" if lang == "ru" else "Deal broke down"
@@ -1099,6 +1352,11 @@ def score_session(sess: Session) -> dict:
     technique += _js_round((avg_arg / 100) * 14)
     technique -= m.hostiles * 12
     technique -= max(0, m.threats - 1) * 6
+    # Доля партии, ушедшая на повторы. Ход, который уже был, — не приём:
+    # без этого один сильный абзац, вставленный одиннадцать раз, набирал
+    # столько же флагов техники, сколько живая партия.
+    if m.repeat_n:
+        technique -= _js_round(20 * (m.repeat_sum / m.repeat_n))
     # Package signal — ONLY for scenarios with a structured logrolling axis, so
     # scoring is byte-identical for scenarios without secondary_issues. Reward
     # trading issues the opponent values (high opp_value) and lightly discount

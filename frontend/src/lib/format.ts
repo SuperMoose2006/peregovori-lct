@@ -15,10 +15,18 @@ export function formatNumber(value: number, lang: Lang): string {
   return new Intl.NumberFormat(LOCALE[lang], { maximumFractionDigits: 2 }).format(value);
 }
 
-// A deal number with its scenario unit suffix (e.g. 85.93 + " ₽" → "85,93 ₽" in
-// RU, "85.93 ₽" in EN). The unit owns its own leading space, so we don't add one.
+// Единица, начинающаяся со знака валюты, отделяется от числа узким неразрывным
+// пробелом U+202F: «100₽/шт» сливает рубль с нулём в один глиф. Перед «%», «k»,
+// «дн» пробел не ставим — там он не нужен и ломает вёрстку.
+const NARROW_NBSP = "\u202f";
+const CURRENCY_HEAD = ["₽", "$", "€", "£", "¥"];
+
+// A deal number with its scenario unit suffix (e.g. 85.93 + "₽/шт" → "85,93 ₽/шт"
+// in RU, "85.93 ₽/шт" in EN). Зеркало services/gateway/app/engine/format.py —
+// сервер печатает `deal_text` теми же правилами (инвариант 8).
 export function formatDeal(value: number, unit: string, lang: Lang): string {
-  return formatNumber(value, lang) + unit;
+  const space = CURRENCY_HEAD.includes(unit.slice(0, 1)) ? NARROW_NBSP : "";
+  return formatNumber(value, lang) + space + unit;
 }
 
 // ---------------------------------------------------------------------------

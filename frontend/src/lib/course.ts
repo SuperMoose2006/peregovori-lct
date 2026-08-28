@@ -170,6 +170,7 @@ const REACTION_TO_DRAWN: Record<string, string> = {
   neutral: "listening", warmed: "warm", opened_up: "lean_forward",
   persuaded: "warm", collaborated: "warm", pressured: "lean_back",
   hardened: "annoyed", offended: "offended", not_yet: "annoyed",
+  probe_vague: "listening",
   walked_out: "walk_out",
 };
 

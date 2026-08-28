@@ -130,7 +130,8 @@ def test_every_engine_reaction_maps_to_an_avatar_state():
     """
     from app.avatar.base import AVATAR_STATES
     reactions = {"neutral", "warmed", "opened_up", "persuaded", "pressured",
-                 "collaborated", "hardened", "offended", "not_yet", "walked_out"}
+                 "collaborated", "hardened", "offended", "not_yet", "probe_vague",
+                 "walked_out"}
     assert reactions <= set(REACTION_TO_STATE), "реакция движка без состояния лица"
     for reaction in reactions:
         assert state_for_reaction(reaction) in AVATAR_STATES

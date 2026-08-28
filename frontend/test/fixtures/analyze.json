@@ -21,7 +21,7 @@
    "primary": "hostile",
    "arg": 0,
    "words": 11,
-   "number": 1200.0,
+   "number": null,
    "spin": null
   },
   {
@@ -105,69 +105,67 @@
   {
    "text": "900 — and that is my final offer.",
    "moves": [
-    "threat",
-    "offer"
+    "threat"
    ],
    "primary": "threat",
-   "arg": 14,
+   "arg": 8,
    "words": 7,
-   "number": 900.0,
+   "number": null,
    "spin": null
   },
   {
    "text": "900 — и это моё последнее слово.",
    "moves": [
-    "threat",
-    "offer"
+    "threat"
    ],
    "primary": "threat",
-   "arg": 14,
+   "arg": 8,
    "words": 6,
-   "number": 900.0,
+   "number": null,
    "spin": null
   },
   {
    "text": "900, and that is generous.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 5,
-   "number": 900.0,
+   "number": null,
    "spin": null
   },
   {
    "text": "900, и то много.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 4,
-   "number": 900.0,
+   "number": null,
    "spin": null
   },
   {
    "text": "95 — and that is already out of respect for you.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 10,
-   "number": 95.0,
+   "number": null,
    "spin": null
   },
   {
    "text": "95 — и это уже с уважением к вам.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 8,
-   "number": 95.0,
+   "number": null,
    "spin": null
   },
   {
@@ -228,12 +226,12 @@
   {
    "text": "A verbatim repeat: the engine drops argument quality to 12 and cuts the concession to 15% — persistence is not argument",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 34,
+   "primary": "statement",
+   "arg": 28,
    "words": 20,
-   "number": 12.0,
+   "number": null,
    "spin": null
   },
   {
@@ -343,12 +341,12 @@
   {
    "text": "Fine, 1150, that is my final word.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 7,
-   "number": 1150.0,
+   "number": null,
    "spin": null
   },
   {
@@ -444,12 +442,12 @@
   {
    "text": "I have another flat at 68, I will think about it.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 11,
-   "number": 68.0,
+   "number": null,
    "spin": null
   },
   {
@@ -513,12 +511,12 @@
   {
    "text": "I will not go below 95, I have my own margin.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 11,
-   "number": 95.0,
+   "number": null,
    "spin": null
   },
   {
@@ -564,9 +562,9 @@
     "open_question"
    ],
    "primary": "tradeoff",
-   "arg": 44,
+   "arg": 38,
    "words": 19,
-   "number": 3.0,
+   "number": null,
    "spin": null
   },
   {
@@ -584,12 +582,12 @@
   {
    "text": "It is a briefing error: the red line should be 95.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 11,
-   "number": 95.0,
+   "number": null,
    "spin": null
   },
   {
@@ -786,12 +784,12 @@
   {
    "text": "That is too expensive, knock ten thousand off.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 7,
-   "number": 10000.0,
+   "number": null,
    "spin": null
   },
   {
@@ -841,23 +839,23 @@
   {
    "text": "The deal closes at 80 — you agreed, after all",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 9,
-   "number": 80.0,
+   "number": null,
    "spin": null
   },
   {
    "text": "The deal closes at 84, her floor",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 7,
-   "number": 84.0,
+   "number": null,
    "spin": null
   },
   {
@@ -1122,12 +1120,12 @@
   {
    "text": "We hold at 100, that is our policy.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 8,
-   "number": 100.0,
+   "number": null,
    "spin": null
   },
   {
@@ -1161,9 +1159,9 @@
     "open_question"
    ],
    "primary": "open_question",
-   "arg": 26,
+   "arg": 20,
    "words": 9,
-   "number": 65.0,
+   "number": null,
    "spin": null
   },
   {
@@ -1238,9 +1236,9 @@
     "open_question"
    ],
    "primary": "open_question",
-   "arg": 26,
+   "arg": 20,
    "words": 6,
-   "number": 65.0,
+   "number": null,
    "spin": null
   },
   {
@@ -1251,6 +1249,17 @@
    "primary": "open_question",
    "arg": 20,
    "words": 7,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Ага 1.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 5,
+   "words": 2,
    "number": null,
    "spin": null
   },
@@ -1394,12 +1403,12 @@
   {
    "text": "Дословный повтор: движок опускает качество аргумента до 12 и режет уступку до 15% — настойчивость не равна аргументу",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 34,
+   "primary": "statement",
+   "arg": 28,
    "words": 17,
-   "number": 12.0,
+   "number": null,
    "spin": null
   },
   {
@@ -1445,9 +1454,9 @@
     "open_question"
    ],
    "primary": "tradeoff",
-   "arg": 44,
+   "arg": 38,
    "words": 18,
-   "number": 3.0,
+   "number": null,
    "spin": null
   },
   {
@@ -1462,6 +1471,17 @@
    "words": 9,
    "number": 230.0,
    "spin": null
+  },
+  {
+   "text": "К чему это приводит, когда загрузка производства падает на месяц?",
+   "moves": [
+    "spin_implication"
+   ],
+   "primary": "spin_implication",
+   "arg": 34,
+   "words": 10,
+   "number": null,
+   "spin": "implication"
   },
   {
    "text": "К чему это приводит, когда линия простаивает месяц?",
@@ -1531,14 +1551,25 @@
    "spin": null
   },
   {
+   "text": "Мне 30 лет, я работаю тут 5 лет.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Мне это дорого, скиньте 10 тысяч.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 5,
-   "number": 10000.0,
+   "number": null,
    "spin": null
   },
   {
@@ -1703,12 +1734,12 @@
   {
    "text": "Ниже 95 я не пойду, у меня своя маржа.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 9,
-   "number": 95.0,
+   "number": null,
    "spin": null
   },
   {
@@ -1719,6 +1750,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 6,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Обсудим через 2 недели?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 4,
    "number": null,
    "spin": null
   },
@@ -2067,6 +2109,17 @@
    "spin": null
   },
   {
+   "text": "У меня 3 условия.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 4,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "У меня есть альтернативное предложение на 210k, но ваш проект мне интереснее — давайте искать решение здесь.",
    "moves": [
     "batna",
@@ -2081,12 +2134,12 @@
   {
    "text": "У меня есть другая квартира за 68, я подумаю.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 9,
-   "number": 68.0,
+   "number": null,
    "spin": null
   },
   {
@@ -2125,13 +2178,12 @@
   {
    "text": "Хорошо, 1150 — моё последнее слово.",
    "moves": [
-    "threat",
-    "offer"
+    "threat"
    ],
    "primary": "threat",
-   "arg": 14,
+   "arg": 8,
    "words": 5,
-   "number": 1150.0,
+   "number": null,
    "spin": null
   },
   {
@@ -2215,12 +2267,12 @@
   {
    "text": "Это ошибка в брифинге: красная линия должна быть 95.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 9,
-   "number": 95.0,
+   "number": null,
    "spin": null
   },
   {
@@ -2292,6 +2344,17 @@
    "spin": null
   },
   {
+   "text": "три недели",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 5,
+   "words": 2,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "триста тысяч",
    "moves": [
     "offer"
@@ -2300,6 +2363,17 @@
    "arg": 11,
    "words": 1,
    "number": 300000.0,
+   "spin": null
+  },
+  {
+   "text": "у нас 5 инженеров",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 4,
+   "number": null,
    "spin": null
   }
  ]

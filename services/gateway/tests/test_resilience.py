@@ -60,8 +60,11 @@ def test_resume_continues_the_same_game():
         session_id = created["session_id"]
         opening_price = created["state"]["offer_opp"]
 
+        # Реплика обязана СДВИНУТЬ цену, иначе тест ниже проверяет не сохранение
+        # партии, а совпадение двух нулей: движок больше не двигает предложение
+        # без повода, и общий вопрос таким поводом не является.
         ws.send_json({"type": "input.append",
-                      "input": {"text": "Почему для вас важен именно этот срок?"}})
+                      "input": {"text": "Почему для вас так важна стабильная загрузка производства?"}})
         ws.send_json({"type": "input.commit"})
         state_after = None
         for _ in range(12):
