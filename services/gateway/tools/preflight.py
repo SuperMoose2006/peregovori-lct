@@ -75,6 +75,31 @@ def check_health(url: str) -> None:
         return
 
     ok(f"гейтвей отвечает: {url}")
+
+    # ЗАЧЕМ ЭТО ЗДЕСЬ. Шлюз — долгоживущий процесс. Тот, что раздавал демо,
+    # крутился двое с половиной суток и отвечал кодом позавчерашнего дня: курс
+    # на диске знал упражнение, живой шлюз — нет. Перед показом это самая
+    # дорогая из возможных неожиданностей, и ловится она одним сравнением.
+    build = data.get("build") or {}
+    if not build:
+        warn("шлюз старый: /api/health не знает про build — перезапустите процесс")
+    else:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        try:
+            from app.course.bank import BANK as _BANK
+            from app.engine.scenarios import SCENARIOS as _SC
+            on_disk = {"exercises": len(_BANK), "scenarios": len(_SC)}
+        except Exception:  # noqa: BLE001
+            on_disk = {}
+        stale = [k for k, v in on_disk.items() if build.get(k) != v]
+        if stale:
+            fail("ШЛЮЗ ОТВЕЧАЕТ СТАРЫМ КОДОМ: "
+                 + ", ".join(f"{k} у процесса {build.get(k)}, на диске {on_disk[k]}"
+                             for k in stale)
+                 + " — перезапустите гейтвей")
+        else:
+            ok(f"шлюз свежий: упражнений {build.get('exercises')}, "
+               f"столов {build.get('scenarios')}, кампаний {build.get('campaigns')}")
     if data.get("cloud_ai"):
         ok(f"облачный ИИ включён · оппонент: {data.get('models', {}).get('opponent', '—')}")
     else:
@@ -131,15 +156,91 @@ def check_course() -> None:
         ok("зеркало курса синхронно")
 
 
+def check_live_turn(url: str) -> None:
+    """Один настоящий ход через настоящий протокол настоящей моделью.
+
+    Всё остальное в этом файле проверяет, что части НА МЕСТЕ. Этот раздел
+    проверяет, что они работают ВМЕСТЕ: сокет, ключ, модель, санитайзер,
+    движок, судья. Отдельно ни одна проверка этого не покажет — а на площадке
+    ломается именно связка, и узнавать об этом по молчащему экрану поздно.
+
+    Опционален намеренно: он тратит настоящие запросы к моделям, а `make
+    preflight` должен оставаться бесплатным и работать без сети.
+    """
+    print("\nживой ход")
+    try:
+        import asyncio
+        import websockets
+    except ImportError:
+        warn("нет websockets — живой ход не проверен (pip install websockets)")
+        return
+
+    ws_url = url.replace("http://", "ws://").replace("https://", "wss://") + "/v1/realtime"
+
+    async def play() -> tuple[str, dict]:
+        async with websockets.connect(ws_url, open_timeout=10, close_timeout=5) as ws:
+            await ws.send(json.dumps({"type": "session.init", "payload": {
+                "mode": "text", "scenarioId": "supplier", "lang": "ru",
+                "gameMode": "practice", "layers": {}}}))
+            created, line, state = None, "", None
+            deadline = asyncio.get_event_loop().time() + 60
+            sent = False
+            while asyncio.get_event_loop().time() < deadline:
+                raw = await asyncio.wait_for(ws.recv(), timeout=30)
+                ev = json.loads(raw)
+                kind = ev.get("type")
+                if kind == "session.created":
+                    created = ev
+                    await ws.send(json.dumps({"type": "input.append", "input": {
+                        "text": "Ирина, что для вас важнее всего в этом контракте "
+                                "и почему именно это?"}}))
+                    await ws.send(json.dumps({"type": "input.commit"}))
+                    sent = True
+                elif kind == "engine.state":
+                    state = ev.get("state") or ev.get("payload")
+                elif kind == "response.done" and sent:
+                    line = ev.get("text", "")
+                    break
+                elif kind == "error":
+                    return "", {"error": ev}
+            return line, {"created": created, "state": state}
+
+    try:
+        line, extra = asyncio.run(play())
+    except Exception as exc:  # noqa: BLE001 — на площадке важна причина, а не тип
+        fail(f"живой ход не прошёл: {exc}")
+        return
+
+    if extra.get("error"):
+        fail(f"сервер ответил ошибкой: {extra['error']}")
+        return
+    if not line.strip():
+        fail("оппонент не ответил — партия на площадке будет молчать")
+        return
+
+    ok(f"оппонент ответил ({len(line)} знаков): {line[:70]}…")
+    st = extra.get("state") or {}
+    if st:
+        ok(f"движок посчитал ход: доверие {st.get('trust')}, "
+           f"информация {st.get('info')}, ход {st.get('turn')}")
+    else:
+        warn("движок не прислал engine.state — проверьте оркестратор")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://127.0.0.1:8010")
+    parser.add_argument("--live", action="store_true",
+                        help="сыграть один настоящий ход настоящей моделью "
+                             "(тратит запросы, требует сеть)")
     args = parser.parse_args()
 
     print("«Диалог» — проверка перед показом")
     check_files()
     check_health(args.url.rstrip("/"))
     check_course()
+    if args.live:
+        check_live_turn(args.url.rstrip("/"))
 
     print()
     if problems:
