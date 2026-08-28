@@ -118,7 +118,7 @@ const add = (sev, where, kind, msg) => findings.push({ sev, where: where + "@" +
 
 // ——— проверки, которые гоняются на каждом состоянии ———
 const PROBE = `(() => {
-  const out = { hscroll: false, overflow: [], small: [], leak: [], dupIds: [], noAlt: 0, mute: [], contrast: [], cyr: [] };
+  const out = { hscroll: false, overflow: [], small: [], leak: [], dupIds: [], noAlt: 0, mute: [], contrast: [], cyr: [], aria: [], badLabel: [] };
   const de = document.documentElement;
   out.hscroll = de.scrollWidth > de.clientWidth + 1;
 
@@ -185,7 +185,17 @@ const PROBE = `(() => {
     const f = (v) => { v/=255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); };
     return 0.2126*f(r) + 0.7152*f(g) + 0.0722*f(b);
   };
-  const parse = (s) => { if (!/^rgba?\\(/.test(s)) return null; const m = s.match(/\\d+(\\.\\d+)?/g); return m ? m.slice(0,3).map(Number) : null; };
+  // Chromium отдаёт color(srgb 0.1 0.2 0.3) для всего, что пришло из color-mix()
+  // или oklch, и прежний разбор на таких элементах возвращал null — прибор молча
+  // брал фон предка и считал контраст не от того фона. Именно на этом получались
+  // ложные срабатывания вокруг активной строки навигатора.
+  const parse = (s) => {
+    const srgb = String(s).match(/^color\\(srgb ([\\d.]+) ([\\d.]+) ([\\d.]+)/);
+    if (srgb) return [1, 2, 3].map((i) => Math.round(parseFloat(srgb[i]) * 255));
+    if (!/^rgba?\\(/.test(s)) return null;
+    const m = String(s).match(/\\d+(\\.\\d+)?/g);
+    return m ? m.slice(0, 3).map(Number) : null;
+  };
   const bgOf = (el) => {
     // Фон ищем только среди предков, НА КОТОРЫХ ЭЛЕМЕНТ ВИЗУАЛЬНО ЛЕЖИТ.
     // Абсолютно спозиционированная подпись часто вынесена ЗА свой контейнер
@@ -275,6 +285,38 @@ const PROBE = `(() => {
     if (/[\\u0400-\\u04FF]/.test(t)) out.cyr.push((el.className || el.tagName) + " :: " + t.slice(0, 46));
   }
 
+  // ARIA-ПАТТЕРН, СОБРАННЫЙ НАПОЛОВИНУ, ХУЖЕ ОТСУТСТВУЮЩЕГО: диктор объявляет
+  // «вкладка 1 из 3» или «список», человек жмёт стрелки — и ничего. Проверяется
+  // статически, без прохода по сценарию.
+  for (const lb of document.querySelectorAll("[role=listbox]")) {
+    const alien = [...lb.children].filter((c) => c.getAttribute("role") !== "option");
+    if (alien.length) out.aria.push("listbox с посторонними детьми (" +
+      alien.map((c) => c.tagName).join(",") + ") — связь «владеет» разорвана");
+  }
+  for (const tl of document.querySelectorAll("[role=tablist]")) {
+    const tabs = [...tl.querySelectorAll("[role=tab]")];
+    if (!document.querySelector("[role=tabpanel]")) out.aria.push("tablist без tabpanel");
+    if (tabs.some((t) => !t.getAttribute("aria-controls"))) out.aria.push("вкладка без aria-controls");
+    if (tabs.filter((t) => t.tabIndex === 0).length > 1)
+      out.aria.push("tablist без roving tabindex: каждая вкладка — своя остановка Tab");
+  }
+
+  // ИМЯ КНОПКИ — ТОЖЕ ПОЛЬЗОВАТЕЛЬСКИЙ ТЕКСТ. Прибор считал aria-label
+  // доказательством, что с именем всё хорошо, и не смотрел, НА КАКОМ ОНО ЯЗЫКЕ.
+  // Русский диктор читает aria-label="send" как «сенд».
+  for (const el of document.querySelectorAll("[aria-label]")) {
+    const label = (el.getAttribute("aria-label") || "").trim();
+    if (label.length < 3) continue;
+    const cyr = /[\u0400-\u04FF]/.test(label);
+    if (LANG === "ru" && !cyr && /^[a-z][a-z ]+$/i.test(label))
+      out.badLabel.push('aria-label="' + label + '" в русском интерфейсе');
+    if (LANG === "en" && cyr)
+      out.badLabel.push('aria-label="' + label + '" в английском интерфейсе');
+  }
+
+  // Плейсхолдер — не подпись (он исчезает при вводе), но его контраст считается.
+  if (!/\b(light|dark)\b/.test(getComputedStyle(document.documentElement).colorScheme))
+    out.leak.push("color-scheme не объявлен: плейсхолдеры и родные виджеты остаются светлыми на тёмном");
   return out;
 })()`;
 
@@ -305,14 +347,18 @@ async function keyboardFocus(page, where) {
   return problems;
 }
 
-async function probe(page, where, tag) {
-  const r = await page.evaluate(PROBE);
+async function probe(page, where, tag, lang = "ru") {
+  // Язык прокидывается ВНУТРЬ страницы, а не угадывается там: проверка имён
+  // кнопок зависит от того, на каком языке интерфейс должен быть.
+  const r = await page.evaluate(`const LANG = ${JSON.stringify(lang)};\n` + PROBE);
   if (r.hscroll) add("BAD", where, "hscroll", "горизонтальная прокрутка документа");
   for (const o of r.overflow.slice(0, 4)) add("BAD", where, "overflow", "текст вылезает: " + o);
   if (tag === "mob") for (const s of r.small.slice(0, 6)) add("WARN", where, "target", "мелкая цель " + s);
   for (const l of r.leak) add("BAD", where, "leak", "в тексте видно «" + l + "»");
   for (const d of r.dupIds.slice(0, 3)) add("WARN", where, "dupid", "повтор id: " + d);
   if (r.noAlt) add("WARN", where, "alt", r.noAlt + " img без атрибута alt");
+  for (const a of (r.aria || []).slice(0, 3)) add("BAD", where, "aria", a);
+  for (const l of (r.badLabel || []).slice(0, 3)) add("BAD", where, "i18n", l);
   for (const m of (r.mute || []).slice(0, 3)) add("BAD", where, "a11y", m);
   for (const c of r.contrast.slice(0, 6)) add("WARN", where, "contrast", c);
   for (const u of (r.unnamed || []).slice(0, 5)) add("BAD", where, "name", "кнопка без имени: " + u);
@@ -358,7 +404,7 @@ for (const vp of VPS) {
     await page.waitForTimeout(900);
   }
 
-  await probe(page, "home", vp.tag);
+  await probe(page, "home", vp.tag, vp.lang || "ru");
 
   // ПЕРЕХОД ОБЯЗАН СОСТОЯТЬСЯ, И ЭТО ПРОВЕРЯЕТСЯ. Раньше клик по русской
   // подписи глотался `.catch(()=>{})`: в английском режиме навигация не
@@ -371,7 +417,7 @@ for (const vp of VPS) {
     await page.waitForTimeout(1300);
     if (!await page.locator(`[data-nav="${key}"].on`).count())
       add("BAD", name, "nav", `переход в «${key}» не состоялся — снимок показал бы не тот экран`);
-    await probe(page, name, vp.tag);
+    await probe(page, name, vp.tag, vp.lang || "ru");
   };
 
   await nav("campaign", "campaign");
@@ -379,7 +425,7 @@ for (const vp of VPS) {
   await nav("custom", "custom");
   await nav("exam", "exam");
   await page.locator('[data-nav="profile"]').first().click().catch(()=>{});
-  await page.waitForTimeout(1200); await probe(page, "profile", vp.tag);
+  await page.waitForTimeout(1200); await probe(page, "profile", vp.tag, vp.lang || "ru");
 
   // ——— глубокие состояния ———
   // Курс: блок → урок → упражнение
@@ -437,7 +483,7 @@ for (const vp of VPS) {
     await blocks.nth(bi).click().catch(()=>{});
     await page.waitForTimeout(1100);
     if (vp.tag === "desk") console.log("    блок", bi, "→", await page.evaluate(()=>document.querySelector(".screen h1, .screen h2")?.innerText?.slice(0,28)));
-    if (bi === 0) await probe(page, "course-block", vp.tag);
+    if (bi === 0) await probe(page, "course-block", vp.tag, vp.lang || "ru");
     // Задания разбиты ПО УРОКАМ, а не по блоку целиком: на урок приходится
     // одно-два. Чтобы увидеть все десять типов, надо обойти уроки, а если типов
     // всё ещё не хватает — и соседние блоки.
@@ -447,7 +493,7 @@ for (const vp of VPS) {
       if (await lessons.count() <= li) break;
       await lessons.nth(li).click().catch(()=>{});
       await page.waitForTimeout(900);
-      if (li === 0) await probe(page, "course-lesson", vp.tag);
+      if (li === 0) await probe(page, "course-lesson", vp.tag, vp.lang || "ru");
       const toTasks = page.getByRole("button", { name: RX.toTasks }).first();
       if (await toTasks.count()) { await toTasks.click().catch(()=>{}); await page.waitForTimeout(1100); }
 
@@ -459,7 +505,7 @@ for (const vp of VPS) {
           return m ? m[1] : "ex";
         });
         if (!kind) break;
-        if (!seen.has(kind)) { seen.add(kind); await probe(page, "ex-" + kind, vp.tag); }
+        if (!seen.has(kind)) { seen.add(kind); await probe(page, "ex-" + kind, vp.tag, vp.lang || "ru"); }
         for (const box of await page.locator(".ex textarea, .ex input[type=text]").all()) {
           await box.fill(vp.lang === "en"
             ? "What matters most to you in this deal, and why exactly that?"
@@ -526,7 +572,7 @@ for (const vp of VPS) {
     add("BAD", "route", "gate", "после «НАЧАТЬ» поле ввода не появилось без лишних кликов");
   }
   await page.waitForTimeout(1600);
-  await probe(page, "game-turn0", vp.tag);
+  await probe(page, "game-turn0", vp.tag, vp.lang || "ru");
 
   // ОДНА ПОДСКАЗКА НА ХОД. На нулевом ходу их было до пяти разом: карточка
   // «Стол накрыт» с тремя затравками, строка тренера, чип-затравка над полем,
@@ -565,19 +611,19 @@ for (const vp of VPS) {
       await page.click(".send", { timeout: 5000 });
     } catch { break; }
     await page.waitForTimeout(1300);
-    if (!shotMid && i === 1) { shotMid = true; await probe(page, "game-mid", vp.tag); }
-    if (!shotOut && await page.locator(".outcome").count()) { shotOut = true; await probe(page, "outcome", vp.tag); }
+    if (!shotMid && i === 1) { shotMid = true; await probe(page, "game-mid", vp.tag, vp.lang || "ru"); }
+    if (!shotOut && await page.locator(".outcome").count()) { shotOut = true; await probe(page, "outcome", vp.tag, vp.lang || "ru"); }
   }
   await page.waitForSelector(".debrief", { timeout: 20000 }).catch(()=>{});
   await page.waitForTimeout(1200);
   if (await page.locator(".debrief").count()) {
-    await probe(page, "debrief-beat1", vp.tag);
+    await probe(page, "debrief-beat1", vp.tag, vp.lang || "ru");
     for (let b = 2; b <= 3; b++) {
       const next = page.locator(".beat-go, .beat-dot").nth(b - 1);
       if (!await next.count()) break;
       await next.click().catch(()=>{});
       await page.waitForTimeout(900);
-      await probe(page, "debrief-beat" + b, vp.tag);
+      await probe(page, "debrief-beat" + b, vp.tag, vp.lang || "ru");
     }
   }
 
