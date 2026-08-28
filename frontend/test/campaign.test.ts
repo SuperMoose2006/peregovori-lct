@@ -185,3 +185,37 @@ test("каждый акт указывает на настоящий стол", 
     }
   }
 });
+
+test("офлайн оппонент кампании тоже ссылается на репутацию", async () => {
+  // Механика переноса репутации работала офлайн и была НЕ ВИДНА: сдвиг доверия
+  // применялся молча, а «наслышан о вас» говорил только живой сервер. Игрок,
+  // проходящий кампанию без сети, не имел ни одного признака, что прошлый акт
+  // на что-то повлиял.
+  const { MockServer } = await import("../src/mock/mockServer");
+
+  const greet = async (reputation: number | undefined, lang: "ru" | "en") => {
+    let text: string | null = null;
+    const srv = new MockServer((m: { type: string; text?: string }) => {
+      if (m.type === "greeting") text = m.text ?? "";
+    });
+    srv.send({ type: "start", scenarioId: "supplier", lang, mode: "campaign",
+               reputation } as never);
+    for (let i = 0; i < 60 && text === null; i++) await new Promise((r) => setTimeout(r, 10));
+    return text as string | null;
+  };
+
+  const warm = await greet(80, "ru");
+  assert.ok(warm && /Наслышан|Слышал/.test(warm), `нет упоминания репутации: ${warm}`);
+
+  const cold = await greet(-80, "ru");
+  assert.ok(cold && /Наслышан|Говорят/.test(cold), `нет упоминания репутации: ${cold}`);
+  assert.notEqual(warm, cold, "хорошая и дурная слава звучат одинаково");
+
+  // Нейтральная репутация — это ОТСУТСТВИЕ слухов, а не слух о нейтральности.
+  const neutral = await greet(0, "ru");
+  const none = await greet(undefined, "ru");
+  assert.equal(neutral, none, "нейтральная репутация что-то добавила в приветствие");
+
+  const warmEn = await greet(80, "en");
+  assert.ok(warmEn && !/[а-яё]/i.test(warmEn), `кириллица в английском: ${warmEn}`);
+});

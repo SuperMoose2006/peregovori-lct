@@ -30,6 +30,36 @@ export interface CampaignDef {
  */
 export const EPILOGUE_BANDS: [number, string][] = [[45.0, "triumph"], [15.0, "solid"], [-15.0, "mixed"], [-45.0, "strained"]];
 
+/**
+ * Чем оппонент здоровается, узнав репутацию из прошлых актов.
+ *
+ * Едет из Python вместе с порогами: приветствие в четвёртом акте и финал
+ * обязаны описывать одного человека. Офлайн-ядро без этой таблицы применяло
+ * сдвиг доверия молча — механика работала и была не видна.
+ */
+export const REPUTATION_LINES: Record<string, Record<Lang, string>> = {
+  "triumph": {
+    "ru": "Наслышан — говорят, с вами приятно и по делу вести дела.",
+    "en": "I've heard good things — they say you're straight and fair to deal with."
+  },
+  "solid": {
+    "ru": "Слышал, вы уверенно ведёте переговоры.",
+    "en": "I hear you drive a confident bargain."
+  },
+  "mixed": {
+    "ru": "",
+    "en": ""
+  },
+  "strained": {
+    "ru": "Говорят, с вами бывает непросто договориться.",
+    "en": "They say you can be a tough one to settle with."
+  },
+  "burnt": {
+    "ru": "Наслышан о вашей манере — давайте на этот раз без давления.",
+    "en": "I've heard about your style — let's keep the pressure down this time."
+  }
+};
+
 export const CAMPAIGN_DEFS: CampaignDef[] = [
   {
     "id": "career",

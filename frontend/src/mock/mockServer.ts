@@ -12,6 +12,16 @@ import {
 } from "./engine";
 import { shouldProbe, buildProbe } from "../lib/probe";
 import { dailyTable } from "../lib/daily";
+import { EPILOGUE_BANDS, REPUTATION_LINES } from "../data/campaigns.generated";
+
+/** Зеркало views.reputation_intro. Пороги и текст — из одной таблицы с эпилогом. */
+function reputationIntro(reputation: unknown, lang: Lang): string {
+  if (typeof reputation !== "number") return "";
+  for (const [threshold, key] of EPILOGUE_BANDS) {
+    if (reputation >= threshold) return REPUTATION_LINES[key]?.[lang] ?? "";
+  }
+  return REPUTATION_LINES.burnt?.[lang] ?? "";
+}
 
 export class MockServer implements Transport {
   private onMessage: ServerMsgHandler;
@@ -129,7 +139,12 @@ export class MockServer implements Transport {
       sessionId: `mock-${def.id}-${Date.now()}`,
       scenario: toScenarioView(def, lang),
       state: stateView(s),
-      text: greetingText(s),
+      // Репутация кампании была слышна ТОЛЬКО онлайн: офлайн-ядро применяло её
+      // сдвиг доверия молча, и механика работала, оставаясь невидимой. Строка
+      // приходит из того же сгенерированного источника, что и на сервере
+      // (views.reputation_intro), поэтому разъехаться им негде.
+      text: [reputationIntro(msg.reputation, lang), greetingText(s)]
+        .filter(Boolean).join(" "),
       // Offline demo is the deterministic keyword path — the semantic judge is a
       // backend-only capability. Report it honestly so the "graded by meaning"
       // badge never appears without a live judge behind it.

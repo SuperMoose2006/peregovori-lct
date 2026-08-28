@@ -19,7 +19,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.engine.campaigns import CAMPAIGNS, _EPILOGUE_BANDS  # noqa: E402
+from app.engine.campaigns import (  # noqa: E402
+    CAMPAIGNS, REPUTATION_LINES, _EPILOGUE_BANDS)
 
 OUT = (Path(__file__).resolve().parents[3]
        / "frontend" / "src" / "data" / "campaigns.generated.ts")
@@ -73,9 +74,19 @@ def render() -> str:
         for c in CAMPAIGNS
     ]
     bands = json.dumps([[t, k] for t, k in _EPILOGUE_BANDS], ensure_ascii=False)
+    lines = json.dumps(REPUTATION_LINES, ensure_ascii=False, indent=2)
     body = json.dumps(data, ensure_ascii=False, indent=2)
     return (HEADER + bands + ";\n\n"
-            "export const CAMPAIGN_DEFS: CampaignDef[] = " + body + ";\n")
+            + "/**\n"
+              " * Чем оппонент здоровается, узнав репутацию из прошлых актов.\n"
+              " *\n"
+              " * Едет из Python вместе с порогами: приветствие в четвёртом акте и финал\n"
+              " * обязаны описывать одного человека. Офлайн-ядро без этой таблицы применяло\n"
+              " * сдвиг доверия молча — механика работала и была не видна.\n"
+              " */\n"
+              "export const REPUTATION_LINES: Record<string, Record<Lang, string>> = "
+            + lines + ";\n\n"
+            + "export const CAMPAIGN_DEFS: CampaignDef[] = " + body + ";\n")
 
 
 def main() -> int:

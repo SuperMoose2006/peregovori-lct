@@ -289,24 +289,19 @@ def greeting_line(sess: "engine.Session", lang: str) -> str:
 
 
 def reputation_intro(reputation: float, lang: str) -> str:
-    """A campaign opponent references the reputation the player earned in prior
-    stages — 'your reputation preceded you'. Empty for a neutral/first stage."""
+    """Оппонент кампании ссылается на репутацию из прошлых актов.
+
+    Пороги и сами строки живут в `campaigns.REPUTATION_LINES` — рядом с
+    полосами эпилога, а не отдельной лесенкой `if` здесь. Раньше их было две, и
+    разъехаться они могли молча: оппонент здоровался бы «наслышан, вы жёстки», а
+    финал хвалил бы за сохранённые отношения. Одна таблица — и офлайн-ядро
+    получает её тем же генератором, что и кампании.
+    """
     if reputation is None:
         return ""
-    ru = lang == "ru"
-    if reputation >= 45:
-        return ("Наслышан — говорят, с вами приятно и по делу вести дела." if ru
-                else "I've heard good things — they say you're straight and fair to deal with.")
-    if reputation >= 15:
-        return ("Слышал, вы уверенно ведёте переговоры." if ru
-                else "I hear you drive a confident bargain.")
-    if reputation <= -45:
-        return ("Наслышан о вашей манере — давайте на этот раз без давления." if ru
-                else "I've heard about your style — let's keep the pressure down this time.")
-    if reputation <= -15:
-        return ("Говорят, с вами бывает непросто договориться." if ru
-                else "They say you can be a tough one to settle with.")
-    return ""
+    from app.engine.campaigns import REPUTATION_LINES, epilogue_key
+    line = REPUTATION_LINES.get(epilogue_key(reputation), {})
+    return line.get("en" if lang == "en" else "ru", "")
 
 
 def timeout_line(lang: str) -> str:

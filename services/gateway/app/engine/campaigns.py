@@ -40,6 +40,35 @@ class Campaign:
 _EPILOGUE_BANDS = ((45.0, "triumph"), (15.0, "solid"), (-15.0, "mixed"), (-45.0, "strained"))
 
 
+#: Чем оппонент здоровается, узнав репутацию из прошлых актов. Ключи — те же
+#: полосы, что у эпилога, и это НЕ совпадение: приветствие в четвёртом акте и
+#: финал обязаны описывать одного человека. Раньше пороги стояли в двух местах
+#: (здесь и в `views.reputation_intro`) и могли разъехаться молча; теперь
+#: таблица одна, и офлайн-ядро получает её тем же генератором, что и кампании.
+#:
+#: «mixed» пуст намеренно: нейтральная репутация — это отсутствие слухов, а не
+#: слух о том, что человек нейтрален.
+REPUTATION_LINES: dict[str, dict[str, str]] = {
+    "triumph": {
+        "ru": "Наслышан — говорят, с вами приятно и по делу вести дела.",
+        "en": "I've heard good things — they say you're straight and fair to deal with.",
+    },
+    "solid": {
+        "ru": "Слышал, вы уверенно ведёте переговоры.",
+        "en": "I hear you drive a confident bargain.",
+    },
+    "mixed": {"ru": "", "en": ""},
+    "strained": {
+        "ru": "Говорят, с вами бывает непросто договориться.",
+        "en": "They say you can be a tough one to settle with.",
+    },
+    "burnt": {
+        "ru": "Наслышан о вашей манере — давайте на этот раз без давления.",
+        "en": "I've heard about your style — let's keep the pressure down this time.",
+    },
+}
+
+
 def epilogue_key(reputation: float | None) -> str:
     """Полоса репутации → ключ эпилога. Чистая функция, одинаковая офлайн."""
     if reputation is None:
