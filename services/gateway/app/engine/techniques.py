@@ -153,7 +153,35 @@ LEX: dict[str, list[str]] = {
         "меня устраивает", "сделка", "deal at", "deal on", "we have a deal", "i accept",
         "we agree", "done deal", "let us sign", "i can live with", "that works for us",
     ],
+    # Слова, при которых число в реплике — ЦЕНА, а не просто цифра. Нужны потому,
+    # что «цена 300000» не содержит ни одного приёма из словарей выше, но это
+    # безусловно оффер. Держать список рядом с приёмами, а не в регулярке:
+    # он билингвальный и его правят те же руки.
+    "priceContext": [
+        "цен", "прайс", "руб", "₽", "стоит", "стоимост", "оклад", "зарплат", "аренд",
+        "ставк", "тариф", "бюджет", "скидк", "платить", "плачу", "заплат", "за штук",
+        "шт", "мес", "долл", "евро", "процент",
+        "price", "rate", "cost", "salary", "budget", "discount", "per unit", "unit",
+        "pay", "fee", "usd", "eur", "dollar", "euro", "percent",
+    ],
+    # Слово СРАЗУ ПОСЛЕ числа, которое доказывает: это не цена. «Мне 30 лет» и
+    # «у нас 5 инженеров» становились офертой на 30 и на 5 — движок видел цифру
+    # и не спрашивал, чего она. Проверка идёт первой и перебивает ценовой
+    # контекст. Лежит в LEX, а не рядом: так список уезжает в браузерное
+    # зеркало генератором и не может разойтись руками.
+    "nonPriceUnits": [
+        "лет", "год", "человек", "чел", "инженер", "сотрудник", "недел", "месяц",
+        "дня", "дней", "день", "час", "минут", "штук", "раз", "пункт", "услови",
+        "вариант",
+        "years", "year", "people", "person", "engineer", "employee", "week",
+        "month", "day", "hour", "minute", "times", "items", "points", "options",
+    ],
 }
+
+#: Суффикс валюты/масштаба вплотную к числу — сам по себе доказательство цены.
+_MONEY_SUFFIX_RE = re.compile(
+    r"^\s*(%|руб|rub|k\b|к\b|тыс|тысяч|млн|usd|\$|€|eur|долл|евро)", re.IGNORECASE
+)
 
 # A monetary figure in the message ("we can do 85", "цена 92").
 #
@@ -173,6 +201,7 @@ MONEY_RE = re.compile(
 
 
 def extract_number(text: str) -> Optional[float]:
+    """Первое число реплики — БЕЗ вопроса о том, цена ли это (см. offer_number)."""
     m = MONEY_RE.search(text)
     if not m:
         return None
@@ -182,6 +211,47 @@ def extract_number(text: str) -> Optional[float]:
     except ValueError:
         return None
     return val if math.isfinite(val) else None
+
+
+def offer_number(t: str, moves: list[str]) -> Optional[float]:
+    """Число реплики, если это ОФФЕР; иначе None.
+
+    Цифра сама по себе ничего не значит: «Мне 30 лет, я работаю тут 5 лет»
+    читалось как зарплата 30 там, где шкала 180–240, а «Ага 1.» — как цена
+    1 ₽/шт. Число становится оффертой, только когда реплика несёт намерение
+    назвать цену: приём (якорь, уступка, размен, закрытие), денежный суффикс
+    вплотную к числу, слово из ценового контекста — или вся реплика и есть
+    число. Слово-единица сразу после числа («лет», «инженеров») перебивает всё:
+    это счёт чего-то, а не деньги. Масштаб сценария проверяется отдельно и
+    позже — здесь сценарий неизвестен (см. engine._plausible_offer).
+    """
+    m = MONEY_RE.search(t)
+    if not m:
+        return None
+    raw = m.group(1).replace(" ", "").replace(",", ".", 1)
+    try:
+        val = float(raw)
+    except ValueError:
+        return None
+    if not math.isfinite(val):
+        return None
+
+    tail = t[m.end(1):]
+    after = tail.strip().split(" ")[0].strip(".,?!-") if tail.strip() else ""
+    if after and any(after.startswith(u) for u in LEX["nonPriceUnits"]):
+        return None
+
+    intent = any(k in moves for k in ("anchor", "concession", "accept", "tradeoff"))
+    if intent:
+        return val
+    if _MONEY_SUFFIX_RE.match(tail):
+        return val
+    if _has(t, LEX["priceContext"]):
+        return val
+    # Вся реплика — одно число: в переговорах это цена и ничто иное.
+    if len([w for w in t.split(" ") if w]) <= 1:
+        return val
+    return None
 
 
 @dataclass
@@ -244,7 +314,7 @@ def analyze(raw_text: Optional[str]) -> Analysis:
     if _has(t, LEX["rapport"]):
         add_move("rapport"); add_tag("rapport", "Rapport")
 
-    number = extract_number(t)
+    number = offer_number(t, moves)
     if number is not None and "accept" not in moves:
         # A bare number is an offer/counter unless it's clearly a question stat.
         if not is_question:

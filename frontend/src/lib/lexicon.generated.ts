@@ -106,4 +106,16 @@ export const LEX: Record<string, string[]> = {
     "меня устраивает", "сделка", "deal at", "deal on", "we have a deal", "i accept", "we agree",
     "done deal", "let us sign", "i can live with", "that works for us",
   ],
+  priceContext: [
+    "цен", "прайс", "руб", "₽", "стоит", "стоимост", "оклад", "зарплат", "аренд", "ставк",
+    "тариф", "бюджет", "скидк", "платить", "плачу", "заплат", "за штук", "шт", "мес", "долл",
+    "евро", "процент", "price", "rate", "cost", "salary", "budget", "discount", "per unit",
+    "unit", "pay", "fee", "usd", "eur", "dollar", "euro", "percent",
+  ],
+  nonPriceUnits: [
+    "лет", "год", "человек", "чел", "инженер", "сотрудник", "недел", "месяц", "дня", "дней",
+    "день", "час", "минут", "штук", "раз", "пункт", "услови", "вариант", "years", "year",
+    "people", "person", "engineer", "employee", "week", "month", "day", "hour", "minute",
+    "times", "items", "points", "options",
+  ],
 };
