@@ -227,6 +227,58 @@ def check_live_turn(url: str) -> None:
         warn("движок не прислал engine.state — проверьте оркестратор")
 
 
+def check_custom_scenario(url: str) -> None:
+    """«Своя сделка» — режим, который ломается тише всех.
+
+    Он один раз ходит в модель за целым сценарием: позиции, ZOPA, персона, три
+    скрытых интереса. Модель ответила не-JSON или думала слишком долго — режим
+    просто не открывается, и узнать об этом на сцене хуже всего. Именно так
+    однажды и было: «тяжёлая» модель тратила 142 секунды на две попытки и не
+    давала ни одного валидного ответа.
+
+    ЧЕРЕЗ СОКЕТ, А НЕ В ЭТОМ ПРОЦЕССЕ. Ключи лежат в services/gateway/.env, и
+    гейтвей поднимается с ними; preflight запускается без них и в своём
+    процессе получил бы честный `None` — то есть соврал бы про рабочий режим.
+    Заодно так проверяется ровно тот путь, которым идёт человек.
+    """
+    print("\nсвоя сделка")
+    try:
+        import asyncio
+        import websockets
+    except ImportError:
+        warn("нет websockets — «своя сделка» не проверена")
+        return
+
+    import time
+    ws_url = url.replace("http://", "ws://").replace("https://", "wss://") + "/v1/realtime"
+
+    async def generate() -> tuple[dict | None, float]:
+        started = time.perf_counter()
+        async with websockets.connect(ws_url, open_timeout=10, close_timeout=5) as ws:
+            await ws.send(json.dumps({"type": "session.init", "payload": {
+                "mode": "text", "scenarioId": "", "lang": "ru", "gameMode": "custom",
+                "situation": "Я арендатор, хочу снизить ставку за офис, не съезжая.",
+                "layers": {}}}))
+            while True:
+                event = json.loads(await asyncio.wait_for(ws.recv(), timeout=180))
+                if event.get("type") == "session.created":
+                    return event.get("scenario"), (time.perf_counter() - started) * 1000
+                if event.get("type") == "error":
+                    return None, (time.perf_counter() - started) * 1000
+
+    try:
+        scenario, ms = asyncio.run(generate())
+    except Exception as exc:  # noqa: BLE001 — на площадке важна причина, а не тип
+        fail(f"генерация не прошла: {exc}")
+        return
+
+    if not scenario:
+        fail(f"сценарий не сгенерирован за {ms:.0f} мс — режим «своя сделка» не откроется")
+        return
+    ok(f"сценарий сгенерирован за {ms:.0f} мс: «{scenario.get('title', '—')}», "
+       f"цель {scenario.get('target')} · красная линия {scenario.get('reservation')}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://127.0.0.1:8010")
@@ -241,6 +293,7 @@ def main() -> int:
     check_course()
     if args.live:
         check_live_turn(args.url.rstrip("/"))
+        check_custom_scenario(args.url.rstrip("/"))
 
     print()
     if problems:
