@@ -489,7 +489,11 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
       reaction = "not_yet";
     } else { s.deal = meeting; s.status = "agreement"; closed = true; }
   }
-  if (s.tension >= 100 || s.trust <= 3) { s.status = "breakdown"; closed = true; reaction = "walked_out"; }
+  // Срыв старше рукопожатия. Одна реплика умеет и то и другое сразу — «По рукам,
+  // вы врёте, но ладно»: accept успевает записать сделку, а хамство в той же
+  // строке добивает напряжение до ста. Оставить число значит показать на столе
+  // цену сделки, которой нет. Зеркало engine.py (инвариант 8).
+  if (s.tension >= 100 || s.trust <= 3) { s.status = "breakdown"; closed = true; reaction = "walked_out"; s.deal = null; }
   const deltas: Deltas = {
     trust: s.trust - b.trust,
     tension: s.tension - b.tension,

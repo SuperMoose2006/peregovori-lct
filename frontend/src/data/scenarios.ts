@@ -85,7 +85,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["long-term", "long term", "one-off", "ongoing", "multi-year", "lasting", "annual contract"],
       ],
     },
-    tradeoffs: { ru: ["годовой контракт", "предоплату 30%"], en: ["an annual contract", "30% upfront"] },
+    tradeoffs: {
+      ru: ["годовой контракт", "предоплату 30%", "совместный прогноз спроса"],
+      en: ["an annual contract", "30% upfront", "a joint demand forecast"],
+    },
     secondaryIssues: [
       {
         id: "annual_contract",
@@ -141,7 +144,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["finance", "justify the band", "salary band", "band to finance", "cfo", "approve the band"],
       ],
     },
-    tradeoffs: { ru: ["пересмотр через 6 мес по KPI", "подписной бонус"], en: ["a 6-month KPI review", "a signing bonus"] },
+    tradeoffs: {
+      ru: ["пересмотр через 6 мес по KPI", "подписной бонус", "доп. отпуск и удалёнку"],
+      en: ["a 6-month KPI review", "a signing bonus", "extra leave and remote days"],
+    },
     secondaryIssues: [
       {
         id: "kpi_review",
@@ -198,8 +204,8 @@ export const SCENARIOS: ScenarioDef[] = [
       ],
     },
     tradeoffs: {
-      ru: ["совместный статус руководству", "временно поделиться ресурсом"],
-      en: ["a joint status update", "sharing a resource temporarily"],
+      ru: ["совместный статус руководству", "временно поделиться ресурсом", "переразбить объём работ"],
+      en: ["a joint status update", "sharing a resource temporarily", "re-scoping the workload"],
     },
     secondaryIssues: [
       {
@@ -264,7 +270,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["speed of closing", "close quickly", "closing speed", "how fast", "time to close", "close fast"],
       ],
     },
-    tradeoffs: { ru: ["место в совете", "транши по метрикам"], en: ["a board seat", "milestone tranches"] },
+    tradeoffs: {
+      ru: ["место в совете", "транши по метрикам", "pro-rata в следующем раунде"],
+      en: ["a board seat", "milestone tranches", "pro-rata rights next round"],
+    },
     secondaryIssues: [
       {
         id: "board_seat",
@@ -326,7 +335,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["on time", "pay on time", "reliable payment", "timely payment", "pay promptly", "never late"],
       ],
     },
-    tradeoffs: { ru: ["договор на 11+ месяцев", "депозит за 2 месяца вперёд"], en: ["an 11+ month lease", "two months' deposit"] },
+    tradeoffs: {
+      ru: ["договор на 11+ месяцев", "депозит за 2 месяца вперёд", "мелкий ремонт на себя"],
+      en: ["an 11+ month lease", "two months' deposit", "handling minor repairs myself"],
+    },
     secondaryIssues: [
       {
         id: "long_lease",
@@ -387,7 +399,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["serious buyer", "tire-kicker", "tire kicker", "just looking", "real buyer", "genuine buyer"],
       ],
     },
-    tradeoffs: { ru: ["оплату наличными сразу", "перерегистрацию беру на себя"], en: ["cash in full today", "handle the paperwork myself"] },
+    tradeoffs: {
+      ru: ["оплату наличными сразу", "перерегистрацию беру на себя", "забрать в течение 2 дней"],
+      en: ["cash in full today", "handle the paperwork myself", "picking it up within 2 days"],
+    },
     secondaryIssues: [
       {
         id: "cash_now",
@@ -449,7 +464,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["senior expertise", "senior", "rework", "not redo", "quality code", "experience so nothing"],
       ],
     },
-    tradeoffs: { ru: ["фикс-прайс за этап", "приоритет и сжатые сроки"], en: ["a fixed price per phase", "priority & a tighter timeline"] },
+    tradeoffs: {
+      ru: ["фикс-прайс за этап", "приоритет и сжатые сроки", "документацию и передачу знаний"],
+      en: ["a fixed price per phase", "priority & a tighter timeline", "documentation and knowledge transfer"],
+    },
     secondaryIssues: [
       {
         id: "fixed_price",
@@ -511,7 +529,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["contract grew", "show leadership", "grow the contract", "upsell", "contract growth", "bigger deal"],
       ],
     },
-    tradeoffs: { ru: ["продление на 3 года", "ступенчатый SLA по кварталам"], en: ["a 3-year renewal", "a phased SLA by quarter"] },
+    tradeoffs: {
+      ru: ["продление на 3 года", "ступенчатый SLA по кварталам", "совместное дежурство"],
+      en: ["a 3-year renewal", "a phased SLA by quarter", "joint on-call"],
+    },
     secondaryIssues: [
       {
         id: "three_year",
@@ -573,7 +594,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["laid off", "layoff", "job security", "probation", "guarantee", "let go", "without warning"],
       ],
     },
-    tradeoffs: { ru: ["трек до архитектора", "подъёмные на переезд"], en: ["an architect track", "a relocation package"] },
+    tradeoffs: {
+      ru: ["трек до архитектора", "подъёмные на переезд", "сокращённый испытательный срок"],
+      en: ["an architect track", "a relocation package", "a shortened probation period"],
+    },
     secondaryIssues: [
       {
         id: "growth_track",
