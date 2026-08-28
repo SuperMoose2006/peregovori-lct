@@ -120,3 +120,24 @@ def test_documented_table_and_campaign_counts_are_real():
     assert words[len(CAMPAIGNS)] in doc, f"кампаний {len(CAMPAIGNS)}, а в докладе иначе"
     for c in CAMPAIGNS:
         assert len(c.stages) == 4, f"{c.id}: актов {len(c.stages)}, доклад обещает четыре"
+
+
+def test_readme_architecture_lists_every_backend_package():
+    """Дерево в README обязано перечислять все пакеты гейтвея.
+
+    `course/` не был перечислен ни дня с момента появления — а это девять
+    блоков, банк упражнений и половина продукта. Дерево, которому можно не
+    верить, хуже отсутствующего: читатель считает его картой и не идёт смотреть.
+    """
+    app = ROOT / "services" / "gateway" / "app"
+    packages = {d.name for d in app.iterdir()
+                if d.is_dir() and (d / "__init__.py").exists() and d.name != "vendor"}
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    missing = sorted(pkg for pkg in packages if f"{pkg}/" not in readme)
+    assert not missing, f"README не называет пакеты: {missing}"
+
+
+def test_readme_does_not_advertise_routes_that_were_removed():
+    """Ручка /ws удалена вместе с протоколом «запрос-ответ»."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "WS /ws" not in readme, "README обещает удалённую ручку /ws"
