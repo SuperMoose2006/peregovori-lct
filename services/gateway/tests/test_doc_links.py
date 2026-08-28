@@ -80,3 +80,43 @@ def test_documented_exercise_count_matches_the_bank():
                     wrong.append(f"{name}:{line_no} говорит {match.group(1)}, в банке {real}")
 
     assert not wrong, "объём курса в документации разошёлся с банком:\n  " + "\n  ".join(wrong)
+
+
+def test_documented_layers_are_the_layers_that_exist():
+    """Список слоёв в докладе обязан совпадать с реальным.
+
+    Слой, забытый в документе, — это возможность, о которой никто не узнает;
+    слой, оставшийся в документе после удаления, — обещание, которого продукт
+    не выполняет. Оба видны только сверкой, потому что таблица выглядит
+    одинаково правдоподобно в обоих случаях.
+    """
+    import dataclasses
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from app.realtime.session import Layers
+
+    doc = (ROOT / "docs" / "product.md").read_text(encoding="utf-8")
+    #: Как слой называется в таблице докладной записки.
+    names = {"probe": "Читай лицо", "voice": "Голосом", "camera": "Камера",
+             "avatar": "Лицо оппонента", "pokerface": "Покерфейс"}
+
+    real = {f.name for f in dataclasses.fields(Layers)}
+    assert real == set(names), (
+        "список слоёв изменился — обновите и таблицу в docs/product.md, "
+        f"и этот тест: {sorted(real ^ set(names))}")
+    for layer, title in names.items():
+        assert title in doc, f"слой «{layer}» ({title}) не назван в docs/product.md"
+
+
+def test_documented_table_and_campaign_counts_are_real():
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from app.engine.campaigns import CAMPAIGNS
+    from app.engine.scenarios import SCENARIOS
+
+    doc = (ROOT / "docs" / "product.md").read_text(encoding="utf-8")
+    words = {8: "восемь", 2: "Две", 4: "четыре"}
+    assert words[len(SCENARIOS)] in doc, f"столов {len(SCENARIOS)}, а в докладе иначе"
+    assert words[len(CAMPAIGNS)] in doc, f"кампаний {len(CAMPAIGNS)}, а в докладе иначе"
+    for c in CAMPAIGNS:
+        assert len(c.stages) == 4, f"{c.id}: актов {len(c.stages)}, доклад обещает четыре"
