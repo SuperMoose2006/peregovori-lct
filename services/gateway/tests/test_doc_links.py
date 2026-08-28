@@ -51,3 +51,32 @@ def test_the_layer_invariant_has_a_written_source():
     text = doc.read_text(encoding="utf-8")
     assert "score_session" in text
     assert "Экзамен фиксирует слои выключенными" in text
+
+
+# --------------------------------------------------------------- числа курса
+
+#: Где документация называет объём курса. Числа здесь ГНИЮТ первыми: банк
+#: растёт, а «54 упражнения» остаётся в README, в докладе и в продуктовом
+#: описании — и на демонстрации звучит цифра, которой уже нет.
+_VOLUME_DOCS = ("README.md", "docs/demo.md", "docs/product.md", "docs/course.md")
+
+_STALE = re.compile(r"(\d+)\s+(?:упражнени\w*|exercises)")
+
+
+def test_documented_exercise_count_matches_the_bank():
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from app.course.bank import BANK
+
+    real = len(BANK)
+    wrong: list[str] = []
+    for name in _VOLUME_DOCS:
+        path = ROOT / name
+        if not path.exists():
+            continue
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for match in _STALE.finditer(line):
+                if int(match.group(1)) != real:
+                    wrong.append(f"{name}:{line_no} говорит {match.group(1)}, в банке {real}")
+
+    assert not wrong, "объём курса в документации разошёлся с банком:\n  " + "\n  ".join(wrong)

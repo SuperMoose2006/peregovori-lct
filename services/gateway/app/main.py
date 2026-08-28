@@ -200,6 +200,41 @@ def campaigns(lang: str = "ru") -> dict:
     return {"campaigns": [views.campaign_view(c, lang).model_dump() for c in CAMPAIGNS]}
 
 
+@app.get("/api/daily")
+def daily(lang: str = "ru", day: str = "") -> dict:
+    """Стол дня — один и тот же у всех, каждый день новый.
+
+    `day` (ISO-дата) принимается ЧУЖИМ: часовой пояс знает браузер, а не
+    сервер. Без него сервер отвечает по своему UTC-сегодня, и это осознанно
+    хуже: игрок в Владивостоке получил бы вчерашний стол. Дату из запроса не
+    проверяем на «сегодняшность» — стол дня чистая функция от даты, поэтому
+    запрос про прошлый вторник законен и полезен (так его смотрит тест).
+    """
+    from datetime import date as _date
+    from app.engine.daily import daily_table
+
+    lang = "en" if lang == "en" else "ru"
+    try:
+        d = _date.fromisoformat(day) if day else _date.today()
+    except ValueError:
+        d = _date.today()
+
+    table = daily_table(d)
+    sc = engine.by_id(table.scenario_id)
+    return {
+        "day": table.day,
+        "scenario": views.scenario_view(sc, lang).model_dump(),
+        "modifier": {
+            "id": table.modifier.id,
+            "label": table.modifier.label[lang],
+            "note": table.modifier.note[lang],
+            "max_turns": table.modifier.max_turns,
+            "trust": table.modifier.trust,
+            "tension": table.modifier.tension,
+        },
+    }
+
+
 # ---- "А что если…" deterministic what-if replay -----------------------------
 # The engine is a pure function of (scenario, ordered moves): identical inputs
 # give byte-identical state. So we can re-run one pivotal turn with a BETTER line
