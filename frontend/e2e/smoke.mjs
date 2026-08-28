@@ -74,19 +74,29 @@ async function open(name, { width = 1440, height = 950, unlocked = false } = {})
 }
 
 const shot = (page, n) => page.screenshot({ path: `${OUT}/${n}.png`, fullPage: true });
-const nav = async (page, label) => {
-  await page.locator(`button[aria-label='${label}']`).first().click();
+// ХОДИМ ПО КЛЮЧУ РАЗДЕЛА, А НЕ ПО ПОДПИСИ. Подпись переводится вместе с
+// продуктом, поэтому в английском режиме клик молча не срабатывал, а снимок
+// всё равно сохранялся под именем раздела. Хуже того: «Прогресс» из меню
+// убрали, и этот шаг падал на каждом прогоне — то есть смоук был красным
+// столько же, сколько существовал removed-пункт. Ключ от языка не зависит, и
+// переход теперь ПРОВЕРЯЕТСЯ: не состоялся — падаем здесь, а не на снимке.
+const nav = async (page, key) => {
+  await page.locator(`[data-nav="${key}"]`).first().click();
   await page.waitForTimeout(500);
+  if (!(await page.locator(`[data-nav="${key}"].on`).count()))
+    throw new Error(`переход в «${key}» не состоялся — снимок показал бы не тот экран`);
 };
 
 // 1. Домашний экран, кампания, своя сделка, экзамен, прогресс
 {
   const page = await open("shell");
   await shot(page, "01-home");
-  await nav(page, "Кампания"); await shot(page, "02-campaign");
-  await nav(page, "Своя сделка"); await shot(page, "03-custom");
-  await nav(page, "Экзамен"); await shot(page, "04-exam-mode");
-  await nav(page, "Прогресс"); await shot(page, "05-progress");
+  await nav(page, "campaign"); await shot(page, "02-campaign");
+  await nav(page, "custom"); await shot(page, "03-custom");
+  await nav(page, "exam"); await shot(page, "04-exam-mode");
+  // «Прогресс» из меню убран: он вёл на ТОТ ЖЕ экран профиля. Снимок сохраняем
+  // под прежним именем, чтобы не рвать ссылки в докладе.
+  await nav(page, "profile"); await shot(page, "05-progress");
   await page.context().close();
 }
 

@@ -26,6 +26,9 @@ export type KarlState =
 
 export type TikhonState = "idle" | "remember" | "exam";
 
+/** Подписи к картинкам по состояниям — приходят из словаря, см. `KarlProps.alt`. */
+export type KarlAlt = Record<KarlState, string>;
+
 /**
  * Состояние Карла из того, что уже посчитал движок.
  *
@@ -43,6 +46,9 @@ export function karlState(input: {
   const { phase, busy, hintPending, deltas, grade, status } = input;
 
   if (status === "breakdown") return "sad";
+  // Грейд приходит вместе с разбором, а разбор доезжает уже ПОСЛЕ закрытия
+  // сделки — стол держит паузу как раз ради этого. Пока его нет, радоваться
+  // нечему: сделка бывает и на D. Приехал A/B — Карл празднует прямо за столом.
   if (status === "agreement") return grade === "A" || grade === "B" ? "celebrate" : "idle";
   if (hintPending) return "point";
   if (busy && phase === "judging") return "think";
@@ -56,15 +62,32 @@ export function karlState(input: {
   return "idle";
 }
 
-const KARL_ALT: Record<KarlState, string> = {
-  idle: "Карл наблюдает",
-  think: "Карл думает",
-  cheer: "Карл одобряет",
-  concern: "Карл насторожен",
-  point: "Карл подсказывает",
-  celebrate: "Карл празднует",
-  sad: "Карл расстроен",
-};
+/**
+ * Картинка маскота.
+ *
+ * ПОЧЕМУ НЕ ПРОСТО <img src=png>. Исходники — PNG 512×512 по 150–240 КБ, весь
+ * набор тянул около двух мегабайт ради значка ростом 92 px (а в ленте — 34 px).
+ * Рядом лежат те же кадры в webp: полный и уменьшенный до 192 px. `sizes`
+ * называет реальный размер слота, поэтому браузер берёт мелкий файл, а PNG
+ * остаётся последним запасным вариантом для браузера без webp.
+ */
+export function MascotImg({ dir, state, alt, size, className }: {
+  dir: "karl" | "tikhon";
+  state: string;
+  /** Пусто — картинка декоративная: имя маскота стоит рядом текстом. */
+  alt: string;
+  /** Размер слота в CSS-пикселях. Влияет только на выбор файла: рисует CSS. */
+  size: number;
+  className?: string;
+}) {
+  const base = `/mascots/${dir}/${state}`;
+  return (
+    <picture className={className}>
+      <source type="image/webp" srcSet={`${base}-192.webp 192w, ${base}.webp 512w`} sizes={`${size}px`} />
+      <img src={`${base}.png`} alt={alt} width={size} height={size} decoding="async" />
+    </picture>
+  );
+}
 
 interface KarlProps {
   state: KarlState;
@@ -73,13 +96,18 @@ interface KarlProps {
   /** Компактный вид для телефона: значок рядом с репликой вместо фигуры в рост. */
   compact?: boolean;
   name: string;
+  /** Подписи к картинке из словаря. Их читает вслух диктор, поэтому они
+   *  переводятся вместе со всем остальным (инвариант 4). Не передали — берём
+   *  имя, оно локализовано на каждом вызове; русского в разметке не остаётся. */
+  alt?: KarlAlt;
 }
 
-export function Karl({ state, line, compact, name }: KarlProps) {
+export function Karl({ state, line, compact, name, alt }: KarlProps) {
+  const altText = alt ? alt[state] : name;
   if (compact) {
     return (
       <span className="karl-mini">
-        <img src={`/mascots/karl/${state}.png`} alt={KARL_ALT[state]} width={34} height={34} />
+        <MascotImg dir="karl" state={state} alt={altText} size={34} />
         {line ? <span className="karl-mini-t"><b>{name}:</b> {line}</span> : null}
       </span>
     );
@@ -94,7 +122,7 @@ export function Karl({ state, line, compact, name }: KarlProps) {
         <div className="karl-bub" key={line}>{line}</div>
       ) : null}
       <div className="karl-row">
-        <img src={`/mascots/karl/${state}.png`} alt={KARL_ALT[state]} width={92} height={92} />
+        <MascotImg dir="karl" state={state} alt={altText} size={92} />
         <span className="karl-nm">{name}</span>
       </div>
     </div>
@@ -111,7 +139,10 @@ interface TikhonProps {
 export function Tikhon({ state = "remember", title, children }: TikhonProps) {
   return (
     <div className="tikhon">
-      <img src={`/mascots/tikhon/${state}.png`} alt="Тихон помнит" width={76} height={76} />
+      {/* alt пустой намеренно: заголовок справа уже называет Тихона по имени, и
+          подпись к картинке диктор прочитал бы вторым эхом. Заодно исчезает
+          последняя строка на одном языке в разметке. */}
+      <MascotImg dir="tikhon" state={state} alt="" size={76} />
       <div className="tikhon-bd">
         {/* h3: карточки рейла — h2, и прыжок через уровень ломает навигацию
             по разделам у экранного диктора. */}

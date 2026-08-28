@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Lang } from "../types";
 import type { Strings } from "../i18n";
 import { ScreenHeading } from "./ScreenHeading";
+import { Karl, MascotImg } from "./Mascot";
 import { COURSE_BLOCKS, exercisesOf } from "../lib/course";
 import { plural } from "../lib/format";
 import { haptic, play } from "../lib/sound";
@@ -149,7 +150,13 @@ export function SkillsProfile({
               {weak ? (<> · <span className="sr-dn">{t.gam.workOn}:</span> <b>{t.gam.skillNames[weak]}</b></>) : null}
             </p>
           ) : (
-            <p className="skills-empty">{t.gam.noGames}</p>
+            <div className="skills-empty">
+              {/* Пустой профиль — не ошибка, а приглашение. Строка прежняя, но
+                  теперь её говорит тренер, а не пустая рамка. */}
+              <div className="karl-mid">
+                <Karl state="idle" line={t.gam.noGames} name={t.mascot.karl} alt={t.mascot.alt} />
+              </div>
+            </div>
           )}
 
           {/* Zero-state: with no games there's nothing honest to score, so we skip
@@ -341,7 +348,15 @@ function MilestoneHero({
   const n = useCountUp(target);
   return (
     <div className="milestone-hero">
-      <span className="milestone-ic" aria-hidden="true">{isRank ? "✦" : "🔥"}</span>
+      {/* Веха — редкий и приятный момент; эмодзи тут был единственным местом,
+          где продукт праздновал чужим лицом. Ранг — праздник, стрик — одобрение. */}
+      <MascotImg
+        dir="karl"
+        state={isRank ? "celebrate" : "cheer"}
+        alt={isRank ? t.mascot.alt.celebrate : t.mascot.alt.cheer}
+        size={72}
+        className="karl-hero"
+      />
       {isRank ? (
         <div className="milestone-rank">{game.rankAfter.rank.name[lang]}</div>
       ) : (

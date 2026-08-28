@@ -21,6 +21,7 @@ import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Ga
 import { SCENARIO_MAP, toScenarioView } from "./data/scenarios";
 import { detectLayers, pruneLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
 import { Table } from "./components/Table";
+import { Karl } from "./components/Mascot";
 import { Debrief } from "./components/Debrief";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
 import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameResult, type Profile } from "./lib/progress";
@@ -595,7 +596,12 @@ export default function App() {
         <section className="screen">
           <div className="wrap">
             <div className="gen">
-              <div className="gen-lamp" aria-hidden="true">🎯</div>
+              {/* Генерация своей сделки — самое длинное молчание в продукте:
+                  до этого тут светился эмодзи. Ждать вместе с кем-то живым
+                  легче, чем со значком, а текст на экране прежний. */}
+              <div className="karl-mid">
+                <Karl state="think" name={t.mascot.karl} alt={t.mascot.alt} />
+              </div>
               <div className="gen-dots" aria-hidden="true">
                 <i /><i /><i />
               </div>
@@ -610,7 +616,9 @@ export default function App() {
         <section className="screen">
           <div className="wrap">
             <div className="gen genfail">
-              <div className="genfail-mark" aria-hidden="true">⚠️</div>
+              <div className="karl-mid">
+                <Karl state="concern" name={t.mascot.karl} alt={t.mascot.alt} />
+              </div>
               <ScreenHeading as="h2" className="gen-title">{t.custom.errorHead}</ScreenHeading>
               {genErr ? <p className="genfail-msg">{genErr}</p> : null}
               <p className="gen-sub">{t.custom.errorSub}</p>
@@ -638,9 +646,15 @@ export default function App() {
           ) : null}
           {nego.conn === "lost" ? (
             <div className="conn-lost" role="alert">
-              <div className="conn-lost-body">
-                <b>{t.conn.lostTitle}</b>
-                <span>{t.conn.lostBody}</span>
+              {/* Карл без реплики: строки ниже — сообщение продукта, а не его
+                  слова, и подписывать их его именем было бы выдумкой. Он даёт
+                  им лицо, и только. */}
+              <div className="karl-note">
+                <Karl state="concern" compact name={t.mascot.karl} alt={t.mascot.alt} />
+                <div className="conn-lost-body">
+                  <b>{t.conn.lostTitle}</b>
+                  <span>{t.conn.lostBody}</span>
+                </div>
               </div>
               <div className="conn-lost-actions">
                 <button className="primary" onClick={retry}>{t.conn.retry}</button>
@@ -675,6 +689,7 @@ export default function App() {
             onHint={nego.requestHint}
             onQuit={goHome}
             debriefReady={!!nego.debrief}
+            grade={nego.debrief?.grade ?? null}
             probeTally={layers.probe ? probeTally : undefined}
             onProbeAnswer={layers.probe ? nego.answerProbe : undefined}
             onSeeDebrief={() => setScreen("debrief")}
@@ -685,9 +700,11 @@ export default function App() {
       {screen === "game" && !nego.scenario && (
         <section className="screen">
           <div className="wrap">
-            <p className="lead" style={{ padding: "40px 0" }}>
-              {t.connecting}
-            </p>
+            {/* Пустой экран ожидания сессии: строка та же, но ждёт её теперь
+                не голая типографика. */}
+            <div className="karl-mid" style={{ padding: "40px 0" }}>
+              <Karl state="think" line={t.connecting} name={t.mascot.karl} alt={t.mascot.alt} />
+            </div>
           </div>
         </section>
       )}

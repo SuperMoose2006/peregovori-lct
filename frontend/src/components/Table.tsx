@@ -44,6 +44,10 @@ interface Props {
   // closing word. `debriefReady` false → the button waits and says so.
   debriefReady?: boolean;
   onSeeDebrief?: () => void;
+  /** Грейд закрытой партии — он приезжает вместе с разбором, пока стол ещё
+   *  держит паузу после рукопожатия. Нужен ровно затем, чтобы Карл праздновал
+   *  сделку A/B и не праздновал сделку на D. Null — разбора ещё нет. */
+  grade?: string | null;
   // Realtime-слои. Все необязательные: партия обязана рисоваться, даже если ни
   // одного такого события не пришло (офлайн, текстовый режим).
   /** Состояние лица из `avatar.state`. Null — живых событий нет, лицо выводится из шкал. */
@@ -72,7 +76,7 @@ interface Props {
   onProbeAnswer?: (id: number, choice: number) => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -196,7 +200,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     phase, busy, hintPending,
     deltas: lastDeltas,
     status: st?.status ?? null,
-    grade: null,
+    grade,
   });
 
   // Typing indicator: show while a turn is in flight (busy) but the opponent's
@@ -462,7 +466,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 стола можно было только прокрутив рельс. Выход не бывает
                 «где-то ниже». В экзамене Карла нет — там подсказок не бывает. */}
             <div className="side-foot">
-              {!exam ? <Karl state={karl} line={karlLine} name={t.mascot.karl} /> : null}
+              {!exam ? <Karl state={karl} line={karlLine} name={t.mascot.karl} alt={t.mascot.alt} /> : null}
               <button className="quit" onClick={handleQuit}>
                 ← {t.quit}
               </button>
@@ -605,17 +609,23 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                   поднялось. Иначе чип «микрофон активен» стоял бы над мёртвым
                   микрофоном — то самое четвёртое состояние. */}
               {layerFail?.voice || layerFail?.camera ? (
-                <p className="layer-off" role="status">
-                  <b>{[layerFail.voice ? t.live.offVoice : null,
-                       layerFail.camera ? t.live.offCamera : null].filter(Boolean).join(" · ")}</b>
-                  {" — "}
-                  {/* Причина у обоих слоёв чаще всего одна и та же — браузер
-                      отказал разом. Повторять её дважды значит удваивать текст
-                      и не добавлять ни бита. */}
-                  {[...new Set([layerFail.voice, layerFail.camera].filter(Boolean))].join("; ")}
-                  {". "}
-                  {t.live.offHow}
-                </p>
+                <div className="karl-note">
+                  {/* Лицо у отказа то же, что и у роста напряжения: слой просили,
+                      слой не встал. Текста Карл сюда не добавляет — строка справа
+                      существует и без него. */}
+                  <Karl state="concern" compact name={t.mascot.karl} alt={t.mascot.alt} />
+                  <p className="layer-off" role="status">
+                    <b>{[layerFail.voice ? t.live.offVoice : null,
+                         layerFail.camera ? t.live.offCamera : null].filter(Boolean).join(" · ")}</b>
+                    {" — "}
+                    {/* Причина у обоих слоёв чаще всего одна и та же — браузер
+                        отказал разом. Повторять её дважды значит удваивать текст
+                        и не добавлять ни бита. */}
+                    {[...new Set([layerFail.voice, layerFail.camera].filter(Boolean))].join("; ")}
+                    {". "}
+                    {t.live.offHow}
+                  </p>
+                </div>
               ) : null}
               {videoRef && canvasRef && getMicLevel ? (
                 <LiveBar

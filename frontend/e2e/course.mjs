@@ -112,7 +112,8 @@ async function answer() {
   return type;
 }
 
-await p.locator("button[aria-label='Курс']").click();
+// По ключу раздела, а не по русской подписи: см. смоук.
+await p.locator('[data-nav="course"]').click();
 await p.waitForTimeout(400);
 await p.locator(".cnode.current .cnode-btn").click();
 await p.waitForTimeout(300);

@@ -10,7 +10,7 @@ import { formatDeal, plural } from "../lib/format";
 import { play } from "../lib/sound";
 import { ScreenHeading } from "./ScreenHeading";
 import { XpAward } from "./Gamification";
-import { Tikhon } from "./Mascot";
+import { Karl, MascotImg, Tikhon, type KarlState } from "./Mascot";
 
 const GRADE_COLOR: Record<string, string> = {
   A: "var(--trust)",
@@ -139,6 +139,14 @@ export function Debrief({
   const paged = mode !== "exam";
   const at = (n: number) => !paged || beat === n;
 
+  // Лицо разбора. Состояние — из грейда движка и статуса партии, ничего своего:
+  // A/B — праздник, всё остальное при закрытой сделке — озабоченность, срыв —
+  // расстройство. В экзамене Карла нет вовсе, поэтому реплики у него там нет.
+  const karlMood: KarlState =
+    d.status === "breakdown" ? "sad" : d.grade === "A" || d.grade === "B" ? "celebrate" : "concern";
+  const karlTip = !exam && d.tips.length ? d.tips[0] : null;
+  const listTips = karlTip ? d.tips.slice(1) : d.tips;
+
   // Technique-floor rule (item 4): a great price with thin method caps the grade.
   // Surfacing the rule makes a capped grade read as principled, not harsh.
   const techniqueFloored = d.technique < 45 && d.economic >= 65;
@@ -215,6 +223,9 @@ export function Debrief({
                     <span className="cert-award-lab">{t.exam.dateLabel}</span>
                     <span className="cert-date">{certDate}</span>
                   </div>
+                  {/* Печать на сертификате ставит Тихон — память, а не тренер:
+                      экзамен идёт без подсказок, и Карлу тут места нет. */}
+                  <MascotImg dir="tikhon" state="exam" alt="" size={64} className="tikhon-seal" />
                 </div>
               ) : null}
               <div className="oc">
@@ -454,11 +465,21 @@ export function Debrief({
           {at(2) && (!paged || detailsOpen) ? (
           <div className="coach">
             <h3>{t.coachTitle}</h3>
-            <ul>
-              {d.tips.map((tip, i) => (
-                <li key={i}>{tip}</li>
-              ))}
-            </ul>
+            {/* Итог партии был единственным экраном без лица. Карл берёт ПЕРВУЮ
+                подсказку разбора — из списка она при этом уходит: один и тот же
+                совет дважды на экране это не забота, а шум. Своего текста он
+                по-прежнему не сочиняет, а состояние берёт из грейда движка.
+                В экзамене его нет — там сопровождения не бывает. */}
+            {karlTip ? (
+              <Karl state={karlMood} line={karlTip} name={t.mascot.karl} alt={t.mascot.alt} />
+            ) : null}
+            {listTips.length ? (
+              <ul>
+                {listTips.map((tip, i) => (
+                  <li key={i}>{tip}</li>
+                ))}
+              </ul>
+            ) : null}
             {/* Разбор говорит, где вы просели; курс знает, где этому учат.
                 Связь не должна быть догадкой игрока. В экзамене её нет: там
                 сопровождение выключено до конца. */}

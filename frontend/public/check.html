@@ -43,6 +43,18 @@
            border:1px solid var(--edge); background:var(--ok); color:#fff; cursor:pointer; }
   button.ghost { background:transparent; color:var(--ink); }
   .acts { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+  /* Карл на статической странице: /mascots/ отдаётся как есть, без сборки,
+     поэтому картинка тут та же самая, что и в игре. */
+  .hd { display:flex; align-items:center; gap:12px; margin:0 0 4px; }
+  .hd h1 { margin:0; }
+  .karlbad { display:flex; align-items:center; gap:10px; margin-top:12px; }
+  /* Обёртка <picture> (webp + запасной PNG) не должна становиться элементом
+     раскладки: размеры заданы на img, а лишний слой между flex и картинкой их
+     съедал бы. */
+  .hd picture, .karlbad picture { display:contents; }
+  .hd img { width:64px; height:64px; object-fit:contain; flex:0 0 auto; }
+  .karlbad img { width:44px; height:44px; object-fit:contain; flex:0 0 auto; }
+  [hidden] { display:none !important; }
   textarea { width:100%; height:190px; margin-top:12px; font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;
              background:var(--bg); color:var(--ink); border:1px solid var(--edge);
              border-radius:10px; padding:10px; }
@@ -50,7 +62,13 @@
 </head>
 <body>
 <main>
-  <h1>Проверка оборудования</h1>
+  <div class="hd">
+    <picture>
+      <source type="image/webp" srcset="/mascots/karl/point-192.webp 192w, /mascots/karl/point.webp 512w" sizes="64px">
+      <img src="/mascots/karl/point.png" alt="Карл подсказывает" width="64" height="64">
+    </picture>
+    <h1>Проверка оборудования</h1>
+  </div>
   <p class="sub">Страница спрашивает у браузера ровно то же, что спрашивает игра, и показывает его ответ дословно.</p>
 
   <section><h2>Страница</h2><div id="page"></div></section>
@@ -60,6 +78,15 @@
     <h2>Живая проверка</h2>
     <div id="live"><div class="row"><span>Нажмите «Проверить» — браузер спросит доступ.</span></div></div>
     <video id="v" muted playsinline autoplay></video>
+    <!-- Отказ в доступе получает лицо, а не одну красную строку. Ни одного
+         своего слова Карл не приносит: диагноз уже написан строками выше, и
+         новая строка на этой странице была бы четвёртым источником правды. -->
+    <div class="karlbad" id="karlbad" hidden>
+      <picture>
+        <source type="image/webp" srcset="/mascots/karl/concern-192.webp 192w, /mascots/karl/concern.webp 512w" sizes="44px">
+        <img src="/mascots/karl/concern.png" alt="Карл насторожен" width="44" height="44">
+      </picture>
+    </div>
   </section>
 
   <div class="acts">
@@ -71,7 +98,11 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const lines = [];
+// Отказы считаем только в живой проверке: «имя скрыто до разрешения» в списке
+// устройств — это не отказ, и лицо на него вешать было бы враньём.
+let liveFails = 0;
 function row(host, label, value, state) {
+  if (state === false && host === $("live")) liveFails++;
   const cls = state === true ? "ok" : state === false ? "bad" : "";
   const d = document.createElement("div");
   d.className = "row";
@@ -140,6 +171,8 @@ async function tryCam(constraints, label, host) {
 $("go").onclick = async () => {
   $("live").innerHTML = "";
   lines.length = 0;
+  liveFails = 0;
+  $("karlbad").hidden = true;
   row($("live"), "Запущено", new Date().toISOString());
 
   let stream = await tryCam({ audio: false, video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } },
@@ -167,6 +200,7 @@ $("go").onclick = async () => {
   }
 
   await listDevices();
+  $("karlbad").hidden = liveFails === 0;
   $("out").value = lines.join("\n");
 };
 
