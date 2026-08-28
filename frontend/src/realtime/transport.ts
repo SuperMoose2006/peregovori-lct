@@ -205,11 +205,12 @@ export class RealtimeTransport implements Transport {
       canvasRef: this.options.canvasEl ?? null,
     });
     this.media.onChunk = ({ audio, frame }) => {
-      this.session?.sendAudio(toBase64(audio.buffer), frame);
+      this.session?.sendAudio(toBase64(audio.buffer), frame,
+                              frame ? this.media?.lastChangeRatio() : undefined);
       if (frame) this.options.onCameraFrame?.();
     };
     this.media.onFrame = (frame) => {
-      this.session?.sendFrame(frame);
+      this.session?.sendFrame(frame, this.media?.lastChangeRatio());
       this.options.onCameraFrame?.();
     };
     // `start` больше не бросает на отказ устройства: отказ — это ответ

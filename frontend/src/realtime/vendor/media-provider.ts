@@ -122,6 +122,9 @@ export class MediaProvider {
   private videoRef: { current: HTMLVideoElement | null } | null = null;
   private canvasRef: { current: HTMLCanvasElement | null } | null = null;
   private lastFrameAt = 0;
+  /** Решётка яркостей прошлого кадра и доля изменившихся проб в последнем. */
+  private lastGrid: number[] | null = null;
+  private lastChange = 1;
   private readonly frameIntervalMs: number;
 
   private micEnabled = true;
@@ -365,9 +368,51 @@ export class MediaProvider {
     this.canvas.width = 320;
     this.canvas.height = Math.round((320 * this.video.videoHeight) / this.video.videoWidth);
     this.ctx2d.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+
+    // Кадр УЖЕ нарисован в canvas, поэтому настоящая межкадровая разница стоит
+    // здесь одного прохода по пикселям — и заменяет прежний прокси «размер JPEG
+    // изменился». Прокси ловил смену освещения и крупное движение, но тихий
+    // уход из кадра не ловил вовсе: пустая комната жмётся не хуже человека в ней.
+    this.lastChange = this.frameChange(this.canvas.width, this.canvas.height);
+
     // Качество ниже среднего осознанно: модель зрения отвечает на вопрос
     // «человек в кадре?», а не читает мелкий текст.
     return this.canvas.toDataURL("image/jpeg", 0.6).split(",", 2)[1] ?? null;
+  }
+
+  /** Доля заметно изменившихся пикселей, 0..1. Считается по решётке, а не по
+   *  каждому пикселю: тысячи проб хватает, а 320×240 каждую секунду — нет. */
+  private frameChange(w: number, h: number): number {
+    if (!this.ctx2d) return 1;
+    let data: Uint8ClampedArray;
+    try {
+      data = this.ctx2d.getImageData(0, 0, w, h).data;
+    } catch {
+      // Кадр из чужого источника пометил бы canvas «нечистым», и чтение
+      // пикселей бросает. Не знаем — считаем, что изменилось: пропущенный
+      // взгляд дешевле, чем застрявший.
+      return 1;
+    }
+    const step = Math.max(4, Math.floor((w * h) / 1200)) * 4;
+    const grid: number[] = [];
+    for (let i = 0; i < data.length; i += step) {
+      // Яркость по Rec. 601 — дешевле и устойчивее к шуму сенсора, чем RGB.
+      grid.push(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+    }
+    const previous = this.lastGrid;
+    this.lastGrid = grid;
+    if (!previous || previous.length !== grid.length) return 1;
+
+    let moved = 0;
+    for (let i = 0; i < grid.length; i++) {
+      if (Math.abs(grid[i] - previous[i]) > 12) moved++;   // 12 из 255 — выше шума
+    }
+    return moved / grid.length;
+  }
+
+  /** Насколько последний кадр отличался от предыдущего. Едет вместе с кадром. */
+  lastChangeRatio(): number {
+    return this.lastChange;
   }
 }
 

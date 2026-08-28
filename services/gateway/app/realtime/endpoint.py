@@ -103,7 +103,9 @@ async def realtime_ws(websocket: WebSocket) -> None:
                 if frames:
                     session.append_input(frames=frames)
                     if vision is not None:
-                        vision.offer(frames)
+                        # «Кадр изменился» считает браузер: у него кадр уже в
+                        # canvas, а по сжатому JPEG честной разницы не получить.
+                        vision.offer(frames, change=data.get("frame_change"))
                 audio_b64 = data.get("audio")
                 if audio_b64 and voice is not None:
                     pcm = np.frombuffer(base64.b64decode(audio_b64), dtype=np.int16)

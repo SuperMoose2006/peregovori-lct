@@ -131,9 +131,12 @@ export class RealtimeSession {
   }
 
   /** Кусок звука с микрофона. Конец хода определит сервер. */
-  sendAudio(base64: string, frame?: string | null): void {
+  sendAudio(base64: string, frame?: string | null, change?: number): void {
     const input: Record<string, unknown> = { audio: base64 };
-    if (frame) input.video_frames = [frame];
+    if (frame) {
+      input.video_frames = [frame];
+      if (change !== undefined) input.frame_change = change;
+    }
     this.send({ type: "input.append", input }, /* quiet */ true);
   }
 
@@ -142,8 +145,13 @@ export class RealtimeSession {
    * к звуковым чанкам, поэтому без микрофона на сервер не уходило ничего —
    * слой камеры рисовал окно и молча не работал.
    */
-  sendFrame(frame: string): void {
-    this.send({ type: "input.append", input: { video_frames: [frame] } }, /* quiet */ true);
+  /** `change` — доля изменившихся пикселей относительно прошлого кадра (0..1).
+   *  Считает браузер: кадр уже нарисован в canvas, поэтому это бесплатно, а
+   *  сервер по сжатому JPEG честной разницы получить не может. */
+  sendFrame(frame: string, change?: number): void {
+    this.send({ type: "input.append",
+                input: { video_frames: [frame], frame_change: change } },
+              /* quiet */ true);
   }
 
   /** Явное «я закончил» — когда человек не хочет ждать детектора конца хода. */

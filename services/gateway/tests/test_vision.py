@@ -93,3 +93,52 @@ def test_camera_observations_cannot_reach_score_session():
     source = inspect.getsource(engine.score_session)
     assert "observation" not in source
     assert "camera" not in source.lower()
+
+
+# --------------------------------------------- «кадр изменился» считает браузер
+
+@pytest.mark.asyncio
+async def test_browser_change_ratio_decides_instead_of_the_jpeg_size_proxy(monkeypatch):
+    """Доля от браузера главнее прокси по размеру — и решает противоположно ему.
+
+    Прокси «размер JPEG изменился» ловил смену освещения и крупное движение, но
+    тихий уход из кадра не ловил вовсе: пустая комната жмётся не хуже человека в
+    ней. Здесь кадр ОДНОГО И ТОГО ЖЕ размера — прокси сказал бы «ничего не
+    произошло», — а браузер сообщает, что изменилась пятая часть проб.
+    """
+    sampler, calls, _e, _n = _sampler(monkeypatch, interval=0.0)
+    same = "x" * 5000
+
+    sampler.offer([same], change=0.5)          # первый кадр смотрится всегда
+    await _settle(sampler)
+    assert len(calls) == 1
+
+    sampler.offer([same], change=0.0)          # браузер: не изменилось
+    await _settle(sampler)
+    assert len(calls) == 1, "посмотрели на кадр, о котором сказано «то же самое»"
+
+    sampler.offer([same], change=0.2)          # браузер: изменилось
+    await _settle(sampler)
+    assert len(calls) == 2, "не посмотрели на изменившийся кадр того же размера"
+
+
+@pytest.mark.asyncio
+async def test_without_the_browser_signal_the_old_proxy_still_works(monkeypatch):
+    """Старый клиент поля не пришлёт, и слой обязан работать и с ним."""
+    sampler, calls, _e, _n = _sampler(monkeypatch, interval=0.0)
+
+    sampler.offer(["x" * 1000])                # первый — всегда
+    await _settle(sampler)
+    sampler.offer(["x" * 1000])                # тот же размер → прокси молчит
+    await _settle(sampler)
+    assert len(calls) == 1
+
+    sampler.offer(["x" * 5000])                # размер скакнул → смотрим
+    await _settle(sampler)
+    assert len(calls) == 2
+
+
+async def _settle(sampler) -> None:
+    await asyncio.sleep(0)
+    if sampler._task:
+        await sampler._task

@@ -119,6 +119,11 @@ class InputAppend(BaseModel):
     text: Optional[str] = None
     audio: Optional[str] = None            # base64 PCM16 LE, 16 кГц моно
     video_frames: Optional[list[str]] = None  # base64 JPEG
+    #: Доля изменившихся пикселей относительно прошлого кадра, 0..1. Считает
+    #: БРАУЗЕР: кадр уже нарисован в canvas, поэтому проход по решётке яркостей
+    #: бесплатен, а по сжатому JPEG честной разницы не получить. Нет поля —
+    #: сервер откатывается на прежний прокси по размеру.
+    frame_change: Optional[float] = None
     force_listen: bool = False             # клиент требует вернуть оппонента в «слушаю»
 
 
