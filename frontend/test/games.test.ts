@@ -10,7 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { SCENARIO_MAP } from "../src/data/scenarios";
-import { analyze, applyMove, newSession, scoreSession } from "../src/mock/engine";
+import { analyze, applyMove, newSession, resistance, revealTrustGate, scoreSession } from "../src/mock/engine";
 import { formatDeal } from "../src/lib/format";
 import type { Lang } from "../src/types";
 
@@ -140,4 +140,57 @@ test("RU и EN расходятся разделителем, но разбир�
     parseFloat(s.replace(/[\u202f\u00a0]/g, "").replace(",", ".").replace(/[^\d.]/g, ""));
   assert.equal(num(ru), 91.57);
   assert.equal(num(en), 91.57);
+});
+
+// ---- Инвариант 8 для сложности стола ----------------------------------------
+// Партии выше уже проверяют коэффициент сложности насквозь: `games.scores.json`
+// посчитан движком-источником на всех восьми столах, а difficulty у них разная
+// (2..5). Здесь замер точечный — те же числа, что в
+// services/gateway/tests/test_difficulty.py, чтобы расхождение читалось сразу в
+// формуле, а не только в итоговом балле пятиходовой партии.
+
+test("инвариант 8: сессия несёт сложность стола", () => {
+  for (const sid of ["supplier", "salary", "conflict", "investor"]) {
+    assert.equal(newSession(SCENARIO_MAP[sid], "ru").difficulty, SCENARIO_MAP[sid].diff, sid);
+  }
+});
+
+test("инвариант 8: сопротивление и порог доверия совпадают с движком-источником", () => {
+  const s = newSession(SCENARIO_MAP.supplier, "ru");
+  // 1 + 0.06·(3.5 − d): лёгкий стол уступает щедрее, трудный скупее.
+  for (const [d, want] of [[2, 1.09], [3, 1.03], [4, 0.97], [5, 0.91]] as [number, number][]) {
+    s.difficulty = d;
+    assert.ok(Math.abs(resistance(s) - want) < 1e-9, `d=${d}: ${resistance(s)} вместо ${want}`);
+  }
+  // 30 + 2·(d − 2): у трудного собеседника открыться труднее.
+  for (const [d, want] of [[2, 30], [3, 32], [4, 34], [5, 36]] as [number, number][]) {
+    s.difficulty = d;
+    assert.equal(revealTrustGate(s), want, `d=${d}`);
+  }
+  // Шкала карточки — 1..5; своя сделка присылает 3, но за края уходить нельзя.
+  s.difficulty = 99;
+  assert.equal(revealTrustGate(s), 36, "сложность обязана зажиматься в шкалу");
+});
+
+test("инвариант 8: трудный стол проходит меньше пути к своему дну", () => {
+  // Та же стенограмма, тот же стол — меняется только сложность.
+  const lines = PRINCIPLED.investor;
+  const walked: Record<number, number> = {};
+  for (const d of [2, 3, 4, 5]) {
+    const s = newSession(SCENARIO_MAP.investor, "ru");
+    s.difficulty = d;
+    for (const text of lines) {
+      if (s.status !== "active") break;
+      s.turn += 1;
+      applyMove(s, analyze(text), text);
+    }
+    const sc = SCENARIO_MAP.investor;
+    walked[d] = Math.abs(s.offerOpp - sc.open) / Math.abs(sc.open - sc.floor);
+    // Инвариант 1 не отменяется никаким коэффициентом сложности.
+    assert.ok(s.offerOpp >= sc.floor - 0.001, `d=${d}: цена ${s.offerOpp} ниже дна ${sc.floor}`);
+  }
+  for (const [lo, hi] of [[2, 3], [3, 4], [4, 5]]) {
+    assert.ok(walked[lo] >= walked[hi], `сложность ${hi} прошла дальше, чем ${lo}: ${JSON.stringify(walked)}`);
+  }
+  assert.ok(walked[2] > walked[5], `сложность не различима: ${JSON.stringify(walked)}`);
 });

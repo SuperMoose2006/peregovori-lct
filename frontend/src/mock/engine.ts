@@ -117,6 +117,11 @@ export interface Session {
   sc: ScenarioDef;
   lang: Lang;
   lowerBetter: boolean;
+  /** Сложность стола (1..5) — та самая, что рисуется точками на карточке выбора.
+   *  Живёт на СЕССИИ, а не читается из сценария на каждом ходу: партия может
+   *  быть заведена с подменённой сложностью, и тогда всё поведение обязано
+   *  пересчитаться из одного места. Зеркало backend Session.difficulty. */
+  difficulty: number;
   turn: number;
   maxTurns: number;
   trust: number;
@@ -145,7 +150,7 @@ export interface Session {
 
 export function newSession(sc: ScenarioDef, lang: Lang): Session {
   return {
-    sc, lang, lowerBetter: sc.dir === "low", turn: 0, maxTurns: 12,
+    sc, lang, lowerBetter: sc.dir === "low", difficulty: sc.diff, turn: 0, maxTurns: 12,
     // Seed leverage from BATNA strength (× 0.4) exactly like the backend engine.
     trust: 40, tension: 25, info: 0, leverage: sc.batnaStrength * 0.4,
     offerOpp: sc.open, offerPlayer: null, interests: [], tradeoffs: [], termsConceded: [], deal: null, status: "active",
@@ -230,6 +235,40 @@ function plausibleOffer(sc: ScenarioDef, n: number): number | null {
   return null;
 }
 
+/** Середина шкалы сложности (2..5 у восьми готовых столов; своя сделка может
+ *  прислать 1). Множитель сопротивления считается ОТ НЕЁ, а не от самого лёгкого
+ *  стола: иначе «привязать сложность» означало бы «сделать всем хуже, кроме
+ *  двойки». Зеркало engine.py::DIFFICULTY_MID. */
+export const DIFFICULTY_MID = 3.5;
+/** Шаг сопротивления на единицу сложности: путь от 2 к 5 меняет заработанную
+ *  уступку на ±9 % от середины. Зеркало engine.py::DIFFICULTY_CONCESSION_K. */
+export const DIFFICULTY_CONCESSION_K = 0.06;
+/** Прибавка к порогу доверия за единицу сложности сверх двойки.
+ *  Зеркало engine.py::DIFFICULTY_TRUST_GATE_STEP. */
+export const DIFFICULTY_TRUST_GATE_STEP = 2;
+/** Порог доверия для вскрытия интереса у самого лёгкого стола. */
+export const REVEAL_TRUST_GATE_BASE = 30;
+
+/** Сложность сессии, зажатая в шкалу карточки (1..5). */
+function difficultyOf(s: Session): number {
+  return Math.max(1, Math.min(5, s.difficulty));
+}
+
+/** Во сколько раз сложность стола меняет ЗАРАБОТАННУЮ уступку.
+ *  Множитель, а не прибавка: инвариант 1 держится тем, что уступка — доля
+ *  оставшегося пути до дна. Трудный собеседник не отказывается двигаться, он
+ *  двигается скупее на то же событие; лёгкий, наоборот, щедрее.
+ *  Зеркало engine.py::resistance. */
+export function resistance(s: Session): number {
+  return 1 + DIFFICULTY_CONCESSION_K * (DIFFICULTY_MID - difficultyOf(s));
+}
+
+/** Порог доверия, ниже которого интерес не вскрывается: у трудного собеседника
+ *  открыться должно быть труднее. Зеркало engine.py::reveal_trust_gate. */
+export function revealTrustGate(s: Session): number {
+  return REVEAL_TRUST_GATE_BASE + DIFFICULTY_TRUST_GATE_STEP * (difficultyOf(s) - 2);
+}
+
 export function flex(s: Session): number {
   const raw =
     0.45 * (s.trust / 100) + 0.3 * (s.info / 100) + 0.25 * (clamp(s.leverage) / 100) - 0.5 * (s.tension / 100);
@@ -297,7 +336,7 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     // Honest reveal: вскрывается только тот интерес, в который вопрос попал по
     // теме. Reveal gated on trust, like info.
     let revealed = false;
-    if (s.trust > 30) {
+    if (s.trust > revealTrustGate(s)) {
       const idx = revealIndexOffline(sc, curNorm, s.lang, s.interests);
       if (idx !== null) { s.interests.push(idx); revealed = true; }
     }
@@ -401,6 +440,10 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   }
   // Ни одного события — оппонент не двигается ВООБЩЕ.
   if (events.length === 0) cf = 0;
+  // Сложность стола — множитель к ЗАРАБОТАННОМУ движению, и только к нему.
+  // Стоит ПОСЛЕ обнуления без события: трудный стол уступает скупее, но повод
+  // уступить он не отменяет и не выдумывает. Нулю множитель не поможет.
+  cf *= resistance(s);
   if (s.tension > 75) cf *= 0.25;
   else if (s.tension > 55) cf *= 0.6;
   // Повтор — не ход: чем ближе реплика к уже сказанному, тем меньше движения.

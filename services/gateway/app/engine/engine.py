@@ -91,6 +91,11 @@ class Session:
     turn: int
     state: GameState
     metrics: Metrics
+    #: Сложность стола (1..5) — та самая, что рисуется точками на карточке
+    #: выбора. Живёт на СЕССИИ, а не читается из сценария на каждом ходу:
+    #: партия может быть заведена с подменённой сложностью (тесты, будущие
+    #: режимы), и тогда всё поведение обязано пересчитаться из одного места.
+    difficulty: int = 3
     log: list = field(default_factory=list)
     last_player_norm: str = ""  # anti-gaming: detect repeated identical lines
     # Анти-гейминг с памятью на ВСЮ партию: (множество слов, множество приёмов)
@@ -123,6 +128,7 @@ def create_session(scenario_id: str, lang: str = "ru") -> Session:
         created_turn=0,
         max_turns=12,
         turn=0,
+        difficulty=sc.difficulty,
         state=GameState(
             trust=40,
             tension=25,
@@ -138,6 +144,56 @@ def create_session(scenario_id: str, lang: str = "ru") -> Session:
         metrics=Metrics(),
         log=[],
     )
+
+
+#: Середина шкалы сложности (2..5 у восьми готовых столов; своя сделка может
+#: прислать 1). Множитель сопротивления считается ОТ НЕЁ, а не от самого лёгкого
+#: стола: иначе «привязать сложность» означало бы «сделать всем хуже, кроме
+#: двойки», и баланс семи столов из восьми поехал бы вниз разом.
+DIFFICULTY_MID = 3.5
+#: Шаг сопротивления на единицу сложности. Числу цена известна: при 0.06 путь от
+#: 2 к 5 меняет заработанную уступку на ±9 % от середины, и этого хватает, чтобы
+#: разница читалась в цифре на столе, но не хватает, чтобы принципиальная партия
+#: у инвестора (74 из 100, запас до B — четыре балла) свалилась в C. Инвариант 2
+#: тут ограничивает сверху, а требование различимости — снизу.
+DIFFICULTY_CONCESSION_K = 0.06
+#: Прибавка к порогу доверия за единицу сложности сверх двойки. Базовые 30
+#: остаются у самого лёгкого стола; у инвестора порог 36. Стартовое доверие 40,
+#: поэтому первый вопрос вскрывает интерес на ЛЮБОМ столе (инвариант 9: капстоун
+#: обязан проходиться), а вот вернуться к расспросам после хамства на трудном
+#: столе уже не выйдет — доверие туда не дотянется.
+DIFFICULTY_TRUST_GATE_STEP = 2.0
+#: Порог доверия для вскрытия интереса у самого лёгкого стола.
+REVEAL_TRUST_GATE_BASE = 30.0
+
+
+def _difficulty(sess: Session) -> float:
+    """Сложность сессии, зажатая в шкалу карточки (1..5)."""
+    return max(1.0, min(5.0, float(sess.difficulty)))
+
+
+def resistance(sess: Session) -> float:
+    """Во сколько раз сложность стола меняет ЗАРАБОТАННУЮ уступку.
+
+    Множитель, а не прибавка: инвариант 1 (оппонент не переходит свой floor)
+    держится тем, что уступка — это доля оставшегося пути до дна. Умножить долю
+    можно, прибавить к цене нельзя.
+
+    Трудный собеседник не отказывается двигаться — он двигается скупее на то же
+    самое заработанное событие. Лёгкий, наоборот, щедрее: точки на карточке
+    обязаны означать что-то в обе стороны, иначе «сложность» это просто налог.
+    """
+    return 1.0 + DIFFICULTY_CONCESSION_K * (DIFFICULTY_MID - _difficulty(sess))
+
+
+def reveal_trust_gate(sess: Session) -> float:
+    """Порог доверия, ниже которого интерес не вскрывается.
+
+    Был жёсткий `trust > 30` для всех восьми столов. У человека, который держит
+    вас за угрозу своему бизнесу, открыться должно быть труднее, чем у сговорчивого
+    поставщика, — и это ровно та разница, которую карточка обещала точками.
+    """
+    return REVEAL_TRUST_GATE_BASE + DIFFICULTY_TRUST_GATE_STEP * (_difficulty(sess) - 2.0)
 
 
 def flexibility(sess: Session) -> float:
@@ -397,7 +453,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     if (analysis.spin or has("interests_probe") or judge_interest is not None) and not repeated:
         total = len(sc.hidden_interests[sess.lang])
         revealed = False
-        if s.trust > 30:
+        if s.trust > reveal_trust_gate(sess):
             if judge_interest is not None and 0 <= judge_interest < total and judge_interest not in s.interests_found:
                 # Reveal the interest the question ACTUALLY targeted (semantic).
                 s.interests_found.append(judge_interest)
@@ -553,6 +609,10 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         # дна, ничего не сказав. Хорошая атмосфера и удачные вопросы делают
         # уступку крупнее, но не заменяют повода её сделать.
         concession_fraction = 0.0
+    # Сложность стола — множитель к ЗАРАБОТАННОМУ движению, и только к нему.
+    # Стоит ПОСЛЕ обнуления без события: трудный стол уступает скупее, но повод
+    # уступить он не отменяет и не выдумывает. Нулю множитель не поможет.
+    concession_fraction *= resistance(sess)
     if s.tension > 75:
         concession_fraction *= 0.25
     elif s.tension > 55:
