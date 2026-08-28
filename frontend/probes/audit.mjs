@@ -45,7 +45,46 @@ async function assertServingCurrentBuild() {
   }
   console.log(`сборка сверена: ${want}`);
 }
+// Шлюз — второй долгоживущий процесс, и он врал ровно так же: тот, что
+// раздавал демо, крутился двое с половиной суток и отвечал кодом позавчерашнего
+// дня. Курс на диске знал упражнение, шлюз — нет, и находкой это выглядело как
+// «400 на /api/course/coach».
+async function assertGatewayIsCurrent() {
+  let served;
+  try {
+    const res = await fetch(BASE + "api/health");
+    if (!res.ok) { console.log("шлюз не отвечает — прогон без бэкенда"); return; }
+    served = (await res.json()).build;
+  } catch {
+    console.log("шлюза нет — прогон по офлайн-ядру");
+    return;
+  }
+  if (!served) {
+    console.error("СТАРЫЙ ШЛЮЗ: /api/health не знает про build. Перезапустите гейтвей.");
+    process.exit(2);
+  }
+  // Считаем ТОЛЬКО внутри COURSE_BANK: следом за ним в том же файле лежит
+  // COURSE_MASTER, и первая версия этой проверки посчитала его три упражнения
+  // вместе с банком — 72 против 69, и прибор объявил свежий шлюз старым.
+  // Ложная тревога стоит доверия к прибору дороже, чем пропущенная находка.
+  const mirror = fs.readFileSync(
+    path.join(process.cwd(), "src", "data", "course.generated.ts"), "utf-8");
+  const from = mirror.indexOf("export const COURSE_BANK");
+  const to = mirror.indexOf("export const COURSE_MASTER");
+  const bank = from >= 0 && to > from ? mirror.slice(from, to) : "";
+  const onDisk = (bank.match(/"id":\s*"[a-z]{2}-\d\d"/g) || []).length;
+  if (onDisk && served.exercises !== onDisk) {
+    console.error(`СТАРЫЙ ШЛЮЗ на ${BASE}\n` +
+      `  отвечает про ${served.exercises} упражнений\n` +
+      `  на диске их ${onDisk}\n` +
+      "Прогон отменён: находки относились бы не к этому коду.");
+    process.exit(2);
+  }
+  console.log(`шлюз сверен: упражнений ${served.exercises}`);
+}
+
 await assertServingCurrentBuild();
+await assertGatewayIsCurrent();
 
 const ONLY = (process.env.AUDIT_VPS || "").split(",").map((x) => x.trim()).filter(Boolean);
 const VPS = [
@@ -79,7 +118,7 @@ const add = (sev, where, kind, msg) => findings.push({ sev, where: where + "@" +
 
 // ——— проверки, которые гоняются на каждом состоянии ———
 const PROBE = `(() => {
-  const out = { hscroll: false, overflow: [], small: [], leak: [], dupIds: [], noAlt: 0, contrast: [], cyr: [] };
+  const out = { hscroll: false, overflow: [], small: [], leak: [], dupIds: [], noAlt: 0, mute: [], contrast: [], cyr: [] };
   const de = document.documentElement;
   out.hscroll = de.scrollWidth > de.clientWidth + 1;
 
@@ -87,7 +126,19 @@ const PROBE = `(() => {
   for (const el of document.querySelectorAll("[id]")) {
     if (seen.has(el.id)) out.dupIds.push(el.id); else seen.add(el.id);
   }
-  for (const img of document.querySelectorAll("img")) if (!img.alt) out.noAlt++;
+  // ПУСТОЙ alt — ЭТО НЕ ОТСУТСТВУЮЩИЙ. alt="" говорит диктору «картинка
+  // декоративная, пропусти», и это правильная разметка. Прибор считал его
+  // ошибкой и ругался на честно помеченные украшения. Ошибка — отсутствие
+  // атрибута; и отдельно ошибка — пустой alt у картинки, которая ОДНА внутри
+  // ссылки или кнопки: там пропустить нечего, и управление остаётся безымянным.
+  for (const img of document.querySelectorAll("img")) {
+    if (!img.hasAttribute("alt")) { out.noAlt++; continue; }
+    if (img.alt) continue;
+    const ctl = img.closest("a,button");
+    if (ctl && !ctl.getAttribute("aria-label") && !(ctl.textContent || "").trim()) {
+      out.mute.push((ctl.tagName === "A" ? "ссылка" : "кнопка") + " без имени: только картинка с пустым alt");
+    }
+  }
 
   const vis = (el) => {
     const s = getComputedStyle(el);
@@ -261,7 +312,8 @@ async function probe(page, where, tag) {
   if (tag === "mob") for (const s of r.small.slice(0, 6)) add("WARN", where, "target", "мелкая цель " + s);
   for (const l of r.leak) add("BAD", where, "leak", "в тексте видно «" + l + "»");
   for (const d of r.dupIds.slice(0, 3)) add("WARN", where, "dupid", "повтор id: " + d);
-  if (r.noAlt) add("WARN", where, "alt", r.noAlt + " img без alt");
+  if (r.noAlt) add("WARN", where, "alt", r.noAlt + " img без атрибута alt");
+  for (const m of (r.mute || []).slice(0, 3)) add("BAD", where, "a11y", m);
   for (const c of r.contrast.slice(0, 6)) add("WARN", where, "contrast", c);
   for (const u of (r.unnamed || []).slice(0, 5)) add("BAD", where, "name", "кнопка без имени: " + u);
   if (tag === "desk") {
@@ -282,7 +334,19 @@ for (const vp of VPS) {
   const ctx = await browser.newContext({ viewport: { width: vp.w, height: vp.h }, deviceScaleFactor: 1, colorScheme: vp.scheme });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => add("BAD", "*", "js", "PAGEERROR " + String(e).slice(0, 120)));
-  page.on("console", (m) => { if (m.type() === "error" && !/WebSocket|favicon/.test(m.text())) add("BAD", "*", "js", m.text().slice(0, 120)); });
+  page.on("console", (m) => { if (m.type() === "error" && !/WebSocket|favicon|Failed to load resource/.test(m.text())) add("BAD", "*", "js", m.text().slice(0, 120)); });
+  // «Failed to load resource: 400» без адреса — это не находка, а загадка:
+  // консоль имени файла не называет. Слушаем ответы и говорим, ЧТО именно.
+  page.on("response", (res) => {
+    const url = res.url();
+    if (res.status() >= 400 && !/favicon/.test(url)) {
+      // Тело запроса тоже в находку: «400 на /api/course/coach» без него —
+      // загадка на полчаса, а с ним — готовый воспроизводимый случай.
+      const body = (res.request().postData() || "").slice(0, 120);
+      add("BAD", "*", "net",
+          `${res.status()} на ${url.replace(BASE, "/").slice(0, 90)}${body ? " ← " + body : ""}`);
+    }
+  });
   await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); } catch {} });
   if (vp.attr) await page.addInitScript((a) => {
     document.addEventListener("DOMContentLoaded", () => document.documentElement.setAttribute("data-theme", a));

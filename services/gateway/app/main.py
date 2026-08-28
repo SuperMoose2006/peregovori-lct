@@ -162,6 +162,18 @@ app.add_middleware(
 MAX_TURNS = 12
 
 
+def _build_fingerprint() -> dict:
+    """Отпечаток кода, который отвечает ПРЯМО СЕЙЧАС, а не лежит на диске."""
+    from app.course.bank import BANK
+    from app.engine.scenarios import SCENARIOS
+    from app.engine.campaigns import CAMPAIGNS
+    return {
+        "exercises": len(BANK),
+        "scenarios": len(SCENARIOS),
+        "campaigns": len(CAMPAIGNS),
+    }
+
+
 @app.get("/api/health")
 def health() -> dict:
     """Проба живости. Фронтенд по ней решает: realtime или офлайн-ядро.
@@ -177,6 +189,13 @@ def health() -> dict:
 
     return {
         "ok": True,
+        # ЧЕМ ЭТО ОКУПАЕТСЯ. Шлюз — долгоживущий процесс: тот, что раздавал
+        # демо, крутился двое с половиной суток и отвечал кодом позавчерашнего
+        # дня. Обходчик исправно ходил по нему и рапортовал про сборку, которой
+        # уже не существовало. Отпечаток курса — самая быстрая улика: банк
+        # растёт почти каждый день, и число упражнений мгновенно показывает,
+        # свежий ли процесс. Сверять его — работа прибора, а не человека.
+        "build": _build_fingerprint(),
         "cloud_ai": orchat.available(),
         "judge": judge_enabled(),
         "models": describe_models(),
