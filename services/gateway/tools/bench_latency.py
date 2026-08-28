@@ -75,6 +75,17 @@ async def measure_text_turns(url: str, turns: int) -> dict:
 
             done = False
             audio_deadline = None
+            # ПОКОЛЕНИЕ ЖИВЁТ ДОЛЬШЕ ТЕКСТА (CLAUDE.md, правило протокола 3):
+            # `response.done` значит «модель дописала», а звук играет секундами
+            # дольше. Прибор этого не знал: он обрывал ожидание через три
+            # секунды после текста, звук предыдущего хода прилетал уже внутри
+            # окна следующего — и засчитывался ему с задержкой в единицы
+            # миллисекунд. Отсюда «медиана 1 мс при разбросе 0–4404»: два хода
+            # из трёх мерили чужой звук.
+            #
+            # Ровно для этого в протоколе есть generation_id. Берём его из
+            # первого текстового куска хода и звук чужого поколения не считаем.
+            generation = None
             while True:
                 timeout = 3.0 if done else 90.0
                 try:
@@ -89,15 +100,28 @@ async def measure_text_turns(url: str, turns: int) -> dict:
                 elif kind == "engine.state" and "engine" not in seen:
                     seen.add("engine"); note("судья + движок посчитали ход", elapsed)
                 elif kind == "response.output.delta":
+                    gen = event.get("generation_id")
                     if event.get("kind") == "text" and "ttft" not in seen:
-                        seen.add("ttft"); note("первый токен реплики (TTFT)", elapsed)
+                        seen.add("ttft"); generation = gen
+                        note("первый токен реплики (TTFT)", elapsed)
                     elif event.get("kind") == "audio" and "audio" not in seen:
+                        # Звук РАНЬШЕ первого токена своего же хода невозможен:
+                        # синтез идёт по написанному. Значит это хвост прошлого
+                        # поколения — он и давал нули в замере.
+                        if "ttft" not in seen or gen != generation:
+                            continue
                         seen.add("audio"); note("ПЕРВЫЙ ЗВУК ОППОНЕНТА", elapsed)
                 elif kind == "response.done":
                     note("текст реплики готов", elapsed)
                     done = True
-                    audio_deadline = time.perf_counter() + 3.0
+                    # Ждём звук ДОЛЬШЕ текста, а не столько же: синтез начинает
+                    # звучать уже после того, как модель дописала.
+                    audio_deadline = time.perf_counter() + 8.0
+                if done and "audio" in seen:
+                    break                     # всё, что мерили, измерено
                 if done and audio_deadline and time.perf_counter() > audio_deadline:
+                    # Звука не дождались — НИЧЕГО не записываем. Ноль вместо
+                    # пропуска врёт убедительнее, чем отсутствие числа.
                     break
             print(f"  ход {i + 1}/{turns} ✓", flush=True)
 
