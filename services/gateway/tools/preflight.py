@@ -227,6 +227,96 @@ def check_live_turn(url: str) -> None:
         warn("движок не прислал engine.state — проверьте оркестратор")
 
 
+def check_full_game(url: str) -> None:
+    """Партия до разбора: грейд, занавес над интересами, слово наставника.
+
+    Разбор — это то, ради чего играют, и последнее, что видит жюри. Он собирает
+    вместе всё сразу: движок посчитал счёт, судья наговорил по ходам, разборщик
+    написал вердикт. Один ход этого не показывает: там ещё нет ни грейда, ни
+    занавеса, ни наставника.
+    """
+    print("\nпартия до разбора")
+    try:
+        import asyncio
+        import websockets
+    except ImportError:
+        warn("нет websockets — партия не проверена")
+        return
+
+    import time
+    ws_url = url.replace("http://", "ws://").replace("https://", "wss://") + "/v1/realtime"
+    # Принципиальная линия по столу поставщика: три вопроса по теме, критерий,
+    # размен, закрытие. Те же слова, которыми доказывается инвариант 2.
+    lines = [
+        "Ирина, что для вас важнее всего в этом контракте и почему именно это?",
+        "Я вас слышу. А чем это грозит, если загрузка производства просядет?",
+        "По рыночным данным справедливый ориентир другой; давайте опираться на них.",
+        "Если мы дадим годовой контракт и предоплату — сможете подвинуться по цене?",
+        "Договорились, фиксируем на 86?",
+    ]
+
+    async def play() -> tuple[dict | None, float]:
+        started = time.perf_counter()
+        async with websockets.connect(ws_url, open_timeout=10, close_timeout=5) as ws:
+            await ws.send(json.dumps({"type": "session.init", "payload": {
+                "mode": "text", "scenarioId": "supplier", "lang": "ru",
+                "gameMode": "practice", "layers": {}}}))
+            queued = list(lines)
+            while True:
+                event = json.loads(await asyncio.wait_for(ws.recv(), timeout=120))
+                kind = event.get("type")
+                if kind == "debrief":
+                    return event.get("debrief") or event.get("payload"), \
+                           (time.perf_counter() - started) * 1000
+                if kind in ("session.created", "response.done") and queued:
+                    line = queued.pop(0)
+                    await ws.send(json.dumps({"type": "input.append",
+                                              "input": {"text": line}}))
+                    await ws.send(json.dumps({"type": "input.commit"}))
+                # Реплики кончились — ЖДЁМ разбор, а не выходим. Он приходит
+                # ПОСЛЕ `response.done` последнего хода: сначала оппонент
+                # дописывает реплику, и только потом закрывается партия. Первая
+                # версия этой проверки выходила здесь же и объявляла исправную
+                # партию незакрывшейся.
+
+    try:
+        debrief, ms = asyncio.run(play())
+    except Exception as exc:  # noqa: BLE001
+        fail(f"партия не доиграна: {exc}")
+        return
+
+    if not debrief:
+        fail("разбор не пришёл — партия не закрылась пятью принципиальными ходами")
+        return
+
+    grade = debrief.get("grade")
+    ok(f"разбор пришёл за {ms:.0f} мс: грейд {grade}, "
+       f"экономика {debrief.get('economic')} · отношения {debrief.get('relationship')} · "
+       f"техника {debrief.get('technique')}")
+    found, total = debrief.get("interests_found"), debrief.get("interests_total")
+    if found == total:
+        ok(f"занавес: вскрыто интересов {found} из {total}")
+    else:
+        # ЭТО НЕ ОБЯЗАТЕЛЬНО ПОЛОМКА, но знать про это на сцене надо. Офлайн те
+        # же реплики вскрывают все три (это утверждает tests/test_reference_games).
+        # Вживую решает СУДЬЯ полем `interest_targeted`, и он может рассудить
+        # иначе: та же линия — другой результат. Расхождение живого пути с
+        # офлайновым не нарушает инвариант 8 (он про два движка, а судья — это
+        # третий вход), но занавес в разборе покажет невскрытый интерес, и
+        # объяснять это лучше заранее, чем на вопрос из зала.
+        warn(f"занавес: вскрыто {found} из {total} — офлайн та же линия вскрывает все; "
+             "вживую интерес выбирает судья, и он рассудил иначе")
+    if grade in ("A", "B"):
+        ok(f"инвариант 2 держится на живом пути: принципиальная игра → {grade}")
+    else:
+        fail(f"принципиальная игра дала {grade} — инвариант 2 обещает A или B")
+    if debrief.get("ai_verdict"):
+        ok("наставник высказался")
+    else:
+        warn("наставника нет — разбор покажет только детерминированные подсказки "
+             "(это рабочий режим, но на сцене про него лучше знать)")
+
+
 def check_custom_scenario(url: str) -> None:
     """«Своя сделка» — режим, который ломается тише всех.
 
@@ -294,6 +384,7 @@ def main() -> int:
     if args.live:
         check_live_turn(args.url.rstrip("/"))
         check_custom_scenario(args.url.rstrip("/"))
+        check_full_game(args.url.rstrip("/"))
 
     print()
     if problems:
