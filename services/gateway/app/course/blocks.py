@@ -3,7 +3,9 @@
 ЧТО ЭТО. Девять блоков по одному навыку каждый, в порядке, где следующий
 опирается на предыдущий: вопрос → эмоция → легитимность → сила → числа →
 создание ценности → защита → закрытие. Внутри блока — короткие уроки (текст) и
-упражнения (`bank.py`), в конце — экзамен блока (`exam.py`).
+упражнения (`bank.py`), в конце — экзамен блока. Экзамена как отдельного модуля
+нет: выборка детерминирована от (блок, попытка) и живёт в `lib/course.ts::drawExam`,
+потому что экзамен обязан считаться офлайн, как и всё остальное в курсе.
 
 ПОЧЕМУ ТЕКСТ ЖИВЁТ ЗДЕСЬ, А НЕ ВО ФРОНТЕНДЕ. Ровно по той же причине, что и
 сценарии: курс обязан ссылаться на НАСТОЯЩИЕ константы движка. Урок,
@@ -21,6 +23,36 @@ from dataclasses import dataclass
 
 def T(ru: str, en: str) -> dict[str, str]:
     return {"ru": ru, "en": en}
+
+
+#: Лестница реакций движка, от самой холодной к самой тёплой: ключ движка и
+#: подпись на двух языках.
+#:
+#: ПОЧЕМУ КОНСТАНТА, А НЕ ТЕКСТ В УРОКЕ. Урок «Лестница реакций» перечислял
+#: состояния прозой — и английский список успел разъехаться с движком:
+#: переставлены `neutral`/`not_yet` и `collaborated`/`opened_up`. То есть
+#: английский урок учил лестнице, по которой в игре не строятся ни дистракторы
+#: «прочитай лицо», ни соседи по шкале теплоты. Теперь урок СОБИРАЕТСЯ отсюда, а
+#: порядок сверяется с настоящей шкалой тестом
+#: `test_reaction_ladder_matches_the_engine_scale`.
+REACTION_LADDER: tuple[tuple[str, str, str], ...] = (
+    ("walked_out", "встаёт из-за стола", "walked out"),
+    ("offended", "принимает на свой счёт", "offended"),
+    ("hardened", "закрывается", "hardened"),
+    ("pressured", "под давлением", "pressured"),
+    ("not_yet", "пока не соглашается", "not yet"),
+    ("neutral", "держит нейтралитет", "neutral"),
+    ("collaborated", "идёт навстречу", "collaborated"),
+    ("persuaded", "принимает довод", "persuaded"),
+    ("opened_up", "приоткрывается", "opened up"),
+    ("warmed", "теплеет", "warmed"),
+)
+
+
+def ladder_text(lang: str) -> str:
+    """Лестница одной строкой — ровно в порядке движка."""
+    col = 1 if lang == "ru" else 2
+    return " · ".join(row[col] for row in REACTION_LADDER)
 
 
 @dataclass(frozen=True)
@@ -193,16 +225,17 @@ BLOCKS: list[Block] = [
                 "real interest.",
             )),
             Lesson(3, T("Лестница реакций", "The reaction ladder"), T(
-                "Оппонент всегда находится в одном из десяти состояний: встаёт из-за стола · "
-                "принимает на свой счёт · закрывается · под давлением · пока не соглашается · "
-                "держит нейтралитет · идёт навстречу · принимает довод · приоткрывается · теплеет. "
+                "Оппонент всегда находится в одном из десяти состояний: "
+                f"{ladder_text('ru')}. "
                 "Теми же словами они подписаны в игре и в заданиях — чтобы урок и стол говорили "
                 "на одном языке.\n\n"
                 "Читать это состояние — отдельный навык. Одна и та же ваша реплика на «теплеет» и "
                 "на «принимает на свой счёт» даёт разный результат, потому что уступки режутся "
                 "напряжением.",
-                "Your counterpart is always in one of ten states: walked out · offended · hardened · "
-                "pressured · neutral · not yet · opened up · persuaded · collaborated · warmed.\n\n"
+                "Your counterpart is always in one of ten states: "
+                f"{ladder_text('en')}. "
+                "The same words label the states at the table and in the exercises, so the lesson "
+                "and the game speak one language.\n\n"
                 "Reading that state is a skill of its own. The same line of yours lands differently "
                 "on “warmed” and on “offended”, because tension cuts concessions.",
             )),

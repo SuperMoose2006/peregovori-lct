@@ -37,6 +37,28 @@
    "spin": null
   },
   {
+   "text": "30% is far too much.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 5,
+   "number": 30.0,
+   "spin": null
+  },
+  {
+   "text": "30% — это слишком много.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 4,
+   "number": 30.0,
+   "spin": null
+  },
+  {
    "text": "300 000",
    "moves": [
     "offer"
@@ -78,6 +100,30 @@
    "arg": 11,
    "words": 2,
    "number": 88.0,
+   "spin": null
+  },
+  {
+   "text": "900 — and that is my final offer.",
+   "moves": [
+    "threat",
+    "offer"
+   ],
+   "primary": "threat",
+   "arg": 14,
+   "words": 7,
+   "number": 900.0,
+   "spin": null
+  },
+  {
+   "text": "900 — и это моё последнее слово.",
+   "moves": [
+    "threat",
+    "offer"
+   ],
+   "primary": "threat",
+   "arg": 14,
+   "words": 6,
+   "number": 900.0,
    "spin": null
   },
   {
@@ -250,6 +296,18 @@
    "spin": null
   },
   {
+   "text": "Either you take 18% or we walk.",
+   "moves": [
+    "threat",
+    "offer"
+   ],
+   "primary": "threat",
+   "arg": 14,
+   "words": 7,
+   "number": 18.0,
+   "spin": null
+  },
+  {
    "text": "Everyone I know is paid more than that.",
    "moves": [
     "statement"
@@ -313,6 +371,18 @@
    "arg": 26,
    "words": 5,
    "number": 99.5,
+   "spin": null
+  },
+  {
+   "text": "Good to see you. How are you?",
+   "moves": [
+    "rapport",
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 7,
+   "number": null,
    "spin": null
   },
   {
@@ -452,6 +522,18 @@
    "spin": null
   },
   {
+   "text": "If we commit to an annual volume commitment for the whole year, can you move down on the price per unit?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 28,
+   "words": 21,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "If we give an annual volume commitment, can you move on price to 88?",
    "moves": [
     "tradeoff",
@@ -461,6 +543,18 @@
    "arg": 44,
    "words": 14,
    "number": 88.0,
+   "spin": null
+  },
+  {
+   "text": "If we pay 30% upfront at signing, can you move down on the price per unit?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 44,
+   "words": 16,
+   "number": 30.0,
    "spin": null
   },
   {
@@ -539,6 +633,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 10,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Let us have you name a figure first.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
    "number": null,
    "spin": null
   },
@@ -644,6 +749,17 @@
    "words": 14,
    "number": 92.0,
    "spin": null
+  },
+  {
+   "text": "Tell me about your process: how do you currently plan shipments, and how often do you ship?",
+   "moves": [
+    "spin_situation"
+   ],
+   "primary": "spin_situation",
+   "arg": 42,
+   "words": 17,
+   "number": null,
+   "spin": "situation"
   },
   {
    "text": "Tell me about your production cycle — how is it set up?",
@@ -982,6 +1098,28 @@
    "spin": null
   },
   {
+   "text": "We are in no hurry and can wait.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "We have an alternative offer at a lower equity — but we would rather close with you, so let us find a structure.",
+   "moves": [
+    "batna"
+   ],
+   "primary": "batna",
+   "arg": 28,
+   "words": 22,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "We hold at 100, that is our policy.",
    "moves": [
     "offer"
@@ -990,6 +1128,19 @@
    "arg": 26,
    "words": 8,
    "number": 100.0,
+   "spin": null
+  },
+  {
+   "text": "We propose 1080, and here is the basis: across three comparable listings at the same mileage the market rate is exactly that.",
+   "moves": [
+    "objective_criteria",
+    "anchor",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 52,
+   "words": 22,
+   "number": 1080.0,
    "spin": null
   },
   {
@@ -1038,6 +1189,17 @@
    "spin": "implication"
   },
   {
+   "text": "What figure would you like to hear?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 7,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "What happens if the line sits idle for a month?",
    "moves": [
     "spin_implication"
@@ -1079,6 +1241,17 @@
    "arg": 26,
    "words": 6,
    "number": 65.0,
+   "spin": null
+  },
+  {
+   "text": "А какую цифру вы хотели бы услышать?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 7,
+   "number": null,
    "spin": null
   },
   {
@@ -1185,6 +1358,17 @@
    "spin": null
   },
   {
+   "text": "Давайте вы назовёте цифру первым.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Давайте свяжем срок контракта с ценой: если мы даём годовой объём, вы двигаетесь по цене?",
    "moves": [
     "tradeoff",
@@ -1216,6 +1400,30 @@
    "arg": 34,
    "words": 17,
    "number": 12.0,
+   "spin": null
+  },
+  {
+   "text": "Если мы внесём предоплату 30% в момент подписания, сможете подвинуться по цене за штуку?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 44,
+   "words": 14,
+   "number": 30.0,
+   "spin": null
+  },
+  {
+   "text": "Если мы дадим годовой контракт с гарантией объёма на весь год, сможете подвинуться по цене за штуку?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 28,
+   "words": 17,
+   "number": null,
    "spin": null
   },
   {
@@ -1300,6 +1508,18 @@
    "spin": null
   },
   {
+   "text": "Либо вы соглашаетесь на 18%, либо мы прекращаем разговор.",
+   "moves": [
+    "threat",
+    "offer"
+   ],
+   "primary": "threat",
+   "arg": 14,
+   "words": 9,
+   "number": 18.0,
+   "spin": null
+  },
+  {
    "text": "Машина в идеале, я за ней следил каждый день.",
    "moves": [
     "statement"
@@ -1317,8 +1537,8 @@
    ],
    "primary": "offer",
    "arg": 26,
-   "words": 6,
-   "number": 10100.0,
+   "words": 5,
+   "number": 10000.0,
    "spin": null
   },
   {
@@ -1341,6 +1561,30 @@
    "arg": 26,
    "words": 7,
    "number": 100.0,
+   "spin": null
+  },
+  {
+   "text": "Мы никуда не торопимся и подождём.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 6,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Мы предлагаем 1080, и вот на чём это основано: по трём объявлениям на такой же пробег медиана рынка именно такая.",
+   "moves": [
+    "objective_criteria",
+    "anchor",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 52,
+   "words": 20,
+   "number": 1080.0,
    "spin": null
   },
   {
@@ -1630,6 +1874,18 @@
    "spin": null
   },
   {
+   "text": "Рад встрече! Как ваши дела?",
+   "moves": [
+    "rapport",
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Расскажите о вашем производственном цикле — как он устроен?",
    "moves": [
     "spin_situation"
@@ -1637,6 +1893,17 @@
    "primary": "spin_situation",
    "arg": 34,
    "words": 8,
+   "number": null,
+   "spin": "situation"
+  },
+  {
+   "text": "Расскажите о вашем процессе: как сейчас устроены отгрузки и как часто вы отгружаете?",
+   "moves": [
+    "spin_situation"
+   ],
+   "primary": "spin_situation",
+   "arg": 42,
+   "words": 13,
    "number": null,
    "spin": "situation"
   },
@@ -1820,6 +2087,17 @@
    "arg": 26,
    "words": 9,
    "number": 68.0,
+   "spin": null
+  },
+  {
+   "text": "У нас есть альтернативное предложение с меньшей долей — но закрыть мы хотим с вами, поэтому давайте искать конструкцию.",
+   "moves": [
+    "batna"
+   ],
+   "primary": "batna",
+   "arg": 28,
+   "words": 18,
+   "number": null,
    "spin": null
   },
   {

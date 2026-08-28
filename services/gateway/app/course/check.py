@@ -89,9 +89,13 @@ def check_freeform(item: dict, text: str, lang: str = "ru",
 
     secondary = spec.get("require_secondary")
     if secondary:
+        # `judge=None` — а не пустой контейнер: непустой judge для движка значит
+        # «смысл уже прочитан моделью», и ключевые слова тогда не смотрятся вовсе.
+        # Курс судит офлайн, поэтому здесь всегда ключевые слова. Возвращаются
+        # САМИ SecondaryIssue, не их индексы.
         sc = by_id(item["scenario_id"])
-        hits = _match_secondary_issues(sc, norm(text), lang, set())
-        if secondary not in [sc.secondary_issues[i].id for i in hits]:
+        hits = _match_secondary_issues(sc, norm(text), lang, None)
+        if secondary not in [iss.id for iss in hits]:
             reasons.append(f"missing_term:{secondary}")
 
     return {"ok": not reasons, "reasons": reasons, "moves": list(a.moves),

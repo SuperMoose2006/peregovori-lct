@@ -6,7 +6,7 @@
 языках. Если правка баланса или словаря разойдётся с упражнением, падает
 сборка, а не пользователь: урок не может тихо превратиться в ложь.
 
-ТИПЫ (девять; проверка у всех детерминированная, ИИ в зачёте не участвует):
+ТИПЫ (десять; проверка у всех детерминированная, ИИ в зачёте не участвует):
 
     choice      выбрать верную реплику          — сверка индекса
     spot_error  найти ошибку в чужой реплике    — сверка индекса
@@ -17,7 +17,14 @@
     reaction    определить реакцию оппонента    — вычисляется apply_move()
     face        прочитать лицо оппонента        — картинка состояния, сверка ответа
     meters      предсказать движение шкал       — вычисляется apply_move()
-    drill       мини-переговорка на 3–6 ходов   — предикат над состоянием партии
+    drill       капстоун: настоящая партия      — предикат над состоянием партии
+
+КАПСТОУН ЕСТЬ В КАЖДОМ БЛОКЕ. Экзамен блока добавляет `drill` всегда, когда он
+есть, и весит его вдвое (lib/course.ts::drawExam). Пока капстоун был один, восемь
+экзаменов из девяти проверяли ТОЛЬКО узнавание — при том, что docs/course.md §5
+обещает применение. Каждый капстоун стоит на СВОЁМ столе блока и проверяется
+тестом `test_capstone_is_actually_winnable`: непроходимый капстоун — дефект
+капстоуна, а не теста.
 
 `explain` показывается ПОСЛЕ ответа всегда — и когда верно, и когда нет.
 """
@@ -143,6 +150,26 @@ BANK: list[dict] = [
             "Information +24 — more than any other move grants. Trust rises too, but far less: an "
             "interest question is for what you LEARN, not for warmth."),
     },
+    {
+        "id": "fo-07", "block": "foundations", "lesson": 4, "type": "drill",
+        "difficulty": 2, "xp": 40, "scenario_id": "rent", "max_turns": 6,
+        "prompt": T("Капстоун. Снимите квартиру не дороже 68k ₽/мес за 6 ходов, вскрыв минимум два интереса Натальи.",
+                    "Capstone. Rent the flat at 68k/mo or less within 6 turns, having uncovered at least two of Natalia's interests."),
+        "goal": T("Сделка ≤ 68k · два интереса", "Deal ≤ 68k · two interests"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "interests_found", "op": ">=", "value": 2},
+            {"field": "deal", "op": "<=", "value": 68},
+        ],
+        "explain": T(
+            "Ни один из трёх интересов Натальи не про деньги — поэтому спор о цене её не двигает. "
+            "Цена поехала ровно тогда, когда вы спросили про жильца: это и есть весь блок, "
+            "проверенный не узнаванием, а партией.",
+            "Not one of Natalia's three interests is about money — which is why arguing price does not "
+            "move her. The price moved the moment you asked about the tenant: that is the whole block, "
+            "checked by playing rather than by recognising."),
+    },
+
     # ---------------- 2. spin-ladder --------------------------------------
     {
         "id": "sp-01", "block": "spin-ladder", "lesson": 1, "type": "order",
@@ -276,6 +303,43 @@ BANK: list[dict] = [
             "N is the one question where the value is spoken by the other side, not by you. What "
             "people say themselves they do not argue with later — that is the trick of the fourth rung."),
     },
+    {
+        "id": "sp-08", "block": "spin-ladder", "lesson": 1, "type": "freeform",
+        "difficulty": 1, "xp": 10, "scenario_id": "supplier",
+        "prompt": T("Разговор только начался. Задайте вопрос ступени S — про то, как всё устроено сейчас.",
+                    "The conversation has just started. Ask a stage-S question — about how things work today."),
+        "check": {"require_moves": ["spin_situation"],
+                  "forbid_moves": ["threat", "hostile", "offer"], "min_words": 5},
+        "reference": T("Расскажите о вашем процессе: как сейчас устроены отгрузки и как часто вы отгружаете?",
+                       "Tell me about your process: how do you currently plan shipments, and how often do you ship?"),
+        "explain": T(
+            "S — единственная ступень, которую движок оценивает скромно (+14 к Информации) и "
+            "которую всё равно нельзя пропустить: без фактов следующий вопрос про боль звучит как "
+            "догадка. Цифра в первой реплике превращает вопрос в предложение — поэтому она запрещена.",
+            "S is the one rung the engine pays modestly for (+14 Information) and still cannot be "
+            "skipped: with no facts, the next question about pain sounds like a guess. A number in the "
+            "opening line turns the question into an offer — which is why it is forbidden here."),
+    },
+    {
+        "id": "sp-09", "block": "spin-ladder", "lesson": 5, "type": "drill",
+        "difficulty": 3, "xp": 40, "scenario_id": "supplier", "max_turns": 6,
+        "prompt": T("Капстоун. Пройдите лестницу и закройтесь не дороже 90 ₽/шт за 6 ходов, доведя Информацию до 40 и вскрыв два интереса.",
+                    "Capstone. Walk the ladder and close at 90/unit or better within 6 turns, taking Information to 40 and uncovering two interests."),
+        "goal": T("Сделка ≤ 90 · Информация ≥ 40 · два интереса",
+                  "Deal ≤ 90 · Information ≥ 40 · two interests"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "info", "op": ">=", "value": 40},
+            {"field": "interests_found", "op": ">=", "value": 2},
+            {"field": "deal", "op": "<=", "value": 90},
+        ],
+        "explain": T(
+            "Информацию двигают ТОЛЬКО вопросы: заявления и встречные цифры не дают ни очка. "
+            "Порог 40 нельзя взять разговором о цене — его берут ступенями S → P → I → N.",
+            "Only questions move Information: statements and counter-numbers earn nothing at all. "
+            "The 40 threshold cannot be reached by talking price — it is reached by S → P → I → N."),
+    },
+
     # ---------------- 3. active-listening ---------------------------------
     {
         "id": "al-01", "block": "active-listening", "lesson": 1, "type": "choice",
@@ -387,6 +451,44 @@ BANK: list[dict] = [
             "by 40%."),
     },
 
+    {
+        "id": "al-07", "block": "active-listening", "lesson": 1, "type": "meters",
+        "difficulty": 1, "xp": 10, "scenario_id": "conflict",
+        "state": {"trust": 40, "tension": 30, "info": 0, "leverage": 10, "turn": 1},
+        "player_line": T("Рад встрече! Как ваши дела?", "Good to see you. How are you?"),
+        "ask": "largest_delta", "answer": "trust",
+        "prompt": T("Какая шкала сдвинется сильнее всего?", "Which meter moves the most?"),
+        "explain": T(
+            "Приветствие — единственный ход, за который движок платит, ничего не требуя взамен: "
+            "доверие +5, напряжение −4. Мало, но бесплатно, и на первом ходу это всё, что у вас "
+            "есть. Отражение чувства (+8 / −10) сильнее — но ему нужно чувство, которое уже названо.",
+            "A greeting is the one move the engine pays for while asking nothing in return: trust +5, "
+            "tension −4. Little, but free — and on turn one it is all you have. Reflecting a feeling "
+            "(+8 / −10) is stronger, but it needs a feeling that has already been voiced."),
+    },
+    {
+        "id": "al-08", "block": "active-listening", "lesson": 4, "type": "drill",
+        "difficulty": 3, "xp": 40, "scenario_id": "conflict", "max_turns": 6,
+        "prompt": T("Капстоун. Договоритесь о сдвиге не больше 8 дней за 6 ходов, удержав напряжение ≤ 25 и доверие ≥ 60.",
+                    "Capstone. Settle on a slip of 8 days or less within 6 turns, keeping tension ≤ 25 and trust ≥ 60."),
+        "goal": T("Сдвиг ≤ 8 дней · напряжение ≤ 25 · доверие ≥ 60",
+                  "Slip ≤ 8 days · tension ≤ 25 · trust ≥ 60"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "deal", "op": "<=", "value": 8},
+            {"field": "tension", "op": "<=", "value": 25},
+            {"field": "trust", "op": ">=", "value": 60},
+        ],
+        "explain": T(
+            "Стол жёсткий, и соблазн додавить здесь сильнее всего. Но выше 55 напряжения уступки "
+            "режутся на 40%: давление и получает рычаг, и тут же замораживает его. Проходится это "
+            "только отражением — оно снимает по 10 напряжения за ход и ничего вам не стоит.",
+            "This table is a tough one, and the pull to push through is strongest here. But above 55 "
+            "tension concessions are cut by 40%: pressure buys leverage and freezes it in the same "
+            "move. The only way through is reflecting — it takes 10 tension off per turn and costs "
+            "you nothing."),
+    },
+
     # ---------------- 4. objective-criteria -------------------------------
     {
         "id": "oc-01", "block": "objective-criteria", "lesson": 2, "type": "choice",
@@ -496,6 +598,26 @@ BANK: list[dict] = [
             "A clash of opinions is won by the stubborn one; a clash of criteria by whoever's standard "
             "fits better. And the loser never capitulates: they yield to a standard, not to a person."),
     },
+    {
+        "id": "oc-07", "block": "objective-criteria", "lesson": 4, "type": "drill",
+        "difficulty": 3, "xp": 40, "scenario_id": "salary", "max_turns": 6,
+        "prompt": T("Капстоун. Выторгуйте оклад не ниже 225k ₽/мес за 6 ходов, ни разу не подняв напряжение выше 30.",
+                    "Capstone. Land a base of 225k/mo or more within 6 turns, never pushing tension above 30."),
+        "goal": T("Оклад ≥ 225k · напряжение ≤ 30", "Base ≥ 225k · tension ≤ 30"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "deal", "op": ">=", "value": 225},
+            {"field": "tension", "op": "<=", "value": 30},
+        ],
+        "explain": T(
+            "Потолок напряжения — это и есть проверка блока: «я стою больше» поднимает его, обзор "
+            "зарплат не поднимает вовсе. Критерий даёт рычаг +16 и реакцию «убеждён» вместо "
+            "«под давлением», а уступка растёт ещё и оттого, что оппонент здесь аналитик.",
+            "The tension ceiling IS the block's test: “I am worth more” raises it, a salary survey does "
+            "not raise it at all. A criterion grants leverage +16 and the reaction “persuaded” instead "
+            "of “pressured” — and the concession grows further because this counterpart is an analyst."),
+    },
+
     # ---------------- 5. batna-zopa ---------------------------------------
     {
         "id": "bz-01", "block": "batna-zopa", "lesson": 1, "type": "numeric",
@@ -601,6 +723,65 @@ BANK: list[dict] = [
             "ultimatum turns any movement into a surrender — and someone who reports to a boss cannot "
             "afford to surrender."),
     },
+    {
+        "id": "bz-07", "block": "batna-zopa", "lesson": 1, "type": "numeric",
+        "difficulty": 2, "xp": 10, "scenario_id": "investor", "derive": "zopa_width",
+        "prompt": T("Стол этого блока: инвестор не возьмёт меньше 18% доли, вы не отдадите больше 24%. Какова ширина ZOPA?",
+                    "This block's table: the investor will not take less than 18% equity, you will not give more than 24%. How wide is the ZOPA?"),
+        "answer": {"value": 6, "tolerance": 0}, "unit": T("% доли", "% equity"),
+        "explain": T(
+            "ZOPA = [18, 24], ширина 6 процентных пунктов — весь торг про их деление. Открылся "
+            "Павел с 30%, то есть на 12 пунктов ВЫШЕ своего дна: якорь и дно — разные числа, и "
+            "первое ничего не говорит о втором.",
+            "ZOPA = [18, 24], six percentage points wide — the whole haggle is over splitting them. "
+            "Pavel opened at 30%, i.e. 12 points ABOVE his floor: an anchor and a floor are different "
+            "numbers, and the first says nothing about the second."),
+    },
+    {
+        "id": "bz-08", "block": "batna-zopa", "lesson": 3, "type": "choice",
+        "difficulty": 3, "xp": 15, "scenario_id": "investor",
+        "prompt": T("Павел держит 30% и не двигается. У вас есть второй фонд. Как назвать альтернативу?",
+                    "Pavel holds 30% and will not move. You do have a second fund. How do you name the alternative?"),
+        "options": [
+            T("Либо вы соглашаетесь на 18%, либо мы прекращаем разговор.",
+              "Either you take 18% or we walk."),
+            T("У нас есть альтернативное предложение с меньшей долей — но закрыть мы хотим с вами, поэтому давайте искать конструкцию.",
+              "We have an alternative offer at a lower equity — but we would rather close with you, so let us find a structure."),
+            T("Мы никуда не торопимся и подождём.", "We are in no hurry and can wait."),
+            T("30% — это слишком много.", "30% is far too much."),
+        ],
+        "answer": 1, "expect_moves": ["batna"],
+        "explain": T(
+            "Альтернатива, названная без угрозы, даёт рычаг +10 и напряжение +14; та же альтернатива "
+            "ультиматумом добавляет сверху доверие −14 и напряжение +22 — и уступки замерзают. "
+            "У инвестора самая сильная BATNA в игре, так что пугать его своей особенно бессмысленно.",
+            "An alternative named without a threat grants leverage +10 and tension +14; the same "
+            "alternative as an ultimatum adds trust −14 and tension +22 on top — and concessions freeze. "
+            "The investor holds the strongest BATNA in the game, so frightening him with yours is "
+            "especially pointless."),
+    },
+    {
+        "id": "bz-09", "block": "batna-zopa", "lesson": 4, "type": "drill",
+        "difficulty": 3, "xp": 40, "scenario_id": "investor", "max_turns": 7,
+        "prompt": T("Капстоун. Закройте раунд на доле не выше 20% за 7 ходов, вскрыв минимум два интереса и не подняв напряжение выше 50.",
+                    "Capstone. Close the round at 20% equity or less within 7 turns, uncovering at least two interests and never pushing tension above 50."),
+        "goal": T("Доля ≤ 20% · два интереса · напряжение ≤ 50",
+                  "Equity ≤ 20% · two interests · tension ≤ 50"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "deal", "op": "<=", "value": 20},
+            {"field": "interests_found", "op": ">=", "value": 2},
+            {"field": "tension", "op": "<=", "value": 50},
+        ],
+        "explain": T(
+            "Дно Павла — 18%, ваша красная линия — 24%: вся партия про шесть пунктов. Жёсткая BATNA "
+            "здесь стоит дорого — напряжение +14 за упоминание и +22 сверху, если оно прозвучало "
+            "ультиматумом. Двадцать процентов берутся вопросами и разменом, а не второй фондом.",
+            "Pavel's floor is 18%, your red line 24%: the whole game is about six points. A hard BATNA "
+            "is expensive here — tension +14 for naming it and +22 more if it came out as an ultimatum. "
+            "Twenty percent is reached by questions and trades, not by the second fund."),
+    },
+
     # ---------------- 6. anchoring ----------------------------------------
     {
         "id": "an-01", "block": "anchoring", "lesson": 1, "type": "numeric",
@@ -697,6 +878,47 @@ BANK: list[dict] = [
             "напряжение +26 — и дальше механика мстит, потому что уступки уже урезаны.",
             "He is attached to the car: criticising the object read as criticising him. Trust −22, "
             "tension +26 — and the mechanics take revenge, because concessions are already cut."),
+    },
+
+    {
+        "id": "an-07", "block": "anchoring", "lesson": 2, "type": "choice",
+        "difficulty": 2, "xp": 15, "scenario_id": "used_car",
+        "prompt": T("Вы приехали первым и говорите первым. Как поставить свой якорь?",
+                    "You arrived first and you speak first. How do you set your anchor?"),
+        "options": [
+            T("900 — и это моё последнее слово.", "900 — and that is my final offer."),
+            T("Мы предлагаем 1080, и вот на чём это основано: по трём объявлениям на такой же пробег медиана рынка именно такая.",
+              "We propose 1080, and here is the basis: across three comparable listings at the same mileage the market rate is exactly that."),
+            T("А какую цифру вы хотели бы услышать?", "What figure would you like to hear?"),
+            T("Давайте вы назовёте цифру первым.", "Let us have you name a figure first."),
+        ],
+        "answer": 1, "expect_moves": ["anchor", "objective_criteria"],
+        "explain": T(
+            "Якорь без обоснования — просто цифра, и защищаться от него учат в следующем уроке. "
+            "Якорь с критерием движок читает КАК критерий: рычаг +16 и реакция «убеждён». "
+            "Первый вариант — цифра без единого основания, да ещё ультиматумом: доверие −14, напряжение +22.",
+            "An anchor with no grounding is just a number, and the next lesson teaches how to defuse "
+            "one. An anchor with a criterion is read by the engine AS a criterion: leverage +16 and the "
+            "reaction “persuaded”. Option one is a bare number with an ultimatum on top: trust −14, tension +22."),
+    },
+    {
+        "id": "an-08", "block": "anchoring", "lesson": 4, "type": "drill",
+        "difficulty": 3, "xp": 40, "scenario_id": "used_car", "max_turns": 6,
+        "prompt": T("Капстоун. Сбейте якорь 1200k и купите не дороже 1080k за 6 ходов, удержав напряжение ≤ 40.",
+                    "Capstone. Defuse the 1200k anchor and buy at 1080k or less within 6 turns, keeping tension ≤ 40."),
+        "goal": T("Сделка ≤ 1080k · напряжение ≤ 40", "Deal ≤ 1080k · tension ≤ 40"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "deal", "op": "<=", "value": 1080},
+            {"field": "tension", "op": "<=", "value": 40},
+        ],
+        "explain": T(
+            "Сергей открылся на 160k выше своего дна, и оскорбительная встречная цифра эти 160k не "
+            "отыгрывает: он привязан к машине, критика вещи читается как критика его самого. "
+            "Потолок напряжения и есть запрет на контр-якорь — остаётся критерий.",
+            "Sergey opened 160k above his floor, and an insulting counter-number does not win those "
+            "160k back: he is attached to the car, and criticising the object reads as criticising him. "
+            "The tension ceiling IS the ban on a counter-anchor — what is left is a criterion."),
     },
 
     # ---------------- 7. logrolling ---------------------------------------
@@ -810,6 +1032,64 @@ BANK: list[dict] = [
             "While only price is on the table, one side's gain is the other's loss. A second issue — "
             "term, volume, payment schedule — creates options where both sides win."),
     },
+    {
+        "id": "lr-07", "block": "logrolling", "lesson": 4, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "supplier",
+        "prompt": T("Свяжите цену с ГОДОВЫМ КОНТРАКТОМ — назовите условие прямо, а не «пойдём навстречу».",
+                    "Link the price to the ANNUAL COMMITMENT — name the term outright, not “we will meet you halfway”."),
+        "check": {"require_moves": ["tradeoff"],
+                  "forbid_moves": ["concession", "threat", "hostile"],
+                  "require_secondary": "annual_contract", "min_words": 8},
+        "reference": T("Если мы дадим годовой контракт с гарантией объёма на весь год, сможете подвинуться по цене за штуку?",
+                       "If we commit to an annual volume commitment for the whole year, can you move down on the price per unit?"),
+        "explain": T(
+            "Движок считает пакет по НАЗВАННОМУ условию: годовой контракт стоит ей 0.85, то есть "
+            "добавляет к уступке 0.10 + 0.30·0.85 = 0.355. Безымянное «пойдём навстречу» — уступка "
+            "(`concession`), а не размен: вы отдали, ничего не получив, и второй оси не появилось.",
+            "The engine scores the package by the term you NAME: the annual commitment is worth 0.85 to "
+            "her, i.e. it adds 0.10 + 0.30·0.85 = 0.355 to the concession. A nameless “we will meet you "
+            "halfway” is a `concession`, not a trade: you gave something away for nothing, and no "
+            "second axis appeared."),
+    },
+    {
+        "id": "lr-08", "block": "logrolling", "lesson": 3, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "supplier",
+        "prompt": T("Тот же приём на второй фишке: свяжите цену с ПРЕДОПЛАТОЙ.",
+                    "The same move on the second chip: link the price to the UPFRONT PAYMENT."),
+        "check": {"require_moves": ["tradeoff"], "forbid_moves": ["threat", "hostile"],
+                  "require_secondary": "prepay", "min_words": 8},
+        "reference": T("Если мы внесём предоплату 30% в момент подписания, сможете подвинуться по цене за штуку?",
+                       "If we pay 30% upfront at signing, can you move down on the price per unit?"),
+        "explain": T(
+            "Предоплата стоит Ирине 0.55 против 0.85 у годового контракта — уступка меньше (0.265 "
+            "против 0.355), а вам она обходится дороже (0.45 против 0.2). Порядок разменов не "
+            "декоративен: сначала дешёвое вам и дорогое им.",
+            "The prepayment is worth 0.55 to Irina against 0.85 for the annual commitment — a smaller "
+            "concession (0.265 vs 0.355) and a costlier one for you (0.45 vs 0.2). The order of trades "
+            "is not decorative: cheap-for-you and dear-to-them goes first."),
+    },
+    {
+        "id": "lr-09", "block": "logrolling", "lesson": 4, "type": "drill",
+        "difficulty": 3, "xp": 40, "scenario_id": "supplier", "max_turns": 6,
+        "prompt": T("Капстоун. Соберите пакет: закройтесь не дороже 87 ₽/шт за 6 ходов, доведя доверие до 70.",
+                    "Capstone. Build the package: close at 87/unit or better within 6 turns, taking trust to 70."),
+        "goal": T("Сделка ≤ 87 · доверие ≥ 70", "Deal ≤ 87 · trust ≥ 70"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "deal", "op": "<=", "value": 87},
+            {"field": "trust", "op": ">=", "value": 70},
+        ],
+        "explain": T(
+            "Доверие 70 на этом столе одним слушанием не набирается: каждая названная фишка "
+            "добавляет сверху 3 + 4·ценность, и обе вместе с самим разменом дают почти восемнадцать "
+            "пунктов. Порог "
+            "доверия здесь — способ проверить, что пакет был СОБРАН, а не обещан словами.",
+            "Trust of 70 is not reachable on this table by listening alone: every named chip adds "
+            "3 + 4·value on top, and both together with the trade itself give almost eighteen points. The "
+            "trust threshold is how "
+            "this checks that the package was actually BUILT, not merely promised in words."),
+    },
+
     # ---------------- 8. pressure-defense ---------------------------------
     {
         "id": "pd-01", "block": "pressure-defense", "lesson": 1, "type": "choice",
@@ -916,6 +1196,29 @@ BANK: list[dict] = [
             "He has got up to leave. The engine ends the session when tension hits the ceiling or "
             "trust falls to almost nothing: past that point there is no negotiation left, whatever "
             "the argument."),
+    },
+
+    {
+        "id": "pd-07", "block": "pressure-defense", "lesson": 4, "type": "drill",
+        "difficulty": 3, "xp": 40, "scenario_id": "sla_renewal", "max_turns": 6,
+        "prompt": T("Капстоун. Дожмите аптайм до 99.7% за 6 ходов, удержав напряжение ≤ 30 и доверие ≥ 65.",
+                    "Capstone. Push uptime to 99.7% within 6 turns, keeping tension ≤ 30 and trust ≥ 65."),
+        "goal": T("Аптайм ≥ 99.7% · напряжение ≤ 30 · доверие ≥ 65",
+                  "Uptime ≥ 99.7% · tension ≤ 30 · trust ≥ 65"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "deal", "op": ">=", "value": 99.7},
+            {"field": "tension", "op": "<=", "value": 30},
+            {"field": "trust", "op": ">=", "value": 65},
+        ],
+        "explain": T(
+            "Оппонент здесь давит сам, и зеркальный ультиматум стоит дороже, чем кажется: этот стиль "
+            "«жёсткий», поэтому к напряжению прибавляется ещё +8 сверх обычных +22. Оба порога "
+            "держатся тем, что возражение разбирают как интерес, а не как атаку.",
+            "This counterpart applies the pressure, and mirroring the ultimatum costs more than it "
+            "looks: the style is “tough”, so tension takes another +8 on top of the usual +22. Both "
+            "thresholds hold only if the objection is unpacked as an interest rather than met as an "
+            "attack."),
     },
 
     # ---------------- 9. closing ------------------------------------------
