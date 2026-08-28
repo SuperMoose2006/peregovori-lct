@@ -190,7 +190,11 @@ export type ClientMsg =
   // честным `capabilities`, где выключено то, чего окружение не может дать.
   | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string;
       reputation?: number;
-      layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean } }
+      /** ISO-дата «стола дня». Условие дня ляжет, только если стол ТОГО дня и
+       *  правда этот — иначе «короткий стол» выпрашивался бы на любом. */
+      daily?: string;
+      layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean;
+                 pokerface?: boolean } }
   | { type: "turn"; text: string }
   | { type: "hint" };
 

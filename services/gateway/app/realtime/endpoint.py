@@ -216,6 +216,22 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     if payload.reputation is not None:
         views.apply_reputation(engine_session, payload.reputation)
 
+    # УСЛОВИЕ ДНЯ. Накладывается той же схемой, что репутация кампании: это вход
+    # партии (длина, стартовые шкалы), а не правило подсчёта — `score_session`
+    # о нём не знает. Дату присылает клиент; сверяем, что стол ТОГО дня и правда
+    # этот, иначе «короткий стол» можно было бы выпросить на любом сценарии.
+    daily_mod = None
+    if payload.daily and payload.gameMode != "exam":
+        from datetime import date as _date
+        from app.engine.daily import apply_modifier, daily_table
+        try:
+            table = daily_table(_date.fromisoformat(payload.daily))
+        except ValueError:
+            table = None
+        if table is not None and table.scenario_id == scenario_id:
+            apply_modifier(engine_session, table.modifier)
+            daily_mod = table.modifier.id
+
     session_id = store.new_id()
     store.put(session_id, engine_session)
     return RealtimeSession(
@@ -226,6 +242,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
         game_mode=payload.gameMode,
         layers=_layers_for(payload),
         reputation=payload.reputation,
+        daily=daily_mod,
     ), None
 
 
@@ -380,6 +397,9 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         # может стоять, а слой при этом не подняться (нет ключа — нет модели
         # зрения). Клиент обязан различать «выключено» и «недоступно».
         "pokerface": bool(session.layers.pokerface) and orchat.available(),
+        # Условие дня — не возможность, а факт партии, но едет тем же путём:
+        # клиент показывает подпись, только если условие ДЕЙСТВИТЕЛЬНО легло.
+        "daily": session.daily,
         "judge": judge_enabled(),
         "cloud_ai": orchat.available(),
         "models": describe_models(),

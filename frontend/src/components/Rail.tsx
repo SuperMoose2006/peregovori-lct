@@ -5,6 +5,8 @@
 // as an app — which is exactly the gap between what was designed on the canvas
 // and what the code shipped first.
 import type { Strings } from "../i18n";
+import { dailyTable } from "../lib/daily";
+import { SCENARIO_MAP } from "../data/scenarios";
 import type { Lang } from "../types";
 import type { Profile } from "../lib/progress";
 import { dailyGoalView, rankForXp, DAILY_GOAL_MAX } from "../lib/progress";
@@ -68,6 +70,38 @@ export function ProgressCards({ t, lang, profile, onSetGoal }:
         ) : null}
       </RailCard>
     </>
+  );
+}
+
+/**
+ * «Стол дня» — один и тот же у всех, каждый день другой.
+ *
+ * Причина вернуться завтра из тех, что не требуют нового содержания: восемь
+ * столов открыты сразу, курс проходится за вечер, и без этой карточки
+ * возвращаться не за чем. Условие дня названо словами прямо здесь — «короткий
+ * стол», «холодный старт», — потому что человек должен знать, во что садится,
+ * до того как сел.
+ *
+ * Стол считается ОФЛАЙН, тем же расписанием, что на сервере
+ * (`lib/daily.ts` ↔ `app/engine/daily.py`): карточка обязана работать без сети,
+ * как и всё остальное.
+ */
+export function DailyCard({ t, lang, onPlay }:
+  { t: Strings; lang: Lang; onPlay: (scenarioId: string) => void }) {
+  const table = dailyTable();
+  const sc = SCENARIO_MAP[table.scenarioId];
+  if (!sc) return null;
+  return (
+    <RailCard title={t.daily.title}>
+      <button className="rc-daily" onClick={() => onPlay(table.scenarioId)}>
+        <span className="rc-daily-ic" aria-hidden="true">{sc.icon}</span>
+        <span className="rc-daily-txt">
+          <b>{sc.title[lang]}</b>
+          <span className="rc-daily-mod">{table.modifier.label[lang]}</span>
+        </span>
+      </button>
+      <p className="rc-next">{table.modifier.note[lang]}</p>
+    </RailCard>
   );
 }
 

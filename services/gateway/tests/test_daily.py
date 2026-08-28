@@ -7,7 +7,9 @@
 import os
 os.environ.setdefault("NEGO_AI", "off")
 
+import asyncio
 from datetime import date, timedelta
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -110,3 +112,93 @@ def test_a_broken_date_falls_back_to_today_instead_of_failing():
     r = client.get("/api/daily?day=не-дата")
     assert r.status_code == 200
     assert r.json()["day"] == date.today().isoformat()
+
+
+#: ОБЩИЙ КОНТРАКТ С БРАУЗЕРОМ. Ровно эта таблица продублирована в
+#: `frontend/test/daily.test.ts`. Она не «ожидаемые значения», а точка встречи:
+#: правку расписания придётся сделать в двух местах, и потому её нельзя сделать
+#: в одном — а тихая правка в одном и есть та беда, от которой стоит инвариант 8.
+SCHEDULE_CONTRACT = (
+    ("2026-08-28", "used_car", "tense"),
+    ("2026-08-29", "freelance_rate", "plain"),
+    ("2026-08-30", "sla_renewal", "short"),
+    ("2026-08-31", "supplier", "tense"),
+    ("2026-09-01", "salary", "plain"),
+    ("2026-09-02", "conflict", "short"),
+)
+
+
+def test_schedule_matches_the_contract_shared_with_the_browser():
+    for iso, scenario_id, modifier_id in SCHEDULE_CONTRACT:
+        t = daily_table(date.fromisoformat(iso))
+        assert (t.scenario_id, t.modifier.id) == (scenario_id, modifier_id), iso
+
+
+def test_the_contract_is_actually_mirrored_in_the_frontend_test():
+    """Половина контракта без второй половины — не контракт."""
+    mirror = (Path(__file__).resolve().parents[3]
+              / "frontend" / "test" / "daily.test.ts")
+    text = mirror.read_text(encoding="utf-8")
+    for iso, scenario_id, modifier_id in SCHEDULE_CONTRACT:
+        line = f'["{iso}", "{scenario_id}", "{modifier_id}"]'
+        assert line in text, f"в зеркале нет строки {line}"
+
+
+# ------------------------------------------------------ условие в живой партии
+
+def test_the_condition_actually_lands_on_the_session():
+    """Подпись «короткий стол» без применённого условия — та самая ложь.
+
+    Проверяем не намерение, а результат: партия, начатая со «столом дня»,
+    обязана нести его условие в состоянии, и `capabilities.daily` обязано это
+    подтверждать. Иначе карточка обещает то, чего в игре нет.
+    """
+    from app.realtime.endpoint import _build_session  # noqa: PLC0415
+    from app.realtime.events import SessionInit
+
+    d = date(2026, 8, 30)                       # short: восемь ходов вместо 12
+    table = daily_table(d)
+    assert table.modifier.id == "short", "контракт расписания изменился"
+
+    sess, err = asyncio.run(_build_session(SessionInit(
+        scenarioId=table.scenario_id, lang="ru", daily=d.isoformat())))
+    assert err is None and sess is not None
+    assert sess.daily == "short"
+    assert sess.engine_session.max_turns == 8
+
+
+def test_a_condition_cannot_be_asked_for_on_the_wrong_table():
+    """Иначе «короткий стол» выпрашивался бы на любом сценарии."""
+    from app.realtime.endpoint import _build_session
+    from app.realtime.events import SessionInit
+
+    d = date(2026, 8, 30)
+    other = next(s.id for s in engine.SCENARIOS if s.id != daily_table(d).scenario_id)
+    sess, err = asyncio.run(_build_session(SessionInit(
+        scenarioId=other, lang="ru", daily=d.isoformat())))
+    assert err is None and sess is not None
+    assert sess.daily is None
+    assert sess.engine_session.max_turns == 12
+
+
+def test_the_exam_takes_no_condition_of_the_day():
+    """Сертификат опирается на сопоставимость условий — здесь буквально."""
+    from app.realtime.endpoint import _build_session
+    from app.realtime.events import SessionInit
+
+    d = date(2026, 8, 30)
+    table = daily_table(d)
+    sess, err = asyncio.run(_build_session(SessionInit(
+        scenarioId=table.scenario_id, lang="ru", gameMode="exam", daily=d.isoformat())))
+    assert err is None and sess is not None
+    assert sess.daily is None
+    assert sess.engine_session.max_turns == 12
+
+
+def test_a_broken_date_in_the_payload_is_simply_ignored():
+    from app.realtime.endpoint import _build_session
+    from app.realtime.events import SessionInit
+
+    sess, err = asyncio.run(_build_session(SessionInit(
+        scenarioId="supplier", lang="ru", daily="позавчера")))
+    assert err is None and sess is not None and sess.daily is None

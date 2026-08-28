@@ -2215,6 +2215,20 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   margin: 0 0 12px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
   font-weight: 800; color: var(--ink-faint);
 }
+/* Стол дня — кнопка во всю ширину карточки, а не ссылка: это единственное
+   действие в рейле, и промахнуться по нему на телефоне нельзя. */
+.rc-daily {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px; margin: -2px 0 8px; text-align: left; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  color: inherit; font: inherit;
+}
+.rc-daily:hover { border-color: var(--brass); }
+.rc-daily:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.rc-daily-ic { font-size: 22px; line-height: 1; }
+.rc-daily-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rc-daily-txt b { font-size: 14px; }
+.rc-daily-mod { font-size: 12px; color: var(--brass); font-weight: 600; }
 .rc-goal { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .rc-goal b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .rc-steps { display: inline-flex; gap: 5px; }

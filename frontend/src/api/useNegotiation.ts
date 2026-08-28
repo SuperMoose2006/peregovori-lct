@@ -85,7 +85,10 @@ export interface Negotiation extends NegotiationState {
   // situation is the free-text brief for mode "custom" (ignored otherwise).
   // reputation (-100..100) carries a campaign result into the next stage's trust.
   start: (scenarioId: string, mode: Mode, situation?: string, reputation?: number,
-          layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean }) => void;
+          layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean;
+                     pokerface?: boolean },
+          /** ISO-дата «стола дня» — только когда партия и правда сегодняшняя. */
+          daily?: string) => void;
   turn: (text: string) => void;
   requestHint: () => void;
   answerProbe: (id: number, choice: number) => void;
@@ -214,11 +217,13 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
 
   const start = useCallback(
     (scenarioId: string, mode: Mode, situation?: string, reputation?: number,
-     layers?: { probe?: boolean; voice?: boolean; camera?: boolean }) => {
+     layers?: { probe?: boolean; voice?: boolean; camera?: boolean; pokerface?: boolean },
+     daily?: string) => {
       teardown();
       setS({ ...initialState });
       const t = ensureTransport();
-      t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation, reputation, layers });
+      t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation,
+               reputation, layers, daily });
     },
     [ensureTransport, teardown],
   );

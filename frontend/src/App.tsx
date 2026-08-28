@@ -16,7 +16,8 @@ import {
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { Setup } from "./components/Setup";
-import { ProgressCards, MethodCard, RailCard } from "./components/Rail";
+import { ProgressCards, MethodCard, RailCard, DailyCard } from "./components/Rail";
+import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { SCENARIO_MAP, toScenarioView } from "./data/scenarios";
 import { detectLayers, pruneLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
@@ -69,6 +70,10 @@ export default function App() {
   const layerStates = useMemo(() => detectLayers(), []);
   const [layers, setLayers] = useState<Layers>(NO_LAYERS);
   const [pendingScenario, setPendingScenario] = useState<string | null>(null);
+  /** Пришли ли за стол со «стола дня». Отдельный флаг, а не сравнение сценария
+   *  с сегодняшним: сегодняшний стол можно открыть и из общего списка, и тогда
+   *  условия дня быть не должно — иначе оно накладывалось бы исподтишка. */
+  const [dailyPending, setDailyPending] = useState(false);
 
   const [screen, setScreen] = useState<Screen>("home");
   const [mode, setMode] = useState<Mode>("practice");
@@ -283,6 +288,7 @@ export default function App() {
   const start = useCallback(
     (scenarioId: string) => {
       dispatchGen("reset"); // leave any stale custom-gen state behind
+      setDailyPending(false); // обычный вход за стол — условия дня здесь нет
       setCurrentScenario(scenarioId);
       if (mode === "exam") {
         setLayers(NO_LAYERS);
@@ -295,6 +301,28 @@ export default function App() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
     [mode, nego],
+  );
+
+  /**
+   * Стол дня всегда обычная партия, чем бы ни был занят переключатель режима.
+   *
+   * Через `start()` вести нельзя: он читает `mode` из замыкания, а `setMode`
+   * применится только к следующему рендеру — клик по столу дня из режима
+   * «Экзамен» открыл бы экзамен с погашенными слоями. Поэтому ветка обычной
+   * партии повторена здесь явно, а не собрана из двух вызовов подряд.
+   */
+  const startDaily = useCallback(
+    (scenarioId: string) => {
+      nego.clearError();
+      setDailyPending(true);
+      setMode("practice");
+      dispatchGen("reset");
+      setCurrentScenario(scenarioId);
+      setPendingScenario(scenarioId);
+      setScreen("setup");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [nego],
   );
 
   const startDrill = useCallback(
@@ -327,10 +355,15 @@ export default function App() {
     if (!pendingScenario) return;
     const use = pruneLayers(layers, layerStates);
     setLayers(use);
-    nego.start(pendingScenario, mode, undefined, undefined, use);
+    // Дата едет, только если человек пришёл со «стола дня» И стол всё ещё
+    // сегодняшний: между кликом и подтверждением слоёв могла пройти полночь.
+    // Сервер сверяет ещё раз — здесь мы просто не просим невозможного.
+    const today = dailyTable();
+    const daily = dailyPending && today.scenarioId === pendingScenario ? today.day : undefined;
+    nego.start(pendingScenario, mode, undefined, undefined, use, daily);
     setScreen("game");
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [pendingScenario, layers, layerStates, mode, nego]);
+  }, [pendingScenario, dailyPending, layers, layerStates, mode, nego]);
 
   /** "прочитано n из m" — answered-correctly over asked. Counted from the log,
    *  so it needs no extra state and survives a re-render. */
@@ -543,6 +576,9 @@ export default function App() {
             />
             </div>
             <aside className="rail">
+                {/* Стол дня стоит ПЕРВЫМ в рейле: это единственная карточка,
+                    которая завтра будет другой, и ради неё сюда возвращаются. */}
+                <DailyCard t={t} lang={lang} onPlay={startDaily} />
                 <ProgressCards t={t} lang={lang} profile={profile} onSetGoal={setGoalTarget} />
                 {/* Курс живёт в сайдбаре, но с домашнего экрана его надо ещё и
                     ВИДЕТЬ: строка меню не рассказывает, что внутри девять блоков. */}

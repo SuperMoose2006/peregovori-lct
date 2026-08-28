@@ -180,6 +180,7 @@ export interface Strings {
   // Итог → Что вы упустили → Что сказал бы мастер, one action each.
   beats: { label: string; names: string[]; next: string; more: string; less: string };
   // Виджеты правого рейла оболочки.
+  daily: { title: string };
   goal: { title: string };
   rank: { title: string; toNext: string };  // toNext: "{n} XP до «{rank}»"
   method: { title: string };
@@ -716,6 +717,7 @@ export const I18N: Record<Lang, Strings> = {
       more: "Подробный разбор ▾",
       less: "Свернуть подробности ▴",
     },
+    daily: { title: "Стол дня" },
     goal: { title: "Цель дня" },
     rank: { title: "Ваш ранг", toNext: "{n} XP до «{rank}»" },
     method: { title: "Метод" },
@@ -1337,6 +1339,7 @@ export const I18N: Record<Lang, Strings> = {
       more: "Full breakdown ▾",
       less: "Hide details ▴",
     },
+    daily: { title: "Table of the day" },
     goal: { title: "Daily goal" },
     rank: { title: "Your rank", toNext: "{n} XP to \u00ab{rank}\u00bb" },
     method: { title: "Method" },

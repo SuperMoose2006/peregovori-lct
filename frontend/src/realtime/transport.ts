@@ -149,6 +149,7 @@ export class RealtimeTransport implements Transport {
       gameMode: message.mode,
       situation: message.situation ?? null,
       reputation: message.reputation ?? null,
+      daily: message.daily ?? null,
       layers,
     };
 

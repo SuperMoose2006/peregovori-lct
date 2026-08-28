@@ -49,6 +49,9 @@ export interface SessionInitPayload {
   situation?: string | null;
   reputation?: number | null;
   layers?: Record<string, boolean>;
+  /** ISO-дата «стола дня». Дату шлёт КЛИЕНТ: часовой пояс знает браузер, а
+   *  сервер по своему UTC выдал бы игроку на востоке вчерашний стол. */
+  daily?: string | null;
 }
 
 export interface RealtimeSessionOptions {
