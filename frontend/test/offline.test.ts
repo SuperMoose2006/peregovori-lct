@@ -15,7 +15,7 @@ import { synthCampaigns } from "../src/data/campaigns";
 import { dailyTable } from "../src/lib/daily";
 import { buildProbe, shouldProbe } from "../src/lib/probe";
 import { COURSE_BANK, COURSE_BLOCKS } from "../src/data/course.generated";
-import { check } from "../src/lib/course";
+import { check } from "../src/lib/courseCheck";
 import { analyze, applyMove, newSession, scoreSession } from "../src/mock/engine";
 import { SCENARIO_MAP, SCENARIOS } from "../src/data/scenarios";
 

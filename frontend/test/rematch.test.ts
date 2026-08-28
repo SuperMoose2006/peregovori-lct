@@ -11,8 +11,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   METER_IDS, meterGaps, meterSeries, openingOf, priceGap, priceOf, priceSeries,
-  replayRun, sameOpening, sparkPoints,
+  sameOpening, sparkPoints,
 } from "../src/lib/rematch";
+// Пересчёт живёт отдельно: он единственный здесь зовёт движок-зеркало.
+import { replayRun } from "../src/lib/rematchReplay";
 import {
   compactRun, foldPastRun, keepRun, loadPastRun, loadPastRuns, savePastRun,
   PAST_MAX_MOVES, PAST_MAX_TABLES, PAST_MOVE_CHARS, type PastRun,

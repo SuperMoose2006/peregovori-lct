@@ -14,14 +14,42 @@
 //
 // Второй вариант — не деградация и не заглушка. Это офлайн-ядро продукта:
 // движок, шкалы, реакции, разбор и грейд считаются одинаково.
+//
+// ОБА ПРИЕЗЖАЮТ ОТДЕЛЬНЫМИ ФАЙЛАМИ. Выбор между ними и так асинхронный: сперва
+// проба сервера, и только потом становится известно, чей это ход. Пока оба
+// импорта были статическими, домашний экран платил за ОБА — и за realtime с
+// его вендорным кодом, и за офлайн-ядро, — хотя до первой партии не нужен ни
+// один. Теперь нужный файл едет ровно тогда, когда выбор уже сделан.
+//
+// ИНВАРИАНТ 5 ЭТИМ НЕ ЗАДЕТ, И ВОТ ПОЧЕМУ. «Сети нет» здесь значит «наш
+// бэкенд не ответил», а статику отдаёт ТОТ ЖЕ адрес, что и страницу: раз
+// страница открылась, файл офлайн-ядра доедет с того же места. Настоящий
+// офлайн (самолёт, метро) обслуживает service worker, а в его кеш куски
+// кладёт прогрев на простое сразу после первой отрисовки (App.tsx: warmScreens).
+// Не доехало и это — падаем в `status("lost")` с честной панелью, а не в
+// молчаливый спиннер.
 
 import type { ClientMsg } from "../types";
 import type { ConnStatus, ServerMsgHandler, Transport, TransportKind } from "../api/transport";
-import { MockServer } from "../mock/mockServer";
-import { RealtimeTransport, type RealtimeTransportOptions } from "../realtime/transport";
+import type { RealtimeTransportOptions } from "../realtime/transport";
 
 /** Сколько ждём ответа от сервера, прежде чем уйти в офлайн-ядро. */
 const OPEN_TIMEOUT_MS = 1500;
+
+/** Сколько ждём файл транспорта. Зависший запрос — не «ещё грузится», а тот же
+ *  отказ, только молчаливый: без этого срока стол остался бы с надписью
+ *  «соединяемся» навсегда, потому что решение о транспорте так и не приняли. */
+const CHUNK_TIMEOUT_MS = 10000;
+
+function withDeadline<T>(load: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("transport chunk timed out")), CHUNK_TIMEOUT_MS);
+    load.then(
+      (mod) => { clearTimeout(timer); resolve(mod); },
+      (err) => { clearTimeout(timer); reject(err); },
+    );
+  });
+}
 
 function mockForced(): boolean {
   // VITE_MOCK=1 forces mock; VITE_MOCK=0 forces WS only (no fallback).
@@ -56,11 +84,6 @@ export function createTransport(
   options?: RealtimeTransportOptions,
 ): Transport {
   const status = onStatus ?? (() => {});
-  if (mockForced()) {
-    onKind("mock");
-    status("online");
-    return new MockServer(onMessage);
-  }
 
   let decided = false;
   let inner: Transport | null = null;
@@ -92,6 +115,22 @@ export function createTransport(
     early.length = 0;
   };
 
+  // Офлайн-ядро: без сервера продукт остаётся играбельным целиком.
+  const goMock = () => {
+    if (decided) return;
+    if (mockDisabled()) { status("lost"); return; }
+    withDeadline(import("../mock/mockServer"))
+      .then((m) => { if (!decided) adopt(new m.MockServer(onMessage), "mock"); })
+      // Не доехало и офлайн-ядро — играть не на чем, и сказать об этом надо
+      // словами: «lost» рисует панель с переподключением, а не пустой стол.
+      .catch(() => status("lost"));
+  };
+
+  if (mockForced()) {
+    goMock();
+    return proxy;
+  }
+
   // Проба сервера REST-ом, а не сокетом: дешевле, и — главное — не занимает
   // realtime-сессию впустую. Сокет realtime-транспорта открывается один раз,
   // сразу под партию, а не «на разведку и заново».
@@ -102,13 +141,18 @@ export function createTransport(
     .then((r) => {
       clearTimeout(timer);
       if (!r.ok) throw new Error("health failed");
-      adopt(new RealtimeTransport(onMessage, status, options ?? {}), "ws");
+      return withDeadline(import("../realtime/transport"));
+    })
+    .then((m) => {
+      // Проверка ПЕРЕД конструктором, а не внутри adopt: конструктор открывает
+      // сокет, и созданный после закрытия сессии транспорт остался бы висеть
+      // открытым, никому не принадлежа.
+      if (decided) return;
+      adopt(new m.RealtimeTransport(onMessage, status, options ?? {}), "ws");
     })
     .catch(() => {
       clearTimeout(timer);
-      // Офлайн-ядро: без сервера продукт остаётся играбельным целиком.
-      if (!mockDisabled()) adopt(new MockServer(onMessage), "mock");
-      else status("lost");
+      goMock();
     });
 
   return proxy;

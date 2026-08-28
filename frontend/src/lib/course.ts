@@ -1,20 +1,23 @@
-// course.ts — курс приёмов: проверка упражнений и выборка экзамена.
+// course.ts — курс приёмов: данные, раскладка заданий и выборка экзамена.
 //
-// ПОЧЕМУ ПРОВЕРКА ЗДЕСЬ, А НЕ НА СЕРВЕРЕ. Курс обязан работать офлайн — это тот
-// же инвариант, что «без сети продукт полностью играбелен». Всё, что нужно для
-// зачёта, у клиента уже есть: движок-зеркало (mock/engine.ts) и банк,
-// сгенерированный из Python. Правильность каждого ответа доказана на стороне
-// Python против настоящего движка (tests/test_course_bank.py), здесь —
-// исполнение тех же предикатов.
+// ПОЧЕМУ ЗДЕСЬ НЕТ ДВИЖКА. Зачёт свободного ответа гоняет НАСТОЯЩИЙ движок в
+// браузере (инвариант 9), и раньше он приезжал отсюда — то есть офлайн-ядро
+// целиком лежало на пути к домашнему экрану ради счётчика «пройдено N из 10» в
+// рейле. Модуль разрезан по тому, КОГДА оно нужно:
+//
+//   course.ts      — данные курса и чистая арифметика над ними: сколько блоков
+//                    сдано, какой шаг следующий, как разложить карточки. Это
+//                    нужно главной, и движок для этого не требуется;
+//   courseCheck.ts — вердикт по ответу. Нужен, только когда открыто задание.
+//
+// Проверка от этого не «ушла на сервер» и не ослабла: она в соседнем модуле,
+// считает тем же движком-зеркалом и по-прежнему работает без сети.
 //
 // Зеркало: services/gateway/app/course/check.py. Менять синхронно.
 import { COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK } from "../data/course.generated";
-import { SCENARIO_MAP } from "../data/scenarios";
 import type { Exercise, ItemWithId, PassCondition } from "./courseTypes";
 import { REACTION_SCALE, type Reaction } from "./probe";
-import { analyze, applyMove, newSession } from "../mock/engine";
-import { norm } from "./techniques";
-import type { Lang, StateView } from "../types";
+import type { StateView } from "../types";
 
 export { COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK };
 export type { Exercise } from "./courseTypes";
@@ -86,35 +89,6 @@ export function checkPick(ex: Exercise, picked: string): Verdict {
   return { ok: picked === ex.answer, reasons: [] };
 }
 
-/** Свободный ответ. Ловит ФОРМУ хода — и говорит об этом честно в разборе. */
-export function checkFreeform(ex: Exercise, text: string, lang: Lang): Verdict {
-  const spec = ex.check ?? {};
-  const a = analyze(text);
-  const moves = a.moves;
-  const reasons: string[] = [];
-
-  for (const m of spec.require_moves ?? []) if (!moves.includes(m)) reasons.push(`missing:${m}`);
-  const any = spec.require_any ?? [];
-  if (any.length && !any.some((m) => moves.includes(m))) reasons.push(`missing_any:${any.join("|")}`);
-  for (const m of spec.forbid_moves ?? []) if (moves.includes(m)) reasons.push(`forbidden:${m}`);
-  // Слова считаем по той же нормализации, что и движок: иначе «300 000» и
-  // «300000» дали бы разное число слов, а с ним и разный вердикт.
-  const words = norm(text).split(" ").filter(Boolean).length;
-  if (words < (spec.min_words ?? 0)) reasons.push("too_short");
-  if (a.arg < (spec.min_arg ?? 0)) reasons.push("weak_argument");
-  if (spec.require_number && a.number === null) reasons.push("no_number");
-
-  if (spec.require_secondary && ex.scenario_id) {
-    const def = SCENARIO_MAP[ex.scenario_id];
-    const issue = def?.secondaryIssues?.find((s) => s.id === spec.require_secondary);
-    const t = text.toLowerCase();
-    const hit = issue?.keywords[lang]?.some((k) => t.includes(k.toLowerCase()));
-    if (!hit) reasons.push(`missing_term:${spec.require_secondary}`);
-  }
-
-  return { ok: reasons.length === 0, reasons, moves, argQuality: a.arg };
-}
-
 /** Капстоун: предикат над состоянием партии. Только поля движка — слои сюда не входят. */
 export function checkDrill(ex: Exercise, view: StateView): Verdict {
   const failed: string[] = [];
@@ -129,21 +103,6 @@ export function checkDrill(ex: Exercise, view: StateView): Verdict {
     } else if (!OPS[cond.op](Number(actual), cond.value)) failed.push(cond.field);
   }
   return { ok: failed.length === 0, reasons: failed };
-}
-
-export function check(ex: Exercise, answer: unknown, lang: Lang): Verdict {
-  switch (ex.type) {
-    case "choice":
-    case "spot_error": return checkChoice(ex, answer as number);
-    case "order": return checkOrder(ex, answer as string[]);
-    case "match": return checkMatch(ex, answer as Record<string, string>);
-    case "numeric": return checkNumeric(ex, answer as number | null);
-    case "freeform": return checkFreeform(ex, String(answer ?? ""), lang);
-    case "reaction":
-    case "meters":
-    case "face": return checkPick(ex, String(answer ?? ""));
-    case "drill": return checkDrill(ex, answer as StateView);
-  }
 }
 
 // ------------------------------------------------- варианты для «читай лицо»
@@ -185,23 +144,6 @@ export function metersOptions(ex: Exercise): string[] {
   return (ex.ask ?? "largest_delta").startsWith("sign_of:")
     ? ["up", "down"]
     : [...METER_IDS];
-}
-
-// --------------------------------------------------------------- генерация
-
-/** Прогнать реплику через движок-зеркало: то же, что делает `simulate.py`. */
-export function simulate(scenarioId: string, lang: Lang, line: string,
-                         state?: Exercise["state"]): { reaction: string; deltas: Record<string, number> } | null {
-  const def = SCENARIO_MAP[scenarioId];
-  if (!def) return null;
-  const sess = newSession(def, lang);
-  if (state) {
-    sess.trust = state.trust; sess.tension = state.tension;
-    sess.info = state.info; sess.leverage = state.leverage;
-    sess.turn = state.turn;
-  }
-  const res = applyMove(sess, analyze(line), line);
-  return { reaction: res.reaction, deltas: res.deltas as unknown as Record<string, number> };
 }
 
 // ------------------------------------------------------------------ экзамен

@@ -15,51 +15,20 @@
 // ИИ здесь нет и быть не может: расхождение — это разница двух чисел движка.
 // В `score_session` оно не входит ничем: сравнение — послесловие, а не вторая
 // оценка (инварианты 3 и 6).
+//
+// САМ ПЕРЕСЧЁТ — В `rematchReplay.ts`. Он единственный здесь звал движок, а
+// звать движок значит тащить офлайн-ядро туда, откуда на него сослались:
+// App.tsx берёт отсюда `openingOf` (три поля структуры) на КАЖДОМ экране, и
+// вместе с ними на домашний ехали восемьдесят килобайт движка. Арифметика
+// сравнения осталась тут, пересчёт приезжает динамически вместе с партией.
 import type { StateView } from "../types";
-import { SCENARIO_MAP } from "../data/scenarios";
-import { analyze, applyMove, newSession, stateView } from "../mock/engine";
-import type { PastRun, RunOpening } from "./progress";
+import type { RunOpening } from "./progress";
 
 /** Один ход прошлой партии: что было сказано и куда после этого встал стол. */
 export interface TrailPoint {
   turn: number; // 1-based, как номер хода на экране
   text: string;
   state: StateView;
-}
-
-/**
- * Переиграть сохранённую партию ход за ходом.
- *
- * Порядок внутри хода (инкремент → analyze → applyMove) повторяет цикл
- * MockServer'а буква в букву — иначе «прошлая попытка» разошлась бы с той
- * партией, которую человек действительно сыграл.
- *
- * null — переиграть нечем: стол не из каталога (своя сделка) или ходов нет.
- * Это честное «недоступно», а не пустая панель (принцип 2).
- */
-export function replayRun(run: PastRun): TrailPoint[] | null {
-  const def = SCENARIO_MAP[run.scenarioId];
-  if (!def || run.moves.length === 0) return null;
-  const s = newSession(def, run.lang);
-  // Стартовые условия партии восстанавливаются ЗАМЕРОМ, а не пересчётом их
-  // причины: «стол дня» и репутация акта живут в одном месте (сервер и
-  // MockServer), и повторять их правила здесь значило бы завести второй
-  // источник правды ровно того сорта, который продукт запрещает.
-  s.trust = run.opening.trust;
-  s.tension = run.opening.tension;
-  s.maxTurns = run.opening.maxTurns;
-  const trail: TrailPoint[] = [];
-  for (const text of run.moves) {
-    if (s.status !== "active") break;
-    s.turn += 1;
-    applyMove(s, analyze(text), text);
-    // Кончились ходы — стол закрывается срывом. Ровно как в MockServer: без
-    // этой ветки последняя точка траектории показывала бы «ещё играем» там,
-    // где партия уже была проиграна по времени.
-    if (s.status === "active" && s.turn >= s.maxTurns) s.status = "breakdown";
-    trail.push({ turn: s.turn, text, state: stateView(s) });
-  }
-  return trail;
 }
 
 /** Цена на столе: закрытая сделка, пока её нет — их текущее предложение. */

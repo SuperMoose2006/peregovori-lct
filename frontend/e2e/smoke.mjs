@@ -103,7 +103,7 @@ const nav = async (page, key) => {
 // 2. Курс: карта → блок → урок → задание → вердикт
 {
   const page = await open("course");
-  await nav(page, "Курс"); await shot(page, "10-course-map");
+  await nav(page, "course"); await shot(page, "10-course-map");
   await page.locator(".cnode.current .cnode-btn").click();
   await page.waitForTimeout(400); await shot(page, "11-block");
   await page.locator(".lesson-list button").first().click();
@@ -119,7 +119,7 @@ const nav = async (page, key) => {
 // 3. Экзамен блока целиком (ответы наугад) — экран провала и урок восстановления
 {
   const page = await open("exam");
-  await nav(page, "Курс");
+  await nav(page, "course");
   await page.locator(".cnode.current .cnode-btn").click();
   await page.waitForTimeout(300);
   await page.locator("button:has-text('Сдавать экзамен')").click();
@@ -156,7 +156,7 @@ const nav = async (page, key) => {
 // 4. Экзамен мастера (со всеми сданными блоками)
 {
   const page = await open("master", { unlocked: true });
-  await nav(page, "Курс");
+  await nav(page, "course");
   await page.locator(".master-card button").click();
   await page.waitForTimeout(400); await shot(page, "30-master");
   if ((await page.locator(".master-list li").count()) !== 3) {
@@ -168,7 +168,7 @@ const nav = async (page, key) => {
 // 5. Телефон и английский
 {
   const page = await open("phone", { width: 390, height: 844 });
-  await nav(page, "Курс"); await shot(page, "40-course-phone");
+  await nav(page, "course"); await shot(page, "40-course-phone");
   await page.context().close();
 
   const en = await open("en");

@@ -5,16 +5,19 @@
 // Duolingo-подобный тренажёр без разбора превращается в лотерею: человек
 // угадывает и не понимает, что именно сработало.
 //
-// Вердикт считает `lib/course.ts` тем же движком, что и партия. Здесь нет ни
+// Вердикт считает `lib/courseCheck.ts` тем же движком, что и партия. Здесь нет ни
 // одной собственной оценки — компонент только собирает ответ и рисует итог.
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
 import {
-  check, faceImage, matchHits, metersOptions, orderHits, reactionOptions,
+  faceImage, matchHits, metersOptions, orderHits, reactionOptions,
   shuffledOptions, shuffledRight, startingOrder, type Verdict,
 } from "../lib/course";
+// Вердикт живёт отдельно от данных курса: он тянет движок-зеркало, а данные —
+// нет. Экран задания — единственное место, где нужны оба (см. lib/course.ts).
+import { check } from "../lib/courseCheck";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
 import { courseCoach } from "../api/courseCoach";

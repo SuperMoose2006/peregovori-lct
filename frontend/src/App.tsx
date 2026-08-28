@@ -5,12 +5,10 @@ import type { CampaignView, Debrief as DebriefData, Lang, Mode, StateView } from
 import { I18N } from "./i18n";
 import { useNegotiation } from "./api/useNegotiation";
 import { getCampaigns } from "./api/campaigns";
-import { whatIf } from "./api/whatif";
 import { ScenarioPicker } from "./components/ScenarioPicker";
 import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
-import { CourseScreen, type ExamCtx } from "./components/CourseScreen";
-import { Warmup } from "./components/Warmup";
+import type { ExamCtx } from "./components/CourseScreen";
 import {
   COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, checkDrill, nextStep,
 } from "./lib/course";
@@ -21,12 +19,13 @@ import { ProgressCards, MethodCard, RailCard, DailyCard, MemoryCard } from "./co
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
-import { Table } from "./components/Table";
 import { Karl } from "./components/Mascot";
-import { Debrief } from "./components/Debrief";
-import { RematchRail } from "./components/Rematch";
-import { openingOf, replayRun } from "./lib/rematch";
+import { LazyScreen } from "./components/LazyScreen";
+import { openingOf, type TrailPoint } from "./lib/rematch";
 import { SCENARIO_MAP } from "./data/scenarios";
+// CampaignComplete НЕ отложен: `ScenarioPicker` тянет этот же модуль статически
+// ради карты кампании на домашнем экране, и отдельным файлом он бы не стал —
+// была бы граница загрузки, за которой всегда уже всё загружено.
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
 import { applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDailyGoalTarget,
          type GameResult, type Grade, type PastRun, type Profile } from "./lib/progress";
@@ -36,6 +35,49 @@ import { scrollTo, scrollTop } from "./lib/motion";
 import { useModalShell } from "./lib/modal";
 
 type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course" | "warmup";
+
+// ЧТО ГРУЗИТСЯ ПО ТРЕБОВАНИЮ, А ЧТО СРАЗУ.
+//
+// Домашний экран — это выбор стола, рейл и меню. Стол, разбор, курс и итог
+// кампании до первого клика не нужны ни одному человеку, а весят больше, чем
+// всё остальное вместе. Каждый из них едет своим файлом (см. LazyScreen), и
+// каждый обязан честно сказать «не догрузился», а не крутить точки вечно.
+//
+// Пути ниже — ЕДИНСТВЕННОЕ место, где они называются: тот же путь в прогреве
+// ниже даёт тот же кусок сборки, разные пути дали бы два.
+const loadTable = () => import("./components/Table").then((m) => ({ default: m.Table }));
+const loadDebrief = () => import("./components/Debrief").then((m) => ({ default: m.Debrief }));
+const loadCourse = () => import("./components/CourseScreen").then((m) => ({ default: m.CourseScreen }));
+const loadWarmup = () => import("./components/Warmup").then((m) => ({ default: m.Warmup }));
+const loadRematchRail = () => import("./components/Rematch").then((m) => ({ default: m.RematchRail }));
+
+/**
+ * Прогрев на простое — цена, которой оплачен инвариант 5.
+ *
+ * «Ленивый» экран, которого нет в кеше, без сети не откроется: это не игра
+ * офлайн, а половина страницы. Поэтому после первой отрисовки, на простое,
+ * недостающие куски доезжают сами — и service worker кладёт их в кеш ровно так
+ * же, как раньше клал статические. Разница только в ПОРЯДКЕ: первый экран их
+ * больше не ждёт.
+ *
+ * Отказы глушатся молча: прогрев — это оптимизация, и его провал не должен
+ * ничего показывать. Настоящий отказ увидит тот, кто в этот экран пойдёт.
+ */
+const WARM: Array<() => Promise<unknown>> = [
+  loadTable, loadDebrief, loadCourse, loadWarmup, loadRematchRail,
+  // Транспорты: с сервером и без него. Второй — офлайн-ядро, ради которого всё
+  // это и делается.
+  () => import("./realtime/transport"),
+  () => import("./mock/mockServer"),
+  // Пересчёт прошлой партии и развилка «а что если» — тоже движок.
+  () => import("./lib/rematchReplay"),
+  () => import("./api/whatif"),
+  () => import("./lib/courseCheck"),
+];
+
+function warmScreens() {
+  for (const load of WARM) load().catch(() => {});
+}
 
 // How long the finished table stays on screen before the scorecard takes over.
 // Long enough to read the closing line and the outcome stamp, short enough that
@@ -387,6 +429,17 @@ export default function App() {
     [profile.course],
   );
 
+  // Прогрев экранов — после первой отрисовки и только на простое: домашний
+  // экран не должен соревноваться за сеть с тем, что понадобится через минуту.
+  useEffect(() => {
+    const idle = (window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+    }).requestIdleCallback;
+    if (idle) { idle(warmScreens, { timeout: 4000 }); return; }
+    const id = setTimeout(warmScreens, 1200);
+    return () => clearTimeout(id);
+  }, []);
+
   const isDark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
@@ -620,11 +673,29 @@ export default function App() {
   }, [mode, currentScenario, launch, startCustom, activeDaily, drill]);
 
   /** Прошлая партия, переигранная движком ход за ходом. Пересчёт только при
-   *  смене соперника: движок — чистая функция, от времени результат не зависит. */
-  const rivalTrail = useMemo(() => (rival ? replayRun(rival) : null), [rival]);
+   *  смене соперника: движок — чистая функция, от времени результат не зависит.
+   *
+   *  Асинхронный он потому, что движок приезжает отдельным файлом (WARM выше).
+   *  `null` здесь уже был честным ответом «переигрывать нечем» — панель просто
+   *  не появляется, а не показывает пустую рамку (принцип 2). */
+  const [rivalTrail, setRivalTrail] = useState<TrailPoint[] | null>(null);
+  useEffect(() => {
+    if (!rival) { setRivalTrail(null); return; }
+    let alive = true;
+    import("./lib/rematchReplay")
+      .then((m) => { if (alive) setRivalTrail(m.replayRun(rival)); })
+      .catch(() => { if (alive) setRivalTrail(null); });
+    return () => { alive = false; };
+  }, [rival]);
   /** Где сравнение честно: обычная практика (не капстоун курса), тот же стол и
    *  тот же язык — реплики опознаются по ключевым словам своего языка. Экзамен
    *  и акт кампании отсекаются самим режимом: там сопровождения не бывает. */
+  // Локальные копии перед разметкой. Отложенный экран получает свои пропсы из
+  // колбэка, а сужение `nego.scenario` в условии JSX до колбэка не доживает:
+  // поле объекта TypeScript не считает неизменным, `const` — считает.
+  const scenario = nego.scenario;
+  const debrief = nego.debrief;
+
   const showRival =
     screen === "game" && mode === "practice" && !drill &&
     !!rival && !!rivalTrail && rivalTrail.length > 0 &&
@@ -818,7 +889,7 @@ export default function App() {
         </section>
       )}
 
-      {screen === "game" && nego.scenario && (
+      {screen === "game" && scenario && (
         <>
           {/* Mid-game connection health. "reconnecting" is a calm, non-blocking
               banner; "lost" degrades to a small panel offering a restart (which
@@ -849,12 +920,13 @@ export default function App() {
               </div>
             </div>
           ) : null}
+          <LazyScreen lang={lang} load={loadTable} onHome={goHome} render={(Table) => (
           <Table
             t={t}
             lang={lang}
             mode={mode}
             kind={nego.kind}
-            scenario={nego.scenario}
+            scenario={scenario}
             state={nego.state}
             log={nego.log}
             busy={nego.busy}
@@ -883,11 +955,13 @@ export default function App() {
             onProbeAnswer={activeLayers.probe ? nego.answerProbe : undefined}
             onSeeDebrief={() => setScreen("debrief")}
           />
+          )} />
           {/* Панель «вы тогда · вы сейчас». Портал в <body> по той же причине,
               что и шторка слоёв: экран партии держит собственный transform и
               стал бы опорой для `position: fixed`. Стол при этом не трогается
               вовсе — сравнение это надстройка, а не часть игры. */}
           {showRival && rival && rivalTrail ? createPortal(
+            <LazyScreen lang={lang} load={loadRematchRail} silent render={(RematchRail) => (
             <RematchRail
               t={t}
               lang={lang}
@@ -896,9 +970,10 @@ export default function App() {
               nowTrail={trail}
               nowMoves={nego.log.filter((e) => e.kind === "me").map((e) => e.text)}
               nowOpening={opening ? openingOf(opening) : null}
-              unit={nego.scenario.headline_unit}
-              lowerBetter={nego.scenario.target < nego.scenario.reservation}
-            />,
+              unit={scenario.headline_unit}
+              lowerBetter={scenario.target < scenario.reservation}
+            />
+            )} />,
             document.body,
           ) : null}
         </>
@@ -928,10 +1003,11 @@ export default function App() {
         </div>
       ) : null}
 
-      {screen === "debrief" && nego.debrief && (
+      {screen === "debrief" && debrief && (
+        <LazyScreen lang={lang} load={loadDebrief} onHome={goHome} render={(Debrief) => (
         <Debrief
           t={t}
-          d={nego.debrief}
+          d={debrief}
           probeStats={activeLayers.probe ? probeStats : undefined}
           observations={activeLayers.camera ? nego.observations : undefined}
           // Карточка «покерфейса» рисуется, ТОЛЬКО если слой и правда смотрел:
@@ -952,7 +1028,11 @@ export default function App() {
           // "А что если…" replay: the player's OWN lines in order (from the chat
           // log) drive the deterministic branch. Runs over the same transport the
           // game used (real backend or offline synth) via the kind passed through.
-          runWhatIf={(req) => whatIf(nego.kind, req)}
+          // Развилка тянет офлайн-ядро, поэтому приезжает по нажатию, а не с
+          // экраном. Отказ загрузки — это `null`, то есть карточка не
+          // появляется: ровно то же, что «развилку посчитать нечем».
+          runWhatIf={(req) =>
+            import("./api/whatif").then((m) => m.whatIf(nego.kind, req)).catch(() => null)}
           whatIfMoves={nego.log.filter((e) => e.kind === "me").map((e) => e.text)}
           whatIfScenarioId={nego.scenario?.id ?? currentScenario ?? undefined}
           whatIfUnit={nego.scenario?.headline_unit}
@@ -978,6 +1058,7 @@ export default function App() {
               : undefined
           }
         />
+        )} />
       )}
 
       {screen === "campaign_done" && campaign && (
@@ -1016,6 +1097,7 @@ export default function App() {
       )}
 
       {screen === "warmup" && warmupBlock && (
+        <LazyScreen lang={lang} load={loadWarmup} onHome={goHome} render={(Warmup) => (
         <Warmup
           t={t}
           lang={lang}
@@ -1025,9 +1107,11 @@ export default function App() {
           onDone={() => { setWarmupBlock(null); beginStage(); }}
           onSkip={() => { setWarmupBlock(null); setScreen("home"); }}
         />
+        )} />
       )}
 
       {screen === "course" && (
+        <LazyScreen lang={lang} load={loadCourse} onHome={goHome} render={(CourseScreen) => (
         <CourseScreen
           t={t}
           lang={lang}
@@ -1037,6 +1121,7 @@ export default function App() {
           onExit={goHome}
           startAt={courseStart}
         />
+        )} />
       )}
 
       </main>

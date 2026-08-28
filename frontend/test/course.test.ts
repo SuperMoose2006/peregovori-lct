@@ -8,10 +8,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  COURSE_BANK, COURSE_BLOCKS, SKILL_BLOCK, blockForWeakest, check, checkFreeform, drawExam,
+  COURSE_BANK, COURSE_BLOCKS, SKILL_BLOCK, blockForWeakest, drawExam,
   exercisesOf, faceImage,
-  metersOptions, reactionOptions, shuffledOptions, shuffledRight, simulate, startingOrder,
+  metersOptions, reactionOptions, shuffledOptions, shuffledRight, startingOrder,
 } from "../src/lib/course";
+// Зачёт живёт отдельно от данных курса: только он тянет движок-зеркало.
+import { check, checkFreeform, simulate } from "../src/lib/courseCheck";
 import type { Lang } from "../src/types";
 
 const LANGS: Lang[] = ["ru", "en"];
