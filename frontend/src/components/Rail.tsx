@@ -9,7 +9,8 @@ import { dailyTable } from "../lib/daily";
 import { SCENARIO_MAP } from "../data/scenarios";
 import type { Lang } from "../types";
 import type { Profile } from "../lib/progress";
-import { dailyGoalView, rankForXp, DAILY_GOAL_MAX } from "../lib/progress";
+import { dailyGoalView, rankForXp, getRecord, DAILY_GOAL_MAX } from "../lib/progress";
+import { MascotImg } from "./Mascot";
 
 export function RailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -101,6 +102,38 @@ export function DailyCard({ t, lang, onPlay }:
         </span>
       </button>
       <p className="rc-next">{table.modifier.note[lang]}</p>
+    </RailCard>
+  );
+}
+
+/**
+ * «Тихон помнит» — память о столе, который выпал сегодня.
+ *
+ * Слон в продукте отвечает за память и сертификацию, и до сих пор жил только в
+ * курсе и в разборе — то есть там, где память И ТАК очевидна. На домашнем
+ * экране, где человек выбирает, во что играть, её не было вовсе, хотя именно
+ * здесь она полезнее всего: «этот стол вы уже брали на B, 78».
+ *
+ * Карточка рисуется, ТОЛЬКО если рекорд есть. Слон, разводящий руками над
+ * пустым профилем, — это украшение; вспоминать ему пока нечего.
+ */
+export function MemoryCard({ t, lang, profile }:
+  { t: Strings; lang: Lang; profile: Profile }) {
+  const today = dailyTable();
+  const record = getRecord(profile, today.scenarioId);
+  const sc = SCENARIO_MAP[today.scenarioId];
+  if (!record || !record.bestGrade || !sc) return null;
+  return (
+    <RailCard title={t.mascot.rememberTitle}>
+      {/* Картинка без Tikhon-обёртки: та рисует собственный заголовок, а он
+          здесь уже есть у карточки, и диктор прочитал бы имя дважды. */}
+      <div className="rc-memory">
+        <MascotImg dir="tikhon" state="remember" alt="" size={44} />
+        <p className="rc-note">
+          {sc.title[lang]} — {t.personalBest.toLowerCase()}:{" "}
+          <b>{record.bestGrade}</b>, {record.bestScore}
+        </p>
+      </div>
     </RailCard>
   );
 }

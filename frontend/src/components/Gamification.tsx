@@ -154,7 +154,9 @@ export function SkillsProfile({
               {/* Пустой профиль — не ошибка, а приглашение. Строка прежняя, но
                   теперь её говорит тренер, а не пустая рамка. */}
               <div className="karl-mid">
-                <Karl state="idle" line={t.gam.noGames} name={t.mascot.karl} alt={t.mascot.alt} />
+                {/* `shrug`, а не `idle`: «партий ещё нет» — это отсутствие данных,
+                    и поза должна говорить именно это, а не «ворон сидит». */}
+                <Karl state="shrug" line={t.gam.noGames} name={t.mascot.karl} alt={t.mascot.alt} />
               </div>
             </div>
           )}

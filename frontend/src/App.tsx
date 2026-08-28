@@ -17,7 +17,7 @@ import {
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { LayersPanel } from "./components/Setup";
-import { ProgressCards, MethodCard, RailCard, DailyCard } from "./components/Rail";
+import { ProgressCards, MethodCard, RailCard, DailyCard, MemoryCard } from "./components/Rail";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
@@ -634,6 +634,9 @@ export default function App() {
                 {/* Стол дня стоит ПЕРВЫМ в рейле: это единственная карточка,
                     которая завтра будет другой, и ради неё сюда возвращаются. */}
                 <DailyCard t={t} lang={lang} onPlay={startDaily} />
+                {/* Сразу под столом дня: память полезнее всего там, где человек
+                    выбирает, во что играть. */}
+                <MemoryCard t={t} lang={lang} profile={profile} />
                 <ProgressCards t={t} lang={lang} profile={profile} onSetGoal={setGoalTarget} />
                 {/* Курс живёт в сайдбаре, но с домашнего экрана его надо ещё и
                     ВИДЕТЬ: строка меню не рассказывает, что внутри девять блоков. */}

@@ -2223,6 +2223,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .rc-daily-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .rc-daily-txt b { font-size: 14px; }
 .rc-daily-mod { font-size: 12px; color: var(--brass); font-weight: 600; }
+.rc-memory { display: flex; align-items: center; gap: 10px; }
+.rc-memory picture { display: contents; }
+.rc-memory img { width: 44px; height: 44px; flex: 0 0 auto; }
+.rc-memory p { margin: 0; }
 .rc-goal { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .rc-goal b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .rc-steps { display: inline-flex; gap: 5px; }

@@ -149,3 +149,20 @@ test("тип состояний, манифест и папка описываю
     assert.deepEqual([...manifest.states].sort(), files, `${dir}: манифест разошёлся с папкой`);
   }
 });
+
+test("грубый ход отличается от напряжённого: у досады своя поза", () => {
+  // Разница не в величине, а в сочетании: напряжение подскочило И доверие
+  // упало. Раньше оба случая давали `concern`, и он одинаково изображал
+  // «осторожнее» и «вы только что всё испортили».
+  const d = (tension: number, trust: number) =>
+    karlState({ deltas: { tension, trust, info: 0, leverage: 0 } as never });
+
+  assert.equal(d(12, -8), "oops", "грубый ход");
+  assert.equal(d(12, 0), "concern", "напряжение выросло, но доверие цело");
+  assert.equal(d(6, -8), "concern", "доверие просело, но не от резкости");
+  assert.equal(d(2, 0), "idle", "дрожание шкал — не событие");
+
+  // Сорванные переговоры по-прежнему тяжелее одного плохого хода.
+  assert.equal(karlState({ status: "breakdown",
+    deltas: { tension: 12, trust: -8, info: 0, leverage: 0 } as never }), "sad");
+});
