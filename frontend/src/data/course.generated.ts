@@ -3606,15 +3606,15 @@ export const COURSE_MASTER: Exercise[] = [
     "id": "ms-02",
     "type": "drill",
     "scenario_id": "investor",
-    "max_turns": 10,
+    "max_turns": 7,
     "xp": 60,
     "prompt": {
-      "ru": "Закройтесь на доле не выше 22%, вскрыв минимум два интереса инвестора.",
-      "en": "Close at 22% equity or less, having uncovered at least two of the investor's interests."
+      "ru": "Закройтесь на доле не выше 19%, вскрыв все три интереса инвестора и не подняв напряжение выше 50.",
+      "en": "Close at 19% equity or less, having uncovered all three of the investor's interests, without pushing tension above 50."
     },
     "goal": {
-      "ru": "Доля ≤ 22% · два интереса",
-      "en": "Equity ≤ 22% · two interests"
+      "ru": "Доля ≤ 19% · три интереса · напряжение ≤ 50",
+      "en": "Equity ≤ 19% · three interests · tension ≤ 50"
     },
     "pass": [
       {
@@ -3625,12 +3625,17 @@ export const COURSE_MASTER: Exercise[] = [
       {
         "field": "deal",
         "op": "<=",
-        "value": 22
+        "value": 19
       },
       {
         "field": "interests_found",
         "op": ">=",
-        "value": 2
+        "value": 3
+      },
+      {
+        "field": "tension",
+        "op": "<=",
+        "value": 50
       }
     ],
     "explain": {
@@ -3642,15 +3647,15 @@ export const COURSE_MASTER: Exercise[] = [
     "id": "ms-03",
     "type": "drill",
     "scenario_id": "used_car",
-    "max_turns": 8,
+    "max_turns": 6,
     "xp": 60,
     "prompt": {
-      "ru": "Купите не дороже 1100k, ни разу не подняв напряжение выше 45.",
-      "en": "Buy at 1100k or less, never pushing tension above 45."
+      "ru": "Купите не дороже 1070k, ни разу не подняв напряжение выше 40.",
+      "en": "Buy at 1070k or less, never pushing tension above 40."
     },
     "goal": {
-      "ru": "Сделка ≤ 1100k · напряжение ≤ 45",
-      "en": "Deal ≤ 1100k · tension ≤ 45"
+      "ru": "Сделка ≤ 1070k · напряжение ≤ 40",
+      "en": "Deal ≤ 1070k · tension ≤ 40"
     },
     "pass": [
       {
@@ -3661,12 +3666,12 @@ export const COURSE_MASTER: Exercise[] = [
       {
         "field": "deal",
         "op": "<=",
-        "value": 1100
+        "value": 1070
       },
       {
         "field": "tension",
         "op": "<=",
-        "value": 45
+        "value": 40
       }
     ],
     "explain": {

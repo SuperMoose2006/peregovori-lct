@@ -444,7 +444,7 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
       <section className="screen course">
         <div className="wrap lesson">
           <button className="btn ghost back" onClick={onBack}>← {block.title[lang]}</button>
-          <ScreenHeading as="h1">{info.title[lang]}</ScreenHeading>
+          <ScreenHeading key="theory" as="h1">{info.title[lang]}</ScreenHeading>
           <div className="lesson-body">
             {info.body[lang].split("\n\n").map((para, i) => <p key={i}>{para}</p>)}
           </div>
@@ -461,7 +461,7 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
     return (
       <section className="screen course">
         <div className="wrap lesson done">
-          <ScreenHeading as="h1">{t.course.lessonComplete}</ScreenHeading>
+          <ScreenHeading key="done" as="h1">{t.course.lessonComplete}</ScreenHeading>
           <p className="lead">{t.course.lessonScore
             .replace("{n}", String(right)).replace("{total}", String(items.length))}</p>
           {gained ? <p className="lesson-xp">+{gained} XP</p> : null}
@@ -478,6 +478,18 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
     <section className="screen course">
       <div className="wrap lesson">
         <button className="btn ghost back" onClick={onBack}>← {block.title[lang]}</button>
+        {/* Переход «К заданиям» менял экран молча: заголовка тут не было вовсе,
+            поэтому и пропуска уровня прибор не видел — пропускать было нечего, а
+            диктор о смене контекста не узнавал. Заголовок ОДИН на весь набор, а
+            не на каждое задание: «Дальше» — шаг внутри того же экрана, и увод
+            фокуса на заголовок обрывал бы чтение только что показанного вопроса.
+            Ключ обязателен: без него React переиспользовал бы h1 теории на этой
+            же позиции, монтирования бы не случилось и фокус не поехал бы.
+            Класс `sr-only` — потому что место заголовка на экране уже занято
+            полосой прогресса и счётчиком «задание N из M». */}
+        <ScreenHeading key="tasks" as="h1" className="sr-only">
+          {t.course.tasksTitle.replace("{lesson}", info.title[lang])}
+        </ScreenHeading>
         <div className="lesson-bar"><i style={{ width: `${(step / items.length) * 100}%` }} /></div>
         <div className="lesson-step">{t.course.stepOf
           .replace("{n}", String(step + 1)).replace("{total}", String(items.length))}</div>

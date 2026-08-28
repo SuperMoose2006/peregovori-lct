@@ -16,6 +16,19 @@
 
 Условия прохода — предикаты над ПОЛЯМИ ДВИЖКА, как и у капстоуна блока: ни один
 сигнал слоёв сюда не входит, поэтому результат сравним с любым другим.
+
+ФИНАЛ НЕ БЫВАЕТ ЛЕГЧЕ ДОРОГИ К НЕМУ. Экзамен стоял на тех же столах, что и два
+капстоуна, и просил меньше: `investor` — доля ≤ 22% за десять ходов против ≤ 20%
+за семь у `bz-09`, `used_car` — ≤ 1100k за восемь против ≤ 1080k за шесть у
+`an-08`, и ни одного требования к напряжению там, где капстоун его требовал.
+Сертификат мастера тогда стоил дешевле зачёта по блоку, который к нему ведёт.
+Теперь по КАЖДОЙ шкале, которую трогает капстоун того же стола, экзамен требует
+не меньше — и лимит хода не длиннее. Это проверяется тестом
+`test_master_exam_is_never_softer_than_its_block_capstone`, а не обещанием:
+правка баланса в одну сторону обязана валить сборку, а не тихо разъезжаться.
+
+У `freelance_rate` капстоуна нет — сравнивать не с чем, и его условие остаётся
+таким, каким было: восемь ходов на единственном столе, где «выше — лучше».
 """
 
 from __future__ import annotations
@@ -41,15 +54,18 @@ MASTER: list[dict] = [
             "a criterion instead of “I am worth more”, a trade instead of pressure."),
     },
     {
-        "id": "ms-02", "type": "drill", "scenario_id": "investor", "max_turns": 10, "xp": 60,
-        "prompt": T("Закройтесь на доле не выше 22%, вскрыв минимум два интереса инвестора.",
-                    "Close at 22% equity or less, having uncovered at least two of the investor's interests."),
-        "goal": T("Доля ≤ 22% · два интереса",
-                  "Equity ≤ 22% · two interests"),
+        "id": "ms-02", "type": "drill", "scenario_id": "investor", "max_turns": 7, "xp": 60,
+        "prompt": T("Закройтесь на доле не выше 19%, вскрыв все три интереса инвестора "
+                    "и не подняв напряжение выше 50.",
+                    "Close at 19% equity or less, having uncovered all three of the investor's "
+                    "interests, without pushing tension above 50."),
+        "goal": T("Доля ≤ 19% · три интереса · напряжение ≤ 50",
+                  "Equity ≤ 19% · three interests · tension ≤ 50"),
         "pass": [
             {"field": "status", "op": "==", "value": "agreement"},
-            {"field": "deal", "op": "<=", "value": 22},
-            {"field": "interests_found", "op": ">=", "value": 2},
+            {"field": "deal", "op": "<=", "value": 19},
+            {"field": "interests_found", "op": ">=", "value": 3},
+            {"field": "tension", "op": "<=", "value": 50},
         ],
         "explain": T(
             "Самый трудный стол курса: дно Марины 18% не двигается ни от какого давления. Работает "
@@ -58,15 +74,15 @@ MASTER: list[dict] = [
             "Only what the blocks trained works: questions, criteria, trading secondary terms."),
     },
     {
-        "id": "ms-03", "type": "drill", "scenario_id": "used_car", "max_turns": 8, "xp": 60,
-        "prompt": T("Купите не дороже 1100k, ни разу не подняв напряжение выше 45.",
-                    "Buy at 1100k or less, never pushing tension above 45."),
-        "goal": T("Сделка ≤ 1100k · напряжение ≤ 45",
-                  "Deal ≤ 1100k · tension ≤ 45"),
+        "id": "ms-03", "type": "drill", "scenario_id": "used_car", "max_turns": 6, "xp": 60,
+        "prompt": T("Купите не дороже 1070k, ни разу не подняв напряжение выше 40.",
+                    "Buy at 1070k or less, never pushing tension above 40."),
+        "goal": T("Сделка ≤ 1070k · напряжение ≤ 40",
+                  "Deal ≤ 1070k · tension ≤ 40"),
         "pass": [
             {"field": "status", "op": "==", "value": "agreement"},
-            {"field": "deal", "op": "<=", "value": 1100},
-            {"field": "tension", "op": "<=", "value": 45},
+            {"field": "deal", "op": "<=", "value": 1070},
+            {"field": "tension", "op": "<=", "value": 40},
         ],
         "explain": T(
             "Продавец привязан к машине: любая критика вещи читается как критика его самого. "

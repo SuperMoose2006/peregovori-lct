@@ -461,6 +461,95 @@ def test_master_target_is_inside_the_deal_zone(item: dict) -> None:
         assert deal["value"] <= sc.opponent_reservation, item["id"]
 
 
+#: Куда «строже» по каждому оператору. Для «≥» строже — БОЛЬШЕЕ значение, для
+#: «≤» — меньшее; при равных значениях строгое неравенство строже нестрогого.
+_DIRECTION = {"==": "eq", "!=": "eq", ">=": "up", ">": "up", "<=": "down", "<": "down"}
+_SHARP = {">": 1, ">=": 0, "<": 1, "<=": 0, "==": 0, "!=": 0}
+
+
+def _at_least_as_strict(mine: dict, theirs: dict) -> bool:
+    """Требует ли условие `mine` не меньше, чем `theirs`, по той же шкале."""
+    side = _DIRECTION[theirs["op"]]
+    if _DIRECTION[mine["op"]] != side:
+        return False
+    if side == "eq":
+        return mine["op"] == theirs["op"] and mine["value"] == theirs["value"]
+    if mine["value"] != theirs["value"]:
+        return (mine["value"] > theirs["value"] if side == "up"
+                else mine["value"] < theirs["value"])
+    return _SHARP[mine["op"]] >= _SHARP[theirs["op"]]
+
+
+CAPSTONE_BY_TABLE: dict[str, list[dict]] = {}
+for _drill in (x for x in BANK if x["type"] == "drill"):
+    CAPSTONE_BY_TABLE.setdefault(_drill["scenario_id"], []).append(_drill)
+
+#: Пары «партия экзамена — капстоун того же стола». `freelance_rate` сюда не
+#: попадает: блока на этом столе нет, сравнивать не с чем.
+MASTER_VS_CAPSTONE = [(m, c) for m in MASTER
+                      for c in CAPSTONE_BY_TABLE.get(m["scenario_id"], [])]
+
+
+def test_master_exam_and_capstones_share_at_least_one_table() -> None:
+    """Иначе тест ниже «проходит» на пустом списке пар и не значит ничего."""
+    assert MASTER_VS_CAPSTONE, (
+        "экзамен мастера не пересекается с капстоунами по столам — "
+        "сравнивать строгость нечем"
+    )
+
+
+@pytest.mark.parametrize(
+    "master_item, capstone", MASTER_VS_CAPSTONE,
+    ids=[f"{m['id']}-vs-{c['id']}" for m, c in MASTER_VS_CAPSTONE])
+def test_master_exam_is_never_softer_than_its_block_capstone(
+        master_item: dict, capstone: dict) -> None:
+    """Ни одно условие экзамена мастера не мягче капстоуна того же стола.
+
+    ЗАЧЕМ. Экзамен стоит ПОСЛЕ блока и без единой подсказки — значит он не может
+    просить меньше, чем зачёт по блоку, который к нему ведёт. А просил: на
+    `investor` доля ≤ 22% за десять ходов против ≤ 20% за семь у `bz-09`, на
+    `used_car` ≤ 1100k за восемь против ≤ 1080k за шесть у `an-08`, и требования
+    к напряжению у экзамена не было вовсе там, где капстоун его ставил. Финал
+    курса выдавал сертификат мастера дешевле, чем блок — свой значок.
+
+    Проверяются ОБЕ стороны условия: и лимит хода (шесть ходов строже восьми),
+    и каждый предикат по своей шкале. Пропуск шкалы — тоже послабление, поэтому
+    «у экзамена такого условия нет» здесь падает так же, как слабое число.
+    """
+    assert master_item["max_turns"] <= capstone["max_turns"], (
+        f"{master_item['id']}: {master_item['max_turns']} ходов против "
+        f"{capstone['max_turns']} у {capstone['id']} — экзамен просторнее блока"
+    )
+    for cond in capstone["pass"]:
+        mine = [c for c in master_item["pass"] if c["field"] == cond["field"]]
+        assert mine, (
+            f"{master_item['id']}: нет условия по «{cond['field']}», а "
+            f"{capstone['id']} его требует ({cond['op']} {cond['value']}) — "
+            "пропущенная шкала это послабление"
+        )
+        assert any(_at_least_as_strict(c, cond) for c in mine), (
+            f"{master_item['id']}: {[(c['op'], c['value']) for c in mine]} по "
+            f"«{cond['field']}» мягче, чем {cond['op']} {cond['value']} "
+            f"у {capstone['id']}"
+        )
+
+
+def test_strictness_comparison_actually_distinguishes() -> None:
+    """Сам компаратор обязан отличать строгое от мягкого, иначе тест выше пуст."""
+    assert _at_least_as_strict({"op": "<=", "value": 19}, {"op": "<=", "value": 20})
+    assert not _at_least_as_strict({"op": "<=", "value": 22}, {"op": "<=", "value": 20})
+    assert _at_least_as_strict({"op": "<", "value": 20}, {"op": "<=", "value": 20})
+    assert not _at_least_as_strict({"op": "<=", "value": 20}, {"op": "<", "value": 20})
+    assert _at_least_as_strict({"op": ">=", "value": 3}, {"op": ">=", "value": 2})
+    assert not _at_least_as_strict({"op": ">=", "value": 1}, {"op": ">=", "value": 2})
+    # Разные стороны шкалы несравнимы: «≥ 20» не строже «≤ 20».
+    assert not _at_least_as_strict({"op": ">=", "value": 20}, {"op": "<=", "value": 20})
+    assert _at_least_as_strict({"op": "==", "value": "agreement"},
+                               {"op": "==", "value": "agreement"})
+    assert not _at_least_as_strict({"op": "==", "value": "breakdown"},
+                                   {"op": "==", "value": "agreement"})
+
+
 # ---- «прочитай лицо»: картинка обязана быть однозначной ------------------
 
 from app.avatar.base import REACTION_TO_STATE  # noqa: E402
