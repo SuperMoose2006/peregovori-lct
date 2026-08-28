@@ -805,6 +805,15 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .camp-done-head .verdict { font-size: 22px; font-style: italic; margin-top: 10px; }
 .camp-avg { margin-top: 10px; font-size: 14px; color: var(--ink-dim); }
 .camp-avg b { color: var(--ink); font-variant-numeric: tabular-nums; }
+/* Эпилог читается как абзац книги, а не как строка интерфейса: это
+   единственное место, где итог кампании сказан словами. Отсюда мера строки в
+   ch и воздух вокруг — на 62 знаках глаз не теряет начало следующей строки. */
+.camp-epilogue {
+  margin: 16px auto 4px; max-width: 62ch; text-align: left;
+  font-size: 15px; line-height: 1.62; color: var(--ink);
+  padding: 14px 16px; border-left: 3px solid var(--brass);
+  background: var(--panel-2); border-radius: 0 8px 8px 0;
+}
 .arc.final { margin-top: 22px; margin-bottom: 22px; }
 
 .foot { border-top: 1px solid var(--line); padding: 18px 22px; max-width: 1120px; margin: 40px auto 0; display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink-faint); padding-bottom: max(18px, env(safe-area-inset-bottom)); }
@@ -2613,6 +2622,28 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .karl-mini img { width: 34px; height: 34px; object-fit: contain; flex: 0 0 auto; }
 .karl-mini-t { font-size: 13px; line-height: 1.5; }
 
+/* <picture> вокруг картинки маскота (webp + запасной PNG) не должна становиться
+   элементом раскладки: все размеры заданы правилами на img, и лишняя обёртка
+   между flex-контейнером и картинкой ломала бы их. */
+.karl-row picture, .karl-mini picture, .tikhon picture { display: contents; }
+
+/* Карл посреди экрана, а не в рельсе: ожидание генерации, потерянная сессия,
+   пустой профиль. Там он один в карточке, поэтому пузырь и хвостик по центру. */
+.karl-mid { display: flex; justify-content: center; }
+.karl-mid .karl { align-items: center; }
+.karl-mid .karl-bub { max-width: 420px; text-align: center; }
+.karl-mid .karl-bub::after { left: 50%; margin-left: -6px; }
+
+/* Значок рядом с чужой строкой: сообщение продукта остаётся сообщением
+   продукта, Карл только даёт ему лицо и потому идёт без реплики. */
+.karl-note { display: flex; align-items: flex-start; gap: 10px; }
+.karl-note > :not(.karl-mini) { min-width: 0; flex: 1; }
+
+/* Веха: картинка вместо эмодзи в том же месте и того же роста. */
+.karl-hero { display: block; width: 72px; height: 72px; }
+.karl-hero img { width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--brass) 55%, transparent)); }
+
 .tikhon {
   display: flex; gap: 13px; align-items: center; background: var(--panel);
   border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px;
@@ -2622,6 +2653,11 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .tikhon-bd { min-width: 0; }
 .tikhon-bd h4 { margin: 0 0 4px; font-size: 14px; font-weight: 800; }
 .tikhon-bd p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
+
+/* Печать на сертификате. В потоке, а не абсолютом: у .cert-award нет своей
+   системы координат, и абсолют уехал бы на всю карточку — в том числе на печати. */
+.tikhon-seal { display: block; width: 64px; margin: 6px 0 0 auto; }
+.tikhon-seal img { width: 100%; height: auto; }
 
 @media (max-width: 860px) {
   /* На телефоне рельс схлопывается над лентой — фигура в рост там не к месту,

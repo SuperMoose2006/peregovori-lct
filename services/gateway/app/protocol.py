@@ -111,6 +111,10 @@ class CampaignView(BaseModel):
     title: str
     tagline: str
     stages: list[CampaignStageView]
+    #: Послесловие по полосам репутации: ключ → текст на языке запроса. Едет
+    #: целиком, а не одной выбранной строкой, потому что полосу считает клиент
+    #: по СВОЕЙ накопленной репутации — сервер её между актами не хранит.
+    epilogue: dict[str, str] = {}
 
 
 class RevealedInterest(BaseModel):

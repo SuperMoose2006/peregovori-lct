@@ -6,6 +6,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MockServer } from "../src/mock/mockServer";
 import { synthCampaigns } from "../src/data/campaigns";
+import { EPILOGUE_BANDS } from "../src/data/campaigns.generated";
+import { epilogueKey } from "../src/components/CampaignScreen";
+import { SCENARIO_MAP } from "../src/data/scenarios";
 import { SCENARIO_MAP } from "../src/data/scenarios";
 import type { ServerMsg } from "../src/types";
 
@@ -113,4 +116,72 @@ test("higher reputation raises the stage's starting trust", async () => {
   const low = await startTrust(-100);
   const high = await startTrust(100);
   assert.ok(high > low, `reputation carry lifts starting trust (${high} > ${low})`);
+});
+
+// ——— эпилог ———————————————————————————————————————————————————————————
+
+test("полосы эпилога берутся из одного источника с бэкендом", () => {
+  // Пороги генерируются из app/engine/campaigns.py::_EPILOGUE_BANDS вместе с
+  // самими кампаниями. Тест сторожит не арифметику, а то, что список вообще
+  // доехал: пустой массив молча уронил бы всех в «burnt».
+  assert.equal(EPILOGUE_BANDS.length, 4);
+  assert.deepEqual(EPILOGUE_BANDS.map(([, k]) => k),
+    ["triumph", "solid", "mixed", "strained"]);
+});
+
+test("репутация ложится в полосу так же, как на сервере", () => {
+  const table: [number | null, string][] = [
+    [100, "triumph"], [45, "triumph"], [44.9, "solid"], [15, "solid"],
+    [14.9, "mixed"], [0, "mixed"], [-15, "mixed"], [-15.1, "strained"],
+    [-45, "strained"], [-45.1, "burnt"], [-100, "burnt"], [null, "mixed"],
+  ];
+  for (const [rep, want] of table) {
+    assert.equal(epilogueKey(rep), want, `репутация ${rep}`);
+  }
+});
+
+test("у каждой кампании эпилог полон на обоих языках", () => {
+  for (const lang of ["ru", "en"] as const) {
+    for (const c of synthCampaigns(lang)) {
+      const keys = Object.keys(c.epilogue ?? {}).sort();
+      assert.deepEqual(keys, ["burnt", "mixed", "solid", "strained", "triumph"],
+        `кампания ${c.id} (${lang})`);
+      for (const [k, v] of Object.entries(c.epilogue!)) {
+        assert.ok(v.trim().length > 40, `${c.id}/${k}/${lang} слишком короток`);
+      }
+    }
+  }
+});
+
+test("английский эпилог не протёк кириллицей", () => {
+  for (const c of synthCampaigns("en")) {
+    assert.ok(!/[а-яё]/i.test(c.tagline), c.id);
+    for (const [k, v] of Object.entries(c.epilogue ?? {})) {
+      assert.ok(!/[а-яё]/i.test(v), `${c.id}/${k}`);
+    }
+    for (const st of c.stages) {
+      assert.ok(!/[а-яё]/i.test(st.act) && !/[а-яё]/i.test(st.intro), st.scenario_id);
+    }
+  }
+});
+
+test("офлайн-ядро знает обе кампании и не делит столы", () => {
+  const cs = synthCampaigns("ru");
+  assert.equal(cs.length, 2, "вторая кампания не доехала до офлайн-ядра");
+  const sets = cs.map((c) => new Set(c.stages.map((s) => s.scenario_id)));
+  for (let i = 0; i < sets.length; i++) {
+    for (let j = i + 1; j < sets.length; j++) {
+      const shared = [...sets[i]].filter((x) => sets[j].has(x));
+      assert.equal(shared.length, 0, `кампании делят столы: ${shared}`);
+    }
+  }
+});
+
+test("каждый акт указывает на настоящий стол", () => {
+  for (const c of synthCampaigns("ru")) {
+    for (const st of c.stages) {
+      assert.ok(SCENARIO_MAP[st.scenario_id], `${c.id}: нет стола ${st.scenario_id}`);
+      assert.ok(st.title && st.title !== st.scenario_id, `${c.id}/${st.scenario_id} без названия`);
+    }
+  }
 });

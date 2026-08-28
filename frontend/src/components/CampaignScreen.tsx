@@ -4,6 +4,7 @@
 // running narrative + reputation the App tracks between stages.
 import type { CampaignView, Lang } from "../types";
 import type { Strings } from "../i18n";
+import { EPILOGUE_BANDS } from "../data/campaigns.generated";
 import { COURSE_BLOCKS } from "../lib/course";
 
 // Per-stage record the App accumulates as the player advances the arc.
@@ -27,6 +28,23 @@ const GRADE_COLOR: Record<string, string> = {
   D: "#d98a3c",
   F: "var(--tension)",
 };
+
+/**
+ * Накопленная репутация → полоса эпилога.
+ *
+ * Пороги НЕ ПЕРЕПИСАНЫ РУКАМИ: `EPILOGUE_BANDS` генерируется из
+ * `app/engine/campaigns.py` вместе с самими кампаниями. Они же — пороги
+ * `views.reputation_intro`; разъедься они, и оппонент в четвёртом акте
+ * здоровался бы «наслышан, вы жёстки», а финал хвалил бы за сохранённые
+ * отношения. Один источник вместо двух — единственный способ этого избежать.
+ */
+export function epilogueKey(reputation: number | null | undefined): string {
+  if (reputation === null || reputation === undefined) return "mixed";
+  for (const [threshold, key] of EPILOGUE_BANDS) {
+    if (reputation >= threshold) return key;
+  }
+  return "burnt";
+}
 
 // Average overall → a coarse grade band → a verdict title on the summit screen.
 export function averageGrade(results: StageResult[]): { avg: number; grade: string } {
@@ -240,6 +258,18 @@ export function CampaignComplete({
               {t.campaign.avgLabel}: <b>{avg}/100</b>
             </div>
           </div>
+
+          {/* Эпилог — единственное место в продукте, где итог кампании говорится
+              словами, а не числом. Полосу выбирает накопленная репутация, а не
+              средний балл: репутация помнит, КАК вы шли, а не только куда
+              пришли. В счёт это не входит и входить не может — грейд каждого
+              акта уже посчитан движком и здесь не пересматривается. Кампании
+              без эпилога (пустой словарь) просто заканчиваются списком актов. */}
+          {campaign.epilogue?.[epilogueKey(progress.reputation)] && (
+            <p className="camp-epilogue serif">
+              {campaign.epilogue[epilogueKey(progress.reputation)]}
+            </p>
+          )}
 
           <ol className="arc final">
             {campaign.stages.map((stage, i) => (

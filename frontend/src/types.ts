@@ -175,6 +175,10 @@ export interface CampaignView {
   title: string;
   tagline: string;
   stages: CampaignStageView[];
+  /** Послесловие по полосам репутации: ключ → текст на языке сессии. Едет
+   *  целиком, потому что полосу считает клиент по СВОЕЙ накопленной
+   *  репутации — сервер её между актами не хранит. Оценку не трогает. */
+  epilogue?: Record<string, string>;
 }
 
 // client -> server

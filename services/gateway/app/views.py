@@ -26,7 +26,10 @@ def campaign_view(c: "Campaign", lang: str) -> CampaignView:
             icon=sc.icon,
             difficulty=sc.difficulty,
         ))
-    return CampaignView(id=c.id, icon=c.icon, title=c.title[lang], tagline=c.tagline[lang], stages=stages)
+    return CampaignView(
+        id=c.id, icon=c.icon, title=c.title[lang], tagline=c.tagline[lang], stages=stages,
+        epilogue={k: v[lang] for k, v in (c.epilogue or {}).items()},
+    )
 
 
 def apply_reputation(sess: "engine.Session", reputation: float) -> None:
