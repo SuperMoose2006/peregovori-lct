@@ -77,17 +77,22 @@ def test_scenarios_bilingual():
 # Полные партии
 # ---------------------------------------------------------------------------
 
-def test_full_principled_game_reaches_agreement():
-    """Вскрытие интересов → объективный критерий → размен → закрытие = A или B."""
+@pytest.mark.parametrize("lang", ("ru", "en"))
+def test_full_principled_game_reaches_agreement(lang):
+    """Вскрытие интересов → объективный критерий → размен → закрытие = A или B.
+
+    На обоих языках: интерес вскрывается попаданием в словарь тем СВОЕГО языка,
+    поэтому «работает на RU» ничего не обещает про английскую сессию.
+    """
     with client.websocket_connect("/v1/realtime?mode=text") as ws:
-        created = _open(ws)
+        created = _open(ws, lang=lang)
         assert created["state"]["status"] == "active"
         assert created["state"]["offer_opp"] == 100
 
         # Реплики — из общей фикстуры эталонных партий: партия, которую судит
         # этот тест, обязана быть той же, что судят тесты движка и курса.
         from tests.test_reference_games import PRINCIPLED
-        moves = PRINCIPLED["supplier"]
+        moves = PRINCIPLED["supplier"][lang]
         debrief = None
         for move in moves:
             seen = _turn(ws, move)

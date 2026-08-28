@@ -304,25 +304,31 @@ def test_order_partial_credit_counts_hits(item: dict) -> None:
 # вскрывается только вопросом ПО ТЕМЕ, поэтому у каждого стола своя лексика — и
 # ровно её проверяет test_reference_games.py. Одна фикстура на оба теста значит,
 # что капстоун курса проходят теми же словами, что и эталонную игру.
+#
+# Оба языка обязательны. Английские реплики — не перевод русских: словарь тем у
+# каждого языка свой, поэтому «работает на RU» ничего не говорит про EN, а
+# капстоунов на английском ровно столько же (инвариант 4 + инвариант 9).
 from tests.test_reference_games import PRINCIPLED as _PRINCIPLED_BY_SCENARIO  # noqa: E402
 
 CAPSTONES = [x for x in BANK if x["type"] == "drill"] + list(MASTER)
 
 
 @pytest.mark.parametrize("item", CAPSTONES, ids=[x["id"] for x in CAPSTONES])
-def test_capstone_is_actually_winnable(item: dict) -> None:
+@pytest.mark.parametrize("lang", LANGS)
+def test_capstone_is_actually_winnable(item: dict, lang: str) -> None:
     """Условие прохода обязано выполняться принципиальной игрой целиком."""
     from app import engine, views
     from app.course.check import check_drill
 
-    sess = engine.create_session(item["scenario_id"], "ru")
-    for line in _PRINCIPLED_BY_SCENARIO[item["scenario_id"]][: item.get("max_turns", 8)]:
+    sess = engine.create_session(item["scenario_id"], lang)
+    lines = _PRINCIPLED_BY_SCENARIO[item["scenario_id"]][lang]
+    for line in lines[: item.get("max_turns", 8)]:
         sess.turn += 1
         if engine.apply_move(sess, engine.analyze(line), line).closed:
             break
 
     verdict = check_drill(item, views.state_view(sess).model_dump())
     assert verdict["ok"], (
-        f"{item['id']}: принципиальная игра не проходит капстоун — "
+        f"{item['id']}/{lang}: принципиальная игра не проходит капстоун — "
         f"не выполнено: {', '.join(verdict['failed'])}"
     )

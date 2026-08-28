@@ -17,8 +17,13 @@ import type { Lang } from "../src/types";
 const GAMES = JSON.parse(readFileSync(new URL("./fixtures/games.json", import.meta.url), "utf8"));
 const SCORES = JSON.parse(readFileSync(new URL("./fixtures/games.scores.json", import.meta.url), "utf8"));
 
+// Партии двуязычные ({ru, en}); зеркало сверяется по русской половине —
+// инвариант 8 про совпадение двух РЕАЛИЗАЦИЙ движка, а не двух языков.
+// Английскую половину гоняет services/gateway/tests/test_reference_games.py.
 const PRINCIPLED: Record<string, string[]> = Object.fromEntries(
-  Object.entries(GAMES.principled).filter(([k]) => k !== "note"),
+  Object.entries(GAMES.principled)
+    .filter(([k]) => k !== "note")
+    .map(([k, v]) => [k, (v as { ru: string[] }).ru]),
 ) as Record<string, string[]>;
 const LADDER = GAMES.ladder;
 

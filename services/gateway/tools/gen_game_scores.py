@@ -62,10 +62,10 @@ def render() -> str:
     principled = {k: v for k, v in games["principled"].items() if k != "note"}
     ladder = games["ladder"]
 
-    def lines_of(game: dict) -> list[str]:
+    def lines_of(game: dict, lang: str) -> list[str]:
         lines = game["lines"]
         if isinstance(lines, str) and lines.startswith("@principled."):
-            return principled[lines.split(".", 1)[1]]
+            return principled[lines.split(".", 1)[1]][lang]
         return lines
 
     out = {
@@ -80,11 +80,15 @@ def render() -> str:
                          (1500000, "₽"), (6.5, "дней сдвига"), (230, "k ₽/мес"), (0.5, "%")]
         ],
         "ladder": {
-            gid: _play(ladder["scenario"], lines_of(next(g for g in ladder["games"] if g["id"] == gid)),
+            gid: _play(ladder["scenario"],
+                       lines_of(next(g for g in ladder["games"] if g["id"] == gid), ladder["lang"]),
                        ladder["lang"])
             for gid in ladder["order"]
         },
-        "principled": {sid: _play(sid, lines, "ru") for sid, lines in sorted(principled.items())},
+        # Браузерное зеркало сверяется по русской половине: инвариант 8 — про
+        # совпадение ДВУХ РЕАЛИЗАЦИЙ движка, а не двух языков. Английскую
+        # половину проверяет бэкенд (test_reference_games.py) на обоих языках.
+        "principled": {sid: _play(sid, g["ru"], "ru") for sid, g in sorted(principled.items())},
     }
     return json.dumps(out, ensure_ascii=False, indent=1) + "\n"
 

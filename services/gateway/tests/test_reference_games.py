@@ -10,6 +10,11 @@
 качество местами нельзя. Партии лежат в `frontend/test/fixtures/games.json`,
 потому что их читает и браузерное зеркало (`frontend/test/games.test.ts`):
 инвариант 8 проверяется на тех же самых репликах, а не на похожих.
+
+Партия у каждого стола ДВУЯЗЫЧНАЯ (инвариант 4). Английская половина — не
+перевод русской: интерес вскрывается только попаданием в
+`hidden_interest_keywords[lang]`, а словари двух языков разные. Значит и
+доказывать инвариант 2 надо на обоих — иначе экзамен на EN держится на вере.
 """
 
 from __future__ import annotations
@@ -26,15 +31,17 @@ FIXTURE = (Path(__file__).resolve().parents[3]
            / "frontend" / "test" / "fixtures" / "games.json")
 GAMES = json.loads(FIXTURE.read_text(encoding="utf-8"))
 LADDER = GAMES["ladder"]
+#: {scenario_id: {"ru": [...], "en": [...]}} — принципиальная партия на стол.
 PRINCIPLED = {k: v for k, v in GAMES["principled"].items() if k != "note"}
+LANGS = ("ru", "en")
 
 
-def lines_of(game: dict) -> list[str]:
+def lines_of(game: dict, lang: str = "ru") -> list[str]:
     """`@principled.<id>` — ссылка на партию из соседнего раздела, чтобы
     образцовая игра лестницы и эталон стола не разъезжались копипастой."""
     lines = game["lines"]
     if isinstance(lines, str) and lines.startswith("@principled."):
-        return PRINCIPLED[lines.split(".", 1)[1]]
+        return PRINCIPLED[lines.split(".", 1)[1]][lang]
     return lines
 
 
@@ -54,7 +61,8 @@ def _ladder_scores() -> dict[str, int]:
     out = {}
     for gid in LADDER["order"]:
         game = next(g for g in LADDER["games"] if g["id"] == gid)
-        _, debrief = play(LADDER["scenario"], lines_of(game), LADDER["lang"])
+        _, debrief = play(LADDER["scenario"], lines_of(game, LADDER["lang"]),
+                          LADDER["lang"])
         out[gid] = debrief["overall"]
     return out
 
@@ -88,18 +96,19 @@ def test_exemplary_game_earns_an_a() -> None:
     assert scores["exemplary"] >= 85, scores
 
 
+@pytest.mark.parametrize("lang", LANGS)
 @pytest.mark.parametrize("scenario_id", sorted(PRINCIPLED))
-def test_principled_play_grades_a_or_b_everywhere(scenario_id: str) -> None:
-    """Инвариант 2 на КАЖДОМ столе, а не только на первом."""
-    sess, debrief = play(scenario_id, PRINCIPLED[scenario_id])
+def test_principled_play_grades_a_or_b_everywhere(scenario_id: str, lang: str) -> None:
+    """Инвариант 2 на КАЖДОМ столе и на ОБОИХ языках, а не только на первом."""
+    sess, debrief = play(scenario_id, PRINCIPLED[scenario_id][lang], lang)
     assert debrief["grade"] in ("A", "B"), (
-        f"{scenario_id}: {debrief['grade']} ({debrief['overall']}), "
+        f"{scenario_id}/{lang}: {debrief['grade']} ({debrief['overall']}), "
         f"econ={debrief['economic']} tech={debrief['technique']} "
         f"status={sess.state.status}"
     )
-    assert sess.state.status == "agreement", scenario_id
+    assert sess.state.status == "agreement", f"{scenario_id}/{lang}"
     assert len(sess.state.interests_found) == 3, (
-        f"{scenario_id}: вскрыто {sess.state.interests_found} из трёх — "
+        f"{scenario_id}/{lang}: вскрыто {sess.state.interests_found} из трёх — "
         "вопрос по теме обязан вскрывать интерес"
     )
 
@@ -159,19 +168,25 @@ def test_lowball_close_is_a_failed_close_not_a_jackpot() -> None:
     assert sess.state.tension > 25, "провал закрытия обязан стоить нервов"
 
 
-def test_generic_probes_uncover_at_most_one_interest() -> None:
-    sess, _ = play("supplier", ["Почему для вас это важно?"] * 3)
-    assert len(sess.state.interests_found) <= 1, sess.state.interests_found
+#: Общий вопрос «ни о чём» на каждом языке: приём распознан, тема не названа.
+VAGUE = {"ru": "Почему для вас это важно?", "en": "Why is that important to you?"}
 
 
-def test_thematic_probes_uncover_all_three() -> None:
-    sess, _ = play("supplier", PRINCIPLED["supplier"][:3])
-    assert len(sess.state.interests_found) == 3, sess.state.interests_found
+@pytest.mark.parametrize("lang", LANGS)
+def test_generic_probes_uncover_at_most_one_interest(lang: str) -> None:
+    sess, _ = play("supplier", [VAGUE[lang]] * 3, lang)
+    assert len(sess.state.interests_found) <= 1, (lang, sess.state.interests_found)
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_thematic_probes_uncover_all_three(lang: str) -> None:
+    sess, _ = play("supplier", PRINCIPLED["supplier"][lang][:3], lang)
+    assert len(sess.state.interests_found) == 3, (lang, sess.state.interests_found)
 
 
 def test_alternating_two_lines_is_no_better_than_three_real_moves() -> None:
     """A,B,A,B… обходило анти-гейминг: память была на ОДНУ прошлую реплику."""
     alt = next(g for g in LADDER["games"] if g["id"] == "alternating")
     _, gamed = play(LADDER["scenario"], lines_of(alt))
-    _, honest = play(LADDER["scenario"], PRINCIPLED["supplier"][:3])
+    _, honest = play(LADDER["scenario"], PRINCIPLED["supplier"]["ru"][:3])
     assert gamed["overall"] <= honest["overall"], (gamed["overall"], honest["overall"])
