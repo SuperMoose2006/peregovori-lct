@@ -1928,11 +1928,10 @@
   {
    "text": "Мне кажется, что 30% — это несправедливо по отношению ко мне.",
    "moves": [
-    "acknowledge",
     "offer"
    ],
-   "primary": "acknowledge",
-   "arg": 36,
+   "primary": "offer",
+   "arg": 26,
    "words": 10,
    "number": 30.0,
    "spin": null
@@ -2787,10 +2786,10 @@
   {
    "text": "Это несправедливо по отношению ко мне.",
    "moves": [
-    "acknowledge"
+    "statement"
    ],
-   "primary": "acknowledge",
-   "arg": 30,
+   "primary": "statement",
+   "arg": 20,
    "words": 6,
    "number": null,
    "spin": null

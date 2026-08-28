@@ -224,3 +224,49 @@ def test_the_same_lines_give_byte_identical_results_every_run():
                     engine.render_line(sess, "neutral", False),
                 ))
             assert runs[0] == runs[1] == runs[2], f"{sc.id}/{lang} не воспроизводится"
+
+
+# ------------------------------------------------ отрицание внутри ключевого слова
+
+def test_a_complaint_is_not_active_listening():
+    """«Несправедливо» содержит «справедливо» — и жалоба шла за эмпатию.
+
+    Ключевые слова сравнивались голым вхождением подстроки, поэтому «это
+    несправедливо по отношению ко мне» получало активное слушание, +8 доверия и
+    самую тёплую реакцию. Английское «unfair» при этом не давало ничего: два
+    языка вели себя по-разному на одном и том же предложении.
+    """
+    from app.engine.techniques import analyze
+
+    complaint = analyze("Это несправедливо по отношению ко мне.")
+    assert "empathy" not in [t["key"] for t in complaint.tags]
+    assert complaint.primary != "acknowledge"
+
+    # А настоящее «справедливо» по-прежнему считается.
+    fair = analyze("Это справедливо для обеих сторон.")
+    assert "empathy" in [t["key"] for t in fair.tags]
+
+
+def test_stems_still_catch_word_forms():
+    """Закрыто только НАЧАЛО слова: основы обязаны ловить словоформы."""
+    from app.engine.techniques import analyze
+
+    for line in ("Загрузка производства для вас важна?",
+                 "Загрузку производства это как-то затрагивает?"):
+        assert analyze(line).flags.get("question"), line
+
+
+def test_a_threat_to_leave_is_not_a_trade():
+    """«Тогда мы уходим к конкуренту» читалось как РАЗМЕН и давало +6 доверия.
+
+    Размен имеет форму условия («если мы… то вы…»); «тогда мы» — форма
+    следствия, то есть ровно форма угрозы. Дистрактор упражнения `pd-01`
+    обещал рост напряжения, а движок вознаграждал за него доверием.
+    """
+    from app.engine.techniques import analyze
+
+    threat = analyze("Тогда мы уходим к конкуренту, у них 99.7 процента")
+    assert "tradeoff" not in [t["key"] for t in threat.tags]
+
+    trade = analyze("Если мы дадим годовой контракт — сможете подвинуться?")
+    assert "tradeoff" in [t["key"] for t in trade.tags]

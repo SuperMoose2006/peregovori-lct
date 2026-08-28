@@ -24,9 +24,26 @@ export const norm = (s: string): string =>
       .trim(),
   );
 
-export const has = (t: string, arr: string[]): boolean => arr.some((w) => t.includes(w));
+/**
+ * Ключевые слова — ОСНОВЫ, и совпадать они обязаны с НАЧАЛА слова.
+ *
+ * Голое вхождение подстроки засчитывало «справедливо» внутри «несправедливо»:
+ * жалоба получала активное слушание, +8 доверия и самую тёплую реакцию, а
+ * английское «unfair» не давало ничего — два языка вели себя по-разному на
+ * одном предложении. Хвост остаётся открытым намеренно: основы для того и
+ * написаны, чтобы ловить словоформы. Зеркало techniques.py::_starts_at_word.
+ */
+export const startsAtWord = (text: string, word: string): boolean => {
+  for (let at = text.indexOf(word); at >= 0; at = text.indexOf(word, at + 1)) {
+    const before = at === 0 ? " " : text[at - 1];
+    if (!/\p{L}/u.test(before)) return true;
+  }
+  return false;
+};
+
+export const has = (t: string, arr: string[]): boolean => arr.some((w) => startsAtWord(t, w));
 export const cnt = (t: string, arr: string[]): number =>
-  arr.reduce((n, w) => n + (t.includes(w) ? 1 : 0), 0);
+  arr.reduce((n, w) => n + (startsAtWord(t, w) ? 1 : 0), 0);
 
 // Две ветки, порядок важен: сперва число с разделителями групп («300 000»),
 // затем сплошной ряд цифр. Вторая добавлена по найденному дефекту — прежняя

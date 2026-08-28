@@ -39,12 +39,34 @@ def norm(s: Optional[str]) -> str:
     return spell_to_digits(s)
 
 
+#: Ключевые слова — ОСНОВЫ, и совпадать они обязаны с НАЧАЛА слова.
+#:
+#: Голое вхождение подстроки засчитывало «справедливо» внутри «несправедливо»:
+#: реплика «это несправедливо по отношению ко мне» получала активное слушание,
+#: +8 доверия и самую тёплую реакцию. Жалоба вознаграждалась как эмпатия — а
+#: английское «unfair» не давало ничего, то есть два языка вели себя
+#: по-разному на одном и том же предложении.
+#:
+#: Хвост остаётся открытым намеренно: основы для того и написаны, чтобы ловить
+#: словоформы («загрузк» → «загрузка», «загрузку»). Закрывается только начало.
+def _starts_at_word(text: str, word: str) -> bool:
+    start = 0
+    while True:
+        at = text.find(word, start)
+        if at < 0:
+            return False
+        before = text[at - 1] if at else " "
+        if not before.isalpha():
+            return True
+        start = at + 1
+
+
 def _has(t: str, arr: list[str]) -> bool:
-    return any(w in t for w in arr)
+    return any(_starts_at_word(t, w) for w in arr)
 
 
 def _count_matches(t: str, arr: list[str]) -> int:
-    return sum(1 for w in arr if w in t)
+    return sum(1 for w in arr if _starts_at_word(t, w))
 
 
 # ---- Lexicons (RU + EN) -----------------------------------------------------
@@ -129,7 +151,7 @@ LEX: dict[str, list[str]] = {
     ],
     "tradeoff": [
         "если вы, то мы", "взамен", "в обмен", "при условии", "пакет", "если добавите",
-        "давайте свяжем", "обменяем", "тогда мы", "в ответ на", "если мы дадим", "если мы",
+        "давайте свяжем", "обменяем", "в ответ на", "если мы дадим", "если мы",
         "если пойдём навстречу", "сможете подвинуться", "сможете ли вы", "готовы ли вы взамен",
         "if you, then we", "in exchange", "in return", "provided that", "package",
         "we could trade", "link", "as long as you", "if we give", "if we offer",

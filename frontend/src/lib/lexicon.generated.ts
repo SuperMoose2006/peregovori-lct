@@ -82,7 +82,7 @@ export const LEX: Record<string, string[]> = {
   ],
   tradeoff: [
     "если вы, то мы", "взамен", "в обмен", "при условии", "пакет", "если добавите",
-    "давайте свяжем", "обменяем", "тогда мы", "в ответ на", "если мы дадим", "если мы",
+    "давайте свяжем", "обменяем", "в ответ на", "если мы дадим", "если мы",
     "если пойдём навстречу", "сможете подвинуться", "сможете ли вы", "готовы ли вы взамен",
     "if you, then we", "in exchange", "in return", "provided that", "package", "we could trade",
     "link", "as long as you", "if we give", "if we offer", "if you add", "can you move on",
