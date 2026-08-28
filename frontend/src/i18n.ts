@@ -204,6 +204,8 @@ export interface Strings {
     names: Record<"probe" | "voice" | "camera" | "avatar" | "pokerface", string>;
     blurbs: Record<"probe" | "voice" | "camera" | "avatar" | "pokerface", string>;
     presetNames: Record<string, string>;
+    /** «сорвались N раз из M кадров» — счётчик «покерфейса» в разборе. */
+    tellsOf: string;
     explainHead: string;
     explain: string[];
   };
@@ -731,6 +733,7 @@ export const I18N: Record<Lang, Strings> = {
       },
       presetNames: { classic: "Классика", read: "Читай лицо", call: "Видеозвонок",
                      poker: "Покерфейс", full: "Полный контакт" },
+      tellsOf: "раз лицо себя выдало — из {n} просмотренных кадров",
       explainHead: "Что это даёт",
       explain: [
         "Слои меняют состав разбора после партии, но никогда не влияют на грейд.",
@@ -1336,6 +1339,7 @@ export const I18N: Record<Lang, Strings> = {
       },
       presetNames: { classic: "Classic", read: "Read the face", call: "Video call",
                      poker: "Poker face", full: "Full contact" },
+      tellsOf: "times your face gave you away — out of {n} frames seen",
       explainHead: "What this changes",
       explain: [
         "Layers change what the debrief shows — never the grade.",

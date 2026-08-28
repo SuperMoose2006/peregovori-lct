@@ -796,6 +796,13 @@ export default function App() {
           d={nego.debrief}
           probeStats={activeLayers.probe ? probeStats : undefined}
           observations={activeLayers.camera ? nego.observations : undefined}
+          // Карточка «покерфейса» рисуется, ТОЛЬКО если слой и правда смотрел:
+          // подпись «ноль срывов» под невставшей камерой — обещание вместо
+          // наблюдения. Число просмотренных кадров едет вместе со счётчиком
+          // именно затем, чтобы эти два случая нельзя было спутать.
+          tells={activeLayers.pokerface && nego.tellFrames > 0
+            ? { count: nego.tells, frames: nego.tellFrames }
+            : undefined}
           mode={mode}
           lang={lang}
           scenarioTitle={nego.scenario?.title}

@@ -3,6 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { NO_LAYERS, PRESETS, pruneLayers, sessionLayers, detectLayers, type Layers } from "../src/lib/layers";
+import { I18N } from "../src/i18n";
 
 const ON: Layers = { probe: true, voice: true, camera: true, avatar: true, pokerface: true };
 
@@ -91,4 +92,25 @@ test("выбор игрока не портится ни одним режимо
   const copy = { ...want };
   sessionLayers("exam", want, detectLayers());
   assert.deepEqual(want, copy, "экзамен не имеет права затирать настройку профиля");
+});
+
+test("покерфейс не показывает счётчик, если камера не смотрела", () => {
+  // Подпись «ноль срывов» под невставшей камерой — это обещание, выданное за
+  // наблюдение. Различить два случая можно только по числу просмотренных
+  // кадров, поэтому оно и хранится рядом со счётчиком.
+  const shown = (pokerface: boolean, frames: number) =>
+    pokerface && frames > 0;
+
+  assert.equal(shown(true, 0), false, "слой включён, но ни разу не посмотрел");
+  assert.equal(shown(false, 5), false, "слой выключен — счётчику неоткуда взяться");
+  assert.equal(shown(true, 5), true);
+});
+
+test("строка счётчика переведена и несёт подстановку", () => {
+  for (const lang of ["ru", "en"] as const) {
+    const s = I18N[lang].layers.tellsOf;
+    assert.ok(s.includes("{n}"), `${lang}: нет подстановки числа кадров`);
+    assert.ok(s.trim().length > 10, `${lang}: строка пуста`);
+  }
+  assert.ok(!/[а-яё]/i.test(I18N.en.layers.tellsOf), "кириллица в английском");
 });

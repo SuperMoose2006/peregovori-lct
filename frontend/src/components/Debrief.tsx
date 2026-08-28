@@ -42,6 +42,11 @@ interface Props {
    *  но экран подготовки обещает игроку «кто в кадре, куда смотрите», поэтому
    *  показать их надо: иначе слой обещает то, чего человек не увидит. */
   observations?: string[];
+  /** «Покерфейс»: сколько раз лицо несло явное выражение, и по скольким кадрам
+   *  слой вообще успел высказаться. Второе число обязательно: без него «ноль
+   *  срывов» неотличимо от «слой ни разу не посмотрел», а это разные новости —
+   *  первая про выдержку, вторая про то, что камера не доехала. */
+  tells?: { count: number; frames: number };
   onRetry: () => void;
   onHome: () => void;
   // Campaign mode: the primary action advances the arc instead of replaying.
@@ -68,7 +73,7 @@ interface Props {
 }
 
 export function Debrief({
-  t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, observations, onRetry, onHome, onNext, nextLabel,
+  t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, observations, tells, onRetry, onHome, onNext, nextLabel,
   runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
   secondaryIssues, termsConceded, onCourse,
 }: Props) {
@@ -399,6 +404,20 @@ export function Debrief({
               <ul className="obs-list">
                 {observations.slice(-4).map((o, i) => <li key={i}>{o}</li>)}
               </ul>
+            </div>
+          ) : null}
+
+          {at(1) && tells && tells.frames > 0 ? (
+            <div className="obs">
+              <div className="obs-head">
+                <h3>😐 {t.layers.names.pokerface}</h3>
+                <span className="obs-badge">{t.probe.observation}</span>
+              </div>
+              <p className="obs-tells">
+                <b>{tells.count}</b>
+                {" "}
+                {t.layers.tellsOf.replace("{n}", String(tells.frames))}
+              </p>
             </div>
           ) : null}
 

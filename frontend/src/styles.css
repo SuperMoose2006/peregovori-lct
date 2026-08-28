@@ -3087,6 +3087,8 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Наблюдения камеры в разборе: тот же блок `.obs`, что у зонда эмоций, —
    и тот же бейдж «наблюдение». Оба слоя не входят в счёт, и одинаковый вид
    ровно это и сообщает, без чтения текста. */
+.obs-tells { margin: 8px 0 0; font-size: 14px; color: var(--ink-dim); }
+.obs-tells b { font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .obs-list { margin: 12px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
 .obs-list li { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
 
