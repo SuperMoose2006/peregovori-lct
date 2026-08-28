@@ -30,11 +30,25 @@ def anchor_gap(scenario_id: str) -> float:
     return round(abs(sc.opponent_open - sc.opponent_reservation), 4)
 
 
+def target_slack(scenario_id: str) -> float:
+    """Насколько дно оппонента лежит ДАЛЬШЕ вашей цели.
+
+    Обычно ноль или около того: дно оппонента упирается в цель игрока, и торг
+    идёт за каждый пункт. У «Оффера сильному кандидату» это 20 — запас, который
+    можно выжать и за который не начисляют ничего: экономика считается от цели и
+    на ней уже равна 100. Число обязано быть выведенным: подвинут баланс стола —
+    подвинется и урок, а не останется в нём старая цифра.
+    """
+    sc = by_id(scenario_id)
+    return round(abs(sc.player_target - sc.opponent_reservation), 4)
+
+
 DERIVERS = {
     "zopa_low": zopa_low,
     "zopa_high": zopa_high,
     "zopa_width": zopa_width,
     "anchor_gap": anchor_gap,
+    "target_slack": target_slack,
 }
 
 

@@ -7,6 +7,7 @@
 // only loadProfile/saveProfile touch localStorage, and they're defensive — any
 // corrupt/missing/half-shaped blob degrades to sane defaults rather than throwing.
 
+import { COURSE_BLOCKS } from "../data/course.generated";
 import type { Debrief, Mode } from "../types";
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
@@ -575,8 +576,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   // а не две параллельных полки значков.
   { id: "block_passed", icon: "📗", name: { ru: "Первый блок", en: "First block" }, desc: { ru: "Сдать экзамен блока", en: "Pass a block exam" } },
   { id: "exam_clean", icon: "💯", name: { ru: "Без единой ошибки", en: "Flawless" }, desc: { ru: "Сдать экзамен блока на максимум", en: "Score full marks on a block exam" } },
-  { id: "course_half", icon: "📘", name: { ru: "Половина пути", en: "Halfway" }, desc: { ru: "Сдать пять блоков курса", en: "Pass five course blocks" } },
-  { id: "course_done", icon: "🎓", name: { ru: "Курс пройден", en: "Course complete" }, desc: { ru: "Сдать все девять блоков", en: "Pass all nine blocks" } },
+  { id: "course_half", icon: "📘", name: { ru: "Половина пути", en: "Halfway" }, desc: { ru: "Сдать половину блоков курса", en: "Pass half of the course blocks" } },
+  { id: "course_done", icon: "🎓", name: { ru: "Курс пройден", en: "Course complete" }, desc: { ru: "Сдать все блоки курса", en: "Pass every course block" } },
   { id: "master_exam", icon: "👑", name: { ru: "Мастер", en: "Master" }, desc: { ru: "Сдать экзамен мастера — три партии подряд", en: "Pass the master exam — three negotiations in a row" } },
 ];
 
@@ -821,8 +822,11 @@ export function courseAchievements(profile: Profile, justScored?: { score: numbe
   const out: string[] = [];
   if (profile.course[MASTER_ID]?.passed) out.push("master_exam");
   if (passed >= 1) out.push("block_passed");
-  if (passed >= 5) out.push("course_half");
-  if (passed >= 9) out.push("course_done");
+  // Порог «курс пройден» — ЧИСЛО БЛОКОВ, а не константа 9: блок добавили, а
+  // значок остался бы за девять из десяти, то есть выдавался бы за непройденный
+  // курс. Половина считается от того же числа по той же причине.
+  if (passed >= Math.ceil(COURSE_BLOCKS.length / 2)) out.push("course_half");
+  if (passed >= COURSE_BLOCKS.length) out.push("course_done");
   if (justScored && justScored.total > 0 && justScored.score >= justScored.total) out.push("exam_clean");
   return out;
 }
@@ -868,4 +872,167 @@ export function blockCompletion(b: BlockProgress, lessons: number, exercises: nu
     b.passed ? 1 : 0,
   ];
   return parts.reduce((a, x) => a + x, 0) / parts.length;
+}
+
+// ============================================================================
+// Прошлая партия за столом — «переиграй против себя вчерашнего».
+//
+// Движок это чистая функция от (сценарий, порядок ходов): одинаковый вход даёт
+// байт-в-байт одинаковое состояние. Значит, чтобы посадить рядом с игроком его
+// же прошлую попытку, хранить надо не картинку партии, а её ВХОД — стол,
+// стартовые условия и реплики по порядку. Всё остальное пересчитает движок
+// (lib/rematch.ts), и пересчитает одинаково на сервере и офлайн (инвариант 8).
+//
+// ПОЧЕМУ ОТДЕЛЬНЫЙ КЛЮЧ, А НЕ ПОЛЕ ПРОФИЛЯ. Стенограммы — самое тяжёлое, что
+// продукт кладёт в localStorage, и единственное, что может упереться в квоту.
+// В общем блобе переполнение унесло бы с собой XP, серию и курс — то есть
+// цену прогресса за всё время. Тот же приём, что у флага онбординга: своя
+// коробка, своё защищённое чтение, отдельная авария.
+// ============================================================================
+
+/** Стартовые условия стола — то, что модификаторы («стол дня», репутация акта)
+ *  меняют ДО первого хода. Хранятся замером, а не причиной: правило, по
+ *  которому они получились, живёт в одном месте (сервер и MockServer), и
+ *  повторять его здесь значило бы завести второй источник правды. */
+export interface RunOpening {
+  trust: number;
+  tension: number;
+  maxTurns: number;
+}
+
+/** Одна сохранённая партия: вход движка плюс итог, который движок поставил. */
+export interface PastRun {
+  scenarioId: string;
+  /** Язык партии. Реплики опознаются по ключевым словам своего языка, поэтому
+   *  русскую стенограмму нельзя переигрывать по-английски: сравнение молча
+   *  потеряло бы вскрытые интересы. Разошёлся язык — сравнения нет. */
+  lang: "ru" | "en";
+  at: string; // ISO-время окончания
+  opening: RunOpening;
+  moves: string[]; // реплики игрока по порядку
+  // Итог, как его посчитал движок в ТОЙ партии. Показывается как есть и никогда
+  // не пересчитывается: это послесловие, а не вторая оценка (инвариант 6).
+  grade: Grade;
+  score: number; // overall
+  economic: number;
+  relationship: number;
+  technique: number;
+  dealText: string;
+  status: Debrief["status"];
+}
+
+const PAST_KEY = "dialog.pastruns.v1";
+/** Ходов в партии максимум двенадцать; двадцать четыре — тот же запас, что у
+ *  «А что если…», и он же потолок для чужого (испорченного) блоба. */
+export const PAST_MAX_MOVES = 24;
+/** Композер и так режет ввод; здесь потолок против раздутого блоба. */
+export const PAST_MOVE_CHARS = 400;
+/** Столов девять, плюс запас на будущие. Больше — вытесняем самый старый:
+ *  квота localStorage не резиновая, а нужен всегда ОДИН стол — текущий. */
+export const PAST_MAX_TABLES = 12;
+
+/** Ужать партию до того, что и правда хранится. Чистая функция. */
+export function compactRun(run: PastRun): PastRun {
+  return {
+    ...run,
+    moves: run.moves.slice(0, PAST_MAX_MOVES).map((m) => m.slice(0, PAST_MOVE_CHARS)),
+  };
+}
+
+function sanitizeRun(v: unknown): PastRun | null {
+  if (!v || typeof v !== "object") return null;
+  const r = v as Record<string, unknown>;
+  const g = r.grade;
+  if (g !== "A" && g !== "B" && g !== "C" && g !== "D" && g !== "F") return null;
+  if (typeof r.scenarioId !== "string" || !r.scenarioId) return null;
+  const lang = r.lang === "en" ? "en" : "ru";
+  const moves = Array.isArray(r.moves) ? r.moves.filter((m): m is string => typeof m === "string") : [];
+  if (moves.length === 0) return null;
+  const num = (x: unknown, d: number) => (typeof x === "number" && isFinite(x) ? x : d);
+  const op = (r.opening ?? {}) as Record<string, unknown>;
+  const st = r.status;
+  return compactRun({
+    scenarioId: r.scenarioId,
+    lang,
+    at: typeof r.at === "string" ? r.at : "",
+    opening: {
+      trust: clamp(num(op.trust, 40), 0, 100),
+      tension: clamp(num(op.tension, 25), 0, 100),
+      maxTurns: clamp(Math.round(num(op.maxTurns, 12)), 1, PAST_MAX_MOVES),
+    },
+    moves,
+    grade: g as Grade,
+    score: clamp(Math.round(num(r.score, 0)), 0, 100),
+    economic: clamp(Math.round(num(r.economic, 0)), 0, 100),
+    relationship: clamp(Math.round(num(r.relationship, 0)), 0, 100),
+    technique: clamp(Math.round(num(r.technique, 0)), 0, 100),
+    dealText: typeof r.dealText === "string" ? r.dealText : "",
+    status: st === "agreement" || st === "breakdown" ? st : "active",
+  });
+}
+
+export function loadPastRuns(): Record<string, PastRun> {
+  const out: Record<string, PastRun> = {};
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(PAST_KEY) : null;
+    if (!raw) return out;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const src = parsed && typeof parsed === "object" ? parsed.tables : null;
+    if (!src || typeof src !== "object") return out;
+    for (const [id, val] of Object.entries(src as Record<string, unknown>)) {
+      const run = sanitizeRun(val);
+      if (run) out[id] = run;
+    }
+  } catch {
+    /* испорченный блоб — просто «сравнивать не с чем», а не сбой партии */
+  }
+  return out;
+}
+
+export function loadPastRun(scenarioId: string): PastRun | null {
+  return loadPastRuns()[scenarioId] ?? null;
+}
+
+/** Какую из двух попыток держать. Тот же порядок, что у личного рекорда
+ *  (`isBetter`): соперником остаётся ЛУЧШАЯ ваша игра за этим столом, иначе
+ *  одна неудачная партия стирала бы планку, которую вы уже брали. */
+export function keepRun(next: PastRun, prev: PastRun | null): PastRun {
+  if (!prev) return next;
+  // Сменился язык — прошлая стенограмма для сравнения бесполезна (см. PastRun.lang).
+  if (prev.lang !== next.lang) return next;
+  return isBetter(next.grade, next.score, {
+    bestGrade: prev.grade, bestScore: prev.score, attempts: 0, lastPlayed: prev.at,
+  }) ? next : prev;
+}
+
+/** Чистая свёртка: положить партию в таблицу столов, вытеснив самую старую,
+ *  если столов стало больше потолка. Возвращает новую таблицу. */
+export function foldPastRun(
+  tables: Record<string, PastRun>,
+  run: PastRun,
+): Record<string, PastRun> {
+  const compact = compactRun(run);
+  const next = { ...tables, [compact.scenarioId]: keepRun(compact, tables[compact.scenarioId] ?? null) };
+  const ids = Object.keys(next);
+  if (ids.length <= PAST_MAX_TABLES) return next;
+  const oldest = ids
+    .filter((id) => id !== compact.scenarioId)
+    .sort((a, b) => (next[a].at < next[b].at ? -1 : 1))
+    .slice(0, ids.length - PAST_MAX_TABLES);
+  for (const id of oldest) delete next[id];
+  return next;
+}
+
+/** Записать партию и вернуть ТУ, что теперь лежит на этом столе — то есть
+ *  соперника следующей партии. Запись «лучшее из двух», см. keepRun. */
+export function savePastRun(run: PastRun): PastRun {
+  const tables = foldPastRun(loadPastRuns(), run);
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(PAST_KEY, JSON.stringify({ v: 1, tables }));
+    }
+  } catch {
+    /* квота/приватный режим — сравнение просто не переживёт перезагрузку */
+  }
+  return tables[run.scenarioId];
 }

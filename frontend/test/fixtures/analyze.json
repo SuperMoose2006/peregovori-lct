@@ -281,6 +281,50 @@
    "spin": null
   },
   {
+   "text": "Deal at 800 thousand, let us close it.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 7,
+   "number": 800000.0,
+   "spin": null
+  },
+  {
+   "text": "Either 20%, or we go to another fund.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 8,
+   "number": 20.0,
+   "spin": null
+  },
+  {
+   "text": "Either 65, or I rent from the neighbours — your call.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 10,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Either you come in at 215, or we take another finalist — that is our final word.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 28,
+   "words": 16,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Either you give me 230k or I walk to your competitor.",
    "moves": [
     "batna",
@@ -361,6 +405,17 @@
    "spin": null
   },
   {
+   "text": "Fine, let us do 260, just so you join.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Fine, let us say 99.5%.",
    "moves": [
     "offer"
@@ -369,6 +424,17 @@
    "arg": 26,
    "words": 5,
    "number": 99.5,
+   "spin": null
+  },
+  {
+   "text": "Fine, let us split it — 24%.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 6,
+   "number": 24.0,
    "spin": null
   },
   {
@@ -428,6 +494,28 @@
    "spin": null
   },
   {
+   "text": "I can see this is an unpleasant story for you, and I understand why.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 38,
+   "words": 14,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "I feel that 30% is simply unfair to me.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 9,
+   "number": 30.0,
+   "spin": null
+  },
+  {
    "text": "I have an alternative offer at 210k, but your project interests me more — let us find a solution here.",
    "moves": [
     "batna",
@@ -474,6 +562,30 @@
    "spin": null
   },
   {
+   "text": "I need to check with my colleagues, this is not my call alone.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 28,
+   "words": 13,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "I understand this is not easy for you. Natalia, what matters most to you in a tenant — and what concerns you?",
+   "moves": [
+    "spin_problem",
+    "interests_probe",
+    "acknowledge"
+   ],
+   "primary": "interests_probe",
+   "arg": 64,
+   "words": 21,
+   "number": null,
+   "spin": "problem"
+  },
+  {
    "text": "I understand you must not look at fault to leadership.",
    "moves": [
     "acknowledge"
@@ -506,6 +618,17 @@
    "arg": 44,
    "words": 16,
    "number": 99.9,
+   "spin": null
+  },
+  {
+   "text": "I understand: an empty flat is a real loss, and being careful is only natural.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 38,
+   "words": 15,
+   "number": null,
    "spin": null
   },
   {
@@ -544,6 +667,18 @@
    "spin": null
   },
   {
+   "text": "If we give you an architect track with a mentor, can you move to 230?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 44,
+   "words": 15,
+   "number": 230.0,
+   "spin": null
+  },
+  {
    "text": "If we pay 30% upfront at signing, can you move down on the price per unit?",
    "moves": [
     "tradeoff",
@@ -576,6 +711,18 @@
    "primary": "threat",
    "arg": 8,
    "words": 9,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Is that your final word? Otherwise we escalate to the director and walk.",
+   "moves": [
+    "threat",
+    "open_question"
+   ],
+   "primary": "threat",
+   "arg": 16,
+   "words": 13,
    "number": null,
    "spin": null
   },
@@ -642,6 +789,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Let us keep this human: you and I have worked together for years.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 28,
+   "words": 13,
    "number": null,
    "spin": null
   },
@@ -746,6 +904,17 @@
    "arg": 34,
    "words": 14,
    "number": 92.0,
+   "spin": null
+  },
+  {
+   "text": "Show me the calculation — what is your number based on?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 10,
+   "number": null,
    "spin": null
   },
   {
@@ -963,6 +1132,30 @@
    "spin": null
   },
   {
+   "text": "The median for this stage is 20% equity, because that is what independent market reviews show.",
+   "moves": [
+    "objective_criteria",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 64,
+   "words": 16,
+   "number": 20.0,
+   "spin": null
+  },
+  {
+   "text": "The median in independent surveys for this role is 230k, because that is the market, not my wish.",
+   "moves": [
+    "objective_criteria",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 64,
+   "words": 18,
+   "number": 230.0,
+   "spin": null
+  },
+  {
    "text": "The question is too vague",
    "moves": [
     "statement"
@@ -1074,6 +1267,17 @@
    "spin": null
   },
   {
+   "text": "These are the terms. If they do not suit you, we are done here.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 28,
+   "words": 14,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "This is a joke, you are not serious.",
    "moves": [
     "hostile"
@@ -1092,6 +1296,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 6,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Timur, what matters most to you in this move — relocating your family, growth, something else?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 40,
+   "words": 15,
    "number": null,
    "spin": null
   },
@@ -1118,6 +1333,17 @@
    "spin": null
   },
   {
+   "text": "We have an alternative: another supplier is ready to work at 88.",
+   "moves": [
+    "batna"
+   ],
+   "primary": "batna",
+   "arg": 28,
+   "words": 12,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "We hold at 100, that is our policy.",
    "moves": [
     "statement"
@@ -1139,6 +1365,18 @@
    "arg": 52,
    "words": 22,
    "number": 1080.0,
+   "spin": null
+  },
+  {
+   "text": "We propose 60, that is our price.",
+   "moves": [
+    "anchor",
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 7,
+   "number": 60.0,
    "spin": null
   },
   {
@@ -1220,6 +1458,18 @@
    "spin": null
   },
   {
+   "text": "You have no other offers, so we propose 212, and that is our price.",
+   "moves": [
+    "anchor",
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 34,
+   "words": 14,
+   "number": 212.0,
+   "spin": null
+  },
+  {
    "text": "no",
    "moves": [
     "statement"
@@ -1295,6 +1545,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 7,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Вижу, что для вас это неприятная история, и понимаю почему.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 30,
+   "words": 10,
    "number": null,
    "spin": null
   },
@@ -1378,6 +1639,17 @@
    "spin": null
   },
   {
+   "text": "Давайте по-человечески: мы с вами работаем не первый год.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Давайте свяжем срок контракта с ценой: если мы даём годовой объём, вы двигаетесь по цене?",
    "moves": [
     "tradeoff",
@@ -1409,6 +1681,18 @@
    "arg": 28,
    "words": 17,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "Других офферов у вас нет, поэтому мы предлагаем 212, и это наша цена.",
+   "moves": [
+    "anchor",
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 34,
+   "words": 13,
+   "number": 212.0,
    "spin": null
   },
   {
@@ -1448,6 +1732,18 @@
    "spin": null
   },
   {
+   "text": "Если мы дадим трек до архитектора с наставником, вы выйдете на 230?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 44,
+   "words": 12,
+   "number": 230.0,
+   "spin": null
+  },
+  {
    "text": "Если мы продлим на 3 года и введём ступенчатый SLA, сможете ли вы дать 99.8% со второго квартала?",
    "moves": [
     "tradeoff",
@@ -1457,6 +1753,17 @@
    "arg": 38,
    "words": 18,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "Или 20%, или мы идём в другой фонд.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 8,
+   "number": 20.0,
    "spin": null
   },
   {
@@ -1528,6 +1835,17 @@
    "spin": null
   },
   {
+   "text": "Либо 65, либо я снимаю у соседей — решайте.",
+   "moves": [
+    "threat"
+   ],
+   "primary": "threat",
+   "arg": 8,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Либо вы соглашаетесь на 18%, либо мы прекращаем разговор.",
    "moves": [
     "threat",
@@ -1537,6 +1855,17 @@
    "arg": 14,
    "words": 9,
    "number": 18.0,
+   "spin": null
+  },
+  {
+   "text": "Либо выходите на 215, либо мы берём другого финалиста — это ультиматум.",
+   "moves": [
+    "threat"
+   ],
+   "primary": "threat",
+   "arg": 8,
+   "words": 11,
+   "number": null,
    "spin": null
   },
   {
@@ -1551,6 +1880,18 @@
    "spin": null
   },
   {
+   "text": "Медиана по независимым обзорам для этой роли 230k, потому что это рынок, а не моё желание.",
+   "moves": [
+    "objective_criteria",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 64,
+   "words": 16,
+   "number": 230.0,
+   "spin": null
+  },
+  {
    "text": "Мне 30 лет, я работаю тут 5 лет.",
    "moves": [
     "statement"
@@ -1558,6 +1899,29 @@
    "primary": "statement",
    "arg": 20,
    "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Мне кажется, что 30% — это несправедливо по отношению ко мне.",
+   "moves": [
+    "acknowledge",
+    "offer"
+   ],
+   "primary": "acknowledge",
+   "arg": 36,
+   "words": 10,
+   "number": 30.0,
+   "spin": null
+  },
+  {
+   "text": "Мне надо посоветоваться с коллегами, я не решаю один.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
    "number": null,
    "spin": null
   },
@@ -1616,6 +1980,18 @@
    "arg": 52,
    "words": 20,
    "number": 1080.0,
+   "spin": null
+  },
+  {
+   "text": "Мы предлагаем 60, это наша цена.",
+   "moves": [
+    "anchor",
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 6,
+   "number": 60.0,
    "spin": null
   },
   {
@@ -1823,6 +2199,18 @@
    "spin": null
   },
   {
+   "text": "По медиане раундов этой стадии доля 20%, потому что так считают независимые обзоры рынка.",
+   "moves": [
+    "objective_criteria",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 64,
+   "words": 14,
+   "number": 20.0,
+   "spin": null
+  },
+  {
    "text": "По объявлениям на такую же модель с этим пробегом рыночная цена 1080 — давайте отталкиваться от неё.",
    "moves": [
     "objective_criteria",
@@ -1847,6 +2235,17 @@
    "spin": null
   },
   {
+   "text": "По рукам — 800 тысяч, и закрываем.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 5,
+   "number": 800000.0,
+   "spin": null
+  },
+  {
    "text": "По рыночным данным справедливая цена — 88 ₽/шт.",
    "moves": [
     "objective_criteria",
@@ -1866,6 +2265,17 @@
    "primary": "statement",
    "arg": 5,
    "words": 3,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Покажите расчёт — на чём основана ваша цифра?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 7,
    "number": null,
    "spin": null
   },
@@ -1901,6 +2311,30 @@
    "primary": "interests_probe",
    "arg": 50,
    "words": 20,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Понимаю, что для вас это непросто. Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
+   "moves": [
+    "spin_problem",
+    "interests_probe",
+    "acknowledge"
+   ],
+   "primary": "interests_probe",
+   "arg": 64,
+   "words": 18,
+   "number": null,
+   "spin": "problem"
+  },
+  {
+   "text": "Понимаю: пустая квартира — это реальные потери, и осторожность тут естественна.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 30,
+   "words": 10,
    "number": null,
    "spin": null
   },
@@ -2062,6 +2496,17 @@
    "spin": null
   },
   {
+   "text": "Тимур, что для вас важнее всего в этом переходе — переезд семьи, рост, что-то ещё?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 40,
+   "words": 14,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Тогда мы уходим к конкуренту, у них 99.7%.",
    "moves": [
     "batna",
@@ -2143,6 +2588,17 @@
    "spin": null
   },
   {
+   "text": "У нас есть альтернатива: другой поставщик готов работать по 88.",
+   "moves": [
+    "batna"
+   ],
+   "primary": "batna",
+   "arg": 20,
+   "words": 10,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "У нас есть альтернативное предложение с меньшей долей — но закрыть мы хотим с вами, поэтому давайте искать конструкцию.",
    "moves": [
     "batna"
@@ -2152,6 +2608,17 @@
    "words": 18,
    "number": null,
    "spin": null
+  },
+  {
+   "text": "Условия такие. Не устраивает — на этом и закончим.",
+   "moves": [
+    "spin_problem"
+   ],
+   "primary": "spin_problem",
+   "arg": 34,
+   "words": 8,
+   "number": null,
+   "spin": "problem"
   },
   {
    "text": "Уступка без размена",
@@ -2187,6 +2654,28 @@
    "spin": null
   },
   {
+   "text": "Хорошо, давайте 260, лишь бы вы вышли.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 7,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Хорошо, давайте посередине — 24%.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 4,
+   "number": 24.0,
+   "spin": null
+  },
+  {
    "text": "Хорошо, пусть 99.5%.",
    "moves": [
     "offer"
@@ -2217,6 +2706,18 @@
    "primary": "threat",
    "arg": 8,
    "words": 7,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Это ваше последнее слово? Иначе мы эскалируем к директору и уходим.",
+   "moves": [
+    "threat",
+    "open_question"
+   ],
+   "primary": "threat",
+   "arg": 8,
+   "words": 11,
    "number": null,
    "spin": null
   },

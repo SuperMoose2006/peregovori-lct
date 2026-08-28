@@ -6,7 +6,8 @@
 прохода.
 
 СЦЕНАРИИ ВЫБРАНЫ ТЕ, НА КОТОРЫХ БЛОКИ НЕ ТРЕНИРУЮТСЯ. Блоки стоят на `rent`,
-`supplier`, `conflict`, `salary`, `investor`, `used_car`, `sla_renewal`; здесь —
+`supplier`, `conflict`, `salary`, `investor`, `used_car`, `sla_renewal`,
+`candidate_offer`; здесь —
 `freelance_rate` (единственное направление «выше — лучше» вне блоков),
 `investor` (самая сильная альтернатива в игре) и `used_car` (самый большой
 разрыв якоря и дна). Знакомый стол проверял бы память, а не навык.

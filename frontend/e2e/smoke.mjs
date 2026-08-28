@@ -46,7 +46,7 @@ try {
 const UNLOCKED = `(() => {
   const blocks = {};
   for (const id of ["foundations","spin-ladder","active-listening","objective-criteria",
-                    "batna-zopa","anchoring","logrolling","pressure-defense","closing"]) {
+                    "batna-zopa","anchoring","logrolling","pressure-defense","closing","styles"]) {
     blocks[id] = { lessons: [1,2,3,4,5], solved: [], examBest: 6, examTotal: 6, passed: true, attempts: 1 };
   }
   localStorage.setItem("dialog.progress.v1", JSON.stringify({ version: 4, scenarios: {}, streak: 0,

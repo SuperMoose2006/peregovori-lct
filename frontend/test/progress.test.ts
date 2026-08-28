@@ -562,7 +562,7 @@ test("экзамен: провал даёт долю XP, сдача — бону
 
 test("значки курса выдаются по числу СДАННЫХ блоков", () => {
   let p = emptyProfile();
-  for (const id of ["a", "b", "c", "d", "e", "f", "g", "h", "i"]) {
+  for (const id of ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]) {
     p = { ...p, course: { ...p.course, [id]: { ...emptyBlockProgress(), passed: true } } };
   }
   const earned = courseAchievements(p);

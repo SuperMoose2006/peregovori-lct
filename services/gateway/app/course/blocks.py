@@ -129,6 +129,39 @@ BLOCKS: list[Block] = [
                 "Statements, counter-numbers and pressure do not move it at all. That is not a "
                 "penalty — it is a reminder: while you are talking, you are learning nothing.",
             )),
+            Lesson(5, T("Интерес открывается на доверии", "An interest opens on trust"), T(
+                "Самое контринтуитивное правило движка: идеальный вопрос на холодном столе не "
+                "вскрывает ничего. Интерес открывается, только если доверие ВЫШЕ порога — 30 у самого "
+                "лёгкого стола и по +2 за каждую ступень сложности: 32 у зарплаты, 34 у конфликта, "
+                "36 у инвестора. Стартовое доверие 40, поэтому первый же вопрос по теме работает; а "
+                "вот после грубости (−22) или ультиматума (−14) вы проваливаетесь под порог, и тот же "
+                "вопрос перестаёт работать.\n\n"
+                "Что видно на экране: Информация растёт не на 24, а на 5 — это потолок для вопроса, "
+                "который ничего не вскрыл. Оппонент не выдаёт следующий секрет по списку, а "
+                "переспрашивает: «а что именно вас интересует?». Эта реакция называется probe_vague, "
+                "и её нет на шкале теплоты — это не настроение, а просьба уточнить.\n\n"
+                "Тот же переспрос приходит и по второй причине: вопрос обязан попасть В ТЕМУ ещё не "
+                "вскрытого интереса. Три одинаковых «А почему для вас это важно?» не вскроют три "
+                "интереса — не совпало со словами интереса, значит не вскрыли. Лечится одинаково: "
+                "сначала отражение чувства (доверие +8, напряжение −10) или пара тёплых фраз, потом "
+                "конкретный вопрос про конкретную вещь.",
+                "The engine's most counter-intuitive rule: a perfect question at a cold table opens "
+                "nothing. An interest opens only when trust is ABOVE the gate — 30 at the easiest "
+                "table, plus 2 for every step of difficulty: 32 for the salary table, 34 for the "
+                "conflict, 36 for the investor. You start at 40, so the very first on-topic question "
+                "works; but after rudeness (−22) or an ultimatum (−14) you drop under the gate and the "
+                "same question stops working.\n\n"
+                "What you see on screen: Information rises by 5 instead of 24 — that is the ceiling "
+                "for a question that uncovered nothing. The counterpart does not hand over the next "
+                "secret on the list; they ask back: “what exactly are you asking about?”. That "
+                "reaction is called probe_vague, and it is not on the warmth scale — it is not a mood, "
+                "it is a request to be specific.\n\n"
+                "The same query comes back for a second reason: the question has to hit the TOPIC of "
+                "an interest that is still hidden. Three identical “why does that matter to you?” will "
+                "not open three interests — no match with the interest's own words means no reveal. "
+                "The cure is the same either way: name the feeling first (trust +8, tension −10), or "
+                "a couple of warm lines, and only then ask about one concrete thing.",
+            )),
         ],
     ),
     Block(
@@ -570,6 +603,101 @@ BLOCKS: list[Block] = [
                 "And crucially: with technique below 45 the grade never rises above C, whatever the "
                 "price. A great deal bought without method does not repeat — and method is what the "
                 "trainer teaches.",
+            )),
+        ],
+    ),
+    Block(
+        id="styles",
+        icon="🎭",
+        title=T("Стиль собеседника", "Their Style"),
+        skill=T(
+            "Узнавать стиль оппонента и платить за приём ту цену, которую он стоит именно с ним.",
+            "Read the counterpart's style and pay the price each technique actually costs with them.",
+        ),
+        scenario_id="candidate_offer",
+        lessons=[
+            Lesson(1, T("Три стиля за столом", "Three styles at the table"), T(
+                "У каждого оппонента в игре ровно один из трёх стилей, и он не меняется по ходу "
+                "партии. Аналитик (Дмитрий, Марина, Павел) верит цифрам и источникам. «Отношенец» "
+                "(Ирина, Наталья, Тимур) держится за отношения и читает нажим как разрыв. Жёсткий "
+                "(Алексей, Сергей, Виктор) уважает силу и не прощает ультиматума.\n\n"
+                "Стиль — не косметика: он меняет и слова ответа, и ЦЕНУ ваших приёмов в шкалах. "
+                "Опознаётся с первой реплики: аналитик просит обоснование, «отношенец» говорит про "
+                "людей и доверие, жёсткий сразу ставит рамку.",
+                "Every counterpart in the game has exactly one of three styles, and it never changes "
+                "mid-game. The analytical one (Dmitry, Marina, Pavel) trusts numbers and sources. The "
+                "relationship one (Irina, Natalia, Timur) holds on to the relationship and reads "
+                "pressure as a breach. The tough one (Alexey, Sergey, Viktor) respects strength and "
+                "never forgives an ultimatum.\n\n"
+                "Style is not decoration: it changes both the wording of their replies and the PRICE "
+                "your techniques pay on the meters. You can spot it from their first line: the "
+                "analytical asks for grounding, the relationship one talks about people and trust, the "
+                "tough one sets a frame straight away.",
+            )),
+            Lesson(2, T("Что стиль удорожает и что удешевляет",
+                        "What a style makes cheap, and what it makes expensive"), T(
+                "Три надбавки, и все три — настоящие числа движка.\n\n"
+                "Аналитику объективный критерий даёт рычаг не +16, а +22: те же данные с ним стоят "
+                "дороже. «Отношенцу» названная альтернатива добавляет напряжение +6 сверх обычного: "
+                "обоснованная BATNA поднимает напряжение не на 4, а на 10, необоснованная — не на 14, "
+                "а на 20. Жёсткому ультиматум добавляет +8: не 22 напряжения, а 30 — и всё это сверх "
+                "минус 14 доверия и отката цены на второй угрозе.\n\n"
+                "Заметьте, чего в списке нет: скидки за стиль. Стиль делает приём дороже там, где он "
+                "не к месту, и не делает дешевле там, где он к месту.",
+                "Three modifiers, and all three are real engine numbers.\n\n"
+                "With the analytical counterpart an objective criterion gives leverage +22 rather than "
+                "+16: the same data is worth more to them. With the relationship one, naming your "
+                "alternative adds +6 tension on top: a grounded BATNA raises tension by 10 instead of "
+                "4, an ungrounded one by 20 instead of 14. With the tough one an ultimatum adds +8: "
+                "30 tension instead of 22 — on top of the usual −14 trust and the price rollback on a "
+                "second threat.\n\n"
+                "Notice what is not on the list: a discount. A style makes a technique more expensive "
+                "where it does not belong; it never makes one cheaper where it does.",
+            )),
+            Lesson(3, T("Подстройка — это порядок, а не маска",
+                        "Adapting is about order, not about masks"), T(
+                "Подстройка не значит «стать другим человеком». Меняется порядок ходов.\n\n"
+                "С аналитиком критерий идёт РАНЬШЕ размена: сначала данные, потом пакет. С "
+                "«отношенцем» альтернативу лучше не называть вовсе, пока не собран пакет: она стоит "
+                "вдвое дороже, а на тёплом столе цена и так поедет от размена. С жёстким ультиматум "
+                "не работает никогда — работает встречный объективный критерий и спокойное "
+                "«пока нет».\n\n"
+                "Проверить себя просто: если приём поднимает напряжение выше 55, движок режет "
+                "уступку до 60 %, а выше 75 — до 25 %. Стиль — самый быстрый способ туда попасть, "
+                "не заметив этого.",
+                "Adapting does not mean becoming someone else. What changes is the order of moves.\n\n"
+                "With the analytical one the criterion comes BEFORE the trade: data first, package "
+                "second. With the relationship one, better not to name your alternative at all until "
+                "the package is built: it costs twice as much, and at a warm table the price moves "
+                "from the trade anyway. With the tough one an ultimatum never works — a counter "
+                "criterion and a calm “not yet” do.\n\n"
+                "The self-check is simple: once a technique pushes tension above 55 the engine cuts "
+                "any concession to 60 %, and above 75 to 25 %. Style is the fastest way to get there "
+                "without noticing.",
+            )),
+            Lesson(4, T("Когда сила у вас", "When the power is yours"), T(
+                "Стол этого блока — «Оффер сильному кандидату», и он единственный, где сила у ИГРОКА. "
+                "У Тимура нет второго оффера, его дно 210, а ваша цель — 230. Выжать ниже можно.\n\n"
+                "И за это не начисляют ничего. Экономика считается как доля пути от красной линии "
+                "(260) до цели (230) и на 230 уже равна 100 — ниже потолка нет. Зато отношения — это "
+                "четверть итогового балла, а Тимур «отношенец»: давление и альтернатива стоят с ним "
+                "на +6 напряжения дороже обычного. Выжатый на подписи человек уходит в первый год, и "
+                "позицию открывают заново — в брифинге это сказано прямо.\n\n"
+                "Правило блока в одну строку: сила нужна, чтобы НЕ торговаться, а спросить, ради чего "
+                "он идёт, и заплатить тем, что стоит вам дёшево. Трек до архитектора стоит компании "
+                "подписи под планом развития, а для него это причина всего перехода.",
+                "This block's table is “Making the Offer”, and it is the only one where the PLAYER "
+                "holds the power. Timur has no rival offer, his floor is 210, and your target is 230. "
+                "Squeezing him lower is possible.\n\n"
+                "And it earns you nothing. Economics is the share of the distance from your red line "
+                "(260) to your target (230), and at 230 it is already 100 — there is no ceiling above. "
+                "Relationship, meanwhile, is a quarter of the final score, and Timur is a relationship "
+                "type: pressure and alternatives cost +6 tension more with him. A hire squeezed at "
+                "signing leaves within the year and you reopen the role — the briefing says so "
+                "outright.\n\n"
+                "The block's rule in one line: power is there so that you do NOT haggle — you ask what "
+                "he is coming for and pay with what is cheap for you. An architect track costs the "
+                "company a signature under a development plan; for him it is the whole reason he came.",
             )),
         ],
     ),

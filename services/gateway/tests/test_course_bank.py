@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -64,11 +65,67 @@ def test_bilingual_everywhere(item: dict) -> None:
     walk(item)
 
 
+_CYRILLIC = re.compile(r"[а-яА-ЯёЁ]")
+
+
+@pytest.mark.parametrize("item", BANK, ids=_ids(BANK))
+def test_english_half_never_leaks_cyrillic(item: dict) -> None:
+    """Непереведённая строка выглядит как перевод — и видна только в EN-сессии.
+
+    Билингвальность проверяется парой тестов, а не одним: `bilingual_everywhere`
+    ловит пустую половину, этот — половину, которая осталась русской.
+    """
+    leaks: list[str] = []
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            en = node.get("en")
+            if isinstance(en, str) and _CYRILLIC.search(en):
+                leaks.append(en)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(item)
+    assert not leaks, f"{item['id']}: кириллица в английском — {leaks}"
+
+
+@pytest.mark.parametrize("block", BLOCKS, ids=[b.id for b in BLOCKS])
+def test_block_text_is_bilingual_and_english_is_english(block) -> None:
+    """То же для уроков: текст блока живёт в Python и генерируется в браузер."""
+    for field in (block.title, block.skill):
+        assert field["ru"] and field["en"], block.id
+        assert not _CYRILLIC.search(field["en"]), f"{block.id}: кириллица в английском"
+    for lesson in block.lessons:
+        for field in (lesson.title, lesson.body):
+            assert field["ru"] and field["en"], f"{block.id}/{lesson.idx}"
+            assert not _CYRILLIC.search(field["en"]), (
+                f"{block.id}/{lesson.idx}: кириллица в английском")
+
+
 @pytest.mark.parametrize("block", BLOCKS, ids=[b.id for b in BLOCKS])
 def test_every_block_has_exercises(block) -> None:
     mine = [x for x in BANK if x["block"] == block.id]
     assert len(mine) >= 5, block.id
     assert len({x["type"] for x in mine}) >= 3, block.id
+
+
+@pytest.mark.parametrize("block", BLOCKS, ids=[b.id for b in BLOCKS])
+def test_every_block_has_a_capstone_on_its_own_table(block) -> None:
+    """Экзамен блока добавляет капстоун «если он есть» и весит его вдвое.
+
+    Значит блок без капстоуна проверяет ЧИСТОЕ УЗНАВАНИЕ — при том, что курс
+    обещает применение. И стоять капстоун обязан на столе своего блока: партия
+    на чужом столе проверяет что угодно, только не пройденный блок.
+    """
+    drills = [x for x in BANK if x["block"] == block.id and x["type"] == "drill"]
+    assert drills, f"{block.id}: блок без капстоуна"
+    for item in drills:
+        assert item["scenario_id"] == block.scenario_id, (
+            f"{item['id']}: капстоун на чужом столе ({item['scenario_id']} "
+            f"вместо {block.scenario_id})")
 
 
 # ---- сверка с движком -----------------------------------------------------
@@ -82,6 +139,46 @@ def test_choice_answer_is_what_the_engine_sees(item: dict, lang: str) -> None:
     for move in item["expect_moves"]:
         assert move in moves, f"{item['id']}/{lang}: {moves}"
     assert check_choice(item, item["answer"])
+
+
+@pytest.mark.parametrize("item", CHOICE, ids=_ids(CHOICE))
+@pytest.mark.parametrize("lang", LANGS)
+def test_choice_distractors_do_not_give_the_same_moves(item: dict, lang: str) -> None:
+    """«Верный вариант даёт приём» ничего не доказывает, если его даёт и сосед.
+
+    Тогда у задания два одинаково верных ответа, а зачёт держится на том, какой
+    из них автор пометил ответом. Неверные варианты обязаны НЕ давать заявленный
+    приём — на обоих языках, потому что словари RU и EN разные.
+    """
+    for i, option in enumerate(item["options"]):
+        if i == item["answer"]:
+            continue
+        moves = analyze(option[lang]).moves
+        clash = [m for m in item["expect_moves"] if m in moves]
+        assert not clash, f"{item['id']}/{lang}: вариант {i} тоже даёт {clash}"
+
+
+#: `choice` без `expect_moves` сверить с движком нельзя: его варианты — не
+#: реплики игрока, а суждения о движке или чужие реплики. Такие пункты
+#: перечислены поимённо с причиной; новый валит сборку, пока причина не названа.
+CHOICE_WITHOUT_MOVES = {
+    "bz-03": "варианты — рассуждение о том, почему красная линия строже альтернативы",
+    "lr-01": "варианты — суждение о ценности фишек, а не реплики за столом",
+    "cl-02": "варианты — предсказание, где закроется сделка",
+    "st-01": "варианты — реплики ОППОНЕНТА: по ним опознают стиль, игрок их не произносит",
+}
+
+
+def test_every_choice_without_expect_moves_is_named() -> None:
+    """Пункт, который нельзя сверить с движком, обязан быть исключением с причиной."""
+    unnamed = [x["id"] for x in BANK
+               if x["type"] == "choice" and not x.get("expect_moves")
+               and x["id"] not in CHOICE_WITHOUT_MOVES]
+    assert not unnamed, (
+        "новый choice без expect_moves — назовите причину в CHOICE_WITHOUT_MOVES: "
+        + str(unnamed))
+    stale = [k for k in CHOICE_WITHOUT_MOVES if k not in BY_ID]
+    assert not stale, f"исключение осталось от удалённого упражнения: {stale}"
 
 
 @pytest.mark.parametrize("item", FREEFORM, ids=_ids(FREEFORM))
@@ -127,6 +224,37 @@ def test_match_answer_is_a_bijection(item: dict) -> None:
                          ids=_ids([x for x in BANK if x["type"] == "spot_error"]))
 def test_spot_error_points_at_its_fault_key(item: dict) -> None:
     assert item["options"][item["answer"]]["key"] == item["fault_key"]
+
+
+#: Приёмы, за которые движок ПЛАТИТ. Плохая реплика не может нести ни одного —
+#: иначе «ошибка» существует только в голове автора задания.
+_PRODUCTIVE = {"acknowledge", "interests_probe", "objective_criteria", "tradeoff"}
+#: Ошибки, которых нет в ОДНОЙ реплике: они доказываются партией, а не разбором.
+_FAULT_NEEDS_A_GAME = {
+    "repeat_same_line": "второй дословный повтор режет качество аргумента до 12 — "
+                        "в одной реплике этого не видно",
+}
+
+
+@pytest.mark.parametrize("item", [x for x in BANK if x["type"] == "spot_error"],
+                         ids=_ids([x for x in BANK if x["type"] == "spot_error"]))
+@pytest.mark.parametrize("lang", LANGS)
+def test_spot_error_bad_line_is_bad_for_the_engine(item: dict, lang: str) -> None:
+    """Плохая реплика обязана быть плохой ДЛЯ ДВИЖКА, а не только на словах.
+
+    Раньше ключ ошибки сверялся со строкой в вариантах — то есть доказывал лишь
+    то, что автор дважды написал одно слово. Здесь реплика прогоняется через
+    настоящий `analyze()`: она либо несёт разрушительный приём, либо не несёт ни
+    одного продуктивного. Исключения — ошибки, которые видны только в партии.
+    """
+    if item["fault_key"] in _FAULT_NEEDS_A_GAME:
+        pytest.skip(_FAULT_NEEDS_A_GAME[item["fault_key"]])
+    moves = set(analyze(item["bad_line"][lang]).moves)
+    damaging = moves & {"threat", "hostile"}
+    good = moves & _PRODUCTIVE
+    assert damaging or not good, (
+        f"{item['id']}/{lang}: реплика несёт {sorted(good)} и ничего не ломает — "
+        "для движка она не плохая")
 
 
 @pytest.mark.parametrize("item", [x for x in BANK if x["type"] == "drill"],

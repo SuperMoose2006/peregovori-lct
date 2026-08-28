@@ -66,6 +66,17 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "ru": "Информация растёт только от вопросов, которые действительно метят в скрытый интерес: вскрытие интереса +24, SPIN-последствие +22, ситуация и проблема +14.\n\nЗаявления, встречные цифры и давление не двигают её вовсе. Это не штраф — это напоминание: пока вы говорите, вы не узнаёте ничего нового.",
           "en": "Information grows only from questions that genuinely aim at a hidden interest: an interest probe +24, a SPIN implication +22, situation and problem +14.\n\nStatements, counter-numbers and pressure do not move it at all. That is not a penalty — it is a reminder: while you are talking, you are learning nothing."
         }
+      },
+      {
+        "idx": 5,
+        "title": {
+          "ru": "Интерес открывается на доверии",
+          "en": "An interest opens on trust"
+        },
+        "body": {
+          "ru": "Самое контринтуитивное правило движка: идеальный вопрос на холодном столе не вскрывает ничего. Интерес открывается, только если доверие ВЫШЕ порога — 30 у самого лёгкого стола и по +2 за каждую ступень сложности: 32 у зарплаты, 34 у конфликта, 36 у инвестора. Стартовое доверие 40, поэтому первый же вопрос по теме работает; а вот после грубости (−22) или ультиматума (−14) вы проваливаетесь под порог, и тот же вопрос перестаёт работать.\n\nЧто видно на экране: Информация растёт не на 24, а на 5 — это потолок для вопроса, который ничего не вскрыл. Оппонент не выдаёт следующий секрет по списку, а переспрашивает: «а что именно вас интересует?». Эта реакция называется probe_vague, и её нет на шкале теплоты — это не настроение, а просьба уточнить.\n\nТот же переспрос приходит и по второй причине: вопрос обязан попасть В ТЕМУ ещё не вскрытого интереса. Три одинаковых «А почему для вас это важно?» не вскроют три интереса — не совпало со словами интереса, значит не вскрыли. Лечится одинаково: сначала отражение чувства (доверие +8, напряжение −10) или пара тёплых фраз, потом конкретный вопрос про конкретную вещь.",
+          "en": "The engine's most counter-intuitive rule: a perfect question at a cold table opens nothing. An interest opens only when trust is ABOVE the gate — 30 at the easiest table, plus 2 for every step of difficulty: 32 for the salary table, 34 for the conflict, 36 for the investor. You start at 40, so the very first on-topic question works; but after rudeness (−22) or an ultimatum (−14) you drop under the gate and the same question stops working.\n\nWhat you see on screen: Information rises by 5 instead of 24 — that is the ceiling for a question that uncovered nothing. The counterpart does not hand over the next secret on the list; they ask back: “what exactly are you asking about?”. That reaction is called probe_vague, and it is not on the warmth scale — it is not a mood, it is a request to be specific.\n\nThe same query comes back for a second reason: the question has to hit the TOPIC of an interest that is still hidden. Three identical “why does that matter to you?” will not open three interests — no match with the interest's own words means no reveal. The cure is the same either way: name the feeling first (trust +8, tension −10), or a couple of warm lines, and only then ask about one concrete thing."
+        }
       }
     ]
   },
@@ -551,6 +562,65 @@ export const COURSE_BLOCKS: CourseBlock[] = [
         }
       }
     ]
+  },
+  {
+    "id": "styles",
+    "title": {
+      "ru": "Стиль собеседника",
+      "en": "Their Style"
+    },
+    "skill": {
+      "ru": "Узнавать стиль оппонента и платить за приём ту цену, которую он стоит именно с ним.",
+      "en": "Read the counterpart's style and pay the price each technique actually costs with them."
+    },
+    "icon": "🎭",
+    "scenario_id": "candidate_offer",
+    "lessons": [
+      {
+        "idx": 1,
+        "title": {
+          "ru": "Три стиля за столом",
+          "en": "Three styles at the table"
+        },
+        "body": {
+          "ru": "У каждого оппонента в игре ровно один из трёх стилей, и он не меняется по ходу партии. Аналитик (Дмитрий, Марина, Павел) верит цифрам и источникам. «Отношенец» (Ирина, Наталья, Тимур) держится за отношения и читает нажим как разрыв. Жёсткий (Алексей, Сергей, Виктор) уважает силу и не прощает ультиматума.\n\nСтиль — не косметика: он меняет и слова ответа, и ЦЕНУ ваших приёмов в шкалах. Опознаётся с первой реплики: аналитик просит обоснование, «отношенец» говорит про людей и доверие, жёсткий сразу ставит рамку.",
+          "en": "Every counterpart in the game has exactly one of three styles, and it never changes mid-game. The analytical one (Dmitry, Marina, Pavel) trusts numbers and sources. The relationship one (Irina, Natalia, Timur) holds on to the relationship and reads pressure as a breach. The tough one (Alexey, Sergey, Viktor) respects strength and never forgives an ultimatum.\n\nStyle is not decoration: it changes both the wording of their replies and the PRICE your techniques pay on the meters. You can spot it from their first line: the analytical asks for grounding, the relationship one talks about people and trust, the tough one sets a frame straight away."
+        }
+      },
+      {
+        "idx": 2,
+        "title": {
+          "ru": "Что стиль удорожает и что удешевляет",
+          "en": "What a style makes cheap, and what it makes expensive"
+        },
+        "body": {
+          "ru": "Три надбавки, и все три — настоящие числа движка.\n\nАналитику объективный критерий даёт рычаг не +16, а +22: те же данные с ним стоят дороже. «Отношенцу» названная альтернатива добавляет напряжение +6 сверх обычного: обоснованная BATNA поднимает напряжение не на 4, а на 10, необоснованная — не на 14, а на 20. Жёсткому ультиматум добавляет +8: не 22 напряжения, а 30 — и всё это сверх минус 14 доверия и отката цены на второй угрозе.\n\nЗаметьте, чего в списке нет: скидки за стиль. Стиль делает приём дороже там, где он не к месту, и не делает дешевле там, где он к месту.",
+          "en": "Three modifiers, and all three are real engine numbers.\n\nWith the analytical counterpart an objective criterion gives leverage +22 rather than +16: the same data is worth more to them. With the relationship one, naming your alternative adds +6 tension on top: a grounded BATNA raises tension by 10 instead of 4, an ungrounded one by 20 instead of 14. With the tough one an ultimatum adds +8: 30 tension instead of 22 — on top of the usual −14 trust and the price rollback on a second threat.\n\nNotice what is not on the list: a discount. A style makes a technique more expensive where it does not belong; it never makes one cheaper where it does."
+        }
+      },
+      {
+        "idx": 3,
+        "title": {
+          "ru": "Подстройка — это порядок, а не маска",
+          "en": "Adapting is about order, not about masks"
+        },
+        "body": {
+          "ru": "Подстройка не значит «стать другим человеком». Меняется порядок ходов.\n\nС аналитиком критерий идёт РАНЬШЕ размена: сначала данные, потом пакет. С «отношенцем» альтернативу лучше не называть вовсе, пока не собран пакет: она стоит вдвое дороже, а на тёплом столе цена и так поедет от размена. С жёстким ультиматум не работает никогда — работает встречный объективный критерий и спокойное «пока нет».\n\nПроверить себя просто: если приём поднимает напряжение выше 55, движок режет уступку до 60 %, а выше 75 — до 25 %. Стиль — самый быстрый способ туда попасть, не заметив этого.",
+          "en": "Adapting does not mean becoming someone else. What changes is the order of moves.\n\nWith the analytical one the criterion comes BEFORE the trade: data first, package second. With the relationship one, better not to name your alternative at all until the package is built: it costs twice as much, and at a warm table the price moves from the trade anyway. With the tough one an ultimatum never works — a counter criterion and a calm “not yet” do.\n\nThe self-check is simple: once a technique pushes tension above 55 the engine cuts any concession to 60 %, and above 75 to 25 %. Style is the fastest way to get there without noticing."
+        }
+      },
+      {
+        "idx": 4,
+        "title": {
+          "ru": "Когда сила у вас",
+          "en": "When the power is yours"
+        },
+        "body": {
+          "ru": "Стол этого блока — «Оффер сильному кандидату», и он единственный, где сила у ИГРОКА. У Тимура нет второго оффера, его дно 210, а ваша цель — 230. Выжать ниже можно.\n\nИ за это не начисляют ничего. Экономика считается как доля пути от красной линии (260) до цели (230) и на 230 уже равна 100 — ниже потолка нет. Зато отношения — это четверть итогового балла, а Тимур «отношенец»: давление и альтернатива стоят с ним на +6 напряжения дороже обычного. Выжатый на подписи человек уходит в первый год, и позицию открывают заново — в брифинге это сказано прямо.\n\nПравило блока в одну строку: сила нужна, чтобы НЕ торговаться, а спросить, ради чего он идёт, и заплатить тем, что стоит вам дёшево. Трек до архитектора стоит компании подписи под планом развития, а для него это причина всего перехода.",
+          "en": "This block's table is “Making the Offer”, and it is the only one where the PLAYER holds the power. Timur has no rival offer, his floor is 210, and your target is 230. Squeezing him lower is possible.\n\nAnd it earns you nothing. Economics is the share of the distance from your red line (260) to your target (230), and at 230 it is already 100 — there is no ceiling above. Relationship, meanwhile, is a quarter of the final score, and Timur is a relationship type: pressure and alternatives cost +6 tension more with him. A hire squeezed at signing leaves within the year and you reopen the role — the briefing says so outright.\n\nThe block's rule in one line: power is there so that you do NOT haggle — you ask what he is coming for and pay with what is cheap for you. An architect track costs the company a signature under a development plan; for him it is the whole reason he came."
+        }
+      }
+    ]
   }
 ];
 
@@ -837,6 +907,98 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "Ни один из трёх интересов Натальи не про деньги — поэтому спор о цене её не двигает. Цена поехала ровно тогда, когда вы спросили про жильца: это и есть весь блок, проверенный не узнаванием, а партией.",
       "en": "Not one of Natalia's three interests is about money — which is why arguing price does not move her. The price moved the moment you asked about the tenant: that is the whole block, checked by playing rather than by recognising."
+    }
+  },
+  {
+    "id": "fo-08",
+    "block": "foundations",
+    "lesson": 5,
+    "type": "meters",
+    "difficulty": 3,
+    "xp": 15,
+    "scenario_id": "rent",
+    "state": {
+      "trust": 18,
+      "tension": 45,
+      "info": 8,
+      "leverage": 10,
+      "turn": 3
+    },
+    "player_line": {
+      "ru": "Понимаю, что для вас это непросто. Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
+      "en": "I understand this is not easy for you. Natalia, what matters most to you in a tenant — and what concerns you?"
+    },
+    "ask": "largest_delta",
+    "answer": "tension",
+    "prompt": {
+      "ru": "Доверие 18 — ниже порога вскрытия. Вы отражаете чувство и задаёте ТОТ ЖЕ вопрос про жильца. Какая шкала сдвинется сильнее всего?",
+      "en": "Trust is 18 — below the reveal gate. You name the feeling and ask the SAME tenant question. Which meter moves the most?"
+    },
+    "explain": {
+      "ru": "Не Информация: она выросла на 5, а не на 24. Интерес не вскрылся, потому что доверие 18 ниже порога 30, и вопрос вернулся переспросом. Сильнее всего сдвинулось напряжение (−13): отражение чувства снимает 10, вопрос ещё 3. Это и есть правильный ход — доверие стало 30, а порог нужно ПЕРЕЙТИ, поэтому следующая тёплая реплика откроет дверь.",
+      "en": "Not Information: it rose by 5, not by 24. The interest did not open because trust of 18 is below the gate of 30, and the question came back as a query. What moved most is tension (−13): naming the feeling takes off 10, the question another 3. And that is the right move — trust is now 30, and the gate has to be CROSSED, so one more warm line opens the door."
+    }
+  },
+  {
+    "id": "fo-09",
+    "block": "foundations",
+    "lesson": 5,
+    "type": "choice",
+    "difficulty": 3,
+    "xp": 15,
+    "scenario_id": "rent",
+    "prompt": {
+      "ru": "Разговор пошёл криво: доверие 18, напряжение 45. На вопрос про жильца Наталья ответила «а что именно вас интересует?». Ваш ход?",
+      "en": "The conversation soured: trust 18, tension 45. To the tenant question Natalia replied “what exactly are you asking about?”. Your move?"
+    },
+    "options": [
+      {
+        "ru": "Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
+        "en": "Natalia, what matters most to you in a tenant — and what concerns you?"
+      },
+      {
+        "ru": "Мы предлагаем 60, это наша цена.",
+        "en": "We propose 60, that is our price."
+      },
+      {
+        "ru": "Понимаю: пустая квартира — это реальные потери, и осторожность тут естественна.",
+        "en": "I understand: an empty flat is a real loss, and being careful is only natural."
+      },
+      {
+        "ru": "Либо 65, либо я снимаю у соседей — решайте.",
+        "en": "Either 65, or I rent from the neighbours — your call."
+      }
+    ],
+    "answer": 2,
+    "expect_moves": [
+      "acknowledge"
+    ],
+    "explain": {
+      "ru": "Повторить вопрос — получить тот же переспрос: под порогом доверия он не вскрывает ничего, а движок ещё и режет прибавку к Информации до 5. Сначала доверие: отражение чувства даёт +8 и снимает 10 напряжения — и только потом тот же самый вопрос.",
+      "en": "Repeat the question and you get the same query back: below the trust gate it opens nothing, and the engine caps the Information gain at 5. Trust first: naming the feeling adds 8 and takes 10 off tension — and only then the very same question."
+    }
+  },
+  {
+    "id": "fo-10",
+    "block": "foundations",
+    "lesson": 1,
+    "type": "reaction",
+    "difficulty": 1,
+    "xp": 10,
+    "scenario_id": "rent",
+    "seed_turn": 2,
+    "player_line": {
+      "ru": "Мне это дорого, скиньте 10 тысяч.",
+      "en": "That is too expensive, knock ten thousand off."
+    },
+    "answer": "neutral",
+    "prompt": {
+      "ru": "Как отреагирует Наталья?",
+      "en": "How will Natalia react?"
+    },
+    "explain": {
+      "ru": "Никак — и это ответ. Позиция без интереса и без обоснования не двигает ни одной шкалы: ни вопроса, ни критерия, ни эмпатии движок здесь не видит. Нейтральная реакция — не «пронесло», а потерянный ход.",
+      "en": "She does not — and that is the answer. A position with no interest and no grounding moves no meter at all: the engine sees no question, no criterion, no empathy. A neutral reaction is not “got away with it”, it is a turn spent on nothing."
     }
   },
   {
@@ -1476,6 +1638,29 @@ export const COURSE_BANK: Exercise[] = [
     }
   },
   {
+    "id": "al-09",
+    "block": "active-listening",
+    "lesson": 1,
+    "type": "reaction",
+    "difficulty": 1,
+    "xp": 10,
+    "scenario_id": "conflict",
+    "seed_turn": 3,
+    "player_line": {
+      "ru": "Вижу, что для вас это неприятная история, и понимаю почему.",
+      "en": "I can see this is an unpleasant story for you, and I understand why."
+    },
+    "answer": "warmed",
+    "prompt": {
+      "ru": "Как отреагирует Алексей?",
+      "en": "How will Alexey react?"
+    },
+    "explain": {
+      "ru": "«Теплеет» — самая верхняя ступень шкалы, и попасть на неё дешевле всего именно отражением: доверие +8, напряжение −10, и ни одной уступки по существу. Обратите внимание, что согласия с претензией здесь нет — названо чувство, а не правота.",
+      "en": "“Warmed” is the top rung of the scale, and reflecting is the cheapest way onto it: trust +8, tension −10, and not one concession on the substance. Note that nothing here agrees with the accusation — it names the feeling, not the verdict."
+    }
+  },
+  {
     "id": "oc-01",
     "block": "objective-criteria",
     "lesson": 2,
@@ -1723,6 +1908,29 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "Потолок напряжения — это и есть проверка блока: «я стою больше» поднимает его, обзор зарплат не поднимает вовсе. Критерий даёт рычаг +16 и реакцию «убеждён» вместо «под давлением», а уступка растёт ещё и оттого, что оппонент здесь аналитик.",
       "en": "The tension ceiling IS the block's test: “I am worth more” raises it, a salary survey does not raise it at all. A criterion grants leverage +16 and the reaction “persuaded” instead of “pressured” — and the concession grows further because this counterpart is an analyst."
+    }
+  },
+  {
+    "id": "oc-08",
+    "block": "objective-criteria",
+    "lesson": 2,
+    "type": "reaction",
+    "difficulty": 2,
+    "xp": 10,
+    "scenario_id": "salary",
+    "seed_turn": 5,
+    "player_line": {
+      "ru": "Медиана по независимым обзорам для этой роли 230k, потому что это рынок, а не моё желание.",
+      "en": "The median in independent surveys for this role is 230k, because that is the market, not my wish."
+    },
+    "answer": "persuaded",
+    "prompt": {
+      "ru": "Как отреагирует Дмитрий?",
+      "en": "How will Dmitry react?"
+    },
+    "explain": {
+      "ru": "«Принимает довод» — единственная реакция, которую нельзя получить нажимом: её даёт только объективный критерий. Рычаг +22 (шестнадцать плюс шесть за аналитический стиль), напряжение не растёт вовсе. Ключевое здесь «потому что»: без опоры движок читает «рынок» как слово, а не как критерий.",
+      "en": "“Persuaded” is the one reaction pressure cannot buy: only an objective criterion produces it. Leverage +22 (sixteen plus six for the analytical style), and tension does not rise at all. The load-bearing word is “because”: with no grounding the engine reads “the market” as a word, not as a criterion."
     }
   },
   {
@@ -2030,6 +2238,29 @@ export const COURSE_BANK: Exercise[] = [
     }
   },
   {
+    "id": "bz-10",
+    "block": "batna-zopa",
+    "lesson": 4,
+    "type": "reaction",
+    "difficulty": 2,
+    "xp": 10,
+    "scenario_id": "supplier",
+    "seed_turn": 4,
+    "player_line": {
+      "ru": "У нас есть альтернатива: другой поставщик готов работать по 88.",
+      "en": "We have an alternative: another supplier is ready to work at 88."
+    },
+    "answer": "pressured",
+    "prompt": {
+      "ru": "Как отреагирует Ирина?",
+      "en": "How will Irina react?"
+    },
+    "explain": {
+      "ru": "«Под давлением» — не «убеждена»: голая альтернатива без опоры даёт рычаг всего +10 и напряжение +20 (четырнадцать плюс шесть, потому что Ирина держится за отношения). Подкрепите её критерием — и рычаг станет +18, а напряжение всего +10.",
+      "en": "“Pressured”, not “persuaded”: a bare alternative with no grounding gives only +10 leverage and +20 tension (fourteen plus six, because Irina is a relationship type). Ground it with a criterion and leverage becomes +18 while tension is only +10."
+    }
+  },
+  {
     "id": "an-01",
     "block": "anchoring",
     "lesson": 1,
@@ -2296,6 +2527,29 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "Сергей открылся на 160k выше своего дна, и оскорбительная встречная цифра эти 160k не отыгрывает: он привязан к машине, критика вещи читается как критика его самого. Потолок напряжения и есть запрет на контр-якорь — остаётся критерий.",
       "en": "Sergey opened 160k above his floor, and an insulting counter-number does not win those 160k back: he is attached to the car, and criticising the object reads as criticising him. The tension ceiling IS the ban on a counter-anchor — what is left is a criterion."
+    }
+  },
+  {
+    "id": "an-09",
+    "block": "anchoring",
+    "lesson": 3,
+    "type": "reaction",
+    "difficulty": 2,
+    "xp": 10,
+    "scenario_id": "used_car",
+    "seed_turn": 4,
+    "player_line": {
+      "ru": "По рукам — 800 тысяч, и закрываем.",
+      "en": "Deal at 800 thousand, let us close it."
+    },
+    "answer": "not_yet",
+    "prompt": {
+      "ru": "Как отреагирует Сергей?",
+      "en": "How will Sergey react?"
+    },
+    "explain": {
+      "ru": "«Пока не соглашается» — реакция на закрытие цифрой ниже дна: 800 меньше 1040, и пол оппонента непробиваем. Обиды нет, но напряжение +8: несостоявшееся рукопожатие стоит нервов обеим сторонам, а ход потрачен.",
+      "en": "“Not yet” is the reaction to closing on a number below the floor: 800 is under 1040, and their floor does not move. No offence taken, but tension +8: a handshake that did not happen costs both sides, and the turn is gone."
     }
   },
   {
@@ -3008,6 +3262,304 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "Все четыре условия одновременно достижимы только принципиальной игрой: вопросы дают Информацию, критерий даёт Рычаг, размен даёт вторую ось, слушание держит Напряжение.",
       "en": "All four conditions hold together only under principled play: questions give Information, a criterion gives Leverage, a trade opens the second axis, listening keeps Tension down."
+    }
+  },
+  {
+    "id": "st-01",
+    "block": "styles",
+    "lesson": 1,
+    "type": "choice",
+    "difficulty": 2,
+    "xp": 10,
+    "prompt": {
+      "ru": "Первая реплика оппонента. По какой из них видно ЖЁСТКИЙ стиль?",
+      "en": "Their opening line. Which one shows the TOUGH style?"
+    },
+    "options": [
+      {
+        "ru": "Покажите расчёт — на чём основана ваша цифра?",
+        "en": "Show me the calculation — what is your number based on?"
+      },
+      {
+        "ru": "Давайте по-человечески: мы с вами работаем не первый год.",
+        "en": "Let us keep this human: you and I have worked together for years."
+      },
+      {
+        "ru": "Условия такие. Не устраивает — на этом и закончим.",
+        "en": "These are the terms. If they do not suit you, we are done here."
+      },
+      {
+        "ru": "Мне надо посоветоваться с коллегами, я не решаю один.",
+        "en": "I need to check with my colleagues, this is not my call alone."
+      }
+    ],
+    "answer": 2,
+    "explain": {
+      "ru": "Жёсткий сразу ставит рамку и обозначает выход. Первая реплика — аналитик (просит обоснование), вторая — «отношенец» (говорит про людей), четвёртая — не стиль вовсе, а отсылка к чужому решению. Стилей в игре ровно три, и у каждого стола он один и не меняется по ходу партии.",
+      "en": "The tough one sets a frame and points at the exit straight away. The first line is the analytical type (asking for grounding), the second the relationship type (talking about people), the fourth is not a style at all but a deferral to someone else. The game has exactly three styles, one per table, and it never changes mid-game."
+    }
+  },
+  {
+    "id": "st-02",
+    "block": "styles",
+    "lesson": 2,
+    "type": "match",
+    "difficulty": 3,
+    "xp": 15,
+    "prompt": {
+      "ru": "Соедините стиль с надбавкой, которую он даёт в шкалах движка.",
+      "en": "Match each style to the modifier it applies on the engine's meters."
+    },
+    "left": [
+      {
+        "id": "analytical",
+        "ru": "Аналитик (Дмитрий, Марина, Павел)",
+        "en": "Analytical (Dmitry, Marina, Pavel)"
+      },
+      {
+        "id": "relationship",
+        "ru": "«Отношенец» (Ирина, Наталья, Тимур)",
+        "en": "Relationship (Irina, Natalia, Timur)"
+      },
+      {
+        "id": "tough",
+        "ru": "Жёсткий (Алексей, Сергей, Виктор)",
+        "en": "Tough (Alexey, Sergey, Viktor)"
+      }
+    ],
+    "right": [
+      {
+        "id": "m_criteria",
+        "ru": "Объективный критерий: рычаг +6 сверх обычных 16",
+        "en": "An objective criterion: leverage +6 on top of the usual 16"
+      },
+      {
+        "id": "m_batna",
+        "ru": "Названная альтернатива: напряжение +6 сверх обычного",
+        "en": "Naming your alternative: tension +6 on top of the usual"
+      },
+      {
+        "id": "m_threat",
+        "ru": "Ультиматум: напряжение +8 сверх обычных 22",
+        "en": "An ultimatum: tension +8 on top of the usual 22"
+      }
+    ],
+    "answer": {
+      "analytical": "m_criteria",
+      "relationship": "m_batna",
+      "tough": "m_threat"
+    },
+    "explain": {
+      "ru": "Три надбавки — и все три штрафные, кроме первой: аналитику те же данные стоят дороже в вашу пользу, «отношенцу» альтернатива обходится вдвое дороже (10 вместо 4 с опорой, 20 вместо 14 без), жёсткому ультиматум даёт 30 напряжения вместо 22. Скидки за стиль в движке нет ни одной.",
+      "en": "Three modifiers, and all but the first are penalties: with the analyst the same data is worth more in your favour; with the relationship type an alternative costs twice as much (10 instead of 4 when grounded, 20 instead of 14 when not); with the tough one an ultimatum means 30 tension instead of 22. The engine has no style discounts at all."
+    }
+  },
+  {
+    "id": "st-03",
+    "block": "styles",
+    "lesson": 2,
+    "type": "reaction",
+    "difficulty": 3,
+    "xp": 10,
+    "scenario_id": "conflict",
+    "seed_turn": 4,
+    "player_line": {
+      "ru": "Это ваше последнее слово? Иначе мы эскалируем к директору и уходим.",
+      "en": "Is that your final word? Otherwise we escalate to the director and walk."
+    },
+    "answer": "hardened",
+    "prompt": {
+      "ru": "Стол жёсткого стиля. Как отреагирует Алексей?",
+      "en": "A tough-style table. How will Alexey react?"
+    },
+    "explain": {
+      "ru": "«Закрывается». Ультиматум и так стоит 22 напряжения и −14 доверия, а жёсткий стиль добавляет ещё +8: тридцать за один ход. Выше 55 движок режет уступку до 60 %, выше 75 — до 25 %, так что рычаг +6 вы получили и тут же заморозили. Вторая угроза подряд отматывает цену назад.",
+      "en": "“Hardened”. An ultimatum already costs 22 tension and −14 trust, and the tough style adds 8 more: thirty in a single turn. Above 55 the engine cuts concessions to 60 %, above 75 to 25 % — so the +6 leverage you bought is frozen the moment you buy it. A second threat walks the price back."
+    }
+  },
+  {
+    "id": "st-04",
+    "block": "styles",
+    "lesson": 3,
+    "type": "choice",
+    "difficulty": 3,
+    "xp": 15,
+    "scenario_id": "investor",
+    "prompt": {
+      "ru": "Марина — аналитик и просит обосновать долю. С чего начать разговор про 20%?",
+      "en": "Marina is an analyst and wants the equity split grounded. How do you open on 20%?"
+    },
+    "options": [
+      {
+        "ru": "Или 20%, или мы идём в другой фонд.",
+        "en": "Either 20%, or we go to another fund."
+      },
+      {
+        "ru": "По медиане раундов этой стадии доля 20%, потому что так считают независимые обзоры рынка.",
+        "en": "The median for this stage is 20% equity, because that is what independent market reviews show."
+      },
+      {
+        "ru": "Мне кажется, что 30% — это несправедливо по отношению ко мне.",
+        "en": "I feel that 30% is simply unfair to me."
+      },
+      {
+        "ru": "Хорошо, давайте посередине — 24%.",
+        "en": "Fine, let us split it — 24%."
+      }
+    ],
+    "answer": 1,
+    "expect_moves": [
+      "objective_criteria"
+    ],
+    "explain": {
+      "ru": "С аналитиком критерий идёт РАНЬШЕ размена и тем более раньше давления: рычаг +22 вместо +16 и реакция «принимает довод». Ощущение несправедливости для него не аргумент, а «посередине» — уступка без повода: движок не начислит за неё ничего.",
+      "en": "With an analyst the criterion comes BEFORE the trade, and long before any pressure: leverage +22 instead of +16 and the reaction “persuaded”. A sense of unfairness is not an argument to him, and “let us split it” is a concession with no reason — the engine grants nothing for it."
+    }
+  },
+  {
+    "id": "st-05",
+    "block": "styles",
+    "lesson": 4,
+    "type": "numeric",
+    "difficulty": 2,
+    "xp": 10,
+    "scenario_id": "candidate_offer",
+    "derive": "target_slack",
+    "prompt": {
+      "ru": "Стол этого блока: дно Тимура 210k, ваша цель 230k. На сколько ниже цели он готов подписать — то есть сколько можно выжать, не получив за это ни балла?",
+      "en": "This block's table: Timur's floor is 210k, your target 230k. How far below your target would he still sign — that is, how much can you squeeze out for zero points?"
+    },
+    "answer": {
+      "value": 20,
+      "tolerance": 0
+    },
+    "unit": {
+      "ru": "k ₽/мес",
+      "en": "k/mo"
+    },
+    "explain": {
+      "ru": "Двадцать тысяч запаса — и они ничего не стоят. Экономика считается как доля пути от красной линии (260) до цели (230) и на 230 уже равна 100: ниже потолка нет. Зато отношения — четверть итога, и каждый выжатый пункт платится оттуда.",
+      "en": "Twenty thousand of slack — and it is worth nothing. Economics is the share of the distance from your red line (260) to your target (230), and at 230 it is already 100: there is no ceiling above it. Relationship, though, is a quarter of the score, and every squeezed point is paid out of it."
+    }
+  },
+  {
+    "id": "st-06",
+    "block": "styles",
+    "lesson": 4,
+    "type": "choice",
+    "difficulty": 3,
+    "xp": 15,
+    "scenario_id": "candidate_offer",
+    "prompt": {
+      "ru": "Тимур просит 280. Второго оффера у него нет, и вы это знаете. Ваш ход?",
+      "en": "Timur asks for 280. He has no rival offer, and you know it. Your move?"
+    },
+    "options": [
+      {
+        "ru": "Других офферов у вас нет, поэтому мы предлагаем 212, и это наша цена.",
+        "en": "You have no other offers, so we propose 212, and that is our price."
+      },
+      {
+        "ru": "Хорошо, давайте 260, лишь бы вы вышли.",
+        "en": "Fine, let us do 260, just so you join."
+      },
+      {
+        "ru": "Тимур, что для вас важнее всего в этом переходе — переезд семьи, рост, что-то ещё?",
+        "en": "Timur, what matters most to you in this move — relocating your family, growth, something else?"
+      },
+      {
+        "ru": "Либо выходите на 215, либо мы берём другого финалиста — это ультиматум.",
+        "en": "Either you come in at 215, or we take another finalist — that is our final word."
+      }
+    ],
+    "answer": 2,
+    "expect_moves": [
+      "interests_probe"
+    ],
+    "explain": {
+      "ru": "Сила здесь нужна не для того, чтобы выжимать: 212 не добавит ни балла к экономике, зато Тимур — «отношенец», и давление стоит с ним дороже на +6 напряжения. Вопрос про переход даёт +24 к Информации и открывает то, чем можно заплатить дёшево: трек до архитектора стоит компании подписи, а для него это причина всего перехода.",
+      "en": "Power here is not for squeezing: 212 adds nothing to the economics, while Timur is a relationship type and pressure costs +6 more tension with him. The question about the move gives +24 Information and opens what you can pay with cheaply: an architect track costs the company a signature, and for him it is the whole reason he came."
+    }
+  },
+  {
+    "id": "st-07",
+    "block": "styles",
+    "lesson": 4,
+    "type": "freeform",
+    "difficulty": 3,
+    "xp": 20,
+    "scenario_id": "candidate_offer",
+    "prompt": {
+      "ru": "Предложите Тимуру размен: назовите КОНКРЕТНУЮ вещь, которая стоит вам дёшево, и свяжите её с выходом на 230.",
+      "en": "Offer Timur a trade: name a CONCRETE thing that is cheap for you and link it to joining at 230."
+    },
+    "check": {
+      "require_moves": [
+        "tradeoff"
+      ],
+      "forbid_moves": [
+        "threat",
+        "hostile"
+      ],
+      "require_secondary": "growth_track",
+      "min_words": 8
+    },
+    "reference": {
+      "ru": "Если мы дадим трек до архитектора с наставником, вы выйдете на 230?",
+      "en": "If we give you an architect track with a mentor, can you move to 230?"
+    },
+    "explain": {
+      "ru": "Названная фишка двигает цену на 0.10 + 0.30·ценность и добавляет доверие 3 + 4·ценность; у трека до архитектора ценность 0.85 при вашей цене 0.15 — лучший размен стола. Безымянное «пойдём навстречу» не двигает цену вовсе: это уступка, а не размен.",
+      "en": "A named issue moves the price by 0.10 + 0.30·value and adds 3 + 4·value trust; the architect track is worth 0.85 to him and costs you 0.15 — the best trade at this table. An unnamed “we will meet you halfway” moves nothing: that is a concession, not a trade."
+    }
+  },
+  {
+    "id": "st-08",
+    "block": "styles",
+    "lesson": 4,
+    "type": "drill",
+    "difficulty": 3,
+    "xp": 40,
+    "scenario_id": "candidate_offer",
+    "max_turns": 6,
+    "prompt": {
+      "ru": "Капстоун. Закройте оффер на цели — 230k, НЕ НИЖЕ — за 6 ходов, вскрыв минимум два интереса и удержав доверие ≥ 70.",
+      "en": "Capstone. Close the offer at your target — 230k, NOT below — within 6 turns, uncovering at least two interests and keeping trust ≥ 70."
+    },
+    "goal": {
+      "ru": "Сделка 230–240k · два интереса · доверие ≥ 70",
+      "en": "Deal 230–240k · two interests · trust ≥ 70"
+    },
+    "pass": [
+      {
+        "field": "status",
+        "op": "==",
+        "value": "agreement"
+      },
+      {
+        "field": "deal",
+        "op": ">=",
+        "value": 230
+      },
+      {
+        "field": "deal",
+        "op": "<=",
+        "value": 240
+      },
+      {
+        "field": "interests_found",
+        "op": ">=",
+        "value": 2
+      },
+      {
+        "field": "trust",
+        "op": ">=",
+        "value": 70
+      }
+    ],
+    "explain": {
+      "ru": "Единственный капстоун курса с НИЖНЕЙ границей по цене. Тимур подписал бы и 210, но за эти двадцать тысяч не начисляют ничего, а доверие 70 после выжимания не собрать: давление с «отношенцем» стоит на +6 напряжения дороже. Сила проверяется тем, от чего вы отказались, а не тем, что взяли.",
+      "en": "The only capstone in the course with a LOWER price bound. Timur would sign at 210, but those twenty thousand earn nothing, and trust of 70 cannot survive the squeeze: pressure on a relationship type costs +6 more tension. Power is measured by what you declined to take, not by what you took."
     }
   }
 ];
