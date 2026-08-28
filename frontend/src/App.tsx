@@ -1,5 +1,6 @@
 // App.tsx — screen router (home / game / debrief / campaign) with RU/EN + light/dark toggles.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { CampaignView, Debrief as DebriefData, Lang, Mode } from "./types";
 import { I18N } from "./i18n";
 import { useNegotiation } from "./api/useNegotiation";
@@ -15,12 +16,11 @@ import {
 } from "./lib/course";
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
-import { Setup } from "./components/Setup";
+import { LayersPanel } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard, DailyCard } from "./components/Rail";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
-import { SCENARIO_MAP, toScenarioView } from "./data/scenarios";
-import { detectLayers, pruneLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
+import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
 import { Table } from "./components/Table";
 import { Karl } from "./components/Mascot";
 import { Debrief } from "./components/Debrief";
@@ -29,7 +29,7 @@ import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameRe
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 
-type Screen = "home" | "setup" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course" | "warmup";
+type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course" | "warmup";
 
 // How long the finished table stays on screen before the scorecard takes over.
 // Long enough to read the closing line and the outcome stamp, short enough that
@@ -39,6 +39,25 @@ type Theme = "light" | "dark" | null;
 
 const LANG_KEY = "dialog.lang.v1";
 const THEME_KEY = "dialog.theme.v1";
+const LAYERS_KEY = "dialog.layers.v1";
+
+/** Выбор слоёв — настройка игрока, а не свойство одной партии: он живёт в
+ *  профиле и переживает перезагрузку. Читается защищённо, как язык и тема:
+ *  приватный режим бросает исключение прямо из localStorage, а «ничего не
+ *  включено» всегда остаётся верным ответом. */
+function loadLayerPrefs(): Layers {
+  try {
+    const raw = localStorage.getItem(LAYERS_KEY);
+    if (!raw) return NO_LAYERS;
+    const saved = JSON.parse(raw) as Partial<Layers>;
+    return {
+      probe: !!saved.probe, voice: !!saved.voice, camera: !!saved.camera,
+      avatar: !!saved.avatar, pokerface: !!saved.pokerface,
+    };
+  } catch {
+    return NO_LAYERS;
+  }
+}
 
 const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -68,12 +87,18 @@ export default function App() {
   // what this environment can actually deliver — a saved preset can never switch
   // on something that does not exist (see pruneLayers).
   const layerStates = useMemo(() => detectLayers(), []);
-  const [layers, setLayers] = useState<Layers>(NO_LAYERS);
-  const [pendingScenario, setPendingScenario] = useState<string | null>(null);
-  /** Пришли ли за стол со «стола дня». Отдельный флаг, а не сравнение сценария
-   *  с сегодняшним: сегодняшний стол можно открыть и из общего списка, и тогда
-   *  условия дня быть не должно — иначе оно накладывалось бы исподтишка. */
-  const [dailyPending, setDailyPending] = useState(false);
+  /** Чего хочет игрок (профиль, переживает перезагрузку) и что реально получила
+   *  ИДУЩАЯ партия. Раньше это была одна переменная — и экзамен, гася слои,
+   *  затирал ею выбор человека насовсем. */
+  const [layerPrefs, setLayerPrefs] = useState<Layers>(() => pruneLayers(loadLayerPrefs(), layerStates));
+  const [activeLayers, setActiveLayers] = useState<Layers>(NO_LAYERS);
+  /** Дата «стола дня» этой партии — чтобы перезапуск (смена слоёв, переподключение)
+   *  не потерял условие дня. */
+  const [activeDaily, setActiveDaily] = useState<string | undefined>(undefined);
+  /** Шторка слоёв. Живёт ЗДЕСЬ, а не в столе: смена слоя до первого хода
+   *  перезапускает сессию, Table на это время размонтируется — и унёс бы шторку
+   *  с собой ровно в тот момент, когда человек ею пользуется. */
+  const [layersOpen, setLayersOpen] = useState(false);
 
   const [screen, setScreen] = useState<Screen>("home");
   const [mode, setMode] = useState<Mode>("practice");
@@ -109,6 +134,14 @@ export default function App() {
   // Sound layer: local mirror of the persisted mute flag drives the header
   // toggle's icon; the cues themselves read the flag live from lib/sound.
   const [muted, setMuted] = useState<boolean>(() => isMuted());
+
+  // Esc закрывает шторку слоёв — то же самое, что клик мимо неё и крестик.
+  useEffect(() => {
+    if (!layersOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setLayersOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [layersOpen]);
 
   // Arm the AudioContext to unlock on the first user gesture (autoplay-safe).
   useEffect(() => {
@@ -282,47 +315,54 @@ export default function App() {
   const isDark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
-  /** Picking an opponent goes to SETUP first — where the layers are chosen —
-   *  except in exam mode, which fixes them off so certificates stay comparable
-   *  (docs/modalities.md §0) and therefore has nothing to choose. */
+  /**
+   * ЕДИНСТВЕННАЯ ДВЕРЬ ЗА СТОЛ.
+   *
+   * Между «НАЧАТЬ →» и партией стоял полноэкранный экран подготовки: четыре
+   * выключенных тумблера и инженерный инвариант «оценка та же», объяснённый
+   * человеку, который ещё не сыграл ни одного хода. Экран убран, слои переехали
+   * в шторку за столом и в профиль, а правило «партия на оценку идёт без слоёв»
+   * больше не ветка роутера, а `sessionLayers` — чистая функция под тестом.
+   *
+   * Режим приходит параметром, а не из замыкания: `setMode` применяется только
+   * к следующему рендеру, и клик по «столу дня» из режима «Экзамен» открывал бы
+   * экзамен.
+   */
+  const launch = useCallback(
+    (scenarioId: string, m: Mode, opts?: { daily?: string; reputation?: number; fixedOff?: boolean }) => {
+      const use = sessionLayers(m, layerPrefs, layerStates, opts?.fixedOff);
+      setActiveLayers(use);
+      setActiveDaily(opts?.daily);
+      nego.start(scenarioId, m, undefined, opts?.reputation, use, opts?.daily);
+      setScreen("game");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [layerPrefs, layerStates, nego],
+  );
+
   const start = useCallback(
     (scenarioId: string) => {
       dispatchGen("reset"); // leave any stale custom-gen state behind
-      setDailyPending(false); // обычный вход за стол — условия дня здесь нет
       setCurrentScenario(scenarioId);
-      if (mode === "exam") {
-        setLayers(NO_LAYERS);
-        nego.start(scenarioId, mode, undefined, undefined, NO_LAYERS);
-        setScreen("game");
-      } else {
-        setPendingScenario(scenarioId);
-        setScreen("setup");
-      }
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      launch(scenarioId, mode);
     },
-    [mode, nego],
+    [mode, launch],
   );
 
-  /**
-   * Стол дня всегда обычная партия, чем бы ни был занят переключатель режима.
-   *
-   * Через `start()` вести нельзя: он читает `mode` из замыкания, а `setMode`
-   * применится только к следующему рендеру — клик по столу дня из режима
-   * «Экзамен» открыл бы экзамен с погашенными слоями. Поэтому ветка обычной
-   * партии повторена здесь явно, а не собрана из двух вызовов подряд.
-   */
+  /** Стол дня всегда обычная партия, чем бы ни был занят переключатель режима. */
   const startDaily = useCallback(
     (scenarioId: string) => {
       nego.clearError();
-      setDailyPending(true);
       setMode("practice");
       dispatchGen("reset");
       setCurrentScenario(scenarioId);
-      setPendingScenario(scenarioId);
-      setScreen("setup");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Дата снимается в момент клика и тут же уезжает в `session.init`: паузы,
+      // в которую могла пройти полночь, между кликом и стартом больше нет.
+      // Сервер всё равно сверяет её у себя.
+      const today = dailyTable();
+      launch(scenarioId, "practice", { daily: today.scenarioId === scenarioId ? today.day : undefined });
     },
-    [nego],
+    [nego, launch],
   );
 
   const startDrill = useCallback(
@@ -333,13 +373,10 @@ export default function App() {
       recordedDrill.current = null;
       // Слои выключены принудительно — капстоун обязан быть сравним с экзаменом.
       setMode("practice");
-      setLayers(NO_LAYERS);
       setCurrentScenario(ex.scenario_id);
-      nego.start(ex.scenario_id, "practice", undefined, undefined, NO_LAYERS);
-      setScreen("game");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      launch(ex.scenario_id, "practice", { fixedOff: true });
     },
-    [nego],
+    [launch],
   );
 
   const backToCourse = useCallback(() => {
@@ -351,19 +388,6 @@ export default function App() {
     setScreen("course");
   }, [drill, nego]);
 
-  const startWithLayers = useCallback(() => {
-    if (!pendingScenario) return;
-    const use = pruneLayers(layers, layerStates);
-    setLayers(use);
-    // Дата едет, только если человек пришёл со «стола дня» И стол всё ещё
-    // сегодняшний: между кликом и подтверждением слоёв могла пройти полночь.
-    // Сервер сверяет ещё раз — здесь мы просто не просим невозможного.
-    const today = dailyTable();
-    const daily = dailyPending && today.scenarioId === pendingScenario ? today.day : undefined;
-    nego.start(pendingScenario, mode, undefined, undefined, use, daily);
-    setScreen("game");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [pendingScenario, dailyPending, layers, layerStates, mode, nego]);
 
   /** "прочитано n из m" — answered-correctly over asked. Counted from the log,
    *  so it needs no extra state and survives a re-render. */
@@ -385,14 +409,38 @@ export default function App() {
     return t.probe.tally.replace("{n}", String(right)).replace("{m}", String(asked.length));
   }, [nego.log, t]);
 
-  const toggleLayer = useCallback((id: LayerId) => {
-    setLayers((p) => (layerStates[id].available ? { ...p, [id]: !p[id] } : p));
-  }, [layerStates]);
+  /**
+   * Слои сменились — из шторки за столом или из профиля.
+   *
+   * Выбор сохраняется всегда. Идущая партия перезапускается ТОЛЬКО до первого
+   * хода: слои приезжают в `session.init`, менять их на лету нечем, а рвать
+   * начатые переговоры ради тумблера нельзя. Что именно получит партия, решает
+   * `sessionLayers`: экзамен, акт кампании и капстоун гасят слои независимо от
+   * того, что стоит в профиле.
+   */
+  const applyLayers = useCallback((next: Layers) => {
+    const use = pruneLayers(next, layerStates);
+    setLayerPrefs(use);
+    try {
+      localStorage.setItem(LAYERS_KEY, JSON.stringify(use));
+    } catch {
+      /* приватный режим — выбор просто не переживёт перезагрузку */
+    }
+    if (screen !== "game" || !currentScenario) return;
+    if ((nego.state?.turn ?? 0) > 0 || nego.debrief) return;
+    const useNow = sessionLayers(mode, use, layerStates, !!drill);
+    const same = (Object.keys(useNow) as LayerId[]).every((k) => useNow[k] === activeLayers[k]);
+    if (same) return; // нечего менять — и незачем рвать сессию
+    setActiveLayers(useNow);
+    nego.start(currentScenario, mode, undefined, undefined, useNow, activeDaily);
+  }, [layerStates, screen, currentScenario, nego, mode, drill, activeLayers, activeDaily]);
 
   const startCustom = useCallback(() => {
     if (!situation.trim()) return;
     setCurrentScenario(null);
     setGenErr(null);
+    setActiveLayers(NO_LAYERS); // своя сделка идёт без слоёв — сравнимость та же
+    setActiveDaily(undefined);
     nego.start("", "custom", situation);
     // dispatch drives the screen → "generating" (see the gen-phase effect above).
     dispatchGen("start");
@@ -423,10 +471,8 @@ export default function App() {
     }
     const stage = campaign.stages[progress.stageIndex];
     setCurrentScenario(stage.scenario_id);
-    nego.start(stage.scenario_id, "campaign", undefined, progress.reputation);
-    setScreen("game");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [campaign, progress.stageIndex, progress.reputation, nego]);
+    launch(stage.scenario_id, "campaign", { reputation: progress.reputation });
+  }, [campaign, progress.stageIndex, progress.reputation, launch]);
 
   // Debrief → advance: back to the arc overview (progress already recorded), or
   // to the summit summary after the final act.
@@ -454,7 +500,14 @@ export default function App() {
     [nego],
   );
 
+  /** Почему тумблеры заперты — или null, если их можно трогать. */
+  const layersLock =
+    mode !== "practice" || drill ? t.layers.lockedMode
+    : screen === "game" && ((nego.state?.turn ?? 0) > 0 || nego.debrief) ? t.layers.lockedStarted
+    : null;
+
   const goHome = useCallback(() => {
+    setLayersOpen(false);
     dispatchGen("reset");
     setGenErr(null);
     nego.reset();
@@ -479,9 +532,11 @@ export default function App() {
   // hero on the same home screen). Reduced-motion callers still land there.
 
   const retry = useCallback(() => {
+    // Переподключение обязано вернуть ТУ ЖЕ партию: со «столом дня» и с
+    // погашенными слоями капстоуна, а не «похожую».
     if (mode === "custom") startCustom();
-    else if (currentScenario) start(currentScenario);
-  }, [mode, currentScenario, start, startCustom]);
+    else if (currentScenario) launch(currentScenario, mode, { daily: activeDaily, fixedOff: !!drill });
+  }, [mode, currentScenario, launch, startCustom, activeDaily, drill]);
 
   return (
     // Двухколоночная оболочка приложения: слева меню, справа тело.
@@ -604,30 +659,6 @@ export default function App() {
         </section>
       )}
 
-      {screen === "setup" && pendingScenario && (
-        <Setup
-          t={t}
-          lang={lang}
-          scenario={toScenarioView(SCENARIO_MAP[pendingScenario], lang)}
-          layers={layers}
-          states={layerStates}
-          onToggle={toggleLayer}
-          onPreset={setLayers}
-          onStart={startWithLayers}
-          onBack={goHome}
-          rail={(
-            <aside className="rail">
-              <RailCard title={t.layers.explainHead}>
-                <ul className="rc-method">
-                  {t.layers.explain.map((l, i) => <li key={i}>{l}</li>)}
-                </ul>
-              </RailCard>
-              <ProgressCards t={t} lang={lang} profile={profile} onSetGoal={setGoalTarget} />
-            </aside>
-          )}
-        />
-      )}
-
       {screen === "generating" && (
         <section className="screen">
           <div className="wrap">
@@ -711,7 +742,9 @@ export default function App() {
             judgeActive={nego.judgeActive}
             avatarState={nego.avatarState}
             oppSpeaking={nego.oppSpeaking}
-            layers={{ voice: layers.voice, camera: layers.camera }}
+            layers={activeLayers}
+            onOpenLayers={() => setLayersOpen(true)}
+            layersOpen={layersOpen}
             layerFail={nego.layerFail}
             framesSent={nego.framesSent}
             observations={nego.observations}
@@ -726,8 +759,8 @@ export default function App() {
             onQuit={goHome}
             debriefReady={!!nego.debrief}
             grade={nego.debrief?.grade ?? null}
-            probeTally={layers.probe ? probeTally : undefined}
-            onProbeAnswer={layers.probe ? nego.answerProbe : undefined}
+            probeTally={activeLayers.probe ? probeTally : undefined}
+            onProbeAnswer={activeLayers.probe ? nego.answerProbe : undefined}
             onSeeDebrief={() => setScreen("debrief")}
           />
         </>
@@ -761,8 +794,8 @@ export default function App() {
         <Debrief
           t={t}
           d={nego.debrief}
-          probeStats={layers.probe ? probeStats : undefined}
-          observations={layers.camera ? nego.observations : undefined}
+          probeStats={activeLayers.probe ? probeStats : undefined}
+          observations={activeLayers.camera ? nego.observations : undefined}
           mode={mode}
           lang={lang}
           scenarioTitle={nego.scenario?.title}
@@ -810,7 +843,27 @@ export default function App() {
       )}
 
       {screen === "profile" && (
-        <SkillsProfile t={t} lang={lang} profile={profile} onHome={goHome} />
+        <>
+          <SkillsProfile t={t} lang={lang} profile={profile} onHome={goHome} />
+          {/* Слои — настройка, а не ворота перед партией. Здесь стоит их дом:
+              выбранное отсюда достаётся следующему столу, а править его можно и
+              за столом, до первого хода. */}
+          <section className="screen">
+            <div className="wrap">
+              <div className="prof-layers">
+                <h2 className="pl-head">{t.layers.head}</h2>
+                <LayersPanel
+                  t={t}
+                  lang={lang}
+                  layers={layerPrefs}
+                  states={layerStates}
+                  onToggle={(id) => applyLayers({ ...layerPrefs, [id]: !layerPrefs[id] })}
+                  onPreset={applyLayers}
+                />
+              </div>
+            </div>
+          </section>
+        </>
       )}
 
       {screen === "warmup" && warmupBlock && (
@@ -836,6 +889,33 @@ export default function App() {
           startAt={courseStart}
         />
       )}
+
+      {/* Шторка слоёв. Портал в <body>: экран партии держит собственный transform
+          ради проявления, а он становится опорой для `position: fixed` и увёл бы
+          шторку вбок. Замок объясняется словами: экзамен и капстоун гасят слои
+          принудительно, а начатый стол их уже получил — оба случая обязаны
+          читаться как запрет, а не как исчезнувший элемент. */}
+      {layersOpen ? createPortal(
+        <div className="lay-wrap">
+          <div className="lay-scrim" onClick={() => setLayersOpen(false)} />
+          <div className="lay-sheet" role="dialog" aria-modal="true" aria-label={t.layers.head}>
+            <div className="lay-head">
+              <b>{t.layers.head}</b>
+              <button className="lay-x" onClick={() => setLayersOpen(false)} aria-label={t.layers.close}>×</button>
+            </div>
+            <LayersPanel
+              t={t}
+              lang={lang}
+              layers={screen === "game" ? activeLayers : layerPrefs}
+              states={layerStates}
+              onToggle={(id) => applyLayers({ ...activeLayers, [id]: !activeLayers[id] })}
+              onPreset={applyLayers}
+              lockNote={layersLock}
+            />
+          </div>
+        </div>,
+        document.body,
+      ) : null}
 
       {/* Milestone celebration rides over any screen; it self-dismisses per card and
           never repeats a milestone (the ids are deduped against the saved profile). */}

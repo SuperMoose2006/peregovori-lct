@@ -19,6 +19,7 @@ import { Karl, karlState } from "./Mascot";
 import { DealTracker } from "./DealTracker";
 import { DealTerms } from "./DealTerms";
 import { Onboarding, type CoachStep } from "./Onboarding";
+import type { Layers } from "../lib/layers";
 
 interface Props {
   t: Strings;
@@ -54,8 +55,14 @@ interface Props {
   avatarState?: string | null;
   /** Оппонент звучит: честный индикатор речи, а не имитация губ. */
   oppSpeaking?: boolean;
-  /** Какие живые слои подняты. Выключенные не оставляют на экране следов. */
-  layers?: { voice?: boolean; camera?: boolean };
+  /** Какие слои подняты В ЭТОЙ партии. Выключенные не оставляют следов на экране. */
+  layers?: Layers;
+  /** Открыть шторку слоёв. Полноэкранный экран подготовки перед партией убран —
+   *  слои выбираются отсюда, изнутри стола. Саму шторку рисует App: смена слоя
+   *  до первого хода перезапускает сессию, а Table на это время размонтируется
+   *  и унёс бы шторку с собой. */
+  onOpenLayers?: () => void;
+  layersOpen?: boolean;
   /** Слой просили, но устройство не встало. Ключ есть — слой мёртв, и об этом
    *  обязана быть строка на экране, а не пустой чип живого слоя. */
   layerFail?: { voice?: string; camera?: string };
@@ -76,7 +83,7 @@ interface Props {
   onProbeAnswer?: (id: number, choice: number) => void;
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -127,6 +134,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   // Exam is an assessment: all live coaching feedback (meters, interests tracker,
   // technique chips/badges, meter deltas, hint) is withheld until the debrief.
   const exam = mode === "exam";
+  // Первая партия человека: практика и флаг «вводную ещё не видел». Больше
+  // ничего от неё не зависит — ни движок, ни оценка.
+  const newcomer = useRef(shouldRunTutorial(mode, isTutorialDone()));
 
   // Turn 0 leaves a tall empty log. Exam withholds all coaching, so it keeps the
   // bare table; everywhere else the void carries the scene and three real first
@@ -134,7 +144,10 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   const showOpening = !exam && !!st && st.turn === 0;
   const unit = scenario.headline_unit;
   const openingCard = showOpening ? (
-    <div className="opening" role="note">
+    // `lead` — та самая «подсветка одного элемента прямо на столе», которой
+    // заменена модальная вводная. Ободок на карточке, которая и так лежит в
+    // ленте: ничего не перекрывает и не требует ни одного лишнего клика.
+    <div className={`opening${newcomer.current ? " lead" : ""}`} role="note">
       <h3>{t.opening.title}</h3>
       <p className="op-scene">
         {t.opening.scene
@@ -163,9 +176,14 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     </div>
   ) : null;
 
-  // Teaching placeholder: nudge a concrete technique for the opening turns, then
-  // settle to the neutral prompt. Withheld in exam (no live coaching there).
-  const placeholder = exam ? t.placeholder : teachingPlaceholder(st?.turn ?? 0, t.placeholder, t.placeholderNudges);
+  // Обучающий плейсхолдер — со ВТОРОГО хода. На нулевом он повторял слово в
+  // слово первую строку карточки «Стол накрыт» («спросите, ПОЧЕМУ это важно»),
+  // стоявшей прямо над полем: одна подсказка, произнесённая дважды. Дальше он
+  // единственный, кто называет следующий приём, и остаётся.
+  const turnNow = st?.turn ?? 0;
+  const placeholder = exam || turnNow === 0
+    ? t.placeholder
+    : teachingPlaceholder(turnNow, t.placeholder, t.placeholderNudges);
   // Latest turn's deltas (for the meter pulse cue) — read off the most recent
   // player line in the log. Never used in exam (meters are hidden there anyway).
   // Latest turn's deltas + analysis feed both the meter pulse and the rubric
@@ -180,22 +198,13 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
       break;
     }
   }
-  // Карл берёт последнюю реплику тренера из ленты — своего текста у него нет.
-  // Подсказка (💡) важнее коуча: если игрок только что её попросил, показываем её.
-  // Ищем с конца: последняя подсказка и последняя строка тренера. Побеждает та,
-  // что свежее, — иначе только что запрошенная подсказка молча проигрывала бы
-  // коучу с прошлого хода.
-  let hintIdx = -1, coachIdx = -1, hintText = "", coachText = "", hintPending = false;
-  log.forEach((e, i) => {
-    if (e.kind === "hint") {
-      if (e.pending) hintPending = true;
-      else { hintIdx = i; hintText = e.text; }
-    } else if (e.kind === "coach") { coachIdx = i; coachText = e.text; }
-  });
-  const fresh = hintIdx > coachIdx ? hintText : coachText;
-  const karlLine = exam ? null
-    : hintPending ? t.mascot.thinking
-    : fresh || (st && st.turn === 0 ? t.mascot.greeting : null);
+  // КАРЛ БОЛЬШЕ НЕ ПОВТОРЯЕТ ТРЕНЕРА. Совет судьи приходил в ленту под репликой
+  // и тем же текстом — в пузырь Карла на рельсе. Одна мысль, два места, и ни
+  // одно из них не отменяло другое; на нулевом ходу к ним добавлялось ещё и его
+  // приветствие. Текст остался в ленте, где стоит рядом со своим ходом, а
+  // Карлу осталось лицо: оно и так меняется по дельтам движка. От ленты ему
+  // нужно ровно одно — ждём ли мы сейчас подсказку.
+  const hintPending = log.some((e) => e.kind === "hint" && e.pending);
   const karl = karlState({
     phase, busy, hintPending,
     deltas: lastDeltas,
@@ -213,22 +222,10 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   // different waits and only the second one is anybody typing — see `phase`.
   const typing = busy && !finished && (!lastEntry || lastEntry.kind !== "opp");
 
-  // First-90-seconds hook: a one-time, dismissible coach bubble nudging the new
-  // player to open with a question. Shown only on turn 0 (before any send) and
-  // never in exam (which withholds help). Dismissed on × or the first send.
-  const [coachDismissed, setCoachDismissed] = useState(false);
-  // The legacy one-line nudge is for RETURNING players; first-timers get the full
-  // guided onboarding instead (below), so suppress it whenever that ran this game.
-
   // Mobile: the briefing + BATNA collapse behind a toggle so the game side-strip
   // stays short and the chat/composer are reachable without endless scrolling.
   // On desktop this section is always expanded (the toggle is hidden by CSS).
   const [moreOpen, setMoreOpen] = useState(false);
-  const handleSend = (text: string) => {
-    setCoachDismissed(true);
-    onSend(text);
-  };
-
   // Interest-reveal delight: when the engine's interests_found ticks up, flash
   // the tracker and float a brief toast. Purely celebratory — we never reveal
   // the interest text the backend withheld, only that the COUNT rose. Suppressed
@@ -255,33 +252,34 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     };
   }, [iFound, exam]);
 
-  // ---- Guided first-negotiation onboarding (director's #1) ------------------
-  // Practice-only, first-time-only coach-marks that reveal each element the
-  // moment it first matters — a warm intro (welcome → meters → composer) and
-  // then two reveals tied to REAL engine events: the first interest uncovered
-  // and the opponent's first price move. Skippable at every step; the engine
-  // stays the source of truth (this only points at what it already did).
-  const ranTutorial = useRef(shouldRunTutorial(mode, isTutorialDone()));
-  const showFirstCoach = !exam && !ranTutorial.current && !!st && st.turn === 0 && !coachDismissed;
-  type TutPhase = "off" | "welcome" | "meters" | "compose" | "run" | "done";
-  const [tutPhase, setTutPhase] = useState<TutPhase>(() => (ranTutorial.current ? "welcome" : "off"));
+  // ---- Подсветка на столе вместо модальной вводной --------------------------
+  // БЫЛО: три шага поверх стола, и первый — карточка «Добро пожаловать за стол»
+  // по центру экрана. Она всплывала над первым ответом оппонента и закрывала
+  // его вместе со строкой тренера, то есть ровно тот момент, ради которого
+  // существует.
+  //
+  // СТАЛО: новичку подсвечивается ОДИН элемент — и только когда движок с ним
+  // что-то сделал: вскрыт интерес, поехала их цена. Роль вводной на нулевом
+  // ходу играет карточка «Стол накрыт»: она уже лежит в ленте и ничего не
+  // перекрывает. Подсветка ждёт, пока стол замрёт (`busy`), поэтому поверх
+  // приходящего ответа не встаёт никогда.
+  const [tutOn, setTutOn] = useState(newcomer.current);
   const [tutMark, setTutMark] = useState<null | "interest" | "deal">(null);
   const [tutQueue, setTutQueue] = useState<Array<"interest" | "deal">>([]);
-  const tutPhaseRef = useRef(tutPhase);
-  tutPhaseRef.current = tutPhase;
+  const tutOnRef = useRef(tutOn);
+  tutOnRef.current = tutOn;
   const tutSeen = useRef({ interest: false, deal: false });
   const tutFirstOffer = useRef<number | null>(null);
   const tutFound = useRef(iFound);
   const tutDoneOnce = useRef(false);
 
-  const metersRef = useRef<HTMLDivElement>(null);
   const dealRef = useRef<HTMLDivElement>(null);
   const interestsRef = useRef<HTMLDivElement>(null);
   const composeRef = useRef<HTMLDivElement>(null);
 
   // Persist the one-time flag the first moment the player engages an exit path
-  // (advances past the intro, sends the opener, or skips) — so a second game
-  // never re-onboards, even if they quit mid-tutorial. Idempotent.
+  // (dismisses a mark, skips, quits, finishes) — so a second game never
+  // re-onboards, even if they leave mid-way. Idempotent.
   const commitTutDone = useCallback(() => {
     if (!tutDoneOnce.current) {
       tutDoneOnce.current = true;
@@ -289,10 +287,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     }
   }, []);
 
-  // Queue an event-driven reveal, once each, only while the tutorial is live.
+  // Queue an event-driven reveal, once each, only while the highlights are live.
   const queueTutMark = useCallback((ev: "interest" | "deal") => {
-    const p = tutPhaseRef.current;
-    if (p === "off" || p === "done") return;
+    if (!tutOnRef.current) return;
     if (tutSeen.current[ev]) return;
     tutSeen.current[ev] = true;
     setTutQueue((q) => [...q, ev]);
@@ -315,61 +312,54 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     if (st.offer_opp !== tutFirstOffer.current) queueTutMark("deal");
   }, [st, queueTutMark]);
 
-  // Show queued reveals one at a time; finish once both have been shown.
+  // Показываем по одной — и ТОЛЬКО когда стол замер. Пока идёт ответ оппонента
+  // или открыт вопрос «прочтите лицо», подсветка ждёт: перекрывать реплику,
+  // которую человек ещё не прочитал, она не имеет права.
   useEffect(() => {
-    if (tutPhase !== "run" || tutMark !== null) return;
-    if (tutQueue.length === 0) {
-      if (tutSeen.current.interest && tutSeen.current.deal) setTutPhase("done");
-      return;
-    }
+    if (!tutOn || tutMark !== null) return;
+    if (busy || finished || probeOpen) return;
+    if (tutQueue.length === 0) return;
     setTutMark(tutQueue[0]);
     setTutQueue((q) => q.slice(1));
-  }, [tutPhase, tutMark, tutQueue]);
+  }, [tutOn, tutMark, tutQueue, busy, finished, probeOpen]);
 
-  // End the guided intro (either "send the opener" or "I'll write my own").
-  const startTutRun = useCallback(() => {
+  // Игрок пошёл дальше — подсветка снимается сама. Висеть до клика по «Понятно»
+  // она не имеет права: это подсказка, а не шлагбаум.
+  useEffect(() => {
+    if (busy) setTutMark(null);
+  }, [busy]);
+
+  // Партия дошла до конца — вводную считаем пройденной в любом случае.
+  useEffect(() => {
+    if (finished && tutOnRef.current) commitTutDone();
+  }, [finished, commitTutDone]);
+
+  const dismissTutMark = useCallback(() => {
     commitTutDone();
-    setTutPhase("run");
+    setTutMark(null);
   }, [commitTutDone]);
-  const sendTutOpener = useCallback(() => {
-    handleSend(t.onboarding.suggestedOpening);
-    startTutRun();
-  }, [t, startTutRun]); // eslint-disable-line react-hooks/exhaustive-deps
-  const dismissTutMark = useCallback(() => setTutMark(null), []);
   const skipTutorial = useCallback(() => {
     commitTutDone();
-    setTutPhase("off");
+    setTutOn(false);
     setTutMark(null);
     setTutQueue([]);
   }, [commitTutDone]);
 
   // Quitting mid-tutorial still counts as "seen" — never re-onboard next game.
   const handleQuit = () => {
-    if (ranTutorial.current) commitTutDone();
+    if (newcomer.current) commitTutDone();
     onQuit();
   };
 
-  // Resolve the single active coach step (or null). Event reveals take the stage
-  // over the linear intro; intro steps carry 3 progress dots, reveals carry none.
+  // Какая подсветка активна сейчас (или ни одной). Обе привязаны к настоящему
+  // событию движка, поэтому объясняют то, что уже произошло на глазах.
   const o = t.onboarding;
-  const intro = { steps: 3, skipLabel: o.skip, onSkip: skipTutorial };
+  const mark = { primaryLabel: o.gotIt, onPrimary: dismissTutMark, skipLabel: o.skip, onSkip: skipTutorial };
   let tutStep: CoachStep | null = null;
   if (tutMark === "interest") {
-    tutStep = { stepKey: "m-interest", targetRef: interestsRef, title: o.interestTitle, body: o.interestBody,
-      primaryLabel: o.gotIt, onPrimary: dismissTutMark, step: 0, steps: 0, skipLabel: o.skip, onSkip: skipTutorial };
+    tutStep = { stepKey: "m-interest", targetRef: interestsRef, title: o.interestTitle, body: o.interestBody, ...mark };
   } else if (tutMark === "deal") {
-    tutStep = { stepKey: "m-deal", targetRef: dealRef, title: o.dealTitle, body: o.dealBody,
-      primaryLabel: o.gotIt, onPrimary: dismissTutMark, step: 0, steps: 0, skipLabel: o.skip, onSkip: skipTutorial };
-  } else if (tutPhase === "welcome") {
-    tutStep = { stepKey: "welcome", title: o.welcomeTitle, body: o.welcomeBody,
-      primaryLabel: o.next, onPrimary: () => setTutPhase("meters"), step: 1, ...intro };
-  } else if (tutPhase === "meters") {
-    tutStep = { stepKey: "meters", targetRef: metersRef, title: o.metersTitle, body: o.metersBody,
-      primaryLabel: o.next, onPrimary: () => setTutPhase("compose"), step: 2, ...intro };
-  } else if (tutPhase === "compose") {
-    tutStep = { stepKey: "compose", targetRef: composeRef, title: o.composeTitle, body: o.composeBody,
-      primaryLabel: o.orTypeYourself, onPrimary: startTutRun, action: { label: o.sendOpening, onClick: sendTutOpener },
-      step: 3, ...intro };
+    tutStep = { stepKey: "m-deal", targetRef: dealRef, title: o.dealTitle, body: o.dealBody, ...mark };
   }
 
   return (
@@ -428,7 +418,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
             <DealTerms scenario={scenario} state={st} t={t} />
 
             {st && !exam ? (
-              <div ref={metersRef} className="onb-anchor">
+              <div className="onb-anchor">
                 <Meters state={st} labels={t.meters} info={t.meterInfo} deltas={lastDeltas} />
                 <Scorecard analysis={lastAnalysis} deltas={lastDeltas} labels={t.scorecard} />
               </div>
@@ -466,10 +456,25 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 стола можно было только прокрутив рельс. Выход не бывает
                 «где-то ниже». В экзамене Карла нет — там подсказок не бывает. */}
             <div className="side-foot">
-              {!exam ? <Karl state={karl} line={karlLine} name={t.mascot.karl} alt={t.mascot.alt} /> : null}
-              <button className="quit" onClick={handleQuit}>
-                ← {t.quit}
-              </button>
+              {!exam ? <Karl state={karl} name={t.mascot.karl} alt={t.mascot.alt} /> : null}
+              <div className="side-acts">
+                <button className="quit" onClick={handleQuit}>
+                  ← {t.quit}
+                </button>
+                {/* Слои переехали сюда с полноэкранного экрана подготовки. Кнопка
+                    стоит и в экзамене: там шторка объясняет словами, ПОЧЕМУ они
+                    погашены, — запрет обязан быть виден, а не подразумеваться. */}
+                {onOpenLayers ? (
+                  <button
+                    className="lay-open"
+                    onClick={onOpenLayers}
+                    aria-haspopup="dialog"
+                    aria-expanded={layersOpen}
+                  >
+                    🎛 {t.layers.head}
+                  </button>
+                ) : null}
+              </div>
             </div>
           </aside>
 
@@ -551,18 +556,6 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               }
               onProbeAnswer={onProbeAnswer}
             />
-            {showFirstCoach ? (
-              <div className="firstcoach" role="note">
-                <span>{t.firstTurnCoach}</span>
-                <button
-                  className="firstcoach-x"
-                  onClick={() => setCoachDismissed(true)}
-                  aria-label={t.dismiss}
-                >
-                  ×
-                </button>
-              </div>
-            ) : null}
             {finished && onSeeDebrief ? (
               <div className={`outcome ${st!.status}`} role="status" ref={outcomeRef}>
                 <div className="oc-stamp">
@@ -594,15 +587,12 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 blocked={probeOpen}
                 placeholder={probeOpen ? t.probe.blocked : placeholder}
                 quickMoves={t.quickMoves}
-                onSend={handleSend}
+                onSend={onSend}
                 onHint={onHint}
                 hintEnabled={!exam}
                 showChips={!exam}
                 limitNote={t.composerLimit}
                 charForms={t.forms.chars}
-                // Turn-1 only opener (before any move): a one-tap interest probe
-                // that pre-fills the box. Withheld in exam (no live help there).
-                suggestion={!exam && !!st && st.turn === 0 ? t.suggestChip : undefined}
                 prefill={prefill}
               />
               {/* Слой рисуется живым, ТОЛЬКО если устройство действительно

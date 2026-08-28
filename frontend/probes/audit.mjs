@@ -505,16 +505,41 @@ for (const vp of VPS) {
     if (missing.length) console.log("  НЕ УВИДЕНО:", missing.join(", "));
   }
 
-  // Тренировка → подготовка со слоями → партия → исход → разбор
-  await page.click('text=ТРЕНИРОВКА').catch(()=>{});
+  // Тренировка → СРАЗУ стол → исход → разбор.
+  //
+  // ПРЯМОЙ ПУТЬ. Между «НАЧАТЬ →» и полем ввода не должно стоять ни одного
+  // промежуточного экрана. Стоял: полноэкранный конфигуратор слоёв — четыре
+  // выключенных тумблера и инженерный инвариант «оценка та же», объяснённый
+  // человеку, который ещё не сделал ни одного хода. Меряем ровно это: один
+  // клик по карточке, дальше только ожидание, без единого клика больше.
+  // Переход в тренировку — по ключу раздела, не по русской подписи: в
+  // английском режиме `text=ТРЕНИРОВКА` молча промахивался, и до стола
+  // обходчик не доходил вовсе.
+  await page.locator('[data-nav="practice"]').first().click().catch(()=>{});
   await page.waitForTimeout(1200);
-  await page.locator(".card .go, .card button").first().click().catch(()=>{});
-  await page.waitForTimeout(1400);
-  if (await page.locator(".setup, .ly").count()) await probe(page, "setup-layers", vp.tag);
-  await page.getByRole("button", { name: /(НАЧАТЬ|ЗА СТОЛ|START|TO THE TABLE)/i }).first().click().catch(()=>{});
-  await page.waitForSelector(".chat", { timeout: 20000 }).catch(()=>{});
+  await page.locator(".card").first().click().catch(()=>{});
+  await page.waitForSelector(".chat textarea, .setup-layers", { timeout: 20000 }).catch(()=>{});
+  if (await page.locator(".setup-layers, .lay-panel").count()) {
+    add("BAD", "route", "gate", "между «НАЧАТЬ» и столом стоит промежуточный экран");
+  }
+  if (!await page.locator(".chat textarea").count()) {
+    add("BAD", "route", "gate", "после «НАЧАТЬ» поле ввода не появилось без лишних кликов");
+  }
   await page.waitForTimeout(1600);
   await probe(page, "game-turn0", vp.tag);
+
+  // ОДНА ПОДСКАЗКА НА ХОД. На нулевом ходу их было до пяти разом: карточка
+  // «Стол накрыт» с тремя затравками, строка тренера, чип-затравка над полем,
+  // обучающий плейсхолдер и пузырь Карла, повторявший ленту слово в слово.
+  const hints = await page.evaluate(() => {
+    const sel = ".log .opening, .firstcoach, .suggest, .coachline, .karl-bub, .hintbub, .onb-tip";
+    return [...document.querySelectorAll(sel)]
+      .filter((el) => el.getBoundingClientRect().height > 0)
+      .map((el) => el.className);
+  });
+  if (hints.length > 1) {
+    add("BAD", "game-turn0", "hints", `подсказок на первом ходу ${hints.length}: ${hints.join(", ").slice(0, 90)}`);
+  }
 
   // РЕПЛИКИ ИГРОКА ТОЖЕ ПЕРЕВОДЯТСЯ. Прибор печатал русские фразы во всех
   // режимах, они возвращались в ленту как пузыри игрока и в разбор как цитата —

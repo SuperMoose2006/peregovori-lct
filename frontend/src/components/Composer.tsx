@@ -1,5 +1,10 @@
 // Composer.tsx — message composer: textarea with live technique preview,
 // quick-move chips, hint button, send.
+//
+// Чипа-затравки «Спросите, что для них важно →» здесь больше нет. Он предлагал
+// ровно тот же вопрос, что и первая строка карточки «Стол накрыт», стоявшей
+// сантиметром выше: на первом ходу их было двое, и это была одна подсказка,
+// сказанная дважды. Правило — одна подсказка на ход.
 import { useEffect, useRef, useState } from "react";
 import type { QuickMove } from "../i18n";
 import { plural } from "../lib/format";
@@ -28,10 +33,6 @@ interface Props {
   limitNote: string;
   /** Формы «символ/символа/символов» — подпись обязана согласоваться с числом. */
   charForms: [string, string, string];
-  // Turn-1 opener: a single tappable chip that pre-fills (never sends) an
-  // interest-probing SPIN opener. Provided only on the very first move; hidden
-  // here the moment the box is non-empty. Absent ⇒ no chip.
-  suggestion?: { label: string; fill: string };
   // Externally-supplied text to drop into the box (the coach's worked example).
   // Keyed by a nonce, not by the text, so tapping the same suggestion twice
   // still re-fills after the player has edited or cleared it.
@@ -39,7 +40,7 @@ interface Props {
 }
 
 export function Composer({
-  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, hintLabel, showChips, limitNote, charForms, suggestion, prefill,
+  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, hintLabel, showChips, limitNote, charForms, prefill,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -76,23 +77,8 @@ export function Composer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefill?.nonce]);
 
-  // The opener chip earns its place only before the player has typed anything —
-  // it de-blanks the first move, then yields the moment they start writing.
-  const showSuggestion = !!suggestion && text.trim() === "" && !disabled;
-
   return (
     <div className="compose">
-      {showSuggestion && suggestion ? (
-        <div className="suggest">
-          <button
-            type="button"
-            className="suggest-chip"
-            onClick={() => insertStem(suggestion.fill)}
-          >
-            {suggestion.label}
-          </button>
-        </div>
-      ) : null}
       {showChips ? (
         <div className="live">
           {chips.map((c, i) => (

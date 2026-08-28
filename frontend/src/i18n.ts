@@ -191,6 +191,11 @@ export interface Strings {
     what: string;            // "[i] что это"
     sameGrade: string;       // caption on every toggle — the honesty guarantee
     unavailable: string;     // badge on a layer the environment cannot deliver
+    /** Почему тумблеры заперты. Запрет обязан быть виден словами, а не
+     *  отсутствием элемента: режим гасит слои — так и написано. */
+    lockedMode: string;      // экзамен/кампания/капстоун/своя сделка
+    lockedStarted: string;   // стол уже идёт — слои выбираются до первого хода
+    close: string;           // aria-label крестика шторки
     /** Заголовок карточки наблюдений камеры в разборе. */
     seenHead: string;
     presets: string;
@@ -207,8 +212,6 @@ export interface Strings {
   mascot: {
     karl: string;
     tikhon: string;
-    greeting: string;        // единственная реплика, которую он говорит сам
-    thinking: string;        // пока думает над подсказкой
     rememberTitle: string;   // заголовок карточки Тихона в разборе
     // Подписи к картинкам. Их читает вслух экранный диктор, поэтому они такой
     // же пользовательский текст, как и всё остальное, и переводятся (инвариант 4).
@@ -296,7 +299,6 @@ export interface Strings {
     why: { missing: string; missingAny: string; forbidden: string; missingTerm: string;
            tooShort: string; weak: string; noNumber: string; generic: string };
   };
-  firstTurnCoach: string;
   // "Table setting" card filling the empty chat at turn 0. The opening frame a
   // juror stares at longest, and the moment a first-timer decides whether they
   // know what to do — so it states the scene and offers three real first lines.
@@ -309,28 +311,13 @@ export interface Strings {
     hint: string;   // one line on what a strong opening does
     lines: { tag: string; text: string }[];
   };
-  dismiss: string; // aria-label for the bubble's × close
-  // Turn-1 suggested-reply chip: a one-tap interest-probing opener that pre-fills
-  // (never auto-sends) the composer, de-blanking the first move. label = the chip
-  // caption; fill = the SPIN opener dropped into the box for the player to send.
-  suggestChip: { label: string; fill: string };
-  // guided first-negotiation onboarding (practice, first time only). Warm-coach
-  // copy for the welcome beat, the meter/composer coach-marks, the tap-to-send
-  // opener, and the two event-driven reveals (interest uncovered / their price moved).
+  // Подсветка одного элемента на столе (только практика и только первый раз).
+  // Обе подсказки привязаны к НАСТОЯЩЕМУ событию движка: вскрыт интерес и
+  // поехала их цена. Модальной вводной «Добро пожаловать за стол» больше нет —
+  // она всплывала поверх первого ответа оппонента.
   onboarding: {
-    skip: string; // "пропустить" — always available
-    next: string; // advance the guided intro
-    gotIt: string; // dismiss an event-driven coach-mark
-    stepOf: string; // "{n}/{total}" progress caption (substituted)
-    welcomeTitle: string;
-    welcomeBody: string;
-    metersTitle: string;
-    metersBody: string;
-    composeTitle: string;
-    composeBody: string;
-    sendOpening: string; // label on the tap-to-send opener button
-    suggestedOpening: string; // the actual SPIN/interest question that gets sent
-    orTypeYourself: string; // secondary action: skip the opener, write your own
+    skip: string;  // «пропустить» — доступно всегда
+    gotIt: string; // закрыть подсказку
     interestTitle: string;
     interestBody: string;
     dealTitle: string;
@@ -725,6 +712,9 @@ export const I18N: Record<Lang, Strings> = {
       head: "Слои",
       what: "что это",
       sameGrade: "оценка та же",
+      lockedMode: "В этой партии слои выключены — её грейд обязан быть сравним с остальными",
+      lockedStarted: "Стол уже идёт: слои выбираются до первого хода",
+      close: "Закрыть слои",
       seenHead: "Что видела камера",
       unavailable: "недоступно",
       presets: "Пресеты",
@@ -751,8 +741,6 @@ export const I18N: Record<Lang, Strings> = {
     mascot: {
       karl: "Карл",
       tikhon: "Тихон",
-      greeting: "Не торопитесь с ценой. Сначала выясните, что важно второй стороне.",
-      thinking: "Секунду, смотрю…",
       rememberTitle: "Тихон помнит",
       alt: {
         idle: "Карл наблюдает",
@@ -933,29 +921,9 @@ export const I18N: Record<Lang, Strings> = {
         { tag: "🔄 Размен", text: "Что вам дешевле уступить — сроки или объём? Возможно, нам есть чем обменяться." },
       ],
     },
-    firstTurnCoach: "💡 Начните с интересов: узнайте, что важно второй стороне. Не давите ценой — сначала спрашивайте.",
-    dismiss: "Закрыть подсказку",
-    suggestChip: {
-      label: "Спросите, что для них важно →",
-      fill: "Что для вас важнее всего в этой сделке?",
-    },
     onboarding: {
       skip: "Пропустить",
-      next: "Далее →",
       gotIt: "Понятно",
-      stepOf: "{n}/{total}",
-      welcomeTitle: "Добро пожаловать за стол",
-      welcomeBody:
-        "Это тренажёр переговоров. Ведите диалог своими словами — исход зависит от того, ЧТО и КАК вы говорите. Секрет прост: не давите — сначала спрашивайте.",
-      metersTitle: "Четыре шкалы стола",
-      metersBody:
-        "Доверие, Напряжение, Информация, Рычаг. Ведите доверие и информацию вверх, а напряжение — вниз. Наведитесь на любую, чтобы понять, что её двигает.",
-      composeTitle: "Ваш ход — своими словами",
-      composeBody:
-        "Пишите как в жизни. Не знаете, с чего начать? Начните с вопроса — вскройте, что важно для собеседника.",
-      sendOpening: "❓ Задать этот вопрос",
-      suggestedOpening: "Что для вас важнее всего в этой сделке и почему?",
-      orTypeYourself: "или напишу сам",
       interestTitle: "Вы вскрыли интерес",
       interestBody:
         "За позицией всегда стоит интерес. Вы спросили — и шкала «Информация» выросла. Так вы находите, о чём реально договариваться.",
@@ -1349,6 +1317,9 @@ export const I18N: Record<Lang, Strings> = {
       head: "Layers",
       what: "what is this",
       sameGrade: "same grading",
+      lockedMode: "This table runs with layers off — its grade has to stay comparable to the rest",
+      lockedStarted: "The table is already running: layers are chosen before the first move",
+      close: "Close layers",
       seenHead: "What the camera saw",
       unavailable: "unavailable",
       presets: "Presets",
@@ -1375,8 +1346,6 @@ export const I18N: Record<Lang, Strings> = {
     mascot: {
       karl: "Karl",
       tikhon: "Tikhon",
-      greeting: "Don't rush to the number. Find out what matters to the other side first.",
-      thinking: "One moment, looking…",
       rememberTitle: "Tikhon remembers",
       alt: {
         idle: "Karl is watching",
@@ -1552,29 +1521,9 @@ export const I18N: Record<Lang, Strings> = {
         { tag: "🔄 Trade-off", text: "What's cheaper for you to give — timing or volume? We may have something to trade." },
       ],
     },
-    firstTurnCoach: "💡 Start with interests: find out what matters to the other side. Don't push on price — ask first.",
-    dismiss: "Dismiss tip",
-    suggestChip: {
-      label: "Ask what matters most to them →",
-      fill: "What matters most to you in this deal?",
-    },
     onboarding: {
       skip: "Skip",
-      next: "Next →",
       gotIt: "Got it",
-      stepOf: "{n}/{total}",
-      welcomeTitle: "Welcome to the table",
-      welcomeBody:
-        "This is a negotiation trainer. Talk in your own words — the outcome depends on WHAT you say and HOW. The secret is simple: don't push — ask first.",
-      metersTitle: "The table's four meters",
-      metersBody:
-        "Trust, Tension, Information, Leverage. Keep trust and information rising and tension low. Hover any one to see what moves it.",
-      composeTitle: "Your move — in your own words",
-      composeBody:
-        "Write like you would in real life. Not sure how to open? Start with a question — surface what matters to them.",
-      sendOpening: "❓ Ask this question",
-      suggestedOpening: "What matters most to you in this deal, and why?",
-      orTypeYourself: "or I'll write my own",
       interestTitle: "You uncovered an interest",
       interestBody:
         "Behind every position sits an interest. You asked — and the Information meter rose. That's how you find what's really worth negotiating over.",

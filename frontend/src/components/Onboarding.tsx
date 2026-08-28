@@ -1,30 +1,27 @@
-// Onboarding.tsx — the guided first-negotiation coach-mark overlay. A single
-// lightweight step at a time: a dimmed backdrop with a "hole" cut over the
-// element that matters right now, plus a small tooltip anchored to it (or a
-// centered welcome card when there's no target). Every step is skippable.
+// Onboarding.tsx — подсветка ОДНОГО элемента прямо на столе: затемнение с
+// «дыркой» над тем, что сейчас важно, и маленькая подсказка рядом с ним.
 //
-// The overlay owns only presentation + measurement. WHICH step shows, and WHEN
-// (welcome → meters → composer, then event-driven reveals tied to the real
-// engine state), is decided by Table. Nothing here touches game state, so the
-// deterministic engine stays the single source of truth.
+// ЧЕГО ЗДЕСЬ БОЛЬШЕ НЕТ. Была линейная вводная из трёх шагов, и первый её шаг —
+// карточка «Добро пожаловать за стол» по центру экрана поверх всего. Она
+// перекрывала ответ оппонента и строку тренера, то есть ровно тот момент, ради
+// которого существует. Экран без цели (centered) и точки прогресса убраны
+// вместе с ней: каждый оставшийся шаг обязан указывать на РЕАЛЬНЫЙ элемент,
+// который движок только что изменил.
+//
+// Слой владеет только показом и замером. КАКОЙ шаг показывать и КОГДА решает
+// Table, и решает по событиям движка. Состояния игры здесь не трогают, поэтому
+// детерминированный движок остаётся единственным источником правды.
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export interface CoachStep {
   stepKey: string; // NOT `key` — that's reserved by React and stripped on spread
-  // The element to spotlight. Omitted → a centered card (the welcome beat).
-  targetRef?: React.RefObject<HTMLElement | null>;
+  /** Элемент, который подсвечиваем. Обязателен: подсказки без цели больше нет. */
+  targetRef: React.RefObject<HTMLElement | null>;
   title: string;
   body: string;
   primaryLabel: string;
   onPrimary: () => void;
-  // Optional prominent tap-to-act button (the suggested opening the player can
-  // send for their very first turn).
-  action?: { label: string; onClick: () => void };
-  // Guided-intro position for the progress dots ("2 / 3"). 0 → no dots (event
-  // reveals aren't part of the linear intro).
-  step: number;
-  steps: number;
   skipLabel: string;
   onSkip: () => void;
 }
@@ -35,7 +32,7 @@ const reduceMotion = () =>
 interface Rect { top: number; left: number; width: number; height: number; }
 
 export function Onboarding(props: CoachStep) {
-  const { stepKey, targetRef, title, body, primaryLabel, onPrimary, action, step, steps, skipLabel, onSkip } = props;
+  const { stepKey, targetRef, title, body, primaryLabel, onPrimary, skipLabel, onSkip } = props;
   const [rect, setRect] = useState<Rect | null>(null);
   const lastRect = useRef<Rect | null>(null);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -86,64 +83,43 @@ export function Onboarding(props: CoachStep) {
     // stepKey changes with every step; that's the intended re-measure trigger.
   }, [stepKey, targetRef]);
 
+  // Цель ещё не измерена — рисовать нечего. Пустой экран лучше затемнения,
+  // повисшего непонятно над чем.
+  if (!rect) return null;
+
   // Padding around the spotlighted element, and the hole geometry.
   const PAD = 8;
-  const hole = rect
-    ? { top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }
-    : null;
+  const hole = { top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 };
 
-  // Tooltip placement: centered when there's no target; otherwise below the
-  // element if there's room, else above. Horizontally clamped to the viewport.
-  let tipStyle: React.CSSProperties;
-  let arrow: "up" | "down" | null = null;
-  if (!hole) {
-    tipStyle = { top: "50%", left: "50%", transform: "translate(-50%, -50%)" };
-  } else {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const TIP_W = Math.min(320, vw - 24);
-    const EST_H = 210; // enough headroom for the decision; exact height not needed
-    const below = hole.top + hole.height + 12;
-    const placeBelow = below + EST_H <= vh || hole.top < EST_H + 24;
-    const top = placeBelow ? below : Math.max(12, hole.top - 12 - EST_H);
-    const cx = hole.left + hole.width / 2;
-    const left = Math.max(12, Math.min(cx - TIP_W / 2, vw - TIP_W - 12));
-    tipStyle = { top, left, width: TIP_W };
-    arrow = placeBelow ? "up" : "down";
-  }
+  // Tooltip placement: below the element if there's room, else above.
+  // Horizontally clamped to the viewport.
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const TIP_W = Math.min(320, vw - 24);
+  const EST_H = 180; // enough headroom for the decision; exact height not needed
+  const below = hole.top + hole.height + 12;
+  const placeBelow = below + EST_H <= vh || hole.top < EST_H + 24;
+  const top = placeBelow ? below : Math.max(12, hole.top - 12 - EST_H);
+  const cx = hole.left + hole.width / 2;
+  const left = Math.max(12, Math.min(cx - TIP_W / 2, vw - TIP_W - 12));
+  const tipStyle: React.CSSProperties = { top, left, width: TIP_W };
+  const arrow: "up" | "down" = placeBelow ? "up" : "down";
 
   // Portal to <body>: the game screen sets an (identity) transform for its
   // fade-in, which would otherwise become the containing block for our fixed
   // overlay and strand the spotlight tens of px off the real element.
   return createPortal(
-    <div className="onb" role="dialog" aria-modal="true" aria-label={title}>
-      {hole ? (
-        <div className="onb-hole" style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }} />
-      ) : (
-        <div className="onb-scrim" />
-      )}
+    // Не модальное окно: `aria-modal` здесь означал бы «остальной экран для вас
+    // закрыт», а он открыт — и это главное свойство этой подсказки.
+    <div className="onb" role="dialog" aria-label={title}>
+      <div className="onb-hole" style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }} />
 
-      <div className={`onb-tip${arrow ? ` a-${arrow}` : " centered"}`} style={tipStyle} ref={tipRef}>
-        {arrow ? <span className="onb-arrow" aria-hidden="true" /> : null}
+      <div className={`onb-tip a-${arrow}`} style={tipStyle} ref={tipRef}>
+        <span className="onb-arrow" aria-hidden="true" />
         <div className="onb-title">{title}</div>
         <div className="onb-body">{body}</div>
 
-        {action ? (
-          <button className="onb-action" onClick={action.onClick}>
-            {action.label}
-          </button>
-        ) : null}
-
         <div className="onb-foot">
-          {steps > 0 ? (
-            <span className="onb-dots" aria-hidden="true">
-              {Array.from({ length: steps }, (_, i) => (
-                <i className={i + 1 === step ? "on" : ""} key={i} />
-              ))}
-            </span>
-          ) : (
-            <span />
-          )}
           <div className="onb-btns">
             <button className="onb-skip" onClick={onSkip}>{skipLabel}</button>
             <button className="onb-next" onClick={onPrimary}>{primaryLabel}</button>

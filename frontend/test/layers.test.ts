@@ -2,7 +2,7 @@
 // сказать «недоступно», а не притвориться. Этот файл держит вторую половину.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { NO_LAYERS, PRESETS, pruneLayers, detectLayers, type Layers } from "../src/lib/layers";
+import { NO_LAYERS, PRESETS, pruneLayers, sessionLayers, detectLayers, type Layers } from "../src/lib/layers";
 
 const ON: Layers = { probe: true, voice: true, camera: true, avatar: true, pokerface: true };
 
@@ -54,4 +54,41 @@ test("ни один пресет не включает покерфейс без
 test("классика — это действительно ничего", () => {
   const classic = PRESETS.find((p) => p.id === "classic")!;
   assert.ok(Object.values(classic.layers).every((v) => v === false));
+});
+
+// Экран подготовки перед партией убран: «НАЧАТЬ →» ведёт прямо за стол. Правило
+// «партия на оценку идёт без слоёв» жило веткой того экрана — здесь оно живёт
+// чистой функцией, и вот тесты, которые не дадут ему уехать вместе с роутером.
+const ALL: Layers = { probe: true, voice: true, camera: true, avatar: true, pokerface: true };
+
+test("экзамен не получает слоёв, что бы ни стояло в профиле", () => {
+  const got = sessionLayers("exam", ALL, detectLayers());
+  assert.deepEqual(got, NO_LAYERS, "сертификат обязан быть сравним с сертификатом без слоёв");
+});
+
+test("акт кампании и своя сделка тоже идут без слоёв", () => {
+  for (const mode of ["campaign", "custom"] as const) {
+    assert.deepEqual(sessionLayers(mode, ALL, detectLayers()), NO_LAYERS, mode);
+  }
+});
+
+test("капстоун курса гасит слои даже в тренировке", () => {
+  // Партия из урока запускается режимом «практика», но сравнивается с экзаменом.
+  assert.deepEqual(sessionLayers("practice", ALL, detectLayers(), true), NO_LAYERS);
+});
+
+test("тренировка получает выбранное — но не то, чего среда не даёт", () => {
+  const got = sessionLayers("practice", ALL, noMedia());
+  assert.equal(got.probe, true);
+  assert.equal(got.avatar, true);
+  assert.equal(got.voice, false);
+  assert.equal(got.camera, false);
+  assert.equal(got.pokerface, false);
+});
+
+test("выбор игрока не портится ни одним режимом: функция чистая", () => {
+  const want: Layers = { ...NO_LAYERS, probe: true, avatar: true };
+  const copy = { ...want };
+  sessionLayers("exam", want, detectLayers());
+  assert.deepEqual(want, copy, "экзамен не имеет права затирать настройку профиля");
 });

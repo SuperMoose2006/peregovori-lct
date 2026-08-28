@@ -611,22 +611,6 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .quick button { font-size: 11.5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-dim); transition: 0.15s; }
 .quick button:hover { border-color: var(--brass); color: var(--ink); }
 
-/* first-turn coach bubble — the opening nudge above the composer, dismissible */
-.firstcoach {
-  display: flex; align-items: flex-start; gap: 10px;
-  margin: 0 14px 10px; padding: 10px 12px;
-  font-size: 13px; color: var(--ink-dim); line-height: 1.5;
-  background: color-mix(in srgb, var(--brass) 8%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--brass) 30%, var(--line));
-  border-left: 2.5px solid var(--brass); border-radius: 10px;
-  animation: pop 0.3s ease;
-}
-.firstcoach-x {
-  flex-shrink: 0; font-size: 17px; line-height: 1; color: var(--ink-faint);
-  padding: 0 3px; border-radius: 6px; transition: 0.15s;
-}
-.firstcoach-x:hover { color: var(--ink); background: var(--panel-2); }
-
 /* debrief */
 .debrief { max-width: 720px; margin: 0 auto; padding: 34px 0 50px; }
 .debrief:not(.cert) {
@@ -1331,29 +1315,28 @@ textarea:focus { outline: none; border-color: var(--brass); }
    composer stayed on screen under the closing outcome strip without this. */
 .onb-anchor[hidden] { display: none; }
 
-.onb { position: fixed; inset: 0; z-index: 60; }
+/* ПОДСКАЗКА, А НЕ ШЛАГБАУМ. Слой ловил клики всем экраном и гасил его
+   затемнением: реплика, которую человек ещё не дочитал, уходила в тень, а
+   набирать ответ было нельзя, пока не нажмёшь «Понятно». Теперь слой прозрачен
+   для мыши, ободок держит взгляд, и стол под ним работает как работал. */
+.onb { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
 
-/* Welcome beat (no target): a soft full-screen scrim behind a centered card. */
-.onb-scrim { position: absolute; inset: 0;
-  background: color-mix(in srgb, var(--ground) 60%, transparent); }
-
-/* Spotlight hole: a transparent box over the target whose vast box-shadow paints
-   the dim everywhere else, ringed in brass so the eye lands on the element. */
+/* Ободок вокруг подсвеченного элемента. Именно ободок, а не «дырка в
+   затемнении»: гасить весь стол ради одной подсказки — значит гасить и ответ
+   оппонента, ради которого человек сюда и смотрит. */
 .onb-hole {
   position: absolute; border-radius: 12px; pointer-events: none;
-  box-shadow: 0 0 0 9999px color-mix(in srgb, var(--ground) 60%, transparent),
-    0 0 0 2px var(--brass), 0 0 22px 4px color-mix(in srgb, var(--brass) 45%, transparent);
+  box-shadow: 0 0 0 2px var(--brass), 0 0 22px 4px color-mix(in srgb, var(--brass) 45%, transparent);
   transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
   animation: onbfade 0.3s ease;
 }
 
 .onb-tip {
-  position: absolute; z-index: 1; max-width: min(320px, calc(100vw - 24px));
+  position: absolute; z-index: 1; pointer-events: auto; max-width: min(320px, calc(100vw - 24px));
   background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line));
   border-radius: 14px; padding: 16px 16px 12px; box-shadow: var(--shadow);
   animation: onbtip 0.28s ease;
 }
-.onb-tip.centered { width: min(360px, calc(100vw - 32px)); animation: onbfade 0.28s ease; }
 @keyframes onbtip { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes onbfade { from { opacity: 0; } to { opacity: 1; } }
 
@@ -1367,16 +1350,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .onb-title { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
 .onb-body { font-size: 13.5px; line-height: 1.52; color: var(--ink-dim); }
 
-.onb-action {
-  display: block; width: 100%; margin-top: 13px; padding: 11px 12px; border-radius: 10px;
-  background: var(--brass); color: var(--on-brass); font-weight: 700; font-size: 13.5px; text-align: center; transition: filter 0.15s;
-}
-.onb-action:hover { filter: brightness(1.06); }
-
 .onb-foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-.onb-dots { display: inline-flex; gap: 5px; }
-.onb-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
-.onb-dots i.on { background: var(--brass); }
 .onb-btns { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .onb-skip { font-size: 12.5px; color: var(--ink-faint); padding: 7px 10px; border-radius: 8px; transition: 0.15s; }
 .onb-skip:hover { color: var(--ink-dim); background: var(--panel-2); }
@@ -1388,7 +1362,6 @@ textarea:focus { outline: none; border-color: var(--brass); }
 
 @media (max-width: 640px) {
   .onb-tip { padding: 15px 15px 12px; }
-  .onb-action { min-height: 46px; }
   .onb-skip, .onb-next { min-height: 44px; }
 }
 
@@ -1509,22 +1482,6 @@ textarea:focus-visible,
   color: var(--info-ink); cursor: help;
   background: color-mix(in srgb, var(--info) 12%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--info) 34%, var(--line));
-}
-
-/* ---------- Turn-1 suggested-reply chip ----------
-   One inviting opener above the composer; pre-fills (never sends), then yields. */
-.suggest { margin: 0 0 8px; }
-.suggest-chip {
-  display: inline-flex; align-items: center; max-width: 100%;
-  padding: 8px 13px; border-radius: 999px; text-align: left; line-height: 1.35;
-  font-size: 12.5px; font-weight: 600; color: var(--brass);
-  background: color-mix(in srgb, var(--brass) 9%, var(--panel));
-  border: 1px dashed color-mix(in srgb, var(--brass) 45%, var(--line-2));
-  transition: 0.15s; animation: pop 0.3s ease;
-}
-.suggest-chip:hover {
-  color: var(--ink); border-style: solid; border-color: var(--brass);
-  background: color-mix(in srgb, var(--brass) 14%, var(--panel));
 }
 
 /* ---------- Exam-mode name field (pre-exam) ---------- */
@@ -1658,6 +1615,13 @@ textarea:focus-visible,
   align-self: stretch; background: var(--panel-2);
   border: 1px solid var(--line); border-left: 3px solid var(--brass);
   border-radius: var(--r); padding: 16px 18px; margin-bottom: 4px;
+}
+/* Подсветка ОДНОГО элемента прямо на столе — тем, чем заменена модальная
+   вводная «Добро пожаловать за стол». Ободок на карточке, которая уже лежит в
+   ленте: она ничего не перекрывает и не стоит ни одного лишнего клика. */
+.opening.lead {
+  border-color: color-mix(in srgb, var(--brass) 55%, var(--line));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 28%, transparent);
 }
 .opening h3 {
   margin: 0 0 9px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -2033,31 +1997,24 @@ textarea:focus-visible,
   :root .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-/* ---------- Modality layers: setup screen ----------
-   The screen exists to say one thing: turning a layer on does not change how you
-   are graded. That is why `оценка та же` sits on the control itself. The second
-   job is keeping OFF and UNAVAILABLE visibly apart — off is an ordinary choice,
-   unavailable is a blocked one. */
-.setup { padding: 26px 0 40px; }
-.setup-back { font-size: 13px; color: var(--ink-dim); padding: 6px 0; }
-.setup-back:hover { color: var(--ink); }
-.setup-brief {
-  display: flex; gap: 18px; align-items: flex-start; margin: 14px 0 26px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px;
+/* ---------- Слои: панель ----------
+   Панель говорит ровно одну вещь: включённый слой НЕ меняет того, как вас
+   оценивают. Поэтому «оценка та же» стоит на самом переключателе. Вторая её
+   работа — держать врозь ВЫКЛЮЧЕНО и НЕДОСТУПНО: первое обычный выбор, второе
+   запрет. Полноэкранным экраном перед партией панель быть перестала — она живёт
+   шторкой за столом и разделом в профиле. */
+.lay-panel { display: flex; flex-direction: column; }
+.lay-lock {
+  margin: 0 0 14px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45;
+  color: var(--tension-ink); border-radius: 10px;
+  background: color-mix(in srgb, var(--tension) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--tension) 35%, var(--line));
 }
-.sb-ic { font-size: 46px; line-height: 1; flex: 0 0 auto; }
-.sb-txt { min-width: 0; }
-.sb-txt h2 { margin: 0 0 6px; font-size: 21px; }
-.sb-txt p { margin: 0 0 12px; color: var(--ink-dim); font-size: 14px; }
-.sb-facts { display: flex; flex-wrap: wrap; gap: 8px; }
-.sb-facts span {
-  font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-  padding: 5px 11px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--ink-dim);
-}
-.sb-facts .red { color: var(--tension-ink); border-color: color-mix(in srgb, var(--tension) 40%, var(--line)); }
-
-.setup-head { margin: 0 0 12px; font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
-.setup-what { font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 8px; }
+.layer.locked { opacity: 0.62; }
+.layer.locked .ly-sw { cursor: not-allowed; }
+/* Запертые пресеты выглядят запертыми: кнопка, которая не сработает, обязана
+   об этом сказать до нажатия, а не после. */
+.setup-presets.locked .sp-pill { opacity: 0.62; cursor: not-allowed; }
 .setup-layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
 .layer {
   display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "ic txt sw" "note note note";
@@ -2096,11 +2053,48 @@ textarea:focus-visible,
 }
 .sp-pill:hover { border-color: var(--brass); color: var(--ink); }
 .sp-pill.on { background: var(--brass); border-color: var(--brass); color: var(--on-brass); }
-.setup-go { width: 100%; font-size: 16px; padding: 15px; }
 .setup-explain { margin-top: 26px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; }
 .setup-explain h3 { margin: 0 0 10px; font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
 .setup-explain ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; }
 .setup-explain li { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+
+/* ---------- Шторка слоёв за столом ----------
+   Слои выбираются ВНУТРИ партии, а не воротами перед ней: шторка выезжает
+   справа, стол под ней остаётся на месте, и закрыть её можно кликом мимо,
+   крестиком или Esc. */
+.lay-wrap { position: fixed; inset: 0; z-index: 70; display: flex; justify-content: flex-end; }
+.lay-scrim {
+  position: absolute; inset: 0; animation: onbfade 0.2s ease;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+.lay-sheet {
+  position: relative; width: min(440px, 100vw); height: 100%; overflow-y: auto;
+  padding: 18px 20px 30px; background: var(--ground);
+  border-left: 1px solid var(--line); box-shadow: var(--shadow);
+  animation: laysheet 0.24s ease;
+}
+@keyframes laysheet { from { transform: translateX(22px); opacity: 0; } to { transform: none; opacity: 1; } }
+.lay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.lay-head b { font-family: var(--serif); font-size: 19px; }
+.lay-x {
+  font-size: 22px; line-height: 1; color: var(--ink-faint);
+  min-width: 40px; min-height: 40px; border-radius: 10px; transition: 0.15s;
+}
+.lay-x:hover { color: var(--ink); background: var(--panel-2); }
+
+/* Выход и слои стоят В ОДНУ СТРОКУ и оба прилипают к низу рельса: кнопка,
+   до которой надо доскроллить, — это кнопка, которой нет. */
+.side-acts { display: flex; align-items: stretch; gap: 8px; }
+.side-acts .quit { flex: 1 1 auto; }
+.lay-open {
+  flex: 0 0 auto; border: 1px solid var(--line-2); border-radius: 10px;
+  padding: 9px 11px; font-size: 12.5px; color: var(--ink-dim); transition: 0.15s;
+}
+.lay-open:hover { border-color: var(--brass); color: var(--ink); }
+
+/* Слои в профиле: их дом, а не ворота перед партией. */
+.prof-layers { max-width: 760px; margin: 0 auto; padding: 0 0 40px; }
+.pl-head { margin: 0 0 14px; font-family: var(--serif); font-size: 20px; }
 
 /* ---------- Modality layers: the question in the log ----------
    Inline, never a modal: the answer is read off the avatar and the meters, and a
@@ -2270,7 +2264,6 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .rc-method li b { color: var(--ink); }
 
-.setup-main { min-width: 0; }
 
 /* The game screen already HAS an instrument rail — the canvas design puts it on
    the RIGHT, beside the transcript, so the conversation gets the left-to-right
@@ -2344,10 +2337,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Dismiss buttons measured 22.6x19 and 20.3x17 — below even the 24x24 floor of
    WCAG 2.5.8, and they appear on every graded turn. The glyph stays the same
    size; the hit area grows around it. */
-.coachline-x, .firstcoach-x { min-width: 32px; min-height: 32px; display: grid; place-items: center; }
+.coachline-x { min-width: 32px; min-height: 32px; display: grid; place-items: center; }
 @media (max-width: 640px) {
-  .coachline-x, .firstcoach-x { min-width: 44px; min-height: 44px; }
-  .setup-back { min-height: 44px; display: inline-flex; align-items: center; }
+  .coachline-x { min-width: 44px; min-height: 44px; }
   .sp-pill { min-height: 44px; }
   .ly-sw { min-height: 32px; }
 }
@@ -2384,8 +2376,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 :root .milestone-card {
   background: var(--panel); border-width: 2px; border-radius: var(--r);
 }
-:root .onb-scrim, :root .onb-hole {
-  background: color-mix(in srgb, var(--ink) 45%, transparent);
+/* Раньше здесь стоял `background` на самой подсветке — то есть заливка поверх
+   элемента, ради которого она существует. Ободок и только ободок. */
+:root .onb-hole {
+  box-shadow: 0 0 0 2px var(--brass), 0 0 22px 4px color-mix(in srgb, var(--brass) 40%, transparent);
 }
 
 /* Onboarding: its primary action read as a disabled control beside the
@@ -3087,7 +3081,6 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
      трогаем — иначе строка ответа расползётся, — а высоту доводим до нормы. */
   .ex-ord-btns button { min-height: 44px; min-width: 36px; }
   .exam-name input, .skills-back { min-height: 44px; }
-  .suggest-chip { min-height: 44px; padding-top: 10px; padding-bottom: 10px; }
   .beat-more { min-height: 44px; }
 }
 
