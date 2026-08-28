@@ -7,7 +7,7 @@
 //
 // Вердикт считает `lib/course.ts` тем же движком, что и партия. Здесь нет ни
 // одной собственной оценки — компонент только собирает ответ и рисует итог.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex, ItemWithId, L } from "../lib/courseTypes";
@@ -44,6 +44,8 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
   const [pairs, setPairs] = useState<Record<string, string>>({});
   const [activeLeft, setActiveLeft] = useState<string | null>(null);
   const [pick, setPick] = useState<string | null>(null);
+  /** Последняя состоявшаяся пара — текст для живой области «соответствия». */
+  const [tied, setTied] = useState("");
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   // Комментарий тренера приходит ПОСЛЕ вердикта и никогда его не меняет.
   const [coach, setCoach] = useState<string | null>(null);
@@ -109,21 +111,34 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
 
   const locked = verdict !== null;
 
-  // Цифры 1–4 выбирают вариант, Enter проверяет. Курс проходят десятками
-  // заданий подряд — тянуться мышью к каждому варианту это и есть та самая
-  // усталость, из-за которой бросают на третьем уроке.
+  const optRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const leftRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const goRef = useRef<HTMLButtonElement>(null);
+  const verdictRef = useRef<HTMLDivElement>(null);
+
+  // ПОЧЕМУ ЦИФРЫ ЖИВУТ НА СПИСКЕ, А НЕ НА ОКНЕ. Раньше здесь висел
+  // `window.keydown`, и он же перехватывал Enter: `preventDefault()` гасил
+  // нажатие на сфокусированной кнопке, поэтому с клавиатуры нельзя было выбрать
+  // ничего, кроме первого варианта — второй Enter уже отправлял ответ.
+  // Теперь Enter обрабатывает сама кнопка (обычный `onClick`), а цифры 1–4
+  // слушает список: односимвольная горячая клавиша, активная только пока фокус
+  // внутри компонента, — прямое исключение WCAG 2.1.4. Цифра ещё и переводит
+  // фокус на выбранный вариант, иначе следующий Enter выбрал бы не то.
+  const onOptsKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    if (locked) return;
+    const n = Number(e.key);
+    if (!(n >= 1 && n <= opts.options.length)) return;
+    setPicked(n - 1);
+    optRefs.current[n - 1]?.focus();
+    e.preventDefault();
+  };
+
+  // Вердикт забирает фокус: кнопка «Проверить» на этом месте исчезает, и без
+  // перевода фокус падал на BODY — рефлекторное «проверил → Enter → дальше»
+  // не делало ничего, а следующий Tab уводил в боковой навигатор.
   useEffect(() => {
-    if (locked || !(ex.type === "choice" || ex.type === "spot_error")) return;
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && /^(INPUT|TEXTAREA)$/.test(target.tagName)) return;
-      const n = Number(e.key);
-      if (n >= 1 && n <= opts.options.length) { setPicked(n - 1); e.preventDefault(); }
-      else if (e.key === "Enter" && picked !== null) { submit(); e.preventDefault(); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+    if (locked) verdictRef.current?.focus({ preventScroll: true });
+  }, [locked]);
 
   return (
     <div className={`ex ex--${ex.type}${locked ? (verdict!.ok ? " ok" : " bad") : ""}`}>
@@ -148,18 +163,27 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
 
       {/* ---- варианты ---- */}
       {(ex.type === "choice" || ex.type === "spot_error") ? (
-        <ul className="ex-opts" role="listbox" aria-label={say(ex.prompt, lang)}>
+        <>
+        {/* Подсказка про цифры сказана словами, а не только нарисована номерами:
+            номер помечен aria-hidden, и без этой строки о клавишах знал бы
+            только зрячий. */}
+        {!locked ? <p className="ex-hint">{t.course.optKeys}</p> : null}
+        {/* Ни `listbox`, ни `option`: между ними стоял `li`, связь «владеет»
+            была разорвана, а каждый «вариант» всё равно оставался отдельной
+            остановкой Tab — то есть роль обещала клавиатурную модель, которой
+            не было. Обычные кнопки с `aria-pressed` не обещают ничего лишнего. */}
+        <ul className="ex-opts" aria-label={say(ex.prompt, lang)} onKeyDown={onOptsKey}>
           {opts.options.map((o, i) => {
             const right = locked && i === opts.answer;
             const wrong = locked && i === picked && i !== opts.answer;
             return (
               <li key={i}>
                 <button
+                  ref={(el) => { optRefs.current[i] = el; }}
                   className={`ex-opt${picked === i ? " on" : ""}${right ? " right" : ""}${wrong ? " wrong" : ""}`}
                   onClick={() => !locked && setPicked(i)}
                   disabled={locked}
-                  role="option"
-                  aria-selected={picked === i}
+                  aria-pressed={picked === i}
                 >
                   {/* Номер — и подсказка про клавиши, и опора для взгляда:
                       «второй» проще держать в голове, чем полстроки текста. */}
@@ -170,6 +194,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
             );
           })}
         </ul>
+        </>
       ) : null}
 
       {/* «Прочитай лицо»: та же картинка состояния, что показывает оппонент в
@@ -201,6 +226,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
                   className={`ex-opt${pick === o ? " on" : ""}${right ? " right" : ""}${wrong ? " wrong" : ""}`}
                   onClick={() => !locked && setPick(o)}
                   disabled={locked}
+                  aria-pressed={pick === o}
                 >
                   {label}
                 </button>
@@ -246,10 +272,12 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
             {(ex.left ?? []).map((l) => (
               <li key={l.id}>
                 <button
+                  ref={(el) => { leftRefs.current[l.id] = el; }}
                   className={`ex-opt${activeLeft === l.id ? " on" : ""}${pairs[l.id] ? " tied" : ""}${
                     locked ? ((ex.answer as Record<string, string>)[l.id] === pairs[l.id] ? " right" : " wrong") : ""}`}
                   onClick={() => !locked && setActiveLeft(l.id)}
                   disabled={locked}
+                  aria-pressed={activeLeft === l.id}
                 >
                   {say(l, lang)}
                   {pairs[l.id] ? (
@@ -267,8 +295,21 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
                   disabled={locked || !activeLeft}
                   onClick={() => {
                     if (!activeLeft) return;
-                    setPairs((p) => ({ ...p, [activeLeft]: r.id }));
+                    const left = activeLeft;
+                    const next = { ...pairs, [left]: r.id };
+                    setPairs(next);
                     setActiveLeft(null);
+                    setTied(`${say((ex.left ?? []).find((x) => x.id === left), lang)} → ${say(r, lang)}`);
+                    // Правый столбец целиком выключается тем же кликом, включая
+                    // кнопку под фокусом, — и фокус падал на BODY, а следующий
+                    // Tab уводил в боковой навигатор. Ведём его туда, где ход:
+                    // следующая несвязанная строка слева, а когда пар не
+                    // осталось — кнопка «Проверить».
+                    const rest = (ex.left ?? []).find((x) => !next[x.id]);
+                    requestAnimationFrame(() => {
+                      if (rest) leftRefs.current[rest.id]?.focus({ preventScroll: true });
+                      else goRef.current?.focus({ preventScroll: true });
+                    });
                   }}
                 >
                   {say(r, lang)}
@@ -277,6 +318,9 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
             ))}
           </ul>
         </div>
+        {/* Связь состоялась — об этом надо сказать вслух: на экране она видна
+            стрелкой внутри левой кнопки, а диктору — ничем. */}
+        <p className="sr-only" role="status" aria-live="polite">{tied}</p>
         </>
       ) : null}
 
@@ -332,9 +376,14 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       {/* ---- итог ---- */}
       {ex.type !== "drill" ? (
         locked ? (
-          // Вердикт объявляется скринридеру: без live-региона незрячий игрок
-          // узнаёт результат, только наткнувшись на него табом.
-          <div className={`ex-verdict ${verdict!.ok ? "ok" : "bad"}`} role="status" aria-live="polite">
+          // Вердикт объявляет себя ДВАЖДЫ, и это не дублирование, а разделение
+          // труда. Сам вердикт объявляется переводом фокуса (см. эффект выше):
+          // живая область, которая появляется на экране ЦЕЛИКОМ, дикторами
+          // обычно молчит — она обязана существовать до того, как в ней что-то
+          // изменится. А вот комментарий тренера приходит позже и в уже
+          // существующую область — его объявляет именно `aria-live`.
+          <div ref={verdictRef} tabIndex={-1}
+               className={`ex-verdict ${verdict!.ok ? "ok" : "bad"}`} role="status" aria-live="polite">
             <b>{verdict!.ok ? t.course.correct : t.course.wrong}</b>
             {/* ЧАСТИЧНЫЙ ЗАЧЁТ. «Неверно» без подробностей ничему не учит, когда
                 из пяти шагов четыре стоят правильно. Считалки были написаны с
@@ -371,7 +420,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
             ) : null}
           </div>
         ) : (
-          <button className="btn primary ex-go" onClick={submit} disabled={!ready()}>
+          <button ref={goRef} className="btn primary ex-go" onClick={submit} disabled={!ready()}>
             {t.course.checkIt}
           </button>
         )

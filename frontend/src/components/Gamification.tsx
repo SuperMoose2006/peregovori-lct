@@ -4,12 +4,14 @@
 // hero, a skill-mastery screen, a debrief XP count-up, and achievement toasts.
 // Understated-premium, theme-aware, reduced-motion-safe, good on a 390px phone.
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Lang } from "../types";
 import type { Strings } from "../i18n";
 import { ScreenHeading } from "./ScreenHeading";
 import { Karl, MascotImg } from "./Mascot";
 import { COURSE_BLOCKS, exercisesOf } from "../lib/course";
 import { plural } from "../lib/format";
+import { useModalShell } from "../lib/modal";
 import { haptic, play } from "../lib/sound";
 import {
   ACHIEVEMENTS, DAILY_GOAL_MAX, DAILY_GOAL_MIN, blockCompletion, dailyGoalView, getAchievement,
@@ -137,7 +139,9 @@ export function SkillsProfile({
         <div className="skills">
           <button className="skills-back" onClick={onHome}>{t.gam.back}</button>
           <div className="skills-head">
-            <ScreenHeading as="h2">{t.gam.skillsTitle}</ScreenHeading>
+            {/* h1: профиль — самостоятельный экран, и заголовка первого уровня
+                на нём не было вовсе. */}
+            <ScreenHeading as="h1">{t.gam.skillsTitle}</ScreenHeading>
             <div className="skills-rank">
               <b>{r.rank.name[lang]}</b> · {sub(t.gam.totalXp, { n: profile.xp })}
             </div>
@@ -200,7 +204,7 @@ export function SkillsProfile({
 
           {/* Курс — часть того же прогресса, поэтому он здесь, а не в своём
               отдельном «профиле курса»: у игрока одна история обучения. */}
-          <h3 className="badges-title">{t.course.title}</h3>
+          <h2 className="badges-title">{t.course.title}</h2>
           <ul className="course-mini">
             {COURSE_BLOCKS.map((b) => {
               const bp = getBlockProgress(profile, b.id);
@@ -216,7 +220,7 @@ export function SkillsProfile({
             })}
           </ul>
 
-          <h3 className="badges-title">{t.gam.achievementsTitle}</h3>
+          <h2 className="badges-title">{t.gam.achievementsTitle}</h2>
           <div className="badges">
             {ACHIEVEMENTS.map((a) => {
               const on = profile.achievements.includes(a.id);
@@ -309,8 +313,7 @@ export function MilestoneCard({
     haptic(22);
   }, [key, i, ids.length]);
 
-  if (ids.length === 0 || i >= ids.length) return null;
-  const m = ids[i];
+  const open = ids.length > 0 && i < ids.length;
   const last = i >= ids.length - 1;
   // Always step forward (past the end hides the overlay); notify the parent once
   // the final card is dismissed so it can drop the overlay entirely.
@@ -319,8 +322,23 @@ export function MilestoneCard({
     if (last) onDone?.();
   };
 
-  return (
-    <div className="milestone-scrim" role="dialog" aria-modal="true" aria-label={t.gam.milestone.kicker}>
+  const scrimRef = useRef<HTMLDivElement>(null);
+  // Хук стоит ДО раннего возврата: порядок хуков обязан быть одинаковым на
+  // каждом рендере, а «показана ли карточка» он проверяет сам. Esc закрывает
+  // текущую карточку — тем же ходом, что и кнопка.
+  useModalShell(open, scrimRef, advance);
+
+  if (!open) return null;
+  const m = ids[i];
+
+  // Карточка вехи — такая же настоящая модалка, как шторка слоёв: скрим на весь
+  // экран, `aria-modal` и одна кнопка. Без ловушки фокуса `aria-modal` прятал
+  // от диктора всё вокруг, а Tab при этом свободно ходил по спрятанному.
+  // Портал в <body>: инертным становится `.app`, и карточка обязана лежать вне
+  // него, иначе выключила бы саму себя.
+  return createPortal(
+    <div ref={scrimRef} tabIndex={-1}
+         className="milestone-scrim" role="dialog" aria-modal="true" aria-label={t.gam.milestone.kicker}>
       <div className="milestone-card">
         <div className="milestone-kicker">
           {m.kind === "rank" ? t.gam.milestone.rankKicker : t.gam.milestone.kicker}
@@ -333,7 +351,8 @@ export function MilestoneCard({
           {last ? t.gam.milestone.dismiss : `${t.gam.milestone.dismiss} (${i + 1}/${ids.length})`}
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

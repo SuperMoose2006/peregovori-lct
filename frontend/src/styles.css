@@ -382,8 +382,11 @@ h1, h2, h3, .serif { font-family: var(--serif); }
    складывается в одну колонку и страница обязана листаться страницей. */
 @media (min-width: 861px) {
   .appbody.playing { height: 100dvh; min-height: 0; overflow: hidden; }
-  .appbody.playing > .screen { flex: 1 1 auto; min-height: 0; display: flex; }
-  .appbody.playing > .screen > .wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  /* Ориентир `main` встал между колонкой и экраном — раздачу высоты он обязан
+     пропускать сквозь себя, иначе стол снова упирается в содержимое. */
+  .appbody.playing > .appmain { flex: 1 1 auto; min-height: 0; }
+  .appbody.playing > .appmain > .screen { flex: 1 1 auto; min-height: 0; display: flex; }
+  .appbody.playing > .appmain > .screen > .wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
   .appbody.playing .table { flex: 1 1 auto; height: auto; min-height: 0; padding: 14px 0 16px; }
   /* Подвал за столом — украшение ценой в 95 пикселей ленты (сорок отступа
      плюс собственная высота). Он не сообщает ничего, чего не видно вокруг. */
@@ -636,7 +639,10 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .ring::after { content: ""; position: absolute; inset: 11px; background: var(--ground); border-radius: 50%; }
 .ring .gl { position: relative; z-index: 1; font-family: var(--serif); font-size: 44px; font-weight: 700; color: var(--gc, var(--brass)); line-height: 1; }
 .ring .gs { position: relative; z-index: 1; font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
-.gh h2 { margin: 0; font-size: 26px; }
+/* Заголовок разбора стал `h1` (на экране не было ни одного) — правило формы
+   обязано было переехать вместе с ним, иначе он рисуется браузерным умолчанием
+   в 32px. Оставляем оба тега: одно правило на любую его глубину. */
+.gh h1, .gh h2 { margin: 0; font-size: 26px; }
 .gh .oc { margin-top: 7px; color: var(--ink-dim); font-size: 15px; }
 .gh .oc b { color: var(--ink); }
 
@@ -647,7 +653,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .debrief.cert .gh { border-bottom: 1px solid var(--line); padding-bottom: 24px; }
 .cert-eyebrow { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--brass); font-weight: 700; margin-bottom: 8px; }
-.debrief.cert .gh h2 { font-family: var(--serif); font-size: 30px; }
+.debrief.cert .gh h1, .debrief.cert .gh h2 { font-family: var(--serif); font-size: 30px; }
 .cert-scenario { margin-top: 7px; font-size: 14px; color: var(--ink-dim); }
 .cert-scenario b { color: var(--ink); font-family: var(--serif); }
 .sb { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
@@ -673,7 +679,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .dbt-miss { font-size: 13px; color: var(--ink-dim); }
 /* turning points — the "replay the tape" section: the player's own lines quoted back */
 .tpoints { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--tension); border-radius: var(--r); padding: 20px; margin-bottom: 20px; }
-.tpoints h3 { margin: 0 0 15px; font-size: 17px; }
+.tpoints h2, .tpoints h3 { margin: 0 0 15px; font-size: 17px; }
 .tpoints ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
 .tpoints li { border-left: 2.5px solid var(--brass); padding: 2px 0 2px 14px; }
 .tp-turn { display: inline-block; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
@@ -684,7 +690,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .tp-coach { margin-top: 6px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
 .tp-coach::before { content: "— "; color: var(--brass); }
 .coach { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--info); border-radius: var(--r); padding: 20px; margin-bottom: 22px; }
-.coach h3 { margin: 0 0 13px; font-size: 17px; }
+.coach h2, .coach h3 { margin: 0 0 13px; font-size: 17px; }
 .coach ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .coach li { display: flex; gap: 9px; font-size: 13.5px; color: var(--ink-dim); }
 .coach li::before { content: "—"; color: var(--brass); flex-shrink: 0; }
@@ -692,7 +698,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .whatif { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
   padding: 20px; margin-bottom: 20px;
   border-left: 3px solid var(--brass); box-shadow: var(--shadow); }
-.whatif h3 { margin: 0 0 6px; font-size: 17px; }
+.whatif h2, .whatif h3 { margin: 0 0 6px; font-size: 17px; }
 .wi-intro { margin: 0 0 14px; font-size: 13px; color: var(--ink-dim); line-height: 1.5; max-width: 56ch; }
 .wi-orig { margin: 0 0 16px; padding: 8px 0 8px 13px; border-left: 2.5px solid var(--tension);
   font-family: var(--serif); font-style: italic; font-size: 14.5px; color: var(--ink-dim); line-height: 1.5; }
@@ -798,7 +804,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 
 /* Campaign summit summary reuses the .debrief.cert shell */
 .camp-done-head { text-align: center; padding-bottom: 26px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
-.camp-done-head h2 { font-family: var(--serif); font-size: 30px; margin: 4px 0 0; }
+.camp-done-head h1, .camp-done-head h2 { font-family: var(--serif); font-size: 30px; margin: 4px 0 0; }
 .camp-done-head .verdict { font-size: 22px; font-style: italic; margin-top: 10px; }
 .camp-avg { margin-top: 10px; font-size: 14px; color: var(--ink-dim); }
 .camp-avg b { color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -957,7 +963,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .gh { flex-direction: column; text-align: center; gap: 16px; margin-bottom: 22px; }
   .ring { width: 108px; height: 108px; }
   .ring .gl { font-size: 38px; }
-  .gh h2 { font-size: 22px; }
+  .gh h1, .gh h2 { font-size: 22px; }
   .gh .oc { justify-content: center; }
   .pb { justify-content: center; }
   .sb { padding: 16px; gap: 13px; margin-bottom: 16px; }
@@ -978,7 +984,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .act-node { width: 36px; height: 36px; }
   .act-meta { flex-wrap: wrap; gap: 8px 10px; }
   .act-badge { margin-left: 0; }
-  .camp-done-head h2 { font-size: 24px; }
+  .camp-done-head h1, .camp-done-head h2 { font-size: 24px; }
 
   .foot { flex-direction: column; gap: 4px; text-align: center; align-items: center; margin-top: 28px; }
 }
@@ -1158,7 +1164,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 }
 .skills-back:hover { border-color: var(--brass); color: var(--ink); }
 .skills-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.skills-head h2 { font-family: var(--serif); font-size: 27px; margin: 0; }
+.skills-head h1, .skills-head h2 { font-family: var(--serif); font-size: 27px; margin: 0; }
 .skills-rank { font-size: 13.5px; color: var(--ink-dim); }
 .skills-rank b { color: var(--brass); font-family: var(--serif); }
 .skills-sub { font-size: 14px; color: var(--ink-dim); margin: 8px 0 0; max-width: 56ch; }
@@ -1302,7 +1308,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .hs-goal { flex: 1; min-width: 0; padding: 9px 10px; }
   .hs-streak { flex: 0 0 auto; }
   .skills { padding: 20px 0 40px; }
-  .skills-head h2 { font-size: 23px; }
+  .skills-head h1, .skills-head h2 { font-size: 23px; }
   .badges { grid-template-columns: 1fr 1fr; gap: 10px; }
   /* Phones: span the bottom edge, above the composer/safe area. */
   .ach-toasts {
@@ -1599,7 +1605,7 @@ textarea:focus-visible,
   border-top: 3px solid var(--brass); border-radius: var(--r);
   padding: 20px; margin-bottom: 20px;
 }
-.master h3 { margin: 0 0 15px; font-size: 17px; color: var(--brass); }
+.master h2, .master h3 { margin: 0 0 15px; font-size: 17px; color: var(--brass); }
 .ms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 .ms-cell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ms-lab {
@@ -1636,7 +1642,7 @@ textarea:focus-visible,
   border-color: color-mix(in srgb, var(--brass) 55%, var(--line));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 28%, transparent);
 }
-.opening h3 {
+.opening h2, .opening h3 {
   margin: 0 0 9px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--brass);
 }
@@ -1700,7 +1706,7 @@ textarea:focus-visible,
   border-left: 3px solid var(--brass); border-radius: var(--r);
   padding: 18px 20px; margin-bottom: 20px;
 }
-.reveal h3 { margin: 0 0 14px; font-size: 16px; color: var(--brass); }
+.reveal h2, .reveal h3 { margin: 0 0 14px; font-size: 16px; color: var(--brass); }
 .reveal ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
 .reveal li {
   display: grid; grid-template-columns: 22px 1fr auto; align-items: baseline;
@@ -1738,7 +1744,7 @@ textarea:focus-visible,
   border: 1px solid color-mix(in srgb, var(--brass) 32%, var(--line));
   border-radius: var(--r); padding: 20px; margin-bottom: 20px;
 }
-.mentor h3 { margin: 0 0 12px; font-size: 17px; color: var(--brass); }
+.mentor h2, .mentor h3 { margin: 0 0 12px; font-size: 17px; color: var(--brass); }
 .mn-verdict {
   margin: 0; font-family: var(--serif); font-size: 16px; line-height: 1.55;
   color: var(--ink);
@@ -1905,6 +1911,22 @@ textarea:focus-visible,
    */
 .app { display: block; }
 .appbody { display: block; min-width: 0; }
+/* Ориентир содержимого. Прозрачен для раскладки: колонка внутри колонки, тот же
+   поток экранов, что был у `.appbody` до его появления. */
+.appmain { display: flex; flex-direction: column; min-width: 0; }
+/* Ссылка «к содержимому»: увидеть её можно только с клавиатуры, и это ровно тот
+   случай, когда `sr-only` не годится — сфокусированная ссылка обязана быть
+   видима зрячему человеку, который ходит табом. */
+.skip {
+  position: fixed; left: 10px; top: -80px; z-index: 300;
+  background: var(--brass); color: var(--on-brass);
+  padding: 11px 18px; border-radius: 12px; border-bottom: 3px solid var(--edge);
+  font-weight: 800; font-size: 14px; text-decoration: none;
+}
+.skip:focus { top: 10px; }
+/* Ориентир не должен обводиться рамкой, когда фокус пришёл на него по ссылке:
+   рамка вокруг всего экрана читается как ошибка, а не как «вы здесь». */
+.appmain:focus { outline: none; }
 
 :root .app {
   display: grid;
@@ -2151,7 +2173,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   border-radius: var(--r); padding: 16px 18px; margin-bottom: 20px;
 }
 .obs-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-.obs-head h3 { margin: 0; font-size: 15px; }
+.obs-head h2, .obs-head h3 { margin: 0; font-size: 15px; }
 .obs-badge {
   font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; font-weight: 700;
   color: var(--ink-faint); background: var(--panel-2); border: 1px solid var(--line);
@@ -2951,7 +2973,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Урок восстановления после провала: маршрут, а не констатация. */
 .recovery { margin: 16px 0; padding: 14px 16px; border-radius: var(--r);
   background: var(--panel-2); text-align: left; }
-.recovery h3 { margin: 0 0 8px; font-size: 14px; }
+.recovery h2, .recovery h3 { margin: 0 0 8px; font-size: 14px; }
 .recovery ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 /* Курс в профиле: одна строка на блок — карта уже есть в самом курсе,
    здесь нужен только ответ на вопрос «где я». */
@@ -3145,7 +3167,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   background: var(--panel); padding: 14px; margin: 0 0 16px;
 }
 .rmoffer .tikhon { border: none; padding: 0; background: none; }
-.rmoffer .tikhon-bd h3 { margin: 0 0 4px; font-size: 15px; font-weight: 800; }
+.rmoffer .tikhon-bd h2, .rmoffer .tikhon-bd h3 { margin: 0 0 4px; font-size: 15px; font-weight: 800; }
 .rmoffer .tikhon-bd p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
 .rm-cta { align-self: flex-start; }
 

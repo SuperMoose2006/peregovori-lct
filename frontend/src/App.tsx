@@ -32,6 +32,8 @@ import { applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDa
          type GameResult, type Grade, type PastRun, type Profile } from "./lib/progress";
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
+import { scrollTo, scrollTop } from "./lib/motion";
+import { useModalShell } from "./lib/modal";
 
 type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course" | "warmup";
 
@@ -103,6 +105,7 @@ export default function App() {
    *  перезапускает сессию, Table на это время размонтируется — и унёс бы шторку
    *  с собой ровно в тот момент, когда человек ею пользуется. */
   const [layersOpen, setLayersOpen] = useState(false);
+  const closeLayers = useCallback(() => setLayersOpen(false), []);
 
   const [screen, setScreen] = useState<Screen>("home");
   const [mode, setMode] = useState<Mode>("practice");
@@ -154,13 +157,10 @@ export default function App() {
   const openingRef = useRef<StateView | null>(null);
   const recordedRun = useRef<DebriefData | null>(null);
 
-  // Esc закрывает шторку слоёв — то же самое, что клик мимо неё и крестик.
-  useEffect(() => {
-    if (!layersOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setLayersOpen(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [layersOpen]);
+  const laySheetRef = useRef<HTMLDivElement>(null);
+  // Фокус внутрь, ловушка Tab, inert на фон, возврат фокуса на открывашку —
+  // всё, без чего `aria-modal` на шторке был обещанием. См. lib/modal.ts.
+  useModalShell(layersOpen, laySheetRef, closeLayers, { restoreTo: ".lay-open" });
 
   // Arm the AudioContext to unlock on the first user gesture (autoplay-safe).
   useEffect(() => {
@@ -379,7 +379,7 @@ export default function App() {
   const openCourse = useCallback((at: { blockId: string; lesson: number | null } | null) => {
     setCourseStart(at);
     setScreen("course");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollTop();
   }, []);
 
   const coursePassed = useMemo(
@@ -416,7 +416,7 @@ export default function App() {
       recordedRun.current = null;
       nego.start(scenarioId, m, undefined, opts?.reputation, use, opts?.daily);
       setScreen("game");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollTop();
     },
     [layerPrefs, layerStates, nego],
   );
@@ -525,7 +525,7 @@ export default function App() {
     nego.start("", "custom", situation);
     // dispatch drives the screen → "generating" (see the gen-phase effect above).
     dispatchGen("start");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollTop();
   }, [nego, situation]);
 
   // gen_error fallback: abandon the custom generation and jump to the ready-made
@@ -537,7 +537,7 @@ export default function App() {
     setMode("practice");
     setScreen("home");
     requestAnimationFrame(() => {
-      document.getElementById("play")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      scrollTo(document.getElementById("play"), { block: "start" });
     });
   }, [nego]);
 
@@ -561,7 +561,7 @@ export default function App() {
     nego.reset();
     const total = campaign?.stages.length ?? 0;
     setScreen(progress.stageIndex >= total ? "campaign_done" : "home");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollTop();
   }, [nego, campaign, progress.stageIndex]);
 
   const replayCampaign = useCallback(() => {
@@ -569,7 +569,7 @@ export default function App() {
     recordedDebrief.current = null;
     nego.reset();
     setScreen("home");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollTop();
   }, [nego]);
 
   // Switching modes clears a stale generation error from the custom view.
@@ -593,12 +593,12 @@ export default function App() {
     setGenErr(null);
     nego.reset();
     setScreen("home");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollTop();
   }, [nego]);
 
   const openProfile = useCallback(() => {
     setScreen("profile");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollTop();
   }, []);
 
   // Customizable daily goal: persist the chosen target (1..3). Read fresh from
@@ -633,6 +633,11 @@ export default function App() {
   return (
     // Двухколоночная оболочка приложения: слева меню, справа тело.
     <div className="app">
+      {/* «К содержимому» — первая остановка Tab на любом экране. Слева стоит
+          навигатор на семь пунктов, и без этой ссылки каждый вход на экран
+          стоил семи нажатий до первой строки содержимого. Видна только
+          сфокусированной: это ориентир для клавиатуры, а не элемент макета. */}
+      <a className="skip" href="#main">{t.a11y.skip}</a>
       <SideNav
         t={t}
         active={screen === "profile" ? "profile" : screen === "course" ? "course" : mode}
@@ -670,7 +675,15 @@ export default function App() {
             </button>
           </div>
           <div className="seg">
-            <button onClick={toggleTheme} aria-label="theme">
+            {/* Имя из словаря, а не «theme»: aria-label — пользовательский
+                контент (инвариант 4), и русский диктор читал «тхеме». Кнопка
+                ещё и НАЗЫВАЕТ текущую тему — по одному значку не понять, что
+                он показывает: включённое сейчас или то, куда переключит. */}
+            <button
+              onClick={toggleTheme}
+              aria-label={isDark ? t.a11y.themeDark : t.a11y.themeLight}
+              aria-pressed={isDark}
+            >
               {isDark ? "☀" : "◐"}
             </button>
           </div>
@@ -686,6 +699,13 @@ export default function App() {
         </div>
       </div>
 
+      {/* ЕДИНСТВЕННЫЙ ОРИЕНТИР MAIN. Его не было нигде, кроме стола (там он
+          обнимал ленту реплик) — то есть на главной, в профиле, в кампании, на
+          экзамене, в своей сделке и в курсе диктору было не с чего начать
+          чтение, а ссылке «к содержимому» некуда вести. Здесь он один на всё
+          приложение, а колонка стола внутри стала обычным разделом. */}
+      <main id="main" className="appmain" tabIndex={-1}>
+
       {screen === "home" && (
         <section className="screen">
           <div className="wrap">
@@ -693,7 +713,12 @@ export default function App() {
                 и ЕСТЬ путь, и до переговоров надо доходить без пролистывания
                 полутора экранов питча. Полоса XP живёт в правом рейле, а
                 заголовок остаётся для экранных дикторов. */}
-            <ScreenHeading as="h1" className="sr-only">{t.pickHead}</ScreenHeading>
+            {/* `key={mode}` не украшение: экран остаётся «home» при переходе
+                Тренировка → Кампания → Экзамен → Своя сделка, заголовок не
+                пересобирался, фокус оставался на кнопке навигатора — содержимое
+                подменялось молча. Ключ делает смену раздела монтированием, а
+                `ScreenHeading` на монтировании переводит фокус на себя. */}
+            <ScreenHeading as="h1" className="sr-only" key={mode}>{t.modes[mode].title}</ScreenHeading>
             {/* Трёхчастная раскладка: именно правый рейл заставляет экран
                 читаться приложением, а не широким документом. */}
             <div className="withrail">
@@ -767,7 +792,7 @@ export default function App() {
               <div className="gen-dots" aria-hidden="true">
                 <i /><i /><i />
               </div>
-              <ScreenHeading as="h2" className="gen-title">{t.custom.generating}</ScreenHeading>
+              <ScreenHeading as="h1" className="gen-title">{t.custom.generating}</ScreenHeading>
               <p className="gen-sub">{t.custom.generatingSub}</p>
             </div>
           </div>
@@ -781,7 +806,7 @@ export default function App() {
               <div className="karl-mid">
                 <Karl state="concern" name={t.mascot.karl} alt={t.mascot.alt} />
               </div>
-              <ScreenHeading as="h2" className="gen-title">{t.custom.errorHead}</ScreenHeading>
+              <ScreenHeading as="h1" className="gen-title">{t.custom.errorHead}</ScreenHeading>
               {genErr ? <p className="genfail-msg">{genErr}</p> : null}
               <p className="gen-sub">{t.custom.errorSub}</p>
               <div className="genfail-actions">
@@ -1014,6 +1039,8 @@ export default function App() {
         />
       )}
 
+      </main>
+
       {/* Шторка слоёв. Портал в <body>: экран партии держит собственный transform
           ради проявления, а он становится опорой для `position: fixed` и увёл бы
           шторку вбок. Замок объясняется словами: экзамен и капстоун гасят слои
@@ -1022,7 +1049,8 @@ export default function App() {
       {layersOpen ? createPortal(
         <div className="lay-wrap">
           <div className="lay-scrim" onClick={() => setLayersOpen(false)} />
-          <div className="lay-sheet" role="dialog" aria-modal="true" aria-label={t.layers.head}>
+          <div ref={laySheetRef} tabIndex={-1}
+               className="lay-sheet" role="dialog" aria-modal="true" aria-label={t.layers.head}>
             <div className="lay-head">
               <b>{t.layers.head}</b>
               <button className="lay-x" onClick={() => setLayersOpen(false)} aria-label={t.layers.close}>×</button>
@@ -1035,6 +1063,11 @@ export default function App() {
               onToggle={(id) => applyLayers({ ...activeLayers, [id]: !activeLayers[id] })}
               onPreset={applyLayers}
               lockNote={layersLock}
+              // Настоящие отказы идущей партии. Без них шторка отвечала
+              // «Голосом ✓» над микрофоном, которого не дали (принцип 2), —
+              // а честная строка про это живёт на столе, СНАРУЖИ шторки,
+              // то есть при открытой шторке скрыта от диктора.
+              fail={screen === "game" ? nego.layerFail : undefined}
             />
           </div>
         </div>,

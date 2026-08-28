@@ -6,6 +6,7 @@ import type { CampaignView, Lang } from "../types";
 import type { Strings } from "../i18n";
 import { EPILOGUE_BANDS } from "../data/campaigns.generated";
 import { COURSE_BLOCKS } from "../lib/course";
+import { ScreenHeading } from "./ScreenHeading";
 
 // Per-stage record the App accumulates as the player advances the arc.
 export interface StageResult {
@@ -250,7 +251,9 @@ export function CampaignComplete({
           <div className="camp-done-head">
             <div className="camp-ic big">{campaign.icon}</div>
             <div className="cert-eyebrow">🏔 {t.campaign.completeEyebrow}</div>
-            <h2>{t.campaign.completeTitle}</h2>
+            {/* ScreenHeading, а не голый h2: вершина кампании — отдельный
+                экран, и переход на него не объявлялся ничем. */}
+            <ScreenHeading as="h1">{t.campaign.completeTitle}</ScreenHeading>
             <div className="verdict serif" style={{ color: gc }}>
               {t.campaign.verdicts[grade]}
             </div>

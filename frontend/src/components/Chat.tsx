@@ -22,6 +22,9 @@ interface Props {
   // the judge's live coach line (exam gives its feedback only at the debrief).
   exam?: boolean;
   coachLabel: string;
+  /** Имя крестика, скрывающего карточку тренера. Из словаря: русский диктор
+   *  читал захардкоженное «dismiss» как «дисмисс». */
+  dismissLabel: string;
   // Semantic-judge differentiator: when the live judge scored the move, badge the
   // coach line "graded by meaning". Never shown offline/mock (judgeActive=false),
   // where coaching comes from the deterministic keyword path — no claim to make.
@@ -58,7 +61,7 @@ interface Props {
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, probeMeters, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, probeMeters, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -220,7 +223,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
               ) : null}
               <button
                 className="coachline-x"
-                aria-label="dismiss"
+                aria-label={dismissLabel}
                 onClick={() => setDismissed((s) => new Set(s).add(e.id))}
               >
                 ×

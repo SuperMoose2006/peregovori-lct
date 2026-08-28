@@ -10,6 +10,7 @@ import { teachingPlaceholder, formatDeal } from "../lib/format";
 import { haptic, play } from "../lib/sound";
 import { OpponentFace } from "./OpponentFace";
 import { ScreenHeading } from "./ScreenHeading";
+import { scrollTo } from "../lib/motion";
 import { Meters } from "./Meters";
 import { Scorecard } from "./Scorecard";
 import { Chat } from "./Chat";
@@ -109,7 +110,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   const probeOpen = log.some((e) => e.kind === "probe" && e.picked === undefined);
   useEffect(() => {
     if (!finished) return;
-    outcomeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    scrollTo(outcomeRef.current, { block: "nearest" });
   }, [finished]);
 
   const openProbeId = (() => {
@@ -148,7 +149,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     // заменена модальная вводная. Ободок на карточке, которая и так лежит в
     // ленте: ничего не перекрывает и не требует ни одного лишнего клика.
     <div className={`opening${newcomer.current ? " lead" : ""}`} role="note">
-      <h3>{t.opening.title}</h3>
+      <h2>{t.opening.title}</h2>
       <p className="op-scene">
         {t.opening.scene
           .replace("{role}", scenario.role)
@@ -371,8 +372,10 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
       ) : null}
       <div className="wrap">
         {/* Screen-reader heading + focus target for the game screen (visually the
-            counterpart card carries the identity, so this stays sr-only). */}
-        <ScreenHeading as="h2" className="sr-only">
+            counterpart card carries the identity, so this stays sr-only).
+            `h1`, а не `h2`: на столе других заголовков первого уровня нет, и
+            «начать чтение с главного» диктору было не с чего. */}
+        <ScreenHeading as="h1" className="sr-only">
           {t.a11y.gameHeading.replace("{name}", scenario.counterpart_name)}
         </ScreenHeading>
         <div className="table">
@@ -388,6 +391,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 state={st}
                 exam={exam}
                 speaking={oppSpeaking}
+                speakingLabel={t.a11y.speaking}
                 label={scenario.counterpart_name}
               />
               <div>
@@ -478,7 +482,11 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
             </div>
           </aside>
 
-          <main className="chat">
+          {/* Был `main`. Ориентир `main` теперь один на приложение (App.tsx), а
+              двух на странице не бывает. Имени у раздела нет намеренно: свою
+              живую область лента уже называет сама, и второй ориентир с тем же
+              именем — лишний пункт в списке, а не помощь. */}
+          <section className="chat">
             {/* The live HUD. It lives in the CHAT card, not the rail, because the
                 rail is a nested scroller: at 1280x800 all four meters — the whole
                 "am I winning?" signal — scrolled out of sight inside it. This
@@ -528,6 +536,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               argLabel={t.argLabel}
               exam={exam}
               coachLabel={t.coachLabel}
+              dismissLabel={t.a11y.dismiss}
               judgeActive={judgeActive}
               judgeBadge={t.judgeBadge}
               judgeReject={t.judgeReject}
@@ -583,6 +592,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
             <div ref={composeRef} className="onb-anchor" hidden={finished && !!onSeeDebrief}>
               <Composer
                 hintLabel={t.hint}
+                sendLabel={t.a11y.send}
                 disabled={busy || finished || probeOpen || !st}
                 blocked={probeOpen}
                 placeholder={probeOpen ? t.probe.blocked : placeholder}
@@ -634,7 +644,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 />
               ) : null}
             </div>
-          </main>
+          </section>
         </div>
       </div>
       {tutStep ? <Onboarding {...tutStep} /> : null}

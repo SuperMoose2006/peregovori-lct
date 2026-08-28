@@ -13,9 +13,20 @@ interface Props {
   dangerouslySetInnerHTML?: { __html: string };
 }
 
+/** Первое монтирование за жизнь страницы — это ЗАГРУЗКА, а не переход.
+ *
+ *  Паттерн смены маршрута переводит фокус на заголовок нового экрана; на
+ *  загрузке переходить не с чего, а унесённый внутрь `main` фокус делает
+ *  недостижимой ссылку «к содержимому»: в прямом порядке обхода она стоит перед
+ *  `main`, и первый Tab уходил уже мимо неё. (В StrictMode на `npm run dev`
+ *  React монтирует дважды, поэтому там первым «переходом» окажется тот же
+ *  экран — в сборке, которую видит человек, монтирование одно.) */
+let booted = false;
+
 export function ScreenHeading({ as = "h2", className, children, dangerouslySetInnerHTML }: Props) {
   const ref = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
+    if (!booted) { booted = true; return; }
     // preventScroll matters: the point is to move SCREEN-READER focus, not to
     // move the viewport. Each screen transition already scrolls itself to the
     // top, and a plain focus() fights that — under the game skin's grid shell it

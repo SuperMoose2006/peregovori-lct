@@ -35,10 +35,21 @@ interface Props {
   /** Почему менять нельзя. Null — можно. Строка рисуется как честный запрет:
    *  экзамен гасит слои принудительно, а начатый стол их уже получил. */
   lockNote?: string | null;
+  /** ЧТО НЕ ВСТАЛО В ИДУЩЕЙ ПАРТИИ. `detectLayers()` знает только про наличие
+   *  `mediaDevices` — он вычисляется один раз и об ОТКАЗЕ устройства не знает
+   *  ничего. Без этого шторка показывала «Голосом ✓» над микрофоном, которого
+   *  человеку не дали: ровно то четвёртое состояние («выглядит настоящим, а
+   *  внутри пусто»), которого в продукте не бывает. Ключи — сырые причины из
+   *  хука (`useNegotiation.layerFail`). */
+  fail?: { voice?: string; camera?: string };
 }
 
-export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockNote = null }: Props) {
+export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockNote = null, fail }: Props) {
   const locked = !!lockNote;
+  /** Почему именно этот слой не поднялся — или null. «Покерфейс» считает по
+   *  кадрам камеры, поэтому её отказ гасит и его. */
+  const failOf = (id: LayerId): string | null =>
+    (id === "voice" ? fail?.voice : id === "camera" || id === "pokerface" ? fail?.camera : null) ?? null;
   const activePreset = PRESETS.find((p) => ORDER.every((id) => p.layers[id] === layers[id]));
 
   return (
@@ -50,13 +61,17 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
       <div className="setup-layers">
         {ORDER.map((id) => {
           const st = states[id];
-          const on = layers[id];
+          const failed = failOf(id);
+          // Тумблер горит, только если слой И ВПРАВДУ работает. Отказ читается
+          // как «недоступно», а не как выбор игрока.
+          const on = layers[id] && !failed;
           // `aria-disabled`, а не родной `disabled`: выключенный элемент уходит
           // из порядка обхода, и человек с клавиатуры никогда не встретил бы
           // недоступные слои и не узнал почему. Причина связана через
           // aria-describedby, а не просто лежит рядом.
-          const cls = !st.available ? "off na" : on ? "on" : "off";
-          const frozen = locked || !st.available;
+          const available = st.available && !failed;
+          const cls = !available ? "off na" : on ? "on" : "off";
+          const frozen = locked || !available;
           return (
             <div className={`layer ${cls}${locked ? " locked" : ""}`} key={id}>
               <span className="ly-ic" aria-hidden="true">{ICONS[id]}</span>
@@ -77,8 +92,10 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
               </button>
               {/* Обещание стоит на самом переключателе; когда слой вообще не
                   может работать, его место занимает причина. */}
-              <span id={`ly-note-${id}`} className={`ly-note${st.available ? "" : " na"}`}>
-                {st.available ? t.layers.sameGrade : reasonText(st, lang)}
+              <span id={`ly-note-${id}`} className={`ly-note${available ? "" : " na"}`}>
+                {failed
+                  ? `${id === "voice" ? t.live.offVoice : t.live.offCamera} · ${failed}`
+                  : available ? t.layers.sameGrade : reasonText(st, lang)}
               </span>
             </div>
           );

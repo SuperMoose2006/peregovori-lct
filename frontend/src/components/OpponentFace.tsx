@@ -62,10 +62,13 @@ interface Props {
   /** Размер рисованного запасного портрета. Картинку состояния масштабирует CSS. */
   size?: number;
   label?: string;
+  /** Имя индикатора речи. Строкой в коде здесь стояло русское «говорит» —
+   *  в английском интерфейсе диктор читал его по-русски (инвариант 4). */
+  speakingLabel: string;
 }
 
 export function OpponentFace({
-  scenarioId, avatarState, state, exam, speaking = false, size = 96, label,
+  scenarioId, avatarState, state, exam, speaking = false, size = 96, label, speakingLabel,
 }: Props) {
   const mood = avatarMood(state, exam);
   // В экзамене шкалы скрыты, и лицо не должно их выдавать: фиксируем нейтральное.
@@ -99,7 +102,7 @@ export function OpponentFace({
         draggable={false}
       />
       {speaking && (
-        <span className="face__voice" aria-label="говорит">
+        <span className="face__voice" aria-label={speakingLabel}>
           <i /><i /><i />
         </span>
       )}

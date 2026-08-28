@@ -26,6 +26,9 @@ interface Props {
   hintEnabled: boolean;
   /** Имя кнопки подсказки для диктора: сам значок 💡 помечен aria-hidden. */
   hintLabel: string;
+  /** Имя кнопки отправки. Тоже строка из словаря, а не английское «send»:
+   *  aria-label — пользовательский контент, и русский диктор читал «сенд». */
+  sendLabel: string;
   // showChips=false (exam mode) suppresses the live technique preview so the
   // player gets no read on how their line is being classified.
   showChips: boolean;
@@ -40,7 +43,7 @@ interface Props {
 }
 
 export function Composer({
-  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, hintLabel, showChips, limitNote, charForms, prefill,
+  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, hintLabel, sendLabel, showChips, limitNote, charForms, prefill,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -105,7 +108,7 @@ export function Composer({
             }
           }}
         />
-        <button className="send" onClick={submit} disabled={disabled || !text.trim()} aria-label="send">
+        <button className="send" onClick={submit} disabled={disabled || !text.trim()} aria-label={sendLabel}>
           ➤
         </button>
       </div>

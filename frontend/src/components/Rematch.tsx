@@ -46,7 +46,7 @@ export function RematchOffer({
     <div className="rmoffer">
       {/* Поза chart нарисована ровно под «указывает на цифру» — сравнение с
           прошлой попыткой это буквально работа памяти, а не тренера. */}
-      <Tikhon state="chart" title={r.offerTitle}>{body}</Tikhon>
+      <Tikhon state="chart" as="h2" title={r.offerTitle}>{body}</Tikhon>
       <button className="btn primary rm-cta" type="button" onClick={onRematch}>
         ↻ {r.cta}
       </button>

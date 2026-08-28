@@ -163,10 +163,14 @@ interface TikhonProps {
   state?: TikhonState;
   title: string;
   children: React.ReactNode;
+  /** Уровень заголовка зависит от МЕСТА: в рейле карточки — h2, и Тихон внутри
+   *  них h3; в разборе он сам раздел под h1 экрана, и тогда h2. Прыжок через
+   *  ступень ломает навигацию по разделам, а он тут не виден глазом. */
+  as?: "h2" | "h3";
 }
 
 /** Слон Тихон — память. Появляется только там, где есть что вспомнить. */
-export function Tikhon({ state = "remember", title, children }: TikhonProps) {
+export function Tikhon({ state = "remember", title, children, as: Head = "h3" }: TikhonProps) {
   return (
     <div className="tikhon">
       {/* alt пустой намеренно: заголовок справа уже называет Тихона по имени, и
@@ -174,9 +178,7 @@ export function Tikhon({ state = "remember", title, children }: TikhonProps) {
           последняя строка на одном языке в разметке. */}
       <MascotImg dir="tikhon" state={state} alt="" size={76} />
       <div className="tikhon-bd">
-        {/* h3: карточки рейла — h2, и прыжок через уровень ломает навигацию
-            по разделам у экранного диктора. */}
-        <h3>{title}</h3>
+        <Head>{title}</Head>
         <p>{children}</p>
       </div>
     </div>

@@ -224,7 +224,9 @@ export function Debrief({
             </div>
             <div>
               {exam ? <div className="cert-eyebrow">🏆 {t.exam.eyebrow}</div> : null}
-              <ScreenHeading as="h2">{exam ? t.exam.resultTitle : t.debriefTitle}</ScreenHeading>
+              {/* h1: разбор — самостоятельный экран, заголовка первого уровня
+                  на нём не было. */}
+              <ScreenHeading as="h1">{exam ? t.exam.resultTitle : t.debriefTitle}</ScreenHeading>
               {exam && scenarioTitle ? (
                 <div className="cert-scenario">
                   {t.exam.scenarioLabel}: <b>{scenarioTitle}</b>
@@ -353,7 +355,9 @@ export function Debrief({
 
           {at(1) && d.interests && d.interests.length > 0 ? (
             <div className="reveal">
-              <h3>🔎 {t.reveal.title}</h3>
+              {/* h2, а не h3: это раздел ПОД заголовком экрана, и уровнем ниже
+                  он был прыжком через ступень в навигации диктора. */}
+              <h2>🔎 {t.reveal.title}</h2>
               <ul>
                 {d.interests.map((it, i) => (
                   <li key={i} className={it.found ? "rv-found" : "rv-missed"}>
@@ -406,7 +410,7 @@ export function Debrief({
           {at(1) && probeStats && probeStats.asked > 0 ? (
             <div className="obs">
               <div className="obs-head">
-                <h3>🎭 {t.probe.debriefHead}</h3>
+                <h2>🎭 {t.probe.debriefHead}</h2>
                 <span className="obs-badge">{t.probe.observation}</span>
               </div>
               <div className="obs-body">
@@ -423,7 +427,7 @@ export function Debrief({
           {at(1) && observations && observations.length > 0 ? (
             <div className="obs">
               <div className="obs-head">
-                <h3>📷 {t.layers.seenHead}</h3>
+                <h2>📷 {t.layers.seenHead}</h2>
                 <span className="obs-badge">{t.probe.observation}</span>
               </div>
               <ul className="obs-list">
@@ -435,7 +439,7 @@ export function Debrief({
           {at(1) && tells && tells.frames > 0 ? (
             <div className="obs">
               <div className="obs-head">
-                <h3>😐 {t.layers.names.pokerface}</h3>
+                <h2>😐 {t.layers.names.pokerface}</h2>
                 <span className="obs-badge">{t.probe.observation}</span>
               </div>
               <p className="obs-tells">
@@ -448,7 +452,7 @@ export function Debrief({
 
           {at(2) && d.ai_verdict ? (
             <div className="mentor">
-              <h3>🎓 {t.mentor.title}</h3>
+              <h2>🎓 {t.mentor.title}</h2>
               <p className="mn-verdict">{d.ai_verdict}</p>
               {d.ai_strength || d.ai_growth ? (
                 <div className="mn-grid">
@@ -471,7 +475,7 @@ export function Debrief({
 
           {at(2) && d.turning_points && d.turning_points.length > 0 ? (
             <div className="tpoints">
-              <h3>{t.turningPoints.title}</h3>
+              <h2>{t.turningPoints.title}</h2>
               <ol>
                 {d.turning_points.map((p, i) => (
                   <li key={i}>
@@ -489,7 +493,7 @@ export function Debrief({
 
           {at(2) && master ? (
             <div className="master">
-              <h3>✦ {t.master.title}</h3>
+              <h2>✦ {t.master.title}</h2>
               <div className="ms-grid">
                 <div className="ms-cell yours">
                   <span className="ms-lab">{t.master.yours}</span>
@@ -508,7 +512,7 @@ export function Debrief({
 
           {at(2) && (!paged || detailsOpen) ? (
           <div className="coach">
-            <h3>{t.coachTitle}</h3>
+            <h2>{t.coachTitle}</h2>
             {/* Итог партии был единственным экраном без лица. Карл берёт ПЕРВУЮ
                 подсказку разбора — из списка она при этом уходит: один и тот же
                 совет дважды на экране это не забота, а шум. Своего текста он
@@ -550,18 +554,26 @@ export function Debrief({
             <div className="beats">
               {/* One action per beat — the shape a lesson-complete flow needs.
                   The dots double as a progress read and as direct navigation. */}
-              <div className="beat-dots" role="tablist" aria-label={t.beats.label}>
+              {/* НЕ `tablist`. Роль обещала клавиатурную модель, которой здесь
+                  нет и быть не может: части разбора не лежат в одной панели —
+                  `at(n)` гасит куски по всей карточке, — поэтому ни `tabpanel`,
+                  ни `aria-controls` указать не на что, а стрелки не работали.
+                  Диктор при этом объявлял «вкладка 1 из 3». Три обычные кнопки
+                  с `aria-pressed` не обещают ничего сверх того, что делают. */}
+              <div className="beat-dots" role="group" aria-label={t.beats.label}>
                 {[0, 1, 2].map((i) => (
                   <button
                     key={i}
-                    role="tab"
-                    aria-selected={beat === i}
+                    aria-pressed={beat === i}
                     aria-label={t.beats.names[i]}
                     className={`beat-dot${beat === i ? " on" : ""}${beat > i ? " done" : ""}`}
                     onClick={() => setBeat(i)}
                   />
                 ))}
               </div>
+              {/* Смена части подменяла содержимое молча: кнопка остаётся под
+                  фокусом, а полкарточки над ней становится другой. */}
+              <p className="sr-only" role="status" aria-live="polite">{t.beats.names[beat]}</p>
               {beat < 2 ? (
                 <button className="primary beat-go" onClick={() => setBeat((n) => n + 1)}>
                   {t.beats.next.replace("{name}", t.beats.names[beat + 1])}
@@ -658,7 +670,7 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
   return (
     <div className="whatif">
       <div className="wi-teaser">{w.teaser}</div>
-      <h3>{w.title}</h3>
+      <h2>{w.title}</h2>
       <p className="wi-intro">{w.intro}</p>
 
       <blockquote className="wi-orig">«{originalQuote}»</blockquote>
