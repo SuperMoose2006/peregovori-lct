@@ -144,3 +144,28 @@ def test_readme_does_not_advertise_routes_that_were_removed():
     """Ручка /ws удалена вместе с протоколом «запрос-ответ»."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "WS /ws" not in readme, "README обещает удалённую ручку /ws"
+
+
+def test_the_typecheck_trap_is_written_down():
+    """`npx tsc --noEmit` во фронтенде всегда возвращает ноль — и это ловушка.
+
+    Корневой tsconfig.json содержит `"files": []` и только ссылки на проекты,
+    поэтому в обычном (не `-b`) режиме компилятору не передан ни один файл: он
+    отвечает «чисто» на код, который не собирается. На эту команду тянет руку у
+    каждого, кто работал с другими репозиториями, а ошибка тихая.
+
+    Тест сторожит две вещи сразу: что предупреждение не выпало из CLAUDE.md, и
+    что причина никуда не делась (появится в корневом конфиге настоящий список
+    файлов — предупреждение станет ложью, и его надо будет убрать).
+    """
+    import json
+
+    config = json.loads((ROOT / "frontend" / "tsconfig.json").read_text(encoding="utf-8"))
+    trap_still_there = config.get("files") == [] and config.get("references")
+    doc = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    warned = "npx tsc --noEmit" in doc and "npm run typecheck" in doc
+
+    if trap_still_there:
+        assert warned, "ловушка на месте, а предупреждения в CLAUDE.md нет"
+    else:
+        assert not warned, "ловушки больше нет — предупреждение стало ложью, уберите его"
