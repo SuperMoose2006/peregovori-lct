@@ -189,6 +189,41 @@ $("go").onclick = async () => {
     while (!$("v").videoWidth && Date.now() - t0 < 4000) await new Promise((r) => setTimeout(r, 100));
     row($("live"), "Кадр дошёл", $("v").videoWidth ? $("v").videoWidth + "×" + $("v").videoHeight : "НЕТ — поток есть, картинки нет",
         !!$("v").videoWidth);
+
+    // ПОСЛЕДНЕЕ, ЧЕГО НЕ ХВАТАЛО. Всё выше доказывает, что браузер отдал поток и
+    // кадр нарисовался. Оно НЕ доказывает, что на кадре что-то видно, — а
+    // «камера не работает» чаще всего означает именно это: поток есть, а в
+    // кадре темно или лицо срезано краем. Спрашиваем ту же модель зрения, что
+    // играет в партии, и печатаем её ответ дословно.
+    if ($("v").videoWidth) {
+      const c = document.createElement("canvas");
+      c.width = 320;
+      c.height = Math.round((320 * $("v").videoHeight) / $("v").videoWidth);
+      c.getContext("2d").drawImage($("v"), 0, 0, c.width, c.height);
+      const frame = c.toDataURL("image/jpeg", 0.6).split(",", 2)[1] || "";
+      try {
+        const res = await fetch("/api/vision/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ frame: frame, lang: "ru" }),
+        });
+        const v = await res.json();
+        if (!v.available) {
+          // Честное «недоступно», а не выдуманный чек-лист.
+          row($("live"), "Модель видит вас", v.reason === "no_key"
+            ? "недоступно — облачное зрение выключено (партия пойдёт текстом)"
+            : "недоступно — зрение не ответило", null);
+        } else {
+          const mark = (x) => x === null ? "не ответила" : (x ? "да" : "НЕТ");
+          row($("live"), "В кадре человек", mark(v.person), v.person);
+          row($("live"), "Лицо видно целиком", mark(v.face), v.face);
+          row($("live"), "Света хватает", mark(v.light), v.light);
+          if (v.hint) row($("live"), "Что поправить", v.hint, null);
+        }
+      } catch (e) {
+        row($("live"), "Модель видит вас", "запрос не прошёл: " + e.message, null);
+      }
+    }
   }
 
   try {

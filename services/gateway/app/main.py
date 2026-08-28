@@ -267,6 +267,44 @@ def daily(lang: str = "ru", day: str = "") -> dict:
     }
 
 
+#: Предел на кадр калибровки, знаков base64. 320-пиксельный JPEG качества 0.6
+#: весит около 15 КБ; полмегабайта — это уже не наш кадр, а чей-то файл.
+MAX_FRAME_B64 = 700_000
+
+
+@app.post("/api/vision/check")
+async def vision_check(body: dict) -> dict:
+    """Годится ли этот кадр для игры: человек в кадре, лицо целиком, света хватает.
+
+    ЗАЧЕМ ОТДЕЛЬНАЯ РУЧКА. Страница проверки оборудования умеет доказать, что
+    браузер отдал поток и кадр нарисовался. Она не может доказать главного —
+    что модель на этом кадре что-то видит. А жалоба «камера не работает» чаще
+    всего означает именно это: поток есть, а в кадре темно или лицо срезано.
+
+    Без ключа — честное «недоступно», а не выдуманный чек-лист: слой, которого
+    нет, не притворяется (принцип 2).
+    """
+    from app.perception.vision import VisionSampler
+    from app.providers.openrouter import chat as orchat
+
+    lang = "en" if str(body.get("lang")) == "en" else "ru"
+    frame = str(body.get("frame") or "")
+    if not frame:
+        raise HTTPException(status_code=400, detail="no frame")
+    if len(frame) > MAX_FRAME_B64:
+        raise HTTPException(status_code=413, detail="frame too large")
+    if not orchat.available():
+        return {"available": False, "reason": "no_key"}
+
+    sampler = VisionSampler(lang, lambda _e: None, lambda _t: None)
+    try:
+        result = await sampler.calibrate(frame)
+    except Exception:
+        # Зрение — украшение, а не механика: не ответило, так и скажем.
+        return {"available": False, "reason": "vision_failed"}
+    return {"available": True, **result}
+
+
 # ---- "А что если…" deterministic what-if replay -----------------------------
 # The engine is a pure function of (scenario, ordered moves): identical inputs
 # give byte-identical state. So we can re-run one pivotal turn with a BETTER line

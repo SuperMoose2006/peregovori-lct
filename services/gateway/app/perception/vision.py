@@ -125,6 +125,57 @@ def split_tell(raw: str) -> tuple[str, Optional[bool]]:
     return " ".join(" ".join(kept).split()), tell
 
 
+#: Промпт калибровки. Отдельный, потому что вопрос другой: не «что происходит»,
+#: а «годится ли этот кадр для игры». Ответ строго машинный — три да/нет и одна
+#: короткая подсказка человеку, если что-то не так.
+_CALIBRATION = {
+    "ru": ("Ты проверяешь кадр с веб-камеры ПЕРЕД началом деловой игры.\n"
+           "Ответь РОВНО тремя строками и ничем больше:\n"
+           "ЧЕЛОВЕК: да|нет — виден ли человек в кадре\n"
+           "ЛИЦО: да|нет — видно ли лицо целиком, не обрезано ли краем\n"
+           "СВЕТ: да|нет — достаточно ли света, чтобы разглядеть лицо\n"
+           "Если на что-то ответил «нет», добавь ЧЕТВЁРТОЙ строкой одно короткое "
+           "предложение: что сделать человеку. Если всё «да», четвёртой строки не пиши."),
+    "en": ("You are checking a webcam frame BEFORE a business role-play starts.\n"
+           "Answer with EXACTLY three lines and nothing else:\n"
+           "PERSON: yes|no — is a person visible in frame\n"
+           "FACE: yes|no — is the whole face visible, not cut off by the edge\n"
+           "LIGHT: yes|no — is there enough light to make out the face\n"
+           "If anything is \"no\", add a FOURTH line: one short sentence telling the "
+           "person what to change. If everything is \"yes\", write no fourth line."),
+}
+
+_CHECK_RE = None
+
+
+def parse_calibration(raw: str) -> dict:
+    """Три строки да/нет плюс подсказка → словарь. Неполный ответ — не «нет».
+
+    Отсутствующая строка возвращается как None, а не False, по той же причине,
+    что и в «покерфейсе»: молчание модели и ответ «нет» — разные вещи, и
+    показывать «лицо не видно» там, где модель просто не ответила, значит
+    придумать данные.
+    """
+    global _CHECK_RE
+    if _CHECK_RE is None:
+        import re
+        _CHECK_RE = re.compile(
+            r"^\s*(ЧЕЛОВЕК|ЛИЦО|СВЕТ|PERSON|FACE|LIGHT)\s*[:\-]\s*(да|нет|yes|no)\b",
+            re.IGNORECASE)
+    keys = {"человек": "person", "person": "person", "лицо": "face", "face": "face",
+            "свет": "light", "light": "light"}
+    out: dict = {"person": None, "face": None, "light": None, "hint": ""}
+    rest: list[str] = []
+    for line in (raw or "").splitlines():
+        m = _CHECK_RE.match(line)
+        if m:
+            out[keys[m.group(1).lower()]] = m.group(2).lower() in ("да", "yes")
+        elif line.strip():
+            rest.append(line.strip())
+    out["hint"] = " ".join(rest)[:160]
+    return out
+
+
 @dataclass
 class VisionStats:
     frames_seen: int = 0
@@ -202,6 +253,32 @@ class VisionSampler:
         if not self._pokerface:
             return base
         return base + _TELL_ADDON.get(self._lang, _TELL_ADDON["ru"])
+
+    async def calibrate(self, frame_b64: str) -> dict:
+        """Один кадр → годится ли он для игры. Вне такта сэмплинга.
+
+        Отдельный путь, а не `offer(reason=...)`: калибровка отвечает на другой
+        вопрос, спрашивается по требованию человека и НЕ должна ни ждать
+        интервала, ни попадать в наблюдения партии.
+        """
+        payload = {
+            "model": model_for("vision"),
+            "messages": [
+                {"role": "system",
+                 "content": _CALIBRATION.get(self._lang, _CALIBRATION["ru"])},
+                {"role": "user", "content": [
+                    {"type": "text", "text": "Годится?" if self._lang == "ru" else "Is this usable?"},
+                    {"type": "image_url",
+                     "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}},
+                ]},
+            ],
+            "max_tokens": 90,
+            "temperature": 0.0,
+        }
+        response = await orchat._get_client().post("/chat/completions", json=payload)
+        response.raise_for_status()
+        text = (response.json()["choices"][0]["message"]["content"] or "").strip()
+        return parse_calibration(text)
 
     async def _look(self, frame_b64: str) -> None:
         started = time.perf_counter()
