@@ -222,9 +222,14 @@ function sameSet(a: Set<string>, b: Set<string>): boolean {
  *  Коридор — [0.5×, 2×] от масштаба сценария; ветка ×1000 оставлена только для
  *  единиц самого сценария. Зеркало engine.py::_plausible_offer. */
 function plausibleOffer(sc: ScenarioDef, n: number): number | null {
+  const corners = [sc.open, sc.floor, sc.target, sc.resv];
   const scale = (sc.open + sc.floor + sc.target + sc.resv) / 4;
   if (scale <= 0) return n;
-  const lo = 0.5 * scale, hi = 2 * scale;
+  // Собственные числа стола всегда правдоподобны: на «Конфликте отделов» углы
+  // 20/6/5/12 дают коридор [5.38, 21.5], и цель игрока из брифа (5) переставала
+  // быть офертой. Зеркало engine.py::_plausible_offer.
+  const lo = Math.min(0.5 * scale, Math.min(...corners));
+  const hi = Math.max(2 * scale, Math.max(...corners));
   if (n >= lo && n <= hi) return n;
   // Оба направления пересчёта, и оба — единицы САМОГО сценария. «1040», когда
   // стол считает тысячами, и «70 тысяч» на столе, который считает тысячами:
@@ -347,7 +352,11 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     if (H("interests_probe")) m.probes++;
     if (revealed) {
       events.push("interest");
-      if (reaction !== "warmed") reaction = "opened_up";
+      // Вскрытие главнее теплоты: реплика, соединившая эмпатию с вопросом об
+      // интересе, получала «вот за это я и люблю нормальный разговор» и секрет
+      // не называла — при том что счётчик писал «вскрыто 1 из 3». Зеркало
+      // engine.py.
+      reaction = "opened_up";
     } else if (reaction !== "warmed") {
       // «Почему?» — а что именно вас интересует? Отдельная реакция обязательна:
       // opened_up подставляет в реплику текст интереса, и на невскрытом вопросе
