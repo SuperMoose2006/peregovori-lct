@@ -11,6 +11,8 @@ import { play } from "../lib/sound";
 import { ScreenHeading } from "./ScreenHeading";
 import { XpAward } from "./Gamification";
 import { Karl, MascotImg, Tikhon, type KarlState } from "./Mascot";
+import { RematchOffer } from "./Rematch";
+import type { PastRun } from "../lib/progress";
 
 const GRADE_COLOR: Record<string, string> = {
   A: "var(--trust)",
@@ -70,12 +72,17 @@ interface Props {
   /** Открыть блок курса, который тренирует просевший навык. Экзамен — без него:
    *  там сопровождение выключено до конца, включая рекомендации. */
   onCourse?: (blockId: string) => void;
+  /** «Переиграй партию против себя вчерашнего»: партия, которая теперь лежит на
+   *  этом столе и пойдёт рядом в следующий раз, плюс отметка «это она и есть»
+   *  (первая партия за столом сама становится соперником). Отсутствует там, где
+   *  сравнения не бывает: экзамен, акт кампании, своя сделка. */
+  rematch?: { past: PastRun; isThisRun: boolean } | null;
 }
 
 export function Debrief({
   t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, observations, tells, onRetry, onHome, onNext, nextLabel,
   runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
-  secondaryIssues, termsConceded, onCourse,
+  secondaryIssues, termsConceded, onCourse, rematch,
 }: Props) {
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
   // Самый слабый сигнал разбора → блок курса, который его тренирует.
@@ -131,6 +138,11 @@ export function Debrief({
   const showWhatIf =
     !!runWhatIf && !!whatIfScenarioId && !!whatIfMoves && whatIfMoves.length > 0 &&
     pivotal !== null && pivotIdx !== null && !exam;
+
+  // Переигровка против себя. Экзамен исключён здесь ещё раз — не потому, что
+  // App его и так не передаст, а потому что «сравнения на экзамене не бывает»
+  // должно читаться в том же файле, где рисуется сравнение.
+  const showRematch = !!rematch && !exam;
 
   // Mobile-only collapse for the hoisted what-if card (item 6): on ≤640px it
   // pushes the score bars far down, so on mobile it starts collapsed behind a
@@ -268,6 +280,19 @@ export function Debrief({
               pivotal-turn replay is the jury's magnet — an inviting teaser + the
               player's own costly line, before the metric bars. Deterministic
               replay logic is unchanged; only its position moved. */}
+          {/* Главное, что можно сделать после партии: сесть за тот же стол и
+              пойти против себя же. Стоит выше всего остального разбора — цифры
+              рассказывают, ЧТО было, а переигровка показывает, что дело в
+              методе, и показывает вашими собственными словами. */}
+          {at(0) && showRematch && rematch ? (
+            <RematchOffer
+              t={t}
+              past={rematch.past}
+              isThisRun={rematch.isThisRun}
+              onRematch={onRetry}
+            />
+          ) : null}
+
           {at(0) && showWhatIf && pivotal && pivotIdx !== null ? (
             <div className={`whatif-wrap${wiOpen ? " open" : ""}`}>
               <button
@@ -505,7 +530,7 @@ export function Debrief({
             {/* Тихон помнит прошлую попытку на этом же столе. Это единственное
                 место, где продукт сравнивает вас с ВАМИ ЖЕ, а не с эталоном —
                 и данные для сравнения у него настоящие, из профиля. */}
-            {!exam && record && record.prevBest && record.prevBest.grade ? (
+            {!exam && !showRematch && record && record.prevBest && record.prevBest.grade ? (
               <Tikhon title={t.mascot.rememberTitle}>
                 {t.lastTime
                   .replace("{grade}", record.prevBest.grade)
@@ -557,7 +582,7 @@ export function Debrief({
               </button>
             ) : (
               <button className="primary" onClick={onRetry}>
-                ↻ {t.retry}
+                ↻ {showRematch ? t.rematch.cta : t.retry}
               </button>
             )}
             <button className="quit" onClick={onHome}>

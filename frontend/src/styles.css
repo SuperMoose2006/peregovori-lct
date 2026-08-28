@@ -74,6 +74,11 @@
   --shadow: 0 4px 0 var(--line-2);
   /* Нижняя кромка кнопки — та самая «трёхмерность», которая и читается как игра. */
   --edge: #2f6b00;
+  /* Тема объявлена БРАУЗЕРУ, а не только нашим токенам. Без этого нативные
+     части формы — плейсхолдер, курсор, полосы прокрутки, автозаполнение —
+     рисуются светлыми в обеих темах: плейсхолдер композера брался у Chrome
+     как rgb(117,117,117) и давал на тёмной подложке 3.65:1, провал WCAG AA. */
+  color-scheme: light;
   /* Один шрифт на всё. Nunito самохостится (пара @font-face в начале файла):
      когда-то он был только назван здесь и не загружался, и скруглённая
      литера — а это и есть половина узнаваемости — не рисовалась никогда. */
@@ -96,6 +101,7 @@
   --trust: #58cc02; --tension: #ff5b5b; --info: #1cb0f6; --leverage: #ce82ff;
   --shadow: 0 4px 0 var(--line-2);
   --edge: #3f8f00;
+  color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
@@ -110,6 +116,7 @@
   --trust: #58cc02; --tension: #ff5b5b; --info: #1cb0f6; --leverage: #ce82ff;
   --shadow: 0 4px 0 var(--line-2);
   --edge: #3f8f00;
+  color-scheme: dark;
 }
 :root[data-theme="light"] {
   --ground: #ffffff; --panel: #ffffff; --panel-2: #f7f7f7;
@@ -134,6 +141,7 @@
   --shadow: 0 4px 0 var(--line-2);
   /* Нижняя кромка кнопки — та самая «трёхмерность», которая и читается как игра. */
   --edge: #2f6b00;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -149,6 +157,12 @@ body {
   .wrap { padding-left: max(22px, env(safe-area-inset-left)); padding-right: max(22px, env(safe-area-inset-right)); }
 }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+/* Плейсхолдер — не украшение: в композере это единственная инструкция новичку о
+   том, что делать за столом. Правило общее, а не по одному селектору на поле:
+   раньше его имел только `.cust-ta`, а композер, имя на экзамене и `.wi-input`
+   брали цвет у браузера. `opacity: 1` обязателен — Firefox гасит плейсхолдер
+   собственной прозрачностью поверх цвета. */
+input::placeholder, textarea::placeholder { color: var(--ink-faint); opacity: 1; }
 h1, h2, h3, .serif { font-family: var(--serif); }
 ::selection { background: var(--brass); color: var(--ground); }
 
@@ -288,7 +302,6 @@ h1, h2, h3, .serif { font-family: var(--serif); }
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .cust-ta:focus { outline: none; border-color: var(--brass); box-shadow: var(--shadow); }
-.cust-ta::placeholder { color: var(--ink-faint); }
 .cust-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .cust-hint { font-size: 12px; color: var(--ink-faint); }
 .cust-go { flex: 0 0 auto; min-width: 220px; }
@@ -3114,3 +3127,156 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .course-why > summary:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
 .course-why .teach { border: none; box-shadow: none; padding: 0 18px 18px; }
 .course-why .teach-head { display: none; }
+
+/* ============================================================================
+   «Переиграй партию против себя вчерашнего»
+   ----------------------------------------------------------------------------
+   Две поверхности: карточка-предложение в разборе и панель за столом.
+
+   Панель — `position: fixed` и портал в <body>. Причина та же, что у шторки
+   слоёв: экран партии держит собственный transform, и он стал бы опорой для
+   фиксированного позиционирования. Заодно стол не приходится трогать вовсе —
+   сравнение это надстройка над партией, а не её часть.
+   ========================================================================= */
+
+.rmoffer {
+  display: flex; flex-direction: column; gap: 10px;
+  border: 2px solid var(--brass); border-radius: var(--r);
+  background: var(--panel); padding: 14px; margin: 0 0 16px;
+}
+.rmoffer .tikhon { border: none; padding: 0; background: none; }
+.rmoffer .tikhon-bd h3 { margin: 0 0 4px; font-size: 15px; font-weight: 800; }
+.rmoffer .tikhon-bd p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+.rm-cta { align-self: flex-start; }
+
+/* ---- панель за столом --------------------------------------------------- */
+
+.rmrail {
+  /* По содержанию, а не в высоту окна: пустая колонка под короткой панелью
+     читается как «что-то не догрузилось». */
+  position: fixed; right: 14px; top: 84px; z-index: 40;
+  max-height: calc(100dvh - 104px);
+  width: 320px; max-width: calc(100vw - 28px);
+  display: flex; flex-direction: column; gap: 10px;
+  overflow-y: auto; overscroll-behavior: contain;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r);
+  padding: 12px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
+  font-size: 12.5px;
+}
+
+/* Свёрнутая панель. Ярлык, а не исчезновение: панель, которую нельзя вернуть,
+   это потерянная функция, а не убранная. */
+.rmrail-tab {
+  position: fixed; right: 14px; top: 84px; z-index: 40;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 999px;
+  padding: 6px 14px 6px 6px; font: inherit; font-size: 12.5px; font-weight: 700;
+  color: var(--ink); cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.rmrail-tab img { width: 28px; height: 28px; object-fit: contain; }
+.rmrail-tab:hover { border-color: var(--brass); }
+
+.rm-head { display: flex; align-items: center; gap: 9px; }
+.rm-head img { width: 40px; height: 40px; object-fit: contain; flex: 0 0 auto; }
+.rm-headtx { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.rm-headtx > b { font-size: 13.5px; }
+.rm-was { color: var(--ink-dim); font-size: 11.5px; }
+.rm-x {
+  flex: 0 0 auto; width: 26px; height: 26px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel-2);
+  color: var(--ink-dim); font-size: 16px; line-height: 1; cursor: pointer;
+}
+.rm-x:hover { color: var(--ink); border-color: var(--line-2); }
+
+/* Честная оговорка: столы открывались по-разному (условие дня, репутация акта). */
+.rm-note {
+  margin: 0; padding: 7px 9px; border-radius: 10px;
+  background: var(--panel-2); border: 1px dashed var(--line-2);
+  color: var(--ink-dim); font-size: 11.5px; line-height: 1.45;
+}
+
+.rm-turn {
+  font-weight: 800; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.rm-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rm-col { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rm-collab { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.rm-col.then .rm-collab { color: var(--ink-faint); }
+.rm-col.now .rm-collab { color: var(--brass); }
+.rm-q {
+  margin: 0; padding: 7px 9px; border-radius: 10px; background: var(--panel-2);
+  font-size: 11.5px; line-height: 1.45; color: var(--ink-dim);
+  border-left: 3px solid var(--line-2);
+  /* Реплика может быть длинной: обрезаем её здесь, а не растим панель до окна. */
+  max-height: 92px; overflow-y: auto; overflow-wrap: anywhere;
+}
+.rm-col.now .rm-q { border-left-color: var(--brass); color: var(--ink); }
+
+/* Цена — заголовок сравнения: в переговорах это то самое число. */
+.rm-price {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+  padding: 9px 10px; border-radius: 12px; background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+.rm-plab { font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+.rm-pthen { color: var(--ink-dim); }
+.rm-parrow { color: var(--ink-faint); }
+.rm-pnow { font-weight: 800; }
+.rm-pverdict { flex: 1 1 100%; font-size: 11px; }
+.rm-price.ahead { border-color: var(--brass); }
+.rm-price.ahead .rm-pnow, .rm-price.ahead .rm-pverdict { color: var(--trust-ink); }
+.rm-price.behind { border-color: var(--tension); }
+.rm-price.behind .rm-pnow, .rm-price.behind .rm-pverdict { color: var(--tension-ink); }
+.rm-price.even .rm-pverdict { color: var(--ink-faint); }
+
+.rm-meters { display: flex; flex-direction: column; gap: 5px; }
+.rm-meter {
+  display: grid; grid-template-columns: 1fr auto auto 56px; gap: 7px; align-items: center;
+}
+.rm-mlab { font-size: 11.5px; color: var(--ink-dim); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rm-mnum { font-variant-numeric: tabular-nums; font-size: 11.5px; color: var(--ink-dim); }
+.rm-mnum i { font-style: normal; color: var(--ink-faint); }
+.rm-mdelta { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 11.5px; }
+.rm-meter.ahead .rm-mdelta { color: var(--trust-ink); }
+.rm-meter.behind .rm-mdelta { color: var(--tension-ink); }
+.rm-meter.even .rm-mdelta { color: var(--ink-faint); }
+
+/* Расхождение по ходам. Две линии в ОДНОЙ системе координат — иначе «выше на
+   картинке» перестало бы значить «больше в числах» (см. lib/rematch.sparkPoints). */
+.rm-byturns { display: flex; flex-direction: column; gap: 6px; }
+.rm-bylab { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+.rm-spark { width: 100%; height: 18px; display: block; overflow: visible; }
+.rm-spark.tall { height: 56px; background: var(--panel-2); border-radius: 10px; }
+.rm-spark polyline { fill: none; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.rm-sp-then { stroke: var(--ink-faint); stroke-width: 1.5px; stroke-dasharray: 3 3; }
+.rm-sp-now { stroke: var(--brass); stroke-width: 2px; }
+.rm-legend { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--ink-faint); }
+.rm-lk { width: 14px; height: 0; border-top: 2px dashed var(--ink-faint); display: inline-block; }
+.rm-lk.now { border-top: 2px solid var(--brass); }
+
+/* Реплика, которой прошлая попытка ответит следующим ходом. Это ВАШИ слова, а
+   не подсказка коуча: в этом и смысл переигровки — сыграть иначе, чем вы. */
+.rm-next { display: flex; flex-direction: column; gap: 4px; padding-top: 2px; border-top: 1px solid var(--line); }
+.rm-nextlab { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); }
+
+/* Открытая панель раздвигает приложение, а не накрывает его: справа от ленты
+   живут цена, BATNA и условия сделки, и накрыть их значит отобрать половину
+   стола ровно тогда, когда игрок сравнивает себя с собой. */
+@media (min-width: 861px) {
+  body.rm-docked .appbody { padding-right: 348px; }
+}
+
+@media (max-width: 860px) {
+  /* На телефоне панель уезжает вниз: стол занимает верх экрана, и колонка
+     справа там не помещается физически. */
+  /* Над нижней панелью навигации, а не поверх неё: ярлык, накрывший «Курс»,
+     это отнятая кнопка, а не добавленная. */
+  .rmrail {
+    right: 8px; left: 8px; top: auto; width: auto; max-height: 46dvh;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+  }
+  .rmrail-tab { right: 8px; top: auto; bottom: calc(74px + env(safe-area-inset-bottom)); }
+  .rm-spark.tall { height: 40px; }
+}

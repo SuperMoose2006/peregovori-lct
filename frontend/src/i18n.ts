@@ -278,6 +278,8 @@ export interface Strings {
        выводится из ответа, и описание было бы подсказкой. */
     faceAlt: string;
     reference: string; freeformHint: string; matchHint: string; examQuit: string;
+    /** Подсказка про цифровые клавиши над списком вариантов. */
+    optKeys: string;
     recoveryTitle: string; nextUp: string; continue: string; actTeaches: string;
     coachNote: string;
     masterTitle: string; masterLead: string; masterLocked: string; masterStart: string;
@@ -414,6 +416,32 @@ export interface Strings {
     presets: [string, string]; // two strong preset alternatives
     mobileCta: string; // mobile-only: tap-to-expand the collapsed what-if card
   };
+  // «Переиграй партию против себя вчерашнего» — сравнение с ВАШЕЙ прошлой
+  // попыткой за тем же столом. Считает движок; в экзамене этого нет вовсе.
+  rematch: {
+    // карточка-предложение в разборе
+    offerTitle: string;
+    offerBody: string;   // {grade} {score} {deal} — итог сохранённой партии
+    offerSame: string;   // эта партия и стала соперником (первая за столом)
+    cta: string;         // главное действие разбора
+    // панель за столом
+    title: string;
+    open: string;        // подпись кнопки, открывающей панель
+    close: string;
+    then: string;        // «Вы тогда»
+    now: string;         // «Вы сейчас»
+    turn: string;        // «Ход {n}»
+    resultThen: string;  // «Итог тогда»
+    nextThen: string;    // «Тогда следующим ходом вы сказали»
+    noMoveYet: string;   // ход ещё не сделан
+    pastEnded: string;   // прошлая партия здесь уже кончилась
+    price: string;
+    ahead: string;       // «лучше, чем тогда»
+    behind: string;      // «хуже, чем тогда»
+    even: string;        // «как тогда»
+    byTurns: string;     // заголовок нижней части: расхождение по ходам
+    differentTable: string; // стартовые условия столов разошлись — честная оговорка
+  };
   debriefTitle: string;
   coachTitle: string;
   // Тихон в разборе: сравнение с ВАШЕЙ прошлой попыткой на этом же столе.
@@ -511,6 +539,10 @@ export interface Strings {
     nav: string;          // aria-label левого меню
     stats: string;        // aria-label полосы счётчиков
     hud: string;          // aria-label for the always-visible meter strip
+    send: string;         // главная кнопка композера
+    dismiss: string;      // крестик карточки тренера в ленте
+    themeDark: string;    // переключатель темы, сейчас включена тёмная
+    themeLight: string;   // переключатель темы, сейчас включена светлая
   };
 }
 
@@ -844,6 +876,7 @@ export const I18N: Record<Lang, Strings> = {
       reference: "Как можно было",
       freeformHint: "Напишите реплику своими словами…",
       matchHint: "Выберите слева, затем справа — пара свяжется.",
+      optKeys: "Клавиши 1–4 выбирают вариант, Enter подтверждает.",
       examQuit: "Прервать экзамен",
       recoveryTitle: "Повторить перед пересдачей",
       nextUp: "Дальше",
@@ -1008,6 +1041,28 @@ export const I18N: Record<Lang, Strings> = {
       ],
       mobileCta: "Показать развилку",
     },
+    rematch: {
+      offerTitle: "Переиграй против себя",
+      offerBody: "За этим столом уже лежит ваша партия: {grade} ({score}) · {deal}. Сыграйте стол снова — она пойдёт рядом ход за ходом, а расхождение посчитает тот же движок.",
+      offerSame: "Эта партия сохранена как ваш соперник. Сядьте за стол ещё раз — она пойдёт рядом с вами ход за ходом.",
+      cta: "Переиграть против себя",
+      title: "Вы тогда · вы сейчас",
+      open: "Показать прошлую попытку",
+      close: "Свернуть",
+      then: "Вы тогда",
+      now: "Вы сейчас",
+      turn: "Ход {n}",
+      resultThen: "Итог тогда",
+      nextThen: "Тогда следующим ходом вы сказали",
+      noMoveYet: "Ход за вами",
+      pastEnded: "Тогда партия здесь уже кончилась",
+      price: "Цена",
+      ahead: "лучше, чем тогда",
+      behind: "хуже, чем тогда",
+      even: "как тогда",
+      byTurns: "Расхождение по ходам",
+      differentTable: "Стол тогда открывался иначе (условие дня или репутация акта). Сравнивайте с поправкой.",
+    },
     debriefTitle: "Разбор переговоров",
     coachTitle: "Рекомендации коуча",
     lastTime: "В прошлый раз за этим столом вы закрыли на {grade} ({score}). Сейчас — {now}. Сравнивайте себя с собой: у стола, где вы уже были, изменилась только ваша игра.",
@@ -1109,6 +1164,10 @@ export const I18N: Record<Lang, Strings> = {
       scoreBar: "{label}: {v} из 100",
       deal: "Сделка. Ваша цель {target}, красная линия {redline}, их текущая цена {offer}.",
       delta: "{label}: {value}",
+      send: "Отправить реплику",
+      dismiss: "Скрыть подсказку тренера",
+      themeDark: "Тёмная тема",
+      themeLight: "Светлая тема",
     },
     // Stems, not finished moves: the chip drops a sentence STARTER into the box
     // that the player must complete in their own words (a full worked example
@@ -1445,6 +1504,7 @@ export const I18N: Record<Lang, Strings> = {
       reference: "One way to say it",
       freeformHint: "Write the line in your own words…",
       matchHint: "Pick on the left, then on the right — the pair links.",
+      optKeys: "Keys 1–4 pick an option, Enter confirms.",
       examQuit: "Leave the exam",
       recoveryTitle: "Revisit before the retake",
       nextUp: "Next up",
@@ -1609,6 +1669,28 @@ export const I18N: Record<Lang, Strings> = {
       ],
       mobileCta: "Show the branch",
     },
+    rematch: {
+      offerTitle: "Play against yourself",
+      offerBody: "This table already holds a game of yours: {grade} ({score}) · {deal}. Play it again — that run walks beside you turn by turn, and the same engine computes the gap.",
+      offerSame: "This run is saved as your opponent. Sit down at the table again and it will walk beside you turn by turn.",
+      cta: "Play against yourself",
+      title: "You then · you now",
+      open: "Show your previous run",
+      close: "Collapse",
+      then: "You then",
+      now: "You now",
+      turn: "Turn {n}",
+      resultThen: "Result then",
+      nextThen: "Back then your next line was",
+      noMoveYet: "Your move",
+      pastEnded: "Back then the game ended here",
+      price: "Price",
+      ahead: "better than then",
+      behind: "worse than then",
+      even: "same as then",
+      byTurns: "Divergence turn by turn",
+      differentTable: "That table opened differently (a daily condition or an act's reputation). Read the gap with that in mind.",
+    },
     debriefTitle: "Negotiation debrief",
     coachTitle: "Coach recommendations",
     lastTime: "Last time at this table you closed at {grade} ({score}). Now — {now}. Compare yourself with yourself: at a table you have played before, the only thing that changed is your play.",
@@ -1710,6 +1792,10 @@ export const I18N: Record<Lang, Strings> = {
       scoreBar: "{label}: {v} out of 100",
       deal: "Deal. Your target {target}, red line {redline}, their current offer {offer}.",
       delta: "{label}: {value}",
+      send: "Send message",
+      dismiss: "Dismiss coach note",
+      themeDark: "Dark theme",
+      themeLight: "Light theme",
     },
     // Stems, not finished moves — the player completes each in their own words
     // (the full worked example stays behind the 💡 hint button).

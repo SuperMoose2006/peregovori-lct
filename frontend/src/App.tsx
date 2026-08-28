@@ -1,7 +1,7 @@
 // App.tsx — screen router (home / game / debrief / campaign) with RU/EN + light/dark toggles.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { CampaignView, Debrief as DebriefData, Lang, Mode } from "./types";
+import type { CampaignView, Debrief as DebriefData, Lang, Mode, StateView } from "./types";
 import { I18N } from "./i18n";
 import { useNegotiation } from "./api/useNegotiation";
 import { getCampaigns } from "./api/campaigns";
@@ -24,8 +24,12 @@ import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type
 import { Table } from "./components/Table";
 import { Karl } from "./components/Mascot";
 import { Debrief } from "./components/Debrief";
+import { RematchRail } from "./components/Rematch";
+import { openingOf, replayRun } from "./lib/rematch";
+import { SCENARIO_MAP } from "./data/scenarios";
 import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
-import { applyDebrief, loadProfile, saveProfile, setDailyGoalTarget, type GameResult, type Profile } from "./lib/progress";
+import { applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDailyGoalTarget,
+         type GameResult, type Grade, type PastRun, type Profile } from "./lib/progress";
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 
@@ -135,6 +139,21 @@ export default function App() {
   // toggle's icon; the cues themselves read the flag live from lib/sound.
   const [muted, setMuted] = useState<boolean>(() => isMuted());
 
+  // «Переиграй партию против себя вчерашнего». Три вещи, и все три — клиентские:
+  //   rival     — партия, которая идёт РЯДОМ с текущей (снимается со стола при
+  //               запуске; сервер между партиями ничего не помнит и не должен);
+  //   trail     — состояния идущей партии по ходам, чтобы было с чем сравнивать;
+  //   opening   — стартовые условия стола (turn 0). Условие дня и репутация акта
+  //               меняют их ДО первого хода, и без замера переигровка встала бы
+  //               на другой стол.
+  const [rival, setRival] = useState<PastRun | null>(null);
+  const [nextRival, setNextRival] = useState<{ past: PastRun; isThisRun: boolean } | null>(null);
+  const [trail, setTrail] = useState<StateView[]>([]);
+  const trailRef = useRef<StateView[]>([]);
+  const [opening, setOpening] = useState<StateView | null>(null);
+  const openingRef = useRef<StateView | null>(null);
+  const recordedRun = useRef<DebriefData | null>(null);
+
   // Esc закрывает шторку слоёв — то же самое, что клик мимо неё и крестик.
   useEffect(() => {
     if (!layersOpen) return;
@@ -204,6 +223,62 @@ export default function App() {
     setProfile(res.profile);
     setLastGame(res);
   }, [nego.debrief, nego.scenario, currentScenario]);
+
+  // След идущей партии: одно состояние на ход. Дедупликация по НОМЕРУ хода, а не
+  // по ссылке: каждое сообщение сервера приносит новый объект состояния, и без
+  // этого след раздувался бы дельтами аватара и распознавания.
+  useEffect(() => {
+    const st = nego.state;
+    if (!st) {
+      trailRef.current = [];
+      openingRef.current = null;
+      setTrail([]);
+      setOpening(null);
+      return;
+    }
+    if (st.turn === 0) {
+      // Новая партия: стартовые условия снимаем ЗАМЕРОМ (см. lib/rematch).
+      trailRef.current = [];
+      openingRef.current = st;
+      setTrail([]);
+      setOpening(st);
+      return;
+    }
+    const last = trailRef.current[trailRef.current.length - 1];
+    if (last && last.turn >= st.turn) return;
+    trailRef.current = [...trailRef.current, st];
+    setTrail(trailRef.current);
+  }, [nego.state]);
+
+  // Партия закончилась — её ВХОД (стол, стартовые условия, реплики по порядку)
+  // ложится в профиль. Не картинка партии: движок пересчитает её сам, потому
+  // что он чистая функция от этого входа.
+  //
+  // Пишем только обычную практику за столом из каталога. Экзамен — никогда:
+  // там нет ни подсказок, ни сопровождения, и сравнения тоже не бывает. Акт
+  // кампании несёт репутацию предыдущего акта, а «своя сделка» вообще не имеет
+  // сценария в каталоге — переигрывать нечем.
+  useEffect(() => {
+    const d = nego.debrief;
+    if (!d || recordedRun.current === d) return;
+    const scenarioId = nego.scenario?.id ?? currentScenario ?? "";
+    const opening = openingRef.current;
+    const grade = (["A", "B", "C", "D", "F"] as Grade[]).find((g) => g === d.grade);
+    if (mode !== "practice" || !SCENARIO_MAP[scenarioId] || !opening || !grade) return;
+    const moves = nego.log.filter((e) => e.kind === "me").map((e) => e.text);
+    if (moves.length === 0) return;
+    recordedRun.current = d;
+    const at = new Date().toISOString();
+    const stored = savePastRun({
+      scenarioId, lang, at, opening: openingOf(opening), moves,
+      grade, score: d.overall, economic: d.economic, relationship: d.relationship,
+      technique: d.technique, dealText: d.deal_text, status: d.status,
+    });
+    // Соперником становится ЛУЧШАЯ партия за столом (savePastRun). Совпало
+    // время — соперник и есть только что сыгранная партия, и говорить о ней
+    // надо иначе: «в прошлый раз» про сегодняшнюю партию было бы неправдой.
+    setNextRival({ past: stored, isThisRun: stored.at === at });
+  }, [nego.debrief, nego.scenario, nego.log, currentScenario, mode, lang]);
 
   // Custom mode: while generating, the scenario is designed server-side (or by
   // the mock synth). Drive the outcome through the gen state machine: a greeting
@@ -333,6 +408,12 @@ export default function App() {
       const use = sessionLayers(m, layerPrefs, layerStates, opts?.fixedOff);
       setActiveLayers(use);
       setActiveDaily(opts?.daily);
+      // Соперник этой партии снимается со стола ОДИН раз, при заходе: иначе
+      // запись собственного результата подменила бы соперника на самого себя
+      // прямо посреди переигровки.
+      setRival(loadPastRun(scenarioId));
+      setNextRival(null);
+      recordedRun.current = null;
       nego.start(scenarioId, m, undefined, opts?.reputation, use, opts?.daily);
       setScreen("game");
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -537,6 +618,17 @@ export default function App() {
     if (mode === "custom") startCustom();
     else if (currentScenario) launch(currentScenario, mode, { daily: activeDaily, fixedOff: !!drill });
   }, [mode, currentScenario, launch, startCustom, activeDaily, drill]);
+
+  /** Прошлая партия, переигранная движком ход за ходом. Пересчёт только при
+   *  смене соперника: движок — чистая функция, от времени результат не зависит. */
+  const rivalTrail = useMemo(() => (rival ? replayRun(rival) : null), [rival]);
+  /** Где сравнение честно: обычная практика (не капстоун курса), тот же стол и
+   *  тот же язык — реплики опознаются по ключевым словам своего языка. Экзамен
+   *  и акт кампании отсекаются самим режимом: там сопровождения не бывает. */
+  const showRival =
+    screen === "game" && mode === "practice" && !drill &&
+    !!rival && !!rivalTrail && rivalTrail.length > 0 &&
+    rival.scenarioId === nego.scenario?.id && rival.lang === lang;
 
   return (
     // Двухколоночная оболочка приложения: слева меню, справа тело.
@@ -766,6 +858,24 @@ export default function App() {
             onProbeAnswer={activeLayers.probe ? nego.answerProbe : undefined}
             onSeeDebrief={() => setScreen("debrief")}
           />
+          {/* Панель «вы тогда · вы сейчас». Портал в <body> по той же причине,
+              что и шторка слоёв: экран партии держит собственный transform и
+              стал бы опорой для `position: fixed`. Стол при этом не трогается
+              вовсе — сравнение это надстройка, а не часть игры. */}
+          {showRival && rival && rivalTrail ? createPortal(
+            <RematchRail
+              t={t}
+              lang={lang}
+              past={rival}
+              pastTrail={rivalTrail}
+              nowTrail={trail}
+              nowMoves={nego.log.filter((e) => e.kind === "me").map((e) => e.text)}
+              nowOpening={opening ? openingOf(opening) : null}
+              unit={nego.scenario.headline_unit}
+              lowerBetter={nego.scenario.target < nego.scenario.reservation}
+            />,
+            document.body,
+          ) : null}
         </>
       )}
 
@@ -830,6 +940,10 @@ export default function App() {
           secondaryIssues={nego.scenario?.secondary_issues}
           termsConceded={nego.state?.terms_conceded}
           onCourse={(blockId) => openCourse({ blockId, lesson: null })}
+          // «Переиграй против себя»: соперник, которого стол получит в следующей
+          // партии. Появляется только там, где партия вообще записывается —
+          // экзамена и своей сделки среди них нет.
+          rematch={nextRival}
           onNext={mode === "campaign" ? nextAct : undefined}
           nextLabel={
             mode === "campaign"
