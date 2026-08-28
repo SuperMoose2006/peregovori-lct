@@ -75,6 +75,10 @@ export const AVATAR_CONFIG: Record<string, AvatarConfig> = {
   // Viktor — vendor account exec, tough: receding grey, dark tie, charcoal collar.
   sla_renewal: { skin: SKIN.medium, hair: HAIR.grey, brow: "#5f5a52", style: "receding",
     collar: "#40434a", rx: 12.4, ry: 15, tie: "#33363d" },
+  // Тимур — кандидат, relationship: тёплый тон, короткая стрижка, без галстука
+  // (он на собеседовании, а не на встрече с советом директоров).
+  candidate_offer: { skin: SKIN.tan, hair: HAIR.black, brow: "#2a231d", style: "buzz",
+    collar: "#4a6d6a", rx: 12.6, ry: 14.4 },
 };
 
 // Unknown / custom "Своя сделка" ids (generated) → a pleasant neutral default.

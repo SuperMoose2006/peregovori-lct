@@ -8,8 +8,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Avatar, avatarMood, AVATAR_CONFIG, type Mood } from "../src/components/Avatar";
 import type { StateView } from "../src/types";
+import { SCENARIOS } from "../src/data/scenarios";
 
-const KNOWN = ["supplier", "salary", "conflict", "investor", "rent", "used_car", "freelance_rate", "sla_renewal"];
+// СПИСОК БЕРЁТСЯ ИЗ БИБЛИОТЕКИ, А НЕ ПИШЕТСЯ ЗДЕСЬ. Свой список молчал ровно
+// тогда, когда должен был кричать: девятый стол появился без запасного портрета,
+// а тест сверял восемь имён с восемью и оставался зелёным. Тест, который не
+// знает о новом столе, не проверяет ничего — он проверяет сам себя.
+const KNOWN = SCENARIOS.map((s) => s.id);
 const MOODS: Mood[] = ["warm", "neutral", "wary", "angry"];
 
 test("every known scenario id has a distinct avatar config", () => {
