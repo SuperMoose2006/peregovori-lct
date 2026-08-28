@@ -395,3 +395,50 @@ def test_persona_styles_produce_different_voices():
     tough_en = engine.create_session("conflict", "en")
     rel_en.turn = tough_en.turn = 0
     assert engine.render_line(rel_en, "warmed", False) != engine.render_line(tough_en, "warmed", False)
+
+
+# ---- «70 тысяч» и шкала стола ------------------------------------------------
+
+def test_scale_word_after_digits_multiplies() -> None:
+    """«70 тысяч» — это 70000, а не «70 1000».
+
+    Найдено на живой партии: множитель дописывался отдельным числом, регулярка
+    цены читала «70 100», и сделка в сценарии аренды закрылась на 29 902k за
+    месяц. Человек называл семьдесят тысяч — стол слышал семьдесят тысяч сто.
+    """
+    from app.engine.numbers import spell_to_digits
+
+    assert spell_to_digits("70 тысяч в месяц") == "70000 в месяц"
+    assert spell_to_digits("1,5 миллиона") == "1500000"
+    assert spell_to_digits("70 thousand a month") == "70000 a month"
+    # Слова без множителя по-прежнему не трогаем.
+    assert spell_to_digits("три предложения") == "три предложения"
+    # И разделители групп по-прежнему не слипаются с соседними числами.
+    assert spell_to_digits("по 86 88 за штуку") == "по 86 88 за штуку"
+
+
+def test_offer_outside_the_scale_is_not_a_price() -> None:
+    """Цена вне всякой шкалы стола не принимается за цену.
+
+    Сценарий «Аренда» считает в тысячах (75k ₽/мес). Игрок пишет «70 тысяч» —
+    и это 70 по шкале стола, а не 70000. Если пересчёт не помогает, число
+    игнорируется: реплика остаётся ходом, но цены в ней нет.
+    """
+    from app.engine.engine import apply_move, create_session, to_state_view
+    from app.engine.techniques import analyze
+
+    sess = create_session("rent", "ru")
+    sess.turn = 3
+    line = "Тогда фиксируем: 70 тысяч в месяц при договоре на год. По рукам?"
+    apply_move(sess, analyze(line), line)
+    view = to_state_view(sess)
+    assert view["offer_player"] is not None
+    assert 60 <= view["offer_player"] <= 80, view["offer_player"]
+    assert view["deal"] is None or 60 <= view["deal"] <= 80, view["deal"]
+
+    # Совсем невозможное число просто не считается ценой.
+    sess2 = create_session("rent", "ru")
+    sess2.turn = 3
+    weird = "Предлагаю 987654321 за месяц."
+    apply_move(sess2, analyze(weird), weird)
+    assert to_state_view(sess2)["offer_player"] is None

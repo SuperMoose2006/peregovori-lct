@@ -221,7 +221,12 @@ function plausibleOffer(sc: ScenarioDef, n: number): number | null {
   if (scale <= 0) return n;
   const lo = 0.5 * scale, hi = 2 * scale;
   if (n >= lo && n <= hi) return n;
-  if (n * 1000 >= lo && n * 1000 <= hi) return n * 1000;
+  // Оба направления пересчёта, и оба — единицы САМОГО сценария. «1040», когда
+  // стол считает тысячами, и «70 тысяч» на столе, который считает тысячами:
+  // человек назвал ту же величину в другой записи, а не другое число.
+  for (const c of [n * 1000, n / 1000]) {
+    if (c >= lo && c <= hi) return Math.round(c * 100) / 100;
+  }
   return null;
 }
 
@@ -368,7 +373,11 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   let priced: number | null = null;
   if (a.number !== null && (H("offer") || H("anchor") || H("concession") || H("accept") || H("tradeoff"))) {
     priced = plausibleOffer(sc, a.number);
-    if (priced !== null) s.offerPlayer = priced;
+    if (priced !== null) {
+      s.offerPlayer = priced;
+      // Показанное число обязано совпасть с тем, по которому считал движок.
+      a.number = priced;
+    }
   }
   // Гибкость больше НЕ порождает движение сама по себе: она лишь превращает
   // заработанное событие в рубли.

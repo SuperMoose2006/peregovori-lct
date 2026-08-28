@@ -231,8 +231,12 @@ def _plausible_offer(sc: Scenario, number: float) -> Optional[float]:
     lo, hi = 0.5 * scale, 2.0 * scale
     if lo <= number <= hi:
         return number
-    if lo <= number * 1000 <= hi:
-        return number * 1000
+    # Оба направления пересчёта, и оба — единицы САМОГО сценария. «1040», когда
+    # стол считает тысячами, и «70 тысяч» на столе, который считает тысячами:
+    # человек назвал ту же величину в другой записи, а не другое число.
+    for candidate in (number * 1000, number / 1000):
+        if lo <= candidate <= hi:
+            return _round2(candidate)
     return None
 
 
@@ -501,6 +505,9 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         priced = _plausible_offer(sc, analysis.number)
         if priced is not None:
             s.offer_player = priced
+            # Показанное игроку число обязано совпасть с тем, по которому
+            # движок считал: иначе разбор цитирует «70 000», а сделка идёт от 70.
+            analysis.number = priced
 
     # --- Compute concession from productive pressure. --------------------------
     # Гибкость больше НЕ порождает движение сама по себе: она лишь превращает
