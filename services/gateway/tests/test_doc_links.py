@@ -169,3 +169,22 @@ def test_the_typecheck_trap_is_written_down():
         assert warned, "ловушка на месте, а предупреждения в CLAUDE.md нет"
     else:
         assert not warned, "ловушки больше нет — предупреждение стало ложью, уберите его"
+
+
+def test_docs_do_not_reference_missing_screenshots():
+    """Ссылка на несуществующий снимок — сломанная картинка в докладе.
+
+    СВЕЖЕСТЬ снимков здесь НЕ проверяется, и это осознанно: сравнение по времени
+    правки styles.css краснеет от любой, даже несвязанной правки оформления, и
+    тест, который краснеет не по делу, приучает себя не читать. Свежесть
+    напоминает `make preflight` — там она и нужна, перед показом.
+    """
+    import re
+
+    referenced: set[str] = set()
+    for doc in (ROOT / "docs").glob("*.md"):
+        referenced |= set(re.findall(r"screenshots/([A-Za-z0-9_.-]+\.png)",
+                                     doc.read_text(encoding="utf-8")))
+    shots = ROOT / "docs" / "screenshots"
+    missing = sorted(name for name in referenced if not (shots / name).exists())
+    assert not missing, f"документация ссылается на несуществующие снимки: {missing}"

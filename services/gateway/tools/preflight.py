@@ -60,6 +60,21 @@ def check_files() -> None:
     ok(f"лица оппонентов: {states} картинок") if states >= 60 else warn(
         f"лиц оппонентов мало ({states}) — часть состояний покажет рисованный портрет")
 
+    # СНИМКИ В ДОКУМЕНТАЦИИ СТАРЕЮТ МОЛЧА, и читает их не только человек:
+    # .claude/agents/creative-director.md велит критику судить облик продукта по
+    # этим PNG. Пока они показывали удалённый скин, часть визуального разбора
+    # относилась к приложению, которого больше нет.
+    shots = ROOT / "docs" / "screenshots"
+    css = ROOT / "frontend" / "src" / "styles.css"
+    if shots.is_dir() and css.is_file():
+        look = css.stat().st_mtime
+        stale = sorted(p.name for p in shots.glob("*.png") if p.stat().st_mtime < look)
+        if stale:
+            warn(f"снимков старше правки оформления: {len(stale)} "
+                 f"({', '.join(stale[:3])}…) — `cd frontend && node probes/docshots.mjs`")
+        else:
+            ok(f"снимки в документации свежие: {len(list(shots.glob('*.png')))}")
+
     mascots = ROOT / "frontend" / "public" / "mascots"
     m = sum(1 for _ in mascots.rglob("*.png")) if mascots.is_dir() else 0
     ok(f"маскоты: {m} картинок") if m >= 8 else warn(f"маскотов мало ({m})")
