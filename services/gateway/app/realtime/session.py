@@ -18,6 +18,20 @@ from typing import Any, Optional
 from app.realtime.bus import EventBus, new_generation_id
 
 
+#: Предел накопленного хода игрока, знаков. Клиент обрезает на 2000 (см.
+#: frontend/src/lib/net.ts::MAX_INPUT), но клиент — это то, что можно не
+#: использовать: сокет открыт наружу, и `input.append` НАКАПЛИВАЕТ, поэтому без
+#: предела здесь ход растёт до бесконечности и целиком уезжает в платные модели.
+#: Комментарий в main.py про «зеркало предела хода по сокету» описывал этот
+#: предел ещё до того, как он появился.
+MAX_TURN_CHARS = 2000
+
+#: Кадров в одном ходе. Смотрит модель всё равно только на последний
+#: (vision.py берёт frames[-1]), поэтому копить пачку незачем — а вот память
+#: она занимает настоящую: каждый кадр это base64 JPEG.
+MAX_TURN_FRAMES = 8
+
+
 @dataclass
 class Layers:
     """Опциональные слои модальностей.
@@ -156,9 +170,14 @@ class RealtimeSession:
         if text:
             # Пробел между кусками: ASR отдаёт фразы без хвостового пробела,
             # склейка встык слепила бы «ценаменя не устраивает».
-            self.pending_text = (self.pending_text + " " + text).strip() if self.pending_text else text
+            joined = (self.pending_text + " " + text).strip() if self.pending_text else text
+            # Обрезаем НАКОПЛЕННОЕ, а не кусок: предел на кусок обходится
+            # тысячей маленьких кусков, и именно так его и обошли бы.
+            self.pending_text = joined[:MAX_TURN_CHARS]
         if frames:
-            self.pending_frames.extend(frames)
+            # Держим ХВОСТ: свежий кадр информативнее старого, а смотрит модель
+            # всё равно только на последний.
+            self.pending_frames = (self.pending_frames + list(frames))[-MAX_TURN_FRAMES:]
 
     def take_input(self) -> tuple[str, list[str]]:
         """Забрать накопленный ход и очистить буфер."""

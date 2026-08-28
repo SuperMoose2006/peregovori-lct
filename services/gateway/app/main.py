@@ -151,10 +151,23 @@ def ws_allowed(websocket: "WebSocket") -> bool:
     return _hmac.compare_digest(websocket.cookies.get("dlg_ok", ""), _ws_ticket())
 
 
-# Dev CORS: the Vite dev server runs on another origin.
+# CORS РАЗНЫЙ ДЛЯ СТЕНДА И ДЛЯ РАЗРАБОТКИ, и это не перестраховка.
+#
+# `allow_origins=["*"]` заводили ради vite на другом порту — и он же уезжал на
+# стенд, смотрящий в интернет. Куки там `samesite=lax`, а `allow_credentials` не
+# включён, поэтому браузер чужого сайта аутентифицированный запрос и так не
+# отправит; но разрешение «любому origin читать наши ответы» на стенде не нужно
+# НИКОМУ, а объяснять, почему оно безопасно, придётся каждому, кто посмотрит.
+#
+# Пароль задан → стенд: пускаем только свои origin. Пароль пуст → разработка:
+# как было.
+_DEV_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173",
+                "http://localhost:5199", "http://127.0.0.1:5199",
+                "http://localhost:8010", "http://127.0.0.1:8010"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_DEV_ORIGINS if _HTTP_PASSWORD else ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -262,7 +275,10 @@ def daily(lang: str = "ru", day: str = "") -> dict:
 # of the configured AI backend.
 
 MAX_WHATIF_MOVES = 24     # cap replay length (a game is <= 12 turns anyway)
-MAX_WHATIF_TEXT = 800     # mirror the WS turn cap on player text
+# Предел реплики в «что если». Меньше, чем предел хода по сокету
+# (realtime.session.MAX_TURN_CHARS): там накапливается целый ход, здесь приходит
+# одна переписанная реплика.
+MAX_WHATIF_TEXT = 800
 
 
 def _whatif_branch(scenario_id: str, lang: str, prefix: list[str], branch_text: str) -> dict:
