@@ -4,10 +4,15 @@
     "celebrate",
     "cheer",
     "concern",
+    "doze",
     "idle",
+    "oops",
     "point",
     "sad",
-    "think"
+    "shrug",
+    "study",
+    "think",
+    "wave"
   ],
   "generated_by": "google/gemini-3.1-flash-image"
 }

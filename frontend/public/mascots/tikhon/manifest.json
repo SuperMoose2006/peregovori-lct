@@ -1,6 +1,10 @@
 {
   "mascot": "tikhon",
   "states": [
+    "chart",
+    "cheer",
+    "concern",
+    "doze",
     "exam",
     "idle",
     "remember"

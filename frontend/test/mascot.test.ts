@@ -61,6 +61,11 @@ test("стол зовёт karlState с настоящим грейдом, а н�
   assert.match(call[0], /grade/, "грейд вообще не передан");
 });
 
+// Состояния, которые уже расставлены по экранам и потому обязаны иметь
+// подпись в словаре. Позы заводятся раньше расстановки: у только что
+// нарисованной картинки подписи ещё нет, и Karl подставляет имя маскота
+// (см. `KarlAlt` — он частичный). Как только позу поставили на экран, её имя
+// приезжает сюда, и тест начинает требовать перевод на оба языка.
 const STATES: KarlState[] = ["idle", "think", "cheer", "concern", "point", "celebrate", "sad"];
 
 test("у каждого состояния есть подпись на обоих языках", () => {
@@ -123,4 +128,24 @@ test("у каждой картинки маскота есть webp — и по�
     }
   }
   assert.deepEqual(missing, [], `нет webp: ${missing.join(", ")}`);
+});
+
+test("тип состояний, манифест и папка описывают один и тот же набор", () => {
+  // Три списка про одно и то же, и разъезжаются они молча: имя в типе без
+  // картинки — это разрыв на месте маскота (принцип «не заявлять того, чего
+  // нет»), картинка без имени в типе — мёртвый вес в бандле, манифест мимо
+  // папки врёт тому, кто его читает вместо `ls`.
+  const src = readFileSync("src/components/Mascot.tsx", "utf8");
+  const union = (name: string) => {
+    const decl = src.match(new RegExp(`export type ${name}\\s*=([^;]*);`));
+    assert.ok(decl, `тип ${name} не найден — тест устарел вместе с кодом`);
+    return [...decl[1].matchAll(/"([a-z]+)"/g)].map((m) => m[1]).sort();
+  };
+  for (const [dir, type] of [["karl", "KarlState"], ["tikhon", "TikhonState"]] as const) {
+    const root = `public/mascots/${dir}`;
+    const files = readdirSync(root).filter((f) => f.endsWith(".png")).map((f) => f.slice(0, -4)).sort();
+    const manifest = JSON.parse(readFileSync(`${root}/manifest.json`, "utf8"));
+    assert.deepEqual(files, union(type), `${dir}: тип ${type} разошёлся с папкой`);
+    assert.deepEqual([...manifest.states].sort(), files, `${dir}: манифест разошёлся с папкой`);
+  }
 });
