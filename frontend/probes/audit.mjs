@@ -196,6 +196,17 @@ const PROBE = `(() => {
     const m = String(s).match(/\\d+(\\.\\d+)?/g);
     return m ? m.slice(0, 3).map(Number) : null;
   };
+  const alphaOf = (s) => {
+    const str = String(s);
+    const slashed = str.match(/\\/\\s*([\\d.]+)\\s*\\)$/);   // color(srgb r g b / a)
+    if (slashed) return parseFloat(slashed[1]);
+    if (str.startsWith("rgba")) {
+      const m = str.match(/[\\d.]+\\)$/);
+      return m ? Number(m[0].slice(0, -1)) : 1;
+    }
+    return 1;
+  };
+
   const bgOf = (el) => {
     // Фон ищем только среди предков, НА КОТОРЫХ ЭЛЕМЕНТ ВИЗУАЛЬНО ЛЕЖИТ.
     // Абсолютно спозиционированная подпись часто вынесена ЗА свой контейнер
@@ -207,7 +218,12 @@ const PROBE = `(() => {
     let n = el;
     while (n && n !== document.documentElement) {
       const s = getComputedStyle(n); const c = parse(s.backgroundColor);
-      const a = s.backgroundColor.startsWith("rgba") ? Number(s.backgroundColor.match(/[\\d.]+\\)$/)?.[0].slice(0,-1) ?? 1) : 1;
+      // ПРОЗРАЧНОСТЬ ЧИТАЕТСЯ ИЗ ОБЕИХ ЗАПИСЕЙ. Разбор альфы смотрел только на
+      // строки, начинающиеся с "rgba", и семипроцентная латунь поверх белой
+      // панели — color(srgb 0.22 0.5 0 / 0.07) — считалась СПЛОШНЫМ фоном.
+      // Отсюда пять «провалов контраста 2.21:1» там, где на самом деле 10:1:
+      // прибор мерил текст против цвета, которого на экране нет.
+      const a = alphaOf(s.backgroundColor);
       if (c && a > 0.5) {
         const r = n.getBoundingClientRect();
         const covers = cx >= r.left - 1 && cx <= r.right + 1 && cy >= r.top - 1 && cy <= r.bottom + 1;
@@ -315,7 +331,11 @@ const PROBE = `(() => {
   }
 
   // Плейсхолдер — не подпись (он исчезает при вводе), но его контраст считается.
-  if (!/\b(light|dark)\b/.test(getComputedStyle(document.documentElement).colorScheme))
+  // Двойное экранирование обязательно: PROBE это шаблонный литерал, и
+  // одиночная управляющая последовательность в нём превращается в символ
+  // U+0008, а не в границу слова. Проверка не могла совпасть НИКОГДА и
+  // печатала находку на каждом экране независимо от CSS — 29 раз за прогон.
+  if (!/\\b(light|dark)\\b/.test(getComputedStyle(document.documentElement).colorScheme))
     out.leak.push("color-scheme не объявлен: плейсхолдеры и родные виджеты остаются светлыми на тёмном");
   return out;
 })()`;
