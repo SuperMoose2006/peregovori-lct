@@ -1,5 +1,5 @@
 // parity.test.ts — proves the offline mock engine is at behavioral parity with
-// the Python backend (backend/app/engine): all 8 scenarios with structured
+// the Python backend (backend/app/engine): all 9 scenarios with structured
 // logrolling, honest per-interest reveal, the anti-gaming repetition penalty, the
 // technique floor, and non-looping persona banks.
 import { test } from "node:test";
@@ -9,6 +9,7 @@ import { analyze, applyMove, newSession, renderLine, scoreSession } from "../src
 
 const EXPECTED_IDS = [
   "supplier", "salary", "conflict", "investor", "rent", "used_car", "freelance_rate", "sla_renewal",
+  "candidate_offer",
 ];
 
 // Drive one player line through the engine exactly like MockServer.handleTurn.
@@ -17,7 +18,7 @@ function play(s: ReturnType<typeof newSession>, text: string) {
   return applyMove(s, analyze(text), text);
 }
 
-test("all 8 backend scenarios are present with structured logrolling", () => {
+test("all 9 backend scenarios are present with structured logrolling", () => {
   assert.deepEqual(SCENARIOS.map((s) => s.id), EXPECTED_IDS);
   for (const sc of SCENARIOS) {
     assert.ok((sc.secondaryIssues?.length ?? 0) >= 2, `${sc.id} must carry secondary issues`);

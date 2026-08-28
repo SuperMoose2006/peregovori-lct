@@ -30,20 +30,22 @@ def test_the_same_day_always_gives_the_same_table():
 def test_consecutive_days_differ():
     """Иначе «стол дня» — просто стол."""
     d = date(2026, 8, 28)
-    seen = [daily_table(d + timedelta(days=i)) for i in range(8)]
+    seen = [daily_table(d + timedelta(days=i))
+            for i in range(len(engine.SCENARIOS))]
     assert len({t.scenario_id for t in seen}) == len(engine.SCENARIOS)
 
 
 def test_the_pair_of_table_and_condition_does_not_repeat_weekly():
     """Понедельник не должен быть всегда одним и тем же.
 
-    Множитель условия взаимно прост с числом столов, поэтому пара повторяется
-    через 8×4 дня, а не через 8.
+    Число столов взаимно просто с числом условий, поэтому пара повторяется
+    через 9×4 дня, а не через 9.
     """
     d = date(2026, 1, 1)
+    cycle = len(engine.SCENARIOS) * len(MODIFIERS)
     pairs = {(t.scenario_id, t.modifier.id)
-             for t in (daily_table(d + timedelta(days=i)) for i in range(32))}
-    assert len(pairs) == len(engine.SCENARIOS) * len(MODIFIERS)
+             for t in (daily_table(d + timedelta(days=i)) for i in range(cycle))}
+    assert len(pairs) == cycle
 
 
 def test_day_number_counts_days_since_the_unix_epoch():
@@ -119,12 +121,12 @@ def test_a_broken_date_falls_back_to_today_instead_of_failing():
 #: правку расписания придётся сделать в двух местах, и потому её нельзя сделать
 #: в одном — а тихая правка в одном и есть та беда, от которой стоит инвариант 8.
 SCHEDULE_CONTRACT = (
-    ("2026-08-28", "used_car", "tense"),
-    ("2026-08-29", "freelance_rate", "plain"),
-    ("2026-08-30", "sla_renewal", "short"),
-    ("2026-08-31", "supplier", "tense"),
-    ("2026-09-01", "salary", "plain"),
-    ("2026-09-02", "conflict", "short"),
+    ("2026-08-28", "conflict", "short"),
+    ("2026-08-29", "investor", "cold"),
+    ("2026-08-30", "rent", "tense"),
+    ("2026-08-31", "used_car", "plain"),
+    ("2026-09-01", "freelance_rate", "short"),
+    ("2026-09-02", "sla_renewal", "cold"),
 )
 
 
@@ -156,7 +158,7 @@ def test_the_condition_actually_lands_on_the_session():
     from app.realtime.endpoint import _build_session  # noqa: PLC0415
     from app.realtime.events import SessionInit
 
-    d = date(2026, 8, 30)                       # short: восемь ходов вместо 12
+    d = date(2026, 8, 28)                       # short: восемь ходов вместо 12
     table = daily_table(d)
     assert table.modifier.id == "short", "контракт расписания изменился"
 
@@ -172,7 +174,7 @@ def test_a_condition_cannot_be_asked_for_on_the_wrong_table():
     from app.realtime.endpoint import _build_session
     from app.realtime.events import SessionInit
 
-    d = date(2026, 8, 30)
+    d = date(2026, 8, 28)
     other = next(s.id for s in engine.SCENARIOS if s.id != daily_table(d).scenario_id)
     sess, err = asyncio.run(_build_session(SessionInit(
         scenarioId=other, lang="ru", daily=d.isoformat())))
@@ -186,7 +188,7 @@ def test_the_exam_takes_no_condition_of_the_day():
     from app.realtime.endpoint import _build_session
     from app.realtime.events import SessionInit
 
-    d = date(2026, 8, 30)
+    d = date(2026, 8, 28)
     table = daily_table(d)
     sess, err = asyncio.run(_build_session(SessionInit(
         scenarioId=table.scenario_id, lang="ru", gameMode="exam", daily=d.isoformat())))

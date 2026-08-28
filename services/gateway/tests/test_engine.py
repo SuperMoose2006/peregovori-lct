@@ -223,7 +223,8 @@ def test_new_scenarios_have_playable_opening_and_valid_zopa():
     """Additive: each newer scenario must boot into an active, coherent state
     with a ZOPA that respects its direction (opponent floor reachable from the
     player's reservation, target between the two)."""
-    for sid in ("rent", "used_car", "freelance_rate", "sla_renewal"):
+    for sid in ("rent", "used_car", "freelance_rate", "sla_renewal",
+                "candidate_offer"):
         sc = by_id(sid)
         assert sc is not None, f"missing scenario {sid}"
         assert len(sc.hidden_interests["ru"]) == 3
@@ -333,6 +334,10 @@ def test_high_value_trade_moves_more_than_low_in_new_scenarios():
          "Давайте в обмен продлим на 3 года, сможете подвинуться?",
          "Давайте в обмен сделаем ступенчатый SLA по кварталам, сможете подвинуться?",
          "three_year", "phased_sla"),
+        ("candidate_offer",
+         "Давайте в обмен дадим трек до архитектора и наставника, сможете подвинуться?",
+         "Давайте в обмен закроем подъёмные и жильё, сможете подвинуться?",
+         "growth_track", "relocation"),
     ]
     for sid, hi_line, lo_line, hi_id, lo_id in cases:
         hi, hi_terms = _trade(sid, hi_line)

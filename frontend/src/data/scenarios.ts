@@ -543,6 +543,66 @@ export const SCENARIOS: ScenarioDef[] = [
       en: "Goal ≥99.8%. Red line 99.4%. He guards his margin and fears penalties — press with criteria and lower his risk with a longer term.",
     },
   },
+  {
+    id: "candidate_offer", icon: "✍️", face: "👨‍💼", diff: 2, dir: "low",
+    title: { ru: "Оффер сильному кандидату", en: "Making the Offer" },
+    role: {
+      ru: "Вы нанимаете: бюджет с запасом, второго оффера у него нет. Пусть выйдет — и останется.",
+      en: "You are hiring: the budget has room, he has no rival offer. Make him join — and stay.",
+    },
+    cp: {
+      nm: { ru: "Тимур, кандидат", en: "Timur, the Candidate" },
+      ps: { ru: "Сильный инженер, переезжает с семьёй. Открыт, от давления замыкается.", en: "A strong engineer relocating with his family. Open; pressure makes him shut down." },
+      style: "relationship",
+    },
+    unit: { ru: "k", en: "k" }, open: 280, floor: 210, target: 230, resv: 260, batnaStrength: 80,
+    batna: { ru: "В финале ещё двое, один выйдет через неделю.", en: "Two more finalists; one could start next week." },
+    interests: {
+      ru: ["Переезд семьи: жильё и подъёмные", "Рост до архитектора, а не легаси", "Уверенность после внезапного сокращения"],
+      en: ["Relocating his family: housing and moving costs", "Growth toward architect, not legacy", "Security after being laid off without warning"],
+    },
+    hiddenInterestKeywords: {
+      ru: [
+        ["переезд", "переехать", "релокац", "жиль", "квартир", "подъемн", "семьи", "семьей", "семейн", "перевоз"],
+        ["архитект", "вырасти", "развива", "развит", "легаси", "карьер", "ментор", "наставник", "стагнац"],
+        ["сокращ", "испытательн", "стабильн", "гарант", "увольн", "уволил", "надежн", "уверенност", "не отзов"],
+      ],
+      en: [
+        ["relocat", "housing", "family", "moving cost", "move his family", "apartment", "settle in"],
+        ["architect", "grow", "legacy", "career", "mentor", "stagnat", "senior track"],
+        ["laid off", "layoff", "job security", "probation", "guarantee", "let go", "without warning"],
+      ],
+    },
+    tradeoffs: { ru: ["трек до архитектора", "подъёмные на переезд"], en: ["an architect track", "a relocation package"] },
+    secondaryIssues: [
+      {
+        id: "growth_track",
+        label: { ru: "Трек до архитектора и наставник", en: "Architect track with a mentor" },
+        keywords: {
+          ru: ["трек до архитект", "архитект", "наставник", "ментор", "план развит",
+               "карьерн трек", "путь до архитект"],
+          en: ["architect track", "architect", "mentor", "growth plan", "career track",
+               "development plan"],
+        },
+        oppValue: 0.85, playerCost: 0.15,
+      },
+      {
+        id: "relocation",
+        label: { ru: "Подъёмные и жильё на три месяца", en: "Relocation package and housing" },
+        keywords: {
+          ru: ["подъемн", "жилье", "релокац", "оплатим переезд", "компенсируем переезд",
+               "переезд за счет"],
+          en: ["relocation package", "relocation", "housing", "cover the move",
+               "moving costs", "pay for the move"],
+        },
+        oppValue: 0.6, playerCost: 0.5,
+      },
+    ],
+    brief: {
+      ru: "Цель: ≤230k. Красная линия: 260. Он подпишет и ниже, но ниже 230 вы не выигрываете ничего — а выжатый человек уходит в первый год.",
+      en: "Goal ≤230k. Red line 260. He would sign for less, but below 230 you win nothing — and a squeezed hire leaves within the year.",
+    },
+  },
 ];
 
 export const SCENARIO_MAP: Record<string, ScenarioDef> = Object.fromEntries(

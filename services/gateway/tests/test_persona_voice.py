@@ -25,6 +25,7 @@ EXPECTED = {
     "used_car": False,       # Сергей
     "freelance_rate": False, # Павел
     "sla_renewal": False,    # Виктор
+    "candidate_offer": False,  # Тимур
 }
 
 

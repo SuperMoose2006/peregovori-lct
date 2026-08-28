@@ -15,12 +15,12 @@ test("число дня — это дни с 1970-01-01, как в Python", () =
 test("расписание совпадает с серверным", () => {
   // Снято прогоном services/gateway/app/engine/daily.py на тех же датах.
   const expected: [string, string, string][] = [
-    ["2026-08-28", "used_car", "tense"],
-    ["2026-08-29", "freelance_rate", "plain"],
-    ["2026-08-30", "sla_renewal", "short"],
-    ["2026-08-31", "supplier", "tense"],
-    ["2026-09-01", "salary", "plain"],
-    ["2026-09-02", "conflict", "short"],
+    ["2026-08-28", "conflict", "short"],
+    ["2026-08-29", "investor", "cold"],
+    ["2026-08-30", "rent", "tense"],
+    ["2026-08-31", "used_car", "plain"],
+    ["2026-09-01", "freelance_rate", "short"],
+    ["2026-09-02", "sla_renewal", "cold"],
   ];
   for (const [iso, scenarioId, modifierId] of expected) {
     const [y, m, d] = iso.split("-").map(Number);
@@ -37,7 +37,7 @@ test("один и тот же день — один и тот же стол", ()
   for (let i = 0; i < 20; i++) assert.deepEqual(dailyTable(d), first);
 });
 
-test("за восемь дней проходят все столы", () => {
+test("за девять дней проходят все столы", () => {
   const seen = new Set<string>();
   for (let i = 0; i < SCENARIOS.length; i++) {
     seen.add(dailyTable(new Date(2026, 7, 28 + i)).scenarioId);
@@ -47,7 +47,8 @@ test("за восемь дней проходят все столы", () => {
 
 test("пара «стол + условие» не повторяется через неделю", () => {
   const pairs = new Set<string>();
-  for (let i = 0; i < 32; i++) {
+  const cycle = SCENARIOS.length * DAILY_MODIFIERS.length;
+  for (let i = 0; i < cycle; i++) {
     const t = dailyTable(new Date(2026, 0, 1 + i));
     pairs.add(`${t.scenarioId}/${t.modifier.id}`);
   }
@@ -80,7 +81,7 @@ test("офлайн-ядро действительно накладывает у
   // его условие. Подпись «короткий стол» при двенадцати ходах — та самая ложь,
   // которой в продукте не бывает.
   const { MockServer } = await import("../src/mock/mockServer");
-  const table = dailyTable(new Date(2026, 7, 30)); // short: восемь ходов
+  const table = dailyTable(new Date(2026, 7, 28)); // short: восемь ходов
   assert.equal(table.modifier.id, "short", "контракт расписания изменился");
 
   const greet = async (msg: Record<string, unknown>) => {

@@ -115,7 +115,7 @@ def test_documented_table_and_campaign_counts_are_real():
     from app.engine.scenarios import SCENARIOS
 
     doc = (ROOT / "docs" / "product.md").read_text(encoding="utf-8")
-    words = {8: "восемь", 2: "Две", 4: "четыре"}
+    words = {8: "восемь", 9: "девять", 2: "Две", 4: "четыре"}
     assert words[len(SCENARIOS)] in doc, f"столов {len(SCENARIOS)}, а в докладе иначе"
     assert words[len(CAMPAIGNS)] in doc, f"кампаний {len(CAMPAIGNS)}, а в докладе иначе"
     for c in CAMPAIGNS:

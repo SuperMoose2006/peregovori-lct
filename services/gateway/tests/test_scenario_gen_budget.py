@@ -51,3 +51,16 @@ async def test_second_attempt_runs_only_while_budget_lasts(monkeypatch) -> None:
 
     assert await scenario_gen.generate_scenario("ситуация", "ru") is None
     assert calls == 2, "две попытки — столько и заявлено"
+
+
+@pytest.mark.asyncio
+async def test_debrief_waits_for_the_note_only_so_long(monkeypatch) -> None:
+    """Разбор самодостаточен: слово наставника не имеет права его задерживать.
+
+    Он публикуется ОДНИМ событием, поэтому медленная модель раньше держала
+    человека перед пустым экраном столько, сколько думала.
+    """
+    from app.orchestrator import negotiation
+
+    assert negotiation.DEBRIEF_NOTE_BUDGET_S <= 10, (
+        "потолок ожидания слова наставника должен оставаться человеческим")

@@ -66,11 +66,11 @@ export interface DailyTable {
 export function dailyTable(d: Date = new Date()): DailyTable {
   const n = dayNumber(d);
   const scenario = SCENARIOS[((n % SCENARIOS.length) + SCENARIOS.length) % SCENARIOS.length];
-  // Условие считается ещё и от НОМЕРА КРУГА по столам: четыре условия делят
-  // восемь столов нацело, поэтому без круга пара «стол + условие» повторялась
-  // бы через восемь дней и понедельник всегда был бы одним и тем же.
-  const round = Math.floor(n / SCENARIOS.length);
-  const mi = (((n + round) % DAILY_MODIFIERS.length) + DAILY_MODIFIERS.length) % DAILY_MODIFIERS.length;
+  // Пара «стол + условие» обязана обойти все сочетания, иначе понедельник всегда
+  // один и тот же. При восьми столах в выбор условия входил ещё и номер круга
+  // (8 и 4 делятся нацело). С девятью столами 9 и 4 взаимно просты — круг больше
+  // не нужен, пара повторяется через 9 × 4 = 36 дней. Зеркало daily.py.
+  const mi = ((n % DAILY_MODIFIERS.length) + DAILY_MODIFIERS.length) % DAILY_MODIFIERS.length;
   const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   return { day: iso, scenarioId: scenario.id, modifier: DAILY_MODIFIERS[mi] };
 }

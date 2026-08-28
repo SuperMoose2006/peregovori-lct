@@ -145,6 +145,24 @@
     "If we give you a three-year renewal, can you move to 99.8 uptime?",
     "Let us fix the package: a three-year renewal — and 99.8% uptime. Do we have a deal?"
    ]
+  },
+  "candidate_offer": {
+   "ru": [
+    "Почему для вас важен переезд с семьёй — жильё и подъёмные?",
+    "Почему для вас важно вырасти до архитектора, а не сидеть на легаси?",
+    "Почему для вас важна уверенность после внезапного сокращения на прошлом месте?",
+    "По рынку сеньор вашего уровня стоит 230, потому что это медиана независимых обзоров зарплат.",
+    "Если мы дадим трек до архитектора с наставником и закроем переезд подъёмными и жильём, вы выйдете на 230?",
+    "Фиксируем пакет: трек до архитектора и наставник, подъёмные на переезд — и оклад 230. Договорились?"
+   ],
+   "en": [
+    "What matters to you most about relocating your family — the housing, the moving costs?",
+    "Why is it important to you to grow into an architect rather than maintain legacy code?",
+    "Why is it important to you to feel secure after being laid off without warning?",
+    "The market median for a senior at your level is 230, because that is what the independent salary surveys show.",
+    "If we set you on an architect track with a mentor and cover the relocation with a housing package, will you join at 230?",
+    "Let us fix the package: an architect track with a mentor, a relocation package — and 230. Do we have a deal?"
+   ]
   }
  },
  "ladder": {

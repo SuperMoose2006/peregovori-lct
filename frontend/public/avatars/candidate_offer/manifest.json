@@ -1,0 +1,28 @@
+{
+  "persona": "candidate_offer",
+  "name": {
+    "ru": "Тимур, кандидат",
+    "en": "Timur, the Candidate"
+  },
+  "style": "relationship",
+  "states": [
+    "annoyed",
+    "lean_back",
+    "lean_forward",
+    "listening",
+    "offended",
+    "speaking",
+    "thinking",
+    "walk_out",
+    "warm"
+  ],
+  "aliases": {
+    "idle": "listening",
+    "hesitation": "thinking",
+    "nod": "warm",
+    "smile": "warm",
+    "shake_head": "annoyed"
+  },
+  "generated_by": "google/gemini-3.1-flash-image",
+  "lipsync": false
+}

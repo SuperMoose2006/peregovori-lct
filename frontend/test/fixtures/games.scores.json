@@ -144,6 +144,19 @@
   }
  },
  "principled": {
+  "candidate_offer": {
+   "overall": 90,
+   "grade": "A",
+   "economic": 100,
+   "relationship": 100,
+   "technique": 71,
+   "deal_text": "230k ₽/мес",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 211.47,
+   "deal": 230.0,
+   "turn": 6
+  },
   "conflict": {
    "overall": 79,
    "grade": "B",

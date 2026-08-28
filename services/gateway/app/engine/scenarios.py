@@ -819,6 +819,105 @@ SCENARIOS: list[Scenario] = [
             "en": "Goal: ≥ 99.8%. Red line: 99.4%. He guards his margin and fears penalties — press with objective criteria (industry SLAs, your downtime cost) and lower his risk with a phased rollout and a longer term.",
         },
     ),
+    Scenario(
+        id="candidate_offer",
+        icon="✍️",
+        difficulty=2,
+        title={"ru": "Оффер сильному кандидату", "en": "Making the Offer"},
+        role={
+            "ru": "Вы — нанимающий руководитель. Бюджет утверждён с запасом, второго оффера у кандидата нет. Договоритесь так, чтобы он вышел — и остался.",
+            "en": "You are the hiring manager. The budget has room, the candidate has no rival offer. Close it so he joins — and stays.",
+        },
+        counterpart=Counterpart(
+            name={"ru": "Тимур, кандидат", "en": "Timur, the Candidate"},
+            persona={
+                "ru": "Сильный инженер, переезжает с семьёй, второго оффера нет. Открытый и доверчивый, от давления замыкается.",
+                "en": "A strong engineer relocating with his family, no rival offer. Open and trusting; pressure makes him shut down.",
+            },
+            female=False,
+            style="relationship",
+        ),
+        headline=Headline(unit={"ru": "k ₽/мес", "en": "k/mo"}, dir="lower_is_better"),
+        # ЕДИНСТВЕННЫЙ стол, где сила у ИГРОКА: дно кандидата (210) лежит далеко
+        # НИЖЕ цели (230), а не рядом с ней. Выжать можно — заработать нельзя:
+        # `economic` считается от цели и на 230 уже равен 100. Ниже 230 игрок
+        # платит отношениями (четверть оценки) буквально ни за что.
+        opponent_open=280,
+        opponent_reservation=210,
+        player_target=230,
+        player_reservation=260,
+        player_batna=Batna(
+            strength=80,
+            note={
+                "ru": "В финале ещё двое кандидатов, один готов выйти на следующей неделе.",
+                "en": "Two more finalists are left; one could start next week.",
+            },
+        ),
+        hidden_interests={
+            "ru": [
+                "Переезд семьи: жильё и подъёмные",
+                "Рост до архитектора, а не поддержка легаси",
+                "Уверенность после внезапного сокращения на прошлом месте",
+            ],
+            "en": [
+                "Relocating his family: housing and moving costs",
+                "Growth toward architect, not legacy maintenance",
+                "Security after being laid off without warning",
+            ],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["переезд", "переехать", "релокац", "жиль", "квартир", "подъемн", "семьи", "семьей", "семейн", "перевоз"],
+                # «рост» намеренно НЕ ключ: после norm() он подстрока слова
+                # «просто», и любая реплика с «просто» вскрывала бы интерес.
+                ["архитект", "вырасти", "развива", "развит", "легаси", "карьер", "ментор", "наставник", "стагнац"],
+                ["сокращ", "испытательн", "стабильн", "гарант", "увольн", "уволил", "надежн", "уверенност", "не отзов"],
+            ],
+            "en": [
+                ["relocat", "housing", "family", "moving cost", "move his family", "apartment", "settle in"],
+                ["architect", "grow", "legacy", "career", "mentor", "stagnat", "senior track"],
+                ["laid off", "layoff", "job security", "probation", "guarantee", "let go", "without warning"],
+            ],
+        },
+        tradeoffs={
+            "ru": ["Трек до архитектора и наставник", "Подъёмные и жильё на три месяца", "Сокращённый испытательный срок"],
+            "en": ["An architect track with a mentor", "A relocation package and housing", "A shortened probation period"],
+        },
+        # Трек до архитектора стоит компании подписи под планом развития, а для
+        # Тимура это причина, по которой он вообще пришёл, — идеальная фишка.
+        # Подъёмные и жильё он ценит почти так же, но это живые деньги из того
+        # же бюджета: настоящая цена, а не бесплатный жест.
+        secondary_issues=[
+            SecondaryIssue(
+                id="growth_track",
+                label={"ru": "Трек до архитектора и наставник", "en": "Architect track with a mentor"},
+                keywords={
+                    "ru": ["трек до архитект", "архитект", "наставник", "ментор", "план развит",
+                           "карьерн трек", "путь до архитект"],
+                    "en": ["architect track", "architect", "mentor", "growth plan", "career track",
+                           "development plan"],
+                },
+                opp_value=0.85,
+                player_cost=0.15,
+            ),
+            SecondaryIssue(
+                id="relocation",
+                label={"ru": "Подъёмные и жильё на три месяца", "en": "Relocation package and housing"},
+                keywords={
+                    "ru": ["подъемн", "жилье", "релокац", "оплатим переезд", "компенсируем переезд",
+                           "переезд за счет"],
+                    "en": ["relocation package", "relocation", "housing", "cover the move",
+                           "moving costs", "pay for the move"],
+                },
+                opp_value=0.6,
+                player_cost=0.5,
+            ),
+        ],
+        briefing={
+            "ru": "Цель: ≤ 230 k ₽/мес. Красная линия: 260 — выше бюджета отдела нет. Сила на вашей стороне: другого оффера у него нет, и он подпишет заметно ниже 230. Только ниже 230 вы не выигрываете ничего, а выжатый на подписи человек уходит в первый год — и позицию вы открываете заново. Спросите, ради чего он идёт, и платите тем, что стоит вам дёшево.",
+            "en": "Goal: ≤ 230k/mo. Red line: 260 — the team budget ends there. The power is yours: he has no rival offer and would sign well below 230. But below 230 you win nothing, and a hire squeezed at signing leaves within the year — and you reopen the role. Ask what he is coming for, and pay with what costs you little.",
+        },
+    ),
 ]
 
 

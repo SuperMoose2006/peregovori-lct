@@ -104,7 +104,7 @@ def test_every_stage_points_at_a_real_scenario():
     from app.engine import scenarios as sc
     from app.engine.campaigns import CAMPAIGNS
     known = {s.id for s in sc.SCENARIOS}
-    assert len(known) == 8, "сценариев стало другое число — проверьте кампании"
+    assert len(known) == 9, "сценариев стало другое число — проверьте кампании"
     for c in CAMPAIGNS:
         for st in c.stages:
             assert st.scenario_id in known, f"{c.id}: нет сценария {st.scenario_id}"
