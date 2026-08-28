@@ -241,3 +241,50 @@ def test_keyword_spam_loses_its_payoff_under_a_strict_judge():
     assert off_sess.state.offer_opp < strict_sess.state.offer_opp
     assert strict_sess.state.offer_opp == 100, "вето → оппонент не двинулся вовсе"
     assert start < 100
+
+
+def test_a_silent_judge_does_not_suppress_a_topical_hit():
+    """Молчание судьи — не вето. Ровно как с `criteria_legitimate`.
+
+    Раньше при живом судье попадание вопроса ПО ТЕМЕ не засчитывалось вовсе:
+    ветка ключевых слов стояла под `elif judge is None`. То есть судья, не
+    назвавший интерес, молча отменял попадание — при том что офлайн та же
+    реплика интерес вскрывала. Один и тот же вопрос работал без сети и не
+    работал с ней.
+
+    Ключевые слова здесь не «слабее» судьи: с правки про честное вскрытие они
+    требуют попадания по теме ровно так же. Судья добавляет смысл там, где слов
+    не хватило, — но не отменяет попадание.
+    """
+    from app.engine import engine
+    from app.engine.techniques import analyze
+
+    line = "Почему для вас так важна стабильная загрузка производства?"
+
+    offline = engine.create_session("supplier", "ru")
+    offline.turn = 1
+    engine.apply_move(offline, analyze(line), line)
+
+    judged = engine.create_session("supplier", "ru")
+    judged.turn = 1
+    # Судья отработал, но интерес не назвал — самый обычный случай.
+    engine.apply_move(judged, analyze(line), line,
+                      judge={"arg_score": 60, "interest_targeted": None})
+
+    assert offline.state.interests_found, "офлайн интерес не вскрылся — тест бесполезен"
+    assert judged.state.interests_found == offline.state.interests_found, (
+        "судья, промолчавший про интерес, отменил попадание по теме")
+
+
+def test_the_judge_still_overrides_which_interest_was_targeted():
+    """Добавлять он по-прежнему может: смысл важнее совпадения слов."""
+    from app.engine import engine
+    from app.engine.techniques import analyze
+
+    # Вопрос про предоплату (интерес 1), а судья говорит: метили в интерес 2.
+    line = "Почему для вас важен денежный поток и предоплата?"
+    sess = engine.create_session("supplier", "ru")
+    sess.turn = 1
+    engine.apply_move(sess, analyze(line), line,
+                      judge={"arg_score": 70, "interest_targeted": 2})
+    assert sess.state.interests_found == [2]
