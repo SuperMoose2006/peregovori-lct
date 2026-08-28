@@ -46,6 +46,12 @@ export function SideNav({ t, active, onMode, onProfile, onCourse }: Props) {
           <li key={r.key}>
             <button
               className={`sn-row${active === r.key ? " on" : ""}`}
+              /* Опора для прибора, не для стилей. Обходчик интерфейса ходил по
+                 подписям кнопок — по-русски. В английском режиме переход молча
+                 не срабатывал, и шесть снимков разных разделов оказывались
+                 одним и тем же экраном под шестью именами. Ключ раздела от
+                 языка не зависит. */
+              data-nav={r.key}
               onClick={r.go}
               aria-current={active === r.key ? "page" : undefined}
               aria-label={r.label}

@@ -2,12 +2,52 @@
 // Смысл: цикл «улучшить» слеп без прибора. Здесь прибор.
 import { chromium } from "playwright-core";
 import fs from "fs";
+import path from "path";
 
 const EXE = "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome";
 const BASE = "http://127.0.0.1:5199/";
 const OUT = "/tmp/ui-audit";
 fs.mkdirSync(OUT, { recursive: true });
 
+// ЧЕМ ПРИБОР СОЛГАЛ В ПРОШЛЫЙ РАЗ. На 127.0.0.1:5199 три дня стоял забытый
+// `python3 -m http.server`, раздававший `dist-mock` от 25 августа. Обходчик
+// исправно ходил по нему и рапортовал «ноль находок» — про сборку, в которой
+// не было ни правки раскладки, ни `data-nav`. Отсюда и четыре «перехода не
+// состоялось»: в той сборке этого атрибута просто не существовало.
+//
+// Поэтому прогон начинается с доказательства, что раздаётся именно текущий
+// `dist`: сверяем имя бандла из отданного index.html с тем, что лежит на диске.
+// Не сошлось — прогон не начинается вовсе. Молчаливый отчёт по чужой сборке
+// хуже отсутствующего: ему верят.
+async function assertServingCurrentBuild() {
+  const localIndex = path.join(process.cwd(), "dist", "index.html");
+  if (!fs.existsSync(localIndex)) {
+    console.error("НЕТ СБОРКИ: dist/index.html отсутствует. Сначала `npm run build`.");
+    process.exit(2);
+  }
+  const bundleOf = (html) => (html.match(/assets\/[A-Za-z0-9_.-]+\.js/) || [])[0] || null;
+  const want = bundleOf(fs.readFileSync(localIndex, "utf-8"));
+  let got = null;
+  try {
+    const res = await fetch(BASE, { redirect: "follow" });
+    got = bundleOf(await res.text());
+  } catch (e) {
+    console.error(`СЕРВЕР НЕ ОТВЕЧАЕТ на ${BASE}: ${e.message}`);
+    process.exit(2);
+  }
+  if (!want || want !== got) {
+    console.error(
+      `ЧУЖАЯ СБОРКА на ${BASE}\n` +
+      `  раздаётся: ${got}\n` +
+      `  на диске:  ${want}\n` +
+      "Прогон отменён: отчёт относился бы не к этому коду.");
+    process.exit(2);
+  }
+  console.log(`сборка сверена: ${want}`);
+}
+await assertServingCurrentBuild();
+
+const ONLY = (process.env.AUDIT_VPS || "").split(",").map((x) => x.trim()).filter(Boolean);
 const VPS = [
   { w: 1440, h: 900, tag: "desk",      scheme: "light", attr: null },
   { w: 390,  h: 844, tag: "mob",       scheme: "light", attr: null },
@@ -15,11 +55,24 @@ const VPS = [
   // [data-theme="dark"] в нём не срабатывают.
   { w: 1440, h: 900, tag: "dark-sys",  scheme: "dark",  attr: null },
   { w: 1440, h: 900, tag: "dark-attr", scheme: "dark",  attr: "dark" },
-  // Английская локаль: инвариант требует RU/EN во ВС�ём пользовательском тексте,
+  // Английская локаль: инвариант требует RU/EN во всём пользовательском тексте,
   // а непереведённая строка выглядит как работающий интерфейс — её видно только
   // если специально искать кириллицу там, где её быть не должно.
   { w: 1440, h: 900, tag: "en",        scheme: "light", attr: null, lang: "en" },
-];
+].filter((v) => !ONLY.length || ONLY.includes(v.tag));
+// Прогон целиком не влезает в память коробки: хром падает по oom-kill на
+// середине. AUDIT_VPS=desk,mob гоняет половину — отчёт при этом честно
+// перечисляет, какие режимы в него вошли.
+// ПОДПИСИ КНОПОК ПЕРЕВОДЯТСЯ ВМЕСТЕ С ПРОДУКТОМ. Обходчик искал их по русскому
+// тексту, поэтому в английском режиме навигация молча не срабатывала
+// (`.catch(()=>{})` глотает промах) и одиннадцать состояний курса не
+// проверялись НИ РАЗУ. Ходим по обоим языкам сразу.
+const RX = {
+  toTasks: /(К заданиям|To the tasks)/i,
+  next:    /^(Дальше|Далее|Next)/i,
+  back:    /←/,
+};
+
 const findings = [];
 let VP = "";
 const add = (sev, where, kind, msg) => findings.push({ sev, where: where + "@" + VP, kind, msg });
@@ -243,23 +296,25 @@ for (const vp of VPS) {
 
   await probe(page, "home", vp.tag);
 
-  // Кампания
-  await page.click('text=КАМПАНИЯ').catch(()=>{});
-  await page.waitForTimeout(1400); await probe(page, "campaign", vp.tag);
-  // Курс
-  await page.click('text=КУРС').catch(()=>{});
-  await page.waitForTimeout(1400); await probe(page, "course", vp.tag);
-  // Своя сделка
-  await page.click('text=СВОЯ СДЕЛКА').catch(()=>{});
-  await page.waitForTimeout(1200); await probe(page, "custom", vp.tag);
-  // Экзамен
-  await page.click('text=ЭКЗАМЕН').catch(()=>{});
-  await page.waitForTimeout(1200); await probe(page, "exam", vp.tag);
-  // Прогресс
-  await page.click('text=ПРОГРЕСС').catch(()=>{});
-  await page.waitForTimeout(1200); await probe(page, "progress", vp.tag);
-  // Профиль
-  await page.click('text=ПРОФИЛЬ').catch(()=>{});
+  // ПЕРЕХОД ОБЯЗАН СОСТОЯТЬСЯ, И ЭТО ПРОВЕРЯЕТСЯ. Раньше клик по русской
+  // подписи глотался `.catch(()=>{})`: в английском режиме навигация не
+  // срабатывала, а снимок всё равно сохранялся под именем раздела — шесть
+  // разделов оказывались одним и тем же домашним экраном. Ходим по ключу
+  // раздела (`data-nav`, от языка не зависит) и убеждаемся, что пункт стал
+  // активным; не стал — это находка, а не молчание.
+  const nav = async (key, name) => {
+    await page.locator(`[data-nav="${key}"]`).first().click().catch(()=>{});
+    await page.waitForTimeout(1300);
+    if (!await page.locator(`[data-nav="${key}"].on`).count())
+      add("BAD", name, "nav", `переход в «${key}» не состоялся — снимок показал бы не тот экран`);
+    await probe(page, name, vp.tag);
+  };
+
+  await nav("campaign", "campaign");
+  await nav("course", "course");
+  await nav("custom", "custom");
+  await nav("exam", "exam");
+  await page.locator('[data-nav="profile"]').first().click().catch(()=>{});
   await page.waitForTimeout(1200); await probe(page, "profile", vp.tag);
 
   // ——— глубокие состояния ———
@@ -269,7 +324,11 @@ for (const vp of VPS) {
   // Глубокий обход курса — только на светлой теме и телефоне. Тёмные варианты
   // для упражнений почти ничего не добавляют (те же токены, что везде), а время
   // прогона учетверяют.
-  const deepCourse = vp.tag === "desk" || vp.tag === "mob";
+  // Английский обход курса ОБЯЗАТЕЛЕН, хотя он и медленный. Проверка на
+  // просочившуюся кириллицу гоняется только в режиме `en`, а курс — самая
+  // текстовая часть продукта: 37 уроков и 54 упражнения. Пропуская его, прибор
+  // рапортовал «непереведённого нет», ни разу туда не заглянув.
+  const deepCourse = vp.tag === "desk" || vp.tag === "mob" || vp.tag === "en";
 
   // Профиль подставляем ЕЩЁ РАЗ, прямо перед обходом курса. Между экранами его
   // успевает перезаписать сам продукт (серия, цель дня), и посеянный на старте
@@ -298,7 +357,7 @@ for (const vp of VPS) {
     await page.locator('.seg button:has-text("EN")').first().click().catch(()=>{});
     await page.waitForTimeout(800);
   }
-  await page.click('text=КУРС').catch(()=>{});
+  await page.locator('[data-nav="course"]').first().click().catch(()=>{});
   await page.waitForTimeout(1300);
 
   const ALL_KINDS = ["choice","spot_error","order","freeform","match","meters",
@@ -325,7 +384,7 @@ for (const vp of VPS) {
       await lessons.nth(li).click().catch(()=>{});
       await page.waitForTimeout(900);
       if (li === 0) await probe(page, "course-lesson", vp.tag);
-      const toTasks = page.locator('button:has-text("К заданиям")').first();
+      const toTasks = page.getByRole("button", { name: RX.toTasks }).first();
       if (await toTasks.count()) { await toTasks.click().catch(()=>{}); await page.waitForTimeout(1100); }
 
       for (let i = 0; i < 8; i++) {
@@ -338,7 +397,9 @@ for (const vp of VPS) {
         if (!kind) break;
         if (!seen.has(kind)) { seen.add(kind); await probe(page, "ex-" + kind, vp.tag); }
         for (const box of await page.locator(".ex textarea, .ex input[type=text]").all()) {
-          await box.fill("Что для вас важнее всего в этой сделке и почему именно это?").catch(()=>{});
+          await box.fill(vp.lang === "en"
+            ? "What matters most to you in this deal, and why exactly that?"
+            : "Что для вас важнее всего в этой сделке и почему именно это?").catch(()=>{});
         }
         for (const num of await page.locator(".ex input[type=number]").all()) {
           await num.fill("86").catch(()=>{});
@@ -347,13 +408,13 @@ for (const vp of VPS) {
         if (await opt.count()) { await opt.click().catch(()=>{}); await page.waitForTimeout(300); }
         const check = page.locator(".ex-go").first();
         if (await check.count()) { await check.click().catch(()=>{}); await page.waitForTimeout(750); }
-        const next = page.locator("button:has-text('Дальше'), button:has-text('Далее')").first();
+        const next = page.getByRole("button", { name: RX.next }).first();
         if (!await next.count()) break;
         await next.click().catch(()=>{});
         await page.waitForTimeout(850);
       }
       // Вернуться к списку уроков блока.
-      const back = page.locator("button:has-text('←')").first();
+      const back = page.getByRole("button", { name: RX.back }).first();
       if (await back.count()) { await back.click().catch(()=>{}); await page.waitForTimeout(900); }
       if (seen.size >= ALL_KINDS.length) break;
     }
@@ -364,13 +425,13 @@ for (const vp of VPS) {
     // четыре типа упражнений оставались непроверенными.
     for (let back = 0; back < 3; back++) {
       if (await page.locator(".cnode-btn").count()) break;
-      const b = page.locator("button:has-text('←')").first();
+      const b = page.getByRole("button", { name: RX.back }).first();
       if (!await b.count()) break;
       await b.click().catch(()=>{});
       await page.waitForTimeout(700);
     }
     if (!await page.locator(".cnode-btn").count()) {
-      await page.click('text=КУРС').catch(()=>{});
+      await page.locator('[data-nav="course"]').first().click().catch(()=>{});
       await page.waitForTimeout(1200);
     }
   }
@@ -386,12 +447,23 @@ for (const vp of VPS) {
   await page.locator(".card .go, .card button").first().click().catch(()=>{});
   await page.waitForTimeout(1400);
   if (await page.locator(".setup, .ly").count()) await probe(page, "setup-layers", vp.tag);
-  await page.locator("button:has-text('НАЧАТЬ'), button:has-text('ЗА СТОЛ')").first().click().catch(()=>{});
+  await page.getByRole("button", { name: /(НАЧАТЬ|ЗА СТОЛ|START|TO THE TABLE)/i }).first().click().catch(()=>{});
   await page.waitForSelector(".chat", { timeout: 20000 }).catch(()=>{});
   await page.waitForTimeout(1600);
   await probe(page, "game-turn0", vp.tag);
 
-  const LINES = ["Что для вас важнее всего в этой сделке и почему именно это?",
+  // РЕПЛИКИ ИГРОКА ТОЖЕ ПЕРЕВОДЯТСЯ. Прибор печатал русские фразы во всех
+  // режимах, они возвращались в ленту как пузыри игрока и в разбор как цитата —
+  // и проверка на просочившуюся кириллицу честно ловила НАШ СОБСТВЕННЫЙ ввод.
+  // Одиннадцать «непереведённых строк» оказались тем, что прибор напечатал сам.
+  const LINES = vp.lang === "en" ? [
+    "What matters most to you in this deal, and why exactly that?",
+    "Why does cash flow matter to you — would a prepayment help?",
+    "Comparable deals run at 86-88 on the market; my reference is 86.",
+    "If we commit to a yearly contract and 30% upfront — could you move to 86?",
+    "Agreed: 86 per unit, yearly contract, 30% upfront. Shall we lock it in?",
+  ] : [
+    "Что для вас важнее всего в этой сделке и почему именно это?",
     "А почему для вас важен денежный поток — предоплата помогла бы?",
     "По рынку аналог идёт 86-88; ориентир — 86.",
     "Если дадим годовой контракт и 30% предоплату — подвинетесь к 86?",
