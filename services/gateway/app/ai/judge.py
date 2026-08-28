@@ -13,6 +13,11 @@ Design (keeps the main invariant intact):
     that turn (the engine still owns all state and the final formula — it just
     receives a better-informed per-turn number), and surfaces `note` as live
     per-turn coaching. This resists keyword-spam and powers real feedback.
+  - It also VETOES techniques: `criteria_legitimate` / `tradeoff_real` /
+    `batna_real` = False tell the engine that the criterion / trade / BATNA is
+    only the word for it, and the engine withholds the leverage and the price
+    movement. The fields are tri-state on purpose — missing means "no opinion",
+    and the engine then keeps the keyword path (see `_validate`).
 
 Returns None on any problem → caller falls back to the keyword score.
 """
@@ -78,6 +83,8 @@ def _sys(lang: str) -> str:
             '"interest_targeted": индекс интереса из списка (0-based), в который РЕАЛЬНО метит вопрос игрока, или null, '
             '"secondary_conceded": id вторичного вопроса из списка, который игрок реально предлагает уступить в размене, или null, '
             '"criteria_legitimate": true если игрок опёрся на настоящий объективный критерий (данные/стандарт), иначе false, '
+            '"tradeoff_real": true если в реплике есть настоящий размен «мы даём X — вы двигаетесь по Y» с названным X, иначе false, '
+            '"batna_real": true если игрок сослался на реальную альтернативу (кто, что, на каких условиях), а не на пустую угрозу уйти, иначе false, '
             '"note": "одно короткое конкретное указание игроку", '
             '"techniques": [список ТОЛЬКО из этих значений, без своих формулировок: '
             + ", ".join(f'"{t}"' for t in TECHNIQUES_RU) + "]}"
@@ -103,6 +110,8 @@ def _sys(lang: str) -> str:
         '"interest_targeted": index (0-based) of the interest the question ACTUALLY targets, or null, '
         '"secondary_conceded": id of the secondary issue from the list the player actually offers to concede in a trade, or null, '
         '"criteria_legitimate": true if the player leaned on a real objective criterion (data/standard), else false, '
+        '"tradeoff_real": true if the line carries a real trade "we give X if you move on Y" with X actually named, else false, '
+        '"batna_real": true if the player cited a real alternative (who, what, on what terms), not an empty threat to walk, else false, '
         '"note": "one short concrete tip to the player", '
         '"techniques": [pick ONLY from this list, invent nothing: '
         + ", ".join(f'"{t}"' for t in TECHNIQUES_EN) + "]}"
@@ -199,11 +208,22 @@ def _validate(d: dict, lang: str, interests: Optional[list],
     elif secondary is not None and sec not in {sid for sid, _ in secondary}:
         sec = None
 
+    # Вето приёмов — ТРИ состояния, а не два. Явное false значит «приём назван,
+    # но ненастоящий», и движок снимает начисление; отсутствующее или мусорное
+    # поле (модель постарше, ответ покороче) значит «не знаю» — тогда движок
+    # обязан откатиться на ключевые слова, а не тихо отобрать рычаг. Разница
+    # между False и None здесь — это разница между вето и молчанием.
+    def tri(key: str) -> Optional[bool]:
+        v = d.get(key)
+        return v if isinstance(v, bool) else None
+
     return {
         "arg_score": score,
         "interest_targeted": idx,
         "secondary_conceded": sec,
-        "criteria_legitimate": bool(d.get("criteria_legitimate")),
+        "criteria_legitimate": tri("criteria_legitimate"),
+        "tradeoff_real": tri("tradeoff_real"),
+        "batna_real": tri("batna_real"),
         "note": str(d.get("note") or "").strip()[:280],
         "techniques": _clean_techniques(d.get("techniques"), lang),
     }

@@ -302,11 +302,15 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     """The reactive core. Given the analyzed utterance, update meters, possibly
     move the opponent's offer, and choose a reply.
 
-    Optional `judge` (semantic AI judgement, CLAUDE.md option C) refines two
+    Optional `judge` (semantic AI judgement, CLAUDE.md option C) refines three
     things while the engine keeps owning all state/scoring: it overrides the
-    keyword arg-quality with a meaning-based score, and reveals the interest the
-    question ACTUALLY targeted instead of the next one in list order. When judge
-    is None the behaviour is exactly the deterministic keyword path (offline)."""
+    keyword arg-quality with a meaning-based score, reveals the interest the
+    question ACTUALLY targeted instead of the next one in list order, and VETOES
+    a technique it read as fake (`criteria_legitimate` / `tradeoff_real` /
+    `batna_real` = False → no leverage, no concession for that technique). A
+    veto is only ever a subtraction: the judge cannot invent a technique the
+    text does not carry. When judge is None — or when it left those fields out —
+    the behaviour is exactly the deterministic keyword path (offline)."""
     sc = by_id(sess.scenario_id)
     s = sess.state
     m = sess.metrics
@@ -353,6 +357,20 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
 
     def has(k: str) -> bool:
         return k in analysis.moves
+
+    # Живой судья читает СМЫСЛ приёма, словарь — только форму. Пока приёмы
+    # начислялись по попаданию в LEX, один и тот же абзац со словами «рынок»,
+    # «альтернатива», «в обмен» приносил рычаг, сколько бы раз судья ни сказал,
+    # что настоящего критерия там нет. Явное `False` от судьи — вето: приём не
+    # начисляется вовсе. Поля нет (ответ модели постарше) или судьи нет вовсе →
+    # None → ровно keyword-путь. Офлайн (`judge is None`) не меняется никак:
+    # `judged(k, …)` там тождественно `has(k)`.
+    def judged(k: str, field: str) -> bool:
+        return has(k) and not (judge is not None and judge.get(field) is False)
+
+    criteria = judged("objective_criteria", "criteria_legitimate")
+    batna = judged("batna", "batna_real")
+    tradeoff = judged("tradeoff", "tradeoff_real")
 
     reaction = "neutral"
     concession_fraction = 0.0
@@ -415,7 +433,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
             reaction = "probe_vague"
 
     # --- Objective criteria: legitimate leverage. ------------------------------
-    if has("objective_criteria"):
+    if criteria:
         s.leverage = clamp(s.leverage + 16)
         s.trust = clamp(s.trust + 3)
         m.objective_criteria += 1
@@ -429,8 +447,8 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         reaction = "persuaded"
 
     # --- BATNA / alternatives: leverage, but risky. ----------------------------
-    if has("batna"):
-        backed = has("objective_criteria") or analysis.arg_quality > 55
+    if batna:
+        backed = criteria or analysis.arg_quality > 55
         s.leverage = clamp(s.leverage + (18 if backed else 10))
         s.tension = clamp(s.tension + (4 if backed else 14))
         if style == "relationship":
@@ -442,7 +460,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         reaction = "pressured"
 
     # --- Trade-off / logrolling: value creation. -------------------------------
-    if has("tradeoff"):
+    if tradeoff:
         s.trust = clamp(s.trust + 6)
         s.tension = clamp(s.tension - 4)
         bonus = 0.12 + 0.18 * (s.info / 100)
@@ -498,6 +516,9 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     # обязано ещё и попасть в коридор масштаба сценария. Иначе «Ага 1.»
     # становилось офертой в 1 ₽/шт, а «Мне 30 лет» — зарплатой в 30 там, где
     # шкала 180–240.
+    # Здесь намеренно `has("tradeoff")`, а не вето-версия: судья может не
+    # признать размен настоящим, но число, названное вслух, остаётся числом на
+    # столе. Вето снимает НАЧИСЛЕНИЕ за приём, а не право игрока назвать цену.
     priced = None
     if analysis.number is not None and (
         has("offer") or has("anchor") or has("concession") or has("accept") or has("tradeoff")
@@ -514,7 +535,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     # заработанное событие в рубли. Нет события — нет и хода цены.
     flex = flexibility(sess)
     concession_fraction += 0.10 + 0.34 * flex
-    if has("objective_criteria"):
+    if criteria:
         concession_fraction += 0.12
     if analysis.spin or has("interests_probe"):
         concession_fraction += 0.05

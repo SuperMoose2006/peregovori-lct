@@ -316,6 +316,14 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
       reaction = "probe_vague";
     }
   }
+  // ПОЧЕМУ ЗДЕСЬ НЕТ ВЕТО СУДЬИ. На сервере живой судья может снять начисление
+  // за критерий, размен и BATNA (criteria_legitimate / tradeoff_real /
+  // batna_real = false): он читает смысл, а не словарь. У офлайн-ядра источника
+  // такого вето нет и быть не может — судья это сетевой вызов, а инвариант 5
+  // требует полной играбельности без сети. Поэтому зеркало повторяет ровно
+  // keyword-путь сервера, то есть путь `judge is None`, — и паритет (инвариант
+  // 8) держится именно на том, что серверное вето включается ТОЛЬКО при живом
+  // судье. Появится вето здесь — разъедутся оба ядра.
   if (H("objective_criteria")) {
     s.leverage = clamp(s.leverage + 16); s.trust = clamp(s.trust + 3); m.crit++;
     if (style === "analytical") s.leverage = clamp(s.leverage + 6);
