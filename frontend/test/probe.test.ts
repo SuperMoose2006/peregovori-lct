@@ -44,3 +44,18 @@ test("no question on the first move or after the table closes", () => {
   assert.equal(shouldProbe(EVERY, true), false, "the outcome already answers it");
   assert.equal(shouldProbe(EVERY, false), true);
 });
+
+test("«переспрос» НЕ вопрос про теплоту — слой на таком ходу молчит", () => {
+  // `probe_vague` появился, когда интерес перестал вскрываться общим вопросом:
+  // оппонент отвечает «а что именно вас интересует?». Это не состояние на шкале
+  // теплоты, а просьба уточнить, и в REACTION_SCALE ему места нет.
+  //
+  // Тест сторожит соблазн «дописать недостающую реакцию в шкалу»: дистракторы
+  // берутся СОСЕДЯМИ по теплоте, и вставка туда чужого состояния испортила бы
+  // их у обоих соседей. Слой честно молчит на таком ходу — это лучше, чем
+  // спросить «что она почувствовала» про реплику, где она ничего не почувствовала.
+  assert.equal(buildProbe("probe_vague", 6), null);
+  assert.equal(REACTION_SCALE.includes("probe_vague" as never), false);
+  // И любая другая незнакомая строка тоже не должна ронять слой.
+  assert.equal(buildProbe("нет такой реакции", 6), null);
+});
