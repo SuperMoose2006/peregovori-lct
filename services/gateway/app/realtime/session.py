@@ -31,6 +31,12 @@ class Layers:
     voice: bool = False    # микрофон + голос оппонента
     camera: bool = False   # кадры в VLM для контекста присутствия
     avatar: bool = False   # лицо оппонента (состояния / липсинк)
+    #: «Покерфейс» — упражнение, а не оценка. Считает кадры, на которых лицо
+    #: несёт ЯВНОЕ выражение вместо нейтрального. Это наблюдаемый признак, а не
+    #: вывод о внутреннем состоянии: «модель посмотрела и решила, что вы
+    #: неуверенны» — псевдонаука, и в счёт такое не пускают (см. vision.py).
+    #: Требует камеры: без кадров считать нечего.
+    pokerface: bool = False
 
     @staticmethod
     def for_exam() -> "Layers":
@@ -47,8 +53,13 @@ class Layers:
     @classmethod
     def from_dict(cls, d: dict[str, bool] | None) -> "Layers":
         d = d or {}
+        camera = bool(d.get("camera"))
         return cls(probe=bool(d.get("probe")), voice=bool(d.get("voice")),
-                   camera=bool(d.get("camera")), avatar=bool(d.get("avatar")))
+                   camera=camera, avatar=bool(d.get("avatar")),
+                   # Покерфейс без камеры — включённый тумблер, за которым
+                   # ничего не происходит. Гасим здесь, а не на клиенте:
+                   # правило, которое соблюдает только клиент, не правило.
+                   pokerface=bool(d.get("pokerface")) and camera)
 
 
 @dataclass
@@ -89,6 +100,11 @@ class RealtimeSession:
     #: НО НИКОГДА в счёт. Хранятся здесь, а не в engine.Session, именно чтобы
     #: физически не оказаться на входе `score_session`.
     observations: list[str] = field(default_factory=list)
+
+    #: Сколько раз за партию лицо несло явное выражение вместо нейтрального.
+    #: Живёт здесь по той же причине, что и наблюдения: в `engine.Session`
+    #: этого поля нет, поэтому `score_session` до него не дотянется физически.
+    tells: int = 0
 
     # ------------------------------------------------------------------ ходы
 

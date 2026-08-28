@@ -293,7 +293,8 @@ def _wire(session: RealtimeSession) -> tuple[
     vision: Optional[VisionSampler] = None
     if session.layers.camera:
         sampler = VisionSampler(session.lang, session.bus.publish,
-                                session.observations.append)
+                                session.observations.append,
+                                pokerface=session.layers.pokerface)
         vision = sampler if sampler.available() else None
 
     return orchestrator, voice, vision
@@ -375,6 +376,10 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         "voice": bool(session.layers.voice),
         "microphone": voice is not None,
         "camera": bool(session.layers.camera) and orchat.available(),
+        # Отдельная возможность, а не подпункт камеры: тумблер «покерфейс»
+        # может стоять, а слой при этом не подняться (нет ключа — нет модели
+        # зрения). Клиент обязан различать «выключено» и «недоступно».
+        "pokerface": bool(session.layers.pokerface) and orchat.available(),
         "judge": judge_enabled(),
         "cloud_ai": orchat.available(),
         "models": describe_models(),

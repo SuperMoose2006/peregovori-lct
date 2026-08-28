@@ -73,6 +73,7 @@ SERVER_EVENTS = (
     "generation.cancelled", # поколение погашено — клиент выбрасывает его хвост
     "avatar.state",         # состояние лица оппонента (из реакции движка)
     "vision.observation",   # наблюдение камеры — НЕ влияет на оценку
+    "vision.tell",          # «покерфейс»: лицо несёт явное выражение — тоже НЕ оценка
     "user.speech.started",  # VAD: игрок заговорил
     "user.speech.stopped",
     "user.transcript",      # расшифровка речи игрока (partial / final)

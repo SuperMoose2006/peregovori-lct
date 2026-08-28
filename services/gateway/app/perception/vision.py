@@ -23,6 +23,14 @@
 Тридцать кадров в секунду в облако — это не «более внимательное зрение», это
 счёт за электричество и секунда задержки на ровном месте.
 
+«ПОКЕРФЕЙС» — И ПОЧЕМУ ЭТО НЕ ПРОТИВОРЕЧИТ ПЕРВОМУ АБЗАЦУ. Слой `pokerface`
+просит модель ответить на наблюдаемый вопрос: видно ли на лице ЯВНОЕ выражение
+(улыбка, нахмуренные брови, поджатые губы) вместо нейтрального. Это не вывод о
+внутреннем состоянии — «неуверен», «врёт», «нервничает», — а признак, который
+человек рядом увидел бы сам. Счётчик уходит в разбор с той же плашкой «не
+влияет на оценку» и в `score_session` не входит: держать лицо — упражнение, а
+не критерий сделки.
+
 MOCK(vision-change-detection): «кадр заметно изменился» считается по размеру
   JPEG, а не по содержимому — прокси, который ловит смену освещения и крупное
   движение, но не тихий уход из кадра. Детерминированно и без зависимостей.
@@ -68,11 +76,55 @@ _SYSTEM = {
 }
 
 
+#: Добавка к системному промпту, когда включён «покерфейс». Отдельным вопросом,
+#: а не отдельным вызовом: второй запрос на тот же кадр удвоил бы и счёт, и
+#: задержку ради одного бита.
+_TELL_ADDON = {
+    "ru": ("\nВТОРОЙ СТРОКОЙ ответь ровно так: «ЛИЦО: да» или «ЛИЦО: нет».\n"
+           "«да» — если на лице ЯВНОЕ выражение: улыбка, нахмуренные брови, "
+           "поджатые губы, расширенные глаза, смех.\n"
+           "«нет» — если лицо нейтральное, спокойное, или лица не видно.\n"
+           "Не объясняй и не угадывай настроение — только то, что видно."),
+    "en": ("\nON A SECOND LINE answer exactly: \"FACE: yes\" or \"FACE: no\".\n"
+           "\"yes\" — the face carries a CLEAR expression: a smile, furrowed brows, "
+           "pressed lips, widened eyes, laughter.\n"
+           "\"no\" — the face is neutral or not visible.\n"
+           "Do not explain and do not guess the mood — only what is visible."),
+}
+
+_TELL_RE = None  # заполняется лениво, чтобы не тащить re в горячий путь импорта
+
+
+def split_tell(raw: str) -> tuple[str, Optional[bool]]:
+    """Отделить строку «ЛИЦО: да» от самого наблюдения.
+
+    Возвращает `(наблюдение, выражение_видно | None)`. `None` значит «модель не
+    ответила на второй вопрос» — это не «нет»: молчание модели и нейтральное
+    лицо не одно и то же, и считать их одинаково значило бы придумывать данные.
+    """
+    global _TELL_RE
+    if _TELL_RE is None:
+        import re
+        _TELL_RE = re.compile(r"^\s*(?:ЛИЦО|FACE)\s*[:\-]\s*(да|нет|yes|no)\b\.?\s*$",
+                              re.IGNORECASE)
+    kept, tell = [], None
+    for line in (raw or "").splitlines():
+        m = _TELL_RE.match(line)
+        if m:
+            tell = m.group(1).lower() in ("да", "yes")
+        else:
+            kept.append(line)
+    return " ".join(" ".join(kept).split()), tell
+
+
 @dataclass
 class VisionStats:
     frames_seen: int = 0
     calls_made: int = 0
     last_ms: float = 0.0
+    #: Кадров, на которых лицо несло явное выражение. Считается только при
+    #: включённом «покерфейсе»; иначе модель этого вопроса даже не видит.
+    tells: int = 0
 
 
 class VisionSampler:
@@ -80,11 +132,13 @@ class VisionSampler:
 
     def __init__(self, lang: str, publish: Callable[[dict], None],
                  record: Callable[[str], None],
-                 min_interval_s: float = _MIN_INTERVAL_S) -> None:
+                 min_interval_s: float = _MIN_INTERVAL_S,
+                 pokerface: bool = False) -> None:
         self._lang = lang
         self._publish = publish
         self._record = record
         self._min_interval = min_interval_s
+        self._pokerface = pokerface
 
         self._last_call = 0.0
         self._last_size = 0
@@ -128,19 +182,25 @@ class VisionSampler:
 
     # ---------------------------------------------------------------- модель
 
+    def _system_prompt(self) -> str:
+        base = _SYSTEM.get(self._lang, _SYSTEM["ru"])
+        if not self._pokerface:
+            return base
+        return base + _TELL_ADDON.get(self._lang, _TELL_ADDON["ru"])
+
     async def _look(self, frame_b64: str) -> None:
         started = time.perf_counter()
         payload = {
             "model": model_for("vision"),
             "messages": [
-                {"role": "system", "content": _SYSTEM.get(self._lang, _SYSTEM["ru"])},
+                {"role": "system", "content": self._system_prompt()},
                 {"role": "user", "content": [
                     {"type": "text", "text": "Что видно?" if self._lang == "ru" else "What is visible?"},
                     {"type": "image_url",
                      "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}},
                 ]},
             ],
-            "max_tokens": 80,
+            "max_tokens": 110 if self._pokerface else 80,
             "temperature": 0.2,
         }
         try:
@@ -153,6 +213,21 @@ class VisionSampler:
 
         self.stats.calls_made += 1
         self.stats.last_ms = (time.perf_counter() - started) * 1000
+
+        # «ЛИЦО: да/нет» снимается ДО проверки на пустое наблюдение: кадр может
+        # не нести ничего про обстановку и при этом нести выражение на лице.
+        text, tell = split_tell(text)
+        if tell is not None:
+            if tell:
+                self.stats.tells += 1
+            self._publish({
+                "type": "vision.tell",
+                "expressive": tell,
+                "total": self.stats.tells,
+                # Та же плашка, что и у наблюдения, и по той же причине:
+                # держать лицо — упражнение, а не критерий сделки.
+                "affects_score": False,
+            })
 
         if not text or text.strip().lower().rstrip(".") in ("нет", "no"):
             return

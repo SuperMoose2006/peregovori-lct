@@ -33,6 +33,10 @@ LAYER_WORDS = (
     r"camera", r"observation", r"vision", r"video_frame",
     r"voice", r"audio", r"speech", r"microphone", r"prosody", r"pause_ms",
     r"probe_\w+", r"emotion", r"gaze", r"lipsync", r"avatar",
+    # «Покерфейс» считает кадры с явным выражением на лице. Слово стоит здесь
+    # ровно затем, чтобы попытка занести счётчик в грейд валила сборку: держать
+    # лицо — упражнение, а не критерий сделки.
+    r"pokerface", r"poker_face", r"tells",
 )
 
 
