@@ -195,8 +195,8 @@ export interface Strings {
     presets: string;
     start: string;
     back: string;
-    names: Record<"probe" | "voice" | "camera" | "avatar", string>;
-    blurbs: Record<"probe" | "voice" | "camera" | "avatar", string>;
+    names: Record<"probe" | "voice" | "camera" | "avatar" | "pokerface", string>;
+    blurbs: Record<"probe" | "voice" | "camera" | "avatar" | "pokerface", string>;
     presetNames: Record<string, string>;
     explainHead: string;
     explain: string[];
@@ -209,6 +209,12 @@ export interface Strings {
     greeting: string;        // единственная реплика, которую он говорит сам
     thinking: string;        // пока думает над подсказкой
     rememberTitle: string;   // заголовок карточки Тихона в разборе
+    // Подписи к картинкам. Их читает вслух экранный диктор, поэтому они такой
+    // же пользовательский текст, как и всё остальное, и переводятся (инвариант 4).
+    alt: {
+      idle: string; think: string; cheer: string; concern: string;
+      point: string; celebrate: string; sad: string;
+    };
   };
   // Полоса живых слоёв под композером.
   live: {
@@ -722,14 +728,17 @@ export const I18N: Record<Lang, Strings> = {
       presets: "Пресеты",
       start: "Начать переговоры",
       back: "к выбору оппонента",
-      names: { probe: "Читай лицо", voice: "Голосом", camera: "Камера", avatar: "Лицо оппонента" },
+      names: { probe: "Читай лицо", voice: "Голосом", camera: "Камера", avatar: "Лицо оппонента",
+               pokerface: "Покерфейс" },
       blurbs: {
         probe: "Игра спросит, что чувствует оппонент",
         voice: "Говорите вслух — и слышите ответ. Можно перебивать",
         camera: "Сигналы присутствия: кто в кадре, куда смотрите",
         avatar: "Оппонент меняется в лице по реакции движка",
+        pokerface: "Считает, сколько раз лицо выдало вас. Требует камеры",
       },
-      presetNames: { classic: "Классика", read: "Читай лицо", call: "Видеозвонок", full: "Полный контакт" },
+      presetNames: { classic: "Классика", read: "Читай лицо", call: "Видеозвонок",
+                     poker: "Покерфейс", full: "Полный контакт" },
       explainHead: "Что это даёт",
       explain: [
         "Слои меняют состав разбора после партии, но никогда не влияют на грейд.",
@@ -743,6 +752,15 @@ export const I18N: Record<Lang, Strings> = {
       greeting: "Не торопитесь с ценой. Сначала выясните, что важно второй стороне.",
       thinking: "Секунду, смотрю…",
       rememberTitle: "Тихон помнит",
+      alt: {
+        idle: "Карл наблюдает",
+        think: "Карл думает",
+        cheer: "Карл одобряет",
+        concern: "Карл насторожен",
+        point: "Карл подсказывает",
+        celebrate: "Карл празднует",
+        sad: "Карл расстроен",
+      },
     },
     live: {
       micOn: "микрофон активен",
@@ -1331,14 +1349,17 @@ export const I18N: Record<Lang, Strings> = {
       presets: "Presets",
       start: "Start the negotiation",
       back: "back to opponents",
-      names: { probe: "Read the face", voice: "By voice", camera: "Camera", avatar: "Their face" },
+      names: { probe: "Read the face", voice: "By voice", camera: "Camera", avatar: "Their face",
+               pokerface: "Poker face" },
       blurbs: {
         probe: "The game will ask what your counterpart feels",
         voice: "Speak aloud — and hear the reply. You can cut in",
         camera: "Presence signals: who is in frame, where you look",
         avatar: "Their expression follows the engine's reaction",
+        pokerface: "Counts how often your face gave you away. Needs the camera",
       },
-      presetNames: { classic: "Classic", read: "Read the face", call: "Video call", full: "Full contact" },
+      presetNames: { classic: "Classic", read: "Read the face", call: "Video call",
+                     poker: "Poker face", full: "Full contact" },
       explainHead: "What this changes",
       explain: [
         "Layers change what the debrief shows — never the grade.",
@@ -1352,6 +1373,15 @@ export const I18N: Record<Lang, Strings> = {
       greeting: "Don't rush to the number. Find out what matters to the other side first.",
       thinking: "One moment, looking…",
       rememberTitle: "Tikhon remembers",
+      alt: {
+        idle: "Karl is watching",
+        think: "Karl is thinking",
+        cheer: "Karl approves",
+        concern: "Karl is wary",
+        point: "Karl is pointing something out",
+        celebrate: "Karl is celebrating",
+        sad: "Karl is downcast",
+      },
     },
     live: {
       micOn: "microphone live",

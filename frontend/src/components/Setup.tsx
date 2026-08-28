@@ -13,9 +13,11 @@ import type { Lang, ScenarioView } from "../types";
 import { PRESETS, reasonText, type LayerId, type Layers, type LayerState } from "../lib/layers";
 import { ScreenHeading } from "./ScreenHeading";
 
-const ICONS: Record<LayerId, string> = { probe: "🎭", voice: "🎤", camera: "📷", avatar: "🙂" };
+const ICONS: Record<LayerId, string> = { probe: "🎭", voice: "🎤", camera: "📷", avatar: "🙂", pokerface: "😐" };
 // Порядок — от того, что работает всегда, к тому, что требует разрешений.
-const ORDER: LayerId[] = ["avatar", "probe", "voice", "camera"];
+// «Покерфейс» стоит сразу за камерой: без неё он не поднимается, и
+// соседство делает эту зависимость видимой без подписи.
+const ORDER: LayerId[] = ["avatar", "probe", "voice", "camera", "pokerface"];
 
 interface Props {
   t: Strings;

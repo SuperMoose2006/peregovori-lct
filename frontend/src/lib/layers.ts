@@ -19,7 +19,7 @@
 // контексте. Слоя лица не было вовсе — он добавлен.
 import type { Lang } from "../types";
 
-export type LayerId = "probe" | "voice" | "camera" | "avatar";
+export type LayerId = "probe" | "voice" | "camera" | "avatar" | "pokerface";
 
 export interface LayerState {
   id: LayerId;
@@ -30,17 +30,23 @@ export interface LayerState {
 
 export type Layers = Record<LayerId, boolean>;
 
-export const NO_LAYERS: Layers = { probe: false, voice: false, camera: false, avatar: false };
+export const NO_LAYERS: Layers = {
+  probe: false, voice: false, camera: false, avatar: false, pokerface: false,
+};
 
 /** Пресеты — это имена, которые можно назвать со сцены; истина — переключатели под ними. */
 export const PRESETS: { id: string; label: { ru: string; en: string }; layers: Layers }[] = [
   { id: "classic", label: { ru: "Классика", en: "Classic" }, layers: NO_LAYERS },
   { id: "read", label: { ru: "Читай лицо", en: "Read the face" },
-    layers: { probe: true, voice: false, camera: false, avatar: true } },
+    layers: { ...NO_LAYERS, probe: true, avatar: true } },
   { id: "call", label: { ru: "Видеозвонок", en: "Video call" },
-    layers: { probe: false, voice: true, camera: false, avatar: true } },
+    layers: { ...NO_LAYERS, voice: true, avatar: true } },
+  // «Покерфейс» — единственный пресет, где камера включена ради ИГРОКА, а не
+  // ради оппонента: она считает, сколько раз лицо выдало себя явным выражением.
+  { id: "poker", label: { ru: "Покерфейс", en: "Poker face" },
+    layers: { ...NO_LAYERS, camera: true, avatar: true, pokerface: true } },
   { id: "full", label: { ru: "Полный контакт", en: "Full contact" },
-    layers: { probe: true, voice: true, camera: true, avatar: true } },
+    layers: { probe: true, voice: true, camera: true, avatar: true, pokerface: false } },
 ];
 
 /**
@@ -75,6 +81,10 @@ export function detectLayers(): Record<LayerId, LayerState> {
     // Лицо оппонента: набор состояний, которые переключает РЕАКЦИЯ ДВИЖКА.
     // Работает всегда — картинки лежат рядом, сеть и разрешения не нужны.
     avatar: { id: "avatar", available: true, reason: null },
+    // Считает кадры, на которых лицо несёт ЯВНОЕ выражение вместо нейтрального.
+    // Наблюдаемый признак, а не вывод о внутреннем состоянии, и в грейд он не
+    // входит: держать лицо — упражнение, а не критерий сделки.
+    pokerface: { id: "pokerface", available: media, reason: media ? null : insecure },
   };
 }
 
@@ -86,6 +96,10 @@ export function pruneLayers(want: Layers, have: Record<LayerId, LayerState>): La
     voice: want.voice && have.voice.available,
     camera: want.camera && have.camera.available,
     avatar: want.avatar && have.avatar.available,
+    // Без камеры считать нечего. Сервер гасит этот тумблер у себя по той же
+    // причине (session.py: правило, которое соблюдает только клиент, — не
+    // правило); здесь он гасится, чтобы переключатель не горел впустую.
+    pokerface: want.pokerface && want.camera && have.pokerface.available,
   };
 }
 

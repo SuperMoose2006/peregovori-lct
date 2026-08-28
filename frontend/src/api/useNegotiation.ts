@@ -65,6 +65,15 @@ export interface NegotiationState {
   transcript: string | null;
   /** Наблюдения камеры. НИКОГДА не влияют на оценку — только на разбор. */
   observations: string[];
+  /** «Покерфейс»: сколько раз лицо несло явное выражение. Счётчик сервера —
+   *  клиент его только показывает, поэтому второго источника правды нет. */
+  tells: number;
+  /** Кадров, по которым слой вообще успел высказаться. Без этого «0 срывов»
+   *  неотличимо от «слой ни разу не посмотрел» — а это разные новости. */
+  tellFrames: number;
+  /** Что слой сказал про ПОСЛЕДНИЙ кадр. Нужен живому чипу: счётчик за партию
+   *  не отвечает на вопрос «а сейчас-то я держу лицо». */
+  tellNow: boolean;
   /** Сколько кадров камеры ушло на сервер. Ноль при поднятой камере значит,
    *  что поток открыт, а картинка никуда не едет — и чип обязан это сказать. */
   framesSent: number;
@@ -106,6 +115,9 @@ const initialState: NegotiationState = {
   userSpeaking: false,
   transcript: null,
   observations: [],
+  tells: 0,
+  tellFrames: 0,
+  tellNow: false,
   framesSent: 0,
   capabilities: null,
 };
@@ -171,6 +183,9 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
           onOppAudio: (speaking) =>
             setS((p) => ({ ...p, oppAudio: speaking,
                            oppSpeaking: speaking || p.avatarState === "speaking" })),
+          onTell: (expressive, total) =>
+            setS((p) => ({ ...p, tells: total, tellNow: expressive,
+                           tellFrames: p.tellFrames + 1 })),
           onObservation: (text) =>
             setS((p) => ({ ...p, observations: [...p.observations, text] })),
           onCameraFrame: () => setS((p) => ({ ...p, framesSent: p.framesSent + 1 })),

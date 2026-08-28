@@ -32,6 +32,10 @@ export interface RealtimeExtras {
   onAvatar?: (state: string, reaction: string | null, lipsync: boolean) => void;
   /** Наблюдение камеры. НИКОГДА не влияет на оценку — плашка едет в событии. */
   onObservation?: (text: string) => void;
+  /** «Покерфейс»: кадр показал явное выражение вместо нейтрального.
+   *  `total` — счётчик сервера, а не наш: пересчитывать его на клиенте
+   *  значило бы завести второй источник правды на ровном месте. */
+  onTell?: (expressive: boolean, total: number) => void;
   /** Кадр ДЕЙСТВИТЕЛЬНО ушёл на сервер. Чип камеры обязан гореть от этого, а
    *  не от факта, что поток открыт: открытый поток без кадров выглядит на
    *  экране точно так же, как работающая камера. */
@@ -317,6 +321,9 @@ export class RealtimeTransport implements Transport {
                                 Boolean(event.lipsync));
         return;
 
+      case "vision.tell":
+        this.options.onTell?.(!!event.expressive, Number(event.total ?? 0));
+        break;
       case "vision.observation":
         this.options.onObservation?.(String(event.text ?? ""));
         return;
