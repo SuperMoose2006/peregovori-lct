@@ -100,6 +100,7 @@ _MOODS = {
         "collaborated": "настрой на сотрудничество", "hardened": "ожесточение от давления",
         "offended": "обида от резкого тона", "neutral": "нейтралитет",
         "not_yet": "до рукопожатия ещё далеко", "walked_out": "встаёт из-за стола",
+        "probe_vague": "вопрос слишком общий, просит уточнить",
     },
     "en": {
         "warmed": "warmed, feels respected", "opened_up": "opening up, sharing pain",
@@ -107,6 +108,7 @@ _MOODS = {
         "collaborated": "in a collaborative mood", "hardened": "hardened by pressure",
         "offended": "offended by a harsh tone", "neutral": "neutral",
         "not_yet": "not ready to shake hands", "walked_out": "getting up to leave",
+        "probe_vague": "the question was too broad, asking to narrow it",
     },
 }
 

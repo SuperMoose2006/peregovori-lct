@@ -299,13 +299,12 @@ def test_order_partial_credit_counts_hits(item: dict) -> None:
 # размен, закрытие — и требуем, чтобы она проходила. Сценарий фиксирован
 # намеренно: если завтра баланс разъедется с курсом, тест обязан упасть.
 
-_PRINCIPLED = [
-    "Что для вас важнее всего в этой сделке и почему именно это?",
-    "А почему для вас важен именно этот срок — предоплата помогла бы?",
-    "По рыночным данным справедливый ориентир другой; давайте опираться на них.",
-    "Если дадим годовой контракт и предоплату — сможете пойти навстречу?",
-    "Договорились, фиксируем на этих условиях?",
-]
+# Принципиальная партия берётся из общей фикстуры эталонных партий, а не пишется
+# здесь заново: общего скрипта «на все столы» больше не существует. Интерес
+# вскрывается только вопросом ПО ТЕМЕ, поэтому у каждого стола своя лексика — и
+# ровно её проверяет test_reference_games.py. Одна фикстура на оба теста значит,
+# что капстоун курса проходят теми же словами, что и эталонную игру.
+from tests.test_reference_games import PRINCIPLED as _PRINCIPLED_BY_SCENARIO  # noqa: E402
 
 CAPSTONES = [x for x in BANK if x["type"] == "drill"] + list(MASTER)
 
@@ -317,7 +316,7 @@ def test_capstone_is_actually_winnable(item: dict) -> None:
     from app.course.check import check_drill
 
     sess = engine.create_session(item["scenario_id"], "ru")
-    for line in _PRINCIPLED[: item.get("max_turns", 8)]:
+    for line in _PRINCIPLED_BY_SCENARIO[item["scenario_id"]][: item.get("max_turns", 8)]:
         sess.turn += 1
         if engine.apply_move(sess, engine.analyze(line), line).closed:
             break

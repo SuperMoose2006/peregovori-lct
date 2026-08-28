@@ -929,7 +929,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "We hold at 100, that is our policy."
     },
     "player_line": {
-      "ru": "К чему это приводит, когда линия простаивает месяц?",
+      "ru": "К чему это приводит, когда загрузка производства падает на месяц?",
       "en": "What happens if the line sits idle for a month?"
     },
     "answer": "opened_up",

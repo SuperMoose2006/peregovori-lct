@@ -103,20 +103,53 @@ def test_offline_reveal_is_honest_for_specific_probe():
     assert sess.state.interests_found == [1], sess.state.interests_found
 
 
-def test_offline_reveal_generic_probe_stays_in_order():
-    """Offline (judge=None): a generic probe naming no specific interest keeps the
-    old behaviour — reveal next-in-order — so principled play still uncovers
-    interests and the balance is unchanged."""
+def test_generic_probe_reveals_nothing_and_asks_back():
+    """Общий «Почему?» не вскрывает интерес — ни первый, ни следующий по списку.
+
+    Раньше здесь стоял запасной ход «не совпало — отдай следующий», и три
+    одинаковых общих вопроса вскрывали все три интереса. Главный тезис продукта
+    («выигрывает тот, кто вскрыл интересы») выполнялся троекратным нажатием
+    подсказанной кнопки. Теперь оппонент переспрашивает, а счётчик молчит.
+    """
     sess = engine.create_session("supplier", "ru")
     sess.state.trust = 60
-    order = []
+    reactions = []
     for line in ["Что для вас важно в этой сделке и почему?",
                  "Почему это для вас важно?",
                  "Почему это для вас принципиально?"]:
         sess.turn += 1
+        reactions.append(engine.apply_move(sess, analyze(line), line, judge=None).reaction)
+    assert sess.state.interests_found == [], sess.state.interests_found
+    assert reactions[0] == "probe_vague", reactions
+    assert sess.state.info <= 15, "общий вопрос не должен наполнять шкалу вскрытого"
+
+
+def test_thematic_probes_reveal_the_interests_they_name():
+    """Три вопроса ПО ТЕМЕ вскрывают три интереса — и именно свои."""
+    sess = engine.create_session("supplier", "ru")
+    sess.state.trust = 60
+    for line in ["Почему для вас важна стабильная загрузка производства?",
+                 "А почему для вас так важен денежный поток и предоплата?",
+                 "Зачем вам разовый заказ, если можно долгосрочный годовой контракт?"]:
+        sess.turn += 1
         engine.apply_move(sess, analyze(line), line, judge=None)
-        order = list(sess.state.interests_found)
-    assert order == [0, 1, 2], order
+    assert sorted(sess.state.interests_found) == [0, 1, 2], sess.state.interests_found
+
+
+def test_every_scenario_can_have_all_interests_probed():
+    """У каждого интереса каждого сценария есть слова, по которым его находят.
+
+    Пустой список ключевых слов после отмены запасного хода означал бы интерес,
+    который вскрыть НЕЛЬЗЯ, — тихая невыполнимая цель в разборе.
+    """
+    from app.engine.scenarios import SCENARIOS
+    for sc in SCENARIOS:
+        for lang in ("ru", "en"):
+            kw = (sc.hidden_interest_keywords or {}).get(lang)
+            assert kw, f"{sc.id}/{lang}: нет ключевых слов интересов"
+            assert len(kw) == len(sc.hidden_interests[lang]), f"{sc.id}/{lang}"
+            for i, words in enumerate(kw):
+                assert words, f"{sc.id}/{lang}: интерес {i} без ключевых слов"
 
 
 def test_opponent_never_crosses_reservation_floor():
@@ -132,12 +165,12 @@ def test_opponent_never_crosses_reservation_floor():
 
 def test_principled_play_grades_higher_than_aggressive():
     _, good = play("supplier", "ru", [
-        "Здравствуйте! Расскажите, с какими сложностями по загрузке вы сталкиваетесь?",
-        "Понимаю вас. А что для вас важнее всего в этой сделке и почему?",
-        "Чем грозит нестабильная загрузка, сколько теряете, если так продолжится?",
-        "По рыночным данным справедливая цена ниже, потому что это отраслевой стандарт.",
-        "Если дадим годовой контракт и предоплату, сможете подвинуться до 86?",
-        "Договорились на 86.",
+        "Здравствуйте! Расскажите, с какими сложностями по загрузке производства вы сталкиваетесь?",
+        "Понимаю вас. А почему для вас так важен денежный поток и предоплата?",
+        "Зачем вам разовый заказ, если можно долгосрочный годовой контракт?",
+        "По рыночным данным справедливая цена 86, потому что это отраслевой стандарт.",
+        "Если дадим годовой контракт с гарантией объёма и предоплату, сможете подвинуться до 86?",
+        "Тогда фиксируем пакет: годовой контракт, предоплата — и цена 86. Договорились?",
     ])
     _, bad = play("supplier", "ru", [
         "Ваша цена смешна и некомпетентна.",
@@ -150,11 +183,11 @@ def test_principled_play_grades_higher_than_aggressive():
 
 def test_higher_is_better_salary_scores_good_deal():
     _, d = play("salary", "en", [
-        "How was this role band set, and what does the team need most?",
-        "What matters most to you in closing this hire, and why?",
-        "Market data for this role and my experience put the benchmark higher, which is what I anchor on.",
+        "Why does the team budget matter so much to you in this hire?",
+        "How soon do you need to close the role, and why exactly that timeline?",
+        "Market data for this role puts the benchmark at 230, because that is the industry standard band.",
         "If we tie it to a 6-month KPI review in return, would you move on base to 230?",
-        "Great, we have a deal at 225.",
+        "Then we lock the package: the KPI review in six months and a base of 230. We have a deal?",
     ])
     assert d["status"] == "agreement"
     assert d["economic"] > 60, f"economic={d['economic']}"

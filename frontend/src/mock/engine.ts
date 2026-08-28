@@ -4,7 +4,8 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang } from "../types";
 import type { Analysis, Deltas, Debrief, StateView, Status, Tag, WhatIfBranch } from "../types";
-import { LEX, cnt, extractNum, has, norm } from "../lib/techniques"; // has/norm reused for secondary-issue detection
+import { LEX, cnt, has, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
+import { formatDeal, formatNumber } from "../lib/format";
 import type { CounterpartStyle, ScenarioDef } from "../data/scenarios";
 
 const clamp = (v: number, lo = 0, hi = 100): number => Math.max(lo, Math.min(hi, v));
@@ -45,7 +46,9 @@ export function analyze(raw: string): RawAnalysis {
   if (has(t, LEX.anchor)) { moves.add("anchor"); addT("anchor", "Якорь"); }
   if (has(t, LEX.accept)) { moves.add("accept"); addT("accept", "Закрытие"); }
   if (has(t, LEX.rapport)) { moves.add("rapport"); addT("rapport", "Контакт"); }
-  const number = extractNum(t);
+  // Число становится офертой только при намерении назвать цену — зеркало
+  // techniques.py::offer_number. Порядок важен: приёмы уже собраны выше.
+  const number = offerNumber(t, moves);
   if (number !== null && !moves.has("accept") && !q) { moves.add("offer"); addT("offer", "Оффер / число"); }
   if (q && !spin && !moves.has("interests_probe")) { moves.add("open_question"); addT("spin", "Открытый вопрос"); }
   if (moves.size === 0) moves.add("statement");
@@ -105,6 +108,10 @@ export interface Metrics {
   crit: number;
   spin: Set<string>;
   probes: number;
+  /** Сумма сходства ходов с уже сказанным (сверх мягкого порога) и число ходов —
+   *  доля партии, потраченная на повторы. Техника считает её в минус. */
+  repeatSum: number;
+  repeatN: number;
 }
 export interface Session {
   sc: ScenarioDef;
@@ -130,6 +137,10 @@ export interface Session {
   // Anti-gaming: the normalized text of the LAST player line. Repeating the exact
   // same line barely moves the opponent (mirrors backend Session.last_player_norm).
   lastPlayerNorm: string;
+  // Анти-гейминг с памятью на ВСЮ партию: слова и приёмы каждого хода игрока.
+  // Памяти на одну прошлую реплику не хватало — чередование A,B,A,B обходило
+  // проверку целиком. Зеркало backend Session.move_history.
+  moveHistory: { tokens: Set<string>; moves: Set<string> }[];
 }
 
 export function newSession(sc: ScenarioDef, lang: Lang): Session {
@@ -138,27 +149,79 @@ export function newSession(sc: ScenarioDef, lang: Lang): Session {
     // Seed leverage from BATNA strength (× 0.4) exactly like the backend engine.
     trust: 40, tension: 25, info: 0, leverage: sc.batnaStrength * 0.4,
     offerOpp: sc.open, offerPlayer: null, interests: [], tradeoffs: [], termsConceded: [], deal: null, status: "active",
-    met: { argSum: 0, argN: 0, threats: 0, hostiles: 0, empathy: 0, crit: 0, spin: new Set(), probes: 0 },
+    met: {
+      argSum: 0, argN: 0, threats: 0, hostiles: 0, empathy: 0, crit: 0,
+      spin: new Set(), probes: 0, repeatSum: 0, repeatN: 0,
+    },
     lastPlayerNorm: "",
+    moveHistory: [],
   };
 }
 
-// Which hidden interest does an OFFLINE probe uncover? Honesty first (mirrors
-// backend _reveal_index_offline): if the player's words match the keywords of an
-// interest that is still hidden, uncover THAT interest — so the opponent only
-// ever speaks to what was actually asked. A generic probe (no keyword hit) falls
-// back to the smallest still-hidden index (next-in-order). Returns null when all
-// interests are already uncovered.
+// Which hidden interest does an OFFLINE probe uncover? Интерес вскрывается ТОЛЬКО
+// по теме вопроса (зеркало backend _reveal_index_offline). Прежде здесь стоял
+// запасной ход «не совпало — отдай следующий по списку», и три одинаковых общих
+// «Почему?» вскрывали все три интереса: главный тезис продукта выполнялся
+// троекратным нажатием подсказанной кнопки. Не совпало — не вскрыли.
 function revealIndexOffline(sc: ScenarioDef, curNorm: string, lang: Lang, found: number[]): number | null {
   const total = sc.interests[lang].length;
   const kw = sc.hiddenInterestKeywords?.[lang];
-  if (kw) {
-    for (let i = 0; i < Math.min(total, kw.length); i++) {
-      if (found.includes(i)) continue;
-      if (has(curNorm, kw[i])) return i;
-    }
+  if (!kw) return null;
+  for (let i = 0; i < Math.min(total, kw.length); i++) {
+    if (found.includes(i)) continue;
+    if (has(curNorm, kw[i])) return i;
   }
-  for (let i = 0; i < total; i++) if (!found.includes(i)) return i;
+  return null;
+}
+
+/** Слова реплики без краевой пунктуации — основа лексической близости.
+ *  Зеркало engine.py::_tokens. */
+function tokensOf(curNorm: string): Set<string> {
+  const out = new Set<string>();
+  for (const raw of curNorm.split(" ")) {
+    const w = raw.replace(/^[.,?!-]+|[.,?!-]+$/g, "");
+    if (w) out.add(w);
+  }
+  return out;
+}
+
+/** Порог «это та же реплика»: жёсткий штраф (как за дословный повтор). */
+export const REPEAT_HARD = 0.85;
+/** Порог «это перепев»: мягкий штраф, растущий со сходством. */
+export const REPEAT_SOFT = 0.5;
+
+/** Насколько сильно ход повторяет ЛЮБОЙ прошлый ход этой партии (0..1).
+ *  Мера — Жаккар по словам, поднятый на 0.15 при совпадении множества приёмов.
+ *  Зеркало engine.py::_repeat_strength. */
+function repeatStrength(s: Session, tokens: Set<string>, moves: Set<string>): number {
+  let best = 0;
+  for (const prev of s.moveHistory) {
+    const union = new Set([...tokens, ...prev.tokens]);
+    if (union.size === 0) continue;
+    let inter = 0;
+    for (const w of tokens) if (prev.tokens.has(w)) inter++;
+    let j = inter / union.size;
+    if (moves.size && sameSet(moves, prev.moves)) j = Math.min(1, j + 0.15);
+    if (j > best) best = j;
+  }
+  return best;
+}
+
+function sameSet(a: Set<string>, b: Set<string>): boolean {
+  if (a.size !== b.size) return false;
+  for (const x of a) if (!b.has(x)) return false;
+  return true;
+}
+
+/** Цена это или просто число? Возвращает цену в единицах сценария либо null.
+ *  Коридор — [0.5×, 2×] от масштаба сценария; ветка ×1000 оставлена только для
+ *  единиц самого сценария. Зеркало engine.py::_plausible_offer. */
+function plausibleOffer(sc: ScenarioDef, n: number): number | null {
+  const scale = (sc.open + sc.floor + sc.target + sc.resv) / 4;
+  if (scale <= 0) return n;
+  const lo = 0.5 * scale, hi = 2 * scale;
+  if (n >= lo && n <= hi) return n;
+  if (n * 1000 >= lo && n * 1000 <= hi) return n * 1000;
   return null;
 }
 
@@ -169,6 +232,12 @@ export function flex(s: Session): number {
 }
 function concede(s: Session, f: number): void {
   s.offerOpp = Math.round((s.offerOpp + (s.sc.floor - s.offerOpp) * f) * 100) / 100;
+}
+// Обратный ход: оппонент снимает часть уже данной уступки, цена уходит назад к
+// его стартовому якорю. Наказание, которого не видно в цифре, — не наказание.
+// Зеркало engine.py::_retract.
+function retract(s: Session, f: number): void {
+  s.offerOpp = Math.round((s.offerOpp + (s.sc.open - s.offerOpp) * f) * 100) / 100;
 }
 function acceptable(s: Session, n: number): boolean {
   return s.lowerBetter ? n >= s.sc.floor - 0.001 : n <= s.sc.floor + 0.001;
@@ -187,35 +256,67 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   const sc = s.sc;
   const style = sc.cp.style;
   const curNorm = norm(rawText);
-  // Anti-gaming (mirrors backend): repeating the exact same line barely works —
-  // the opponent notices, and it stops padding the technique score.
-  const repeated = curNorm !== "" && curNorm === s.lastPlayerNorm;
+  // Анти-гейминг с памятью на всю партию (зеркало backend). Точное равенство с
+  // ОДНОЙ прошлой репликой ловило только самый ленивый спам: чередование
+  // A,B,A,B проходило насквозь, а тот же абзац с переставленной цифрой — тем
+  // более. Считаем сходство со всеми ходами партии и штрафуем непрерывно.
+  const curTokens = tokensOf(curNorm);
+  const curMoves = new Set(a.moves);
+  const repeat = curNorm ? repeatStrength(s, curTokens, curMoves) : 0;
+  s.moveHistory.push({ tokens: curTokens, moves: curMoves });
   s.lastPlayerNorm = curNorm;
+  const repeated = repeat >= REPEAT_HARD;
   if (repeated) a.arg = Math.min(a.arg, 12);
-  const b = { trust: s.trust, tension: s.tension, info: s.info, leverage: s.leverage };
+  else if (repeat >= REPEAT_SOFT) a.arg = Math.min(a.arg, Math.round(100 * (1 - repeat)));
+  const b = { trust: s.trust, tension: s.tension, info: s.info, leverage: s.leverage, offerOpp: s.offerOpp };
   const m = s.met;
   m.argSum += a.arg; m.argN++;
+  // В счёт идёт только сходство ВЫШЕ мягкого порога: живая партия неизбежно
+  // повторяет слова, и штрафовать за это нельзя.
+  m.repeatSum += Math.max(0, repeat - REPEAT_SOFT) / (1 - REPEAT_SOFT); m.repeatN++;
   if (a.spin) m.spin.add(a.spin);
   const H = (k: string) => a.moves.includes(k);
   let reaction = "neutral";
   let cf = 0;
-  if (H("acknowledge")) { s.trust = clamp(s.trust + 8); s.tension = clamp(s.tension - 10); m.empathy++; reaction = "warmed"; }
+  // Что в ЭТОМ ходе заработало движение цены. Пусто — оппонент не двигается.
+  // Раньше к дроби уступки безусловно прибавлялась база 0.10 + 0.34·flex, и цена
+  // капала сама: двенадцать пустых реплик проходили почти весь путь до дна.
+  const events: string[] = [];
+  // Обратный ход: доля уже данной уступки, которую оппонент снимает.
+  let rollback = 0;
+  // Повтор не слушают — его вставляют. Отражение чужих слов работает один раз.
+  if (H("acknowledge") && !repeated) { s.trust = clamp(s.trust + 8); s.tension = clamp(s.tension - 10); m.empathy++; reaction = "warmed"; }
   if ((a.spin || H("interests_probe")) && !repeated) {
     const gb = a.spin === "implication" || a.spin === "need-payoff" ? 22 : 14;
-    const g = gb + (H("interests_probe") ? 10 : 0);
-    // Honest reveal: uncover the interest the probe ACTUALLY targets by keyword;
-    // a vague probe falls back to next-in-order. Reveal gated on trust, like info.
+    let g = gb + (H("interests_probe") ? 10 : 0);
+    // Honest reveal: вскрывается только тот интерес, в который вопрос попал по
+    // теме. Reveal gated on trust, like info.
+    let revealed = false;
     if (s.trust > 30) {
       const idx = revealIndexOffline(sc, curNorm, s.lang, s.interests);
-      if (idx !== null) s.interests.push(idx);
+      if (idx !== null) { s.interests.push(idx); revealed = true; }
     }
+    // Общий вопрос, не попавший ни в один живой интерес, приносит крохи: `info`
+    // это доля ВСКРЫТОГО, а не число заданных вопросов.
+    if (!revealed) g = Math.min(g, 5);
     s.info = clamp(s.info + g); s.trust = clamp(s.trust + 4); s.tension = clamp(s.tension - 3);
     if (H("interests_probe")) m.probes++;
-    if (reaction !== "warmed") reaction = "opened_up";
+    if (revealed) {
+      events.push("interest");
+      if (reaction !== "warmed") reaction = "opened_up";
+    } else if (reaction !== "warmed") {
+      // «Почему?» — а что именно вас интересует? Отдельная реакция обязательна:
+      // opened_up подставляет в реплику текст интереса, и на невскрытом вопросе
+      // это была бы выдача секрета за спиной у счётчика.
+      reaction = "probe_vague";
+    }
   }
   if (H("objective_criteria")) {
     s.leverage = clamp(s.leverage + 16); s.trust = clamp(s.trust + 3); m.crit++;
     if (style === "analytical") s.leverage = clamp(s.leverage + 6);
+    // Критерий засчитан событием только с опорой: голое слово «рынок» без цифры
+    // и без «потому что» — это не критерий, а его имитация.
+    if (a.arg >= 35) events.push("criteria");
     reaction = "persuaded";
   }
   if (H("batna")) {
@@ -223,11 +324,14 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     s.leverage = clamp(s.leverage + (bk ? 18 : 10));
     s.tension = clamp(s.tension + (bk ? 4 : 14));
     if (style === "relationship") s.tension = clamp(s.tension + 6);
+    // Двигает цену ОБОСНОВАННАЯ альтернатива, названная вслух — только напряжение.
+    if (bk) events.push("batna");
     reaction = "pressured";
   }
   if (H("tradeoff")) {
     s.trust = clamp(s.trust + 6); s.tension = clamp(s.tension - 4);
     cf += 0.12 + 0.18 * (s.info / 100);
+    events.push("tradeoff");
     if (s.tradeoffs.length < sc.tradeoffs[s.lang].length) s.tradeoffs.push(s.tradeoffs.length);
     reaction = "collaborated";
     // Structured logrolling (mirrors backend): trading a concrete issue the
@@ -239,6 +343,7 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
       if (has(curNorm, iss.keywords[s.lang])) {
         s.termsConceded.push(iss.id);
         cf += 0.1 + 0.3 * iss.oppValue;
+        events.push("term:" + iss.id);
         s.trust = clamp(s.trust + 3 + 4 * iss.oppValue);
       }
     }
@@ -246,12 +351,27 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   if (H("threat")) {
     m.threats++; s.tension = clamp(s.tension + 22); s.trust = clamp(s.trust - 14); s.leverage = clamp(s.leverage + 6);
     if (style === "tough") s.tension = clamp(s.tension + 8);
+    // Повторная угроза — обратный ход: один ультиматум ещё можно списать на
+    // нервы, второй — это стиль.
+    if (m.threats >= 2) rollback = Math.max(rollback, 0.2);
     reaction = "hardened";
   }
-  if (H("hostile")) { m.hostiles++; s.tension = clamp(s.tension + 26); s.trust = clamp(s.trust - 22); reaction = "offended"; }
-  if (H("rapport")) { s.trust = clamp(s.trust + 5); s.tension = clamp(s.tension - 4); }
-  if (a.number !== null && (H("offer") || H("anchor") || H("concession") || H("accept") || H("tradeoff")))
-    s.offerPlayer = a.number;
+  if (H("hostile")) {
+    m.hostiles++; s.tension = clamp(s.tension + 26); s.trust = clamp(s.trust - 22);
+    // Хамство откатывает цену назад, к стартовому якорю.
+    rollback = Math.max(rollback, 0.35);
+    reaction = "offended";
+  }
+  if (H("rapport") && !repeated) { s.trust = clamp(s.trust + 5); s.tension = clamp(s.tension - 4); }
+  // Намерение назвать цену — необходимое условие, но не достаточное: число
+  // обязано попасть в коридор масштаба сценария (зеркало backend).
+  let priced: number | null = null;
+  if (a.number !== null && (H("offer") || H("anchor") || H("concession") || H("accept") || H("tradeoff"))) {
+    priced = plausibleOffer(sc, a.number);
+    if (priced !== null) s.offerPlayer = priced;
+  }
+  // Гибкость больше НЕ порождает движение сама по себе: она лишь превращает
+  // заработанное событие в рубли.
   const fl = flex(s);
   cf += 0.1 + 0.34 * fl;
   if (H("objective_criteria")) cf += 0.12;
@@ -262,22 +382,52 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     const gap = s.lowerBetter ? s.offerOpp - s.offerPlayer : s.offerPlayer - s.offerOpp;
     if (gap > 0) cf += Math.min(0.08, gap * 0.01);
   }
+  // Ни одного события — оппонент не двигается ВООБЩЕ.
+  if (events.length === 0) cf = 0;
   if (s.tension > 75) cf *= 0.25;
   else if (s.tension > 55) cf *= 0.6;
-  if (repeated) cf *= 0.15; // repeating the same line won't move them
+  // Повтор — не ход: чем ближе реплика к уже сказанному, тем меньше движения.
+  if (repeat >= REPEAT_SOFT) cf *= Math.max(0.15, 1 - repeat);
   cf = clamp(cf, 0, 0.7);
-  if (cf > 0.01) concede(s, cf);
+  // Обратный ход старше уступки: в ход, где нагрубили или дожали второй
+  // угрозой, цена уходит назад, а не вперёд.
+  if (rollback > 0) { cf = 0; retract(s, rollback); }
+  else if (cf > 0.01) concede(s, cf);
+  // Повтор не заставляет оппонента реагировать ЗАНОВО — он уже ответил на эту
+  // реплику. Грубость и угрозы исключение: их повтор ранит каждый раз, иначе
+  // агрессивная партия перестала бы срываться (инвариант 2).
+  if (repeated && !(H("hostile") || H("threat"))) {
+    s.trust = b.trust; s.tension = b.tension; s.info = b.info; s.leverage = b.leverage;
+    s.tension = clamp(s.tension + 6); // …но раздражает: «вы это уже говорили»
+    reaction = "neutral";
+  }
   let closed = false;
   if (H("accept")) {
+    // Число вне коридора сценария — это не оферта, а провал закрытия. Прежде
+    // «Договорились, 42» проходило через клампы к дну оппонента и одной фразой
+    // давало economic 100.
+    const statedUnpriced = a.number !== null && priced === null;
+    let noBridge = false;
     let meeting: number;
-    if (s.offerPlayer !== null) {
-      const w = 0.3 + 0.45 * fl;
-      meeting = s.offerOpp + (s.offerPlayer - s.offerOpp) * w;
-      meeting = s.lowerBetter ? Math.max(meeting, sc.floor) : Math.min(meeting, sc.floor);
-      meeting = Math.round(meeting * 100) / 100;
-    } else meeting = s.offerOpp;
-    if (acceptable(s, meeting)) { s.deal = meeting; s.status = "agreement"; closed = true; }
-    else reaction = "not_yet";
+    if (priced !== null) {
+      const gap = s.lowerBetter ? s.offerOpp - priced : priced - s.offerOpp;
+      // Хвостик в пару процентов от хода якоря — это уже рукопожатие.
+      const near = Math.abs(gap) <= 0.02 * Math.abs(sc.open - sc.floor);
+      if (gap <= 0 || near) meeting = priced;
+      else {
+        // Разрыв закрывают ТЕМ ЖЕ, чем двигают цену: заработанным событием.
+        const w = events.length ? 0.3 + 0.45 * fl : 0;
+        meeting = Math.round((s.offerOpp + (priced - s.offerOpp) * w) * 100) / 100;
+        noBridge = events.length === 0;
+      }
+    } else {
+      // Голое «договорились» — согласие на ТО, ЧТО ЛЕЖИТ НА СТОЛЕ.
+      meeting = s.offerOpp;
+    }
+    if (statedUnpriced || noBridge || !acceptable(s, meeting)) {
+      s.tension = clamp(s.tension + 8); // не сошлись — это стоит нервов
+      reaction = "not_yet";
+    } else { s.deal = meeting; s.status = "agreement"; closed = true; }
   }
   if (s.tension >= 100 || s.trust <= 3) { s.status = "breakdown"; closed = true; reaction = "walked_out"; }
   const deltas: Deltas = {
@@ -407,6 +557,22 @@ const LINES: Record<Lang, LineBank> = {
       relationship: ["Хорошо, пока пусть будет {o}{u}, а там посмотрим.", "Понимаю вас. Пока остановимся на {o}{u}."],
       tough: ["Так. Пока {o}{u}. Что дальше?", "Ясно. {o}{u}. Не тянем."],
       analytical: ["Фиксирую: текущая цифра {o}{u}.", "По состоянию на сейчас — {o}{u}."],
+    },
+    // Общий вопрос, не попавший ни в один интерес. Отдельная реакция нужна ради
+    // второго принципа: opened_up подставляет в реплику текст интереса, и на
+    // невскрытом вопросе оппонент выдал бы секрет, которого счётчик не засчитал.
+    probe_vague: {
+      base: [
+        "Почему — а что именно вас интересует? Спросите конкретнее.",
+        "Смотря о чём вы. Что именно вам важно понять?",
+        "Вопрос широкий. Про что конкретно спрашиваете?",
+        "Так сразу и не ответишь. Уточните, о чём речь?",
+        "Про что именно? Тем тут хватает.",
+        "Можно поконкретнее? Иначе отвечу общими словами.",
+      ],
+      relationship: ["Я бы рада ответить, но спросите поконкретнее — о чём именно?", "Давайте по-человечески: что именно вас интересует?"],
+      tough: ["Что именно? Общие вопросы — общие ответы.", "Конкретнее. Про что спрашиваете?"],
+      analytical: ["Вопрос сформулирован широко. Уточните предмет.", "О каком именно факторе речь?"],
     },
     not_yet: {
       base: [
@@ -553,6 +719,20 @@ const LINES: Record<Lang, LineBank> = {
       tough: ["Right. {o}{u} for now. What's next?", "Clear. {o}{u}. Let's not drag this."],
       analytical: ["Logged: current figure {o}{u}.", "As of now — {o}{u}."],
     },
+    // A generic question that hit no live interest — see the RU bank above.
+    probe_vague: {
+      base: [
+        "Why — but what exactly are you asking about? Be specific.",
+        "Depends what you mean. What is it you want to understand?",
+        "That's a broad question. About what exactly?",
+        "Hard to answer like that. Narrow it down?",
+        "About what specifically? There's plenty here.",
+        "Could you be more concrete? Otherwise you'll get platitudes.",
+      ],
+      relationship: ["I'd love to answer, but ask me something specific — about what?", "Let's keep it human: what exactly matters to you here?"],
+      tough: ["What exactly? Generic questions get generic answers.", "Be specific. What are you asking?"],
+      analytical: ["The question is stated too broadly. Specify the subject.", "Which factor exactly are we talking about?"],
+    },
     not_yet: {
       base: [
         "Too early to shake hands — {o}{u} is where I am.",
@@ -622,9 +802,14 @@ export function renderLine(s: Session, reaction: string, closed: boolean): strin
   const l = arr[lineSeed(s) % arr.length];
   const ilist = s.sc.interests[s.lang];
   const li = s.interests.length ? ilist[s.interests[s.interests.length - 1]] : ilist[0];
+  // Цифра в реплике оппонента печатается по тем же правилам, что и в разборе:
+  // разделитель по языку и узкий пробел перед знаком валюты (иначе «100₽/шт»
+  // слипается в один глиф).
   return l
-    .replace("{o}", String(s.offerOpp))
-    .replace("{d}", String(s.deal != null ? s.deal : s.offerOpp))
+    .replace("{o}{u}", formatDeal(s.offerOpp, u, s.lang))
+    .replace("{d}{u}", formatDeal(s.deal != null ? s.deal : s.offerOpp, u, s.lang))
+    .replace("{o}", formatNumber(s.offerOpp, s.lang))
+    .replace("{d}", formatNumber(s.deal != null ? s.deal : s.offerOpp, s.lang))
     .replace("{u}", u)
     .replace("{i}", (li || "").toLowerCase());
 }
@@ -663,7 +848,9 @@ export function scoreSession(s: Session): Debrief {
   if (s.status === "agreement" && s.deal != null) {
     const r = sc.resv, t = sc.target;
     economic = clamp(Math.round(((s.deal - r) / (t - r)) * 100));
-    dealText = s.deal + u;
+    // Печатаем на языке сессии, а не по-джаваскриптовому: стол и разбор обязаны
+    // показывать одно число одними знаками. Зеркало backend engine/format.py.
+    dealText = formatDeal(s.deal, u, lang);
   } else if (s.status === "breakdown") {
     economic = 0;
     dealText = lang === "ru" ? "Сделка сорвалась" : "Deal broke down";
@@ -684,6 +871,10 @@ export function scoreSession(s: Session): Debrief {
   technique += Math.round((avgArg / 100) * 14);
   technique -= m.hostiles * 12;
   technique -= Math.max(0, m.threats - 1) * 6;
+  // Доля партии, ушедшая на повторы. Ход, который уже был, — не приём: без
+  // этого один сильный абзац, вставленный одиннадцать раз, набирал столько же
+  // флагов техники, сколько живая партия. Зеркало backend score_session.
+  if (m.repeatN) technique -= Math.round(20 * (m.repeatSum / m.repeatN));
   // Package signal (mirrors backend) — ONLY for scenarios with a structured
   // logrolling axis, so scoring is identical for scenarios without secondary
   // issues. Reward trading issues the opponent values (high oppValue) and lightly

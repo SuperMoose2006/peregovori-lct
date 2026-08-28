@@ -13,7 +13,7 @@
 
 ЛЕСТНИЦА РЕАКЦИЙ ДВИЖКА (`app/engine/engine.py:257-424`) уже ровно та, что
 нужна: neutral · warmed · opened_up · persuaded · pressured · collaborated ·
-hardened · offended · not_yet · walked_out.
+hardened · offended · not_yet · probe_vague · walked_out.
 
 СЛОВАРЬ СОБЫТИЙ взят у Duix-Mobile (DUIX.COM Community License, commit
 690fe81d), `duix-android/.../sdk/client/Constant.java`: `play.start` /
@@ -50,6 +50,7 @@ REACTION_TO_STATE: dict[str, str] = {
     "hardened": "annoyed",        # закрылся
     "offended": "offended",       # задели
     "not_yet": "shake_head",      # «нет, не так»
+    "probe_vague": "listening",   # «а что именно вас интересует?» — переспрос
     "walked_out": "walk_out",     # встал и вышел — конец партии
 }
 

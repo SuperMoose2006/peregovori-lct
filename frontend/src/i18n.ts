@@ -771,7 +771,8 @@ export const I18N: Record<Lang, Strings> = {
       reactions: {
         warmed: "Теплеет", opened_up: "Приоткрывается", persuaded: "Принимает довод",
         collaborated: "Идёт навстречу", neutral: "Держит нейтралитет",
-        not_yet: "Пока не соглашается", pressured: "Под давлением",
+        not_yet: "Пока не соглашается", probe_vague: "Просит уточнить вопрос",
+        pressured: "Под давлением",
         hardened: "Закрывается", offended: "Принимает на свой счёт",
         walked_out: "Встаёт из-за стола",
       },
@@ -782,6 +783,7 @@ export const I18N: Record<Lang, Strings> = {
         collaborated: "Напряжение упало, доверие выросло: вы предложили размен.",
         neutral: "Счётчики почти не двинулись — ход прошёл мимо.",
         not_yet: "Отказа нет, но и движения нет: закрывать рано.",
+        probe_vague: "Вопрос слишком общий — интерес так не вскрыть. Назовите тему.",
         pressured: "Напряжение выросло — это восприняли как нажим.",
         hardened: "Напряжение выросло, доверие упало — вторая сторона закрылась.",
         offended: "Доверие обвалилось: резкий тон бьёт сильнее аргумента.",
@@ -1376,7 +1378,8 @@ export const I18N: Record<Lang, Strings> = {
       reactions: {
         warmed: "Warmed up", opened_up: "Opened up", persuaded: "Persuaded by data",
         collaborated: "Ready to cooperate", neutral: "Staying neutral",
-        not_yet: "Not ready yet", pressured: "Under pressure",
+        not_yet: "Not ready yet", probe_vague: "Asks you to be specific",
+        pressured: "Under pressure",
         hardened: "Closed off", offended: "Offended", walked_out: "Leaving the table",
       },
       why: {
@@ -1386,6 +1389,7 @@ export const I18N: Record<Lang, Strings> = {
         collaborated: "Tension fell and trust rose: you offered a trade.",
         neutral: "The meters barely moved — the move passed them by.",
         not_yet: "No refusal, but no movement either: too early to close.",
+        probe_vague: "The question was too broad to uncover an interest. Name the topic.",
         pressured: "Tension rose — they read that as a push.",
         hardened: "Tension rose and trust fell — they closed off.",
         offended: "Trust collapsed: a harsh tone hits harder than any argument.",
