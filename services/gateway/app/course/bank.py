@@ -42,8 +42,8 @@ BANK: list[dict] = [
                     "Natalia: “75k, and that is final.” Your move?"),
         "options": [
             T("А если 65? Мне это дорого.", "What about 65? That is too much for me."),
-            T("Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-              "Natalia, what matters most to you in a tenant — and what concerns you?"),
+            T("Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+              "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"),
             T("У меня есть другая квартира за 68, я подумаю.",
               "I have another flat at 68, I will think about it."),
             T("Окончательных цен не бывает.", "There is no such thing as a final price."),
@@ -51,9 +51,11 @@ BANK: list[dict] = [
         "answer": 1, "expect_moves": ["interests_probe"],
         "explain": T(
             "«75 тысяч» — позиция. Пока вы торгуетесь с ней, у стола одна ось и кто-то обязан "
-            "проиграть. Вопрос про жильца вскрывает интерес — Информация +24, и цена поедет сама.",
+            "проиграть. Вопрос назвал тему — простой и тихого жильца, — поэтому интерес вскрылся: "
+            "Информация +24, и цена поедет сама.",
             "“75k” is a position. Haggle with it and the table has one axis and someone has to lose. "
-            "The tenant question surfaces an interest — Information +24, and the price moves on its own."),
+            "The question named a topic — vacancy and a quiet tenant — so the interest opened: "
+            "Information +24, and the price moves on its own."),
     },
     {
         "id": "fo-02", "block": "foundations", "lesson": 1, "type": "spot_error",
@@ -102,13 +104,17 @@ BANK: list[dict] = [
                     "Ask Natalia a question that surfaces her real interest. Not about price."),
         "check": {"require_moves": ["interests_probe"], "forbid_moves": ["threat", "hostile"],
                   "min_arg": 30, "min_words": 5},
-        "reference": T("Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-                       "Natalia, what matters most to you in a tenant — and what concerns you?"),
+        "reference": T("Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+                       "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"),
         "explain": T(
-            "Ключ — формулировка «что для вас важно / что вас беспокоит». Голое «почему?» движок "
-            "засчитает как обычный открытый вопрос: ноль к Информации.",
-            "The key is “what matters to you / what concerns you”. A bare “why?” classifies as a plain "
-            "open question: zero Information."),
+            "Условий два. Формулировка «что для вас важно» — голое «почему?» движок засчитает как "
+            "обычный открытый вопрос, ноль к Информации. И названная ТЕМА: вопрос обязан попасть в "
+            "слова ещё не вскрытого интереса — простой, тишина, оплата в срок. Не попал — Наталья "
+            "переспросит, а Информация вырастет на 5 вместо 24.",
+            "Two conditions. The wording — “what matters to you”; a bare “why?” classifies as a plain "
+            "open question, zero Information. And a named TOPIC: the question has to land on the words "
+            "of an interest that is still hidden — vacancy, quiet, payment on time. Miss it, and "
+            "Natalia asks back while Information rises by 5 instead of 24."),
     },
     {
         "id": "fo-05", "block": "foundations", "lesson": 2, "type": "match",
@@ -140,8 +146,8 @@ BANK: list[dict] = [
         "id": "fo-06", "block": "foundations", "lesson": 4, "type": "meters",
         "difficulty": 2, "xp": 10, "scenario_id": "rent",
         "state": {"trust": 40, "tension": 25, "info": 0, "leverage": 12, "turn": 2},
-        "player_line": T("Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-                         "Natalia, what matters most to you in a tenant — and what concerns you?"),
+        "player_line": T("Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+                         "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"),
         "ask": "largest_delta", "answer": "info",
         "prompt": T("Какая шкала сдвинется сильнее всего?", "Which meter moves the most?"),
         "explain": T(
@@ -175,8 +181,10 @@ BANK: list[dict] = [
         # Холодный стол: доверие 18 при пороге 30 (аренда, сложность 2).
         "state": {"trust": 18, "tension": 45, "info": 8, "leverage": 10, "turn": 3},
         "player_line": T(
-            "Понимаю, что для вас это непросто. Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-            "I understand this is not easy for you. Natalia, what matters most to you in a tenant — and what concerns you?"),
+            "Понимаю, что для вас это непросто. Наталья, что для вас важнее всего — чтобы квартира не "
+            "пустовала, или чтобы жилец был тихий и без хлопот?",
+            "I understand this is not easy for you. Natalia, what matters most to you — avoiding vacancy "
+            "between tenants, or a quiet tenant with no hassle?"),
         "ask": "largest_delta", "answer": "tension",
         "prompt": T("Доверие 18 — ниже порога вскрытия. Вы отражаете чувство и задаёте ТОТ ЖЕ вопрос про жильца. Какая шкала сдвинется сильнее всего?",
                     "Trust is 18 — below the reveal gate. You name the feeling and ask the SAME tenant question. Which meter moves the most?"),
@@ -197,8 +205,8 @@ BANK: list[dict] = [
         "prompt": T("Разговор пошёл криво: доверие 18, напряжение 45. На вопрос про жильца Наталья ответила «а что именно вас интересует?». Ваш ход?",
                     "The conversation soured: trust 18, tension 45. To the tenant question Natalia replied “what exactly are you asking about?”. Your move?"),
         "options": [
-            T("Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-              "Natalia, what matters most to you in a tenant — and what concerns you?"),
+            T("Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+              "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"),
             T("Мы предлагаем 60, это наша цена.", "We propose 60, that is our price."),
             T("Понимаю: пустая квартира — это реальные потери, и осторожность тут естественна.",
               "I understand: an empty flat is a real loss, and being careful is only natural."),
@@ -258,8 +266,8 @@ BANK: list[dict] = [
               "Tell me about your production cycle — how is it set up?"),
             T("С какими сложностями вы сталкиваетесь при неравномерной загрузке?",
               "What difficulties do you hit when the load is uneven?"),
-            T("Сколько вы теряете, если линия стоит месяц?",
-              "What does that cost you when the line is idle for a month?"),
+            T("Сколько вы теряете, если загрузка производства падает на месяц?",
+              "What does that cost you when factory utilization drops for a month?"),
             T("Насколько важно было бы закрыть загрузку на год вперёд?",
               "How valuable would it be to lock the whole year's utilization now?"),
         ],
@@ -277,7 +285,7 @@ BANK: list[dict] = [
                     "Irina said orders arrive in bursts. Ask a stage-I question."),
         "check": {"require_moves": ["spin_implication"], "forbid_moves": ["threat", "hostile"],
                   "min_arg": 30, "min_words": 5},
-        "reference": T("К чему это приводит, когда линия простаивает месяц?",
+        "reference": T("Чем это грозит вам, когда загрузка производства падает на месяц?",
                        "What happens if the line sits idle for a month?"),
         "explain": T(
             "Движок ловит I по маркерам «к чему это приводит / сколько вы теряете / чем это грозит». "
@@ -339,7 +347,7 @@ BANK: list[dict] = [
         "check": {"require_moves": ["spin_problem"], "forbid_moves": ["threat", "hostile"],
                   "min_arg": 30, "min_words": 5},
         "reference": T("С какими сложностями вы сталкиваетесь при неравномерной загрузке?",
-                       "What difficulties do you hit when the load is uneven?"),
+                       "What difficulties do you hit when factory utilization is uneven?"),
         "explain": T(
             "P — первый вопрос, где собеседник произносит вслух то, что ему не нравится. С этого "
             "момента разговор уже не про вашу цену, а про его положение.",
@@ -374,8 +382,8 @@ BANK: list[dict] = [
                     "The conversation has just started. Ask a stage-S question — about how things work today."),
         "check": {"require_moves": ["spin_situation"],
                   "forbid_moves": ["threat", "hostile", "offer"], "min_words": 5},
-        "reference": T("Расскажите о вашем процессе: как сейчас устроены отгрузки и как часто вы отгружаете?",
-                       "Tell me about your process: how do you currently plan shipments, and how often do you ship?"),
+        "reference": T("Расскажите, как сейчас устроена загрузка производства: как планируете отгрузки и как часто отгружаете?",
+                       "Tell me how factory utilization works today: how do you plan shipments, and how often do you ship?"),
         "explain": T(
             "S — единственная ступень, которую движок оценивает скромно (+14 к Информации) и "
             "которую всё равно нельзя пропустить: без фактов следующий вопрос про боль звучит как "
@@ -420,10 +428,16 @@ BANK: list[dict] = [
         ],
         "answer": 1, "expect_moves": ["acknowledge", "interests_probe"],
         "explain": T(
-            "Признать давление — не признать вину. Движок: доверие вверх, напряжение вниз, Информация "
-            "+24, реакция «потеплел». Четвёртый вариант — грубость: доверие −22, напряжение +26.",
-            "Acknowledging the pressure is not admitting fault. Engine: trust up, tension down, "
-            "Information +24, reaction “warmed”. Option four is rudeness: trust −22, tension +26."),
+            "Признать давление — не признать вину: доверие +8, напряжение −10, реакция «теплеет». "
+            "Информация при этом растёт всего на 5 — вопрос «в этом статусе» не назвал ни одной "
+            "темы его интересов, и Алексей переспросит. Назовите тему («выглядеть виноватым перед "
+            "руководством») — и та же реплика даст +24; это следующее упражнение. Четвёртый "
+            "вариант — грубость: доверие −22, напряжение +26.",
+            "Acknowledging the pressure is not admitting fault: trust +8, tension −10, reaction "
+            "“warmed”. Information rises by just 5 — “that status update” names none of his "
+            "interests, so Alexey asks back. Name the topic (“looking at fault to leadership”) and "
+            "the same line gives +24; that is the next exercise. Option four is rudeness: trust −22, "
+            "tension +26."),
     },
     {
         "id": "al-02", "block": "active-listening", "lesson": 2, "type": "freeform",
@@ -439,9 +453,11 @@ BANK: list[dict] = [
             "dates, or how this is framed upwards?"),
         "explain": T(
             "Два приёма в одной реплике: активное слушание (напряжение −10) плюс вскрытие интереса "
-            "(Информация +24). Именно эта пара даёт самую тёплую реакцию в шкале.",
+            "(Информация +24). Реакция при этом не «теплеет», а «приоткрывается»: вскрытие в движке "
+            "старше теплоты и перезаписывает её — секрет важнее комплимента.",
             "Two moves in one line: active listening (tension −10) plus an interest probe "
-            "(Information +24). That pair yields the warmest rung on the scale."),
+            "(Information +24). The reaction is not “warmed” but “opened up”: in the engine a reveal "
+            "outranks warmth and overwrites it — the secret matters more than the compliment."),
     },
     {
         "id": "al-03", "block": "active-listening", "lesson": 4, "type": "reaction",
@@ -827,18 +843,18 @@ BANK: list[dict] = [
                     "This block's table: the investor will not take less than 18% equity, you will not give more than 24%. How wide is the ZOPA?"),
         "answer": {"value": 6, "tolerance": 0}, "unit": T("% доли", "% equity"),
         "explain": T(
-            "ZOPA = [18, 24], ширина 6 процентных пунктов — весь торг про их деление. Открылся "
-            "Павел с 30%, то есть на 12 пунктов ВЫШЕ своего дна: якорь и дно — разные числа, и "
+            "ZOPA = [18, 24], ширина 6 процентных пунктов — весь торг про их деление. Открылась "
+            "Марина с 30%, то есть на 12 пунктов ВЫШЕ своего дна: якорь и дно — разные числа, и "
             "первое ничего не говорит о втором.",
             "ZOPA = [18, 24], six percentage points wide — the whole haggle is over splitting them. "
-            "Pavel opened at 30%, i.e. 12 points ABOVE his floor: an anchor and a floor are different "
+            "Marina opened at 30%, i.e. 12 points ABOVE her floor: an anchor and a floor are different "
             "numbers, and the first says nothing about the second."),
     },
     {
         "id": "bz-08", "block": "batna-zopa", "lesson": 3, "type": "choice",
         "difficulty": 3, "xp": 15, "scenario_id": "investor",
-        "prompt": T("Павел держит 30% и не двигается. У вас есть второй фонд. Как назвать альтернативу?",
-                    "Pavel holds 30% and will not move. You do have a second fund. How do you name the alternative?"),
+        "prompt": T("Марина держит 30% и не двигается. У вас есть второй фонд. Как назвать альтернативу?",
+                    "Marina holds 30% and will not move. You do have a second fund. How do you name the alternative?"),
         "options": [
             T("Либо вы соглашаетесь на 18%, либо мы прекращаем разговор.",
               "Either you take 18% or we walk."),
@@ -851,11 +867,12 @@ BANK: list[dict] = [
         "explain": T(
             "Альтернатива, названная без угрозы, даёт рычаг +10 и напряжение +14; та же альтернатива "
             "ультиматумом добавляет сверху доверие −14 и напряжение +22 — и уступки замерзают. "
-            "У инвестора самая сильная BATNA в игре, так что пугать его своей особенно бессмысленно.",
+            "У вас здесь сильная альтернатива — второй фонд, — но дно Марины 18% не двигается ни от "
+            "какого давления. Поэтому альтернативу НАЗЫВАЮТ, а не заносят над столом.",
             "An alternative named without a threat grants leverage +10 and tension +14; the same "
             "alternative as an ultimatum adds trust −14 and tension +22 on top — and concessions freeze. "
-            "The investor holds the strongest BATNA in the game, so frightening him with yours is "
-            "especially pointless."),
+            "You do hold a strong alternative here — the second fund — but Marina's floor of 18% does not "
+            "move under any pressure. So you NAME the alternative; you do not brandish it."),
     },
     {
         "id": "bz-09", "block": "batna-zopa", "lesson": 4, "type": "drill",
@@ -871,10 +888,10 @@ BANK: list[dict] = [
             {"field": "tension", "op": "<=", "value": 50},
         ],
         "explain": T(
-            "Дно Павла — 18%, ваша красная линия — 24%: вся партия про шесть пунктов. Жёсткая BATNA "
+            "Дно Марины — 18%, ваша красная линия — 24%: вся партия про шесть пунктов. Жёсткая BATNA "
             "здесь стоит дорого — напряжение +14 за упоминание и +22 сверху, если оно прозвучало "
             "ультиматумом. Двадцать процентов берутся вопросами и разменом, а не второй фондом.",
-            "Pavel's floor is 18%, your red line 24%: the whole game is about six points. A hard BATNA "
+            "Marina's floor is 18%, your red line 24%: the whole game is about six points. A hard BATNA "
             "is expensive here — tension +14 for naming it and +22 more if it came out as an ultimatum. "
             "Twenty percent is reached by questions and trades, not by the second fund."),
     },
@@ -1008,10 +1025,12 @@ BANK: list[dict] = [
         "explain": T(
             "Якорь без обоснования — просто цифра, и защищаться от него учат в следующем уроке. "
             "Якорь с критерием движок читает КАК критерий: рычаг +16 и реакция «убеждён». "
-            "Первый вариант — цифра без единого основания, да ещё ультиматумом: доверие −14, напряжение +22.",
+            "Первый вариант — цифра без единого основания, да ещё ультиматумом: доверие −14 и напряжение "
+            "+30, потому что Сергей жёсткий и его стиль добавляет к ультиматуму ещё +8.",
             "An anchor with no grounding is just a number, and the next lesson teaches how to defuse "
             "one. An anchor with a criterion is read by the engine AS a criterion: leverage +16 and the "
-            "reaction “persuaded”. Option one is a bare number with an ultimatum on top: trust −14, tension +22."),
+            "reaction “persuaded”. Option one is a bare number with an ultimatum on top: trust −14 and "
+            "tension +30, because Sergey is a tough type and his style adds 8 more to an ultimatum."),
     },
     {
         "id": "an-08", "block": "anchoring", "lesson": 4, "type": "drill",
@@ -1088,7 +1107,7 @@ BANK: list[dict] = [
                   "min_arg": 38, "min_words": 8},
         "reference": T(
             "Если мы продлим на 3 года и введём ступенчатый SLA, сможете ли вы дать 99.8% со второго квартала?",
-            "If we renew for 3 years with a phased SLA, can you move on uptime to 99.8% from Q2?"),
+            "If we renew for three years with a phased SLA, can you move on uptime to 99.8% from Q2?"),
         "explain": T(
             "Ключ — связка «если … то». Без неё движок увидит уступку (вы просто отдали), а не размен "
             "(вы обменяли). Размен даёт доверие +6, напряжение −4 и открывает вторую ось движения.",
@@ -1223,8 +1242,8 @@ BANK: list[dict] = [
         "prompt": T("Виктор: «99.5% — потолок. Это не обсуждается». Ваш ход?",
                     "Viktor: “99.5% is the ceiling. Non-negotiable.” Your move?"),
         "options": [
-            T("Тогда мы уходим к конкуренту, у них 99.7%.",
-              "Then we go to your competitor, they offer 99.7%."),
+            T("Или вы даёте 99.9%, или мы уходим к конкуренту — это наше последнее слово.",
+              "Either you give us 99.9%, or we walk to your competitor — that is our final word."),
             T("Понимаю, что вам важно не брать штрафы. Что именно делает 99.9% невозможным для вашей эксплуатации?",
               "I understand you must not take penalties. What exactly makes 99.9% impossible for your ops team?"),
             T("Всё обсуждается, не начинайте.", "Everything is negotiable, do not start."),
@@ -1234,10 +1253,12 @@ BANK: list[dict] = [
         "explain": T(
             "Ультиматум — это упаковка, внутри почти всегда страх. «Не брать штрафы, которые не "
             "вытянет эксплуатация» — реальный интерес Виктора. Первый вариант закрывает его: "
-            "жёсткий стиль добавляет ещё +8 к напряжению.",
+            "альтернатива плюс ультиматум дают −14 доверия и +44 напряжения разом, потому что "
+            "жёсткий стиль добавляет к ультиматуму ещё +8.",
             "An ultimatum is packaging; a fear usually sits inside. “Avoid penalties the ops team "
-            "cannot sustain” is Viktor's real interest. Option one hardens him: the tough style adds "
-            "a further +8 tension."),
+            "cannot sustain” is Viktor's real interest. Option one hardens him: an alternative plus "
+            "an ultimatum costs −14 trust and +44 tension at once, because the tough style adds a "
+            "further +8 to an ultimatum."),
     },
     {
         "id": "pd-02", "block": "pressure-defense", "lesson": 1, "type": "freeform",
@@ -1479,11 +1500,11 @@ BANK: list[dict] = [
         "answer": {"analytical": "m_criteria", "relationship": "m_batna", "tough": "m_threat"},
         "explain": T(
             "Три надбавки — и все три штрафные, кроме первой: аналитику те же данные стоят дороже "
-            "в вашу пользу, «отношенцу» альтернатива обходится вдвое дороже (10 вместо 4 с опорой, "
-            "20 вместо 14 без), жёсткому ультиматум даёт 30 напряжения вместо 22. Скидки за стиль в "
-            "движке нет ни одной.",
+            "в вашу пользу, «отношенцу» альтернатива обходится на +6 напряжения дороже (10 вместо "
+            "4 с опорой, 20 вместо 14 без), жёсткому ультиматум даёт 30 напряжения вместо 22. "
+            "Скидки за стиль в движке нет ни одной.",
             "Three modifiers, and all but the first are penalties: with the analyst the same data is "
-            "worth more in your favour; with the relationship type an alternative costs twice as much "
+            "worth more in your favour; with the relationship type an alternative costs 6 more tension "
             "(10 instead of 4 when grounded, 20 instead of 14 when not); with the tough one an "
             "ultimatum means 30 tension instead of 22. The engine has no style discounts at all."),
     },
@@ -1560,11 +1581,13 @@ BANK: list[dict] = [
         "answer": 2, "expect_moves": ["interests_probe"],
         "explain": T(
             "Сила здесь нужна не для того, чтобы выжимать: 212 не добавит ни балла к экономике, "
-            "зато Тимур — «отношенец», и давление стоит с ним дороже на +6 напряжения. Вопрос про "
+            "зато Тимур — «отношенец», и названная альтернатива стоит с ним на +6 напряжения "
+            "дороже. Вопрос про "
             "переход даёт +24 к Информации и открывает то, чем можно заплатить дёшево: трек до "
             "архитектора стоит компании подписи, а для него это причина всего перехода.",
             "Power here is not for squeezing: 212 adds nothing to the economics, while Timur is a "
-            "relationship type and pressure costs +6 more tension with him. The question about the "
+            "relationship type, so naming an alternative costs +6 more tension with him. The question "
+            "about the "
             "move gives +24 Information and opens what you can pay with cheaply: an architect track "
             "costs the company a signature, and for him it is the whole reason he came."),
     },
@@ -1602,11 +1625,13 @@ BANK: list[dict] = [
         "explain": T(
             "Единственный капстоун курса с НИЖНЕЙ границей по цене. Тимур подписал бы и 210, но за "
             "эти двадцать тысяч не начисляют ничего, а доверие 70 после выжимания не собрать: "
-            "давление с «отношенцем» стоит на +6 напряжения дороже. Сила проверяется тем, от чего "
+            "названная «отношенцу» альтернатива стоит на +6 напряжения дороже. Сила проверяется "
+            "тем, от чего "
             "вы отказались, а не тем, что взяли.",
             "The only capstone in the course with a LOWER price bound. Timur would sign at 210, but "
-            "those twenty thousand earn nothing, and trust of 70 cannot survive the squeeze: pressure "
-            "on a relationship type costs +6 more tension. Power is measured by what you declined to "
+            "those twenty thousand earn nothing, and trust of 70 cannot survive the squeeze: naming an "
+            "alternative to a relationship type costs +6 more tension. Power is measured by what you "
+            "declined to "
             "take, not by what you took."),
     },
 ]

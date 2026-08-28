@@ -41,8 +41,8 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "Three interests behind one number"
         },
         "body": {
-          "ru": "У каждого оппонента в тренажёре ровно три скрытых интереса. Они не выдуманы для красоты: из них выведены вторичные вопросы, которыми потом можно разменяться.\n\nУ Натальи из сценария «Аренда» деньги — не главное. Ей важны простой без жильца, тишина в доме и аккуратность. Ни один из трёх интересов не про цену, и именно поэтому спор о цене с ней бесполезен.",
-          "en": "Every counterpart in the trainer holds exactly three hidden interests. They are not decoration: the tradeable secondary issues are derived from them.\n\nFor Natalia in the Rent scenario, money is not the point. She cares about vacancy, quiet and a careful tenant. Not one of the three is about price — which is exactly why arguing price with her goes nowhere."
+          "ru": "У каждого оппонента в тренажёре ровно три скрытых интереса. Они не выдуманы для красоты: из них выведены вторичные вопросы, которыми потом можно разменяться.\n\nУ Натальи из сценария «Аренда» цена — не главное. Её три интереса: простой без жильца, аккуратный тихий жилец без хлопот и оплата точно в срок. Ни один из них не про размер платы, и именно поэтому спор о цене с ней бесполезен.",
+          "en": "Every counterpart in the trainer holds exactly three hidden interests. They are not decoration: the tradeable secondary issues are derived from them.\n\nFor Natalia in the Rent scenario, the price is not the point. Her three interests: vacancy, a tidy quiet tenant with no hassle, and rent paid exactly on time. Not one of them is about the size of the rent — which is exactly why arguing price with her goes nowhere."
         }
       },
       {
@@ -52,8 +52,8 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The opener question"
         },
         "body": {
-          "ru": "Голое «почему?» звучит как допрос и почти ничего не вскрывает: движок засчитает его как открытый вопрос и не добавит информации.\n\nРаботает формулировка «что для вас важнее всего…», «что вас беспокоит…», «что стоит за этой цифрой». Она спрашивает про человека, а не про цифру, и потому получает ответ про интерес: +24 к шкале «Информация».",
-          "en": "A bare “why?” sounds like an interrogation and surfaces almost nothing: the engine records an open question and adds no information.\n\nWhat works is “what matters most to you…”, “what concerns you…”, “what sits behind that number”. It asks about the person rather than the figure, and so it gets an answer about an interest: +24 on the Information meter."
+          "ru": "Голое «почему?» звучит как допрос и почти ничего не вскрывает: движок засчитает его как открытый вопрос и не добавит информации.\n\nРаботает формулировка «что для вас важнее всего…», «что вас беспокоит…», «что стоит за этой цифрой» — и обязательно с НАЗВАННОЙ темой: «чтобы квартира не пустовала», «чтобы жилец был тихий». Она спрашивает про человека, а не про цифру, и потому получает ответ про интерес: +24 к шкале «Информация». Формулировка без темы вернётся переспросом и даст только 5 — почему, разбирает урок 5.",
+          "en": "A bare “why?” sounds like an interrogation and surfaces almost nothing: the engine records an open question and adds no information.\n\nWhat works is “what matters most to you…”, “what concerns you…”, “what sits behind that number” — and always with a NAMED topic: “so the flat is not sitting empty”, “a quiet tenant”. It asks about the person rather than the figure, and so it gets an answer about an interest: +24 on the Information meter. The same wording with no topic comes back as a query and pays only 5 — lesson 5 explains why."
         }
       },
       {
@@ -240,8 +240,8 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "What counts as a criterion"
         },
         "body": {
-          "ru": "Критерий — внешний, проверяемый источник с цифрой: обзор зарплат, рыночная медиана, прайс сопоставимых объявлений, отраслевой регламент.\n\n«Я стою больше», «это несправедливо», «у всех знакомых выше» — не критерии. Движок читает их как обычное заявление: качество аргумента 20, рычаг +0. И судья ставит ≥55 только там, где есть конкретное число или источник.",
-          "en": "A criterion is an external, checkable source with a number: a salary survey, a market median, comparable listings, an industry regulation.\n\n“I am worth more”, “this is unfair”, “everyone I know earns more” are not criteria. The engine reads them as plain statements: argument quality 20, leverage +0. And the judge scores ≥55 only where a concrete number or source is present."
+          "ru": "Критерий — внешний, проверяемый источник с цифрой: обзор зарплат, рыночная медиана, прайс сопоставимых объявлений, отраслевой регламент.\n\n«Я стою больше», «это несправедливо», «у всех знакомых выше» — не критерии. Движок читает их как обычное заявление: качество аргумента 20, рычаг +0. А судья обязан поставить ≥55 везде, где есть конкретное число или источник, — и читает как спам (0–20) те же слова без цифр.",
+          "en": "A criterion is an external, checkable source with a number: a salary survey, a market median, comparable listings, an industry regulation.\n\n“I am worth more”, “this is unfair”, “everyone I know earns more” are not criteria. The engine reads them as plain statements: argument quality 20, leverage +0. And the judge must score ≥55 wherever a concrete number or source is present — while reading the same words with no figures as spam (0–20)."
         }
       },
       {
@@ -605,8 +605,8 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "Adapting is about order, not about masks"
         },
         "body": {
-          "ru": "Подстройка не значит «стать другим человеком». Меняется порядок ходов.\n\nС аналитиком критерий идёт РАНЬШЕ размена: сначала данные, потом пакет. С «отношенцем» альтернативу лучше не называть вовсе, пока не собран пакет: она стоит вдвое дороже, а на тёплом столе цена и так поедет от размена. С жёстким ультиматум не работает никогда — работает встречный объективный критерий и спокойное «пока нет».\n\nПроверить себя просто: если приём поднимает напряжение выше 55, движок режет уступку до 60 %, а выше 75 — до 25 %. Стиль — самый быстрый способ туда попасть, не заметив этого.",
-          "en": "Adapting does not mean becoming someone else. What changes is the order of moves.\n\nWith the analytical one the criterion comes BEFORE the trade: data first, package second. With the relationship one, better not to name your alternative at all until the package is built: it costs twice as much, and at a warm table the price moves from the trade anyway. With the tough one an ultimatum never works — a counter criterion and a calm “not yet” do.\n\nThe self-check is simple: once a technique pushes tension above 55 the engine cuts any concession to 60 %, and above 75 to 25 %. Style is the fastest way to get there without noticing."
+          "ru": "Подстройка не значит «стать другим человеком». Меняется порядок ходов.\n\nС аналитиком критерий идёт РАНЬШЕ размена: сначала данные, потом пакет. С «отношенцем» альтернативу лучше не называть вовсе, пока не собран пакет: она стоит на +6 напряжения дороже, а на тёплом столе цена и так поедет от размена. С жёстким ультиматум не работает никогда — работает встречный объективный критерий и спокойное «пока нет».\n\nПроверить себя просто: если приём поднимает напряжение выше 55, движок режет уступку до 60 %, а выше 75 — до 25 %. Стиль — самый быстрый способ туда попасть, не заметив этого.",
+          "en": "Adapting does not mean becoming someone else. What changes is the order of moves.\n\nWith the analytical one the criterion comes BEFORE the trade: data first, package second. With the relationship one, better not to name your alternative at all until the package is built: it costs 6 more tension, and at a warm table the price moves from the trade anyway. With the tough one an ultimatum never works — a counter criterion and a calm “not yet” do.\n\nThe self-check is simple: once a technique pushes tension above 55 the engine cuts any concession to 60 %, and above 75 to 25 %. Style is the fastest way to get there without noticing."
         }
       },
       {
@@ -616,8 +616,8 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "When the power is yours"
         },
         "body": {
-          "ru": "Стол этого блока — «Оффер сильному кандидату», и он единственный, где сила у ИГРОКА. У Тимура нет второго оффера, его дно 210, а ваша цель — 230. Выжать ниже можно.\n\nИ за это не начисляют ничего. Экономика считается как доля пути от красной линии (260) до цели (230) и на 230 уже равна 100 — ниже потолка нет. Зато отношения — это четверть итогового балла, а Тимур «отношенец»: давление и альтернатива стоят с ним на +6 напряжения дороже обычного. Выжатый на подписи человек уходит в первый год, и позицию открывают заново — в брифинге это сказано прямо.\n\nПравило блока в одну строку: сила нужна, чтобы НЕ торговаться, а спросить, ради чего он идёт, и заплатить тем, что стоит вам дёшево. Трек до архитектора стоит компании подписи под планом развития, а для него это причина всего перехода.",
-          "en": "This block's table is “Making the Offer”, and it is the only one where the PLAYER holds the power. Timur has no rival offer, his floor is 210, and your target is 230. Squeezing him lower is possible.\n\nAnd it earns you nothing. Economics is the share of the distance from your red line (260) to your target (230), and at 230 it is already 100 — there is no ceiling above. Relationship, meanwhile, is a quarter of the final score, and Timur is a relationship type: pressure and alternatives cost +6 tension more with him. A hire squeezed at signing leaves within the year and you reopen the role — the briefing says so outright.\n\nThe block's rule in one line: power is there so that you do NOT haggle — you ask what he is coming for and pay with what is cheap for you. An architect track costs the company a signature under a development plan; for him it is the whole reason he came."
+          "ru": "Стол этого блока — «Оффер сильному кандидату», и он единственный, где сила у ИГРОКА. У Тимура нет второго оффера, его дно 210, а ваша цель — 230. Выжать ниже можно.\n\nИ за это не начисляют ничего. Экономика считается как доля пути от красной линии (260) до цели (230) и на 230 уже равна 100 — ниже потолка нет. Зато отношения — это четверть итогового балла, а Тимур «отношенец»: названная альтернатива стоит с ним на +6 напряжения дороже обычного. Выжатый на подписи человек уходит в первый год, и позицию открывают заново — в брифинге это сказано прямо.\n\nПравило блока в одну строку: сила нужна, чтобы НЕ торговаться, а спросить, ради чего он идёт, и заплатить тем, что стоит вам дёшево. Трек до архитектора стоит компании подписи под планом развития, а для него это причина всего перехода.",
+          "en": "This block's table is “Making the Offer”, and it is the only one where the PLAYER holds the power. Timur has no rival offer, his floor is 210, and your target is 230. Squeezing him lower is possible.\n\nAnd it earns you nothing. Economics is the share of the distance from your red line (260) to your target (230), and at 230 it is already 100 — there is no ceiling above. Relationship, meanwhile, is a quarter of the final score, and Timur is a relationship type: naming an alternative costs +6 tension more with him. A hire squeezed at signing leaves within the year and you reopen the role — the briefing says so outright.\n\nThe block's rule in one line: power is there so that you do NOT haggle — you ask what he is coming for and pay with what is cheap for you. An architect track costs the company a signature under a development plan; for him it is the whole reason he came."
         }
       }
     ]
@@ -643,8 +643,8 @@ export const COURSE_BANK: Exercise[] = [
         "en": "What about 65? That is too much for me."
       },
       {
-        "ru": "Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-        "en": "Natalia, what matters most to you in a tenant — and what concerns you?"
+        "ru": "Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+        "en": "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"
       },
       {
         "ru": "У меня есть другая квартира за 68, я подумаю.",
@@ -660,8 +660,8 @@ export const COURSE_BANK: Exercise[] = [
       "interests_probe"
     ],
     "explain": {
-      "ru": "«75 тысяч» — позиция. Пока вы торгуетесь с ней, у стола одна ось и кто-то обязан проиграть. Вопрос про жильца вскрывает интерес — Информация +24, и цена поедет сама.",
-      "en": "“75k” is a position. Haggle with it and the table has one axis and someone has to lose. The tenant question surfaces an interest — Information +24, and the price moves on its own."
+      "ru": "«75 тысяч» — позиция. Пока вы торгуетесь с ней, у стола одна ось и кто-то обязан проиграть. Вопрос назвал тему — простой и тихого жильца, — поэтому интерес вскрылся: Информация +24, и цена поедет сама.",
+      "en": "“75k” is a position. Haggle with it and the table has one axis and someone has to lose. The question named a topic — vacancy and a quiet tenant — so the interest opened: Information +24, and the price moves on its own."
     }
   },
   {
@@ -777,12 +777,12 @@ export const COURSE_BANK: Exercise[] = [
       "min_words": 5
     },
     "reference": {
-      "ru": "Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-      "en": "Natalia, what matters most to you in a tenant — and what concerns you?"
+      "ru": "Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+      "en": "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"
     },
     "explain": {
-      "ru": "Ключ — формулировка «что для вас важно / что вас беспокоит». Голое «почему?» движок засчитает как обычный открытый вопрос: ноль к Информации.",
-      "en": "The key is “what matters to you / what concerns you”. A bare “why?” classifies as a plain open question: zero Information."
+      "ru": "Условий два. Формулировка «что для вас важно» — голое «почему?» движок засчитает как обычный открытый вопрос, ноль к Информации. И названная ТЕМА: вопрос обязан попасть в слова ещё не вскрытого интереса — простой, тишина, оплата в срок. Не попал — Наталья переспросит, а Информация вырастет на 5 вместо 24.",
+      "en": "Two conditions. The wording — “what matters to you”; a bare “why?” classifies as a plain open question, zero Information. And a named TOPIC: the question has to land on the words of an interest that is still hidden — vacancy, quiet, payment on time. Miss it, and Natalia asks back while Information rises by 5 instead of 24."
     }
   },
   {
@@ -856,8 +856,8 @@ export const COURSE_BANK: Exercise[] = [
       "turn": 2
     },
     "player_line": {
-      "ru": "Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-      "en": "Natalia, what matters most to you in a tenant — and what concerns you?"
+      "ru": "Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+      "en": "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"
     },
     "ask": "largest_delta",
     "answer": "info",
@@ -925,8 +925,8 @@ export const COURSE_BANK: Exercise[] = [
       "turn": 3
     },
     "player_line": {
-      "ru": "Понимаю, что для вас это непросто. Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-      "en": "I understand this is not easy for you. Natalia, what matters most to you in a tenant — and what concerns you?"
+      "ru": "Понимаю, что для вас это непросто. Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+      "en": "I understand this is not easy for you. Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"
     },
     "ask": "largest_delta",
     "answer": "tension",
@@ -953,8 +953,8 @@ export const COURSE_BANK: Exercise[] = [
     },
     "options": [
       {
-        "ru": "Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
-        "en": "Natalia, what matters most to you in a tenant — and what concerns you?"
+        "ru": "Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
+        "en": "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"
       },
       {
         "ru": "Мы предлагаем 60, это наша цена.",
@@ -1067,8 +1067,8 @@ export const COURSE_BANK: Exercise[] = [
         "en": "What difficulties do you hit when the load is uneven?"
       },
       {
-        "ru": "Сколько вы теряете, если линия стоит месяц?",
-        "en": "What does that cost you when the line is idle for a month?"
+        "ru": "Сколько вы теряете, если загрузка производства падает на месяц?",
+        "en": "What does that cost you when factory utilization drops for a month?"
       },
       {
         "ru": "Насколько важно было бы закрыть загрузку на год вперёд?",
@@ -1108,7 +1108,7 @@ export const COURSE_BANK: Exercise[] = [
       "min_words": 5
     },
     "reference": {
-      "ru": "К чему это приводит, когда линия простаивает месяц?",
+      "ru": "Чем это грозит вам, когда загрузка производства падает на месяц?",
       "en": "What happens if the line sits idle for a month?"
     },
     "explain": {
@@ -1213,7 +1213,7 @@ export const COURSE_BANK: Exercise[] = [
     },
     "reference": {
       "ru": "С какими сложностями вы сталкиваетесь при неравномерной загрузке?",
-      "en": "What difficulties do you hit when the load is uneven?"
+      "en": "What difficulties do you hit when factory utilization is uneven?"
     },
     "explain": {
       "ru": "P — первый вопрос, где собеседник произносит вслух то, что ему не нравится. С этого момента разговор уже не про вашу цену, а про его положение.",
@@ -1283,8 +1283,8 @@ export const COURSE_BANK: Exercise[] = [
       "min_words": 5
     },
     "reference": {
-      "ru": "Расскажите о вашем процессе: как сейчас устроены отгрузки и как часто вы отгружаете?",
-      "en": "Tell me about your process: how do you currently plan shipments, and how often do you ship?"
+      "ru": "Расскажите, как сейчас устроена загрузка производства: как планируете отгрузки и как часто отгружаете?",
+      "en": "Tell me how factory utilization works today: how do you plan shipments, and how often do you ship?"
     },
     "explain": {
       "ru": "S — единственная ступень, которую движок оценивает скромно (+14 к Информации) и которую всё равно нельзя пропустить: без фактов следующий вопрос про боль звучит как догадка. Цифра в первой реплике превращает вопрос в предложение — поэтому она запрещена.",
@@ -1371,8 +1371,8 @@ export const COURSE_BANK: Exercise[] = [
       "interests_probe"
     ],
     "explain": {
-      "ru": "Признать давление — не признать вину. Движок: доверие вверх, напряжение вниз, Информация +24, реакция «потеплел». Четвёртый вариант — грубость: доверие −22, напряжение +26.",
-      "en": "Acknowledging the pressure is not admitting fault. Engine: trust up, tension down, Information +24, reaction “warmed”. Option four is rudeness: trust −22, tension +26."
+      "ru": "Признать давление — не признать вину: доверие +8, напряжение −10, реакция «теплеет». Информация при этом растёт всего на 5 — вопрос «в этом статусе» не назвал ни одной темы его интересов, и Алексей переспросит. Назовите тему («выглядеть виноватым перед руководством») — и та же реплика даст +24; это следующее упражнение. Четвёртый вариант — грубость: доверие −22, напряжение +26.",
+      "en": "Acknowledging the pressure is not admitting fault: trust +8, tension −10, reaction “warmed”. Information rises by just 5 — “that status update” names none of his interests, so Alexey asks back. Name the topic (“looking at fault to leadership”) and the same line gives +24; that is the next exercise. Option four is rudeness: trust −22, tension +26."
     }
   },
   {
@@ -1407,8 +1407,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "I understand you must not look at fault to leadership. What matters more to you — the dates, or how this is framed upwards?"
     },
     "explain": {
-      "ru": "Два приёма в одной реплике: активное слушание (напряжение −10) плюс вскрытие интереса (Информация +24). Именно эта пара даёт самую тёплую реакцию в шкале.",
-      "en": "Two moves in one line: active listening (tension −10) plus an interest probe (Information +24). That pair yields the warmest rung on the scale."
+      "ru": "Два приёма в одной реплике: активное слушание (напряжение −10) плюс вскрытие интереса (Информация +24). Реакция при этом не «теплеет», а «приоткрывается»: вскрытие в движке старше теплоты и перезаписывает её — секрет важнее комплимента.",
+      "en": "Two moves in one line: active listening (tension −10) plus an interest probe (Information +24). The reaction is not “warmed” but “opened up”: in the engine a reveal outranks warmth and overwrites it — the secret matters more than the compliment."
     }
   },
   {
@@ -2150,8 +2150,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "% equity"
     },
     "explain": {
-      "ru": "ZOPA = [18, 24], ширина 6 процентных пунктов — весь торг про их деление. Открылся Павел с 30%, то есть на 12 пунктов ВЫШЕ своего дна: якорь и дно — разные числа, и первое ничего не говорит о втором.",
-      "en": "ZOPA = [18, 24], six percentage points wide — the whole haggle is over splitting them. Pavel opened at 30%, i.e. 12 points ABOVE his floor: an anchor and a floor are different numbers, and the first says nothing about the second."
+      "ru": "ZOPA = [18, 24], ширина 6 процентных пунктов — весь торг про их деление. Открылась Марина с 30%, то есть на 12 пунктов ВЫШЕ своего дна: якорь и дно — разные числа, и первое ничего не говорит о втором.",
+      "en": "ZOPA = [18, 24], six percentage points wide — the whole haggle is over splitting them. Marina opened at 30%, i.e. 12 points ABOVE her floor: an anchor and a floor are different numbers, and the first says nothing about the second."
     }
   },
   {
@@ -2163,8 +2163,8 @@ export const COURSE_BANK: Exercise[] = [
     "xp": 15,
     "scenario_id": "investor",
     "prompt": {
-      "ru": "Павел держит 30% и не двигается. У вас есть второй фонд. Как назвать альтернативу?",
-      "en": "Pavel holds 30% and will not move. You do have a second fund. How do you name the alternative?"
+      "ru": "Марина держит 30% и не двигается. У вас есть второй фонд. Как назвать альтернативу?",
+      "en": "Marina holds 30% and will not move. You do have a second fund. How do you name the alternative?"
     },
     "options": [
       {
@@ -2189,8 +2189,8 @@ export const COURSE_BANK: Exercise[] = [
       "batna"
     ],
     "explain": {
-      "ru": "Альтернатива, названная без угрозы, даёт рычаг +10 и напряжение +14; та же альтернатива ультиматумом добавляет сверху доверие −14 и напряжение +22 — и уступки замерзают. У инвестора самая сильная BATNA в игре, так что пугать его своей особенно бессмысленно.",
-      "en": "An alternative named without a threat grants leverage +10 and tension +14; the same alternative as an ultimatum adds trust −14 and tension +22 on top — and concessions freeze. The investor holds the strongest BATNA in the game, so frightening him with yours is especially pointless."
+      "ru": "Альтернатива, названная без угрозы, даёт рычаг +10 и напряжение +14; та же альтернатива ультиматумом добавляет сверху доверие −14 и напряжение +22 — и уступки замерзают. У вас здесь сильная альтернатива — второй фонд, — но дно Марины 18% не двигается ни от какого давления. Поэтому альтернативу НАЗЫВАЮТ, а не заносят над столом.",
+      "en": "An alternative named without a threat grants leverage +10 and tension +14; the same alternative as an ultimatum adds trust −14 and tension +22 on top — and concessions freeze. You do hold a strong alternative here — the second fund — but Marina's floor of 18% does not move under any pressure. So you NAME the alternative; you do not brandish it."
     }
   },
   {
@@ -2233,8 +2233,8 @@ export const COURSE_BANK: Exercise[] = [
       }
     ],
     "explain": {
-      "ru": "Дно Павла — 18%, ваша красная линия — 24%: вся партия про шесть пунктов. Жёсткая BATNA здесь стоит дорого — напряжение +14 за упоминание и +22 сверху, если оно прозвучало ультиматумом. Двадцать процентов берутся вопросами и разменом, а не второй фондом.",
-      "en": "Pavel's floor is 18%, your red line 24%: the whole game is about six points. A hard BATNA is expensive here — tension +14 for naming it and +22 more if it came out as an ultimatum. Twenty percent is reached by questions and trades, not by the second fund."
+      "ru": "Дно Марины — 18%, ваша красная линия — 24%: вся партия про шесть пунктов. Жёсткая BATNA здесь стоит дорого — напряжение +14 за упоминание и +22 сверху, если оно прозвучало ультиматумом. Двадцать процентов берутся вопросами и разменом, а не второй фондом.",
+      "en": "Marina's floor is 18%, your red line 24%: the whole game is about six points. A hard BATNA is expensive here — tension +14 for naming it and +22 more if it came out as an ultimatum. Twenty percent is reached by questions and trades, not by the second fund."
     }
   },
   {
@@ -2486,8 +2486,8 @@ export const COURSE_BANK: Exercise[] = [
       "objective_criteria"
     ],
     "explain": {
-      "ru": "Якорь без обоснования — просто цифра, и защищаться от него учат в следующем уроке. Якорь с критерием движок читает КАК критерий: рычаг +16 и реакция «убеждён». Первый вариант — цифра без единого основания, да ещё ультиматумом: доверие −14, напряжение +22.",
-      "en": "An anchor with no grounding is just a number, and the next lesson teaches how to defuse one. An anchor with a criterion is read by the engine AS a criterion: leverage +16 and the reaction “persuaded”. Option one is a bare number with an ultimatum on top: trust −14, tension +22."
+      "ru": "Якорь без обоснования — просто цифра, и защищаться от него учат в следующем уроке. Якорь с критерием движок читает КАК критерий: рычаг +16 и реакция «убеждён». Первый вариант — цифра без единого основания, да ещё ультиматумом: доверие −14 и напряжение +30, потому что Сергей жёсткий и его стиль добавляет к ультиматуму ещё +8.",
+      "en": "An anchor with no grounding is just a number, and the next lesson teaches how to defuse one. An anchor with a criterion is read by the engine AS a criterion: leverage +16 and the reaction “persuaded”. Option one is a bare number with an ultimatum on top: trust −14 and tension +30, because Sergey is a tough type and his style adds 8 more to an ultimatum."
     }
   },
   {
@@ -2638,7 +2638,7 @@ export const COURSE_BANK: Exercise[] = [
     },
     "reference": {
       "ru": "Если мы продлим на 3 года и введём ступенчатый SLA, сможете ли вы дать 99.8% со второго квартала?",
-      "en": "If we renew for 3 years with a phased SLA, can you move on uptime to 99.8% from Q2?"
+      "en": "If we renew for three years with a phased SLA, can you move on uptime to 99.8% from Q2?"
     },
     "explain": {
       "ru": "Ключ — связка «если … то». Без неё движок увидит уступку (вы просто отдали), а не размен (вы обменяли). Размен даёт доверие +6, напряжение −4 и открывает вторую ось движения.",
@@ -2888,8 +2888,8 @@ export const COURSE_BANK: Exercise[] = [
     },
     "options": [
       {
-        "ru": "Тогда мы уходим к конкуренту, у них 99.7%.",
-        "en": "Then we go to your competitor, they offer 99.7%."
+        "ru": "Или вы даёте 99.9%, или мы уходим к конкуренту — это наше последнее слово.",
+        "en": "Either you give us 99.9%, or we walk to your competitor — that is our final word."
       },
       {
         "ru": "Понимаю, что вам важно не брать штрафы. Что именно делает 99.9% невозможным для вашей эксплуатации?",
@@ -2909,8 +2909,8 @@ export const COURSE_BANK: Exercise[] = [
       "acknowledge"
     ],
     "explain": {
-      "ru": "Ультиматум — это упаковка, внутри почти всегда страх. «Не брать штрафы, которые не вытянет эксплуатация» — реальный интерес Виктора. Первый вариант закрывает его: жёсткий стиль добавляет ещё +8 к напряжению.",
-      "en": "An ultimatum is packaging; a fear usually sits inside. “Avoid penalties the ops team cannot sustain” is Viktor's real interest. Option one hardens him: the tough style adds a further +8 tension."
+      "ru": "Ультиматум — это упаковка, внутри почти всегда страх. «Не брать штрафы, которые не вытянет эксплуатация» — реальный интерес Виктора. Первый вариант закрывает его: альтернатива плюс ультиматум дают −14 доверия и +44 напряжения разом, потому что жёсткий стиль добавляет к ультиматуму ещё +8.",
+      "en": "An ultimatum is packaging; a fear usually sits inside. “Avoid penalties the ops team cannot sustain” is Viktor's real interest. Option one hardens him: an alternative plus an ultimatum costs −14 trust and +44 tension at once, because the tough style adds a further +8 to an ultimatum."
     }
   },
   {
@@ -3350,8 +3350,8 @@ export const COURSE_BANK: Exercise[] = [
       "tough": "m_threat"
     },
     "explain": {
-      "ru": "Три надбавки — и все три штрафные, кроме первой: аналитику те же данные стоят дороже в вашу пользу, «отношенцу» альтернатива обходится вдвое дороже (10 вместо 4 с опорой, 20 вместо 14 без), жёсткому ультиматум даёт 30 напряжения вместо 22. Скидки за стиль в движке нет ни одной.",
-      "en": "Three modifiers, and all but the first are penalties: with the analyst the same data is worth more in your favour; with the relationship type an alternative costs twice as much (10 instead of 4 when grounded, 20 instead of 14 when not); with the tough one an ultimatum means 30 tension instead of 22. The engine has no style discounts at all."
+      "ru": "Три надбавки — и все три штрафные, кроме первой: аналитику те же данные стоят дороже в вашу пользу, «отношенцу» альтернатива обходится на +6 напряжения дороже (10 вместо 4 с опорой, 20 вместо 14 без), жёсткому ультиматум даёт 30 напряжения вместо 22. Скидки за стиль в движке нет ни одной.",
+      "en": "Three modifiers, and all but the first are penalties: with the analyst the same data is worth more in your favour; with the relationship type an alternative costs 6 more tension (10 instead of 4 when grounded, 20 instead of 14 when not); with the tough one an ultimatum means 30 tension instead of 22. The engine has no style discounts at all."
     }
   },
   {
@@ -3477,8 +3477,8 @@ export const COURSE_BANK: Exercise[] = [
       "interests_probe"
     ],
     "explain": {
-      "ru": "Сила здесь нужна не для того, чтобы выжимать: 212 не добавит ни балла к экономике, зато Тимур — «отношенец», и давление стоит с ним дороже на +6 напряжения. Вопрос про переход даёт +24 к Информации и открывает то, чем можно заплатить дёшево: трек до архитектора стоит компании подписи, а для него это причина всего перехода.",
-      "en": "Power here is not for squeezing: 212 adds nothing to the economics, while Timur is a relationship type and pressure costs +6 more tension with him. The question about the move gives +24 Information and opens what you can pay with cheaply: an architect track costs the company a signature, and for him it is the whole reason he came."
+      "ru": "Сила здесь нужна не для того, чтобы выжимать: 212 не добавит ни балла к экономике, зато Тимур — «отношенец», и названная альтернатива стоит с ним на +6 напряжения дороже. Вопрос про переход даёт +24 к Информации и открывает то, чем можно заплатить дёшево: трек до архитектора стоит компании подписи, а для него это причина всего перехода.",
+      "en": "Power here is not for squeezing: 212 adds nothing to the economics, while Timur is a relationship type, so naming an alternative costs +6 more tension with him. The question about the move gives +24 Information and opens what you can pay with cheaply: an architect track costs the company a signature, and for him it is the whole reason he came."
     }
   },
   {
@@ -3558,8 +3558,8 @@ export const COURSE_BANK: Exercise[] = [
       }
     ],
     "explain": {
-      "ru": "Единственный капстоун курса с НИЖНЕЙ границей по цене. Тимур подписал бы и 210, но за эти двадцать тысяч не начисляют ничего, а доверие 70 после выжимания не собрать: давление с «отношенцем» стоит на +6 напряжения дороже. Сила проверяется тем, от чего вы отказались, а не тем, что взяли.",
-      "en": "The only capstone in the course with a LOWER price bound. Timur would sign at 210, but those twenty thousand earn nothing, and trust of 70 cannot survive the squeeze: pressure on a relationship type costs +6 more tension. Power is measured by what you declined to take, not by what you took."
+      "ru": "Единственный капстоун курса с НИЖНЕЙ границей по цене. Тимур подписал бы и 210, но за эти двадцать тысяч не начисляют ничего, а доверие 70 после выжимания не собрать: названная «отношенцу» альтернатива стоит на +6 напряжения дороже. Сила проверяется тем, от чего вы отказались, а не тем, что взяли.",
+      "en": "The only capstone in the course with a LOWER price bound. Timur would sign at 210, but those twenty thousand earn nothing, and trust of 70 cannot survive the squeeze: naming an alternative to a relationship type costs +6 more tension. Power is measured by what you declined to take, not by what you took."
     }
   }
 ];
@@ -3634,8 +3634,8 @@ export const COURSE_MASTER: Exercise[] = [
       }
     ],
     "explain": {
-      "ru": "У инвестора самая сильная альтернатива в игре, и давить бесполезно. Работает только то, что вы отрабатывали в блоках: вопросы, критерии, размен вторичных условий.",
-      "en": "The investor holds the strongest alternative in the game, so pressure goes nowhere. Only what the blocks trained works: questions, criteria, trading secondary terms."
+      "ru": "Самый трудный стол курса: дно Марины 18% не двигается ни от какого давления. Работает только то, что вы отрабатывали в блоках: вопросы, критерии, размен вторичных условий.",
+      "en": "The hardest table in the course: Marina's floor of 18% does not move under any pressure. Only what the blocks trained works: questions, criteria, trading secondary terms."
     }
   },
   {

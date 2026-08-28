@@ -338,6 +338,19 @@
    "spin": null
   },
   {
+   "text": "Either you give us 99.9%, or we walk to your competitor — that is our final word.",
+   "moves": [
+    "batna",
+    "threat",
+    "offer"
+   ],
+   "primary": "threat",
+   "arg": 34,
+   "words": 16,
+   "number": 99.9,
+   "spin": null
+  },
+  {
    "text": "Either you take 18% or we walk.",
    "moves": [
     "threat",
@@ -573,17 +586,16 @@
    "spin": null
   },
   {
-   "text": "I understand this is not easy for you. Natalia, what matters most to you in a tenant — and what concerns you?",
+   "text": "I understand this is not easy for you. Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?",
    "moves": [
-    "spin_problem",
     "interests_probe",
     "acknowledge"
    ],
    "primary": "interests_probe",
-   "arg": 64,
-   "words": 21,
+   "arg": 50,
+   "words": 25,
    "number": null,
-   "spin": "problem"
+   "spin": null
   },
   {
    "text": "I understand you must not look at fault to leadership.",
@@ -691,15 +703,15 @@
    "spin": null
   },
   {
-   "text": "If we renew for 3 years with a phased SLA, can you move on uptime to 99.8% from Q2?",
+   "text": "If we renew for three years with a phased SLA, can you move on uptime to 99.8% from Q2?",
    "moves": [
     "tradeoff",
     "open_question"
    ],
    "primary": "tradeoff",
-   "arg": 38,
+   "arg": 44,
    "words": 19,
-   "number": null,
+   "number": 99.8,
    "spin": null
   },
   {
@@ -838,16 +850,15 @@
    "spin": null
   },
   {
-   "text": "Natalia, what matters most to you in a tenant — and what concerns you?",
+   "text": "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?",
    "moves": [
-    "spin_problem",
     "interests_probe"
    ],
    "primary": "interests_probe",
-   "arg": 54,
-   "words": 13,
+   "arg": 40,
+   "words": 17,
    "number": null,
-   "spin": "problem"
+   "spin": null
   },
   {
    "text": "Neither — squeeze the price first",
@@ -918,17 +929,6 @@
    "spin": null
   },
   {
-   "text": "Tell me about your process: how do you currently plan shipments, and how often do you ship?",
-   "moves": [
-    "spin_situation"
-   ],
-   "primary": "spin_situation",
-   "arg": 42,
-   "words": 17,
-   "number": null,
-   "spin": "situation"
-  },
-  {
    "text": "Tell me about your production cycle — how is it set up?",
    "moves": [
     "spin_situation"
@@ -936,6 +936,17 @@
    "primary": "spin_situation",
    "arg": 34,
    "words": 11,
+   "number": null,
+   "spin": "situation"
+  },
+  {
+   "text": "Tell me how factory utilization works today: how do you plan shipments, and how often do you ship?",
+   "moves": [
+    "spin_situation"
+   ],
+   "primary": "spin_situation",
+   "arg": 42,
+   "words": 18,
    "number": null,
    "spin": "situation"
   },
@@ -1222,18 +1233,6 @@
    "spin": null
   },
   {
-   "text": "Then we go to your competitor, they offer 99.7%.",
-   "moves": [
-    "batna",
-    "offer"
-   ],
-   "primary": "batna",
-   "arg": 26,
-   "words": 9,
-   "number": 99.7,
-   "spin": null
-  },
-  {
    "text": "Then we have a deal at 88 per unit with an annual volume commitment.",
    "moves": [
     "accept"
@@ -1403,6 +1402,17 @@
    "spin": null
   },
   {
+   "text": "What difficulties do you hit when factory utilization is uneven?",
+   "moves": [
+    "spin_problem"
+   ],
+   "primary": "spin_problem",
+   "arg": 34,
+   "words": 10,
+   "number": null,
+   "spin": "problem"
+  },
+  {
    "text": "What difficulties do you hit when the load is uneven?",
    "moves": [
     "spin_problem"
@@ -1412,6 +1422,17 @@
    "words": 10,
    "number": null,
    "spin": "problem"
+  },
+  {
+   "text": "What does that cost you when factory utilization drops for a month?",
+   "moves": [
+    "spin_implication"
+   ],
+   "primary": "spin_implication",
+   "arg": 42,
+   "words": 12,
+   "number": null,
+   "spin": "implication"
   },
   {
    "text": "What does that cost you when the line is idle for a month?",
@@ -1780,6 +1801,19 @@
    "spin": null
   },
   {
+   "text": "Или вы даёте 99.9%, или мы уходим к конкуренту — это наше последнее слово.",
+   "moves": [
+    "batna",
+    "threat",
+    "offer"
+   ],
+   "primary": "threat",
+   "arg": 34,
+   "words": 13,
+   "number": 99.9,
+   "spin": null
+  },
+  {
    "text": "К чему это приводит, когда загрузка производства падает на месяц?",
    "moves": [
     "spin_implication"
@@ -1787,17 +1821,6 @@
    "primary": "spin_implication",
    "arg": 34,
    "words": 10,
-   "number": null,
-   "spin": "implication"
-  },
-  {
-   "text": "К чему это приводит, когда линия простаивает месяц?",
-   "moves": [
-    "spin_implication"
-   ],
-   "primary": "spin_implication",
-   "arg": 34,
-   "words": 8,
    "number": null,
    "spin": "implication"
   },
@@ -2029,16 +2052,15 @@
    "spin": "need-payoff"
   },
   {
-   "text": "Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
+   "text": "Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
    "moves": [
-    "spin_problem",
     "interests_probe"
    ],
    "primary": "interests_probe",
-   "arg": 54,
-   "words": 12,
+   "arg": 40,
+   "words": 18,
    "number": null,
-   "spin": "problem"
+   "spin": null
   },
   {
    "text": "Не вскрыт интерес работодателя",
@@ -2315,17 +2337,16 @@
    "spin": null
   },
   {
-   "text": "Понимаю, что для вас это непросто. Наталья, что для вас важнее всего в жильце — и что вас беспокоит?",
+   "text": "Понимаю, что для вас это непросто. Наталья, что для вас важнее всего — чтобы квартира не пустовала, или чтобы жилец был тихий и без хлопот?",
    "moves": [
-    "spin_problem",
     "interests_probe",
     "acknowledge"
    ],
    "primary": "interests_probe",
-   "arg": 64,
-   "words": 18,
+   "arg": 50,
+   "words": 24,
    "number": null,
-   "spin": "problem"
+   "spin": null
   },
   {
    "text": "Понимаю: пустая квартира — это реальные потери, и осторожность тут естественна.",
@@ -2373,7 +2394,7 @@
    "spin": "situation"
   },
   {
-   "text": "Расскажите о вашем процессе: как сейчас устроены отгрузки и как часто вы отгружаете?",
+   "text": "Расскажите, как сейчас устроена загрузка производства: как планируете отгрузки и как часто отгружаете?",
    "moves": [
     "spin_situation"
    ],
@@ -2474,6 +2495,17 @@
    "spin": null
   },
   {
+   "text": "Сколько вы теряете, если загрузка производства падает на месяц?",
+   "moves": [
+    "spin_implication"
+   ],
+   "primary": "spin_implication",
+   "arg": 34,
+   "words": 9,
+   "number": null,
+   "spin": "implication"
+  },
+  {
    "text": "Сколько вы теряете, если линия стоит месяц?",
    "moves": [
     "spin_implication"
@@ -2504,19 +2536,6 @@
    "arg": 40,
    "words": 14,
    "number": null,
-   "spin": null
-  },
-  {
-   "text": "Тогда мы уходим к конкуренту, у них 99.7%.",
-   "moves": [
-    "batna",
-    "tradeoff",
-    "offer"
-   ],
-   "primary": "tradeoff",
-   "arg": 36,
-   "words": 8,
-   "number": 99.7,
    "spin": null
   },
   {
@@ -2696,6 +2715,17 @@
    "words": 6,
    "number": null,
    "spin": null
+  },
+  {
+   "text": "Чем это грозит вам, когда загрузка производства падает на месяц?",
+   "moves": [
+    "spin_implication"
+   ],
+   "primary": "spin_implication",
+   "arg": 34,
+   "words": 10,
+   "number": null,
+   "spin": "implication"
   },
   {
    "text": "Это ваше последнее слово? Иначе мы уходим.",

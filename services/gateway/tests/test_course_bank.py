@@ -17,7 +17,8 @@ from app.course.bank import BANK, BY_ID
 from app.course.blocks import BLOCKS, BY_ID as BLOCK_BY_ID
 from app.course.check import check_choice, check_freeform, check_numeric, check_order
 from app.course.derive import derive
-from app.course.simulate import answer_for
+from app.course.master import MASTER, PASS_MARK
+from app.course.simulate import answer_for, seeded
 from app.engine.scenarios import by_id
 from app.engine.techniques import analyze
 
@@ -257,6 +258,153 @@ def test_spot_error_bad_line_is_bad_for_the_engine(item: dict, lang: str) -> Non
         "для движка она не плохая")
 
 
+#: Имена собеседников со всех столов: стем русского имени + английское имя.
+#: Собираются из `scenarios.py`, а не выписываются руками — переименуют
+#: персонажа, тест продолжит ловить чужие упоминания.
+def _counterpart_names() -> dict[str, tuple[str, str]]:
+    from app.engine.scenarios import SCENARIOS
+    out = {}
+    for sc in SCENARIOS:
+        ru = sc.counterpart.name["ru"].split(",")[0].strip()
+        en = sc.counterpart.name["en"].split(",")[0].strip()
+        out[sc.id] = (ru[:-1] if ru[-1] in "аяйь" else ru, en)
+    return out
+
+
+def _all_strings(node) -> list:
+    out = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in ("ru", "en") and isinstance(value, str):
+                out.append(value)
+            else:
+                out.extend(_all_strings(value))
+    elif isinstance(node, list):
+        for value in node:
+            out.extend(_all_strings(value))
+    return out
+
+
+WITH_TABLE = [x for x in BANK + list(MASTER) if x.get("scenario_id")]
+
+
+@pytest.mark.parametrize("item", WITH_TABLE, ids=[x["id"] for x in WITH_TABLE])
+def test_exercise_never_names_a_counterpart_from_another_table(item: dict) -> None:
+    """Упражнение не имеет права звать собеседника чужим именем.
+
+    Именно так ломался `bz-07`: разбор задания про инвестора писал «Открылся
+    Павел», хотя Павел — основатель со стола ставки фрилансера, а за столом
+    сидит Марина. Ошибка невидима для всех остальных тестов: текст двуязычный,
+    приёмы верные, число верное — а человек читает про персонажа, которого в
+    этой партии нет. Сверять надо со сценарием, а не с памятью автора.
+    """
+    names = _counterpart_names()
+    mine = item["scenario_id"]
+    alien = []
+    for text in _all_strings({k: v for k, v in item.items()
+                              if k not in ("id", "type", "block", "scenario_id")}):
+        for scenario_id, (ru_stem, en_name) in names.items():
+            if scenario_id == mine:
+                continue
+            if re.search(ru_stem, text) or re.search(rf"\b{en_name}\b", text):
+                alien.append(f"{names[scenario_id][1]} ({scenario_id})")
+    assert not alien, (
+        f"{item['id']}: стол {mine} ({names[mine][1]}), а текст зовёт "
+        + ", ".join(sorted(set(alien))))
+
+
+#: Уроки, которым МОЖНО называть чужих персонажей: они и существуют ради
+#: сравнения столов между собой. Новый такой урок валит сборку, пока не назван.
+LESSONS_THAT_LIST_EVERY_TABLE = {
+    ("styles", 1): "урок перечисляет всех девятерых по стилям — в этом и смысл",
+}
+
+
+@pytest.mark.parametrize("block", BLOCKS, ids=[b.id for b in BLOCKS])
+def test_lesson_never_names_a_counterpart_from_another_table(block) -> None:
+    """То же для уроков: блок стоит на своём столе, значит и персонаж свой."""
+    names = _counterpart_names()
+    for lesson in block.lessons:
+        if (block.id, lesson.idx) in LESSONS_THAT_LIST_EVERY_TABLE:
+            continue
+        for text in (lesson.body["ru"], lesson.body["en"]):
+            for scenario_id, (ru_stem, en_name) in names.items():
+                if scenario_id == block.scenario_id:
+                    continue
+                assert not re.search(ru_stem, text) and not re.search(
+                    rf"\b{en_name}\b", text), (
+                    f"{block.id}/{lesson.idx}: стол {block.scenario_id}, "
+                    f"а урок зовёт {en_name} ({scenario_id})")
+
+
+#: Приёмы-вопросы: за них движок платит Информацией — но ТОЛЬКО если вопрос
+#: попал в тему ещё не вскрытого интереса. Иначе оппонент переспрашивает
+#: (`probe_vague`), прибавка режется до 5, и «правильный ответ» упражнения в
+#: игре не работает.
+_QUESTION_MOVES = {"interests_probe", "spin_situation", "spin_problem",
+                   "spin_implication", "spin_needpayoff"}
+
+#: Пункты, где вопрос НАМЕРЕННО не вскрывает интерес — и разбор об этом прямо
+#: говорит. Причина обязана быть названа: новый пункт с неработающим вопросом
+#: валит сборку, пока автор не объяснит, зачем он такой.
+PROBE_THAT_MUST_NOT_REVEAL = {
+    "fo-08": "доверие 18 ниже порога вскрытия — на этом и построено задание",
+    "al-01": "вопрос намеренно общий: разбор показывает +5 вместо +24",
+}
+
+
+def _own_line(item: dict, lang: str):
+    """Реплика, которую упражнение вкладывает в рот игроку как ПРАВИЛЬНУЮ."""
+    if item["type"] == "choice" and "options" in item:
+        return item["options"][item["answer"]][lang]
+    if item["type"] == "freeform":
+        return item["reference"][lang]
+    if "player_line" in item:
+        return item["player_line"][lang]
+    return None
+
+
+@pytest.mark.parametrize("item", WITH_TABLE, ids=[x["id"] for x in WITH_TABLE])
+@pytest.mark.parametrize("lang", LANGS)
+def test_a_correct_question_actually_uncovers_an_interest(item: dict, lang: str) -> None:
+    """Вопрос, названный верным, обязан работать в игре — на обоих языках.
+
+    Так ломался `fo-01`: «что для вас важнее всего в жильце» — образцовый
+    вопрос всего блока, разбор обещал Информацию +24, а движок отвечал
+    переспросом и давал 5, потому что реплика не попала ни в одно ключевое
+    слово интереса. Урок учил ходу, который в партии не работает, — это прямое
+    нарушение инварианта 9. И RU с EN здесь расходятся сами по себе: словари
+    тем у языков разные, поэтому «работает на русском» ничего не доказывает.
+    """
+    from app import engine as _engine
+
+    line = _own_line(item, lang)
+    if line is None:
+        pytest.skip("у пункта нет собственной реплики игрока")
+    analysis = analyze(line)
+    if not (set(analysis.moves) & _QUESTION_MOVES):
+        pytest.skip("реплика не является вопросом-приёмом")
+    if item["id"] in PROBE_THAT_MUST_NOT_REVEAL:
+        pytest.skip(PROBE_THAT_MUST_NOT_REVEAL[item["id"]])
+
+    sess = seeded(item["scenario_id"], lang, item.get("state"), item.get("seed_turn", 0))
+    _engine.apply_move(sess, analysis, line)
+    assert sess.state.interests_found, (
+        f"{item['id']}/{lang}: вопрос не вскрыл ни одного интереса — движок "
+        "переспросит (probe_vague) и даст 5 вместо 24"
+    )
+
+
+def test_every_named_non_revealing_probe_still_exists() -> None:
+    """Исключение, пережившее своё упражнение, — это разрешение на будущую ложь."""
+    stale = [k for k in PROBE_THAT_MUST_NOT_REVEAL if k not in BY_ID]
+    assert not stale, f"исключение осталось от удалённого упражнения: {stale}"
+    stale_lessons = [k for k in LESSONS_THAT_LIST_EVERY_TABLE
+                     if k[0] not in BLOCK_BY_ID
+                     or k[1] > len(BLOCK_BY_ID[k[0]].lessons)]
+    assert not stale_lessons, f"исключение указывает на несуществующий урок: {stale_lessons}"
+
+
 @pytest.mark.parametrize("item", [x for x in BANK if x["type"] == "drill"],
                          ids=_ids([x for x in BANK if x["type"] == "drill"]))
 def test_drill_predicate_uses_only_engine_fields(item: dict) -> None:
@@ -268,9 +416,6 @@ def test_drill_predicate_uses_only_engine_fields(item: dict) -> None:
 
 
 # ---- экзамен мастера ------------------------------------------------------
-
-from app.course.master import MASTER, PASS_MARK  # noqa: E402
-
 
 @pytest.mark.parametrize("item", MASTER, ids=[x["id"] for x in MASTER])
 def test_master_drill_is_playable_and_engine_only(item: dict) -> None:
@@ -287,7 +432,15 @@ def test_master_drill_is_playable_and_engine_only(item: dict) -> None:
 
 
 def test_master_uses_tables_the_blocks_do_not_train_on() -> None:
-    """Знакомый стол проверял бы память, а не навык."""
+    """Хотя бы один стол экзамена мастера обязан быть вне блоков.
+
+    Всех трёх свободных столов в игре нет: блоки стоят на восьми сценариях из
+    девяти. Докстринг `master.py` когда-то утверждал обратное — «три партии на
+    неизученных столах» — и тут же перечислял `investor` и `used_car`, которые
+    и есть столы блоков «BATNA и ZOPA» и «Якорь». Утверждение держалось ни на
+    чём: тест проверял только непустоту. Он и сейчас проверяет её — но текст
+    рядом больше не обещает большего, чем есть.
+    """
     trained = {b.scenario_id for b in BLOCKS}
     fresh = [x for x in MASTER if x["scenario_id"] not in trained]
     assert fresh, "хотя бы один стол обязан быть новым"

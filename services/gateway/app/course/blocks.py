@@ -1,8 +1,9 @@
 """blocks.py — учебные блоки курса «Диалог».
 
-ЧТО ЭТО. Девять блоков по одному навыку каждый, в порядке, где следующий
-опирается на предыдущий: вопрос → эмоция → легитимность → сила → числа →
-создание ценности → защита → закрытие. Внутри блока — короткие уроки (текст) и
+ЧТО ЭТО. Десять блоков по одному навыку каждый, в порядке, где следующий
+опирается на предыдущий: интерес → вопрос → эмоция → легитимность → сила →
+числа → создание ценности → защита → закрытие → стиль. Внутри блока —
+короткие уроки (текст) и
 упражнения (`bank.py`), в конце — экзамен блока. Экзамена как отдельного модуля
 нет: выборка детерминирована от (блок, попытка) и живёт в `lib/course.ts::drawExam`,
 потому что экзамен обязан считаться офлайн, как и всё остальное в курсе.
@@ -98,26 +99,31 @@ BLOCKS: list[Block] = [
             Lesson(2, T("Три интереса за одной цифрой", "Three interests behind one number"), T(
                 "У каждого оппонента в тренажёре ровно три скрытых интереса. Они не выдуманы для "
                 "красоты: из них выведены вторичные вопросы, которыми потом можно разменяться.\n\n"
-                "У Натальи из сценария «Аренда» деньги — не главное. Ей важны простой без жильца, "
-                "тишина в доме и аккуратность. Ни один из трёх интересов не про цену, и именно "
-                "поэтому спор о цене с ней бесполезен.",
+                "У Натальи из сценария «Аренда» цена — не главное. Её три интереса: простой без "
+                "жильца, аккуратный тихий жилец без хлопот и оплата точно в срок. Ни один из них "
+                "не про размер платы, и именно поэтому спор о цене с ней бесполезен.",
                 "Every counterpart in the trainer holds exactly three hidden interests. They are not "
                 "decoration: the tradeable secondary issues are derived from them.\n\n"
-                "For Natalia in the Rent scenario, money is not the point. She cares about vacancy, "
-                "quiet and a careful tenant. Not one of the three is about price — which is exactly "
-                "why arguing price with her goes nowhere.",
+                "For Natalia in the Rent scenario, the price is not the point. Her three interests: "
+                "vacancy, a tidy quiet tenant with no hassle, and rent paid exactly on time. Not one "
+                "of them is about the size of the rent — which is exactly why arguing price with her "
+                "goes nowhere.",
             )),
             Lesson(3, T("Вопрос-открывашка", "The opener question"), T(
                 "Голое «почему?» звучит как допрос и почти ничего не вскрывает: движок засчитает его "
                 "как открытый вопрос и не добавит информации.\n\n"
                 "Работает формулировка «что для вас важнее всего…», «что вас беспокоит…», «что стоит "
-                "за этой цифрой». Она спрашивает про человека, а не про цифру, и потому получает "
-                "ответ про интерес: +24 к шкале «Информация».",
+                "за этой цифрой» — и обязательно с НАЗВАННОЙ темой: «чтобы квартира не пустовала», "
+                "«чтобы жилец был тихий». Она спрашивает про человека, а не про цифру, и потому "
+                "получает ответ про интерес: +24 к шкале «Информация». Формулировка без темы "
+                "вернётся переспросом и даст только 5 — почему, разбирает урок 5.",
                 "A bare “why?” sounds like an interrogation and surfaces almost nothing: the engine "
                 "records an open question and adds no information.\n\n"
                 "What works is “what matters most to you…”, “what concerns you…”, “what sits behind "
-                "that number”. It asks about the person rather than the figure, and so it gets an "
-                "answer about an interest: +24 on the Information meter.",
+                "that number” — and always with a NAMED topic: “so the flat is not sitting empty”, "
+                "“a quiet tenant”. It asks about the person rather than the figure, and so it gets "
+                "an answer about an interest: +24 on the Information meter. The same wording with no "
+                "topic comes back as a query and pays only 5 — lesson 5 explains why.",
             )),
             Lesson(4, T("Шкала «Информация»", "The Information meter"), T(
                 "Информация растёт только от вопросов, которые действительно метят в скрытый "
@@ -309,13 +315,15 @@ BLOCKS: list[Block] = [
                 "Критерий — внешний, проверяемый источник с цифрой: обзор зарплат, рыночная медиана, "
                 "прайс сопоставимых объявлений, отраслевой регламент.\n\n"
                 "«Я стою больше», «это несправедливо», «у всех знакомых выше» — не критерии. Движок "
-                "читает их как обычное заявление: качество аргумента 20, рычаг +0. И судья ставит "
-                "≥55 только там, где есть конкретное число или источник.",
+                "читает их как обычное заявление: качество аргумента 20, рычаг +0. А судья обязан "
+                "поставить ≥55 везде, где есть конкретное число или источник, — и читает как спам "
+                "(0–20) те же слова без цифр.",
                 "A criterion is an external, checkable source with a number: a salary survey, a "
                 "market median, comparable listings, an industry regulation.\n\n"
                 "“I am worth more”, “this is unfair”, “everyone I know earns more” are not criteria. "
-                "The engine reads them as plain statements: argument quality 20, leverage +0. And "
-                "the judge scores ≥55 only where a concrete number or source is present.",
+                "The engine reads them as plain statements: argument quality 20, leverage +0. And the "
+                "judge must score ≥55 wherever a concrete number or source is present — while "
+                "reading the same words with no figures as spam (0–20).",
             )),
             Lesson(3, T("Критерий как броня для уступки", "A criterion as armour for a concession"), T(
                 "Если вы двигаетесь без объяснения, оппонент читает это как «можно давить ещё». Если "
@@ -659,7 +667,7 @@ BLOCKS: list[Block] = [
                 "Подстройка не значит «стать другим человеком». Меняется порядок ходов.\n\n"
                 "С аналитиком критерий идёт РАНЬШЕ размена: сначала данные, потом пакет. С "
                 "«отношенцем» альтернативу лучше не называть вовсе, пока не собран пакет: она стоит "
-                "вдвое дороже, а на тёплом столе цена и так поедет от размена. С жёстким ультиматум "
+                "на +6 напряжения дороже, а на тёплом столе цена и так поедет от размена. С жёстким ультиматум "
                 "не работает никогда — работает встречный объективный критерий и спокойное "
                 "«пока нет».\n\n"
                 "Проверить себя просто: если приём поднимает напряжение выше 55, движок режет "
@@ -668,7 +676,7 @@ BLOCKS: list[Block] = [
                 "Adapting does not mean becoming someone else. What changes is the order of moves.\n\n"
                 "With the analytical one the criterion comes BEFORE the trade: data first, package "
                 "second. With the relationship one, better not to name your alternative at all until "
-                "the package is built: it costs twice as much, and at a warm table the price moves "
+                "the package is built: it costs 6 more tension, and at a warm table the price moves "
                 "from the trade anyway. With the tough one an ultimatum never works — a counter "
                 "criterion and a calm “not yet” do.\n\n"
                 "The self-check is simple: once a technique pushes tension above 55 the engine cuts "
@@ -680,7 +688,7 @@ BLOCKS: list[Block] = [
                 "У Тимура нет второго оффера, его дно 210, а ваша цель — 230. Выжать ниже можно.\n\n"
                 "И за это не начисляют ничего. Экономика считается как доля пути от красной линии "
                 "(260) до цели (230) и на 230 уже равна 100 — ниже потолка нет. Зато отношения — это "
-                "четверть итогового балла, а Тимур «отношенец»: давление и альтернатива стоят с ним "
+                "четверть итогового балла, а Тимур «отношенец»: названная альтернатива стоит с ним "
                 "на +6 напряжения дороже обычного. Выжатый на подписи человек уходит в первый год, и "
                 "позицию открывают заново — в брифинге это сказано прямо.\n\n"
                 "Правило блока в одну строку: сила нужна, чтобы НЕ торговаться, а спросить, ради чего "
@@ -692,7 +700,7 @@ BLOCKS: list[Block] = [
                 "And it earns you nothing. Economics is the share of the distance from your red line "
                 "(260) to your target (230), and at 230 it is already 100 — there is no ceiling above. "
                 "Relationship, meanwhile, is a quarter of the final score, and Timur is a relationship "
-                "type: pressure and alternatives cost +6 tension more with him. A hire squeezed at "
+                "type: naming an alternative costs +6 tension more with him. A hire squeezed at "
                 "signing leaves within the year and you reopen the role — the briefing says so "
                 "outright.\n\n"
                 "The block's rule in one line: power is there so that you do NOT haggle — you ask what "
