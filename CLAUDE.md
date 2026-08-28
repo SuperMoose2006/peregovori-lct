@@ -49,6 +49,7 @@ services/gateway/            Python 3.12, FastAPI, :8010
     main.py                  маршруты, статика
     views.py                 ЕДИНСТВЕННЫЙ адаптер движок→протокол
     engine/                  ДВИЖОК — не трогать без пересчёта инвариантов
+    course/                  банк упражнений; ответы ДОКАЗАНЫ прогоном движка
     ai/                      промпты, судья, коуч, разборщик, генератор
     realtime/                события · шина · сессия · endpoint
     perception/              vad · turn_detect · voice_pipeline · vision
