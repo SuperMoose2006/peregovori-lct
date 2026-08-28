@@ -332,3 +332,26 @@ def test_capstone_is_actually_winnable(item: dict, lang: str) -> None:
         f"{item['id']}/{lang}: принципиальная игра не проходит капстоун — "
         f"не выполнено: {', '.join(verdict['failed'])}"
     )
+
+
+def test_no_exercise_answer_is_a_reaction_the_layer_cannot_ask_about() -> None:
+    """Ответом `reaction`/`face` может быть только состояние со шкалы теплоты.
+
+    `probe_vague` («а что именно вас интересует?») — не состояние, а просьба
+    уточнить: в REACTION_SCALE его нет, и `reactionOptions` на нём не соберёт
+    дистракторов. Упражнение с таким ответом выглядело бы правильным в банке и
+    падало бы в браузере — то есть ровно то расхождение курса с игрой, ради
+    которого написан весь этот файл.
+
+    Ответы reaction/meters вычисляются настоящим движком, поэтому запретить это
+    заранее нельзя: движок может вернуть probe_vague на слишком общий вопрос.
+    Значит проверять надо после — здесь.
+    """
+    from app.course.bank import BANK
+
+    scale = {"walked_out", "offended", "hardened", "pressured", "not_yet",
+             "neutral", "collaborated", "persuaded", "opened_up", "warmed"}
+    off_scale = [x["id"] for x in BANK
+                 if x["type"] in ("reaction", "face") and x.get("answer") not in scale]
+    assert not off_scale, (
+        "ответ вне шкалы теплоты — слой не сможет построить варианты: " + str(off_scale))
