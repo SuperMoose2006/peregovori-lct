@@ -1,0 +1,252 @@
+{
+ "source": "engine/engine.py::score_session",
+ "format": [
+  {
+   "value": 86,
+   "unit": "₽/шт",
+   "ru": "86 ₽/шт",
+   "en": "86 ₽/шт"
+  },
+  {
+   "value": 91.57,
+   "unit": "₽/шт",
+   "ru": "91,57 ₽/шт",
+   "en": "91.57 ₽/шт"
+  },
+  {
+   "value": 1060,
+   "unit": "k ₽",
+   "ru": "1 060k ₽",
+   "en": "1,060k ₽"
+  },
+  {
+   "value": 99.87,
+   "unit": "% аптайм",
+   "ru": "99,87% аптайм",
+   "en": "99.87% аптайм"
+  },
+  {
+   "value": 1500000,
+   "unit": "₽",
+   "ru": "1 500 000 ₽",
+   "en": "1,500,000 ₽"
+  },
+  {
+   "value": 6.5,
+   "unit": "дней сдвига",
+   "ru": "6,5дней сдвига",
+   "en": "6.5дней сдвига"
+  },
+  {
+   "value": 230,
+   "unit": "k ₽/мес",
+   "ru": "230k ₽/мес",
+   "en": "230k ₽/мес"
+  },
+  {
+   "value": 0.5,
+   "unit": "%",
+   "ru": "0,5%",
+   "en": "0.5%"
+  }
+ ],
+ "ladder": {
+  "passive": {
+   "overall": 14,
+   "grade": "F",
+   "economic": 0,
+   "relationship": 55,
+   "technique": 1,
+   "deal_text": "Сделка сорвалась",
+   "status": "breakdown",
+   "interests_found": 0,
+   "offer_opp": 100,
+   "deal": null,
+   "turn": 12
+  },
+  "haggling": {
+   "overall": 17,
+   "grade": "F",
+   "economic": 10,
+   "relationship": 50,
+   "technique": 1,
+   "deal_text": "Без соглашения",
+   "status": "active",
+   "interests_found": 0,
+   "offer_opp": 100,
+   "deal": null,
+   "turn": 6
+  },
+  "spam": {
+   "overall": 27,
+   "grade": "F",
+   "economic": 10,
+   "relationship": 51,
+   "technique": 28,
+   "deal_text": "Без соглашения",
+   "status": "active",
+   "interests_found": 0,
+   "offer_opp": 86.29,
+   "deal": null,
+   "turn": 11
+  },
+  "alternating": {
+   "overall": 28,
+   "grade": "F",
+   "economic": 10,
+   "relationship": 54,
+   "technique": 30,
+   "deal_text": "Без соглашения",
+   "status": "active",
+   "interests_found": 0,
+   "offer_opp": 86.5,
+   "deal": null,
+   "turn": 11
+  },
+  "basic": {
+   "overall": 32,
+   "grade": "F",
+   "economic": 7,
+   "relationship": 64,
+   "technique": 38,
+   "deal_text": "91,57 ₽/шт",
+   "status": "agreement",
+   "interests_found": 1,
+   "offer_opp": 91.57,
+   "deal": 91.57,
+   "turn": 4
+  },
+  "good": {
+   "overall": 77,
+   "grade": "B",
+   "economic": 83,
+   "relationship": 92,
+   "technique": 59,
+   "deal_text": "87 ₽/шт",
+   "status": "agreement",
+   "interests_found": 2,
+   "offer_opp": 84.86,
+   "deal": 87.0,
+   "turn": 5
+  },
+  "exemplary": {
+   "overall": 92,
+   "grade": "A",
+   "economic": 100,
+   "relationship": 100,
+   "technique": 78,
+   "deal_text": "86 ₽/шт",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 84.39,
+   "deal": 86.0,
+   "turn": 6
+  }
+ },
+ "principled": {
+  "conflict": {
+   "overall": 79,
+   "grade": "B",
+   "economic": 79,
+   "relationship": 98,
+   "technique": 66,
+   "deal_text": "6,5дней сдвига",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 6.5,
+   "deal": 6.5,
+   "turn": 6
+  },
+  "freelance_rate": {
+   "overall": 88,
+   "grade": "A",
+   "economic": 100,
+   "relationship": 100,
+   "technique": 67,
+   "deal_text": "19k ₽/день",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 19.83,
+   "deal": 19.0,
+   "turn": 6
+  },
+  "investor": {
+   "overall": 74,
+   "grade": "B",
+   "economic": 65,
+   "relationship": 98,
+   "technique": 67,
+   "deal_text": "18,14% доли",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 18.34,
+   "deal": 18.14,
+   "turn": 6
+  },
+  "rent": {
+   "overall": 89,
+   "grade": "A",
+   "economic": 100,
+   "relationship": 100,
+   "technique": 69,
+   "deal_text": "62,44k ₽/мес",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 62.44,
+   "deal": 62.44,
+   "turn": 6
+  },
+  "salary": {
+   "overall": 87,
+   "grade": "A",
+   "economic": 100,
+   "relationship": 98,
+   "technique": 65,
+   "deal_text": "230k ₽/мес",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 238.31,
+   "deal": 230.0,
+   "turn": 6
+  },
+  "sla_renewal": {
+   "overall": 88,
+   "grade": "A",
+   "economic": 100,
+   "relationship": 98,
+   "technique": 66,
+   "deal_text": "99,87% аптайм",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 99.87,
+   "deal": 99.87,
+   "turn": 6
+  },
+  "supplier": {
+   "overall": 92,
+   "grade": "A",
+   "economic": 100,
+   "relationship": 100,
+   "technique": 78,
+   "deal_text": "86 ₽/шт",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 84.39,
+   "deal": 86.0,
+   "turn": 6
+  },
+  "used_car": {
+   "overall": 88,
+   "grade": "A",
+   "economic": 100,
+   "relationship": 98,
+   "technique": 66,
+   "deal_text": "1 060k ₽",
+   "status": "agreement",
+   "interests_found": 3,
+   "offer_opp": 1044.74,
+   "deal": 1060.0,
+   "turn": 6
+  }
+ }
+}
