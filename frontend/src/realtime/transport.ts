@@ -92,6 +92,9 @@ export class RealtimeTransport implements Transport {
   private voiceWanted = false;
   private cameraWanted = false;
   private closed = false;
+  /** Партия уже началась: `session.created` пришёл. До него ошибка —
+   *  провал запуска, после — сообщение со стола. */
+  private live = false;
   // Язык партии. Нужен ровно для одного: причина закрытия приезжает КОДОМ
   // (`session.closed {reason}`), а человеку её надо сказать словами и на его
   // языке. Сервер тут не помощник — он не должен сочинять текст интерфейса.
@@ -132,6 +135,7 @@ export class RealtimeTransport implements Transport {
 
   close(): void {
     this.closed = true;
+    this.live = false;
     this.session?.stop();
     this.session = null;
     void this.media?.stop();
@@ -144,6 +148,7 @@ export class RealtimeTransport implements Transport {
 
   private async begin(message: Extract<ClientMsg, { type: "start" }>): Promise<void> {
     const layers = { ...(message.layers ?? {}) } as Record<string, boolean>;
+    this.live = false;
     this.lang = message.lang;
     this.probeEnabled = !!layers.probe;
     this.voiceWanted = !!layers.voice;
@@ -168,6 +173,7 @@ export class RealtimeTransport implements Transport {
 
     try {
       const created = await this.session.start(payload);
+      this.live = true;
       this.options.onCapabilities?.(this.session.capabilities);
       this.emit({
         type: "greeting",
@@ -367,10 +373,22 @@ export class RealtimeTransport implements Transport {
         return;
       }
 
-      case "error":
-        this.emit({ type: "error",
-                    message: String((event.error as { message?: string })?.message ?? "ошибка") });
+      case "error": {
+        const message = String((event.error as { message?: string })?.message ?? "ошибка");
+        // ОТКАЗ ВНУТРИ ПАРТИИ — СТРОКА В ЛЕНТЕ, А НЕ ПРОВАЛ ЗАПУСКА.
+        //
+        // `error` со стола (кончился бюджет зрения, не поднялось распознавание,
+        // ход не состоялся) уезжал в `state.error`, а `state.error` рисуется
+        // ТОЛЬКО на экране подготовки — в «своей сделке». То есть сервер честно
+        // говорил «слой недоступен», а за столом не появлялось ни строчки:
+        // молчащий слой снова становился неотличим от сломанного микрофона.
+        //
+        // До `session.created` смысл обратный: там ошибка и есть провал
+        // запуска, и она обязана дойти до машины состояний генерации сценария.
+        if (this.live) this.emit({ type: "notice", text: message });
+        else this.emit({ type: "error", message });
         return;
+      }
     }
   }
 

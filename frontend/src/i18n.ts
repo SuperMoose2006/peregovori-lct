@@ -105,6 +105,10 @@ export interface Strings {
   placeholderNudges: string[];
   send: string;
   argLabel: string;
+  // Ход, от которого не сдвинулась ни одна шкала. Раньше строка дельт в этом
+  // случае не рисовалась вовсе, и «движок меня не заметил» читалось так же,
+  // как «движок сломан». Ноль — это результат, и он обязан быть подписан.
+  deltaNone: string;
   connecting: string;
   usingMock: string;
   // gentle composer note as the input nears the length cap — "{n}" = chars left
@@ -349,9 +353,9 @@ export interface Strings {
     lines: { tag: string; text: string }[];
   };
   // Подсветка одного элемента на столе (только практика и только первый раз).
-  // Обе подсказки привязаны к НАСТОЯЩЕМУ событию движка: вскрыт интерес и
-  // поехала их цена. Модальной вводной «Добро пожаловать за стол» больше нет —
-  // она всплывала поверх первого ответа оппонента.
+  // Каждая подсказка привязана к НАСТОЯЩЕМУ событию движка. Модальной вводной
+  // «Добро пожаловать за стол» больше нет — она всплывала поверх первого ответа
+  // оппонента.
   onboarding: {
     skip: string;  // «пропустить» — доступно всегда
     gotIt: string; // закрыть подсказку
@@ -359,6 +363,16 @@ export interface Strings {
     interestBody: string;
     dealTitle: string;
     dealBody: string;
+    // ГАРАНТИРОВАННЫЙ шаг. Два предыдущих ждут удачи игрока: интерес вскрыт,
+    // цена поехала. У новичка, который жмёт наугад, за всю партию не случается
+    // ни того, ни другого — и вводной он не видит вовсе. Этот шаг привязан к
+    // событию, которое случается ВСЕГДА: первый ход сделан.
+    firstTitle: string;
+    // «{gain} … спросите про «{topic}»» — тема берётся из невскрытого слота на
+    // рельсе, то есть из того, на что подсказка и показывает.
+    firstBody: string;
+    firstGain: string;     // «Информация +{n} — этого мало.»
+    firstGainNone: string; // ни одна шкала не двинулась
   };
   // debrief
   turningPoints: { title: string; turn: string }; // "Ключевые ходы" / "Ход {n}"
@@ -712,6 +726,7 @@ export const I18N: Record<Lang, Strings> = {
     ],
     send: "Отправить",
     argLabel: "аргум.",
+    deltaNone: "шкалы не сдвинулись",
     connecting: "Соединение…",
     usingMock: "демо-режим (без сервера)",
     composerLimit: "Осталось {n} {form}",
@@ -1058,6 +1073,11 @@ export const I18N: Record<Lang, Strings> = {
       dealTitle: "Их цена поехала",
       dealBody:
         "Смотрите: их цена сдвинулась к вашей цели. Каждый удачный ход двигает её — следите за этой шкалой.",
+      firstTitle: "Первый ход сделан",
+      firstBody:
+        "{gain} Интерес открывается, только если вопрос назвал ТЕМУ. Темы — вот они: спросите про «{topic}».",
+      firstGain: "Шкала «Информация» +{n} — это мало.",
+      firstGainNone: "Ни одна шкала не сдвинулась.",
     },
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
     herSide: {
@@ -1398,6 +1418,7 @@ export const I18N: Record<Lang, Strings> = {
     ],
     send: "Send",
     argLabel: "arg.",
+    deltaNone: "no meter moved",
     connecting: "Connecting…",
     usingMock: "demo mode (no server)",
     composerLimit: "{n} {form} left",
@@ -1717,7 +1738,7 @@ export const I18N: Record<Lang, Strings> = {
     opening: {
       title: "The table is set",
       scene: "{role} Across from you: {name}. Their price: {offer}. Your target: {target}, red line: {red}.",
-      hint: "They have three hidden interests. Until you surface them the argument is only about price — and there the harder pusher wins.",
+      hint: "They have three hidden interests. The topics they sit in are listed in the \u201cHidden interests\u201d panel — ask ABOUT A TOPIC and the interest opens. Until you surface them the argument is only about price — and there the harder pusher wins.",
       lines: [
         { tag: "🎯 Interest", text: "What matters to you in " },
         { tag: "📊 Criterion", text: "Let's anchor on objective data: " },
@@ -1733,6 +1754,11 @@ export const I18N: Record<Lang, Strings> = {
       dealTitle: "Their price is moving",
       dealBody:
         "Look: their price slid toward your target. Every good move nudges it — keep an eye on this scale.",
+      firstTitle: "Your first move is in",
+      firstBody:
+        "{gain} An interest only opens when the question names a TOPIC. Here they are — ask about \u201c{topic}\u201d.",
+      firstGain: "The Information meter went +{n} — that is not much.",
+      firstGainNone: "Not one meter moved.",
     },
     turningPoints: { title: "Turning points", turn: "Turn" },
     herSide: {

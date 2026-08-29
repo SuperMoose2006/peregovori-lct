@@ -466,6 +466,18 @@ async def realtime_ws(websocket: WebSocket) -> None:
         if orchestrator is not None:
             with contextlib.suppress(Exception):
                 await orchestrator.interrupt(reason="disconnect")
+        if voice is not None:
+            # РАСПОЗНАВАНИЕ ЗАКРЫВАЕТСЯ ВМЕСТЕ С СОКЕТОМ. Этой строки здесь не
+            # было, и `RealtimeVoicePipeline` пережидал партию: его сессия к
+            # OpenAI оставалась открытой, а `_read_loop` и `_send_loop` — живыми
+            # задачами до конца процесса. Замер: две сыгранные и ЗАКРЫТЫЕ
+            # голосовые партии оставляли ровно два лишних соединения наружу.
+            # Молча — потому что публикация в закрытую шину безвредна, и снаружи
+            # ничего не ломалось до тех пор, пока провайдер не начинал считать
+            # одновременные сессии. На показе, где партии идут комнатой, это
+            # ровно тот предел, в который упираются первым.
+            with contextlib.suppress(Exception):
+                await voice.close()
         if vision is not None:
             with contextlib.suppress(Exception):
                 await vision.aclose()

@@ -207,6 +207,18 @@ class VoicePipeline:
         # UNFINISHED / WAIT — продолжаем слушать. Накопленный звук НЕ чистим:
         # следующий кусок допишется к нему и распознается вместе.
 
+    async def close(self) -> None:
+        """Партия кончилась. Та же поверхность, что у realtime-конвейера.
+
+        Своего соединения наружу здесь нет — распознавание ходит запросом на
+        каждый ход, — но незаконченная оценка конца реплики и её запрос к
+        модели пережили бы сокет и досчитались бы в пустоту, уже за деньги.
+        """
+        self._turn_detector.cancel()
+        if self._pending and not self._pending.done():
+            self._pending.cancel()
+        self._pending = None
+
     async def force_commit(self) -> None:
         """Потолок ожидания (`force_threshold_ms` из TEN): ход считается сделанным.
 

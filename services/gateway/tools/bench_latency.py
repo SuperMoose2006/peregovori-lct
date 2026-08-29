@@ -156,9 +156,22 @@ async def measure_barge_in(url: str) -> dict:
         events: asyncio.Queue = asyncio.Queue()
 
         async def reader() -> None:
+            """Отметка времени снимается ПОСЛЕ `recv()`, а не в том же выражении.
+
+            Здесь стояло `events.put((time.perf_counter(), json.loads(await
+            ws.recv())))`. Python вычисляет кортеж слева направо: часы
+            считывались ДО ожидания сообщения, то есть каждое событие получало
+            время прихода ПРЕДЫДУЩЕГО. Пока события идут очередью (аудиочанки)
+            ошибка невелика, но первая веха после паузы смещалась на всю паузу —
+            и именно так родилось «VAD заметил начало речи: 0 мс». Ноль был не
+            замером, а отметкой, поставленной до того, как ушёл первый кадр
+            звука: при исправленном порядке те же клипы дают ~0.99 с и на
+            realtime-сессии, и на своём VAD.
+            """
             try:
                 while True:
-                    await events.put((time.perf_counter(), json.loads(await ws.recv())))
+                    raw = await ws.recv()
+                    await events.put((time.perf_counter(), json.loads(raw)))
             except Exception:
                 pass
 

@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import json
 import logging
 import os
@@ -74,6 +75,23 @@ _QUIET_MS = int(os.getenv("NEGO_REALTIME_QUIET_MS", "900"))
 #: 250 мс достаточно: серверный VAD уже отсеял шум порогом 0.5 и подкладкой
 #: 300 мс, а браузер отдаёт микрофон с включённым эхоподавлением.
 _BARGE_CONFIRM_MS = int(os.getenv("NEGO_REALTIME_BARGE_MS", "250"))
+
+#: Сколько ждать ОКОНЧАТЕЛЬНУЮ расшифровку сверх окна тишины.
+#:
+#: Замер (28 августа): окно тишины 900 мс, а `transcription.completed` приходит
+#: через 810–930 мс после конца речи. Это гонка на сто миллисекунд, и она
+#: проигрывалась: таймер тишины успевал отправить в движок ЖИВУЮ ГИПОТЕЗУ, а
+#: пришедшая следом окончательная расшифровка заводила таймер заново — и та же
+#: фраза уходила в движок ВТОРЫМ ходом. В логе это выглядело так:
+#:
+#:     108421 _commit 'Но при одном условии — договор на год.'   ← гипотеза
+#:     108453 transcription.completed (та же фраза)
+#:     109353 _commit 'Но при одном условии — договор на год.'   ← ещё раз
+#:
+#: Один ход человека тратил два хода партии, двигал цену дважды и дважды жёг
+#: `max_turns`. Поэтому таймер тишины ДОЖИДАЕТСЯ обещанной расшифровки — но не
+#: вечно: расшифровка может и не прийти, а игрок не должен зависнуть.
+_ASR_GRACE_MS = int(os.getenv("NEGO_REALTIME_ASR_GRACE_MS", "1500"))
 
 #: Аварийный потолок хода — забытый включённый микрофон не должен копиться вечно.
 _MAX_TURN_SECONDS = 120
@@ -118,6 +136,8 @@ class RealtimeVoicePipeline:
 
         self._key = os.getenv("OPENAI_REALTIME_KEY", "").strip()
         self._ws = None
+        #: Закрываемся мы сами (конец партии) — тогда обрыв не новость.
+        self._closing = False
         self._reader: Optional[asyncio.Task] = None
         self._sender: Optional[asyncio.Task] = None
         self._quiet: Optional[asyncio.Task] = None
@@ -134,6 +154,17 @@ class RealtimeVoicePipeline:
         self._speaking = False
         self._speech_at: Optional[float] = None
         self._fed_samples = 0
+        #: Сколько кусков речи ушло на расшифровку и ещё не вернулось. Пока
+        #: счётчик не ноль, окно тишины не закрывает ход: иначе в движок уедет
+        #: живая гипотеза, а следом — та же фраза ещё раз (см. `_ASR_GRACE_MS`).
+        self._pending_asr = 0
+        #: Ход уже отправлен, а расшифровка того же звука ещё в пути. Всё, что
+        #: придёт до следующего `speech_started`, относится к УЖЕ СЫГРАННОМУ
+        #: ходу — второй раз его играть нельзя.
+        self._spent = False
+        #: Про мёртвую сессию говорим один раз: кадры идут потоком, и честность
+        #: на каждом превратилась бы в поток ошибок.
+        self._told_dead = False
         self.stats = RealtimeStats()
 
     # --------------------------------------------------------------- состояние
@@ -150,12 +181,15 @@ class RealtimeVoicePipeline:
         self._parts.clear()
         self._live = ""
         self._fed_samples = 0
+        self._pending_asr = 0
+        self._spent = False
         self._cancel_quiet()
 
     def describe(self) -> str:
         return f"openai-realtime ({MODEL}, VAD {VAD_SILENCE_MS} мс)"
 
     async def close(self) -> None:
+        self._closing = True
         self._cancel_quiet()
         for task in (self._reader, self._sender):
             if task and not task.done():
@@ -176,10 +210,21 @@ class RealtimeVoicePipeline:
             self._outbox = asyncio.Queue(maxsize=200)
             self._loop.create_task(self._ensure_session())
 
-        self._fed_samples += pcm.size
-        if self._fed_samples > _MAX_TURN_SECONDS * SAMPLE_RATE:
-            # Микрофон забыли включённым: рвём накопленное, но не соединение.
-            self.reset()
+        # ПОТОЛОК СЧИТАЕТ ХОД, А НЕ ОТКРЫТЫЙ МИКРОФОН. Браузер шлёт кадры
+        # непрерывно, тишину в том числе (`media-provider.ts` не гасит поток по
+        # локальному VAD — иначе нечем было бы перебивать). Счётчик рос от одного
+        # факта «микрофон включён», и каждые две минуты партии срабатывал
+        # `reset()`. Если он приходился на момент, когда человек говорит, ход
+        # исчезал молча: ни расшифровки, ни ошибки, ни ответа оппонента.
+        # Копится здесь только то, что и правда копится, — звук текущей реплики.
+        if self._speaking or self._parts or self._live:
+            self._fed_samples += pcm.size
+            if self._fed_samples > _MAX_TURN_SECONDS * SAMPLE_RATE:
+                # Микрофон забыли включённым в шумной комнате: рвём накопленное,
+                # но не соединение.
+                self.reset()
+        else:
+            self._fed_samples = 0
 
         chunk = _to_24k(pcm)
         if not chunk:
@@ -218,8 +263,47 @@ class RealtimeVoicePipeline:
         except Exception as exc:
             self.stats.errors.append(f"connect: {exc}"[:120])
             log.warning("realtime: не удалось подключиться: %s", exc)
+            self._tell_dead()
             return
 
+        try:
+            await self._handshake()
+        except Exception as exc:
+            # Ключ отвергнут — сессия закрывается ПОСЛЕ рукопожатия, а не на
+            # `connect`, и `session.update` летит в уже закрытый сокет. Раньше
+            # это исключение никто не ловил: задача умирала с «exception was
+            # never retrieved», микрофон в интерфейсе горел, а распознавания не
+            # было вовсе. Ровно то четвёртое состояние, которого не бывает.
+            self.stats.errors.append(f"handshake: {exc}"[:120])
+            log.warning("realtime: рукопожатие не состоялось: %s", exc)
+            ws, self._ws = self._ws, None
+            with contextlib.suppress(Exception):
+                await ws.close()
+            self._tell_dead()
+            return
+        self._reader = asyncio.create_task(self._read_loop())
+        self._sender = asyncio.create_task(self._send_loop())
+
+    def _tell_dead(self) -> None:
+        """Сказать вслух, что распознавание не поднялось. Один раз за сессию.
+
+        Молчащий слой неотличим от сломанного микрофона, а «выглядит настоящим,
+        а внутри пусто» в продукте не бывает (CLAUDE.md, принцип 2). Клавиатура
+        при этом работает — партия не потеряна, и об этом сказано прямо.
+        """
+        if self._told_dead:
+            return
+        self._told_dead = True
+        self._publish({"type": "error", "error": {
+            "code": "asr_unavailable",
+            "type": "server_error",
+            "message": ("Распознавание речи недоступно — говорите текстом, "
+                        "партия идёт как обычно.") if self._lang == "ru" else
+                       ("Speech recognition is unavailable — type your move, "
+                        "the game continues."),
+        }})
+
+    async def _handshake(self) -> None:
         await self._ws.send(json.dumps({
             "type": "session.update",
             "session": {
@@ -235,8 +319,6 @@ class RealtimeVoicePipeline:
                 }},
             },
         }))
-        self._reader = asyncio.create_task(self._read_loop())
-        self._sender = asyncio.create_task(self._send_loop())
 
     async def _send_loop(self) -> None:
         assert self._outbox is not None
@@ -270,6 +352,12 @@ class RealtimeVoicePipeline:
             self.stats.errors.append(f"read: {exc}"[:120])
         finally:
             self._ws = None
+            # Сессия распознавания оборвалась посреди партии. Переподключения
+            # здесь нет, значит микрофон с этой секунды — картинка. Молчать
+            # об этом нельзя: человек будет говорить в пустоту и решит, что
+            # сломан он.
+            if not self._closing:
+                self._tell_dead()
 
     # ---------------------------------------------------------------- события
 
@@ -279,6 +367,9 @@ class RealtimeVoicePipeline:
         if kind.endswith("speech_started"):
             self.stats.segments += 1
             self._speaking = True
+            # Человек заговорил снова — значит всё, что придёт дальше, относится
+            # к НОВОМУ ходу, а не к уже отправленному.
+            self._spent = False
             self._speech_at = time.perf_counter()
             self._cancel_quiet()
             self._publish({"type": "user.speech.started"})
@@ -294,6 +385,9 @@ class RealtimeVoicePipeline:
 
         if kind.endswith("speech_stopped"):
             self._speaking = False
+            # Кусок закрыт и уехал на расшифровку. Пока она не вернулась, ход
+            # закрывать нечем: живая гипотеза — это черновик, а не реплика.
+            self._pending_asr += 1
             self._publish({"type": "user.speech.stopped"})
             # Отсчёт тишины начинается ЗДЕСЬ, а не от прихода расшифровки.
             # Расшифровка отстаёт от речи почти на секунду, и таймер, заведённый
@@ -304,7 +398,7 @@ class RealtimeVoicePipeline:
 
         if kind.endswith("transcription.delta"):
             delta = str(event.get("delta") or "")
-            if not delta:
+            if not delta or self._spent:
                 return
             if self.stats.first_partial_ms == 0.0 and self._speech_at:
                 self.stats.first_partial_ms = (time.perf_counter() - self._speech_at) * 1000
@@ -316,6 +410,13 @@ class RealtimeVoicePipeline:
 
         if kind.endswith("transcription.completed"):
             text = str(event.get("transcript") or "").strip()
+            self._pending_asr = max(0, self._pending_asr - 1)
+            if self._spent:
+                # Ход по этому звуку уже сыгран (окно ожидания вышло, ушла
+                # гипотеза). Дописать сюда окончательную расшифровку значит
+                # сыграть ту же фразу вторым ходом.
+                self._live = ""
+                return
             self._live = ""
             if not text:
                 return
@@ -402,6 +503,19 @@ class RealtimeVoicePipeline:
     async def _quiet_timer(self) -> None:
         try:
             await asyncio.sleep(_QUIET_MS / 1000)
+            # Окно тишины вышло — но кусок речи может быть ещё на расшифровке.
+            # Отправить сейчас значит отправить черновик и получить ту же фразу
+            # вторым ходом, когда расшифровка вернётся. Ждём обещанное, но не
+            # дольше `_ASR_GRACE_MS`: расшифровка может и не прийти, а игрок,
+            # который не может сходить, — это сломанная игра, а не медленная.
+            waited = 0.0
+            while self._pending_asr > 0 and waited < _ASR_GRACE_MS / 1000:
+                await asyncio.sleep(0.05)
+                waited += 0.05
+                if self._speaking:
+                    # Человек снова заговорил — ход не кончился, таймер заведёт
+                    # следующий `speech_stopped`.
+                    return
         except asyncio.CancelledError:
             return
         await self._commit(reason="quiet")
@@ -413,5 +527,8 @@ class RealtimeVoicePipeline:
         self._parts.clear()
         self._live = ""
         self._fed_samples = 0
+        # Ход сыгран. Всё, что расшифровка ещё принесёт по этому же звуку,
+        # относится к нему, а не к следующему: до `speech_started` — в мусор.
+        self._spent = True
         self._publish({"type": "user.transcript", "text": text, "final": True})
         await self._on_turn(text)
