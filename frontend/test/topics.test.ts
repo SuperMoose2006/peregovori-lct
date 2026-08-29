@@ -101,3 +101,26 @@ test("реплика, которую предлагает офлайновый �
     }
   }
 });
+
+test("каждое КЛЮЧЕВОЕ СЛОВО ведёт к своему интересу — и переживает нормализацию", () => {
+  // Зеркало test_interest_topics.py::test_every_keyword_uncovers_its_own_interest.
+  // Проверки тем выше мало: вскрытие останавливается на ПЕРВОМ совпадении, и
+  // ярлык темы, стоящий выше по списку, способен молча съесть слово соседнего
+  // интереса. На `rent`/en так и было: «Finding tenants» давало основу «tenan» и
+  // забирало «quiet tenant», «tidy tenant», «reliable tenant», «decent tenant» —
+  // спросив про тихого жильца, игрок получал секрет про простой.
+  for (const sc of SCENARIOS) {
+    for (const lang of LANGS) {
+      (sc.hiddenInterestKeywords?.[lang] ?? []).forEach((words, i) => {
+        for (const word of words) {
+          // Слово ищется подстрокой в УЖЕ нормализованной реплике, а само не
+          // нормализуется ничем: апостроф в словаре делает запись мёртвой молча.
+          assert.equal(word, word.toLowerCase().replace(/ё/g, "е"), `${sc.id}/${lang}: «${word}»`);
+          assert.ok(!/['"`]/.test(word), `${sc.id}/${lang}: «${word}» — апостроф не переживёт norm()`);
+          const { s } = askOnce(sc.id, lang, probe(lang, word));
+          assert.deepEqual(s.interests, [i], `${sc.id}/${lang}: слово «${word}»`);
+        }
+      });
+    }
+  }
+});

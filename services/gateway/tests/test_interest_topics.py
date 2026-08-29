@@ -121,3 +121,49 @@ def test_the_state_carries_topics_always_and_interest_texts_only_once_uncovered(
     assert sess.state.interests_found == [1]
     assert slots[1]["text"] == sc.hidden_interests[lang][1]
     assert slots[0]["text"] is None and slots[2]["text"] is None
+
+
+@pytest.mark.parametrize("sc", SCENARIOS, ids=lambda s: s.id)
+@pytest.mark.parametrize("lang", LANGS)
+def test_every_keyword_uncovers_its_own_interest(sc, lang):
+    """Не только ярлык темы, но и КАЖДОЕ ключевое слово ведёт к своему секрету.
+
+    Тест выше проверял темы — по одной на интерес, три сравнения на стол. Этого
+    мало: вскрытие идёт по списку сверху вниз и останавливается на первом
+    совпадении — своя тема ИЛИ своё слово. Значит ярлык, стоящий выше, способен
+    молча съесть слово соседнего интереса, и три сравнения этого не увидят.
+
+    Так и было на `rent`/en: тема «Finding tenants» давала основу «tenan» и
+    забирала себе «quiet tenant», «tidy tenant», «reliable tenant», «decent
+    tenant» — четыре слова из семи у ВТОРОГО интереса. Спросив по-английски про
+    тихого жильца, игрок получал секрет про простой, о котором не спрашивал, а
+    чип «Peace and quiet» при этом не работал. По-русски «жильцов» и «жилец»
+    расходятся морфологией, поэтому дефект жил на одном языке и был невидим.
+    Прибор — `tools/scenario_audit.py`.
+    """
+    probe = ("Почему для вас важно {}?" if lang == "ru"
+             else "Why does {} matter to you?")
+    for i, words in enumerate(sc.hidden_interest_keywords[lang]):
+        for word in words:
+            line = probe.format(word)
+            assert _reveal_index_offline(sc, norm(line), lang, []) == i, \
+                f"{sc.id}/{lang}: слово «{word}» ведёт не к интересу {i}"
+
+
+@pytest.mark.parametrize("sc", SCENARIOS, ids=lambda s: s.id)
+@pytest.mark.parametrize("lang", LANGS)
+def test_keywords_survive_normalisation(sc, lang):
+    """Слово из словаря обязано совпадать с `norm` самого себя.
+
+    Совпадение ищется подстрокой в УЖЕ нормализованной реплике, а слово из
+    словаря не нормализуется ничем. Значит апостроф или лишний пробел делают
+    запись мёртвой навсегда — и мёртвой молча: список выглядит богатым, а
+    работает наполовину. Так лежало `can't sustain`: `norm` меняет апостроф на
+    пробел, и строка не совпадала ни с чем никогда.
+    """
+    for i, words in enumerate(sc.hidden_interest_keywords[lang]):
+        for word in words:
+            assert norm(word) == word, f"{sc.id}/{lang}/интерес {i}: «{word}»"
+    for iss in sc.secondary_issues:
+        for word in iss.keywords[lang]:
+            assert norm(word) == word, f"{sc.id}/{lang}/{iss.id}: «{word}»"

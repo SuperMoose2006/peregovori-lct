@@ -137,7 +137,7 @@ export const SCENARIOS: ScenarioDef[] = [
       style: "analytical",
     },
     unit: { ru: "k", en: "k" }, open: 180, floor: 240, target: 230, resv: 195, batnaStrength: 60,
-    batna: { ru: "Второй оффер на 210, но проект слабее.", en: "A second offer at 210, weaker project." },
+    batna: { ru: "Второй оффер на 210, но проект слабее.", en: "A second offer at 210, but a weaker project." },
     interests: {
       ru: ["Удержать бюджет", "Быстро закрыть позицию", "Обосновать вилку финансам"],
       en: ["Keep the budget", "Close the role fast", "Justify the band to finance"],
@@ -271,7 +271,7 @@ export const SCENARIOS: ScenarioDef[] = [
       style: "analytical",
     },
     unit: { ru: "%", en: "%" }, open: 30, floor: 18, target: 15, resv: 24, batnaStrength: 70,
-    batna: { ru: "Второй фонд обсуждает 20% — реальный рычаг.", en: "A second fund is discussing 20% — real leverage." },
+    batna: { ru: "Второй фонд обсуждает 20%, но закроется на два месяца позже.", en: "A second fund is discussing 20%, but it closes two months later." },
     interests: {
       ru: ["Мотивированный фаундер", "Место в совете", "Скорость закрытия"],
       en: ["A motivated founder", "A board seat", "Speed of closing"],
@@ -359,7 +359,10 @@ export const SCENARIOS: ScenarioDef[] = [
     },
     interestTopics: {
       ru: ["Поиск жильцов", "Тишина и порядок", "Оплата"],
-      en: ["Finding tenants", "Peace and quiet", "Payments"],
+      // «Vacancy», а не «Finding tenants»: основа «tenan» перехватывала «quiet
+      // tenant» и ещё три слова СОСЕДНЕГО интереса — вопрос про жильца вскрывал
+      // простой. Разбор — в scenarios.py и tools/scenario_audit.py.
+      en: ["Vacancy", "Peace and quiet", "Payments"],
     },
     tradeoffs: {
       ru: ["договор на 11+ месяцев", "депозит за 2 месяца вперёд", "мелкий ремонт на себя"],
@@ -555,11 +558,11 @@ export const SCENARIOS: ScenarioDef[] = [
       ru: [
         ["удержать клиент", "многолетн выручк", "сохранить клиент", "долгосрочн выручк", "не потерять клиент", "продлить сотрудни", "лояльн клиент", "удержание"],
         ["штраф", "не вытянет команд", "команда эксплуатац", "пенальти", "жестк штраф", "не потянут штраф", "риск штраф", "команда не справ"],
-        ["рост контракт", "показать руководств", "перед руководств", "увеличить контракт", "нарастить контракт", "апсейл", "рост сделк", "рост выручк"],
+        ["рост контракт", "показать руководств", "перед руководств", "увеличить контракт", "нарастить контракт", "апсейл", "рост сделк"],
       ],
       en: [
         ["retain the account", "recurring revenue", "keep the account", "retain the client", "long-term revenue", "renewal revenue"],
-        ["penalt", "ops team", "can't sustain", "cannot sustain", "operations team", "penalty they can"],
+        ["penalt", "ops team", "can t sustain", "cannot sustain", "operations team", "penalty they can"],
         ["contract grew", "show leadership", "grow the contract", "upsell", "contract growth", "bigger deal"],
       ],
     },
