@@ -6,12 +6,22 @@ capability — где лежит рабочая реализация, чего �
 Клоны: `.upstream/` (gitignored). Точные коммиты — в
 [`upstream-code-map.md`](./upstream-code-map.md).
 
+> **Читать с поправкой на дату (сверка 2026-08-29).** Это протокол ВЫБОРА,
+> сделанного до того, как решение по аватару было отменено. Три строки таблицы
+> ниже — веб-транспорт аватара, липсинк и хореография — описывают план, который
+> НЕ состоялся: кода LiveTalking и MuseTalk в репозитории нет, каталога
+> `services/avatar` нет, липсинк делает OpenTalking, а у нас работает только
+> `PresenceAvatar` с честным `lipsync: false`. Разбор — карта провенанса §12.
+> Раздел §4 про модели тоже устарел: действующая раскладка ролей — в
+> `services/gateway/app/providers/routing.py` и в
+> [`model-bakeoff.md`](./model-bakeoff.md).
+
 | Репозиторий | Коммит | Лицензия | Размер |
 |---|---|---|---|
 | Open-LLM-VTuber | `992309c0` (2026-05-15) | MIT | 51M |
 | LiveTalking | `36837f90` (2026-08-20) | Apache-2.0 | 13M |
 | MuseTalk | `0a89dec4` (2025-09-26) | MIT | 34M |
-| MiniCPM-o-Demo | `50b0865c` (2026-08-14) | Apache-2.0 | 46M |
+| MiniCPM-o-Demo | `50b0865c` (2026-08-14) | **не установлена** (файла `LICENSE` нет — карта §1) | 46M |
 | Duix-Mobile | `690fe81d` (2026-08-05) | DUIX Community License (≈ Apache + условия) | 560M |
 | TEN Framework | `2e56d965` (2026-08-21) | Apache-2.0 + доп. условия | 456M |
 
@@ -80,9 +90,9 @@ MuseTalk — это UNet поверх латентов VAE плюс Whisper-эн
 | **Резка стрима на фразы для TTS** | Open-LLM-VTuber `utils/sentence_divider.py` (608) · TEN `helper.py::parse_sentences` (88) | **Open-LLM-VTuber** | pysbd с поддержкой `ru`, обработка сокращений, запятых как аварийной границы, **и извлечение тегов `[emotion]` из потока** — готовый канал для мимики оппонента. TEN-версия — примитивный сплит по точкам | Переносим файл целиком |
 | **Параллельный TTS с сохранением порядка** | Open-LLM-VTuber `conversations/tts_manager.py` (182) | **Open-LLM-VTuber** (безальтернативно) | Фразы синтезируются параллельно, отдаются строго по номеру последовательности через буфер переупорядочивания. Это и есть разница между «первый звук через 600 мс» и «через 3 с» | Переносим класс, файлы → PCM-чанки в шину |
 | **Интерфейс провайдеров ASR/TTS** | Open-LLM-VTuber `asr/asr_interface.py`, `tts/tts_interface.py` + 11/21 реализаций · TEN extension-модель | **Open-LLM-VTuber** | Абстракция ровно нужного размера (2 метода), 21 готовый TTS. TEN-модель требует рантайма | Переносим интерфейсы, пишем провайдеры под OpenRouter/edge |
-| **Веб-транспорт аватара** | LiveTalking `server/webrtc.py` + `rtc_manager.py` + `streamout/webrtc.py` | **LiveTalking** (безальтернативно) | aiortc-треки с ручной раскладкой временных меток (20 мс аудио / 40 мс видео), WHEP, мультисессионность | Поднимаем сервисом, говорим с ним по HTTP+WebRTC |
-| **Липсинк** | MuseTalk `scripts/realtime_inference.py` · LiveTalking `avatars/musetalk/*` (вендоренный MuseTalk) | **MuseTalk через LiveTalking** | LiveTalking уже вендорит MuseTalk и обвязал его очередью кадров, батчами и прерыванием — переиспользуем интеграцию, а не только модель | Сервис `services/avatar`, GPU-опциональный |
-| **Хореография аватара (idle/действия)** | LiveTalking `base_avatar.py::set_custom_state` + `get_custom_audio_stream` · Duix `Constant.CALLBACK_EVENT_MOTION_*` | **LiveTalking**, словарь состояний — от Duix | LiveTalking проигрывает произвольные видео когда молчит — это и есть «дышит и моргает». Duix даёт правильный набор событий (`play.start/end`, `motion.start/end`) | Реакция движка → `set_audiotype` |
+| **Веб-транспорт аватара** ⛔ ОТМЕНЕНО (карта §12) | LiveTalking `server/webrtc.py` + `rtc_manager.py` + `streamout/webrtc.py` | ~~LiveTalking~~ — кода в репозитории нет | aiortc-треки с ручной раскладкой временных меток (20 мс аудио / 40 мс видео), WHEP, мультисессионность | Поднимаем сервисом, говорим с ним по HTTP+WebRTC |
+| **Липсинк** ⛔ ОТМЕНЕНО (карта §12) | MuseTalk `scripts/realtime_inference.py` · LiveTalking `avatars/musetalk/*` (вендоренный MuseTalk) | ~~MuseTalk через LiveTalking~~ | Свой GPU-аватар удалён вместе с `app/avatar/livetalking.py`; каталога `services/avatar` не существует | Липсинк делает OpenTalking; у нас `PresenceAvatar` и `lipsync: false` |
+| **Хореография аватара (idle/действия)** ⛔ ЧАСТИЧНО ОТМЕНЕНО (карта §12) | LiveTalking `base_avatar.py::set_custom_state` + `get_custom_audio_stream` · Duix `Constant.CALLBACK_EVENT_MOTION_*` | от LiveTalking не осталось ничего; выжил только словарь событий Duix | LiveTalking проигрывает произвольные видео когда молчит — это и есть «дышит и моргает». Duix даёт правильный набор событий (`play.start/end`, `motion.start/end`) | Реакция движка → `set_audiotype` |
 | **Мобильный аватар on-device** | Duix-Mobile `duix-sdk` (Java + ncnn `.so`) | **Duix** (безальтернативно) | Единственный on-device рендерер. Но это Android/iOS-приложение | **Не строим в этой итерации.** Забираем контракт событий и делаем протокол совместимым. Помечено `STUB(mobile-avatar)` |
 | **Зрение / контекст сцены** | Open-LLM-VTuber (кадр в мультимодальный LLM) · MiniCPM (кадры в модель напрямую) | **Open-LLM-VTuber-подход** | Адаптивный сэмплинг кадров + отправка в VLM. Прямой путь MiniCPM требует их же модель | Кадры → OpenRouter vision, частота адаптивная |
 | **Память диалога** | Open-LLM-VTuber `basic_memory_agent.py` (702) + `chat_history_manager.py` | Частично | Полноценный агент с памятью нам не нужен — историю держит движок. Берём только обработку прерывания | Точечный порт |
@@ -150,8 +160,8 @@ TEN `parse_sentences` — 20 строк, режет по `.!?`. Open-LLM-VTuber
 
 | Задача | Модель | Цена вход/выход за M | Проверено |
 |---|---|---|---|
-| Мозг оппонента | `moonshotai/kimi-k3` | $3 / $15 | ✅ есть в каталоге |
-| Тяжёлое рассуждение (разбор, генерация сценария) | `z-ai/glm-5.3` | $1.4 / $4.4 | ✅ |
+| Мозг оппонента | `moonshotai/kimi-k3` | $3 / $15 | ✅ есть в каталоге, **но дефолтом не стал**: в коде это константа `PREMIUM_OPPONENT`, а дефолт — `google/gemini-3.5-flash-lite` |
+| Тяжёлое рассуждение (разбор, генерация сценария) | `z-ai/glm-5.3` | $1.4 / $4.4 | ✅ в каталоге, **отвергнута живым замером**: 142 с на две попытки и ни одного валидного JSON. Дефолт роли — `google/gemini-3.5-flash-lite` |
 | Судья каждого хода (быстрый) | `google/gemini-3.5-flash-lite` | $0.30 / $2.50 | ✅ |
 | Зрение | `google/gemini-3.1-flash-lite` | $0.25 / $1.50 | ✅ мультимодальный |
 | **ASR** | `google/gemini-3.7-flash` | $0.375 / $1.875 | ✅ `input_modalities` содержит `audio` |
@@ -164,8 +174,14 @@ base64 и не даёт частичных гипотез.
 **Русский голос.** В задании прямо сказано не жертвовать качественным русским
 голосом ради «всё через OpenRouter». `edge-tts` даёт `ru-RU-SvetlanaNeural` и
 `ru-RU-DmitryNeural`, стримит чанками, стоит ноль. Поэтому **TTS по умолчанию —
-edge-tts, OpenRouter `gpt-audio-mini` — второй провайдер**, переключается
-переменной окружения. Оба за одним интерфейсом.
+edge-tts**.
+
+**Вторым провайдером стал не `gpt-audio-mini`.** В
+`services/gateway/app/providers/tts/` лежат ровно две реализации: `edge.py` и
+`openai_speech.py` (`NEGO_OPENAI_TTS_MODEL`, дефолт `gpt-4o-mini-tts`) — довод
+тот же, что и везде, замер: на заведомо новом тексте edge даёт медиану 2318 мс
+до первого звука, `gpt-4o-mini-tts` — 936 мс. Провайдера `openrouter` в каталоге
+TTS нет. Оба существующих — за одним интерфейсом.
 
 ---
 
@@ -181,9 +197,9 @@ VAD                          → TEN VAD            (pip, нативная ли�
 Резка на фразы + теги мимики → Open-LLM-VTuber    (перенос файла)
 Упорядоченный параллельный TTS → Open-LLM-VTuber  (перенос класса)
 Интерфейсы ASR/TTS           → Open-LLM-VTuber    (перенос интерфейсов)
-Транспорт и рендер аватара   → LiveTalking        (отдельный сервис)
-Липсинк                      → MuseTalk           (через интеграцию LiveTalking)
-Хореография                  → LiveTalking + словарь событий Duix
+Транспорт и рендер аватара   → ⛔ отменено        (кода LiveTalking нет — карта §12)
+Липсинк                      → ⛔ отменено        (делает OpenTalking; у нас lipsync: false)
+Хореография                  → словарь событий Duix (от LiveTalking не осталось ничего)
 Мобильный рендерер           → Duix               (контракт забран, реализация — позже)
 Облачный инференс            → OpenRouter         (chat / vision / asr, + edge-tts)
 Истина игры                  → наш движок         (не тронут)
