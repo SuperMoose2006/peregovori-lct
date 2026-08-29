@@ -338,6 +338,21 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         await websocket.close(code=WS_RATE_LIMITED, reason="too_many_sessions")
                         return
 
+                    # ГЕНЕРАЦИЯ «СВОЕЙ СДЕЛКИ» — САМЫЙ ДОРОГОЙ ВЫЗОВ В ПРОДУКТЕ,
+                    # и до сих пор он был единственным платным входом вообще без
+                    # предела: пределы стоят на партии, на взгляде и на ходе, а
+                    # это ни то, ни другое, ни третье. Отказать здесь можно
+                    # честно — партии ещё нет, ждать нечему, а готовые столы
+                    # никуда не делись. Спрашиваем ДО модели и после аренды:
+                    # порядок тот же, что у места под партию.
+                    if payload.gameMode == "custom" and not limits.paid_slot(peer):
+                        lease.release()
+                        lease = None
+                        await websocket.send_json(error(
+                            "too_many_generations",
+                            limits.too_many_generations(payload.lang), "rate_limited"))
+                        continue
+
                     session, problem = await _build_session(payload)
                     if session is None:
                         lease.release()
@@ -591,7 +606,13 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     try:
         engine_session = engine.create_session(scenario_id, payload.lang)
     except ValueError:
-        return None, f"unknown scenario: {scenario_id}"
+        # Обрезаем ЧУЖУЮ строку, прежде чем вернуть её в ответе. `scenarioId`
+        # приходит с улицы и ничем не ограничен: пятимегабайтное поле
+        # возвращалось назад целиком, то есть один кривой запрос покупал
+        # пятимегабайтный ответ. Все остальные отражения в этом файле уже
+        # обрезаны (`_why`, причина закрытия, неизвестное событие) — это было
+        # последним.
+        return None, f"unknown scenario: {scenario_id[:64]}"
 
     if payload.reputation is not None:
         views.apply_reputation(engine_session, payload.reputation)
@@ -923,7 +944,16 @@ async def _send_hint(session: RealtimeSession) -> None:
     base = views.compute_hint(engine_session, lang)
     payload = {"type": "turn.coach", "kind": "hint", "text": base}
 
-    if orchat.available():
+    # ПОЧЕМУ ЗДЕСЬ ПРЕДЕЛ. `_Work.start_hint` не даёт считать ДВЕ подсказки
+    # одновременно — и только. Пятое нажатие подряд стоило одного счёта, а
+    # пятое ПОСЛЕ ответа — второго, и так сколько угодно: кнопка 💡 была
+    # платным вызовом без всякого предела на адрес. Ведро общее с ходом
+    # (`limits.paid_slot`): кошелёк один.
+    #
+    # Отказ здесь ничего не ломает и ничего не имитирует: `base` — это
+    # настоящая подсказка движка, та самая, которой продукт живёт в офлайне.
+    # Человек получает совет, просто не переписанный моделью.
+    if orchat.available() and limits.paid_slot(session.client_host):
         from app.ai.coach import build_prompts as coach_prompts, parse as coach_parse
         facts = views.coach_facts(engine_session, lang)
         facts["fallback_hint"] = base

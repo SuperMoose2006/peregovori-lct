@@ -35,9 +35,10 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import engine
@@ -132,9 +133,34 @@ async def _gate(request, call_next):
         # сокета, зато шлёт куки того же origin. Поэтому успешная проверка
         # оставляет метку, а сокет проверяет её.
         response = await call_next(request)
-        response.set_cookie("dlg_ok", _ws_ticket(), httponly=True, samesite="lax", max_age=86400)
+        # `secure` ставится по СХЕМЕ ЗАПРОСА, а не константой. Кука `dlg_ok` —
+        # это ключ от сокета, то есть предъявитель пароля; без флага браузер
+        # отправил бы её и по обычному http на тот же хост, где её видит любой
+        # посредник. Жёстко прописать `secure=True` нельзя: стенд с паролем
+        # можно поднять и без TLS, и тогда куки не было бы вовсе, а сокет
+        # отказывал бы всем.
+        response.set_cookie("dlg_ok", _ws_ticket(), httponly=True, samesite="lax",
+                            max_age=86400, secure=request.url.scheme == "https")
         return response
     return await call_next(request)
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error(_request: Request, exc: RequestValidationError):
+    """Чем плох запрос: поле и причина. Без присланного значения и без ссылок.
+
+    ПОЧЕМУ ОБРАБОТЧИК СВОЙ. Стандартный ответ FastAPI на 422 кладёт в тело поле
+    `input` — то самое, что прислали. Четыреста килобайт мусора в `moves`
+    возвращались восемьюстами килобайтами ответа: один кривой запрос покупает
+    вдвое больший ответ, и это работает без всякой партии, на голом REST.
+
+    Форма ответа та же, что у сокета (`realtime/endpoint.py::_why`): три первых
+    ошибки, `поле: причина`. Правило одно на весь продукт — наружу едет код, а
+    не пересказ наших типов и не эхо чужой строки.
+    """
+    parts = [".".join(str(x) for x in e.get("loc", ())) + ": " + str(e.get("msg", ""))
+             for e in exc.errors()[:3]]
+    return JSONResponse(status_code=422, content={"detail": "; ".join(parts) or "invalid request"})
 
 
 def _ws_ticket() -> str:
@@ -401,7 +427,7 @@ def _whatif_branch(scenario_id: str, lang: str, prefix: list[str], branch_text: 
 
 
 @app.post("/api/course/coach")
-async def course_coach(body: CourseCoachMsg) -> dict:
+async def course_coach(request: Request, body: CourseCoachMsg) -> dict:
     """Комментарий тренера к свободному ответу упражнения.
 
     ЧТО ЭТО НЕ ДЕЛАЕТ: не решает, зачтено ли упражнение. Зачёт — детерминированный
@@ -414,6 +440,7 @@ async def course_coach(body: CourseCoachMsg) -> dict:
     """
     from app.course.bank import BY_ID as COURSE_BY_ID
     from app.orchestrator.judge import judge_turn
+    from app.realtime import limits
 
     item = COURSE_BY_ID.get(body.exerciseId)
     if item is None or item.get("type") != "freeform":
@@ -422,6 +449,13 @@ async def course_coach(body: CourseCoachMsg) -> dict:
     lang = "en" if body.lang == "en" else "ru"
     text = (body.text or "")[:MAX_WHATIF_TEXT]
     if not text.strip():
+        return {"note": None, "techniques": []}
+
+    # Ведро то же, что у хода: кошелёк один, адрес один. Ручка звала судью без
+    # единого предела — курс проходят из браузера, значит и жать её можно из
+    # браузера в цикле. Отказ выглядит ровно как «модель не ответила», который
+    # экран уже умеет показывать: карточки тренера просто нет.
+    if not limits.paid_slot(request.client.host if request.client else ""):
         return {"note": None, "techniques": []}
 
     sc = engine.by_id(item.get("scenario_id") or "") if item.get("scenario_id") else None
@@ -483,9 +517,35 @@ def whatif(body: WhatIfMsg) -> dict:
 _ADAPTERS = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if _ADAPTERS not in sys.path:
     sys.path.insert(0, _ADAPTERS)
+
+
+def _local_only(request: Request) -> None:
+    """Пускать в шов OpenTalking только с этой машины.
+
+    ЧТО ЗДЕСЬ БЫЛО ОТКРЫТО. Две ручки шва — `/v1/chat/completions` и
+    `/v1/audio/speech` — не отвечают сами: они ПЕРЕСЫЛАЮТ запрос в OpenRouter
+    нашим ключом и возвращают ответ провайдера как есть. Модель и содержимое
+    берутся из тела запроса, то есть с улицы. Значит это был не «шов к
+    соседнему процессу», а открытый прокси к платному API: любая модель, любой
+    промпт, ответ обратно. Замер на живом стенде подтвердил обе ручки.
+    Ни `NEGO_AI=off`, ни пределы `realtime/limits.py` их не касались вовсе —
+    те стоят на партии, а тут партии нет.
+
+    Единственной защитой оставался пароль. Пароль на показе знают все, кому его
+    назвали, а ключ — не их; и ровно этот же пароль обходится любым локальным
+    прокси (docs/hosting.md). Дверь, которой пользуется ТОЛЬКО процесс на этой
+    машине, не должна быть открыта улице ни при каком пароле.
+
+    404, а не 403: снаружи о существовании шва знать незачем.
+    """
+    host = request.client.host if request.client else ""
+    if host not in _LOCAL_HOSTS:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
 try:
     from adapters.opentalking_negotiation import router as _opentalking_router
-    app.include_router(_opentalking_router)
+    app.include_router(_opentalking_router, dependencies=[Depends(_local_only)])
 except Exception as _exc:  # адаптер опционален: без него продукт работает как раньше
     logging.getLogger(__name__).warning("OpenTalking adapter not mounted: %s", _exc)
 
@@ -521,8 +581,19 @@ if os.path.isdir(_DIST):
         #
         # Проверяем ПОСЛЕ realpath, а не отсечением «..» в строке: символьная
         # ссылка внутри dist ведёт наружу без единой точки в пути.
-        candidate = os.path.realpath(os.path.join(_DIST, full_path))
-        inside = candidate == _DIST_REAL or candidate.startswith(_DIST_REAL + os.sep)
-        if full_path and inside and os.path.isfile(candidate):
-            return FileResponse(candidate)
+        #
+        # ПОЧЕМУ ЦЕЛИКОМ В try. Сам разбор пути умеет падать: нулевой байт в
+        # адресе (`/index.html%00/../..`) роняет `realpath` через
+        # ValueError('embedded null byte'), и обстрел получал 500 с
+        # питоновским стеком в логе вместо страницы. Утечки не было, но
+        # необработанное исключение на внешней поверхности — это ответ «здесь
+        # что-то не предусмотрено», приглашающий искать дальше. Любой путь,
+        # который не удалось даже разобрать, — просто не файл: отдаём SPA.
+        try:
+            candidate = os.path.realpath(os.path.join(_DIST, full_path))
+            inside = candidate == _DIST_REAL or candidate.startswith(_DIST_REAL + os.sep)
+            if full_path and inside and os.path.isfile(candidate):
+                return FileResponse(candidate)
+        except (ValueError, OSError):
+            pass
         return FileResponse(os.path.join(_DIST, "index.html"))

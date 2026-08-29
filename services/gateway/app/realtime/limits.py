@@ -226,6 +226,40 @@ def turn_delay(host: str) -> float:
     return max(0.0, -tokens) / TURNS_PER_S
 
 
+def paid_slot(host: str) -> bool:
+    """Место под ОДИН платный вызов вне хода. False — бюджет адреса исчерпан.
+
+    ЗАЧЕМ ОТДЕЛЬНАЯ ФУНКЦИЯ, ЕСЛИ ВЕДРО ТО ЖЕ. Ход придерживают, а не
+    отказывают: клиент ждёт `response.done`, и отказ оставил бы человека перед
+    вечным «оппонент печатает». У вызовов, которые НЕ ход, этой беды нет — у
+    каждого есть честный бесплатный ответ:
+
+    - подсказка тренера падает на детерминированную `views.compute_hint`;
+    - тренер курса возвращает `note: null`, и карточка просто не рисуется;
+    - «своя сделка» отвечает словами, что стол сейчас не собрать.
+
+    Поэтому здесь отказ, а не сон: держать соединение занятым ради того, что
+    и так умеет ответить бесплатно, незачем.
+
+    ВЕДРО ОБЩЕЕ С ХОДОМ, И ЭТО НЕ ЛЕНЬ. Кошелёк один. Пределы на партии, на
+    взгляды и на темп ходов закрывали три двери в платные модели, а четвёртая —
+    подсказка, тренер курса и генерация сценария — стояла открытой: ни одна из
+    них не ход, значит `turn_delay` их не касался вовсе. Кнопку 💡 можно жать
+    сколько угодно раз подряд, и каждое нажатие — счёт от провайдера.
+    """
+    if exempt(host) or os.getenv("NEGO_AI", "").strip().lower() == "off":
+        return True
+    now = time.monotonic()
+    _reap_turns(now)
+    tokens, last = _turns.get(host, (TURN_BURST, now))
+    tokens = min(TURN_BURST, tokens + (now - last) * TURNS_PER_S)
+    if tokens < 1.0:
+        _turns[host] = (tokens, now)
+        return False
+    _turns[host] = (tokens - 1.0, now)
+    return True
+
+
 # ------------------------------------------------------------- сообщения
 
 def too_many_sessions(lang: str) -> str:
@@ -236,6 +270,16 @@ def too_many_sessions(lang: str) -> str:
                 "tabs, or wait for a slot to free up — games in progress are untouched.")
     return ("С этого адреса уже идёт слишком много партий. Закройте одну из "
             "открытых вкладок или подождите — идущие партии не тронуты.")
+
+
+def too_many_generations(lang: str) -> str:
+    """Отказ генерации «своей сделки». Она — самый дорогой вызов в продукте, и
+    отказ обязан сказать, что делать дальше: готовые столы никуда не делись."""
+    if lang == "en":
+        return ("Too many custom deals are being built from this address right now. "
+                "Try again in a few seconds, or pick one of the ready tables.")
+    return ("С этого адреса сейчас слишком часто собирают свою сделку. "
+            "Попробуйте через несколько секунд или выберите готовый стол.")
 
 
 def vision_rate_limited(lang: str) -> str:
