@@ -10,15 +10,28 @@ import { spellToDigits } from "./numbers";
 // один вердикт на одну реплику. Правка руками валит tests/test_lex_parity.py.
 export { LEX } from "./lexicon.generated";
 
+// Знак валюты → слово. Фильтр ниже выбрасывает всё, что не буква и не цифра,
+// поэтому «$» умирал раньше, чем успевал доказать, что число рядом это цена:
+// «I can do $500» становилось «i can do 500» и офертой не считалось. Русский
+// той же фразой работал — «руб» это СЛОВО, оно нормализацию переживает.
+// Замерено на чужом корпусе: 5991 реплика из 9124 пропущенных цен несла «$».
+// Зеркало services/gateway/app/engine/techniques.py::_CURRENCY_WORDS.
+const CURRENCY: [RegExp, string][] = [
+  [/\$/g, " usd "],
+  [/\u20bd/g, " руб "],
+  [/\u20ac/g, " eur "],
+];
+
 export const norm = (s: string): string =>
   // Числительные словами → цифры. Единственная точка, через которую проходит
   // любой ход, поэтому паритет клавиатуры и голоса обеспечивается здесь:
   // «триста тысяч» и «300 000» дают один и тот же ход. Зеркало —
   // services/gateway/app/engine/numbers.py, менять синхронно.
   spellToDigits(
-    (s || "")
-      .toLowerCase()
-      .replace(/ё/g, "е")
+    CURRENCY.reduce(
+      (acc, [re, word]) => acc.replace(re, word),
+      (s || "").toLowerCase().replace(/ё/g, "е"),
+    )
       .replace(/[^\p{L}\p{N}\s%.,?!\-]/gu, " ")
       .replace(/\s+/g, " ")
       .trim(),

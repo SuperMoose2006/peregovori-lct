@@ -19,7 +19,8 @@ export const LEX: Record<string, string[]> = {
   spinProblem: [
     "сложно", "проблема", "мешает", "не устраивает", "трудно", "узкое место",
     "с какими сложностями", "что не устраивает", "что вас беспокоит", "болит", "difficult",
-    "problem", "challenge", "frustrat", "bottleneck", "pain", "concerns you", "struggl",
+    "problem", "challenge", "frustrat", "bottleneck", "painful", "pain point", "concerns you",
+    "struggl",
   ],
   spinImplication: [
     "к чему это приводит", "чем это грозит", "сколько вы теряете", "если так продолжится",
@@ -39,7 +40,8 @@ export const LEX: Record<string, string[]> = {
     "что вас беспокоит", "why is that important", "why exactly", "what matters to you",
     "what matters most", "what matters more", "what are you trying to",
     "what are you really after", "your underlying", "the real reason", "what you care about",
-    "important to you", "why are you",
+    "important to you", "why are you", "что вам нужн", "что вы предпочит", "what do you need",
+    "what do you prefer", "what are you looking for",
   ],
   acknowledge: [
     "понимаю", "я вас слышу", "я слышу", "вы правы", "справедливо", "логично", "разделяю",
@@ -78,7 +80,8 @@ export const LEX: Record<string, string[]> = {
   concession: [
     "готовы уступить", "можем снизить", "пойдем навстречу", "сделаем скидку", "уступим",
     "согласны на", "ок, давайте", "можем добавить", "идем на", "we can lower", "we can offer",
-    "we can come down", "i can give you", "concede", "meet you", "discount", "we can throw in",
+    "we can come down", "i can give you", "concede", "discount", "we can throw in",
+    "meet you half", "meet you in the middle", "meet in the middle",
   ],
   tradeoff: [
     "если вы, то мы", "взамен", "в обмен", "при условии", "пакет", "если добавите",
@@ -100,6 +103,8 @@ export const LEX: Record<string, string[]> = {
   rapport: [
     "рад встрече", "приятно познакомиться", "как ваши дела", "спасибо за встречу",
     "nice to meet", "good to see you", "thanks for taking the time", "how are you",
+    "здравствуйте", "добрый день", "доброе утро", "добрый вечер", "привет", "hello", "hey",
+    "good morning", "good afternoon",
   ],
   accept: [
     "по рукам", "договорились", "принимаю", "мы согласны", "заключаем", "подписываем",
@@ -107,10 +112,10 @@ export const LEX: Record<string, string[]> = {
     "done deal", "let us sign", "i can live with", "that works for us",
   ],
   priceContext: [
-    "цен", "прайс", "руб", "₽", "стоит", "стоимост", "оклад", "зарплат", "аренд", "ставк",
-    "тариф", "бюджет", "скидк", "платить", "плачу", "заплат", "за штук", "шт", "мес", "долл",
-    "евро", "процент", "price", "rate", "cost", "salary", "budget", "discount", "per unit",
-    "unit", "pay", "fee", "usd", "eur", "dollar", "euro", "percent",
+    "цен", "прайс", "руб", "стоит", "стоимост", "оклад", "зарплат", "аренд", "ставк", "тариф",
+    "бюджет", "скидк", "платить", "плачу", "заплат", "за штук", "шт", "мес", "долл", "евро",
+    "процент", "price", "rate", "cost", "salary", "budget", "discount", "per unit", "unit",
+    "pay", "fees", "usd", "eur", "dollar", "euro", "percent",
   ],
   nonPriceUnits: [
     "лет", "год", "человек", "чел", "инженер", "сотрудник", "недел", "месяц", "дня", "дней",

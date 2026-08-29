@@ -98,7 +98,7 @@
    ],
    "primary": "offer",
    "arg": 11,
-   "words": 2,
+   "words": 3,
    "number": 88.0,
    "spin": null
   },
@@ -2118,7 +2118,7 @@
    ],
    "primary": "offer",
    "arg": 26,
-   "words": 5,
+   "words": 6,
    "number": 88.0,
    "spin": null
   },
@@ -2391,7 +2391,7 @@
    ],
    "primary": "objective_criteria",
    "arg": 44,
-   "words": 7,
+   "words": 8,
    "number": 88.0,
    "spin": null
   },
@@ -2584,8 +2584,8 @@
     "offer"
    ],
    "primary": "objective_criteria",
-   "arg": 44,
-   "words": 11,
+   "arg": 52,
+   "words": 12,
    "number": 88.0,
    "spin": null
   },
@@ -2685,7 +2685,7 @@
    ],
    "primary": "accept",
    "arg": 26,
-   "words": 9,
+   "words": 10,
    "number": 88.0,
    "spin": null
   },
