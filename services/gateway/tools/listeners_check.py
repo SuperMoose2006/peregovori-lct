@@ -70,10 +70,19 @@ def _about(pid: int) -> dict:
     except OSError:
         pass
     cmd = read(f"/proc/{pid}/cmdline")
+    # Возраст процесса — из 22-го поля `/proc/<pid>/stat` (момент старта в
+    # тиках от загрузки машины), а не из `st_ctime` каталога `/proc/<pid>`.
+    # Первая редакция брала именно его и показывала «0.0 ч» для процесса,
+    # запущенного неделю назад: у этого каталога время меняется само. Прибор,
+    # который занижает возраст, обесценивает собственную находку — «висит 0.0 ч»
+    # читается как «только что подняли, наверное, по делу».
+    age_h = 0.0
     try:
-        age_h = (time.time() - os.stat(f"/proc/{pid}").st_ctime) / 3600
-    except OSError:
-        age_h = 0.0
+        ticks = float(read(f"/proc/{pid}/stat").rsplit(") ", 1)[1].split()[19])
+        uptime = float(read("/proc/uptime").split()[0])
+        age_h = max(0.0, uptime - ticks / os.sysconf("SC_CLK_TCK")) / 3600
+    except (OSError, IndexError, ValueError):
+        pass
     return {"cwd": cwd, "cmd": cmd[:120], "age_h": round(age_h, 1),
             "ours": cwd.startswith(REPO) or REPO in cmd}
 
