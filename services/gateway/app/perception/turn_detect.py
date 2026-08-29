@@ -1,6 +1,8 @@
 """turn_detect.py — «игрок договорил или просто задумался?»
 
-ПРОИСХОЖДЕНИЕ. Перенос из TEN Framework (Apache-2.0, commit 2e56d965),
+ПРОИСХОЖДЕНИЕ. Перенос из TEN Framework (Apache-2.0 + дополнительные
+условия Agora, среди них запрет на конкуренцию с их предложениями; полный
+разбор — docs/upstream-code-map.md §5; commit 2e56d965),
 `ai_agents/agents/ten_packages/extension/ten_turn_detection/`: файлы
 `turn_detector.py` (классы `SpecialToken`, `TurnDetectorDecision`, метод `eval`
 с отменяемой задачей и таймаутом), `config.py` (`force_threshold_ms`) и
