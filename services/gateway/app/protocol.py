@@ -20,8 +20,34 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 Lang = Literal["ru", "en"]
-Mode = Literal["practice", "campaign", "custom", "exam"]
+#: РЕЖИМ НА ПРОВОДЕ — не то же самое, что режим экрана. Он говорит серверу, ЧТО
+#: за партия идёт, а не как её показать: `drill` — капстоун курса, который
+#: экран рисует обычным разбором, а не сертификатом. Пятое значение заведено
+#: именно потому, что капстоуну нужен режим экзамена по сути и не нужен по
+#: виду; отправлять ради этого `exam` значило бы, что решение «судьи здесь нет»
+#: принимает браузер, а не сервер.
+Mode = Literal["practice", "campaign", "custom", "exam", "drill"]
 Status = Literal["active", "agreement", "breakdown"]
+
+#: Режимы, где ИТОГ ОБЯЗАН ВОСПРОИЗВОДИТЬСЯ: те же реплики в том же порядке —
+#: тот же результат, байт в байт. Из них уходит всё недетерминированное или
+#: несравнимое: семантический судья (`orchestrator/judge.py::judge_enabled_for`,
+#: замер — docs/judge-reproducibility.md), слои модальностей
+#: (`realtime/session.py::Layers.for_exam`) и условие «стола дня».
+#:
+#: Почему список, а не проверка `== "exam"` в трёх местах. Проверок было три, и
+#: капстоун проехал мимо всех трёх молча: он уходил в партию режимом
+#: `practice`, а документ утверждал обратное. Один список — одно место, где
+#: этот вопрос вообще решается.
+#:
+#: Зеркало на клиенте — `frontend/src/lib/modes.ts`, менять синхронно
+#: (инвариант 8).
+REPRODUCIBLE_MODES: frozenset[str] = frozenset({"exam", "drill"})
+
+
+def reproducible_run(game_mode: str | None) -> bool:
+    """Обязана ли ЭТА партия давать один и тот же итог при повторе."""
+    return (game_mode or "") in REPRODUCIBLE_MODES
 
 
 # ---- Shared value objects ---------------------------------------------------

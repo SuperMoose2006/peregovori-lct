@@ -12,6 +12,7 @@ import {
 } from "./engine";
 import { NO_PROBES, nextProbe, type ProbeMemory } from "../lib/probe";
 import { dailyTable } from "../lib/daily";
+import { reproducibleRun } from "../lib/modes";
 import { EPILOGUE_BANDS, REPUTATION_LINES } from "../data/campaigns.generated";
 
 /** Зеркало views.reputation_intro. Пороги и текст — из одной таблицы с эпилогом. */
@@ -125,8 +126,10 @@ export class MockServer implements Transport {
     // «короткий стол», а офлайн-партия шла бы двенадцать ходов — то самое
     // четвёртое состояние, которого в продукте не бывает.
     // Зеркало app/realtime/endpoint.py: условие ложится, ТОЛЬКО если стол того
-    // дня и правда этот, и никогда на экзамене.
-    if (msg.daily && msg.mode !== "exam") {
+    // дня и правда этот, и никогда в партии НА ЗАЧЁТ — ни на экзамене, ни на
+    // капстоуне курса. Капстоун со срезанным лимитом ходов это уже не тот
+    // капстоун, который доказан прогоном движка.
+    if (msg.daily && !reproducibleRun(msg.mode)) {
       const table = dailyTable(new Date(msg.daily + "T00:00:00"));
       if (table.scenarioId === def.id) {
         const m = table.modifier;

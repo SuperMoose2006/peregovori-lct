@@ -39,6 +39,7 @@ from app.orchestrator.tts_manager import TTSTaskManager
 from app.perception.vision import VisionSampler
 from app.perception.realtime_voice import RealtimeVoicePipeline
 from app.perception.voice_pipeline import VoicePipeline
+from app.protocol import reproducible_run
 from app.providers.asr.openrouter import OpenRouterASR
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import describe as describe_models
@@ -516,9 +517,11 @@ async def realtime_ws(websocket: WebSocket) -> None:
 # ---------------------------------------------------------------------------
 
 def _layers_for(payload: "SessionInit") -> Layers:
-    """Слои сессии. На экзамене — принудительно выключенные, что бы ни прислал
-    клиент: правило, которое соблюдает только браузер, правилом не является."""
-    if payload.gameMode == "exam":
+    """Слои сессии. В партии НА ЗАЧЁТ — принудительно выключенные, что бы ни
+    прислал клиент: правило, которое соблюдает только браузер, правилом не
+    является. Зачёт — это экзамен И капстоун курса (`REPRODUCIBLE_MODES`):
+    капстоун сверяют с эталонным прогоном движка ровно так же."""
+    if reproducible_run(payload.gameMode):
         return Layers.for_exam()
     return Layers.from_dict(payload.layers)
 
@@ -587,7 +590,9 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     # о нём не знает. Дату присылает клиент; сверяем, что стол ТОГО дня и правда
     # этот, иначе «короткий стол» можно было бы выпросить на любом сценарии.
     daily_mod = None
-    if payload.daily and payload.gameMode != "exam":
+    # В зачётной партии условия дня нет вовсе: капстоун со срезанным лимитом
+    # ходов — уже не тот капстоун, который доказан прогоном движка.
+    if payload.daily and not reproducible_run(payload.gameMode):
         from datetime import date as _date
         from app.engine.daily import apply_modifier, daily_table
         try:

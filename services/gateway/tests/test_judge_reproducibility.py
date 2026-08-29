@@ -310,3 +310,203 @@ def test_the_ceiling_threshold_is_mirrored_in_the_offline_core():
         f"офлайн-ядро не знает порога {TECHNIQUE_FLOOR}")
     assert "techniqueMethod < TECHNIQUE_FLOOR" in mirror, (
         "офлайн-ядро сравнивает с потолком не детерминированную часть техники")
+
+
+# ------------------------------------------- капстоун курса: тот же вопрос
+
+# Решение «на экзамене судьи нет» было записано документом и проверено выше —
+# и всё равно не выполнялось. Капстоун блока (`type: "drill"`) уходил в партию
+# режимом `practice`, потому что режим на проводе и режим экрана были одним
+# значением: экзамен по сути, обычный разбор по виду. Судья при этом двигает
+# ровно те поля, по которым `course/check.py::check_drill` выносит вердикт —
+# вскрытые интересы, флаги приёмов, размер уступки, — и два решающих очка
+# экзамена блока доставались недетерминированному входу.
+#
+# Отсюда `protocol.REPRODUCIBLE_MODES`: список режимов, где итог обязан
+# повторяться. Тесты ниже держат три вещи — гейт закрыт для КАЖДОГО режима из
+# списка, повтор капстоуна даёт тот же вердикт, и прибор мерит не пустоту
+# (та же дрожь в режиме без гейта вердикт переворачивает).
+
+_CAPSTONE_ID = "bz-09"   # investor, 7 ходов: доля ≤ 20% · два интереса · напряжение ≤ 50
+
+
+def _capstone_and_lines() -> tuple[dict, list[str]]:
+    from app.course.bank import BY_ID
+    item = BY_ID[_CAPSTONE_ID]
+    data = json.loads(_FIXTURE.read_text(encoding="utf-8"))
+    lines = data["principled"][item["scenario_id"]]["ru"][: item.get("max_turns", 8)]
+    return item, lines
+
+
+#: Две «настроения» судьи на одну и ту же реплику размена. Обе — законный ответ
+#: модели: `tradeoff_real` это её суждение «размен настоящий или слова». Живой
+#: замер (docs/judge-reproducibility.md §1) показал, что одна и та же реплика
+#: получает от одной и той же модели разные ответы.
+_MOOD_TRUSTS = {"arg_score": 70, "interest_targeted": None, "secondary_conceded": None,
+                "criteria_legitimate": None, "tradeoff_real": None, "batna_real": None}
+_MOOD_VETOES = {**_MOOD_TRUSTS, "arg_score": 65, "tradeoff_real": False}
+
+
+def _play_capstone(mode: str, moods: list[dict], monkeypatch) -> dict:
+    """Партия капстоуна ЧЕРЕЗ ОРКЕСТРАТОР — тем же путём, каким её играет
+    человек. Возвращает вердикт `check_drill`, то есть ровно то, что видит
+    экзамен блока."""
+    import asyncio as _asyncio
+
+    from app import views
+    from app.course.check import check_drill
+    from app.orchestrator import negotiation
+
+    item, lines = _capstone_and_lines()
+    queue = list(moods)
+
+    async def wobbling_judge(*a, **kw):
+        return queue.pop(0) if queue else dict(_MOOD_TRUSTS)
+
+    monkeypatch.setenv("NEGO_JUDGE", "1")
+    monkeypatch.setattr(negotiation, "judge_turn", wobbling_judge)
+
+    sess = RealtimeSession(session_id=f"capstone_{mode}_{id(moods)}",
+                           engine_session=engine.create_session(item["scenario_id"], "ru"),
+                           lang="ru", game_mode=mode)
+    orch = negotiation.NegotiationOrchestrator(sess)
+    for line in lines:
+        if sess.engine_session.state.status != "active":
+            break
+        _asyncio.run(orch.on_player_turn(line))
+    return check_drill(item, views.state_view(sess.engine_session).model_dump())
+
+
+def test_the_gate_covers_every_mode_that_promises_reproducibility(monkeypatch):
+    """Список режимов — один, и гейт обязан читать именно его.
+
+    Проверка `== "exam"` выглядела достаточной ровно до тех пор, пока зачётный
+    режим был один. Теперь их два, и вопрос «эта партия на зачёт?» решается в
+    одном месте.
+    """
+    from app.protocol import REPRODUCIBLE_MODES
+
+    monkeypatch.setenv("NEGO_JUDGE", "1")
+    assert ojudge.judge_enabled() is True
+    assert "drill" in REPRODUCIBLE_MODES, "капстоун курса выпал из списка зачётных"
+    for mode in sorted(REPRODUCIBLE_MODES):
+        assert ojudge.judge_enabled_for(mode) is False, mode
+    for mode in ("practice", "campaign", "custom", None, ""):
+        assert ojudge.judge_enabled_for(mode) is True, mode
+
+
+def test_the_capstone_never_calls_the_judge(monkeypatch):
+    """Тот же вызов-ловушка, что и для экзамена: обещание проверяется ходом."""
+    from app.orchestrator import negotiation
+
+    called: list = []
+
+    async def trap(*a, **kw):
+        called.append(a)
+        return dict(_MOOD_TRUSTS)
+
+    monkeypatch.setenv("NEGO_JUDGE", "1")
+    monkeypatch.setattr(negotiation, "judge_turn", trap)
+
+    for mode, expect in (("practice", 1), ("drill", 0)):
+        sess = RealtimeSession(session_id=f"drill_{mode}",
+                               engine_session=engine.create_session("investor", "ru"),
+                               lang="ru", game_mode=mode)
+        orch = negotiation.NegotiationOrchestrator(sess)
+        called.clear()
+        asyncio.run(orch.on_player_turn("Почему для вас так важен размер раунда?"))
+        assert len(called) == expect, f"режим {mode}: судью позвали {len(called)} раз"
+
+
+def test_a_capstone_played_twice_gives_the_same_verdict(monkeypatch):
+    """ГЛАВНОЕ. Экзамен блока, пройденный дважды одинаковыми репликами, обязан
+    дать одинаковые очки — иначе «пройден» ничего не значит.
+
+    Судья здесь дрожит по-настоящему: два прогона получают РАЗНЫЕ суждения на
+    одну и ту же реплику, как получил их живой замер. В зачётном режиме его
+    никто не спрашивает, поэтому вердикт обязан совпасть целиком.
+    """
+    first = _play_capstone("drill", [dict(_MOOD_TRUSTS)] * 6, monkeypatch)
+    second = _play_capstone("drill", [dict(_MOOD_VETOES)] * 6, monkeypatch)
+    assert first == second, (
+        f"тот же капстоун, те же реплики, разный вердикт: {first} ≠ {second}")
+    assert first["ok"] is True, (
+        "принципиальная игра перестала проходить капстоун — тест мерит не то, "
+        f"что задумано: {first}")
+
+
+def test_without_the_gate_the_same_capstone_verdict_flips(monkeypatch):
+    """Прибор обязан что-то мерить. Та же дрожь в режиме БЕЗ гейта — а именно
+    так капстоун и уходил в партию до правки, режимом `practice`, — переворачивает
+    вердикт: вето размена стоит сделки целиком.
+
+    Это и есть цена вопроса: два очка экзамена блока решались тем, каким
+    настроением модель прочитала одну реплику.
+    """
+    first = _play_capstone("practice", [dict(_MOOD_TRUSTS)] * 6, monkeypatch)
+    second = _play_capstone("practice", [dict(_MOOD_VETOES)] * 6, monkeypatch)
+    assert first != second, (
+        "судья перестал доезжать до вердикта капстоуна — тест больше не "
+        "объясняет, зачем нужен гейт")
+    assert first["ok"] and not second["ok"], (first, second)
+
+
+def _created_for(ws) -> dict:
+    """Дождаться `session.created` — или сдаться на `error`.
+
+    Без ветки на `error` тест не падал бы, а ВИС: отвергнутый `session.init`
+    (например, режим, которого сервер не знает) не присылает ничего, и приёмник
+    ждёт вечно. Молчащий тест хуже красного.
+    """
+    for _ in range(8):
+        msg = ws.receive_json()
+        if msg["type"] == "session.created":
+            return msg
+        if msg["type"] == "error":
+            raise AssertionError(f"сервер отверг session.init: {msg}")
+    raise AssertionError("session.created не пришёл")
+
+
+def test_the_capstone_forces_layers_off_like_the_exam(monkeypatch):
+    """Третий принцип на том же режиме: слои гасит СЕРВЕР, а не браузер."""
+    client = TestClient(app)
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        ws.send_json({"type": "session.init", "payload": {
+            "scenarioId": "investor", "lang": "ru", "gameMode": "drill",
+            "layers": {"probe": True, "voice": True, "camera": True, "avatar": True},
+        }})
+        caps = _created_for(ws)["capabilities"]
+        assert caps["voice"] is False, "капстоун не должен включать голос"
+        assert caps["camera"] is False, "капстоун не должен включать камеру"
+        assert caps["avatar"]["available"] is False, "капстоун не должен включать аватар"
+
+
+def test_capstone_capabilities_do_not_promise_a_judge(monkeypatch):
+    """Второй принцип: бейдж «судит ИИ по смыслу» на капстоуне рисовать нечем."""
+    monkeypatch.setenv("NEGO_JUDGE", "1")
+    client = TestClient(app)
+    with client.websocket_connect("/v1/realtime") as ws:
+        ws.send_json({"type": "session.init",
+                      "payload": {"mode": "text", "scenarioId": "investor",
+                                  "lang": "ru", "gameMode": "drill"}})
+        assert _created_for(ws)["capabilities"]["judge"] is False
+        ws.send_json({"type": "session.close"})
+
+
+def test_the_daily_modifier_never_touches_a_graded_table():
+    """Условие «стола дня» — вход партии (лимит ходов, стартовые шкалы). На
+    капстоуне это меняло бы задание, доказанное прогоном движка, поэтому
+    зачётная партия его не принимает — как не принимала экзаменационная."""
+    from datetime import date
+
+    from app.engine.daily import daily_table
+    from app.realtime.endpoint import _build_session
+    from app.realtime.events import SessionInit
+
+    table = daily_table(date.today())
+    for mode, expect_applied in (("practice", True), ("drill", False), ("exam", False)):
+        sess, err = asyncio.run(_build_session(SessionInit(
+            scenarioId=table.scenario_id, lang="ru", gameMode=mode,
+            daily=date.today().isoformat())))
+        assert err is None and sess is not None, (mode, err)
+        assert (sess.daily is not None) is expect_applied, mode

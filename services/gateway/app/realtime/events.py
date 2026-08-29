@@ -30,6 +30,8 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from app.protocol import Mode
+
 # ---------------------------------------------------------------------------
 # Клиент → сервер
 # ---------------------------------------------------------------------------
@@ -107,7 +109,10 @@ class SessionInit(BaseModel):
     mode: SessionMode = "text"
     scenarioId: str = ""
     lang: Literal["ru", "en"] = "ru"
-    gameMode: Literal["practice", "campaign", "custom", "exam"] = "practice"
+    #: Режим НА ПРОВОДЕ, и он же — единственное, по чему сервер решает, идёт ли
+    #: партия на зачёт (`protocol.reproducible_run`). Список литер один на весь
+    #: продукт: второй его экземпляр здесь разъехался бы с первым молча.
+    gameMode: Mode = "practice"
     situation: Optional[str] = None        # для режима «своя сделка»
     reputation: Optional[float] = None     # репутация из прошлых актов кампании
     layers: dict[str, bool] = Field(default_factory=dict)

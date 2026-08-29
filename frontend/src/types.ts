@@ -16,7 +16,21 @@
 // настоящее зеркало `services/gateway/app/protocol.py`. Менять синхронно.
 
 export type Lang = "ru" | "en";
-export type Mode = "practice" | "campaign" | "custom" | "exam";
+/** Режим ЭКРАНА: что показывает оболочка и как выглядит разбор. Ровно четыре
+ *  раздела навигатора, и только они. */
+export type ScreenMode = "practice" | "campaign" | "custom" | "exam";
+/**
+ * Режим НА ПРОВОДЕ — шире экранного ровно на один: `drill`, капстоун курса.
+ *
+ * Развязка нужна потому, что капстоун — экзамен по СУТИ и обычная партия по
+ * ВИДУ: его итог сверяют с эталонным прогоном движка, поэтому судьи там быть не
+ * должно, а разбор при этом остаётся разбором, а не сертификатом. Пока значение
+ * было одно на оба смысла, капстоун уходил в партию как `practice` — с живым
+ * судьёй, двигающим ровно те поля, по которым `checkDrill` выносит вердикт.
+ *
+ * Зеркало — `services/gateway/app/protocol.py::Mode`, менять синхронно.
+ */
+export type Mode = ScreenMode | "drill";
 export type Status = "active" | "agreement" | "breakdown";
 
 export interface Tag {

@@ -1,6 +1,6 @@
 // i18n.ts — RU/EN string tables. Ported from legacy-node/public/i18n.js + demo.html.
 // Engine/scenario content is localized at the data layer (see data/scenarios.ts).
-import type { Lang, Mode } from "./types";
+import type { Lang, ScreenMode } from "./types";
 import type { SkillId } from "./lib/progress";
 
 export interface QuickMove {
@@ -35,7 +35,10 @@ export interface Strings {
     demoCap: string; // caption under the price-dot micro-animation
   };
   pickHead: string;
-  modes: Record<Mode, { title: string; desc: string }>;
+  // Разделов навигатора четыре — `ScreenMode`. Пятого режима на проводе
+  // (`drill`, капстоун курса) на экране не существует: он показывается
+  // экраном курса, а не разделом оболочки.
+  modes: Record<ScreenMode, { title: string; desc: string }>;
   theirOffer: string;
   yourTarget: string;
   meters: MeterLabels;

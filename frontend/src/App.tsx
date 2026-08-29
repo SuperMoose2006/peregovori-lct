@@ -1,7 +1,7 @@
 // App.tsx — screen router (home / game / debrief / campaign) with RU/EN + light/dark toggles.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { CampaignView, Debrief as DebriefData, Lang, Mode, StateView } from "./types";
+import type { CampaignView, Debrief as DebriefData, Lang, Mode, ScreenMode, StateView } from "./types";
 import { I18N } from "./i18n";
 import { useNegotiation } from "./api/useNegotiation";
 import { getCampaigns } from "./api/campaigns";
@@ -15,11 +15,12 @@ import {
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { LayersPanel } from "./components/Setup";
-import { ProgressCards, MethodCard, RailCard, DailyCard, MemoryCard } from "./components/Rail";
+import { ProgressCards, MethodCard, RailCard, DailyCard, MemoryCard, StreakCard } from "./components/Rail";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
 import { Karl } from "./components/Mascot";
+import { ReadingCard } from "./components/ReadingCard";
 import { LazyScreen } from "./components/LazyScreen";
 import { openingOf, type TrailPoint } from "./lib/rematch";
 import { SCENARIO_MAP, SCENARIOS } from "./data/scenarios";
@@ -153,7 +154,9 @@ export default function App() {
   const closeLayers = useCallback(() => setLayersOpen(false), []);
 
   const [screen, setScreen] = useState<Screen>("home");
-  const [mode, setMode] = useState<Mode>("practice");
+  // Режим ЭКРАНА. Режим партии приходит отдельно (`launch`): капстоун идёт
+  // на проводе как "drill", а экран при этом остаётся обычной тренировкой.
+  const [mode, setMode] = useState<ScreenMode>("practice");
   const [currentScenario, setCurrentScenario] = useState<string | null>(null);
   const [situation, setSituation] = useState("");
   // Exam mode: the name printed on the certificate (optional; falls back to a
@@ -425,14 +428,17 @@ export default function App() {
     // сюда попадают ПОСЛЕ доигранной партии, файл давно в кеше от прогрева, а
     // если нет — эта же секунда всё равно уходит на разбор.
     let alive = true;
-    void import("./lib/courseExam").then(({ checkDrill, COURSE_MASTER, MASTER_PASS_MARK }) => {
+    void import("./lib/courseExam").then(({ checkDrill, noteCapstone, COURSE_MASTER, MASTER_PASS_MARK }) => {
       if (!alive) return;
       const verdict = checkDrill(ex.ex, state);
       setDrillVerdict({ ok: verdict.ok });
+      // Экзамен блока записывает СЕБЯ САМ — на своём экране итога
+      // (CourseScreen.ExamRunner). Отсюда уходит только результат партии:
+      // счёт, разбор промахов и урок восстановления живут там, где их видно.
+      if (ex.exam) noteCapstone(ex.ex.id, verdict.ok);
       setProfile((prev) => {
         let next = ex.exam
-          ? recordExam(prev, ex.blockId, ex.exam.score + (verdict.ok ? 2 : 0),
-                       ex.exam.total, ex.exam.passMark).profile
+          ? prev
           : recordExercise(prev, ex.blockId, ex.ex.id, ex.ex.xp, verdict.ok).profile;
         // Экзамен мастера считается по числу СДАННЫХ партий: две из трёх и он
         // закрыт. Отдельной попытки не заводим — переигрывать можно любую.
@@ -593,10 +599,13 @@ export default function App() {
       setDrill({ ex, blockId: ctx.blockId, exam: ctx.exam });
       setDrillVerdict(null);
       recordedDrill.current = null;
-      // Слои выключены принудительно — капстоун обязан быть сравним с экзаменом.
+      // Экран — обычная тренировка (разбор капстоуна не сертификат), а партия
+      // идёт режимом "drill": по нему СЕРВЕР гасит семантического судью и слои.
+      // Вердикт капстоуна доказан прогоном движка, значит и получен обязан
+      // быть им же (docs/judge-reproducibility.md).
       setMode("practice");
       setCurrentScenario(ex.scenario_id);
-      launch(ex.scenario_id, "practice", { fixedOff: true });
+      launch(ex.scenario_id, "drill", { fixedOff: true });
     },
     [launch],
   );
@@ -722,7 +731,7 @@ export default function App() {
 
   // Switching modes clears a stale generation error from the custom view.
   const selectMode = useCallback(
-    (m: Mode) => {
+    (m: ScreenMode) => {
       nego.clearError();
       setMode(m);
     },
@@ -764,7 +773,8 @@ export default function App() {
     // Переподключение обязано вернуть ТУ ЖЕ партию: со «столом дня» и с
     // погашенными слоями капстоуна, а не «похожую».
     if (mode === "custom") startCustom();
-    else if (currentScenario) launch(currentScenario, mode, { daily: activeDaily, fixedOff: !!drill });
+    else if (currentScenario) launch(currentScenario, drill ? "drill" : mode,
+                                     { daily: activeDaily, fixedOff: !!drill });
   }, [mode, currentScenario, launch, startCustom, activeDaily, drill]);
 
   /** Прошлая партия, переигранная движком ход за ходом. Пересчёт только при
@@ -921,6 +931,9 @@ export default function App() {
                     выбирает, во что играть. */}
                 <MemoryCard t={t} lang={lang} profile={profile} />
                 <ProgressCards t={t} lang={lang} profile={profile} onSetGoal={setGoalTarget} />
+                {/* Серия — сразу под целью дня: обе про сегодняшний день, и
+                    только вторая говорит, засчитан ли он. */}
+                <StreakCard t={t} profile={profile} />
                 {/* Курс живёт в сайдбаре, но с домашнего экрана его надо ещё и
                     ВИДЕТЬ: строка меню не рассказывает, что внутри девять блоков. */}
                 <RailCard title={t.course.title}>
@@ -938,6 +951,10 @@ export default function App() {
                     {courseNext ? t.course.continue : t.nav.course} →
                   </button>
                 </RailCard>
+                {/* Чтение чужой партии по ходам: не режим партии, поэтому не в
+                    меню слева, а здесь — рядом с курсом. Экран режима грузится
+                    отдельным файлом изнутри карточки. */}
+                <ReadingCard t={t} lang={lang} />
                 <MethodCard t={t} />
             </aside>
             </div>

@@ -4,13 +4,13 @@
 // придумал магазин и счётчик жизней, а реклама несуществующих возможностей —
 // ровно то, что жюри ловит первым.
 import type { Strings } from "../i18n";
-import type { Mode } from "../types";
+import type { ScreenMode } from "../types";
 
 interface Props {
   t: Strings;
   /** Which entry reads as current. Modes map 1:1 onto the first four rows. */
-  active: Mode | "profile" | "course";
-  onMode: (m: Mode) => void;
+  active: ScreenMode | "profile" | "course";
+  onMode: (m: ScreenMode) => void;
   onProfile: () => void;
   /** Курс приёмов — отдельный экран, а не режим партии. */
   onCourse: () => void;
