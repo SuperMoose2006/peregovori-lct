@@ -223,16 +223,45 @@ class NegotiationOrchestrator:
                                               turn_id=turn_id, text=chunk))
                 yield chunk
 
+        from app.ai.sanitize import rejected, sanitize, speakable
+
         collected: list[str] = []
+        #: Прозвучало ли хоть что-то. Нужно для случая, когда отвергнуты ВСЕ
+        #: фразы: молчащий оппонент в голосовом режиме — это не «честно», это
+        #: сломанный ход.
+        spoken_any = False
+        #: Реплика уже испорчена — дальше не озвучиваем ничего.
+        tainted = False
         try:
             async for sentence in divider.process_stream(token_stream()):
                 phrase = (sentence.text or "").strip()
                 if not phrase:
                     continue
                 collected.append(phrase)
-                if self.tts:
-                    self.tts.speak(phrase, generation_id=generation_id, turn_id=turn_id)
-                if self.avatar:
+                # ЗВУК ПРОВЕРЯЕТСЯ ЗДЕСЬ, А НЕ ВНИЗУ. Санитайзер под этим
+                # циклом судит реплику целиком — и к тому моменту синтез уже
+                # отзвучал: фраза уходит в озвучку, как только сложилась, ради
+                # чего весь конвейер и построен. Поэтому «как языковая модель,
+                # я не могу вести переговоры» получало замену пузыря на шаблон,
+                # а человек эту фразу УЖЕ СЛЫШАЛ. В голосовом режиме звук и
+                # есть реплика.
+                # ПЕРВАЯ ЖЕ ИСПОРЧЕННАЯ ФРАЗА ПОРТИТ ВСЮ РЕПЛИКУ, и это не
+                # перестраховка. Делитель режет поток на КУСКИ, а не на
+                # предложения — он торопится отдать первый звук и рвёт по
+                # запятой тоже. «Как языковая модель, я не могу вести
+                # переговоры.» распадается на «Как языковая модель,» и «я не
+                # могу вести переговоры.»: маркер выхода из роли остаётся в
+                # первом куске, а второй — уже «чистый» — уходил в синтез, и
+                # человек слышал отказ. Проверка каждого куска по отдельности
+                # эту реплику НЕ ловит; ловит только память о том, что реплика
+                # уже испорчена.
+                if rejected(phrase):
+                    tainted = True
+                say = None if tainted else speakable(phrase)
+                if self.tts and say:
+                    self.tts.speak(say, generation_id=generation_id, turn_id=turn_id)
+                    spoken_any = True
+                if self.avatar and say:
                     await self.avatar.speak(b"", generation_id=generation_id)
         except asyncio.CancelledError:
             # Перебили. `interrupt()` уже дописал услышанное в историю и погасил
@@ -243,8 +272,16 @@ class NegotiationOrchestrator:
 
         # Авторитетный итог. Дельты были сырыми; санитайзер судит реплику
         # целиком и может её отвергнуть — тогда остаётся шаблон движка.
-        from app.ai.sanitize import sanitize
         final = sanitize(" ".join(collected)) or templated
+        # Не прозвучало НИЧЕГО — значит отвергнуты все фразы (или модель
+        # промолчала). Озвучиваем итог: он либо очищенная реплика, либо шаблон
+        # движка, и то и другое в характере. Иначе ход прошёл бы в тишине.
+        # Озвучиваем итог, если реплика испорчена (тогда `final` — шаблон
+        # движка) или если не прозвучало вообще ничего. Небольшой повтор, когда
+        # начало успело прозвучать до порчи, — приемлемая цена: услышанный
+        # выход из роли дороже.
+        if self.tts and (tainted or not spoken_any) and final:
+            self.tts.speak(final, generation_id=generation_id, turn_id=turn_id)
         sess.engine_session.log.append({"role": "opp", "text": final})
         sess.bus.publish(response_done(generation_id=generation_id, turn_id=turn_id,
                                        text=final, reason="turn_end"))
