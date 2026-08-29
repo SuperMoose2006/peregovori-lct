@@ -23,7 +23,8 @@ import base64
 import contextlib
 import logging
 import os
-from typing import Optional
+from dataclasses import dataclass
+from typing import Awaitable, Callable, Optional
 
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
@@ -45,6 +46,7 @@ from app.providers.tts.base import Voice
 from app.providers.tts.base import TTSProvider
 from app.providers.tts.edge import EdgeTTS
 from app.providers.tts.openai_speech import OpenAISpeechTTS
+from app.realtime import limits
 from app.realtime.events import InputAppend, SessionInit, error, session_closed
 from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
                                   RealtimeSession, keep_for_resume,
@@ -52,6 +54,15 @@ from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
 from app.session import store
 
 _log = logging.getLogger(__name__)
+
+#: Коды закрытия, по которым клиент НЕ переподключается. Обычный обрыв (1006,
+#: 1001) значит «связь пропала, вернись» — на нём `resume` и держится. Эти три
+#: значат «сервер отказал по существу», и молчаливая попытка номер два не
+#: изменит ответа, зато превратит один отказ в три.
+#:
+#: 4401 — назовите пароль (`main.py`).
+WS_TAKEN_OVER = 4409     #: партию забрал другой сокет — играть тут больше нечего
+WS_RATE_LIMITED = 4429   #: с этого адреса уже слишком много партий
 
 #: Сколько ходов ждёт очереди, пока считается текущий. Один: игрок ходит по
 #: очереди с оппонентом, а всё, что сверх, — либо дрожащий палец, либо тот, кто
@@ -62,6 +73,75 @@ _MAX_QUEUED_TURNS = 1
 #: описание уезжает в самую дорогую роль (`reasoning`), и из пустой строки она
 #: вернёт либо ничего, либо выдумку — оплаченную в обоих случаях.
 _MIN_SITUATION_CHARS = 10
+
+
+# ---------------------------------------------------------------------------
+# Кто сейчас владеет партией
+# ---------------------------------------------------------------------------
+#
+# ЧТО БЫЛО СЛОМАНО. `resume` не проверял, занята ли партия. Три сокета с одним
+# и тем же идентификатором получали `session.created` с одним id и играли ОДНУ
+# сессию движка: два хода считались внахлёст, `session.close` с любого из них
+# вынимал партию из-под остальных, а обрыв любого ставил живой партии срок в
+# пять минут.
+#
+# ПОЧЕМУ НЕ ПРОСТО ОТКАЗАТЬ ВТОРОМУ. Ради чего `resume` и написан: в метро TCP
+# умирает молча, сервер узнаёт об обрыве не сразу — иногда через десятки секунд
+# keepalive. Честное возвращение в этот промежуток получило бы «партия занята»,
+# то есть главный сценарий сломался бы ровно там, где он нужен.
+#
+# ПОЭТОМУ ВЫТЕСНЕНИЕ. Приходящий забирает партию, прежний сокет закрывается
+# кодом, который клиент отличает от обрыва сети, и получает `session.closed`
+# со внятной причиной. Партия при этом не дёргается: она принадлежит движку, а
+# сокеты только сменились.
+
+@dataclass
+class _Owner:
+    """Живой владелец партии: сокет, его сессия и способ его погасить."""
+    websocket: WebSocket
+    session: "RealtimeSession"
+    #: Замыкание над локальными переменными СВОЕГО вызова `realtime_ws`: ход,
+    #: судья, синтез, зрение, писатель. Гасит их, ничего не зная о том, кто
+    #: вытесняет.
+    quiesce: "Callable[[], Awaitable[None]]"
+    lease: Optional[limits.Lease] = None
+
+
+#: session_id → владелец. Пусто в покое: запись живёт ровно столько, сколько
+#: сокет держит партию.
+_OWNERS: dict[str, _Owner] = {}
+
+
+async def _evict_owner(session_id: str) -> bool:
+    """Вытеснить прежнего владельца партии. True — было кого вытеснять.
+
+    Порядок здесь не произвольный:
+      1. метка `evicted` — чтобы `finally` вытесненного не сделал `drop`
+         (вынул бы партию из-под нового) и не сделал `release` (поставил бы
+         живой партии срок в пять минут);
+      2. лента камеры откладывается тем же механизмом, что и при обрыве, —
+         иначе новый владелец получил бы разбор, начинающийся с середины
+         партии, а дыры в ленте не видно, в отличие от её отсутствия;
+      3. подсистемы гасятся ВМЕСТЕ С ПИСАТЕЛЕМ — после этого в старый сокет
+         никто, кроме нас, не пишет, и `session.closed` не переплетётся с
+         чужим чанком;
+      4. аренда места на хосте отпускается сразу: читатель вытесненного может
+         ещё висеть на `receive`, а место он занимать уже не должен.
+    """
+    previous = _OWNERS.pop(session_id, None)
+    if previous is None:
+        return False
+    previous.session.evicted = True
+    keep_for_resume(previous.session)
+    with contextlib.suppress(Exception):
+        await previous.quiesce()
+    if previous.lease is not None:
+        previous.lease.release()
+    with contextlib.suppress(Exception):
+        await previous.websocket.send_json(session_closed(session_id, "taken_over"))
+    with contextlib.suppress(Exception):
+        await previous.websocket.close(code=WS_TAKEN_OVER, reason="taken_over")
+    return True
 
 
 def _why(exc: ValidationError) -> str:
@@ -159,6 +239,30 @@ async def realtime_ws(websocket: WebSocket) -> None:
     vision: Optional[VisionSampler] = None
     writer: Optional[asyncio.Task] = None
     work = _Work()
+    peer = websocket.client.host if websocket.client else ""
+    lease: Optional[limits.Lease] = None
+    owner: Optional[_Owner] = None
+
+    async def _quiesce() -> None:
+        """Погасить всё, что запустил ЭТОТ сокет, и замолчать.
+
+        Замыкание, а не метод: живые задачи — локальные переменные этого вызова,
+        и вытесняющему сокету незачем знать, из чего они состоят. Писатель
+        гасится последним и обязательно: после `quiesce` в сокет пишет только
+        тот, кто вытесняет, — иначе `session.closed` уехал бы вперемешку с
+        чанком синтеза.
+        """
+        await work.aclose()
+        if orchestrator is not None:
+            with contextlib.suppress(Exception):
+                await orchestrator.interrupt(reason="taken_over")
+        if vision is not None:
+            with contextlib.suppress(Exception):
+                await vision.aclose()
+        if writer is not None:
+            writer.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await writer
 
     try:
         while True:
@@ -181,6 +285,14 @@ async def realtime_ws(websocket: WebSocket) -> None:
                 continue
             kind = message.get("type")
 
+            if session is not None and session.evicted:
+                # Партию забрал другой сокет, а этот успел прислать вдогонку
+                # ход, отмену или закрытие. Ни одно из них не должно доехать до
+                # движка: считать ход дважды и закрывать чужой стол — ровно то,
+                # ради чего вытеснение и делалось. Сокет уже закрыт с той
+                # стороны, отвечать некуда — просто уходим.
+                break
+
             try:
                 # ---- session.init ---------------------------------------------
                 if kind == "session.init":
@@ -199,13 +311,36 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         await websocket.send_json(error("bad_payload", _why(exc)))
                         continue
                     payload.mode = mode  # URL — истина, а не поле в теле
+
+                    # Место под партию занимается ДО генерации сценария: самый
+                    # дорогой вызов в продукте не должен уходить в модель ради
+                    # партии, которой не дадут начаться. Отказ идёт словами и
+                    # отдельным кодом закрытия — молчаливый разрыв клиент
+                    # принял бы за обрыв сети и пошёл бы переподключаться.
+                    lease = limits.acquire_session(peer)
+                    if lease is None:
+                        await websocket.send_json(error(
+                            "too_many_sessions", limits.too_many_sessions(payload.lang),
+                            "rate_limited"))
+                        await websocket.close(code=WS_RATE_LIMITED, reason="too_many_sessions")
+                        return
+
                     session, problem = await _build_session(payload)
                     if session is None:
+                        lease.release()
+                        lease = None
                         await websocket.send_json(error("init_failed", problem or "init failed"))
                         continue
+                    session.client_host = peer
 
                     orchestrator, voice, vision = _wire(session)
                     writer = asyncio.create_task(_pump(websocket, session))
+                    # Владельцем записываемся ПОСЛЕ того, как всё поднято:
+                    # вытесняющий зовёт `quiesce`, и гасить полусобранное было
+                    # бы гонкой на ровном месте.
+                    owner = _Owner(websocket=websocket, session=session,
+                                   quiesce=_quiesce, lease=lease)
+                    _OWNERS[session.session_id] = owner
                     await websocket.send_json(_created_payload(session, voice))
                     continue
 
@@ -335,16 +470,28 @@ async def realtime_ws(websocket: WebSocket) -> None:
             with contextlib.suppress(Exception):
                 await vision.aclose()
         if session is not None:
+            # Снимаемся с владения ТОЛЬКО если владеем: вытесненный сокет
+            # доживает свой `finally` уже после того, как запись занял новый,
+            # и `pop` без проверки личности вынес бы живого владельца.
+            if _OWNERS.get(session.session_id) is owner:
+                _OWNERS.pop(session.session_id, None)
             session.bus.close()
-            # Отпускаем, а не удаляем: сокет мог оборваться сам. Явное
-            # `session.close` уже удалило сессию выше.
-            store.release(session.session_id)
-            # Лента камеры живёт в этой сессии, а она сейчас умрёт вместе с
-            # сокетом. Откладываем на тот же срок, что и саму партию — и только
-            # если возвращаться есть куда: после явного `session.close` партии
-            # уже нет в хранилище, и держать её ленту не за чем.
-            if store.get(session.session_id) is not None:
-                keep_for_resume(session)
+            if not session.evicted:
+                # Отпускаем, а не удаляем: сокет мог оборваться сам. Явное
+                # `session.close` уже удалило сессию выше.
+                store.release(session.session_id)
+                # Лента камеры живёт в этой сессии, а она сейчас умрёт вместе с
+                # сокетом. Откладываем на тот же срок, что и саму партию — и только
+                # если возвращаться есть куда: после явного `session.close` партии
+                # уже нет в хранилище, и держать её ленту не за чем.
+                if store.get(session.session_id) is not None:
+                    keep_for_resume(session)
+            # Вытесненный не трогает ни хранилище, ни ленту: партия уже чужая, и
+            # `release` поставил бы ЖИВОЙ партии срок в пять минут, а `drop` —
+            # вынул бы её из-под нового владельца. Ленту ему уже переложило
+            # само вытеснение.
+        if lease is not None:
+            lease.release()
         if writer is not None:
             writer.cancel()
             with contextlib.suppress(asyncio.CancelledError, Exception):
@@ -371,6 +518,13 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     if payload.resume:
         existing = store.claim(payload.resume)
         if existing is not None:
+            # Партия могла остаться ЗА ЖИВЫМ СОКЕТОМ: в метро TCP умирает
+            # молча, и сервер узнаёт об обрыве позже человека. Прежний владелец
+            # вытесняется — с внятной причиной и отдельным кодом закрытия, — а
+            # не отказывает вернувшемуся. Делается это ЗДЕСЬ, до
+            # `restore_from_resume`: вытеснение откладывает ленту камеры тем же
+            # механизмом, что и обрыв, и следующая строка её подхватывает.
+            await _evict_owner(payload.resume)
             resumed = RealtimeSession(
                 session_id=payload.resume,
                 engine_session=existing,
@@ -513,10 +667,35 @@ def _wire(session: RealtimeSession) -> tuple[
                                 # обе формы — плоскую для промпта оппонента и
                                 # ленту с ходами для разбора.
                                 session.note_vision,
-                                pokerface=session.layers.pokerface)
+                                pokerface=session.layers.pokerface,
+                                # Бюджет спрашивается ТАМ, ГДЕ ВЫЗОВ И
+                                # ПРОИСХОДИТ. Кадры приходят несколько раз в
+                                # секунду, а смотрит слой раз в восемь: списание
+                                # за каждый предложенный кадр опустошило бы
+                                # ведро, не потратив у провайдера ни копейки.
+                                budget=lambda: _vision_budget(session))
         vision = sampler if sampler.available() else None
 
     return orchestrator, voice, vision
+
+
+def _vision_budget(session: RealtimeSession) -> bool:
+    """Хватает ли адресу бюджета ещё на один взгляд платной модели.
+
+    ОТКАЗ ГОВОРИТСЯ ВСЛУХ, НО ОДИН РАЗ. Молчащий слой неотличим от сломанной
+    камеры — а «выглядит настоящим, а внутри пусто» в продукте не бывает. Зато
+    кадры идут потоком, и честность на каждом кадре превратилась бы в поток
+    ошибок, за которым не видно партии. Поэтому первая исчерпанная секунда
+    называется словами, а дальше слой просто реже смотрит.
+    """
+    if limits.vision_allowed(session.client_host):
+        return True
+    if not session.vision_limit_told:
+        session.vision_limit_told = True
+        session.bus.publish(error("vision_rate_limited",
+                                  limits.vision_rate_limited(session.lang),
+                                  "rate_limited"))
+    return False
 
 
 def _make_avatar(session: RealtimeSession) -> AvatarProvider:

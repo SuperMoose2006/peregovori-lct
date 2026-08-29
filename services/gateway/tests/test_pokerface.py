@@ -45,8 +45,8 @@ def test_tell_can_arrive_without_any_observation():
 # ------------------------------------------------------------------ промпт
 
 def test_question_about_the_face_is_asked_only_when_the_layer_is_on():
-    off = VisionSampler("ru", lambda e: None, lambda t: None)
-    on = VisionSampler("ru", lambda e: None, lambda t: None, pokerface=True)
+    off = VisionSampler("ru", lambda e: None, lambda *a, **k: None)
+    on = VisionSampler("ru", lambda e: None, lambda *a, **k: None, pokerface=True)
     assert "ЛИЦО" not in off._system_prompt()
     assert "ЛИЦО" in on._system_prompt()
     # Запрет на угадывание настроения обязан пережить добавку.
@@ -54,7 +54,7 @@ def test_question_about_the_face_is_asked_only_when_the_layer_is_on():
 
 
 def test_the_face_question_asks_for_what_is_visible_not_for_a_verdict():
-    prompt = VisionSampler("ru", lambda e: None, lambda t: None, pokerface=True)._system_prompt()
+    prompt = VisionSampler("ru", lambda e: None, lambda *a, **k: None, pokerface=True)._system_prompt()
     for verdict in ("неуверен", "нервнича", "врёт", "настроение"):
         assert f"{verdict}» — да" not in prompt
     assert "Не объясняй и не угадывай настроение" in prompt
@@ -84,7 +84,7 @@ def test_counter_lives_outside_the_engine_session():
 def test_events_carry_the_badge():
     """Плашка едет вместе с событием, чтобы клиент не помнил правило сам."""
     seen = []
-    s = VisionSampler("ru", seen.append, lambda t: None, pokerface=True)
+    s = VisionSampler("ru", seen.append, lambda *a, **k: None, pokerface=True)
 
     class _Resp:
         @staticmethod

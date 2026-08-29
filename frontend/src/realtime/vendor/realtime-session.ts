@@ -67,6 +67,23 @@ export type ConnectionStatus = "idle" | "connecting" | "online" | "reconnecting"
 const OPEN_TIMEOUT_MS = 4000;
 const MAX_LOG = 200;
 
+/**
+ * Коды закрытия, после которых возвращаться НЕЛЬЗЯ.
+ *
+ * Обычный обрыв (1006 «связь пропала», 1001 «вкладка ушла») значит «вернись» —
+ * на нём и держится `resume`. Эти три значат «сервер отказал по существу»:
+ *
+ *   4401 — назовите пароль;
+ *   4409 — партию забрал другой сокет (вторая вкладка, второе устройство);
+ *   4429 — с этого адреса уже слишком много партий.
+ *
+ * ЧЕМ ПЛОХО БЫЛО БЕЗ НИХ. Клиент отличал только «оборвалось» и шёл
+ * переподключаться с `resume`. На 4409 это буквально война двух вкладок: каждая
+ * вытесняет другую и обе получают отказ. На 4429 — три попытки вместо одного
+ * отказа, ровно в тот момент, когда сервер и так просил не давить.
+ */
+const NO_RETURN_CLOSE_CODES = new Set([4401, 4409, 4429]);
+
 export class RealtimeSession {
   private ws: WebSocket | null = null;
   private readonly mode: "text" | "voice";
@@ -118,7 +135,7 @@ export class RealtimeSession {
     this.onStatus?.("online");
 
     socket.onmessage = (e) => this.handle(JSON.parse(e.data as string) as ServerEvent);
-    socket.onclose = () => this.handleClose();
+    socket.onclose = (event) => this.handleClose(event);
     return created;
   }
 
@@ -250,10 +267,18 @@ export class RealtimeSession {
    * Обрыв связи. Партия при этом ЖИВА: состояние игры держит движок на сервере,
    * а не сокет. Поэтому переподключаемся и продолжаем, а не начинаем заново.
    */
-  private handleClose(): void {
+  private handleClose(event?: { code?: number }): void {
     this.started = false;
     if (this.closing || !this.initPayload) {
       this.onStatus?.("idle");
+      return;
+    }
+    if (event && NO_RETURN_CLOSE_CODES.has(Number(event.code))) {
+      // Отказ по существу. Причину сервер уже прислал отдельным событием
+      // (`session.closed {reason}` или `error`), поэтому здесь остаётся только
+      // не делать хуже: не возвращаться и честно сказать, что связи больше нет.
+      this.closing = true;
+      this.onStatus?.("lost");
       return;
     }
     this.attempt += 1;

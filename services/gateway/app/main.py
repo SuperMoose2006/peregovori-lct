@@ -35,7 +35,7 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -104,7 +104,10 @@ app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_life
 # скриншотные прогоны и сам фронтенд при разработке. Замок стоит на входе с
 # улицы, а не между комнатами.
 _HTTP_PASSWORD = os.getenv("NEGO_HTTP_PASSWORD", "").strip()
-_LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost"}
+# Список локальных адресов один на весь продукт: его же исключают пределы на
+# число партий и на число взглядов (app/realtime/limits.py). Две копии значили
+# бы, что однажды одну дверь откроют, а вторую забудут.
+from app.realtime.limits import LOCAL_HOSTS as _LOCAL_HOSTS
 
 
 @app.middleware("http")
@@ -274,7 +277,7 @@ from app.realtime.session import MAX_FRAME_B64
 
 
 @app.post("/api/vision/check")
-async def vision_check(body: dict) -> dict:
+async def vision_check(request: Request, body: dict) -> dict:
     """Годится ли этот кадр для игры: человек в кадре, лицо целиком, света хватает.
 
     ЗАЧЕМ ОТДЕЛЬНАЯ РУЧКА. Страница проверки оборудования умеет доказать, что
@@ -287,6 +290,7 @@ async def vision_check(body: dict) -> dict:
     """
     from app.perception.vision import VisionSampler
     from app.providers.openrouter import chat as orchat
+    from app.realtime import limits
 
     lang = "en" if str(body.get("lang")) == "en" else "ru"
     frame = str(body.get("frame") or "")
@@ -296,6 +300,12 @@ async def vision_check(body: dict) -> dict:
         raise HTTPException(status_code=413, detail="frame too large")
     if not orchat.available():
         return {"available": False, "reason": "no_key"}
+    # Ведро зрения общее с сокетом: обе двери ведут в одну платную модель, и
+    # держать два бюджета значило бы закрыть одну и оставить открытой вторую.
+    # Отказ отвечает в той же форме, что и «нет ключа», — страница проверки
+    # оборудования уже умеет говорить «недоступно» словами.
+    if not limits.vision_allowed(request.client.host if request.client else ""):
+        return {"available": False, "reason": "rate_limited"}
 
     sampler = VisionSampler(lang, lambda _e: None, lambda _t: None)
     try:

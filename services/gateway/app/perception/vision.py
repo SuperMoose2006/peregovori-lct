@@ -205,12 +205,19 @@ class VisionSampler:
     def __init__(self, lang: str, publish: Callable[[dict], None],
                  record: Callable[..., None],
                  min_interval_s: float = _MIN_INTERVAL_S,
-                 pokerface: bool = False) -> None:
+                 pokerface: bool = False,
+                 budget: Optional[Callable[[], bool]] = None) -> None:
         self._lang = lang
         self._publish = publish
         self._record = record
         self._min_interval = min_interval_s
         self._pokerface = pokerface
+        #: Последняя проверка перед платным вызовом: «хватает ли ещё бюджета».
+        #: Своего интервала мало — он ограничивает ОДНУ партию, а платит хост за
+        #: все сразу. Кто считает бюджет и по какому признаку, сэмплеру знать не
+        #: нужно; ему нужно знать, звонить или нет. Нет функции — предела нет
+        #: (так сэмплер работает в тестах и в калибровке).
+        self._budget = budget
 
         self._last_call = 0.0
         self._last_size = 0
@@ -250,6 +257,12 @@ class VisionSampler:
             return
         if self._task and not self._task.done():
             return                              # предыдущий взгляд ещё не вернулся
+        if self._budget is not None and not self._budget():
+            # Бюджет спрашивается ПОСЛЕДНИМ — после интервала, изменения кадра
+            # и незавершённого взгляда. Иначе кадр, который и так не привёл бы
+            # к вызову, списывал бы токен: ведро пустело бы там, где провайдеру
+            # не платили ни копейки.
+            return
 
         self._last_call = now
         self._task = asyncio.create_task(self._look(frame, turn))

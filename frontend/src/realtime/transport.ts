@@ -13,8 +13,9 @@
 // приходит в `engine.state.reaction`, и `lib/probe.ts` строит вопрос из
 // подлинного ответа движка — офлайн и онлайн одинаково.
 
-import type { Analysis, ClientMsg, Deltas, ScenarioView, StateView } from "../types";
+import type { Analysis, ClientMsg, Deltas, Lang, ScenarioView, StateView } from "../types";
 import type { ConnStatus, ServerMsgHandler, Transport } from "../api/transport";
+import { I18N } from "../i18n";
 import { buildProbe, shouldProbe } from "../lib/probe";
 import { AudioPlayer } from "./vendor/audio-player";
 import { MediaProvider, toBase64 } from "./vendor/media-provider";
@@ -91,6 +92,10 @@ export class RealtimeTransport implements Transport {
   private voiceWanted = false;
   private cameraWanted = false;
   private closed = false;
+  // Язык партии. Нужен ровно для одного: причина закрытия приезжает КОДОМ
+  // (`session.closed {reason}`), а человеку её надо сказать словами и на его
+  // языке. Сервер тут не помощник — он не должен сочинять текст интерфейса.
+  private lang: Lang = "ru";
 
   constructor(onMessage: ServerMsgHandler, onConn: (status: ConnStatus) => void,
               options: RealtimeTransportOptions = {}) {
@@ -139,6 +144,7 @@ export class RealtimeTransport implements Transport {
 
   private async begin(message: Extract<ClientMsg, { type: "start" }>): Promise<void> {
     const layers = { ...(message.layers ?? {}) } as Record<string, boolean>;
+    this.lang = message.lang;
     this.probeEnabled = !!layers.probe;
     this.voiceWanted = !!layers.voice;
     this.cameraWanted = !!layers.camera;
@@ -348,6 +354,18 @@ export class RealtimeTransport implements Transport {
       case "debrief":
         this.emit({ type: "debrief", debrief: event.debrief as never });
         return;
+
+      // Сервер закрыл партию по существу — это НЕ обрыв связи.
+      // `taken_over` значит «партию продолжили в другом окне»: она жива, просто
+      // не здесь. Молчание в этом месте выглядело бы как зависший стол, а
+      // баннер «переподключаемся» был бы прямой неправдой — возвращаться некуда.
+      // Наше собственное `session.close` тоже приезжает сюда (`user_stop`), и
+      // объявлять человеку то, что он сам только что нажал, незачем.
+      case "session.closed": {
+        const reason = String(event.reason ?? "");
+        if (reason === "taken_over") this.emit({ type: "notice", text: I18N[this.lang].conn.takenOver });
+        return;
+      }
 
       case "error":
         this.emit({ type: "error",

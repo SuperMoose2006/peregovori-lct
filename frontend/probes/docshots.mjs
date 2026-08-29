@@ -14,6 +14,7 @@
 // собственными именами.
 import { chromium } from "playwright-core";
 import fs from "fs";
+import crypto from "crypto";
 import path from "path";
 
 const EXE = "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome";
@@ -38,9 +39,28 @@ await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone
 await page.goto(BASE, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(2000);
 
+// ДВА ОДИНАКОВЫХ КАДРА ПОД РАЗНЫМИ ИМЕНАМИ — ЭТО ПРОМАХ ОБХОДА, А НЕ СНИМОК.
+//
+// Прибор писался с тезисом «снимок чужой сборки хуже отсутствующего, потому что
+// выглядит свежим» — и сам же его нарушил: три клика шли по селекторам, которых
+// в разметке нет (`.lesson-row`, `.opt-btn`), промах глотался `.catch`, и три
+// экрана курса сохранились одним и тем же кадром под тремя именами. Байт в байт.
+//
+// Урок один и тот же третий раз за сутки, поэтому он встроен в конструкцию, а не
+// в намерение: любой обход, который может промахнуться молча, ОБЯЗАН ПАДАТЬ.
+const seen = new Map();
 const shot = async (name) => {
   await page.waitForTimeout(700);
-  await page.screenshot({ path: path.join(OUT, name), fullPage: true });
+  const buf = await page.screenshot({ fullPage: true });
+  const sum = crypto.createHash("md5").update(buf).digest("hex");
+  if (seen.has(sum)) {
+    console.error(`ПРОМАХ ОБХОДА: «${name}» совпал байт в байт с «${seen.get(sum)}».\n` +
+      "Экран не сменился — значит клик не сработал, а кадр сохранился бы под чужим именем.");
+await browser.close();
+    process.exit(2);
+  }
+  seen.set(sum, name);
+  fs.writeFileSync(path.join(OUT, name), buf);
   console.log("  снят:", name);
 };
 
@@ -83,7 +103,7 @@ await page.waitForTimeout(900);
 await shot("41-course-block.png");
 
 // Урок: первый доступный пункт внутри блока.
-await page.locator(".lesson-row, .lsn-btn, .cl-lesson").first().click().catch(() => {});
+await page.locator(".lesson-list button").first().click();
 await page.waitForTimeout(900);
 await shot("42-course-lesson.png");
 
@@ -91,7 +111,7 @@ await shot("42-course-lesson.png");
 // вердикт с разбором ошибки и есть то, что показывает docs/course.md.
 await page.getByRole("button", { name: /К заданиям|To the tasks/i }).first().click().catch(() => {});
 await page.waitForTimeout(1000);
-const option = page.locator(".ex-opt, [role=option], .opt-btn").first();
+const option = page.locator(".ex-opt").first();
 if (await option.count()) {
   await option.click().catch(() => {});
   await page.waitForTimeout(300);
@@ -105,11 +125,17 @@ await shot("43-course-verdict.png");
 // уроки — ровно как это делает обходчик, — и останавливаемся на первом поле
 // ввода. Не встретилось ни в одном — честно говорим, а не подставляем другой
 // кадр под этим именем.
+// СВЕЖАЯ СТРАНИЦА, А НЕ ВОЗВРАТ ПО ШАГАМ. Прежде обход шёл сюда прямо из
+// открытого упражнения через карту курса, и переход не успевал: список уроков
+// оказывался пустым, цикл заканчивался на нулевом шаге, а кадр «пропускался».
+// Отладка показала, что сам путь исправен — ломался только вход в него.
 let coached = false;
-await page.locator('[data-nav="course"]').first().click().catch(() => {});
-await page.waitForTimeout(1000);
-await page.locator(".cnode-btn:not(:disabled)").first().click().catch(() => {});
-await page.waitForTimeout(1000);
+await page.goto(BASE, { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(2000);
+await page.locator('[data-nav="course"]').first().click();
+await page.waitForTimeout(1400);
+await page.locator(".cnode-btn:not(:disabled)").first().click();
+await page.waitForTimeout(1200);
 
 const lessons = await page.locator(".lesson-list button").count();
 for (let li = 0; li < Math.min(lessons, 6) && !coached; li++) {
@@ -147,6 +173,41 @@ for (let li = 0; li < Math.min(lessons, 6) && !coached; li++) {
   }
 }
 if (!coached) console.log("  ПРОПУЩЕН 44-course-coach.png: свободного ответа в первом блоке не нашлось");
+
+    // ——— разбор ———
+// РАЗБОРА В ПАПКЕ НЕ БЫЛО ВОВСЕ — экрана, ради которого играют: грейд с тремя
+// составляющими, занавес над скрытыми интересами, ключевые ходы цитатами,
+// контрфакт. Пять снимков курса при нуле снимков разбора — неверная расстановка
+// акцентов для того, кто судит продукт по этой папке.
+await page.goto(BASE, { waitUntil: "domcontentloaded" });
+await page.waitForTimeout(2000);
+await page.getByRole("button", { name: /НАЧАТЬ|ЗА СТОЛ|START|TO THE TABLE/i }).first()
+  .click().catch(() => {});
+await page.waitForTimeout(2500);
+
+// Принципиальная линия — та же, которой доказывается инвариант 2.
+const PRINCIPLED = [
+  "Здравствуйте! Почему для вас так важна стабильная загрузка производства?",
+  "Понимаю вас. А почему для вас важен денежный поток и предоплата?",
+  "Зачем вам разовый заказ, если можно долгосрочный годовой контракт?",
+  "По рыночным данным медиана независимых прайсов 86, потому что это отраслевой стандарт.",
+  "Если мы дадим годовой контракт с гарантией объёма и предоплату, сможете подвинуться к 86?",
+  "Фиксируем пакет: годовой контракт, предоплата — и цена 86. Договорились?",
+];
+for (const line of PRINCIPLED) {
+  const box = page.locator("textarea").first();
+  if (!(await box.count())) break;
+  await box.fill(line);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(2200);
+}
+// Разбор приезжает после того, как стол додержит исход.
+await page.waitForTimeout(9000);
+if (await page.locator(".debrief").count()) {
+  await shot("50-debrief.png");
+} else {
+  console.log("  ПРОПУЩЕН 50-debrief.png: партия не дошла до разбора");
+}
 
 await browser.close();
 console.log("готово:", OUT);

@@ -128,6 +128,11 @@ export interface Strings {
     lostBody: string; // calm explanation + reassurance progress is saved
     retry: string; // restart the scenario (reconnects, or continues offline)
     home: string; // bail to the home screen
+    // `session.closed {reason:"taken_over"}` — партию забрал другой сокет
+    // (вторая вкладка, второе устройство). Это НЕ обрыв связи, и говорить о ней
+    // «переподключаемся» было бы неправдой: переподключаться некуда, партия
+    // жива и идёт в другом окне.
+    takenOver: string;
   };
   // custom ("Своя сделка") mode
   custom: {
@@ -701,6 +706,7 @@ export const I18N: Record<Lang, Strings> = {
       lostBody: "Не удалось переподключиться. Можно перезапустить сценарий — ваш прогресс и профиль сохранены.",
       retry: "Перезапустить сценарий",
       home: "На главную",
+      takenOver: "Эту партию продолжили в другом окне — здесь она остановлена. Играйте там или перезапустите сценарий.",
     },
     custom: {
       head: "Опишите вашу ситуацию",
@@ -1343,6 +1349,7 @@ export const I18N: Record<Lang, Strings> = {
       lostBody: "We couldn't reconnect. You can restart the scenario — your progress and profile are saved.",
       retry: "Restart scenario",
       home: "Home",
+      takenOver: "This game was taken over in another window — it is stopped here. Play there, or restart the scenario.",
     },
     custom: {
       head: "Describe your situation",
