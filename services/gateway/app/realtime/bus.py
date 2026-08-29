@@ -17,8 +17,8 @@
 один старый аудиочанк не доедет до клиента, даже если синтез успел его
 дописать. Это проверяется тестом `test_cancelled_generation_never_reaches_the_socket`.
 
-Паттерн владения поколением взят из TEN main_control (Apache-2.0, commit
-2e56d965), `ai_agents/agents/examples/voice-assistant/tenapp/ten_packages/
+Паттерн владения поколением взят из TEN main_control (Apache-2.0 + дополнительные условия Agora (неконкуренция; разбор — docs/upstream-code-map.md §5),
+commit 2e56d965), `ai_agents/agents/examples/voice-assistant/tenapp/ten_packages/
 extension/main_python/extension.py`: там каждое сообщение несёт
 `{session_id, turn_id}` в метаданных, а `_interrupt()` гасит подсистемы разом.
 Мы добавили третий уровень — `generation_id`: один ход игрока может породить

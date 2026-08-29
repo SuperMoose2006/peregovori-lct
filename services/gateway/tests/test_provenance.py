@@ -112,25 +112,48 @@ def test_the_map_does_not_point_at_files_that_are_gone():
 def test_a_licence_with_extra_conditions_is_never_called_plain():
     """Ловушка, на которой уже попались: «Apache-2.0» там, где Apache + условия.
 
-    У ten-vad лицензия — «Apache License v2.0 with additional conditions», и
-    среди условий запрет на конкуренцию с правообладателем. Сводная таблица
-    карты писала это верно, а построчные записи и докстринги — просто
-    «Apache-2.0». Читатель верит той половине, что попалась первой.
+    У ten-vad и у TEN Framework лицензия — «Apache License v2.0 with additional
+    conditions», и среди условий запрет на конкуренцию с правообладателем.
+    Сводная таблица карты писала это верно, а построчные записи и докстринги —
+    просто «Apache-2.0». Читатель верит той половине, что попалась первой.
+
+    Первая редакция этого теста пропустила все три нарушения, и по двум разным
+    причинам — обе стоят того, чтобы их помнить.
+
+    ПЕРВАЯ: охрана требовала дословного «TEN Framework», а файлы ссылаются на
+    тот же upstream как «TEN» и «TEN main_control». Список запретных имён,
+    составленный по одному написанию, охраняет одно написание.
+
+    ВТОРАЯ, и она хуже: оговорку искали ГДЕ УГОДНО в шапке. В `vad.py` слово
+    «Agora» стояло в предложении «рантайм мы не берём — он тянет Agora и сборку
+    C++/Go», то есть говорило о ЗАВИСИМОСТИ. Этого хватило, чтобы закрыть собой
+    неверное утверждение о лицензии пятнадцатью строками выше. Поэтому теперь
+    оговорка засчитывается только рядом с самим утверждением: оправдание,
+    сказанное по другому поводу, — не оправдание.
     """
-    guarded = {"ten-vad", "ten_vad", "TEN Framework"}
+    #: Любое упоминание этого upstream обязывает назвать лицензию полностью.
+    #: Ловим по корню, а не по официальному написанию: файл цитирует источник
+    #: так, как ему удобно, а лицензия у источника от этого не меняется.
+    guarded = re.compile(r"\bTEN\b|ten[-_]vad", re.I)
+    #: Окно вокруг слова «Apache», в котором оговорка считается относящейся к
+    #: делу. Двести знаков — это примерно две строки до и две после, то есть
+    #: та же фраза или соседняя.
+    WINDOW = 200
+    caveat = re.compile(r"доп\.?\s*услов|additional condition|неконкур|Agora", re.I)
+
     offenders: list[str] = []
     for folder in (ROOT / "services" / "gateway" / "app", ROOT / "frontend" / "src"):
         for path in folder.rglob("*"):
             if path.suffix not in CODE or not path.is_file():
                 continue
             head = "\n".join(path.read_text(encoding="utf-8", errors="replace").splitlines()[:40])
-            if not any(name in head for name in guarded):
+            if not guarded.search(head):
                 continue
-            if "Apache" not in head:
-                continue
-            # Достаточно любого признака оговорки рядом с названием лицензии.
-            if not re.search(r"доп\.?\s*услов|additional condition|Agora|неконкур", head, re.I):
-                offenders.append(str(path.relative_to(ROOT)))
+            for m in re.finditer(r"Apache", head):
+                near = head[max(0, m.start() - WINDOW): m.end() + WINDOW]
+                if not caveat.search(near):
+                    offenders.append(f"{path.relative_to(ROOT)}: …{near.strip()[:90]}…")
+                    break
     assert not offenders, (
         "лицензия названа простой Apache-2.0 там, где у неё есть дополнительные "
         "условия:\n  " + "\n  ".join(offenders))

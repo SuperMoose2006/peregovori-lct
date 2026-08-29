@@ -1,6 +1,6 @@
 """vad.py — определение речи в потоке с микрофона.
 
-ПРОИСХОЖДЕНИЕ. Машина состояний перенесена из TEN Framework (Apache-2.0,
+ПРОИСХОЖДЕНИЕ. Машина состояний перенесена из TEN Framework (Apache-2.0 + дополнительные условия Agora (неконкуренция; разбор — docs/upstream-code-map.md §5),
 commit 2e56d965), файл `ai_agents/agents/ten_packages/extension/ten_vad_python/
 extension.py` (классы `VADState`, метод `_check_state_transition`) вместе с
 конфигурацией из `config.py` (`prefix_padding_ms=120`, `silence_duration_ms=1000`,

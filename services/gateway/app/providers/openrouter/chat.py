@@ -8,7 +8,7 @@
 переключения контекста ровно там, где мы боремся за сотни миллисекунд.
 
 ЧТО ПЕРЕНЕСЕНО ИЗ UPSTREAM. Настройки httpx-клиента взяты из TEN
-(Apache-2.0, commit 2e56d965), `ai_agents/agents/ten_packages/extension/
+(Apache-2.0 + дополнительные условия Agora (неконкуренция; разбор — docs/upstream-code-map.md §5), commit 2e56d965), `ai_agents/agents/ten_packages/extension/
 ten_turn_detection/turn_detector.py:39-51`: http2, 100 соединений, 20
 keep-alive, срок жизни 10 минут. Это не косметика — на холодном соединении
 TLS-рукопожатие к OpenRouter стоит сотни миллисекунд, и в критическом пути
