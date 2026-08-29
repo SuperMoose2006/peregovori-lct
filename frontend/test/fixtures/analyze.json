@@ -37,6 +37,28 @@
    "spin": null
   },
   {
+   "text": "195 works for me, let us settle there.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "195 меня устроит, давайте на этом и сойдёмся.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "30% is far too much.",
    "moves": [
     "offer"
@@ -541,6 +563,17 @@
    "spin": null
   },
   {
+   "text": "I am worth more than what is on the table.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 10,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "I can see this is an unpleasant story for you, and I understand why.",
    "moves": [
     "acknowledge"
@@ -548,6 +581,17 @@
    "primary": "acknowledge",
    "arg": 38,
    "words": 14,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "I can start in a month.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 6,
    "number": null,
    "spin": null
   },
@@ -712,6 +756,17 @@
    "spin": null
   },
   {
+   "text": "I would like the decision on the offer not to drag on.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 28,
+   "words": 12,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "If we commit to an annual volume commitment for the whole year, can you move down on the price per unit?",
    "moves": [
     "tradeoff",
@@ -772,6 +827,18 @@
    "spin": null
   },
   {
+   "text": "If we tie this to a KPI review in six months, can you move to 230?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 44,
+   "words": 16,
+   "number": 230.0,
+   "spin": null
+  },
+  {
    "text": "Is that your final offer? Or else we walk.",
    "moves": [
     "threat",
@@ -803,6 +870,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 11,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "It is a word-for-word repeat of the previous line",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
    "number": null,
    "spin": null
   },
@@ -882,6 +960,31 @@
    "arg": 28,
    "words": 19,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "My position is 230k.",
+   "moves": [
+    "anchor",
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 4,
+   "number": 230.0,
+   "spin": null
+  },
+  {
+   "text": "My position is a base of 230k, because independent salary surveys put the median for this role exactly there.",
+   "moves": [
+    "objective_criteria",
+    "anchor",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 64,
+   "words": 19,
+   "number": 230.0,
    "spin": null
   },
   {
@@ -1246,6 +1349,17 @@
    "spin": null
   },
   {
+   "text": "The red line is offered as a target: 195 is zero on economics — the point where you walk, not the point where you settle",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 28,
+   "words": 24,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "The red line is set from the target, not the alternative.",
    "moves": [
     "batna"
@@ -1536,6 +1650,28 @@
    "words": 10,
    "number": null,
    "spin": "implication"
+  },
+  {
+   "text": "What matters most to you when you justify the salary band to finance?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 40,
+   "words": 13,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Why are you in a hurry to close the role — what is driving that timeline?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 40,
+   "words": 15,
+   "number": null,
+   "spin": null
   },
   {
    "text": "You do not understand how our process works.",
@@ -1846,6 +1982,18 @@
    "spin": null
   },
   {
+   "text": "Если мы привяжем это к пересмотру по KPI через полгода, сможете выйти на 230?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 44,
+   "words": 14,
+   "number": 230.0,
+   "spin": null
+  },
+  {
    "text": "Если мы продлим на 3 года и введём ступенчатый SLA, сможете ли вы дать 99.8% со второго квартала?",
    "moves": [
     "tradeoff",
@@ -1906,6 +2054,17 @@
    "spin": "implication"
   },
   {
+   "text": "Как быстро вам нужно закрыть позицию и почему именно этот срок?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 32,
+   "words": 11,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Как сейчас устроено планирование заказов?",
    "moves": [
     "spin_situation"
@@ -1924,6 +2083,17 @@
    "primary": "batna",
    "arg": 20,
    "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Красная линия названа как цель: 195 — это ноль экономики, точка выхода из-за стола, а не исход, на котором сходятся",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 28,
+   "words": 19,
    "number": null,
    "spin": null
   },
@@ -2007,6 +2177,17 @@
    "spin": null
   },
   {
+   "text": "Мне важно, чтобы решение по офферу не затягивали.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Мне кажется, что 30% — это несправедливо по отношению ко мне.",
    "moves": [
     "offer"
@@ -2037,6 +2218,31 @@
    "arg": 20,
    "words": 5,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "Моя позиция такова: 230k.",
+   "moves": [
+    "anchor",
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 4,
+   "number": 230.0,
+   "spin": null
+  },
+  {
+   "text": "Моя позиция такова: оклад 230k, потому что медиана независимых обзоров зарплат для этой роли именно такая.",
+   "moves": [
+    "objective_criteria",
+    "anchor",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 64,
+   "words": 16,
+   "number": 230.0,
    "spin": null
   },
   {
@@ -2723,6 +2929,18 @@
    "spin": null
   },
   {
+   "text": "У меня есть альтернативное предложение на 210k, но ваш проект интереснее — давайте искать решение здесь.",
+   "moves": [
+    "batna",
+    "offer"
+   ],
+   "primary": "batna",
+   "arg": 34,
+   "words": 15,
+   "number": 210.0,
+   "spin": null
+  },
+  {
    "text": "У меня есть альтернативное предложение на 210k, но ваш проект мне интереснее — давайте искать решение здесь.",
    "moves": [
     "batna",
@@ -2867,6 +3085,17 @@
    "spin": "implication"
   },
   {
+   "text": "Что для вас важнее всего, когда вы обосновываете вилку перед финансами?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 32,
+   "words": 11,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Это ваше последнее слово? Иначе мы уходим.",
    "moves": [
     "threat",
@@ -2898,6 +3127,17 @@
    "primary": "statement",
    "arg": 5,
    "words": 2,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Это дословный повтор предыдущей реплики",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
    "number": null,
    "spin": null
   },
@@ -2979,6 +3219,17 @@
    "spin": null
   },
   {
+   "text": "Я готов выйти через месяц.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Я слышу, что это ваше последнее слово. Давайте вернёмся к цифрам: отраслевой стандарт — 99.9%, и наш простой стоит 2.4 млн в час.",
    "moves": [
     "acknowledge",
@@ -2999,6 +3250,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Я стою больше, чем мне предлагают.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 6,
    "number": null,
    "spin": null
   },

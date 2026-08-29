@@ -30,7 +30,18 @@
 
     .venv/bin/python tools/grade_spread.py             # интерполяция, главный ответ
     .venv/bin/python tools/grade_spread.py --random    # случайные партии, со всеми оговорками
+    .venv/bin/python tools/grade_spread.py --ladder    # лестница: ступени, запас, чувствительность к судье
     .venv/bin/python tools/grade_spread.py --json
+
+РЕЖИМ `--ladder` — четвёртый вопрос, и он про ту же дыру с другой стороны.
+Лестница качества обязана доказывать ПОРЯДОК, а порядок, доказанный с запасом в
+один балл, не доказан: спам 27, чередование 28, базовая игра 29 — три разные
+партии, играющие одинаково. Печатается три вещи на каждом языке: счёт по
+слагаемым (видно, ГДЕ теряется разница), запас между ступенями качества
+(`ladder.tiers`) против порога из фикстуры и размах каждой партии, когда судья
+ставит ПОСТОЯННЫЙ балл от 0 до 100 — то есть всё, что модель способна сделать со
+счётом. Размах не гладкий: балл судьи сторожит события (`CRITERIA_EVENT_MIN`), и
+партия, чей экономический вес держится на одном критерии, ходит на два шага цены.
 """
 from __future__ import annotations
 
@@ -230,14 +241,96 @@ def _histogram(rows: list[dict], title: str) -> None:
         print(f"    {b*10:3}–{b*10+9:3}  {n:6}  {bar}")
 
 
+#: Суждение судьи, у которого задан ТОЛЬКО балл. Дискретные поля — `None`, то
+#: есть «не знаю»: движок откатывается на ключевые слова (см. `apply_move` про
+#: три состояния вето). Иначе замер мерил бы не балл, а вето.
+def _score_only_judge(score: int) -> dict:
+    return {"arg_score": score, "interest_targeted": None, "secondary_conceded": None,
+            "criteria_legitimate": None, "tradeoff_real": None, "batna_real": None,
+            "note": "", "techniques": []}
+
+
+def _play_judged(sc_id: str, lang: str, lines, score: int | None) -> dict:
+    sess = engine.create_session(sc_id, lang)
+    for text in lines:
+        if sess.state.status != "active":
+            break
+        sess.turn += 1
+        judge = None if score is None else _score_only_judge(score)
+        engine.apply_move(sess, analyze(text), text, judge=judge)
+        if sess.state.status == "active" and sess.turn >= sess.max_turns:
+            sess.state.status = "breakdown"
+    d = engine.score_session(sess)
+    return {"overall": d["overall"], "grade": d["grade"], "economic": d["economic"],
+            "relationship": d["relationship"], "technique": d["technique"],
+            "status": sess.state.status, "deal": sess.state.deal, "turn": sess.turn,
+            "interests": len(sess.state.interests_found)}
+
+
+def ladder_report() -> int:
+    """Лестница качества: ступени, запас между ними и чувствительность к судье."""
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))), "frontend", "test", "fixtures", "games.json")
+    with open(path, encoding="utf-8") as fh:
+        g = json.load(fh)
+    principled = {k: v for k, v in g["principled"].items() if k != "note"}
+    lad = g["ladder"]
+    langs = lad.get("langs") or [lad.get("lang", "ru")]
+    tiers = lad.get("tiers") or [{"id": gid, "games": [gid]} for gid in lad["order"]]
+    margin = lad.get("tier_margin", 0)
+
+    def lines_of(gid: str, lang: str):
+        rec = next(x for x in lad["games"] if x["id"] == gid)
+        lines = rec["lines"]
+        if isinstance(lines, str) and lines.startswith("@principled."):
+            return principled[lines.split(".", 1)[1]][lang]
+        return lines[lang] if isinstance(lines, dict) else lines
+
+    ok = True
+    sweep = list(range(0, 101, 10))
+    for lang in langs:
+        print(f"\n═══ лестница качества, {lang} ═══")
+        print(f"  {'партия':13} {'ovr':>4} {'гр':>3} {'эконом':>7} {'отнош':>6} "
+              f"{'техник':>7} {'исход':<10} {'сделка':>7} {'ходов':>6}  судья 0…100")
+        base = {}
+        for gid in lad["order"]:
+            lines = lines_of(gid, lang)
+            r = _play_judged(lad["scenario"], lang, lines, None)
+            base[gid] = r["overall"]
+            seen = [_play_judged(lad["scenario"], lang, lines, s)["overall"] for s in sweep]
+            print(f"  {gid:13} {r['overall']:4} {r['grade']:>3} {r['economic']:7} "
+                  f"{r['relationship']:6} {r['technique']:7} {r['status']:<10} "
+                  f"{str(r['deal']):>7} {r['turn']:6}  {min(seen):3}…{max(seen):<3} "
+                  f"(размах {max(seen) - min(seen)})")
+            if r["status"] not in ("agreement", "breakdown"):
+                ok = False
+                print(f"  {'':13} ✗ партия оценена в состоянии {r['status']!r} — "
+                      f"исхода, которого продукт не выносит")
+        print(f"\n  запас между ступенями (требуется ≥ {margin}):")
+        for lo, hi in zip(tiers, tiers[1:]):
+            top = max(base[x] for x in lo["games"])
+            bottom = min(base[x] for x in hi["games"])
+            gap = bottom - top
+            if gap < margin:
+                ok = False
+            print(f"    {'✓' if gap >= margin else '✗'} «{lo['id']}» (потолок {top}) → "
+                  f"«{hi['id']}» (пол {bottom}): {gap}")
+    return 0 if ok else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--random", action="store_true",
                     help="случайные партии вместо интерполяции (см. шапку: метод слабый)")
+    ap.add_argument("--ladder", action="store_true",
+                    help="лестница качества: ступени, запас между ними, чувствительность к судье")
     ap.add_argument("--games", type=int, default=3000)
     ap.add_argument("--seed", type=int, default=20260829)
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
+
+    if args.ladder:
+        return ladder_report()
 
     if args.random:
         rng = random.Random(args.seed)

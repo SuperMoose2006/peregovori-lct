@@ -155,13 +155,28 @@ test("первое слово тратится один раз и не пров�
 // Анти-игровой порядок — на КАЖДОМ языке лестницы. Пока английской половины не
 // было, «спам ниже базовой игры» было доказано по-русски и обещано по-английски;
 // обходят же защиту словами, и словари у языков разные.
+//
+// ЗНАКА НЕРАВЕНСТВА МАЛО. Соседние ступени стояли в одном балле друг от друга
+// (спам 27, чередование 28, базовая 29), и живой судья переставлял их местами:
+// порядок, доказанный на один балл, не доказан. Поэтому у лестницы есть СТУПЕНИ
+// (`ladder.tiers`) и ЗАПАС между соседними (`ladder.tier_margin`) — и оба движка
+// проверяют одно и то же число из одной и той же фикстуры.
+type Tier = { id: string; games: string[] };
+const TIERS = LADDER.tiers as Tier[];
+const TIER_MARGIN = LADDER.tier_margin as number;
+
 for (const lang of (LADDER.langs ?? [LADDER.lang ?? "ru"]) as Lang[]) {
-  test(`лестница качества (${lang}): спам обязан быть ниже базовой игры`, () => {
+  const ladderScores = (l: Lang) => {
     const scores: Record<string, number> = {};
     for (const gid of LADDER.order as string[]) {
       const game = LADDER.games.find((g: { id: string }) => g.id === gid);
-      scores[gid] = play(LADDER.scenario, linesOf(game, lang), lang).debrief.overall;
+      scores[gid] = play(LADDER.scenario, linesOf(game, l), l).debrief.overall;
     }
+    return scores;
+  };
+
+  test(`лестница качества (${lang}): спам обязан быть ниже базовой игры`, () => {
+    const scores = ladderScores(lang);
     const order = LADDER.order as string[];
     for (let i = 1; i < order.length; i++) {
       assert.ok(
@@ -173,7 +188,41 @@ for (const lang of (LADDER.langs ?? [LADDER.lang ?? "ru"]) as Lang[]) {
     assert.ok(scores.alternating < scores.basic, `${lang}: чередование ${scores.alternating} не ниже базовой ${scores.basic}`);
     assert.ok(scores.exemplary >= 85, `${lang}: образцовая партия ${scores.exemplary} не дотянула до A`);
   });
+
+  test(`лестница качества (${lang}): между ступенями есть запас, а не знак неравенства`, () => {
+    const scores = ladderScores(lang);
+    for (let i = 1; i < TIERS.length; i++) {
+      const top = Math.max(...TIERS[i - 1].games.map((g) => scores[g]));
+      const bottom = Math.min(...TIERS[i].games.map((g) => scores[g]));
+      assert.ok(
+        bottom - top >= TIER_MARGIN,
+        `${lang}: ступени «${TIERS[i - 1].id}» (потолок ${top}) и «${TIERS[i].id}» (пол ${bottom}) ` +
+          `разведены на ${bottom - top} при требуемых ${TIER_MARGIN}`,
+      );
+    }
+  });
+
+  test(`лестница качества (${lang}): каждая партия доиграна до исхода, который выносит продукт`, () => {
+    // `scoreSession` знает три статуса, но в бою до него доходят два: сделка или
+    // срыв. Третий, active, гасится на лимите ходов — и здесь (MockServer), и на
+    // сервере. Ветка «без соглашения» с её economic = 10 платила четыре очка
+    // overall ровно тем партиям, которые обязаны стоять внизу.
+    for (const gid of LADDER.order as string[]) {
+      const game = LADDER.games.find((g: { id: string }) => g.id === gid);
+      const { s } = play(LADDER.scenario, linesOf(game, lang), lang);
+      assert.ok(
+        s.status === "agreement" || s.status === "breakdown",
+        `${lang}/${gid}: партия оценена в состоянии ${s.status} — исхода, которого продукт не выносит`,
+      );
+    }
+  });
 }
+
+test("ступени раскладывают лестницу целиком, без забытых партий", () => {
+  const flat = TIERS.flatMap((t) => t.games);
+  assert.deepEqual(flat, LADDER.order as string[], "ступени и порядок разошлись");
+  assert.equal(new Set(flat).size, flat.length, "партия попала в две ступени");
+});
 
 test("двенадцать пустых реплик не двигают цену", () => {
   const game = LADDER.games.find((g: { id: string }) => g.id === "passive");

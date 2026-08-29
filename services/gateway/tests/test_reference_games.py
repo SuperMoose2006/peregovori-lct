@@ -23,6 +23,31 @@
 ОБЕЩАН на английском — а обходят защиту как раз словами, и слова у языков
 разные. Английские партии написаны по-английски, а не переведены: тот же
 замысел, лексикон свой.
+
+ЗНАКА НЕРАВЕНСТВА МАЛО. Порядок, доказанный с запасом в один балл, не доказан:
+живой судья съедает его целиком. Замер 605 живых вызовов на двух моделях судьи
+показал, что базовая партия уходила НИЖЕ спама на обоих языках — а офлайн между
+спамом (27), чередованием (28) и базовой игрой (29) стояло по одному очку.
+Разбор по слагаемым нашёл две причины, и обе оказались свойством фикстуры, а не
+движка:
+
+  1. Три партии из семи обрывались, не доиграв до лимита ходов, и попадали в
+     `score_session` со статусом `active`. Продукт такого статуса не оценивает
+     НИКОГДА — `orchestrator/negotiation.py` превращает active в breakdown ровно
+     на лимите, и офлайн-ядро тоже (`mock/mockServer.ts`). Ветка «без
+     соглашения» платит economic = 10, то есть четыре очка overall, и платила их
+     ровно тем трём партиям, которые обязаны стоять внизу. За доведённую до
+     рукопожатия базовую игру не платила ничего.
+  2. Базовая игра закрывалась на 92 — на КРАСНОЙ ЛИНИИ игрока, где economic
+     равен нулю по определению (`ratio = (deal − reservation) / (target −
+     reservation)`). Сделка, взятая ровно на своём пределе, экономически
+     тождественна несостоявшейся, и это движок считает правильно; неправильно
+     было писать такой партии ярлык «базовая игра со сделкой».
+
+Поэтому у лестницы теперь есть СТУПЕНИ (`ladder.tiers`) и проверяемый ЗАПАС
+между ними (`ladder.tier_margin`). Внутри ступени партии равноправны: спам и
+чередование адресованы разным защитам движка, а не разным уровням игры, и
+требовать между ними запаса значило бы требовать разницы, которой нет.
 """
 
 from __future__ import annotations
@@ -42,6 +67,11 @@ LADDER = GAMES["ladder"]
 #: Языки, на которых раздел существует. `langs` — двуязычный раздел, `lang` —
 #: одноязычный: разница не косметическая, она и есть предмет инварианта 4.
 LADDER_LANGS: tuple[str, ...] = tuple(LADDER.get("langs") or [LADDER.get("lang", "ru")])
+#: Ступени качества и запас между соседними, в очках `overall`. Обоснование
+#: порога — в `ladder.tier_margin_why`; проверка того, что судья его не съест, —
+#: `test_no_constant_judge_score_reorders_the_tiers`.
+LADDER_TIERS: list[dict] = LADDER["tiers"]
+LADDER_TIER_MARGIN: int = LADDER["tier_margin"]
 #: {scenario_id: {"ru": [...], "en": [...]}} — принципиальная партия на стол.
 PRINCIPLED = {k: v for k, v in GAMES["principled"].items() if k != "note"}
 #: Две партии, отличающиеся ТОЛЬКО первой репликой: якорь с критерием против
@@ -118,12 +148,134 @@ def test_spam_scores_below_a_basic_game(lang: str) -> None:
 
     Было 98 против 99 в пользу спама — фактически ничья. Здесь требуется
     строгое неравенство, иначе тренажёр снова перестанет различать игрока и
-    вставку из буфера.
+    вставку из буфера. Само по себе оно слабое — знак неравенства выполнялся и
+    при разнице в один балл; ЗАПАС требует `test_neighbouring_tiers_are_a_margin_apart`.
     """
     scores = _ladder_scores(lang)
     assert scores["spam"] < scores["basic"], (lang, scores)
     assert scores["alternating"] < scores["basic"], (lang, scores)
     assert scores["passive"] < scores["basic"], (lang, scores)
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_every_ladder_game_is_played_to_a_terminal_state(lang: str) -> None:
+    """Партию, которую продукт не может оценить, нельзя оценивать и здесь.
+
+    `score_session` знает три статуса, но в бою до него доходят два: сделка или
+    срыв. Третий, `active`, гасится на лимите ходов — и на сервере
+    (`orchestrator/negotiation.py`), и в офлайн-ядре (`mock/mockServer.ts`).
+    Значит ветка «без соглашения» с её economic = 10 в живой партии не
+    исполняется НИКОГДА.
+
+    А в лестнице исполнялась. `haggling`, `spam` и `alternating` кончались на
+    шестом и одиннадцатом ходу при лимите двенадцать, получали статус `active` и
+    вместе с ним четыре очка `overall` за незаконченную игру — ровно те три
+    партии, которые обязаны стоять внизу. Базовая игра, доведённая до
+    рукопожатия, не получала ничего. Этого хватало, чтобы съесть весь запас
+    между ступенями.
+    """
+    for game in LADDER["games"]:
+        sess, debrief = play(LADDER["scenario"], lines_of(game, lang), lang)
+        assert debrief["status"] in ("agreement", "breakdown"), (
+            f"{game['id']}/{lang}: партия оценена в состоянии "
+            f"{debrief['status']!r} — исход, которого продукт не выносит. "
+            f"Ходов сыграно {sess.turn} из {sess.max_turns}: либо доиграйте "
+            f"партию до лимита, либо закройте её сделкой."
+        )
+
+
+def test_the_tiers_cover_the_ladder_exactly() -> None:
+    """Ступени — это раскладка `order`, а не второй список рядом с ним.
+
+    Партия, забытая в `tiers`, молча выпала бы из проверки запаса и вернула бы
+    лестницу к тому же «доказано знаком неравенства».
+    """
+    flat = [gid for tier in LADDER_TIERS for gid in tier["games"]]
+    assert flat == LADDER["order"], (
+        f"ступени раскладывают {flat}, а порядок — {LADDER['order']}")
+    assert len(set(flat)) == len(flat), "партия попала в две ступени"
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_neighbouring_tiers_are_a_margin_apart(lang: str) -> None:
+    """Между ступенями обязан быть ЗАПАС, а не знак неравенства.
+
+    Прежний тест требовал только `<=`, и разница в один балл его устраивала:
+    спам 27, чередование 28, базовая 29. Живой судья такой запас съедает — замер
+    на двух моделях судьи переставлял базовую игру ниже спама на обоих языках.
+    Порог и его обоснование лежат в фикстуре (`tier_margin`, `tier_margin_why`),
+    чтобы браузерное зеркало проверяло ТО ЖЕ число.
+    """
+    scores = _ladder_scores(lang)
+    for lo, hi in zip(LADDER_TIERS, LADDER_TIERS[1:]):
+        top = max(scores[g] for g in lo["games"])
+        bottom = min(scores[g] for g in hi["games"])
+        assert bottom - top >= LADDER_TIER_MARGIN, (
+            f"{lang}: ступени «{lo['id']}» (потолок {top}) и «{hi['id']}» "
+            f"(пол {bottom}) разведены на {bottom - top} при требуемых "
+            f"{LADDER_TIER_MARGIN} — порядок между ними ничего не доказывает"
+        )
+
+
+#: Суждение судьи, у которого всё, кроме балла, оставлено движку: `None` в
+#: дискретных полях — это «не знаю», и `apply_move` откатывается на ключевые
+#: слова (см. его docstring про три состояния вето).
+def _score_only_judge(score: int) -> dict:
+    return {"arg_score": score, "interest_targeted": None, "secondary_conceded": None,
+            "criteria_legitimate": None, "tradeoff_real": None, "batna_real": None,
+            "note": "", "techniques": []}
+
+
+def _play_judged(scenario_id: str, msgs: list[str], lang: str, score: int) -> int:
+    sess = engine.create_session(scenario_id, lang)
+    for text in msgs:
+        if sess.state.status != "active":
+            break
+        sess.turn += 1
+        engine.apply_move(sess, analyze(text), text, judge=_score_only_judge(score))
+        if sess.state.status == "active" and sess.turn >= sess.max_turns:
+            sess.state.status = "breakdown"
+    return engine.score_session(sess)["overall"]
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_no_constant_judge_score_reorders_the_tiers(lang: str) -> None:
+    """Живой судья не должен уметь переставить ступени. Проверяем прогоном.
+
+    Лестница играется одиннадцать раз с судьёй, выставляющим ПОСТОЯННЫЙ балл от
+    0 до 100 (дискретные поля — `None`, то есть «не знаю»: движок откатывается
+    на ключевые слова, см. `apply_move` про три состояния вето). Требуется, чтобы
+    ни при одном балле нижняя ступень не догнала верхнюю.
+
+    ЧТО ЭТОТ ЗАМЕР ПОКАЗАЛ, и это стоит держать перед глазами. Балл судьи — не
+    гладкая прибавка в пять очков: он же СТОРОЖИТ события. Ниже
+    `CRITERIA_EVENT_MIN` = 35 объективный критерий не считается событием, цена не
+    двигается, а один шаг цены на `supplier` стоит 6.7 очка `overall`
+    (docs/judge-reproducibility.md §5). Из-за этого базовая партия ходит 31…49 —
+    весь её экономический вес висит на одном судейском числе. Порядок при этом
+    держится с запасом: худший случай — 23 у ступени «ничего не заработано»
+    против 31 у базовой игры.
+
+    Запасом это не лечится и лечиться не должно: судья, не засчитавший критерий,
+    утверждает, что критерия не было, — это другой вердикт о партии, а не дрожь.
+    Лечится тем, что ступени разведены целыми событиями, и тем, что в партии на
+    зачёт судьи нет вовсе (`protocol.REPRODUCIBLE_MODES`).
+    """
+    worst = []
+    for score in range(0, 101, 10):
+        scores = {gid: _play_judged(LADDER["scenario"],
+                                    lines_of(next(g for g in LADDER["games"] if g["id"] == gid), lang),
+                                    lang, score)
+                  for gid in LADDER["order"]}
+        for lo, hi in zip(LADDER_TIERS, LADDER_TIERS[1:]):
+            top = max(scores[g] for g in lo["games"])
+            bottom = min(scores[g] for g in hi["games"])
+            worst.append((bottom - top, lo["id"], hi["id"], score))
+    gap, lo_id, hi_id, score = min(worst)
+    assert gap > 0, (
+        f"{lang}: при балле судьи {score} ступень «{lo_id}» догнала «{hi_id}» "
+        f"({gap} очков) — лестница переставляется одним числом от модели"
+    )
 
 
 @pytest.mark.parametrize("lang", LANGS)
