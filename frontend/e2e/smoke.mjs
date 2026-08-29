@@ -17,6 +17,8 @@
 // путь к chromium берётся из CHROME_PATH или из кэша playwright по умолчанию.
 // Нет браузера — прогон честно падает с понятной ошибкой, а не «зелёный, потому
 // что ничего не проверял».
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
 
@@ -43,10 +45,22 @@ try {
 }
 
 /** Профиль со всеми сданными блоками — иначе половина курса заперта. */
+// СПИСОК БЛОКОВ БЕРЁТСЯ ИЗ КАТАЛОГА, А НЕ ВПИСЫВАЕТСЯ РУКАМИ.
+//
+// Он был вписан — десять имён строкой, — и когда в курс добавили одиннадцатый
+// блок, подготовка профиля продолжила отмечать пройденными десять. Экзамен
+// мастера открывается по ВСЕМ блокам, поэтому его кнопка осталась выключенной,
+// и прибор тридцать секунд ждал клика по недоступной кнопке. Тот же дефект в
+// тот же день нашёлся в тесте значков курса: пороги считаются от длины
+// каталога, а фикстура сеяла десять фиктивных блоков.
+const BLOCK_IDS = JSON.stringify(
+  [...readFileSync(fileURLToPath(new globalThis.URL("../src/data/course.blocks.generated.ts",
+                                                    import.meta.url)), "utf8")
+      .matchAll(/^\s*"id": "([a-z0-9-]+)"/gm)].map((m) => m[1]));
+
 const UNLOCKED = `(() => {
   const blocks = {};
-  for (const id of ["foundations","spin-ladder","active-listening","objective-criteria",
-                    "batna-zopa","anchoring","logrolling","pressure-defense","closing","styles"]) {
+  for (const id of ${BLOCK_IDS}) {
     blocks[id] = { lessons: [1,2,3,4,5], solved: [], examBest: 6, examTotal: 6, passed: true, attempts: 1 };
   }
   localStorage.setItem("dialog.progress.v1", JSON.stringify({ version: 4, scenarios: {}, streak: 0,
@@ -98,7 +112,16 @@ const nav = async (page, key) => {
 // хуже отсутствующего — ему верят ровно до первой поломки, а потом он теряет
 // именно то, ради чего написан.
 function report(fatal) {
-  if (fatal) console.error(`ОБХОД ОБОРВАЛСЯ: ${fatal}`);
+  if (fatal) {
+    console.error(`ОБХОД ОБОРВАЛСЯ: ${fatal}`);
+    // И ГДЕ ИМЕННО. Сообщение playwright говорит «клик не дождался», но не
+    // говорит, чего именно и на каком шаге; след вызовов называет строку
+    // этого файла, а `Call log` — сам селектор. Без них отчёт заставляет
+    // искать вслепую — прибор снова теряет ровно то, ради чего написан.
+    if (fatal?.stack) console.error(String(fatal.stack).split("\n").slice(0, 12).join("\n"));
+    const log = fatal?.message && String(fatal.message);
+    if (log && log.includes("waiting for")) console.error(log);
+  }
   if (problems.length) console.error(`ПРОБЛЕМЫ (${problems.length}):\n` + problems.join("\n"));
   if (fatal || problems.length) process.exit(1);
   console.log(`обход пройден, ошибок нет · скриншоты: ${OUT}`);
@@ -234,7 +257,12 @@ try {
 
 } catch (e) {
   await browser.close().catch(() => {});
-  report(String(e).split("\n")[0]);
+  // ОШИБКА ПЕРЕДАЁТСЯ ЦЕЛИКОМ. Раньше здесь стояло
+  // `report(String(e).split("\n")[0])` — то есть прибор своими руками
+  // выбрасывал ровно ту часть, которая называет место: и след вызовов, и
+  // `Call log` playwright с самим селектором. На экран попадала строка
+  // «клик не дождался», по которой искать нечего.
+  report(e);
 }
 
 await browser.close();
