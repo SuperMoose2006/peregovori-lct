@@ -45,7 +45,9 @@ export interface SessionInitPayload {
   resume?: string;
   scenarioId?: string;
   lang?: "ru" | "en";
-  gameMode?: "practice" | "campaign" | "custom" | "exam";
+  /** Режим на проводе, не режим экрана: `drill` — капстоун курса.
+   *  Зеркало `app/protocol.py::Mode` и `src/types.ts::Mode`. */
+  gameMode?: "practice" | "campaign" | "custom" | "exam" | "drill";
   situation?: string | null;
   reputation?: number | null;
   layers?: Record<string, boolean>;
