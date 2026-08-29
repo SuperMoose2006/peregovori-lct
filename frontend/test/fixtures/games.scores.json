@@ -778,12 +778,12 @@
    }
   },
   "conflict": {
-   "overall": 76,
+   "overall": 81,
    "grade": "B",
-   "economic": 71,
+   "economic": 83,
    "relationship": 98,
    "technique": 66,
-   "deal_text": "7дней сдвига",
+   "deal_text": "7 дней сдвига",
    "status": "agreement",
    "interests_found": 3,
    "offer_opp": 7.0,
@@ -958,9 +958,9 @@
    }
   },
   "investor": {
-   "overall": 73,
-   "grade": "B",
-   "economic": 62,
+   "overall": 85,
+   "grade": "A",
+   "economic": 93,
    "relationship": 98,
    "technique": 67,
    "deal_text": "18,42% доли",

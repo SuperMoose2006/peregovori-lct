@@ -307,7 +307,7 @@ SCENARIOS: list[Scenario] = [
             female=False,
             style="tough",
         ),
-        headline=Headline(unit={"ru": "дней сдвига", "en": "days of slip"}, dir="lower_is_better"),
+        headline=Headline(unit={"ru": " дней сдвига", "en": " days of slip"}, dir="lower_is_better"),
         opponent_open=20,
         opponent_reservation=6,
         player_target=5,
@@ -377,9 +377,15 @@ SCENARIOS: list[Scenario] = [
                 player_cost=0.45,
             ),
         ],
+        # Бриф называет цель и красную линию, как на семи других столах, И
+        # честно предупреждает: цель тут АМБИЦИОЗНЕЕ того, на что Алексей
+        # способен (его дно — 6 дней). Молчать об этом нельзя (принцип 2):
+        # человек, который считает 5 дней достижимыми, весь стол принимает
+        # неизбежное за собственную неудачу. Числа дна бриф не называет — его
+        # ещё надо нащупать.
         briefing={
-            "ru": "Здесь деньги ни при чём — важны эмоции и интересы. Отделите человека от проблемы, признайте его давление, ищите общий план.",
-            "en": "This is not about money — it is about emotion and interests. Separate the person from the problem, acknowledge his pressure, find a shared plan.",
+            "ru": "Ваша цель — сдвиг не больше 5 дней, красная линия — 12. Цель намеренно амбициозна: возможно, столько Алексей дать не сможет, и тогда выигрыш — выжать из него максимум возможного. Здесь деньги ни при чём — важны эмоции и интересы. Отделите человека от проблемы, признайте его давление, ищите общий план.",
+            "en": "Your target is a slip of no more than 5 days; your red line is 12. The target is deliberately ambitious: Alexey may not be able to go that far, and then winning means getting the most he can give. This is not about money — it is about emotion and interests. Separate the person from the problem, acknowledge his pressure, find a shared plan.",
         },
     ),
     Scenario(
@@ -474,9 +480,11 @@ SCENARIOS: list[Scenario] = [
                 player_cost=0.45,
             ),
         ],
+        # Та же честность, что и на `conflict`: цель 15% лежит за дном Марины
+        # (18%), и без предупреждения безупречная игра читается как провал.
         briefing={
-            "ru": "Сильный BATNA — ваш козырь, но применяйте его аккуратно, подкрепляя объективными критериями оценки.",
-            "en": "A strong BATNA is your trump card, but wield it carefully, backed by objective valuation criteria.",
+            "ru": "Ваша цель — отдать не больше 15% доли, красная линия — 24%. Цель намеренно амбициозна: возможно, так низко Марина не опустится, и тогда выигрыш — забрать лучшее из возможного. Сильный BATNA — ваш козырь, но применяйте его аккуратно, подкрепляя объективными критериями оценки.",
+            "en": "Your target is to give up no more than 15% equity; your red line is 24%. The target is deliberately ambitious: Marina may not go that low, and then winning means taking the best that is on offer. A strong BATNA is your trump card, but wield it carefully, backed by objective valuation criteria.",
         },
     ),
     Scenario(

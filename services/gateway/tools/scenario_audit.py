@@ -304,11 +304,16 @@ def check_zopa(sc: Scenario, rep: Report) -> dict:
     if not zopa_ok:
         wrong.append("ZOPA ПУСТА: дно оппонента хуже красной линии игрока")
     steps = width / step if step else 0.0
-    # Потолок экономики: лучшее, что игрок может выторговать, — дно оппонента.
+    # Потолок экономики: лучшее, что игрок может выторговать, — дно оппонента,
+    # и меряется оно ТОЙ ЖЕ меркой, что в счёте (`engine.best_available`), а не
+    # целью. Считать здесь целью значило бы мерить не ту игру, которую играет
+    # продукт: на двух столах цель стоит не доходя до дна, и прибор рапортовал
+    # бы потолок 67 там, где движок ставит 100.
+    goal = engine.best_available(sc)
     ratio = ((sc.opponent_reservation - sc.player_reservation)
-             / (sc.player_target - sc.player_reservation))
+             / (goal - sc.player_reservation))
     econ_max = int(engine.clamp(round(ratio * 100)))
-    target_reachable = not better(sc, sc.player_target, sc.opponent_reservation)
+    target_reachable = engine.target_reachable(sc)
     lo, hi = ((sc.opponent_reservation, sc.player_reservation) if lower
               else (sc.player_reservation, sc.opponent_reservation))
     text = (f"[{lo:g} … {hi:g}] ширина {width:g} = {steps:.0f} шагов по {step:g}; "
@@ -320,7 +325,9 @@ def check_zopa(sc: Scenario, rep: Report) -> dict:
     elif not target_reachable:
         rep.line(sc.id, WARN, "ZOPA", text +
                  f" — ЦЕЛЬ {sc.player_target:g} ЗА ДНОМ оппонента ({sc.opponent_reservation:g}): "
-                 f"economic 100 недостижим по построению")
+                 f"её не взять ни при какой игре; экономика меряется от лучшего "
+                 f"доступного ({sc.opponent_reservation:g}), и бриф обязан об этом "
+                 f"предупреждать")
     else:
         rep.line(sc.id, OK, "ZOPA", text + " — цель достижима")
     return {"width": width, "steps": steps, "econ_max": econ_max,
@@ -753,7 +760,8 @@ def summary(data: dict, rep: Report, quick: bool) -> None:
         rep.line("*", WARN, "потолок экономики",
                  f"цель недостижима на {len(unreachable)} из {len(rows)} столов "
                  f"({', '.join(sc.id for sc, _ in unreachable)}): потолок economic "
-                 f"{min(caps)}–{max(caps)} против 100 у остальных. " + "; ".join(need))
+                 f"{min(caps)}–{max(caps)}, потому что мерка там — лучшее доступное, "
+                 f"а не цель (engine.best_available). " + "; ".join(need))
     else:
         rep.line("*", OK, "потолок экономики", "цель достижима на всех столах")
 

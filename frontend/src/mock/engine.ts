@@ -343,6 +343,22 @@ export function flex(s: Session): number {
     0.45 * (s.trust / 100) + 0.3 * (s.info / 100) + 0.25 * (clamp(s.leverage) / 100) - 0.5 * (s.tension / 100);
   return clamp(raw, 0, 1);
 }
+/** Может ли оппонент вообще дойти до цели игрока? Ложь значит, что его дно
+ *  стоит НЕ ДОХОДЯ до цели, и названной в брифе цифры не будет ни при какой
+ *  игре. Зеркало engine.py::target_reachable. */
+export function targetReachable(sc: ScenarioDef): boolean {
+  return sc.dir === "low" ? sc.floor <= sc.target : sc.floor >= sc.target;
+}
+
+/** Лучшая цифра, которую игрок может ВЫТОРГОВАТЬ, — мерка для economic. Обычно
+ *  это цель; если дно оппонента не доходит до цели — дно, иначе безупречная
+ *  игра упирается в 67 из 100 не по своей вине. На семи столах из девяти
+ *  возвращает ровно `target`, то есть счёт там прежний. Обоснование целиком —
+ *  engine.py::best_available. Зеркало engine.py::best_available. */
+export function bestAvailable(sc: ScenarioDef): number {
+  return targetReachable(sc) ? sc.target : sc.floor;
+}
+
 /** Из каких шагов выбирается шаг цены: живые люди двигаются на 5, на 0.5, на 1 —
  *  но не на 1.37. Зеркало engine.py::_NICE_STEPS. */
 const NICE_STEPS = [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50];
@@ -1084,7 +1100,9 @@ export function scoreSession(s: Session): Debrief {
   let economic = 0;
   let dealText: string;
   if (s.status === "agreement" && s.deal != null) {
-    const r = sc.resv, t = sc.target;
+    // Мерка — не цель, а ЛУЧШЕЕ ДОСТУПНОЕ (см. bestAvailable). Совпадает с
+    // целью везде, кроме двух столов, где цель стоит за дном оппонента.
+    const r = sc.resv, t = bestAvailable(sc);
     economic = clamp(Math.round(((s.deal - r) / (t - r)) * 100));
     // Печатаем на языке сессии, а не по-джаваскриптовому: стол и разбор обязаны
     // показывать одно число одними знаками. Зеркало backend engine/format.py.
@@ -1163,6 +1181,18 @@ export function scoreSession(s: Session): Debrief {
   if (tips.length === 0)
     T("Отличная работа — чистое применение принципиальных переговоров.",
       "Excellent — clean principled negotiation.");
+  // ПЕРВОЙ СТРОКОЙ: разбор показывает `tips[0]` словом наставника. Сменившаяся
+  // мерка экономики обязана быть названа — иначе игрок видит 100 при цифре хуже
+  // своей цели и не может её проверить. Зеркало engine.py::score_session.
+  if (s.status === "agreement" && !targetReachable(sc)) {
+    const floorText = formatDeal(sc.floor, u, lang);
+    const targetText = formatDeal(sc.target, u, lang);
+    tips.unshift(
+      lang === "ru"
+        ? `Цель (${targetText}) лежала за красной линией второй стороны: дальше ${floorText} она пойти не могла ни при какой игре. Поэтому экономика считается от лучшего доступного — ${floorText}, а не от недостижимой цели.`
+        : `Your target (${targetText}) sat beyond the other side's red line: ${floorText} was as far as they could ever go. So the economic score is measured against the best available deal — ${floorText} — not against an unreachable target.`,
+    );
+  }
   return {
     overall, grade, economic, relationship, technique,
     deal_text: dealText, status: s.status,

@@ -233,6 +233,47 @@ def flexibility(sess: Session) -> float:
     return clamp(raw, 0, 1)
 
 
+def target_reachable(sc: Scenario) -> bool:
+    """Может ли оппонент вообще дойти до цели игрока?
+
+    Ложь означает, что дно оппонента стоит НЕ ДОХОДЯ до цели: сколько ни играй,
+    названной в брифе цифры не будет. У семи столов из девяти дно лежит за
+    целью (зазор 12.5–40% расстояния «старт → цель»), у `conflict` и `investor`
+    — не доходя (−6.7% и −20%).
+    """
+    if sc.headline.dir == "lower_is_better":
+        return sc.opponent_reservation <= sc.player_target
+    return sc.opponent_reservation >= sc.player_target
+
+
+def best_available(sc: Scenario) -> float:
+    """Лучшая цифра, которую игрок может ВЫТОРГОВАТЬ, — мерка для economic.
+
+    Обычно это цель: дно оппонента лежит за ней, и цель берётся торгом. Но если
+    дно не доходит до цели, целью мерить нельзя — безупречная игра упирается в
+    67 из 100 (`investor`) или 86 (`conflict`) не потому, что игрок чего-то не
+    сделал, а потому что стол так устроен. Тогда меркой становится дно: игрок
+    получает 100 за то, что взял всё, что вообще лежало на столе.
+
+    ПОЧЕМУ ЭТО НЕ ПОБЛАЖКА И НЕ ПЕРЕСМОТР БАЛАНСА. На семи столах, где цель
+    достижима, функция возвращает ровно `player_target` — то есть счёт там
+    побайтово прежний (`tests/test_unreachable_target.py`). Тот же принцип уже
+    записан в продукте с другой стороны: генератор «своей сделки» НАМЕРЕННО
+    ставит дно за целью (`ai/scenario_gen.py::_normalize_zopa`), потому что
+    иначе грейд своей сделки несопоставим с грейдом тренировки. Сгенерированный
+    стол был честнее двух рукописных; здесь это выровнено.
+
+    Двигать вместо этого числа стола — дороже и слабее. Замер: дно `investor`
+    18 → 13 (ZOPA вдвое шире) поднимает эталонную партию 73 → 75 и грейда A всё
+    равно не даёт, потому что уступка идёт от заработанных событий, а не от
+    того, где дно. А сдвиг ЦЕЛИ (15 → 20) растягивает шкалу экономики в 2.25
+    раза на всём столе, то есть поднимает не потолок, а любой результат.
+    """
+    if target_reachable(sc):
+        return float(sc.player_target)
+    return float(sc.opponent_reservation)
+
+
 #: Из каких шагов выбирается шаг цены. Список «человеческих» чисел: живые люди
 #: двигаются на 5, на 0.5, на 1 — но не на 1.37.
 _NICE_STEPS = (0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0)
@@ -1668,7 +1709,9 @@ def score_session(sess: Session) -> dict:
     economic = 0
     unit = sc.headline.unit[lang]
     if s.status == "agreement" and s.deal is not None:
-        t = sc.player_target
+        # Мерка — не цель, а ЛУЧШЕЕ ДОСТУПНОЕ (см. best_available). Совпадает с
+        # целью везде, кроме двух столов, где цель стоит за дном оппонента.
+        t = best_available(sc)
         r = sc.player_reservation
         ratio = (s.deal - r) / (t - r)
         economic = clamp(_js_round(ratio * 100))
@@ -1797,6 +1840,25 @@ def score_session(sess: Session) -> dict:
     if len(tips) == 0:
         T("Отличная работа — чистое применение принципиальных переговоров.",
           "Excellent — a clean application of principled negotiation.")
+
+    # ПЕРВОЙ СТРОКОЙ, а не примечанием внизу: разбор показывает `tips[0]` словом
+    # наставника. Если цель стояла за дном оппонента, объяснить надо именно
+    # число экономики — иначе игрок видит 100 при цифре хуже своей цели (или,
+    # до этой правки, 67 за безупречную игру) и не может проверить ни то ни
+    # другое. Принцип 2: раз мерка сменилась, она обязана быть названа.
+    if s.status == "agreement" and not target_reachable(sc):
+        floor_text = format_deal(sc.opponent_reservation, unit, lang)
+        target_text = format_deal(sc.player_target, unit, lang)
+        tips.insert(0, (
+            f"Цель ({target_text}) лежала за красной линией второй стороны: "
+            f"дальше {floor_text} она пойти не могла ни при какой игре. "
+            f"Поэтому экономика считается от лучшего доступного — {floor_text}, "
+            f"а не от недостижимой цели."
+            if lang == "ru" else
+            f"Your target ({target_text}) sat beyond the other side's red line: "
+            f"{floor_text} was as far as they could ever go. So the economic "
+            f"score is measured against the best available deal — {floor_text} — "
+            f"not against an unreachable target."))
 
     return {
         "overall": int(overall),

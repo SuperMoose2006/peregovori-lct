@@ -253,9 +253,11 @@ export const SCENARIOS: ScenarioDef[] = [
         oppValue: 0.55, playerCost: 0.45,
       },
     ],
+    // Цель (5 дней) стоит ЗА дном Алексея (6): бриф обязан об этом сказать,
+    // иначе безупречная игра читается как неудача. Зеркало backend briefing.
     brief: {
-      ru: "Деньги ни при чём — важны эмоции. Отделите человека от проблемы, признайте его давление.",
-      en: "Not about money — about emotion. Separate the person from the problem, acknowledge his pressure.",
+      ru: "Цель — сдвиг не больше 5 дней, красная линия — 12. Цель амбициозна: столько Алексей может и не дать. Деньги ни при чём — важны эмоции. Отделите человека от проблемы, признайте его давление.",
+      en: "Target: a slip of no more than 5 days; red line 12. The target is ambitious — Alexey may not be able to go that far. Not about money — about emotion. Separate the person from the problem, acknowledge his pressure.",
     },
   },
   {
@@ -322,9 +324,11 @@ export const SCENARIOS: ScenarioDef[] = [
         oppValue: 0.55, playerCost: 0.45,
       },
     ],
+    // Цель (15%) стоит ЗА дном Марины (18%) — то же предупреждение, что и на
+    // `conflict`. Зеркало backend briefing.
     brief: {
-      ru: "Сильная BATNA — козырь, но применяйте её аккуратно с объективными критериями.",
-      en: "A strong BATNA is your trump card — wield it carefully with objective criteria.",
+      ru: "Цель — отдать не больше 15% доли, красная линия — 24%. Цель амбициозна: так низко Марина может и не опуститься. Сильная BATNA — козырь, но применяйте её аккуратно с объективными критериями.",
+      en: "Target: give up no more than 15% equity; red line 24%. The target is ambitious — Marina may not go that low. A strong BATNA is your trump card — wield it carefully with objective criteria.",
     },
   },
   {
