@@ -22,6 +22,8 @@
 """
 from __future__ import annotations
 
+import time
+
 import pytest
 
 from app.realtime import limits
@@ -146,3 +148,41 @@ def test_the_ceiling_is_above_a_real_room_and_below_a_script():
     machine_peak = limits.MAX_SESSIONS_PER_HOST / 2.45   # docs/latency.md
     assert human_peak < limits.TURNS_PER_S < machine_peak, (
         f"{limits.TURNS_PER_S} хода/с не между {human_peak:.1f} и {machine_peak:.1f}")
+
+
+def test_the_hold_lives_in_the_turn_task_and_not_in_the_read_loop():
+    """Придержка не имеет права останавливать чтение сокета.
+
+    Первая редакция ждала прямо в обработчике `input.commit` — внутри цикла,
+    который читает сообщения. Пока он спал, до сервера не доходило НИЧЕГО: ни
+    перебивание, ни закрытие партии. Человек, чей ход придержан, не мог ни
+    перебить оппонента, ни выйти, и снаружи это выглядело как зависший
+    продукт — ровно то, чего придержка вместо отказа и должна была избежать.
+
+    ПОЧЕМУ ЭТА ПРОВЕРКА СТРУКТУРНАЯ, А НЕ ВРЕМЕННАЯ. Я написала её сначала по
+    времени — через настоящее соединение, с исчерпанным ведром и отменой
+    следом. Она оказалась ЗЕЛЁНОЙ И НА СЛОМАННОМ КОДЕ: события первого хода
+    приходят мгновенно, цикл ожидания выходил на первом же из них и до
+    придержанного второго хода не добирался. Тест, который нельзя заставить
+    упасть на дефекте, ничего не доказывает, поэтому он заменён на прямое
+    утверждение о том, ГДЕ стоит ожидание.
+
+    Проверено возвратом: перенос вызова обратно в обработчик валит эту
+    проверку.
+    """
+    import inspect
+
+    from app.realtime import endpoint
+
+    turn_task = inspect.getsource(endpoint._Work._turn)
+    assert "_turn_budget" in turn_task, (
+        "придержка ушла из задачи хода — значит она снова где-то в другом месте")
+
+    #: Обработчик `input.commit` целиком: от своей метки до следующей.
+    loop = inspect.getsource(endpoint)
+    head = loop.index('if kind == "input.commit"')
+    tail = loop.index('if kind == "response.cancel"', head)
+    commit_branch = loop[head:tail]
+    assert "_turn_budget" not in commit_branch, (
+        "придержка вернулась в цикл чтения сокета: пока она спит, до сервера "
+        "не дойдёт ни перебивание, ни закрытие партии")

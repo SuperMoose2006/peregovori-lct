@@ -188,6 +188,18 @@ class _Work:
 
     async def _turn(self, orchestrator: "NegotiationOrchestrator",
                     session: "RealtimeSession", text: str) -> None:
+        # ПРИДЕРЖКА ПО ТЕМПУ ЖИВЁТ ЗДЕСЬ, А НЕ В ЦИКЛЕ ЧТЕНИЯ СОКЕТА.
+        #
+        # Первая редакция ждала прямо в обработчике `input.commit` — то есть
+        # внутри цикла, который читает сообщения. Пока он спал, до сервера не
+        # доходило НИЧЕГО: ни `response.cancel`, ни `session.close`. Человек,
+        # чей ход придержан, не мог ни перебить оппонента, ни выйти из партии,
+        # и снаружи это выглядело как зависший продукт — ровно то, чего
+        # придержка вместо отказа и должна была избежать.
+        #
+        # В задаче она безвредна: ход уже принят, индикатор «оппонент думает»
+        # честно горит, а сокет продолжает слушать.
+        await _turn_budget(session)
         async with self._lock:
             try:
                 await orchestrator.on_player_turn(text)
@@ -414,7 +426,6 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         # детектора конца хода. Уважаем — человек решил сам.
                         await voice.force_commit()
                     elif text:
-                        await _turn_budget(session)
                         if not work.start_turn(orchestrator, session, text):
                             await websocket.send_json(error("busy", "turn already in flight"))
                     continue
