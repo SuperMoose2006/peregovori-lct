@@ -11,12 +11,18 @@
 //
 // ЭКЗАМЕН БЛОКА ЗАКАНЧИВАЕТСЯ КАПСТОУНОМ, И ЕГО НАДО СЫГРАТЬ. `drawExam`
 // ставит упражнения типа `drill` последними, а у капстоуна нет ни «Проверить»,
-// ни «Завершить»: единственная кнопка ведёт в настоящую мини-партию, и экзамен
-// закрывается её итогом (App.tsx кладёт в профиль `score + 2` за сданный
-// капстоун). Прибор раньше видел капстоун и считал экзамен законченным —
-// жал первую попавшуюся `button.btn.primary`, уходил в партию и уже не
-// возвращался. Из-за этого три главных утверждения ниже — «экзамен сдан»,
-// «блок пройден», «следующий открылся» — не проверялись НИ РАЗУ.
+// ни «Завершить»: единственная кнопка ведёт в настоящую мини-партию. Прибор
+// раньше видел капстоун и считал экзамен законченным — жал первую попавшуюся
+// `button.btn.primary`, уходил в партию и уже не возвращался. Из-за этого три
+// главных утверждения ниже — «экзамен сдан», «блок пройден», «следующий
+// открылся» — не проверялись НИ РАЗУ.
+//
+// А КОГДА СТАЛИ ПРОВЕРЯТЬСЯ — нашёлся дефект, который они всё равно не ловили:
+// экрана итога экзамена не существовало. Партия возвращала СРАЗУ на карту
+// блоков, счёт, разбор промахов и урок восстановления не показывались никому, а
+// провалившему об этом сообщала реплика оппонента. Утверждения «карта говорит
+// done» держались и на этом — поэтому здесь добавлен ещё один шаг: экран итога
+// обязан появиться ПОСЛЕ капстоуна и назвать счёт словами.
 //
 //   node e2e/course.mjs [--url http://127.0.0.1:8010] [--out /tmp/dialog-e2e]
 import { chromium } from "playwright-core";
@@ -192,11 +198,32 @@ async function playCapstone() {
   const ok = (await p.locator(".drill-verdict.ok").count()) === 1;
   const verdict = ((await p.locator(".drill-verdict b").textContent()) || "").trim();
   await p.screenshot({ path: `${OUT}/block-03-capstone.png`, fullPage: true });
-  // «← В курс» с экрана вердикта ведёт СРАЗУ на карту блоков (App.backToCourse),
-  // промежуточного экрана экзамена за ним нет.
+  // «← В курс» с экрана вердикта ведёт на экран курса; ждущая попытка экзамена
+  // (lib/examRun.ts) открывает его СРАЗУ на итоге экзамена, а не на карте.
   await p.locator(".drill-verdict button.btn.primary").click();
   await p.waitForTimeout(1200);
   return { ok, verdict };
+}
+
+/**
+ * Экран итога экзамена: то, ради чего человек сдавал.
+ *
+ * Ждём именно разбор (`.exam-review`), а не любой экран курса: карта блоков
+ * тоже «экран курса», и на ней прибор молчал бы ровно так же, как молчал
+ * раньше.
+ */
+async function examResult() {
+  await clearScrims();
+  await p.waitForSelector(".exam-review", { timeout: 15000 });
+  const head = ((await p.locator(".wrap.lesson.done h1").textContent()) || "").trim();
+  const lead = ((await p.locator(".wrap.lesson.done .lead").textContent()) || "").trim();
+  const rows = await p.locator(".exam-review li").count();
+  const recovery = await p.locator(".recovery li button").count();
+  const exit = ((await p.locator(".exam-exit").textContent()) || "").trim();
+  await p.screenshot({ path: `${OUT}/block-04-exam-result.png`, fullPage: true });
+  await p.locator(".exam-exit").click();
+  await p.waitForTimeout(900);
+  return { head, lead, rows, recovery, exit };
 }
 
 // По ключу раздела, а не по русской подписи: см. смоук.
@@ -235,11 +262,15 @@ await clearScrims();
 await p.locator("button:has-text('Сдавать экзамен')").click();
 await p.waitForTimeout(400);
 let capstone = null;
+let result = null;
+let asked = 0;
 while (await p.locator(".ex").count()) {
   const type = await answer();
+  asked += 1;
   if (type === "drill") {
     await p.screenshot({ path: `${OUT}/block-02-exam.png`, fullPage: true });
     capstone = await playCapstone();
+    result = await examResult();
     break;
   }
   const next = p.locator("button:has-text('Дальше'), button:has-text('Завершить')").first();
@@ -248,7 +279,7 @@ while (await p.locator(".ex").count()) {
   await p.waitForTimeout(350);
 }
 await p.waitForTimeout(600);
-await p.screenshot({ path: `${OUT}/block-04-map.png`, fullPage: true });
+await p.screenshot({ path: `${OUT}/block-05-map.png`, fullPage: true });
 
 // УТВЕРЖДЕНИЯ СНИМАЮТСЯ С КАРТЫ, А НЕ СО СЧЁТЧИКОВ. `.cnode` идут в порядке
 // курса, поэтому «первый пройден» и «второй открылся» проверяются по позиции:
@@ -267,7 +298,20 @@ if (!capstone) {
   // доказывает инвариант 2. Не сдан — это находка, а не случайность прогона.
   problems.push(`капстоун не сдан эталонной линией: «${capstone.verdict}»`);
 }
-if (!onMap) problems.push("после капстоуна не вернулись на карту блоков");
+// ИТОГ ЭКЗАМЕНА — ОТДЕЛЬНОЕ УТВЕРЖДЕНИЕ. «Оказались на карте» его не заменяет:
+// на карте прибор оказывался и тогда, когда итога не существовало вовсе.
+if (!result) {
+  problems.push("после капстоуна не показан итог экзамена: ни счёта, ни разбора, " +
+                "ни урока восстановления — человек узнаёт результат только репликой в партии");
+} else {
+  if (!result.head) problems.push("у экрана итога нет заголовка «сдан / не сдан»");
+  if (!/\d+/.test(result.lead)) problems.push(`итог не называет счёт: «${result.lead}»`);
+  if (result.rows !== asked) {
+    problems.push(`разобрано ${result.rows} заданий из ${asked} — разбор неполный`);
+  }
+  if (!result.exit) problems.push("с экрана итога некуда уйти");
+}
+if (!onMap) problems.push("после итога экзамена не вернулись на карту блоков");
 if (nodes[0] !== "done") {
   problems.push(`экзамен блока не сдан: первый узел карты «${nodes[0]}», ожидалось «done»`);
 }
@@ -280,4 +324,5 @@ if (problems.length) {
   process.exit(1);
 }
 console.log(`блок пройден целиком, капстоун сдан («${capstone.verdict}»), ` +
-            `экзамен сдан, следующий блок открыт · скриншоты: ${OUT}`);
+            `итог экзамена показан («${result.head}» · ${result.lead}), ` +
+            `следующий блок открыт · скриншоты: ${OUT}`);

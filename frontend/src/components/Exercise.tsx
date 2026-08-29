@@ -369,9 +369,16 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       {ex.type === "drill" ? (
         <div className="ex-drill">
           <p className="ex-goal">🏁 {say(ex.goal, lang)}</p>
-          <p className="ex-goal-n">{t.course.drillNote
-            .replace("{n}", String(ex.max_turns ?? 6))
-            .replace("{form}", plural(ex.max_turns ?? 6, t.forms.turns))}</p>
+          {/* СРОК, А НЕ ДЛИНА ПАРТИИ. Здесь стояло «настоящая партия на 6
+              ходов», и это было четвёртое состояние: бюджет хода капстоуна
+              никуда не передаётся (`App.startDrill` открывает обычную партию
+              практики), поэтому стол выдаёт свои двенадцать ходов и рисует
+              «1 из 12» — рядом с обещанием шести. Шесть — это не бюджет стола, а
+              СРОК цели: `checkDrill` заваливает капстоун при `turn > max_turns`,
+              и ровно это здесь и написано. Строка собирается из числа и формы
+              слова, а не из готового предложения: обе половины уже билингвальны
+              (`t.forms.turns`), и второму источнику правды взяться неоткуда. */}
+          <p className="ex-goal-n">⏱ ≤ {ex.max_turns ?? 6} {plural(ex.max_turns ?? 6, t.forms.turns)}</p>
           <button className="btn primary" onClick={() => onStartDrill?.(ex)}>{t.course.drillStart}</button>
         </div>
       ) : null}

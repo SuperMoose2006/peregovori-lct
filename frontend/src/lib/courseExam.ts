@@ -11,3 +11,7 @@
 // главной по-настоящему.
 export { checkDrill } from "./course";
 export { COURSE_MASTER, MASTER_PASS_MARK } from "../data/course.generated";
+// Итог капстоуна возвращается в экзамен блока ОТСЮДА: `App` уже грузит этот
+// модуль ради предиката, а класть ради одной функции второй динамический импорт
+// в тот же момент незачем. Почему это вообще нужно — в шапке `examRun.ts`.
+export { noteCapstone } from "./examRun";

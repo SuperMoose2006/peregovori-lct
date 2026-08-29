@@ -9,7 +9,7 @@
 // выносит движок (lib/course.ts), правильность каждого пункта доказана тестами
 // против настоящего analyze()/apply_move() на обоих языках. Поэтому курс
 // работает офлайн — как и партия.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import type { Exercise as Ex } from "../lib/courseTypes";
@@ -21,6 +21,9 @@ import {
   MASTER_ID, blockCompletion, getBlockProgress, markLessonDone, missedExercises, recordExam,
   recordExercise, type Profile,
 } from "../lib/progress";
+import {
+  clearExamRun, examOutcome, examRunFor, loadExamRun, saveExamRun, type ExamRunSnapshot,
+} from "../lib/examRun";
 import { Exercise } from "./Exercise";
 import { Karl, Tikhon } from "./Mascot";
 import { plural } from "../lib/format";
@@ -58,14 +61,29 @@ type View =
   | { kind: "exam"; id: string };
 
 export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit, startAt }: Props) {
+  // ЖДУЩАЯ ПОПЫТКА ЭКЗАМЕНА. Капстоун — настоящая партия, и она размонтирует
+  // этот экран целиком; итог экзамена ждёт на диске (см. lib/examRun.ts). Он
+  // сильнее `startAt`: человек только что доиграл партию, которой закончился
+  // экзамен, и любой другой экран на её месте — потеря результата.
+  //
+  // Недоигранная попытка выбрасывается, а не показывается: экзамен, из которого
+  // ушли, не тратит счётчик — то же правило, что у кнопки «Прервать экзамен».
+  const [resume, setResume] = useState<ExamRunSnapshot | null>(() => {
+    const run = loadExamRun();
+    if (!run) return null;
+    if (run.capstoneOk === null) { clearExamRun(); return null; }
+    return run;
+  });
   const [view, setView] = useState<View>(() =>
-    startAt
-      ? (startAt.blockId === MASTER_ID
-          ? { kind: "master" }
-          : startAt.lesson === null
-            ? { kind: "block", id: startAt.blockId }
-            : { kind: "lesson", id: startAt.blockId, lesson: startAt.lesson })
-      : { kind: "map" });
+    resume
+      ? { kind: "exam", id: resume.blockId }
+      : startAt
+        ? (startAt.blockId === MASTER_ID
+            ? { kind: "master" }
+            : startAt.lesson === null
+              ? { kind: "block", id: startAt.blockId }
+              : { kind: "lesson", id: startAt.blockId, lesson: startAt.lesson })
+        : { kind: "map" });
 
   if (view.kind === "lesson") {
     return (
@@ -78,12 +96,17 @@ export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit
     );
   }
   if (view.kind === "exam") {
+    // Уход с экрана итога гасит снимок: иначе пересдача открывалась бы прошлым
+    // результатом вместо первого задания.
+    const leave = (next: View) => { setResume(null); setView(next); };
     return (
       <ExamRunner
         t={t} lang={lang} profile={profile} onProfile={onProfile} blockId={view.id}
+        resume={resume && resume.blockId === view.id ? resume : undefined}
         onStartDrill={(ex, ctx) => onStartDrill(ex, { blockId: view.id, exam: ctx })}
-        onLesson={(n) => setView({ kind: "lesson", id: view.id, lesson: n })}
-        onBack={() => setView({ kind: "block", id: view.id })}
+        onLesson={(n) => leave({ kind: "lesson", id: view.id, lesson: n })}
+        onBack={() => leave({ kind: "block", id: view.id })}
+        onMap={() => leave({ kind: "map" })}
       />
     );
   }
@@ -504,18 +527,26 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
 
 // ---------------------------------------------------------------- экзамен
 
-function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLesson, onBack }: {
+function ExamRunner({ t, lang, profile, onProfile, blockId, resume, onStartDrill, onLesson,
+                     onBack, onMap }: {
   t: Strings; lang: Lang; profile: Profile; onProfile: (p: Profile) => void; blockId: string;
-  onStartDrill: (ex: Ex, ctx: ExamCtx) => void; onLesson: (n: number) => void; onBack: () => void;
+  /** Экзамен, вернувшийся из капстоуна: показываем сразу итог. */
+  resume?: ExamRunSnapshot;
+  onStartDrill: (ex: Ex, ctx: ExamCtx) => void; onLesson: (n: number) => void;
+  onBack: () => void; onMap: () => void;
 }) {
   const block = blockById(blockId)!;
-  const attempt = getBlockProgress(profile, blockId).attempts;
+  // Номер попытки на возобновлении берётся ИЗ СНИМКА. Выборка детерминирована от
+  // (блок, попытка), а попытка засчитывается здесь же, на экране итога: возьми
+  // мы её из профиля после записи — разбор показал бы задания другой выборки.
+  const attempt = resume ? resume.attempt : getBlockProgress(profile, blockId).attempts;
   const draw: ExamDraw = useMemo(() => drawExam(blockId, attempt), [blockId, attempt]);
-  const [step, setStep] = useState(0);
-  const [score, setScore] = useState(0);
+  const resumed = resume ? examOutcome(resume) : null;
+  const [step, setStep] = useState(resumed ? draw.items.length : 0);
+  const [score, setScore] = useState(resumed ? resumed.score : 0);
   const [answered, setAnswered] = useState(false);
-  const [results, setResults] = useState<{ id: string; ok: boolean }[]>([]);
-  const [saved, setSaved] = useState<{ xp: number; passed: boolean; badges: string[] } | null>(null);
+  const [results, setResults] = useState<{ id: string; ok: boolean }[]>(resumed ? resumed.results : []);
+  const [saved, setSaved] = useState<{ xp: number; badges: string[] } | null>(null);
 
   const ex = draw.items[step];
   const isLast = step >= draw.items.length - 1;
@@ -526,19 +557,45 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
     if (ok) setScore((s) => s + draw.weight(ex));
   };
 
-  const finish = () => {
+  // ПОПЫТКА ЗАСЧИТЫВАЕТСЯ РОВНО ОДИН РАЗ И ИМЕННО ЗДЕСЬ. Раньше экзамен,
+  // закончившийся капстоуном, записывал `App` из разбора партии — и вместе с
+  // записью там же терялись счёт, разбор промахов и урок восстановления,
+  // потому что экрана итога не существовало. Теперь запись живёт на том экране,
+  // который итог показывает: одно место — один смысл.
+  const recorded = useRef(false);
+  const record = (points: number) => {
+    if (recorded.current) return;
+    recorded.current = true;
     // Экзамен со слоями и без обязан быть сравним, поэтому он и не знает о них
     // вовсе: здесь только банк и движок.
-    const res = recordExam(profile, blockId, score, draw.total, draw.passMark);
+    const res = recordExam(profile, blockId, points, draw.total, draw.passMark);
     onProfile(res.profile);
     // Сдача блока звучит как повышение ранга — это и есть повышение.
     play(res.passed ? "levelup" : "wrong");
-    setSaved({ xp: res.xpGain, passed: res.passed, badges: res.newAchievements });
+    setSaved({ xp: res.xpGain, badges: res.newAchievements });
+  };
+
+  useEffect(() => {
+    if (!resumed) return;
+    record(resumed.score);
+    // Снимок отработал: второй заход в экзамен обязан начаться с первого
+    // задания, а не с чужого итога.
+    clearExamRun();
+    // Один раз на монтирование: снимок пришёл пропом и внутри жизни экрана
+    // не меняется.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const finish = () => {
+    record(score);
     setStep(draw.items.length);
   };
 
   if (step >= draw.items.length) {
-    const passed = saved?.passed ?? false;
+    // Сдача считается АРИФМЕТИКОЙ, а не тем, что вернула запись профиля: экран
+    // итога рисуется и до того, как эффект записи отработал (первый кадр,
+    // серверная отрисовка в тесте), и обязан показывать в нём то же самое.
+    const passed = score >= draw.passMark;
     // Уроки, к которым ведут промахи, — по одному разу и в порядке курса.
     const recovery = [...new Set(results.filter((r) => !r.ok)
       .map((r) => draw.items.find((x) => x.id === r.id)?.lesson)
@@ -582,7 +639,15 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
               );
             })}
           </ul>
-          <button className="btn primary" onClick={onBack}>← {block.title[lang]}</button>
+          {/* СДАЧА И ПРОВАЛ ВЕДУТ В РАЗНЫЕ МЕСТА. Сданный блок закончен — дверь
+              ведёт на карту, где уже открылся следующий. Провал заканчивается
+              маршрутом, а не констатацией: дверь ведёт обратно в блок, где рядом
+              лежат и уроки, и кнопка пересдачи. */}
+          {passed ? (
+            <button className="btn primary exam-exit" onClick={onMap}>← {t.course.allBlocks}</button>
+          ) : (
+            <button className="btn primary exam-exit" onClick={onBack}>← {block.title[lang]}</button>
+          )}
           {/* Значки курса всплывают тем же компонентом, что и после партии:
               одна история обучения — одна полка наград. */}
           {saved?.badges.length ? <AchievementToasts t={t} lang={lang} ids={saved.badges} /> : null}
@@ -604,7 +669,13 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, onStartDrill, onLess
         </div>
         <Exercise
           key={ex.id} t={t} lang={lang} ex={ex} exam onDone={onDone}
-          onStartDrill={(e) => onStartDrill(e, { attempt, score, total: draw.total, passMark: draw.passMark })}
+          onStartDrill={(e) => {
+            // СНИМОК КЛАДЁТСЯ ДО УХОДА В ПАРТИЮ. Дальше этот экран
+            // размонтируется целиком, и всё, что человек уже ответил, живёт
+            // только здесь (см. lib/examRun.ts).
+            saveExamRun(examRunFor(blockId, draw, attempt, score, results, e.id));
+            onStartDrill(e, { attempt, score, total: draw.total, passMark: draw.passMark });
+          }}
         />
         {answered ? (
           <button className="btn primary" onClick={() => { setAnswered(false); isLast ? finish() : setStep(step + 1); }}>
