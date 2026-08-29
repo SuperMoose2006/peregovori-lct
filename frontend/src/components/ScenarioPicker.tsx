@@ -3,11 +3,14 @@
 // for "custom" it swaps in the free-text situation input (CustomSituation).
 import type { CampaignView, Lang, Mode } from "../types";
 import type { Strings } from "../i18n";
-import { catalog } from "../data/scenarios";
+import { catalog, SCENARIO_MAP } from "../data/scenarios";
 import { Avatar } from "./Avatar";
-import { getRecord, type Profile } from "../lib/progress";
+import { getRecord, type NextStepPick, type Profile } from "../lib/progress";
 import { CustomSituation } from "./CustomSituation";
-import { CampaignArc, type CampaignProgress } from "./CampaignScreen";
+import { CampaignArc, CampaignPicker, type CampaignProgress } from "./CampaignScreen";
+import { blockById } from "../lib/courseMap";
+import { dailyTable } from "../lib/daily";
+import { MascotImg } from "./Mascot";
 
 const GRADE_COLOR: Record<string, string> = {
   A: "var(--trust)",
@@ -35,6 +38,11 @@ interface Props {
   campaign: CampaignView | null;
   campaignProgress: CampaignProgress;
   onBeginStage: () => void;
+  /** Все кампании и выбранная. Вторая кампания («Своё дело») до этого не имела
+   *  входа вовсе: App показывал `cs[0]`. */
+  campaigns?: CampaignView[];
+  campaignProgressOf?: (id: string) => CampaignProgress;
+  onPickCampaign?: (id: string) => void;
   // retention profile → best-grade badges on scenario cards
   profile: Profile;
   // exam-mode wiring: the (optional) name printed on a passing certificate.
@@ -51,6 +59,91 @@ interface Props {
   onWarmup?: (blockId: string) => void;
   courseDone?: number;
   courseTotal?: number;
+  /** «Ваш следующий шаг»: что показать и куда это ведёт. null — карточки нет. */
+  route?: NextStepPick | null;
+  onRoute?: (pick: NextStepPick) => void;
+}
+
+/**
+ * «Ваш следующий шаг» — первая карточка основной колонки.
+ *
+ * До неё главная предлагала девять одинаковых столов с девятью одинаковыми
+ * зелёными «НАЧАТЬ →», шесть пунктов меню без порядка и пять виджетов с нулями.
+ * Все входы честные, ни один не первый: новичок садился за «Раунд с инвестором»
+ * (пять точек сложности) с тем же основанием, что за «Контракт с поставщиком»
+ * (две). Карточка НАЗЫВАЕТ один шаг и говорит, почему именно он.
+ *
+ * Правило выбора здесь не живёт: его считает `chooseNextStep` (lib/progress.ts),
+ * чистая функция под тестом. Здесь только показ и один клик.
+ */
+export function NextStepCard({ t, lang, pick, campaigns, onGo }: {
+  t: Strings;
+  lang: Lang;
+  pick: NextStepPick;
+  campaigns: CampaignView[];
+  onGo: (pick: NextStepPick) => void;
+}) {
+  const sub = (s: string, vars: Record<string, string | number>) =>
+    Object.entries(vars).reduce((acc, [k, v]) => acc.split(`{${k}}`).join(String(v)), s);
+  const table = pick.scenarioId ? SCENARIO_MAP[pick.scenarioId] : undefined;
+  const tableTitle = table ? table.title[lang] : (pick.scenarioId ?? "");
+  const block = pick.blockId ? blockById(pick.blockId) : undefined;
+  const camp = campaigns.find((c) => c.id === pick.campaignId) ?? null;
+
+  let title = "";
+  let why = "";
+  let cta = "";
+  let state = "point";
+  switch (pick.kind) {
+    case "first":
+      title = sub(t.route.firstTitle, { table: tableTitle });
+      why = sub(t.route.firstWhy, { diff: pick.difficulty });
+      cta = t.route.firstCta;
+      state = "wave";
+      break;
+    case "course":
+      title = sub(t.route.courseTitle, { block: block ? block.title[lang] : "" });
+      why = pick.resumed ? t.route.courseWhy : t.route.courseWhyNew;
+      cta = t.route.courseCta;
+      state = "study";
+      break;
+    case "rematch":
+      title = sub(t.route.rematchTitle, { table: tableTitle });
+      why = sub(t.route.rematchWhy, { grade: pick.grade ?? "", score: pick.score });
+      cta = t.route.rematchCta;
+      break;
+    case "campaign":
+      title = sub(t.route.campaignTitle, {
+        campaign: camp ? camp.title : "",
+        n: pick.stageIndex + 1,
+        total: camp ? camp.stages.length : 0,
+      });
+      why = camp ? (camp.stages[pick.stageIndex]?.title ?? "") : "";
+      why = sub(t.route.campaignWhy, { act: why });
+      cta = t.route.campaignCta;
+      break;
+    default:
+      title = sub(t.route.dailyTitle, { table: tableTitle });
+      why = sub(t.route.dailyWhy, { mod: dailyTable().modifier.label[lang].toLowerCase() });
+      cta = t.route.dailyCta;
+      state = "cheer";
+  }
+
+  return (
+    <section className={`route route--${pick.kind}`}>
+      <div className="section-head">{t.route.head}</div>
+      <div className="route-card">
+        {/* Картинка декоративная: карточка и так называет шаг словами, а второй
+            голос над ней диктор прочитал бы эхом. */}
+        <MascotImg dir="karl" state={state} alt="" size={72} className="route-karl" />
+        <div className="route-txt">
+          <h2 className="route-title">{title}</h2>
+          <p className="route-why">{why}</p>
+        </div>
+        <button className="primary route-cta" onClick={() => onGo(pick)}>{cta}</button>
+      </div>
+    </section>
+  );
 }
 
 // Best-grade chip in a card's difficulty-row: the letter + best score in brass
@@ -72,12 +165,19 @@ export function ScenarioPicker({
   t, lang, mode, onSelectMode, onStart,
   situation, customError, onSituationChange, onStartCustom,
   campaign, campaignProgress, onBeginStage, profile,
+  campaigns = [], campaignProgressOf, onPickCampaign,
   examName, onExamNameChange, hideModes, onCourse, onCourseBlock, onWarmup,
-  courseDone = 0, courseTotal = 0,
+  courseDone = 0, courseTotal = 0, route = null, onRoute,
 }: Props) {
   const rows = catalog(lang);
   return (
     <>
+      {/* Маршрут стоит ПЕРВЫМ и только в тренировке: в кампании колонку занимает
+          арка, в «своей сделке» — поле ввода, а на экзамене подталкивать вообще
+          нечем. Всё остальное на главной после этого — вторым весом. */}
+      {route && onRoute && mode === "practice" ? (
+        <NextStepCard t={t} lang={lang} pick={route} campaigns={campaigns} onGo={onRoute} />
+      ) : null}
       {/* The game skin's sidebar already carries all four modes, so the row is a
           duplicate there. Removed rather than CSS-hidden: a hidden-but-focusable
           copy of the navigation is worse for keyboard users than none at all. */}
@@ -123,8 +223,14 @@ export function ScenarioPicker({
           onGenerate={onStartCustom}
         />
       ) : mode === "campaign" ? (
-        <CampaignArc t={t} lang={lang} campaign={campaign} progress={campaignProgress}
-                     onBegin={onBeginStage} onCourse={onCourseBlock} onWarmup={onWarmup} />
+        <>
+          {campaignProgressOf && onPickCampaign ? (
+            <CampaignPicker t={t} campaigns={campaigns} active={campaign?.id ?? null}
+                            progressOf={campaignProgressOf} onPick={onPickCampaign} />
+          ) : null}
+          <CampaignArc t={t} lang={lang} campaign={campaign} progress={campaignProgress}
+                       onBegin={onBeginStage} onCourse={onCourseBlock} onWarmup={onWarmup} />
+        </>
       ) : (
         <>
           {mode === "exam" ? (

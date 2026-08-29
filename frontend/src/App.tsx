@@ -22,13 +22,15 @@ import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type
 import { Karl } from "./components/Mascot";
 import { LazyScreen } from "./components/LazyScreen";
 import { openingOf, type TrailPoint } from "./lib/rematch";
-import { SCENARIO_MAP } from "./data/scenarios";
+import { SCENARIO_MAP, SCENARIOS } from "./data/scenarios";
 // CampaignComplete НЕ отложен: `ScenarioPicker` тянет этот же модуль статически
 // ради карты кампании на домашнем экране, и отдельным файлом он бы не стал —
 // была бы граница загрузки, за которой всегда уже всё загружено.
-import { CampaignComplete, type CampaignProgress } from "./components/CampaignScreen";
+import { CampaignComplete } from "./components/CampaignScreen";
 import { applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDailyGoalTarget,
-         type GameResult, type Grade, type PastRun, type Profile } from "./lib/progress";
+         activeCampaignId, chooseNextStep, emptyCampaign, getCampaignProgress,
+         recordCampaignStage, resetCampaign,
+         type GameResult, type Grade, type NextStepPick, type PastRun, type Profile } from "./lib/progress";
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 import { scrollTo, scrollTop } from "./lib/motion";
@@ -110,8 +112,6 @@ function loadLayerPrefs(): Layers {
   }
 }
 
-const INITIAL_PROGRESS: CampaignProgress = { stageIndex: 0, reputation: 0, results: [] };
-const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 export default function App() {
   // ЯЗЫК И ТЕМА ПЕРЕЖИВАЮТ ПЕРЕЗАГРУЗКУ. Оба жили только в состоянии React:
@@ -164,10 +164,12 @@ export default function App() {
   // racing the client timeout, and a hung generation always resolves to failure.
   const [genPhase, dispatchGen] = useReducer(genReducer, "idle");
   const [genErr, setGenErr] = useState<string | null>(null);
-  // Campaign ("Восхождение"): the fetched arc + the player's running progress
-  // (which act is next, accumulated reputation, and per-act grades).
-  const [campaign, setCampaign] = useState<CampaignView | null>(null);
-  const [progress, setProgress] = useState<CampaignProgress>(INITIAL_PROGRESS);
+  // КАМПАНИЙ ДВЕ, И ОБЕ ИГРАЮТСЯ. Здесь лежит весь список, а не `cs[0]`: вторая
+  // кампания («Своё дело» — четыре акта, эпилог на пять полос репутации,
+  // зеркало для офлайна и тесты) была построена и не имела входа из интерфейса.
+  // Прогресс каждой живёт в профиле по её идентификатору и переживает F5.
+  const [campaigns, setCampaigns] = useState<CampaignView[]>([]);
+  const [campaignId, setCampaignId] = useState<string | null>(null);
   // Dedupe recording a stage result: each debrief is a fresh object, so identity
   // tells one stage's debrief from the next (and from a reset).
   const recordedDebrief = useRef<DebriefData | null>(null);
@@ -356,33 +358,57 @@ export default function App() {
     else if (genPhase === "failed") setScreen("gen_error");
   }, [genPhase]);
 
-  // Load the campaign arc when the mode is active (refetch on lang change to
-  // relocalize). Falls back to an offline synth if the backend is unreachable.
+  // Кампании грузятся СРАЗУ, а не при входе в режим: их знает ещё и карточка
+  // «следующий шаг» на главной, которой надо назвать акт по имени. Перезапрос на
+  // смене языка перелокализует арку; без сети приезжает офлайн-синтез.
   useEffect(() => {
-    if (mode !== "campaign") return;
     let cancelled = false;
     getCampaigns(lang).then((cs) => {
-      if (!cancelled) setCampaign(cs[0] ?? null);
+      if (cancelled) return;
+      setCampaigns(cs);
+      // Открытой остаётся та кампания, которую играли последней (см.
+      // activeCampaignId): после перезагрузки человек обязан попасть в свою
+      // арку, а не в начало чужой.
+      setCampaignId((cur) => (cur && cs.some((c) => c.id === cur))
+        ? cur : activeCampaignId(loadProfile(), cs.map((c) => c.id)));
     });
     return () => {
       cancelled = true;
     };
-  }, [mode, lang]);
+  }, [lang]);
+
+  const campaign = useMemo(
+    () => campaigns.find((c) => c.id === campaignId) ?? null, [campaigns, campaignId]);
+  /** Прогресс ВЫБРАННОЙ кампании — производная профиля, а не своё состояние:
+   *  иначе он снова разошёлся бы с хранилищем и снова обнулялся бы по F5. */
+  const progress = useMemo(
+    () => (campaignId ? getCampaignProgress(profile, campaignId) : emptyCampaign()),
+    [profile, campaignId]);
+  const campaignProgressOf = useCallback(
+    (id: string) => getCampaignProgress(profile, id), [profile]);
+  const pickCampaign = useCallback((id: string) => {
+    setCampaignId(id);
+    recordedDebrief.current = null;
+  }, []);
 
   // When a campaign stage's debrief lands, record its result: push the grade,
   // advance the arc, and fold (overall − 50) into the running reputation. The
   // engine still owns scoring — reputation is only the next stage's trust nudge.
   useEffect(() => {
-    if (mode !== "campaign" || !nego.debrief || !campaign) return;
+    if (mode !== "campaign" || !nego.debrief || !campaign || !campaignId) return;
     if (recordedDebrief.current === nego.debrief) return;
     recordedDebrief.current = nego.debrief;
     const d = nego.debrief;
-    setProgress((p) => ({
-      stageIndex: p.stageIndex + 1,
-      reputation: clamp(p.reputation + (d.overall - 50), -100, 100),
-      results: [...p.results, { grade: d.grade, overall: d.overall }],
-    }));
-  }, [mode, nego.debrief, campaign]);
+    const total = campaign.stages.length;
+    // Свёртка чистая и живёт в lib/progress; здесь остаётся только запись в
+    // профиль. Обновление функциональное: этот эффект идёт ПОСЛЕ того, что
+    // складывает XP и серию, и обязан класть акт поверх его результата.
+    setProfile((prev) => {
+      const next = recordCampaignStage(prev, campaignId, total, d.grade, d.overall);
+      saveProfile(next);
+      return next;
+    });
+  }, [mode, nego.debrief, campaign, campaignId]);
 
   // Итог капстоуна снимается с ТОГО ЖЕ состояния, что и грейд: предикат смотрит
   // только в поля движка, поэтому «сдал» здесь значит ровно то же, что в партии.
@@ -443,6 +469,23 @@ export default function App() {
   const coursePassed = useMemo(
     () => COURSE_BLOCKS.filter((b) => profile.course[b.id]?.passed).length,
     [profile.course],
+  );
+
+  /**
+   * «Ваш следующий шаг» — один вход вместо восьми равноправных.
+   *
+   * Правило выбора здесь НЕ ЖИВЁТ: его считает `chooseNextStep` — чистая функция
+   * от профиля и трёх списков, поэтому оно проверяется тестом, а не глазами.
+   * Всё, что нужно App, — подать ей каталог, кампании и стол дня и увести клик
+   * туда, куда она показала. Считается офлайн, из localStorage (инвариант 5).
+   */
+  const route = useMemo(
+    () => chooseNextStep(profile, {
+      tables: SCENARIOS.map((sc) => ({ id: sc.id, difficulty: sc.diff })),
+      campaigns: campaigns.map((c) => ({ id: c.id, stages: c.stages.length })),
+      dailyScenarioId: dailyTable().scenarioId,
+    }),
+    [profile, campaigns],
   );
 
   // Прогрев экранов — после первой отрисовки и только на простое: домашний
@@ -514,6 +557,35 @@ export default function App() {
     },
     [nego, launch],
   );
+
+  /** Клик по карточке маршрута. Каждый вид шага ведёт ровно туда, что назван:
+   *  курс — в блок и урок, кампания — прямо в следующий акт выбранной арки,
+   *  остальное — за стол. Никакого промежуточного «выберите, что дальше». */
+  const goRoute = useCallback((pick: NextStepPick) => {
+    if (pick.kind === "course" && pick.blockId) {
+      openCourse({ blockId: pick.blockId, lesson: pick.lesson });
+      return;
+    }
+    if (pick.kind === "campaign" && pick.campaignId) {
+      const c = campaigns.find((x) => x.id === pick.campaignId) ?? null;
+      setCampaignId(pick.campaignId);
+      setMode("campaign");
+      if (!c) { scrollTop(); return; }
+      const p = getCampaignProgress(profile, pick.campaignId);
+      const stage = c.stages[p.stageIndex];
+      if (!stage) { setScreen("campaign_done"); return; }
+      setCurrentScenario(stage.scenario_id);
+      launch(stage.scenario_id, "campaign", { reputation: p.reputation });
+      return;
+    }
+    if (!pick.scenarioId) return;
+    if (pick.kind === "daily") { startDaily(pick.scenarioId); return; }
+    nego.clearError();
+    setMode("practice");
+    dispatchGen("reset");
+    setCurrentScenario(pick.scenarioId);
+    launch(pick.scenarioId, "practice");
+  }, [campaigns, profile, openCourse, launch, startDaily, nego]);
 
   const startDrill = useCallback(
     (ex: CourseExercise, ctx: { blockId: string; exam?: ExamCtx }) => {
@@ -634,12 +706,19 @@ export default function App() {
   }, [nego, campaign, progress.stageIndex]);
 
   const replayCampaign = useCallback(() => {
-    setProgress(INITIAL_PROGRESS);
+    // Обнуляется ОДНА кампания: вторая — отдельная история с отдельным прогрессом.
+    if (campaignId) {
+      setProfile((prev) => {
+        const next = resetCampaign(prev, campaignId);
+        saveProfile(next);
+        return next;
+      });
+    }
     recordedDebrief.current = null;
     nego.reset();
     setScreen("home");
     scrollTop();
-  }, [nego]);
+  }, [nego, campaignId]);
 
   // Switching modes clears a stale generation error from the custom view.
   const selectMode = useCallback(
@@ -823,7 +902,12 @@ export default function App() {
               campaign={campaign}
               campaignProgress={progress}
               onBeginStage={beginStage}
+              campaigns={campaigns}
+              campaignProgressOf={campaignProgressOf}
+              onPickCampaign={pickCampaign}
               profile={profile}
+              route={route}
+              onRoute={goRoute}
               examName={examName}
               onExamNameChange={setExamName}
               hideModes

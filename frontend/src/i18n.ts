@@ -178,6 +178,21 @@ export interface Strings {
     avgLabel: string; // "Average score"
     replay: string; // restart the campaign
     verdicts: Record<string, string>; // grade (A..F) → title
+    // Переключатель кампаний: их две, и у каждой свой прогресс.
+    pickHead: string;    // заголовок над строкой выбора
+    notStarted: string;  // кампания ещё не начата
+    finished: string;    // арка пройдена
+  };
+  // «Ваш следующий шаг» — первая карточка основной колонки. Что показывать,
+  // решает chooseNextStep (lib/progress.ts); здесь только слова к пяти ответам.
+  // {table} · {block} · {campaign} · {n}/{total} · {grade}/{score} · {diff} · {mod}
+  route: {
+    head: string;
+    firstTitle: string; firstWhy: string; firstCta: string;
+    courseTitle: string; courseWhy: string; courseWhyNew: string; courseCta: string;
+    rematchTitle: string; rematchWhy: string; rematchCta: string;
+    campaignTitle: string; campaignWhy: string; campaignCta: string;
+    dailyTitle: string; dailyWhy: string; dailyCta: string;
   };
   // first-turn coach bubble (practice/campaign/custom; withheld in exam).
   // {name} = counterpart name, substituted at render.
@@ -665,7 +680,7 @@ export const I18N: Record<Lang, Strings> = {
     useLine: "Вставить",
     hintPending: "Коуч подбирает реплику…",
     quit: "выйти",
-    interests: "Раскрытые интересы",
+    interests: "Скрытые интересы",
     interestToast: "Вы вскрыли интерес",
     coachLabel: "тренер",
     judgeBadge: {
@@ -691,7 +706,7 @@ export const I18N: Record<Lang, Strings> = {
     newRecord: "новый рекорд!",
     placeholder: "Ваша реплика своими словами…",
     placeholderNudges: [
-      "Спросите, ПОЧЕМУ это важно для них…",
+      "Спросите по теме из панели «Скрытые интересы»: «что для вас важно в…»",
       "Сошлитесь на рыночные данные или объективный критерий…",
       "Предложите размен: «если…, то…»…",
     ],
@@ -755,6 +770,28 @@ export const I18N: Record<Lang, Strings> = {
         D: "Есть над чем поработать",
         F: "Ещё учиться",
       },
+      pickHead: "Кампании",
+      notStarted: "не начата",
+      finished: "пройдена",
+    },
+    route: {
+      head: "Ваш следующий шаг",
+      firstTitle: "Начните с «{table}»",
+      firstWhy: "Сложность {diff} из 5 — самый простой стол в каталоге. Одна цена, разговорчивый оппонент: метод виден целиком, и ошибиться нестрашно.",
+      firstCta: "Сесть за стол →",
+      courseTitle: "Блок курса: «{block}»",
+      courseWhy: "Приём начат и не закрыт. Доучите — и он ваш; в игре он засчитывается так же, как в задании.",
+      courseWhyNew: "Приём, которого вы ещё не брали. Курс объясняет его заданиями, а не лекцией: правильный ответ здесь — правильный и за столом.",
+      courseCta: "Продолжить блок →",
+      rematchTitle: "Переиграйте «{table}»",
+      rematchWhy: "Ваш рекорд за этим столом — {grade}, {score} из 100. Это стол, который вас пока обыграл; садиться за новый рано.",
+      rematchCta: "Переиграть →",
+      campaignTitle: "«{campaign}»: акт {n} из {total}",
+      campaignWhy: "Впереди «{act}». Репутация прошлых актов едет с вами: оппонент уже наслышан.",
+      campaignCta: "Продолжить кампанию →",
+      dailyTitle: "Стол дня: «{table}»",
+      dailyWhy: "Курс сдан, кампании пройдены, слабых столов не осталось. Держите форму: сегодня — {mod}.",
+      dailyCta: "Играть →",
     },
     beats: {
       label: "Части разбора",
@@ -982,11 +1019,17 @@ export const I18N: Record<Lang, Strings> = {
     opening: {
       title: "Стол накрыт",
       scene: "{role} Напротив — {name}. Её цена: {offer}. Ваша цель: {target}, красная линия: {red}.",
-      hint: "У второй стороны три скрытых интереса. Пока вы их не вскрыли, спор идёт только о цене — а там выигрывает тот, кто сильнее давит.",
+      hint: "У второй стороны три скрытых интереса. Темы, в которых они лежат, перечислены в панели «Скрытые интересы» — спросите ПО ТЕМЕ, и интерес откроется. Пока не вскрыли — спор идёт только о цене, а там выигрывает тот, кто сильнее давит.",
+      // ЗАЧАТКИ, а не готовые реплики — как чипы композера ниже. Готовая строка
+      // не может знать стол: «что для вас важнее всего в этой сделке» по
+      // построению не называет ни одной темы, а движок (правильно) требует
+      // темы, — и продукт печатал новичку три реплики, подписывал их приёмами
+      // и не засчитывал ни одну. Зачаток обрывается ровно там, где игрок
+      // обязан подставить тему со своего же стола.
       lines: [
-        { tag: "🎯 Интерес", text: "Что для вас важнее всего в этой сделке — и почему именно это?" },
-        { tag: "📊 Критерий", text: "Прежде чем спорить о цифре: на какие данные мы оба могли бы опереться?" },
-        { tag: "🔄 Размен", text: "Что вам дешевле уступить — сроки или объём? Возможно, нам есть чем обменяться." },
+        { tag: "🎯 Интерес", text: "Что для вас важно в " },
+        { tag: "📊 Критерий", text: "Давайте опираться на объективные данные: " },
+        { tag: "🔄 Размен", text: "В обмен на движение по цене мы готовы " },
       ],
     },
     onboarding: {
@@ -1308,7 +1351,7 @@ export const I18N: Record<Lang, Strings> = {
     useLine: "Use it",
     hintPending: "Your coach is picking a line…",
     quit: "leave",
-    interests: "Interests uncovered",
+    interests: "Hidden interests",
     interestToast: "Interest uncovered",
     coachLabel: "coach",
     judgeBadge: {
@@ -1334,7 +1377,7 @@ export const I18N: Record<Lang, Strings> = {
     newRecord: "new record!",
     placeholder: "Your line, in your own words…",
     placeholderNudges: [
-      "Ask WHY this matters to them…",
+      "Ask about a topic from the “Hidden interests” panel: “what matters to you in…”",
       "Cite market data or an objective criterion…",
       "Offer a trade: “if…, then…”…",
     ],
@@ -1391,6 +1434,9 @@ export const I18N: Record<Lang, Strings> = {
       completeTitle: "The climb is complete",
       avgLabel: "Average score",
       replay: "Climb again",
+      pickHead: "Campaigns",
+      notStarted: "not started",
+      finished: "completed",
       verdicts: {
         A: "Master negotiator",
         B: "Confident negotiator",
@@ -1398,6 +1444,25 @@ export const I18N: Record<Lang, Strings> = {
         D: "Room to grow",
         F: "Still learning",
       },
+    },
+    route: {
+      head: "Your next step",
+      firstTitle: "Start with “{table}”",
+      firstWhy: "Difficulty {diff} of 5 — the easiest table in the catalogue. One price, a talkative counterpart: the whole method is visible and a misstep costs nothing.",
+      firstCta: "Take the table →",
+      courseTitle: "Course block: “{block}”",
+      courseWhy: "A technique you started and never closed. Finish it — and it is yours; the game counts it exactly as the drill does.",
+      courseWhyNew: "A technique you have not taken yet. The course teaches it with drills, not lectures: the right answer here is the right answer at the table.",
+      courseCta: "Continue the block →",
+      rematchTitle: "Replay “{table}”",
+      rematchWhy: "Your record at this table is {grade}, {score} out of 100. This is the table that beat you — a new one can wait.",
+      rematchCta: "Play it again →",
+      campaignTitle: "“{campaign}”: act {n} of {total}",
+      campaignWhy: "Next up: “{act}”. The reputation from earlier acts travels with you — they have heard about you.",
+      campaignCta: "Continue the campaign →",
+      dailyTitle: "Table of the day: “{table}”",
+      dailyWhy: "The course is passed, the campaigns are done, no weak tables are left. Keep in form: today it is {mod}.",
+      dailyCta: "Play →",
     },
     beats: {
       label: "Debrief sections",
@@ -1622,9 +1687,9 @@ export const I18N: Record<Lang, Strings> = {
       scene: "{role} Across from you: {name}. Their price: {offer}. Your target: {target}, red line: {red}.",
       hint: "They have three hidden interests. Until you surface them the argument is only about price — and there the harder pusher wins.",
       lines: [
-        { tag: "🎯 Interest", text: "What matters most to you in this deal — and why exactly that?" },
-        { tag: "📊 Criterion", text: "Before we argue about the number: what data could we both anchor on?" },
-        { tag: "🔄 Trade-off", text: "What's cheaper for you to give — timing or volume? We may have something to trade." },
+        { tag: "🎯 Interest", text: "What matters to you in " },
+        { tag: "📊 Criterion", text: "Let's anchor on objective data: " },
+        { tag: "🔄 Trade-off", text: "In exchange for movement on price, we can " },
       ],
     },
     onboarding: {
@@ -1844,11 +1909,11 @@ export const I18N: Record<Lang, Strings> = {
     // Stems, not finished moves — the player completes each in their own words
     // (the full worked example stays behind the 💡 hint button).
     quickMoves: [
-      { label: "❓ SPIN question", text: "Tell me how you currently handle " },
-      { label: "🎯 Interest", text: "Why does it matter to you that " },
-      { label: "📊 Criterion", text: "By market data, the fair value is " },
+      { label: "❓ SPIN question", text: "Tell me about your current process for " },
+      { label: "🎯 Interest", text: "Why is that important to you — " },
+      { label: "📊 Criterion", text: "By the market rate, the fair value is " },
       { label: "🤝 Empathy", text: "I understand that what matters to you is " },
-      { label: "🔄 Trade-off", text: "If we move on timing, could you " },
+      { label: "🔄 Trade-off", text: "If we move on timing, can you move on " },
     ],
   },
 };

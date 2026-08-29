@@ -495,10 +495,20 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .fill.info { background: var(--info); }
 .fill.leverage { background: var(--leverage); }
 
-.interests-line { display: flex; gap: 5px; align-items: center; font-size: 11.5px; color: var(--ink-dim); }
-.pips { display: flex; gap: 4px; }
-.pips i { width: 8px; height: 8px; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--line-2); }
-.pips i.on { background: var(--trust); border-color: var(--trust); }
+/* Рельс скрытых интересов. Раньше здесь стояли три пустых кружка: счётчик без
+   единой зацепки, по которой можно понять, О ЧЁМ спрашивать. Теперь невскрытый
+   слот несёт ТЕМУ (область, в которой интерес лежит), вскрытый — сам интерес.
+   Оформление повторяет .dealterms рядом: тот же рельс, та же логика «серое до,
+   латунное после». */
+.interests-rail { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 13px; display: flex; flex-direction: column; gap: 8px; }
+.ir-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-faint); }
+.ir-count { font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.ir-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ir-chips li { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; line-height: 1.35; color: var(--ink-dim); transition: color 0.3s; }
+.ir-mark { flex-shrink: 0; width: 16px; text-align: center; font-size: 12px; }
+.ir-txt { flex: 1; }
+.ir-chips li.on { color: var(--ink); }
+.ir-chips li.on .ir-txt { font-weight: 600; }
 
 /* Deal-terms panel — the visible logrolling "package". Compact; sits under the
    deal tracker. A traded issue flips to brass with a check; untraded stays muted.
@@ -839,7 +849,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 
   /* The rail's explanatory chrome: 9-11.5px is unreadable past the third row. */
   .ob .l, .dt-legend, .dt-mark .lbl { font-size: 11.5px; }
-  .dtm-explain, .interests-line { font-size: 12.5px; }
+  .dtm-explain, .ir-chips li { font-size: 12.5px; }
   .tag, .arg, .deltas, .jc-chip, .sc-chip { font-size: 12px; }
 
   .bub { font-size: 15.5px; }
@@ -1065,7 +1075,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 .coachline-x:hover { color: var(--ink); background: var(--panel-2); }
 
 /* ---------- Interest-reveal delight ---------- */
-.interests-line.flash {
+.interests-rail.flash {
   animation: interestflash 0.9s ease-out;
   border-radius: 6px;
 }
@@ -2323,17 +2333,20 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   :root .chat { order: 0; }
 }
 
-/* The canvas design makes the card's call to action a real button, not a text
-   link — full width, uppercase, with the same pressable lip as every other
-   primary. It is the single most-clicked control on the screen. */
+/* Кнопка стола — настоящая кнопка, во всю ширину карточки. НО ОБВОДКОЙ, А НЕ
+   ЗАЛИВКОЙ: девять залитых «НАЧАТЬ →» в ряд означали, что первого шага нет — все
+   девять кричали одинаково громко. Заливка на главной осталась ровно одна, у
+   карточки «Ваш следующий шаг», и она же единственная называет стол по имени.
+   Обводка при этом остаётся кнопкой: та же ширина, тот же регистр, то же нажатие. */
 :root .go {
-  display: block; width: 100%; margin-top: 12px; padding: 11px;
-  background: var(--brass); color: var(--on-brass); border-radius: 14px;
-  border-bottom: 4px solid var(--edge);
+  display: block; width: 100%; margin-top: 12px; padding: 10px;
+  background: transparent; color: var(--brass); border-radius: 14px;
+  border: 1.5px solid var(--line-2);
   font-size: 13px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
-  text-align: center; transition: transform 0.06s;
+  text-align: center; transition: transform 0.06s, border-color 0.18s, background 0.18s;
 }
-:root .card:active .go { transform: translateY(3px); border-bottom-width: 1px; }
+:root .card:hover .go { border-color: var(--brass); }
+:root .card:active .go { transform: translateY(2px); }
 /* `width: 100%` alone does nothing inside the footer's flex row — the button
    needs its own line for that to mean anything. */
 :root .card .cf { flex-wrap: wrap; row-gap: 4px; }
@@ -3331,3 +3344,64 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   .rmrail-tab { right: 8px; top: auto; bottom: calc(74px + env(safe-area-inset-bottom)); }
   .rm-spark.tall { height: 40px; }
 }
+
+
+/* ---------- «Ваш следующий шаг» ----------
+   Первая карточка основной колонки и единственная залитая кнопка на главной:
+   девять столов рядом носят обводку, поэтому первый шаг читается первым и без
+   слова «начните отсюда». Что именно она показывает, решает chooseNextStep
+   (lib/progress.ts) — здесь только вес на экране. */
+.route { margin-bottom: 4px; }
+.route > .section-head { margin-top: 0; }
+.route-card {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  background: var(--panel); border: 2px solid var(--brass); border-radius: var(--r);
+  padding: 20px 22px; box-shadow: var(--shadow);
+}
+.route-karl { flex: 0 0 auto; }
+.route-karl img { display: block; width: 72px; height: 72px; }
+.route-txt { flex: 1 1 240px; min-width: 0; }
+.route-card .route-title { font-family: var(--serif); font-size: 21px; font-weight: 700; margin: 0 0 6px; }
+.route-card .route-why { font-size: 13.5px; line-height: 1.55; color: var(--ink-dim); margin: 0; }
+.route-card .route-cta {
+  flex: 0 0 auto; padding: 13px 22px; border-radius: 14px;
+  background: var(--brass); color: var(--on-brass);
+  font-size: 14px; font-weight: 800; letter-spacing: 0.03em;
+  border-bottom: 4px solid var(--edge); transition: transform 0.06s;
+}
+.route-card .route-cta:active { transform: translateY(3px); border-bottom-width: 1px; }
+@media (max-width: 620px) {
+  .route-card { gap: 14px; padding: 18px; }
+  .route-karl img { width: 56px; height: 56px; }
+  .route-card .route-cta { flex: 1 0 100%; }
+}
+
+/* ---------- Переключатель кампаний ----------
+   Кампаний две, и до этой строки вторая не имела входа вовсе. */
+.camp-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.camp-pick-b {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 14px 16px; transition: border-color 0.18s, transform 0.18s;
+}
+.camp-pick-b:hover { transform: translateY(-2px); border-color: var(--brass); }
+.camp-pick-b.sel { border-color: var(--brass); box-shadow: var(--shadow); }
+.camp-pick-b .cp-ic { font-size: 24px; line-height: 1; }
+.camp-pick-b .cp-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.camp-pick-b .cp-txt b { font-family: var(--serif); font-size: 16px; }
+.camp-pick-b .cp-tag { font-size: 12px; color: var(--ink-dim); }
+.camp-pick-b .cp-state {
+  font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-faint);
+  border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+}
+.camp-pick-b.sel .cp-state { color: var(--brass); border-color: var(--brass); }
+
+/* Кнопка курса в рейле остаётся кнопкой, но перестаёт спорить с первым шагом:
+   на главной залита ровно ОДНА кнопка, и это «Ваш следующий шаг». Иначе рейл
+   кричал громче основной колонки — та же болезнь, что у девяти «НАЧАТЬ →». */
+.rc-go.btn.primary {
+  background: transparent; color: var(--brass);
+  border: 1.5px solid var(--line-2); box-shadow: none;
+  transition: border-color 0.18s;
+}
+.rc-go.btn.primary:hover { border-color: var(--brass); }

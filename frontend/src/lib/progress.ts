@@ -52,6 +52,33 @@ export interface Profile {
   // Прогресс по блокам курса. Отдельной валюты нет: XP тот же, ранги те же —
   // курс и партии живут в одном профиле, иначе «прогресс» перестаёт быть общим.
   course: Record<string, BlockProgress>;
+  // ---- кампании v5 -----------------------------------------------------------
+  // Прогресс ПО ИДЕНТИФИКАТОРУ кампании, а не одной записью: кампаний две
+  // («Восхождение» и «Своё дело»), и общая запись означала бы, что вход во
+  // вторую стирает первую. Раньше этого поля не было вовсе — четырёхактная арка
+  // жила в состоянии React и обнулялась по F5.
+  campaigns: Record<string, CampaignProgress>;
+}
+
+/** Итог одного акта: грейд и балл, как их поставил движок. Не пересчитывается. */
+export interface StageResult {
+  grade: string;
+  overall: number;
+}
+
+/** Прогресс ОДНОЙ кампании. `stageIndex` — акт, который играется следующим;
+ *  равен числу актов, когда кампания пройдена. */
+export interface CampaignProgress {
+  stageIndex: number;
+  reputation: number; // -100..100, переносится в доверие следующего акта
+  results: StageResult[];
+  /** ISO-время последнего акта; "" — кампания не начата. По нему выбирается
+   *  кампания, открытая при возврате: продолжают ту, которую играли последней. */
+  updatedAt: string;
+}
+
+export function emptyCampaign(): CampaignProgress {
+  return { stageIndex: 0, reputation: 0, results: [], updatedAt: "" };
 }
 
 /** Что игрок сделал в одном блоке курса. */
@@ -69,7 +96,7 @@ export function emptyBlockProgress(): BlockProgress {
   return { lessons: [], solved: [], missed: [], examBest: 0, examTotal: 0, passed: false, attempts: 0 };
 }
 
-const VERSION = 4;
+const VERSION = 5;
 const KEY = "dialog.progress.v1";
 
 // Streak-freeze economy (Duolingo's anxiety-reducer): a small buffer that eats a
@@ -77,6 +104,11 @@ const KEY = "dialog.progress.v1";
 // (1 per 5-day streak), hard-capped so it can never trivialize the streak.
 export const FREEZE_CAP = 2;
 export const FREEZE_EARN_EVERY = 5;
+
+/** Потолок актов в одной кампании. Не описание кампаний (их знает движок), а
+ *  граница здравого смысла для ЧУЖОГО блоба: без неё подделанный `stageIndex`
+ *  рисовал бы бесконечную арку. Кампании в продукте — четырёхактные. */
+export const CAMPAIGN_MAX_ACTS = 12;
 
 // Daily-goal bounds — the player picks 1/2/3 finished games per day.
 export const DAILY_GOAL_MIN = 1;
@@ -98,7 +130,7 @@ export function emptyProfile(): Profile {
     version: VERSION, scenarios: {}, streak: 0, lastStreakDay: "", xp: 0,
     skills: emptySkills(), achievements: [],
     freezes: 0, dailyGoalTarget: DAILY_GOAL_DEFAULT, dailyDoneDay: "", dailyDoneCount: 0,
-    celebratedMilestones: [], course: {},
+    celebratedMilestones: [], course: {}, campaigns: {},
   };
 }
 
@@ -289,6 +321,7 @@ export function recordDebrief(
     dailyDoneCount: profile.dailyDoneCount,
     celebratedMilestones: profile.celebratedMilestones,
     course: profile.course,
+    campaigns: profile.campaigns,
   };
   return { profile: next, record, prevBest, improved, isFirst };
 }
@@ -350,6 +383,9 @@ export function loadProfile(): Profile {
       // v4: любой более старый блоб загружается с пустым курсом — как и все
       // предыдущие добавления, поле дефолтится, а не роняет профиль.
       course: sanitizeCourse(parsed.course),
+      // v5: кампании. Тот же приём, что у всех предыдущих добавлений — чужой
+      // (старый или испорченный) блоб грузится с пустой картой, а не падает.
+      campaigns: sanitizeCampaigns(parsed.campaigns),
     };
   } catch {
     return emptyProfile();
@@ -372,6 +408,41 @@ function sanitizeCourse(v: unknown): Record<string, BlockProgress> {
       examTotal: typeof r.examTotal === "number" && r.examTotal >= 0 ? Math.floor(r.examTotal) : 0,
       passed: r.passed === true,
       attempts: typeof r.attempts === "number" && r.attempts >= 0 ? Math.floor(r.attempts) : 0,
+    };
+  }
+  return out;
+}
+
+/** Разбор карты кампаний из хранилища. Каждое поле проверяется по отдельности:
+ *  испорченная запись ОДНОЙ кампании не должна уносить с собой вторую, а
+ *  «пройдено актов больше, чем сыграно» — не состояние, в котором арка
+ *  когда-либо была, значит это чужой блоб. */
+function sanitizeCampaigns(v: unknown): Record<string, CampaignProgress> {
+  const out: Record<string, CampaignProgress> = {};
+  if (!v || typeof v !== "object") return out;
+  for (const [id, val] of Object.entries(v as Record<string, unknown>)) {
+    if (!id || !val || typeof val !== "object") continue;
+    const r = val as Record<string, unknown>;
+    const results = (Array.isArray(r.results) ? r.results : [])
+      .map((x): StageResult | null => {
+        if (!x || typeof x !== "object") return null;
+        const e = x as Record<string, unknown>;
+        const g = e.grade;
+        if (g !== "A" && g !== "B" && g !== "C" && g !== "D" && g !== "F") return null;
+        const overall = typeof e.overall === "number" && isFinite(e.overall) ? clamp(Math.round(e.overall), 0, 100) : 0;
+        return { grade: g, overall };
+      })
+      .filter((x): x is StageResult => x !== null)
+      .slice(0, CAMPAIGN_MAX_ACTS);
+    const rawIdx = typeof r.stageIndex === "number" && isFinite(r.stageIndex) ? Math.floor(r.stageIndex) : 0;
+    out[id] = {
+      // Акт «следующий» не может быть раньше сыгранных и не может убежать за
+      // потолок: иначе подделанный блоб открывал бы четвёртый акт с нуля.
+      stageIndex: clamp(rawIdx, results.length, CAMPAIGN_MAX_ACTS),
+      reputation: typeof r.reputation === "number" && isFinite(r.reputation)
+        ? clamp(Math.round(r.reputation), -100, 100) : 0,
+      results,
+      updatedAt: typeof r.updatedAt === "string" ? r.updatedAt : "",
     };
   }
   return out;
@@ -1035,4 +1106,214 @@ export function savePastRun(run: PastRun): PastRun {
     /* квота/приватный режим — сравнение просто не переживёт перезагрузку */
   }
   return tables[run.scenarioId];
+}
+
+
+// ============================================================================
+// Кампании — прогресс по идентификатору, а не одной записью.
+//
+// Кампаний две, и обе играются. Пока прогресс жил в состоянии React, у него не
+// было ни владельца, ни срока жизни: F5 обнулял четырёхактную арку, а вход во
+// вторую кампанию затирал бы первую. Здесь та же математика, что у остального
+// профиля, — чистые функции над свежей копией, — поэтому её можно проверить
+// тестом, а не глазами.
+//
+// ОЦЕНКУ ЭТО НЕ ТРОГАЕТ. Репутация — стартовое условие следующего акта (сдвиг
+// доверия), ровно как модификатор «стола дня»; в score_session она не входит.
+// ============================================================================
+
+const clampRep = (n: number) => clamp(Math.round(n), -100, 100);
+
+export function getCampaignProgress(profile: Profile, campaignId: string): CampaignProgress {
+  return profile.campaigns[campaignId] ?? emptyCampaign();
+}
+
+export function setCampaignProgress(
+  profile: Profile, campaignId: string, p: CampaignProgress,
+): Profile {
+  return { ...profile, campaigns: { ...profile.campaigns, [campaignId]: p } };
+}
+
+/**
+ * Акт сыгран: грейд в список, арка на шаг вперёд, репутация — на (балл − 50).
+ *
+ * Чистая свёртка. Раньше это же правило жило внутри useEffect в App.tsx и
+ * проверить его было нечем; здесь оно ещё и не может уехать за число актов —
+ * `total` приходит из самой кампании.
+ */
+export function recordCampaignStage(
+  profile: Profile, campaignId: string, total: number,
+  grade: string, overall: number, now: Date = new Date(),
+): Profile {
+  const prev = getCampaignProgress(profile, campaignId);
+  if (prev.stageIndex >= total) return profile; // арка пройдена — записывать некуда
+  return setCampaignProgress(profile, campaignId, {
+    stageIndex: prev.stageIndex + 1,
+    reputation: clampRep(prev.reputation + (overall - 50)),
+    results: [...prev.results, { grade, overall }],
+    updatedAt: now.toISOString(),
+  });
+}
+
+/** «Пройти заново» — обнуление ОДНОЙ кампании, вторая не трогается. */
+export function resetCampaign(profile: Profile, campaignId: string): Profile {
+  return setCampaignProgress(profile, campaignId, emptyCampaign());
+}
+
+/**
+ * Какую кампанию открыть по возвращении: ту, которую играли последней, а из
+ * нетронутых — первую в списке. Иначе после перезагрузки человек попадал бы в
+ * начало чужой арки, а свою искал бы вручную.
+ */
+export function activeCampaignId(profile: Profile, ids: string[]): string | null {
+  if (ids.length === 0) return null;
+  let best: string | null = null;
+  let bestAt = "";
+  for (const id of ids) {
+    const p = profile.campaigns[id];
+    if (!p || !p.updatedAt) continue;
+    if (p.updatedAt > bestAt) { bestAt = p.updatedAt; best = id; }
+  }
+  return best ?? ids[0];
+}
+
+// ============================================================================
+// «Ваш следующий шаг» — маршрут по одному правилу.
+//
+// На главной девять одинаковых карточек, шесть пунктов меню и пять виджетов
+// рейла. Каждый вход честный, но ни один не говорит «начни отсюда», и новичок
+// садится за «Раунд с инвестором» (пять точек сложности) с тем же основанием,
+// что за «Контракт с поставщиком» (две).
+//
+// ПРАВИЛО: следующий шаг — это то, что УЖЕ НАЧАТО и не закончено; если начатого
+// нет — то, что ещё не открыто; если и этого нет — стол дня. Порядок ниже
+// разбирает ровно это, сверху вниз, и других веток у него нет.
+//
+// Чего здесь НЕТ намеренно: экзамена на сертификат и экзамена мастера. Это не
+// «следующий шаг», а отдельное решение человека — сесть под запись, без
+// подсказок и без слоёв. Продукт не должен подталкивать к нему карточкой.
+// ============================================================================
+
+export type NextStepKind = "first" | "course" | "rematch" | "campaign" | "daily";
+
+/** Стол каталога — только то, что нужно правилу (id и сложность). Каталог сюда
+ *  не импортируется: правило обязано быть проверяемым без данных игры. */
+export interface RouteTable {
+  id: string;
+  difficulty: number;
+}
+
+/** Кампания — id и число актов. Столько же знает и `recordCampaignStage`. */
+export interface RouteCampaign {
+  id: string;
+  stages: number;
+}
+
+export interface RouteInput {
+  tables: RouteTable[];
+  campaigns: RouteCampaign[];
+  /** Стол дня — последний ответ правила, он же состояние «всё пройдено». */
+  dailyScenarioId: string;
+}
+
+export interface NextStepPick {
+  kind: NextStepKind;
+  /** Стол, за который сажает шаг (`first` · `rematch` · `campaign` · `daily`). */
+  scenarioId: string | null;
+  /** Блок курса и урок внутри него (`course`). `lesson === null` — уроки прочитаны. */
+  blockId: string | null;
+  lesson: number | null;
+  /** Курс уже начат — карточка объясняет «доучите», а не «откройте». */
+  resumed: boolean;
+  campaignId: string | null;
+  /** Акт, который играется следующим (0-based), для `campaign`. */
+  stageIndex: number;
+  /** Рекорд, который надо побить (`rematch`), и сложность стола (`first`). */
+  grade: Grade | null;
+  score: number;
+  difficulty: number;
+}
+
+const NO_STEP: NextStepPick = {
+  kind: "daily", scenarioId: null, blockId: null, lesson: null, resumed: false,
+  campaignId: null, stageIndex: 0, grade: null, score: 0, difficulty: 0,
+};
+
+/** Блок начат, но не сдан: есть прочитанные уроки, решённые задания или попытки
+ *  экзамена. Именно он — «недоигранный курс», а не любой несданный блок. */
+function startedBlock(profile: Profile) {
+  return COURSE_BLOCKS.find((b) => {
+    const p = profile.course[b.id];
+    if (!p || p.passed) return false;
+    return p.lessons.length > 0 || p.solved.length > 0 || p.attempts > 0;
+  });
+}
+
+function courseStep(profile: Profile, blockId: string, resumed: boolean): NextStepPick {
+  const block = COURSE_BLOCKS.find((b) => b.id === blockId);
+  const done = profile.course[blockId]?.lessons ?? [];
+  const lesson = block?.lessons.find((l) => !done.includes(l.idx));
+  return { ...NO_STEP, kind: "course", blockId, lesson: lesson ? lesson.idx : null, resumed };
+}
+
+/**
+ * Единственное правило маршрута. Чистая функция от профиля и трёх списков —
+ * ни localStorage, ни каталога, ни сети (инвариант 5).
+ */
+export function chooseNextStep(profile: Profile, input: RouteInput): NextStepPick {
+  const daily: NextStepPick = { ...NO_STEP, kind: "daily", scenarioId: input.dailyScenarioId };
+
+  const played = Object.values(profile.scenarios).filter((r) => r.attempts > 0);
+  const touchedCourse = COURSE_BLOCKS.some((b) => {
+    const p = profile.course[b.id];
+    return !!p && (p.lessons.length > 0 || p.solved.length > 0 || p.attempts > 0 || p.passed);
+  });
+
+  // 1. Профиль пуст — самый лёгкий стол каталога, названный поимённо. Ничья по
+  //    сложности разрешается порядком каталога: правило обязано быть
+  //    воспроизводимым, а не «каким-нибудь из двух».
+  if (played.length === 0 && !touchedCourse) {
+    const easiest = input.tables.reduce<RouteTable | null>(
+      (best, t) => (best === null || t.difficulty < best.difficulty ? t : best), null);
+    if (easiest) {
+      return { ...NO_STEP, kind: "first", scenarioId: easiest.id, difficulty: easiest.difficulty };
+    }
+    return daily;
+  }
+
+  // 2. Недоигранный блок курса — начатое важнее нового.
+  const started = startedBlock(profile);
+  if (started) return courseStep(profile, started.id, true);
+
+  // 3. Стол, который вас обыграл. Слабый рекорд — это D или F: тот же порог,
+  //    по которому движок считает партию непройденной (см. applyDebrief).
+  let weak: { id: string; rec: ScenarioRecord } | null = null;
+  for (const [id, rec] of Object.entries(profile.scenarios)) {
+    if (rec.bestGrade !== "D" && rec.bestGrade !== "F") continue;
+    if (!weak || GRADE_RANK[rec.bestGrade] < GRADE_RANK[weak.rec.bestGrade as Grade]
+        || (GRADE_RANK[rec.bestGrade] === GRADE_RANK[weak.rec.bestGrade as Grade]
+            && rec.bestScore < weak.rec.bestScore)) {
+      weak = { id, rec };
+    }
+  }
+  if (weak) {
+    return { ...NO_STEP, kind: "rematch", scenarioId: weak.id,
+             grade: weak.rec.bestGrade, score: weak.rec.bestScore };
+  }
+
+  // 4. Начатая, но не пройденная кампания — следующий акт. Непочатую сюда не
+  //    тащим: «начать кампанию» это выбор истории, а не следующий шаг.
+  for (const c of input.campaigns) {
+    const p = profile.campaigns[c.id];
+    if (!p || !p.updatedAt) continue;
+    if (p.stageIndex >= c.stages) continue;
+    return { ...NO_STEP, kind: "campaign", campaignId: c.id, stageIndex: p.stageIndex };
+  }
+
+  // 5. Первый ещё не открытый блок курса.
+  const fresh = COURSE_BLOCKS.find((b) => !profile.course[b.id]?.passed);
+  if (fresh) return courseStep(profile, fresh.id, false);
+
+  // 6. Всё намеченное закрыто — остаётся держать форму.
+  return daily;
 }

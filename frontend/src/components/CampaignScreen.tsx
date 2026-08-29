@@ -7,20 +7,13 @@ import type { Strings } from "../i18n";
 import { EPILOGUE_BANDS } from "../data/campaigns.generated";
 import { COURSE_BLOCKS } from "../lib/courseMap";
 import { ScreenHeading } from "./ScreenHeading";
+import type { CampaignProgress, StageResult } from "../lib/progress";
 
-// Per-stage record the App accumulates as the player advances the arc.
-export interface StageResult {
-  grade: string;
-  overall: number;
-}
-
-// Campaign progress lives in App state (see App.tsx). stageIndex is the act to
-// play next (0..N); === stages.length means the campaign is finished.
-export interface CampaignProgress {
-  stageIndex: number;
-  reputation: number; // running -100..100 carried into the next stage's trust
-  results: StageResult[];
-}
+// ПРОГРЕСС КАМПАНИИ ЖИВЁТ В ПРОФИЛЕ, а не в состоянии React: он переживает F5,
+// хранится по идентификатору кампании и разбирается защищённо (lib/progress.ts).
+// Здесь только показ. Тип переэкспортируется, потому что для этого экрана он и
+// нужен, а два объявления одной формы неминуемо разъехались бы.
+export type { CampaignProgress, StageResult };
 
 const GRADE_COLOR: Record<string, string> = {
   A: "var(--trust)",
@@ -151,6 +144,54 @@ function ActRow({
         ) : null}
       </div>
     </li>
+  );
+}
+
+/**
+ * Переключатель кампаний.
+ *
+ * Кампаний две, и вторая («Своё дело») до сих пор не имела ВХОДА: App брал
+ * `cs[0]`, и четыре акта, эпилог и зеркало для офлайна были отгружены вслепую.
+ * Строка ниже показывает обе и у каждой — её собственный прогресс, потому что
+ * прогресс теперь хранится по идентификатору.
+ *
+ * Одна кампания — строки нет: выбор из одного это не выбор, а шум над аркой.
+ */
+export function CampaignPicker({
+  t, campaigns, active, progressOf, onPick,
+}: {
+  t: Strings;
+  campaigns: CampaignView[];
+  active: string | null;
+  progressOf: (id: string) => CampaignProgress;
+  onPick: (id: string) => void;
+}) {
+  if (campaigns.length < 2) return null;
+  return (
+    <>
+      <div className="section-head">{t.campaign.pickHead}</div>
+      <div className="camp-pick">
+        {campaigns.map((c) => {
+          const p = progressOf(c.id);
+          const total = c.stages.length;
+          const state = p.stageIndex >= total && total > 0 ? t.campaign.finished
+            : p.stageIndex > 0 ? t.campaign.actOf
+                .replace("{n}", String(p.stageIndex + 1)).replace("{total}", String(total))
+            : t.campaign.notStarted;
+          return (
+            <button key={c.id} className={`camp-pick-b${active === c.id ? " sel" : ""}`}
+                    aria-pressed={active === c.id} onClick={() => onPick(c.id)}>
+              <span className="cp-ic" aria-hidden="true">{c.icon}</span>
+              <span className="cp-txt">
+                <b>{c.title}</b>
+                <span className="cp-tag">{c.tagline}</span>
+              </span>
+              <span className="cp-state">{state}</span>
+            </button>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
