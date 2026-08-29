@@ -109,6 +109,13 @@ export interface Strings {
   // случае не рисовалась вовсе, и «движок меня не заметил» читалось так же,
   // как «движок сломан». Ноль — это результат, и он обязан быть подписан.
   deltaNone: string;
+  // ДОСЛОВНЫЙ повтор своей же реплики. Движок за него откатывает всё, что ход
+  // начислил, и добавляет напряжения: оппонент уже отвечал на эти слова. На
+  // экране от этого была видна одна красная плашка «Напр +6» — без причины, да
+  // ещё под похвалой судьи, который честно узнаёт в повторе тот же приём.
+  // Подпись ставится ТОЛЬКО на посимвольное совпадение: это заведомо жёсткий
+  // повтор по мерке движка, поэтому клиент здесь ничего не выдумывает.
+  deltaRepeat: string;
   connecting: string;
   usingMock: string;
   // gentle composer note as the input nears the length cap — "{n}" = chars left
@@ -159,6 +166,9 @@ export interface Strings {
     dateLabel: string; // "Дата" — precedes the (browser-side) date
     download: string; // "Скачать / Печать" — triggers window.print()
     certifies: string; // one-line credibility caption on the certificate
+    /** Экзамен не сдан: сертификата нет, но результат записан. Говорит Тихон —
+     *  он и есть память, а тренера на экзамене не бывает. */
+    notAwarded: string;
   };
   // campaign mode ("Кампания") — narrative career arc
   campaign: {
@@ -211,6 +221,9 @@ export interface Strings {
     what: string;            // "[i] что это"
     sameGrade: string;       // caption on every toggle — the honesty guarantee
     unavailable: string;     // badge on a layer the environment cannot deliver
+    /** Сводка над тумблерами: что здесь не поднимется. Перечисляет ИМЕНА слоёв
+     *  и отсылает к причине под каждым — своей причины у неё нет. {list} */
+    naSummary: string;
     /** Почему тумблеры заперты. Запрет обязан быть виден словами, а не
      *  отсутствием элемента: режим гасит слои — так и написано. */
     lockedMode: string;      // экзамен/кампания/капстоун/своя сделка
@@ -254,7 +267,27 @@ export interface Strings {
       point: string; celebrate: string; sad: string;
       /** Поза «изучает данные» — лента наблюдений камеры в разборе. */
       study: string;
+      /** «Данных нет»: пустой профиль, недоступные слои. */
+      shrug: string;
+      /** Досада на ОДИН грубый ход — не срыв переговоров. */
+      oops: string;
+      /** Дремлет: серия жива, но сегодня за стол ещё не садились. */
+      doze: string;
     };
+  };
+  /**
+   * Карточка серии в рейле. Полоска «🔥 N» в шапке говорит, сколько дней подряд
+   * игрок возвращался, и молчит о единственном, что от него сейчас зависит:
+   * засчитан ли СЕГОДНЯШНИЙ день. Строки ниже — по одной на каждый ответ
+   * `streakView` (lib/progress.ts), другого источника у карточки нет.
+   */
+  streak: {
+    title: string;
+    kept: string;     // день уже засчитан — {n} {form}
+    waiting: string;  // серия жива, сегодня партии не было — {n} {form}
+    shielded: string; // пропуск покроет заморозка — {n} в запасе
+    lost: string;     // серия прервана
+    away: string;     // прервана, и перерыв длинный — {n} {form}
   };
   // Полоса живых слоёв под композером.
   live: {
@@ -278,6 +311,50 @@ export interface Strings {
     why: Record<string, string>;
     debriefHead: string;     // "Как вы читали оппонента"
     observation: string;     // shared badge: "наблюдение · не влияет на оценку"
+  };
+  // Режим «Чтение стола»: человек смотрит ЧУЖУЮ партию по ходам и отвечает, как
+  // ответит вторая сторона. Ярлыков реакций здесь НЕТ намеренно — они живут в
+  // `probe.reactions`, и вторая копия того же словаря разошлась бы с первой.
+  reading: {
+    title: string;
+    cardLead: string;
+    cardProgress: string;
+    cardCta: string;
+    /* Плашка честности: режим не партия и в грейд не входит (инвариант 6). */
+    notScored: string;
+    gameOf: string;
+    turnOf: string;
+    turnsN: string;
+    watching: string;
+    /* Что именно читать в реплике — подсказка ДО ответа, без ответа. */
+    lookFor: string;
+    ask: string;
+    askNone: string;
+    exact: string;
+    near: string;
+    miss: string;
+    yourAnswer: string;
+    engineSaid: string;
+    evidence: string;
+    noTags: string;
+    argq: string;
+    effect: string;
+    noMove: string;
+    gate: string;
+    revealed: string;
+    next: string;
+    tally: string;
+    grade: string;
+    endAgreement: string;
+    endBreakdown: string;
+    endOpen: string;
+    missedHead: string;
+    again: string;
+    nextGame: string;
+    close: string;
+    tikhonTitle: string;
+    best: string;
+    a11y: { close: string; table: string };
   };
   // Левое меню оболочки. Только те пункты, что
   // correspond to something the product actually has — inventing a shop or a
@@ -707,7 +784,11 @@ export const I18N: Record<Lang, Strings> = {
     coachLabel: "тренер",
     judgeBadge: {
       label: "судит ИИ по смыслу",
-      aria: "Семантический ИИ-судья оценивает аргументацию по смыслу, а не по ключевым словам.",
+      // Точность названа числом, потому что балл хода игрок ВИДИТ («78/100»).
+      // Замер: одна и та же реплика получает от модели разброс до 15 очков,
+      // типично 10 (docs/judge-reproducibility.md). Молчать об этом и рядом
+      // печатать точное число — то самое «заявить то, чего нет».
+      aria: "Семантический ИИ-судья оценивает аргументацию по смыслу, а не по ключевым словам. Балл хода воспроизводим с точностью ±5: модель отвечает не дословно одинаково. На экзамене судья выключен — там счёт считает только движок.",
     },
     judgeReject: "распознал шаблон, не смысл",
     typingLabel: "печатает…",
@@ -727,6 +808,7 @@ export const I18N: Record<Lang, Strings> = {
     send: "Отправить",
     argLabel: "аргум.",
     deltaNone: "шкалы не сдвинулись",
+    deltaRepeat: "повтор — на эти слова уже ответили",
     connecting: "Соединение…",
     usingMock: "демо-режим (без сервера)",
     composerLimit: "Осталось {n} {form}",
@@ -778,6 +860,7 @@ export const I18N: Record<Lang, Strings> = {
       dateLabel: "Дата",
       download: "Скачать / Печать",
       certifies: "Тренажёр «Диалог» удостоверяет владение методом переговоров.",
+      notAwarded: "Сертификат выдаётся с грейда C. Результат записан — эта попытка не последняя.",
     },
     campaign: {
       overviewHead: "Ваша карьерная арка",
@@ -850,6 +933,7 @@ export const I18N: Record<Lang, Strings> = {
       seenTell: "лицо себя выдало",
       seenMore: "и ещё {n} раньше",
       unavailable: "недоступно",
+      naSummary: "Здесь это не поднимется: {list}. Причина — под каждым переключателем.",
       presets: "Пресеты",
       start: "Начать переговоры",
       back: "к выбору оппонента",
@@ -885,7 +969,18 @@ export const I18N: Record<Lang, Strings> = {
         celebrate: "Карл празднует",
         sad: "Карл расстроен",
         study: "Карл изучает данные",
+        shrug: "Карл разводит крыльями",
+        oops: "Карл прикрыл глаза крылом",
+        doze: "Карл дремлет",
       },
+    },
+    streak: {
+      title: "Серия",
+      kept: "{n} {form} подряд. Сегодняшний день уже засчитан.",
+      waiting: "{n} {form} подряд. Сегодня вы ещё не играли — партия продлит серию.",
+      shielded: "Пропуск покроет заморозка: их в запасе {n}.",
+      lost: "Серия прервана. Сегодняшняя партия начнёт новую.",
+      away: "Вас не было {n} {form}. Стол на месте.",
     },
     live: {
       micOn: "микрофон активен",
@@ -934,6 +1029,45 @@ export const I18N: Record<Lang, Strings> = {
       },
       debriefHead: "Как вы читали оппонента",
       observation: "наблюдение · не влияет на оценку",
+    },
+    reading: {
+      title: "Чтение стола",
+      cardLead: "Чужая партия по ходам. Вы не за столом — вы рядом: на каждом ходу говорите, как ответит вторая сторона, и сразу видите ответ движка.",
+      cardProgress: "Прочитано партий: {n} из {total}",
+      cardCta: "Читать партию",
+      notScored: "упражнение · в грейд не входит",
+      gameOf: "Партия {n} из {total}",
+      turnOf: "Ход {n} из {total}",
+      turnsN: "ходов: {n}",
+      watching: "С той стороны стола — {name}.",
+      lookFor: "Читайте две вещи: какой приём несёт реплика — и готов ли стол его принять.",
+      ask: "Как ответит {name} на этот ход?",
+      askNone: "Тот же ответ, что и в прошлом вопросе, — этот ход просто смотрим.",
+      exact: "Точно.",
+      near: "Направление верное, сила — нет.",
+      miss: "Мимо.",
+      yourAnswer: "Вы ответили",
+      engineSaid: "Движок ответил",
+      evidence: "Что было в реплике",
+      noTags: "Ни одного приёма: движку не за что зацепиться.",
+      argq: "качество довода {n}",
+      effect: "Что стало со столом",
+      noMove: "Шкалы не двинулись, цена осталась прежней.",
+      gate: "Доверие {trust} не выше порога {gate}: спросили по теме, а открываться ещё рано.",
+      revealed: "Вскрыта тема: {topic}",
+      next: "Дальше",
+      tally: "Точно {exact} · направление {near} · мимо {miss}",
+      grade: "Движок поставил этой партии {grade} — {overall} из 100.",
+      endAgreement: "Ударили по рукам: {deal}.",
+      endBreakdown: "Стол развалился, сделки нет.",
+      endOpen: "Ходы кончились, сделки нет.",
+      missedHead: "Что осталось закрытым",
+      again: "Читать заново",
+      nextGame: "Следующая партия",
+      close: "Закрыть",
+      tikhonTitle: "Тихон помнит",
+      best: "Прошлый раз вы прочитали эту партию точно {n} из {total}.",
+      a11y: { close: "Закрыть чтение стола", table: "Стол глазами наблюдателя" },
     },
     nav: { training: "Тренировка", campaign: "Кампания", custom: "Своя сделка",
            course: "Курс", exam: "Экзамен", progress: "Прогресс", profile: "Профиль" },
@@ -1399,7 +1533,7 @@ export const I18N: Record<Lang, Strings> = {
     coachLabel: "coach",
     judgeBadge: {
       label: "graded by meaning",
-      aria: "A semantic AI judge scores your argumentation by meaning, not by keywords.",
+      aria: "A semantic AI judge scores your argumentation by meaning, not by keywords. The per-turn score is reproducible to within ±5 — the model does not answer identically twice. In exam mode the judge is off: the engine alone scores you.",
     },
     judgeReject: "recognized a pattern, not meaning",
     typingLabel: "typing…",
@@ -1419,6 +1553,7 @@ export const I18N: Record<Lang, Strings> = {
     send: "Send",
     argLabel: "arg.",
     deltaNone: "no meter moved",
+    deltaRepeat: "repeat — they already answered this",
     connecting: "Connecting…",
     usingMock: "demo mode (no server)",
     composerLimit: "{n} {form} left",
@@ -1470,6 +1605,7 @@ export const I18N: Record<Lang, Strings> = {
       dateLabel: "Date",
       download: "Download / Print",
       certifies: "The «Диалог» trainer certifies command of the negotiation method.",
+      notAwarded: "The certificate starts at grade C. The result is recorded — this attempt is not your last.",
     },
     campaign: {
       overviewHead: "Your career arc",
@@ -1542,6 +1678,7 @@ export const I18N: Record<Lang, Strings> = {
       seenTell: "your face gave you away",
       seenMore: "and {n} more, earlier",
       unavailable: "unavailable",
+      naSummary: "These will not come up here: {list}. The reason sits under each switch.",
       presets: "Presets",
       start: "Start the negotiation",
       back: "back to opponents",
@@ -1577,7 +1714,18 @@ export const I18N: Record<Lang, Strings> = {
         celebrate: "Karl is celebrating",
         sad: "Karl is downcast",
         study: "Karl is studying the data",
+        shrug: "Karl spreads his wings — nothing to go on",
+        oops: "Karl winces",
+        doze: "Karl is dozing off",
       },
+    },
+    streak: {
+      title: "Streak",
+      kept: "{n} {form} in a row. Today is already counted.",
+      waiting: "{n} {form} in a row. You have not played today — one session keeps it alive.",
+      shielded: "A freeze will cover the gap — {n} left in reserve.",
+      lost: "The streak is broken. Today's session starts a new one.",
+      away: "You have been away {n} {form}. The table is still here.",
     },
     live: {
       micOn: "microphone live",
@@ -1621,6 +1769,45 @@ export const I18N: Record<Lang, Strings> = {
       },
       debriefHead: "How well you read them",
       observation: "observation · does not affect the grade",
+    },
+    reading: {
+      title: "Reading the table",
+      cardLead: "Someone else's round, turn by turn. You are not at the table — you sit beside it: call how the other side will answer, then see what the engine answered.",
+      cardProgress: "Rounds read: {n} of {total}",
+      cardCta: "Read a round",
+      notScored: "practice · not part of your grade",
+      gameOf: "Round {n} of {total}",
+      turnOf: "Turn {n} of {total}",
+      turnsN: "turns: {n}",
+      watching: "Across the table sits {name}.",
+      lookFor: "Read two things: which technique the line carries — and whether the table can take it yet.",
+      ask: "How will {name} answer this move?",
+      askNone: "Same answer as the previous question — this turn we simply watch.",
+      exact: "Spot on.",
+      near: "Right direction, wrong strength.",
+      miss: "Missed.",
+      yourAnswer: "You said",
+      engineSaid: "The engine answered",
+      evidence: "What the line carried",
+      noTags: "No technique at all: nothing for the engine to work with.",
+      argq: "argument quality {n}",
+      effect: "What it did to the table",
+      noMove: "The meters did not move and the price stayed put.",
+      gate: "Trust {trust} is not above the gate of {gate}: the topic was right, but it is too early to open up.",
+      revealed: "Topic uncovered: {topic}",
+      next: "Next",
+      tally: "Exact {exact} · direction {near} · missed {miss}",
+      grade: "The engine graded this round {grade} — {overall} out of 100.",
+      endAgreement: "They shook on it: {deal}.",
+      endBreakdown: "The table fell apart, no deal.",
+      endOpen: "The turns ran out, no deal.",
+      missedHead: "What stayed closed",
+      again: "Read it again",
+      nextGame: "Next round",
+      close: "Close",
+      tikhonTitle: "Tikhon remembers",
+      best: "Last time you read this round exactly {n} of {total}.",
+      a11y: { close: "Close the table reading", table: "The table as an observer sees it" },
     },
     nav: { training: "Training", campaign: "Campaign", custom: "Your deal",
            course: "Course", exam: "Exam", progress: "Progress", profile: "Profile" },

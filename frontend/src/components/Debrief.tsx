@@ -6,11 +6,12 @@ import type { Strings } from "../i18n";
 import { skillSignals, type GameResult, type RecordResult } from "../lib/progress";
 import { blockById, blockForWeakest } from "../lib/course";
 import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
+import { LOOKED_IN_SILENCE } from "../lib/layers";
 import { formatDeal, plural } from "../lib/format";
 import { play } from "../lib/sound";
 import { ScreenHeading } from "./ScreenHeading";
 import { XpAward } from "./Gamification";
-import { Karl, MascotImg, Tikhon, type KarlState } from "./Mascot";
+import { Karl, MascotImg, Tikhon, type KarlState, type TikhonState } from "./Mascot";
 import { RematchOffer } from "./Rematch";
 import type { PastRun } from "../lib/progress";
 
@@ -207,6 +208,16 @@ export function Debrief({
   const karlMood: KarlState =
     d.status === "breakdown" ? "sad" : d.grade === "A" || d.grade === "B" ? "celebrate" : "concern";
   const karlTip = !exam && d.tips.length ? d.tips[0] : null;
+
+  // Лицо памяти. Тихон вспоминает прошлую попытку за этим же столом — и с
+  // одним и тем же лицом сообщал «вы стали лучше» и «вы просели». Оба факта
+  // движок уже посчитал: рекорд побит — это `game.celebrate` (он же зажигает
+  // «▲ новый рекорд» выше), результат ниже прежнего — сравнение двух чисел из
+  // профиля. Своей оценки Тихон не выносит и текст не меняет: меняется поза.
+  const tikhonMood: TikhonState =
+    game?.celebrate ? "cheer"
+    : record?.prevBest?.grade && d.overall < record.prevBest.score ? "concern"
+    : "remember";
   const listTips = karlTip ? d.tips.slice(1) : d.tips;
 
   // Technique-floor rule (item 4): a great price with thin method caps the grade.
@@ -290,6 +301,18 @@ export function Debrief({
                   {/* Печать на сертификате ставит Тихон — память, а не тренер:
                       экзамен идёт без подсказок, и Карлу тут места нет. */}
                   <MascotImg dir="tikhon" state="exam" alt="" size={64} className="tikhon-seal" />
+                </div>
+              ) : null}
+              {/* Экзамен без сертификата был экраном, который просто ничего не
+                  говорил: грейд, статистика — и пустое место там, где у
+                  сдавшего печать. Пустое место читается как «здесь что-то
+                  должно было быть», а правило («сертификат с грейда C»)
+                  человек узнавал ниоткуда. Говорит Тихон: это правило и запись,
+                  а не совет, — и тренера на экзамене не бывает вовсе. */}
+              {exam && !passed ? (
+                <div className="cert-none">
+                  <MascotImg dir="tikhon" state="concern" alt="" size={48} />
+                  <p>{t.exam.notAwarded}</p>
                 </div>
               ) : null}
               <div className="oc">
@@ -560,6 +583,25 @@ export function Debrief({
             </div>
           ) : null}
 
+          {/* КАМЕРА СМОТРЕЛА И МОЛЧАЛА — ЭТО ОТВЕТ, А НЕ ПУСТОТА. Карточка выше
+              рисуется только когда слою было что сказать; без неё разбор молчал
+              одинаково и про отработавший слой, и про невставший. Число взглядов
+              приходит с сервера (`observation_looks`) и есть ТОЛЬКО когда модель
+              и правда отвечала, поэтому обещания здесь не выдаются за наблюдение. */}
+          {at(1) && observations && visTape.tape.length === 0
+            && (d.observation_looks ?? 0) > 0 ? (
+            <div className="obs">
+              <div className="obs-head">
+                <h2>📷 {t.layers.seenHead}</h2>
+                <span className="obs-badge">{t.probe.observation}</span>
+              </div>
+              <div className="vis-lead">
+                <MascotImg dir="karl" state="shrug" alt={t.mascot.alt.shrug} size={44} />
+                <p>{LOOKED_IN_SILENCE[lang].replace("{n}", String(d.observation_looks))}</p>
+              </div>
+            </div>
+          ) : null}
+
           {at(1) && tells && tells.frames > 0 ? (
             <div className="obs">
               <div className="obs-head">
@@ -659,7 +701,7 @@ export function Debrief({
                 место, где продукт сравнивает вас с ВАМИ ЖЕ, а не с эталоном —
                 и данные для сравнения у него настоящие, из профиля. */}
             {!exam && !showRematch && record && record.prevBest && record.prevBest.grade ? (
-              <Tikhon title={t.mascot.rememberTitle}>
+              <Tikhon state={tikhonMood} title={t.mascot.rememberTitle}>
                 {t.lastTime
                   .replace("{grade}", record.prevBest.grade)
                   .replace("{score}", String(record.prevBest.score))

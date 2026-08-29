@@ -9,7 +9,8 @@ import { dailyTable } from "../lib/daily";
 import { SCENARIO_MAP } from "../data/scenarios";
 import type { Lang } from "../types";
 import type { Profile } from "../lib/progress";
-import { dailyGoalView, rankForXp, getRecord, DAILY_GOAL_MAX } from "../lib/progress";
+import { dailyGoalView, rankForXp, getRecord, streakView, DAILY_GOAL_MAX } from "../lib/progress";
+import { plural } from "../lib/format";
 import { MascotImg } from "./Mascot";
 
 export function RailCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -133,6 +134,57 @@ export function MemoryCard({ t, lang, profile }:
           {sc.title[lang]} — {t.personalBest.toLowerCase()}:{" "}
           <b>{record.bestGrade}</b>, {record.bestScore}
         </p>
+      </div>
+    </RailCard>
+  );
+}
+
+/**
+ * «Серия» — что она скажет о СЕГОДНЯШНЕМ дне.
+ *
+ * Чип «🔥 N» в шапке показывает число дней и молчит о единственном, что от
+ * игрока сейчас зависит: засчитан ли сегодняшний день. Разница между «серия
+ * жива, но вы ещё не играли» и «день уже записан» — это ровно то, ради чего
+ * серию смотрят, и до сих пор её нельзя было увидеть нигде.
+ *
+ * ЧТО ЗДЕСЬ НЕ РЕШАЕТСЯ. Ни одного условия карточка не считает сама: состояние
+ * даёт `streakView`, а он — тот же `updateStreak`, которым серия записывается
+ * после партии. Обещание «партия продлит серию» поэтому не предсказание, а та
+ * же чистая функция; разойтись с тем, что произойдёт, оно не может.
+ *
+ * КТО ГОВОРИТ. По ролям (см. Mascot.tsx): о том, чего ещё нет — «сегодня вы не
+ * играли» — говорит Карл, и дремлет, пока за стол не сядут. О том, что уже
+ * записано — день засчитан, серия прервана, вас не было неделю — говорит Тихон.
+ * Серии не было ни разу → карточки нет: слон над пустой записью это украшение.
+ */
+export function StreakCard({ t, profile }: { t: Strings; profile: Profile }) {
+  const v = streakView(profile);
+  if (!v) return null;
+  const line =
+    v.mood === "kept" ? t.streak.kept
+    : v.mood === "waiting" ? t.streak.waiting
+    : v.mood === "shielded" ? t.streak.shielded
+    : v.mood === "away" ? t.streak.away
+    : t.streak.lost;
+  const n = v.mood === "shielded" ? v.freezes : v.mood === "away" ? v.awayDays : v.streak;
+  const text = line.replace("{n}", String(n)).replace("{form}", plural(n, t.forms.days));
+
+  const face = v.mood === "waiting"
+    ? { dir: "karl" as const, state: "doze" }
+    : v.mood === "kept" ? { dir: "tikhon" as const, state: "cheer" }
+    : v.mood === "shielded" ? { dir: "tikhon" as const, state: "idle" }
+    : v.mood === "away" ? { dir: "tikhon" as const, state: "doze" }
+    : { dir: "tikhon" as const, state: "concern" };
+
+  return (
+    <RailCard title={t.streak.title}>
+      <div className="rc-streak">
+        {/* Декоративная: строка рядом называет и число дней, и что с ним
+            делать. Числового чипа тут нет намеренно — «🔥 5» рядом со словами
+            «серия прервана» противоречит сам себе: в профиле пятёрка стоит до
+            следующей партии, а серии уже нет. */}
+        <MascotImg dir={face.dir} state={face.state} alt="" size={44} />
+        <p className="rc-note">{text}</p>
       </div>
     </RailCard>
   );

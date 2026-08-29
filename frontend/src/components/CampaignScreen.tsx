@@ -8,6 +8,7 @@ import { EPILOGUE_BANDS } from "../data/campaigns.generated";
 import { COURSE_BLOCKS } from "../lib/courseMap";
 import { ScreenHeading } from "./ScreenHeading";
 import type { CampaignProgress, StageResult } from "../lib/progress";
+import { Karl } from "./Mascot";
 
 // ПРОГРЕСС КАМПАНИИ ЖИВЁТ В ПРОФИЛЕ, а не в состоянии React: он переживает F5,
 // хранится по идентификатору кампании и разбирается защищённо (lib/progress.ts).
@@ -216,7 +217,14 @@ export function CampaignArc({
   onWarmup?: (blockId: string) => void;
 }) {
   if (!campaign) {
-    return <p className="lead" style={{ padding: "24px 0" }}>{t.connecting}</p>;
+    // Ожидание арки — та же строка, но ждёт её теперь не голая типографика.
+    // Поза `think` значит «идёт работа, которой не видно» и на всех экранах
+    // ожидания в продукте одна и та же (см. App.tsx, LazyScreen.tsx).
+    return (
+      <div className="karl-mid" style={{ padding: "24px 0" }}>
+        <Karl state="think" line={t.connecting} name={t.mascot.karl} alt={t.mascot.alt} />
+      </div>
+    );
   }
   const total = campaign.stages.length;
   const idx = progress.stageIndex;

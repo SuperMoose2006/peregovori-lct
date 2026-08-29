@@ -17,6 +17,7 @@
 import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import { PRESETS, reasonText, type LayerId, type Layers, type LayerState } from "../lib/layers";
+import { Karl } from "./Mascot";
 
 const ICONS: Record<LayerId, string> = { probe: "🎭", voice: "🎤", camera: "📷", avatar: "🙂", pokerface: "😐" };
 // Порядок — от того, что работает всегда, к тому, что требует разрешений.
@@ -51,11 +52,26 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
   const failOf = (id: LayerId): string | null =>
     (id === "voice" ? fail?.voice : id === "camera" || id === "pokerface" ? fail?.camera : null) ?? null;
   const activePreset = PRESETS.find((p) => ORDER.every((id) => p.layers[id] === layers[id]));
+  // ЧЕСТНОЕ «НЕДОСТУПНО» ПОЛУЧАЕТ ЛИЦО. Причина у каждого слоя уже написана под
+  // его переключателем, но список из пяти строк читается как настройки, а не
+  // как ответ: человек, у которого не встал микрофон, ищет глазами именно этот
+  // ответ. Карл его не сочиняет — он перечисляет ИМЕНА слоёв, которые
+  // `detectLayers`/`layerFail` уже признали неподнявшимися, и отсылает к
+  // причине под каждым. Ничего не сломалось — сводки нет вовсе.
+  const naNames = ORDER.filter((id) => !states[id].available || failOf(id))
+                       .map((id) => t.layers.names[id]);
 
   return (
     <div className="lay-panel">
       {lockNote ? (
         <p className="lay-lock" role="status">🔒 {lockNote}</p>
+      ) : null}
+
+      {naNames.length ? (
+        <div className="karl-note lay-na">
+          <Karl state="shrug" compact name={t.mascot.karl} alt={t.mascot.alt} />
+          <p role="status">{t.layers.naSummary.replace("{list}", naNames.join(", "))}</p>
+        </div>
       ) : null}
 
       <div className="setup-layers">

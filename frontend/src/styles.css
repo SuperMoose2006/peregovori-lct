@@ -608,13 +608,23 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .tag.threat, .tag.hostile { border-color: color-mix(in srgb, var(--tension) 50%, transparent); color: var(--tension-ink); }
 .arg { font-size: 10.5px; color: var(--ink-faint); }
 .arg b { color: var(--ink-dim); }
-.deltas { display: inline-flex; gap: 6px; }
+/* Перенос обязателен: к коротким «Дов +4» добавилась подпись причины
+   («повтор — на эти слова уже ответили»), и на 390 px строка выходила за
+   пузырь. Прижата вправо — как и сам пузырь игрока. */
+.deltas { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 100%; }
 /* direct-child only: each chip wraps an aria-hidden inner span with the visible
    text, which must not pick up the chip's box/padding. */
 .deltas > span { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 5px; font-variant-numeric: tabular-nums; animation: flash 0.6s ease; }
 @keyframes flash { from { transform: scale(1.35); } to { transform: scale(1); } }
 .up { background: color-mix(in srgb, var(--trust) 18%, transparent); color: var(--trust-ink); }
 .dn { background: color-mix(in srgb, var(--tension) 18%, transparent); color: var(--tension-ink); }
+/* Ход без движения. Не «плохо» и не «хорошо» — ноль, поэтому нейтральный
+   серый, а не красный: наказывает движок, а подпись только называет счёт.
+   Без анимации вспышки: вспыхивать нечему. */
+.deltas > span.none { background: transparent; border: 1px dashed var(--line-2); color: var(--ink-dim); font-weight: 600; padding: 0 6px; animation: none; }
+/* Дословный повтор. Цвет напряжения — потому что движок за него ровно его и
+   начисляет; вспышки нет по той же причине, что и у нулевого хода. */
+.deltas > span.rep { background: transparent; border: 1px solid color-mix(in srgb, var(--tension) 40%, transparent); color: var(--tension-ink); font-weight: 600; animation: none; }
 .hintbub { align-self: center; max-width: 90%; font-size: 13px; color: var(--brass); background: color-mix(in srgb, var(--brass) 10%, transparent); border: 1px solid color-mix(in srgb, var(--brass) 30%, transparent); border-radius: 11px; padding: 9px 14px; }
 .hintline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
 .hintline-q { flex: 1 1 180px; font-style: italic; color: var(--ink); opacity: .92; }
@@ -1531,6 +1541,17 @@ textarea:focus-visible,
 }
 .cert-name { font-family: var(--serif); font-size: 21px; color: var(--ink); line-height: 1.15; }
 .cert-date { font-family: var(--serif); font-size: 14px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+/* Экзамен не сдан: печати нет, и на её месте — правило, по которому её нет.
+   Пунктир тот же, что у выданного сертификата: это одно и то же место
+   документа, просто в нём написано другое. */
+.cert-none {
+  margin-top: 12px; padding-top: 12px; display: flex; align-items: center; gap: 12px;
+  border-top: 1px dashed color-mix(in srgb, var(--brass) 40%, var(--line));
+}
+.cert-none picture { display: contents; }
+.cert-none img { width: 48px; height: 48px; flex: 0 0 auto; }
+.cert-none p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+
 .cert-certifies {
   margin: 0 0 20px; font-family: var(--serif); font-style: italic;
   font-size: 13.5px; color: var(--ink-dim); line-height: 1.5;
@@ -2089,6 +2110,14 @@ textarea:focus-visible,
   background: color-mix(in srgb, var(--tension) 8%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--tension) 35%, var(--line));
 }
+/* Сводка недоступного. Тон — как у запрета выше (`.lay-lock`), но мягче: там
+   правило режима, здесь свойство устройства, и пугать им не за чем. */
+.lay-na {
+  margin: 0 0 14px; padding: 10px 12px; border-radius: 10px;
+  background: var(--panel-2); border: 1px solid var(--line);
+}
+.lay-na p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-dim); }
+
 .layer.locked { opacity: 0.62; }
 .layer.locked .ly-sw { cursor: not-allowed; }
 /* Запертые пресеты выглядят запертыми: кнопка, которая не сработает, обязана
@@ -2283,10 +2312,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .rc-daily-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .rc-daily-txt b { font-size: 14px; }
 .rc-daily-mod { font-size: 12px; color: var(--brass); font-weight: 600; }
-.rc-memory { display: flex; align-items: center; gap: 10px; }
-.rc-memory picture { display: contents; }
-.rc-memory img { width: 44px; height: 44px; flex: 0 0 auto; }
-.rc-memory p { margin: 0; }
+.rc-memory, .rc-streak { display: flex; align-items: center; gap: 10px; }
+.rc-memory picture, .rc-streak picture { display: contents; }
+.rc-memory img, .rc-streak img { width: 44px; height: 44px; flex: 0 0 auto; }
+.rc-memory p, .rc-streak p { margin: 0; }
 .rc-goal { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .rc-goal b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .rc-steps { display: inline-flex; gap: 5px; }
@@ -2764,7 +2793,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 :root .tikhon { border-width: 2px; }
 .tikhon img { width: 76px; height: 76px; object-fit: contain; flex: 0 0 auto; }
 .tikhon-bd { min-width: 0; }
-.tikhon-bd h4 { margin: 0 0 4px; font-size: 14px; font-weight: 800; }
+/* Уровень заголовка зависит от МЕСТА (Mascot.tsx: h2 в разборе, h3 в рейле), а
+   правило было написано на h4 — то есть не срабатывало ни разу, и заголовок
+   Тихона брал глобальный размер. Селектор обязан покрывать оба уровня. */
+.tikhon-bd :is(h2, h3) { margin: 0 0 4px; font-size: 14px; font-weight: 800; }
 .tikhon-bd p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
 
 /* Печать на сертификате. В потоке, а не абсолютом: у .cert-award нет своей
@@ -3455,3 +3487,98 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   transition: border-color 0.18s;
 }
 .rc-go.btn.primary:hover { border-color: var(--brass); }
+
+/* ---- «Чтение стола»: чужая партия по ходам ------------------------------ */
+/* Всё через токены, как и остальное оформление: тема (data-theme) работает
+   здесь ровно потому, что ни одного цвета константой ниже нет. Текста поверх
+   яркого зелёного (--brass-soft, --trust) нет тоже — там он даёт 2.09:1. */
+.rd-note { margin: 8px 0 0; font-size: 11.5px; color: var(--ink-faint); }
+/* Экран режима лежит поверх приложения: `useModalShell` помечает `.app`
+   инертным, поэтому диалог живёт порталом в body и обязан перекрывать всё. */
+.rd-shell { position: fixed; inset: 0; z-index: 130; overflow-y: auto;
+  background: var(--ground); color: var(--ink); }
+/* Колонка чтения — узкая, и по той же причине, что колонка урока: это ТЕКСТ.
+   Специфичность не меньше `:root .wrap`, иначе оболочка приложения снимает
+   ограничение ширины (`:root .wrap { max-width: none }`), и вариант ответа
+   растягивается на весь проектор. */
+:root .wrap.rd-wrap { max-width: 820px; padding-bottom: 48px; }
+.rd-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 18px 0 10px; }
+.rd-ic { font-size: 30px; line-height: 1; }
+.rd-id { flex: 1 1 240px; min-width: 0; }
+.rd-title { margin: 0; font-family: var(--serif); font-size: 22px; font-weight: 800; }
+.rd-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-dim); }
+.rd-badge { padding: 5px 10px; border-radius: 999px; background: var(--panel-2);
+  border: 1px solid var(--line-2); font-size: 11px; font-weight: 800;
+  color: var(--ink-dim); }
+.rd-x { padding: 8px 14px; }
+.rd-watch { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-dim); }
+.rd-price { margin: 8px 0 0; font-family: var(--serif); font-size: 18px; font-weight: 800;
+  font-variant-numeric: tabular-nums; }
+.rd-price span { font-family: var(--sans); font-size: 12px; font-weight: 700;
+  color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+/* Ворон стоит в карточке хода дважды: над открытым вопросом (что читать) и под
+   раскрытым (почему получилось так). Оба раза это реплика в две строки, а не
+   баннер во всю колонку. */
+.rd-card .karl-mini { display: flex; align-items: center; gap: 10px; margin: 10px 0 14px;
+  max-width: 560px; }
+.rd-card .karl-mini-t { font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+.rd-card .karl-mini-t b { color: var(--ink); }
+/* Хроника уже прочитанных ходов: номер и то, чем ход кончился. */
+.rd-log { list-style: none; margin: 12px 0 0; padding: 0; display: flex;
+  flex-wrap: wrap; gap: 6px; }
+.rd-past { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+  border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
+  font-size: 11.5px; color: var(--ink-dim); }
+.rd-past b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.rd-good { border-color: var(--trust-ink); }
+.rd-bad { border-color: var(--tension-ink); }
+.rd-card { margin-top: 14px; background: var(--panel); border: 2px solid var(--line);
+  border-radius: var(--r); padding: 16px 18px; }
+.rd-quote { margin: 0 0 14px; padding: 10px 12px; border-left: 3px solid var(--line-2);
+  background: var(--panel-2); border-radius: 0 10px 10px 0; font-size: 15px;
+  line-height: 1.55; }
+.rd-ask h2 { margin: 0 0 6px; font-size: 16px; font-family: var(--serif); }
+/* Четыре варианта — две колонки по две: `auto-fit` оставлял четвёртый одиноко
+   висеть во второй строке. */
+.rd-opts { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rd-opt { justify-content: flex-start; color: var(--ink); min-height: 44px; text-align: left; }
+.rd-opt:hover { border-color: var(--brass); }
+.rd-turn { margin: 0 0 6px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--ink-faint); font-weight: 800; }
+.rd-mine { color: var(--ink-dim); }
+.rd-done .karl { display: flex; flex-direction: column; align-items: center; }
+.rd-verdict { margin: 0 0 6px; font-family: var(--serif); font-size: 17px; font-weight: 800; }
+.rd-v-exact { color: var(--trust-ink); }
+.rd-v-near { color: var(--info-ink); }
+.rd-v-miss { color: var(--tension-ink); }
+.rd-v-none { color: var(--ink-dim); font-size: 13px; font-weight: 700; }
+.rd-answer { margin: 0 0 4px; font-size: 14.5px; }
+.rd-h { margin: 14px 0 6px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--ink-faint); font-weight: 800; }
+.rd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rd-chip { padding: 4px 10px; border-radius: 999px; background: var(--panel-2);
+  border: 1px solid var(--line-2); font-size: 12px; font-weight: 700; }
+.rd-chip.rd-arg { color: var(--ink-dim); font-weight: 600; }
+.rd-chip.rd-m { border-color: var(--brass); color: var(--brass); }
+.rd-gate { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px;
+  background: var(--panel-2); border-left: 3px solid var(--tension-ink);
+  font-size: 12.5px; line-height: 1.5; }
+.rd-topic { margin: 8px 0 0; font-size: 13px; color: var(--trust-ink); font-weight: 700; }
+.rd-said { margin: 10px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-dim); }
+.rd-said b { color: var(--ink); }
+.rd-none { margin: 0; font-size: 13px; color: var(--ink-dim); }
+.rd-next { margin-top: 16px; }
+.rd-done { margin-top: 14px; background: var(--panel); border: 2px solid var(--line);
+  border-radius: var(--r); padding: 18px; text-align: center; }
+.rd-tally { margin: 8px 0 6px; font-family: var(--serif); font-size: 20px; font-weight: 800; }
+.rd-grade { margin: 0 0 4px; font-size: 14.5px; font-weight: 700; }
+.rd-end { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-dim); }
+.rd-missed { margin: 0 auto 10px; max-width: 52ch; font-size: 13px; color: var(--ink-dim);
+  line-height: 1.55; }
+.rd-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  margin-top: 14px; }
+@media (max-width: 560px) {
+  .rd-badge { order: 3; }
+  .rd-opts { grid-template-columns: 1fr; }
+}

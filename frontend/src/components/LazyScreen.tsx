@@ -31,6 +31,12 @@ import {
   type ComponentType, type ReactNode,
 } from "react";
 import type { Lang } from "../types";
+import { Karl } from "./Mascot";
+// Только имя маскота и подписи к его картинкам. Строки самого экрана живут
+// ниже — они нужны ровно здесь; а вот имя персонажа, записанное во втором
+// месте, стало бы вторым источником правды о нём же. Вес нулевой: и словарь, и
+// компонент маскота на критическом пути уже есть.
+import { I18N } from "../i18n";
 
 /** Сколько ждём файл, прежде чем назвать это отказом. Заметно больше любой
  *  живой загрузки и заметно меньше человеческого терпения. */
@@ -69,10 +75,18 @@ function withTimeout<T>(load: () => Promise<T>): Promise<T> {
 }
 
 function ScreenLoading({ lang }: { lang: Lang }) {
+  const m = I18N[lang].mascot;
   return (
     <section className="screen">
       <div className="wrap">
         <div className="gen">
+          {/* Ждать вместе с кем-то живым легче, чем с тремя точками. Поза та
+              же, что у ожидания генерации на главной: `think` в этом продукте
+              значит «идёт работа, которой не видно», и значить что-то другое
+              на соседнем экране она не должна. */}
+          <div className="karl-mid">
+            <Karl state="think" name={m.karl} alt={m.alt} />
+          </div>
           <div className="gen-dots" aria-hidden="true"><i /><i /><i /></div>
           <p className="gen-sub" role="status">{TEXT[lang].loading}</p>
         </div>
@@ -102,13 +116,20 @@ class ScreenBoundary extends Component<BoundaryProps, { failed: boolean }> {
     if (!this.state.failed) return this.props.children;
     if (this.props.silent) return null;
     const t = TEXT[this.props.lang];
+    const m = I18N[this.props.lang].mascot;
     return (
       <section className="screen">
         <div className="wrap">
           <div className="conn-lost" role="alert">
-            <div className="conn-lost-body">
-              <b>{t.failTitle}</b>
-              <span>{t.failBody}</span>
+            {/* Карл без реплики — ровно как на потерянной связи (App.tsx):
+                текст ниже это сообщение продукта, и подписывать его именем
+                тренера значило бы выдать его слова за его же наблюдение. */}
+            <div className="karl-note">
+              <Karl state="concern" compact name={m.karl} alt={m.alt} />
+              <div className="conn-lost-body">
+                <b>{t.failTitle}</b>
+                <span>{t.failBody}</span>
+              </div>
             </div>
             <div className="conn-lost-actions">
               <button className="primary" onClick={() => location.reload()}>{t.retry}</button>
