@@ -107,15 +107,23 @@ def check_files() -> None:
     ok(f"маскоты: {m} картинок") if m >= 8 else warn(f"маскотов мало ({m})")
 
 
-def on_disk_build() -> dict[str, int]:
-    """Отпечаток кода НА ДИСКЕ — то, с чем сверяется живой процесс."""
+def on_disk_build() -> dict:
+    """Отпечаток кода НА ДИСКЕ — то, с чем сверяется живой процесс.
+
+    ХЕШ КОДА ВАЖНЕЕ СЧЁТЧИКОВ, и вот почему. Первая редакция сверяла только
+    число упражнений и столов, то есть СОДЕРЖИМОЕ. За день правок судьи,
+    голоса, зрения и лицензионных шапок эти числа не изменились ни разу: 90 и 9.
+    Проверка, поставленная ловить «шлюз отвечает вчерашним кодом», кода не
+    видела вовсе и говорила «свежий».
+    """
     sys.path.insert(0, str(GATEWAY))
     try:
         from app.course.bank import BANK as _BANK
         from app.engine.scenarios import SCENARIOS as _SC
+        from app.main import _code_digest
     except Exception:  # noqa: BLE001
         return {}
-    return {"exercises": len(_BANK), "scenarios": len(_SC)}
+    return {"exercises": len(_BANK), "scenarios": len(_SC), "code": _code_digest()}
 
 
 def compare_build(build: dict, who: str) -> None:
@@ -130,7 +138,9 @@ def compare_build(build: dict, who: str) -> None:
         warn(f"{who} старый: /api/health не знает про build — перезапустите процесс")
         return
     disk = on_disk_build()
-    stale = [k for k, v in disk.items() if build.get(k) != v]
+    if "code" not in build:
+        warn(f"{who} старый: /api/health не знает про отпечаток кода — перезапустите процесс")
+    stale = [k for k, v in disk.items() if k in build and build.get(k) != v]
     if stale:
         fail(f"{who.upper()} ОТВЕЧАЕТ СТАРЫМ КОДОМ: "
              + ", ".join(f"{k} у процесса {build.get(k)}, на диске {disk[k]}"
@@ -138,7 +148,8 @@ def compare_build(build: dict, who: str) -> None:
              + " — перезапустите процесс")
     else:
         ok(f"{who} свежий: упражнений {build.get('exercises')}, "
-           f"столов {build.get('scenarios')}, кампаний {build.get('campaigns')}")
+           f"столов {build.get('scenarios')}, кампаний {build.get('campaigns')}, "
+           f"код {build.get('code', '—')}")
 
 
 def check_health(url: str) -> None:

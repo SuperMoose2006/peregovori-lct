@@ -1,4 +1,4 @@
-.PHONY: install gateway frontend avatar test test-py test-js e2e preflight dev
+.PHONY: install gateway frontend avatar test test-py test-js e2e preflight preflight-live preflight-stand dev
 
 PY  := services/gateway/.venv/bin/python
 PIP := services/gateway/.venv/bin/pip
@@ -22,8 +22,18 @@ test-py:
 test-js:
 	cd frontend && npm test
 
+# `make preflight --live` НЕ РАБОТАЕТ и не может: `--live` перехватывает сам
+# make, печатает свою справку и выходит С НУЛЁМ. Команда выглядит успешной и не
+# делает ничего — а в CLAUDE.md она была записана именно так. Поэтому у живой
+# проверки отдельная цель, а не флаг.
 preflight:                     ## проверка перед показом (нужен поднятый gateway)
-	cd services/gateway && .venv/bin/python tools/preflight.py
+	cd services/gateway && .venv/bin/python tools/preflight.py $(ARGS)
+
+preflight-live:                ## то же плюс один НАСТОЯЩИЙ ход живой моделью
+	cd services/gateway && .venv/bin/python tools/preflight.py --live $(ARGS)
+
+preflight-stand:               ## то же плюс проверка свежести публичного стенда
+	cd services/gateway && .venv/bin/python tools/preflight.py --stand $(ARGS)
 
 e2e:                           ## браузерная проверка (нужен поднятый gateway)
 	cd frontend && node e2e/smoke.mjs --out /tmp/dialog-e2e
