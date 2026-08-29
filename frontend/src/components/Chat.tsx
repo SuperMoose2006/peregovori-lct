@@ -17,6 +17,8 @@ interface Props {
   // accessible name for the log live region
   logLabel: string;
   argLabel: string;
+  /** Подписи качества довода: пока движок считает — и кто в итоге посчитал. */
+  argStrings: Strings["arg"];
   // Подпись хода, от которого не сдвинулась ни одна шкала.
   deltaNone: string;
   // Подпись дословного повтора своей же реплики.
@@ -77,7 +79,7 @@ export function logAnchor(opening: boolean, played: boolean): "top" | "bottom" {
   return opening && !played ? "top" : "bottom";
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, deltaNone, deltaRepeat, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, argStrings, deltaNone, deltaRepeat, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -272,7 +274,11 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
         return (
           <div className="msg me" key={e.id}>
             <div className="bub">{e.text}</div>
-            {!exam && e.analysis ? <TagRow analysis={e.analysis} argLabel={argLabel} tagLabels={tagLabels} /> : null}
+            {!exam && e.analysis ? (
+              <TagRow analysis={e.analysis} argLabel={argLabel} argStrings={argStrings}
+                      tagLabels={tagLabels} settled={e.argSettled === true}
+                      judged={e.judged === true} judgeActive={judgeActive === true} />
+            ) : null}
             {!exam && e.deltas ? (
               <DeltaRow deltas={e.deltas} labels={metersShort} full={metersFull} deltaAria={deltaAria} noneLabel={deltaNone} repeatLabel={repeatedIds.has(e.id) ? deltaRepeat : null} />
             ) : null}
@@ -291,9 +297,24 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
   );
 }
 
-function TagRow({ analysis, argLabel, tagLabels }: {
-  analysis: Analysis; argLabel: string; tagLabels: Strings["tagLabels"];
+function TagRow({ analysis, argLabel, argStrings, tagLabels, settled, judged, judgeActive }: {
+  analysis: Analysis; argLabel: string; argStrings: Strings["arg"];
+  tagLabels: Strings["tagLabels"];
+  /** Движок досчитал ход и назвал окончательное качество довода. */
+  settled: boolean;
+  /** Это число посчитал семантический судья, а не словарь. */
+  judged: boolean;
+  /** Судья заявлен на всю партию. */
+  judgeActive: boolean;
 }) {
+  // ДВА СРОКА ГОТОВНОСТИ В ОДНОЙ СТРОКЕ. Теги готовы сразу и рисуются сразу.
+  // Числа до конца хода не существует — вместо него стоит многоточие в том же
+  // месте и той же ширины, поэтому появление балла ничего не перерисовывает и
+  // не двигает: показанное не меняет значения, потому что показано ещё не было.
+  const hint = !settled ? argStrings.pending
+    : judged ? argStrings.byJudge.replace("{n}", String(analysis.arg_quality))
+    : judgeActive ? argStrings.judgeSilent.replace("{n}", String(analysis.arg_quality))
+    : argStrings.byEngine.replace("{n}", String(analysis.arg_quality));
   return (
     <div className="tags">
       {analysis.tags.map((t, i) => (
@@ -301,8 +322,12 @@ function TagRow({ analysis, argLabel, tagLabels }: {
           {tagText(t, analysis, tagLabels)}
         </span>
       ))}
-      <span className="arg">
-        <b>{analysis.arg_quality}</b>/100 {argLabel}
+      {/* Имя чипу даёт подпись целиком: «··/100 аргум.» диктор прочитал бы как
+          «точка точка сто», а «55/100» — не сказав, кто это посчитал. */}
+      <span className={settled ? "arg" : "arg pending"} title={hint} aria-label={hint}>
+        <span aria-hidden="true">
+          <b>{settled ? analysis.arg_quality : "\u00b7\u00b7"}</b>/100 {argLabel}
+        </span>
       </span>
     </div>
   );

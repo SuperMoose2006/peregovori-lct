@@ -140,6 +140,7 @@ export class RealtimeTransport implements Transport {
   close(): void {
     this.closed = true;
     this.live = false;
+    if (this.drainTimer) { clearInterval(this.drainTimer); this.drainTimer = null; }
     this.session?.stop();
     this.session = null;
     void this.media?.stop();
@@ -289,10 +290,14 @@ export class RealtimeTransport implements Transport {
   private drainTimer: ReturnType<typeof setInterval> | null = null;
 
   private markOppAudio(on: boolean): void {
+    // Сторож тишины гасится ВСЕГДА, а не только при смене состояния. Раньше
+    // выход был через `on === this.oppAudio` выше, и в текстовом режиме — где
+    // звука не бывает вовсе — сторож, заведённый на `response.done`, крутился
+    // до конца жизни вкладки: каждый ход добавлял ещё один таймер на 200 мс.
+    if (!on && this.drainTimer) { clearInterval(this.drainTimer); this.drainTimer = null; }
     if (this.oppAudio === on) return;
     this.oppAudio = on;
     this.options.onOppAudio?.(on);
-    if (!on && this.drainTimer) { clearInterval(this.drainTimer); this.drainTimer = null; }
   }
 
   /** `response.done` значит «модель дописала», а звук играет секундами дольше —
@@ -311,7 +316,15 @@ export class RealtimeTransport implements Transport {
   private route(event: ServerEvent): void {
     switch (event.type) {
       case "turn.analysis":
+        // ТЕГИ УХОДЯТ НА ЭКРАН СРАЗУ, А НЕ ЧЕРЕЗ СЕКУНДУ С ЛИШНИМ.
+        //
+        // Раньше разбор целиком лежал здесь до `response.done` — то есть до
+        // ~1300 мс, — и обещание «через 3 мс под репликой уже горят теги»
+        // было неправдой ровно на эти 1300 мс. Копить его было нечего:
+        // классификатор детерминирован, и ни судья, ни `apply_move` тегов не
+        // трогают. Копить надо ЧИСЛО, и оно приезжает отдельно (`engine.state`).
         this.pendingAnalysis = event.analysis as Analysis;
+        this.emit({ type: "analysis", analysis: this.pendingAnalysis });
         return;
 
       case "engine.state": {
@@ -319,6 +332,15 @@ export class RealtimeTransport implements Transport {
         this.pendingDeltas = event.deltas as Deltas;
         this.lastReaction = (event.reaction as string) ?? null;
         this.turnCounter = Number(event.turn_id ?? this.turnCounter + 1);
+        // Авторитетное качество аргумента: судья уже высказался, штраф за
+        // повтор уже наложен. Черновик из `turn.analysis` заменяем и здесь,
+        // чтобы `opponent` ниже не увёз на экран число, которого движок не
+        // считал (спам-реплика: черновик 84, в грейд ушло 12).
+        if (typeof event.arg_quality === "number") {
+          const value = event.arg_quality as number;
+          if (this.pendingAnalysis) this.pendingAnalysis = { ...this.pendingAnalysis, arg_quality: value };
+          this.emit({ type: "arg_quality", value, judged: Boolean(event.judged) });
+        }
         return;
       }
 

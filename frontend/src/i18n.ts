@@ -108,6 +108,18 @@ export interface Strings {
   placeholderNudges: string[];
   send: string;
   argLabel: string;
+  // КАЧЕСТВО ДОВОДА ГОТОВО ПОЗЖЕ ТЕГОВ, И ЭТО НАДО СКАЗАТЬ ВСЛУХ.
+  // Теги приёмов считает классификатор — они на экране через 3 мс. Число
+  // переписывает судья и обрезает штраф за повтор, то есть до конца хода его
+  // ПРОСТО НЕТ. `pending` подписывает эту паузу, остальные три называют, КТО
+  // в итоге посчитал: подставлять словарный балл под видом судейского нельзя
+  // (принцип 2). `{n}` — само число.
+  arg: {
+    pending: string;
+    byJudge: string;
+    byEngine: string;
+    judgeSilent: string;
+  };
   // Ход, от которого не сдвинулась ни одна шкала. Раньше строка дельт в этом
   // случае не рисовалась вовсе, и «движок меня не заметил» читалось так же,
   // как «движок сломан». Ноль — это результат, и он обязан быть подписан.
@@ -810,6 +822,12 @@ export const I18N: Record<Lang, Strings> = {
     ],
     send: "Отправить",
     argLabel: "аргум.",
+    arg: {
+      pending: "движок считает качество довода…",
+      byJudge: "качество довода {n} из 100 — оценил ИИ-судья по смыслу, точность ±5",
+      byEngine: "качество довода {n} из 100 — посчитал движок по словарю приёмов",
+      judgeSilent: "качество довода {n} из 100 — посчитал движок по словарю: ИИ-судья на этом ходу не ответил",
+    },
     deltaNone: "шкалы не сдвинулись",
     deltaRepeat: "повтор — на эти слова уже ответили",
     connecting: "Соединение…",
@@ -1555,6 +1573,12 @@ export const I18N: Record<Lang, Strings> = {
     ],
     send: "Send",
     argLabel: "arg.",
+    arg: {
+      pending: "the engine is scoring the argument…",
+      byJudge: "argument quality {n} out of 100 — scored by the AI judge on meaning, ±5",
+      byEngine: "argument quality {n} out of 100 — scored by the engine's technique lexicon",
+      judgeSilent: "argument quality {n} out of 100 — scored by the engine's lexicon: the AI judge did not answer on this turn",
+    },
     deltaNone: "no meter moved",
     deltaRepeat: "repeat — they already answered this",
     connecting: "Connecting…",

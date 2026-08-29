@@ -602,6 +602,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               deltaAria={t.a11y.delta}
               logLabel={t.a11y.chatLog}
               argLabel={t.argLabel}
+              argStrings={t.arg}
               deltaNone={t.deltaNone}
               deltaRepeat={t.deltaRepeat}
               exam={exam}

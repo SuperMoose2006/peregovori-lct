@@ -290,6 +290,22 @@ export type ServerMsg =
   //   coach_reject — true when the judge flagged the line as low-meaning
   //     buzzword-spam / parroting (drives the struck-through "pattern, not meaning" chip).
   | { type: "opponent"; text: string; analysis: Analysis; deltas: Deltas; state: StateView; coach?: string; coach_techniques?: string[]; coach_reject?: boolean }
+  // РАЗБОР ПРИХОДИТ ДВУМЯ КУСКАМИ, ПОТОМУ ЧТО ГОТОВ В ДВА РАЗНЫХ МОМЕНТА.
+  //
+  // `analysis` — детерминированный классификатор: теги приёмов, SPIN, флаги.
+  // Он готов через 3 мс и после этого не меняется ни от судьи, ни от движка
+  // (доказано прогоном эталонных партий — tests/test_analysis_split.py). Едет
+  // сразу, чтобы под репликой игрока сразу же что-то загорелось.
+  //
+  // `arg_quality` — число, которого в те 3 мс ЕЩЁ НЕТ: судья его перепишет,
+  // штраф за повтор обрежет. Едет отдельно, когда движок досчитал ход.
+  // `judged` называет источник: true — оценил семантический судья, false —
+  // словарь движка. Показывать второе под видом первого нельзя (принцип 2).
+  //
+  // `analysis.arg_quality` внутри первого сообщения — черновик; рисовать его
+  // не имеет права никто.
+  | { type: "analysis"; analysis: Analysis }
+  | { type: "arg_quality"; value: number; judged: boolean }
   | { type: "debrief"; debrief: Debrief }
   // hint.text is the coaching direction; hint.line is a ready-to-send worked
   // example the player can drop into the composer. The line is present only

@@ -100,6 +100,15 @@ class NegotiationOrchestrator:
 
         # 1. Детерминированный разбор. Мгновенный, без сети: теги приёмов
         #    появляются под репликой игрока раньше, чем оппонент начал думать.
+        #
+        #    РАЗБОР СОСТОИТ ИЗ ДВУХ РАЗНЫХ ВЕЩЕЙ, И ГОТОВЫ ОНИ В РАЗНОЕ ВРЕМЯ.
+        #    `tags`/`primary`/`spin`/`flags` считает классификатор — он и есть
+        #    те самые 3 мс, и после этого их уже ничто не меняет: ни судья, ни
+        #    `apply_move` к ним не притрагиваются (проверено на эталонных
+        #    партиях, `tests/test_analysis_split.py`). А `arg_quality` здесь
+        #    ЧЕРНОВОЙ: судья его перепишет, штраф за повтор — обрежет. Поэтому
+        #    число из этого события показывать игроку нельзя; авторитетное
+        #    уходит ниже, в `engine.state`.
         analysis = engine.analyze(text)
         engine_sess.turn += 1
         turn_id = engine_sess.turn
@@ -142,11 +151,19 @@ class NegotiationOrchestrator:
                                 "turn": turn_id, "deltas": result.deltas})
 
         # 4. Истина движка уходит клиенту немедленно — до реплики оппонента.
+        #    Здесь же едет ОКОНЧАТЕЛЬНОЕ качество аргумента: то самое число,
+        #    которое `apply_move` только что положил в метрики и которое войдёт
+        #    в грейд. До этой строки клиент видел черновик из `turn.analysis` —
+        #    ни судейский, ни движковый: спам-реплика показывала 84, а в счёт
+        #    шло 12. `judged` называет источник, чтобы keyword-балл никогда не
+        #    рисовался под видом судейского (принцип 2).
         bus.publish({
             "type": "engine.state",
             "turn_id": turn_id,
             "state": views.state_view(engine_sess).model_dump(),
             "deltas": views.deltas_view(result).model_dump(),
+            "arg_quality": analysis.arg_quality,
+            "judged": judgement is not None,
             "reaction": result.reaction,
             "closed": result.closed,
         })

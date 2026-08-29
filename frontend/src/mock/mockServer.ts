@@ -172,6 +172,17 @@ export class MockServer implements Transport {
     const result = applyMove(s, raw, text);
     this.turns.push({ turn: s.turn, text, primary: raw.primary, deltas: result.deltas });
 
+    // РАЗБОР УХОДИТ СРАЗУ И ЦЕЛИКОМ — ЗДЕСЬ ЕГО НЕЧЕГО ЖДАТЬ.
+    //
+    // Инвариант 8: офлайн-ядро ведёт себя так же, как сервер. Но «так же» —
+    // это про поведение, а не про паузы: на сервере число ждёт судью, а тут
+    // судьи нет вовсе (`judged: false`), и `applyMove` уже отработал. Значит
+    // оба куска разбора готовы в один и тот же миг и оба уходят до задержки
+    // на печать реплики. Раньше они лежали в `opponent` и появлялись через
+    // полсекунды — офлайн отставал от онлайна на ровном месте.
+    this.emit({ type: "analysis", analysis: toAnalysis(raw, text) });
+    this.emit({ type: "arg_quality", value: raw.arg, judged: false });
+
     let timeout = false;
     if (s.status === "active" && s.turn >= s.maxTurns) {
       s.status = "breakdown";

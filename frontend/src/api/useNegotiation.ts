@@ -9,7 +9,13 @@ import { clampInput } from "../lib/net";
 
 export type ChatEntry =
   | { id: number; kind: "opp"; text: string; streaming?: boolean }
-  | { id: number; kind: "me"; text: string; analysis?: Analysis; deltas?: Deltas }
+  // analysis — теги приёмов; появляются в тот же миг, что и `turn.analysis`
+  // (3 мс), и больше не меняются. argSettled — движок досчитал ход и назвал
+  // ОКОНЧАТЕЛЬНОЕ качество аргумента; пока его нет, число не рисуется вовсе:
+  // черновик из `turn.analysis` ни судейский, ни движковый. judged — считал
+  // ли это число семантический судья (иначе словарь движка).
+  | { id: number; kind: "me"; text: string; analysis?: Analysis; deltas?: Deltas;
+      argSettled?: boolean; judged?: boolean }
   // `pending` marks the placeholder shown the instant 💡 is pressed. With a
   // live AI coach the answer takes seconds, and without a placeholder the
   // press produced no visible change at all.
@@ -287,7 +293,12 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
 }
 
 // Pure reducer over the ServerMsg stream.
-function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): NegotiationState {
+//
+// Экспортируется ради прибора: `test/analysis-latency.test.ts` прогоняет через
+// НЕГО ЖЕ записанный поток событий и смотрит, на каком событии разбор впервые
+// становится виден игроку. Мерить это по проводу нельзя — ушедшее событие не
+// доказывает нарисованного поля (ровно так прибор задержек врал трижды).
+export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): NegotiationState {
   switch (msg.type) {
     case "greeting":
       return {
@@ -310,15 +321,50 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
       return { ...prev, log };
     }
 
-    case "opponent": {
+    // Теги приёмов под репликой игрока — как только их посчитал классификатор.
+    // Голос и клавиатура здесь неразличимы (инвариант 7): реплика «me» уже
+    // лежит в ленте к этому моменту в обоих случаях — напечатанную кладёт
+    // `turn()`, распознанную — финальная расшифровка, которую сервер шлёт ДО
+    // хода (`user.transcript {final}` → `on_player_turn`).
+    case "analysis": {
       const log = [...prev.log];
-      // Attach analysis + deltas to the most recent player message.
       for (let i = log.length - 1; i >= 0; i--) {
         const e = log[i];
         if (e.kind === "me" && !e.analysis) {
-          log[i] = { ...e, analysis: msg.analysis, deltas: msg.deltas };
-          break;
+          log[i] = { ...e, analysis: msg.analysis };
+          return { ...prev, log };
         }
+      }
+      return prev;
+    }
+
+    // Окончательное качество аргумента. Отдельным сообщением, потому что до
+    // судьи и до `apply_move` этого числа не существует: показать раньше —
+    // значит либо соврать, либо переписать уже показанное на глазах.
+    case "arg_quality": {
+      const log = [...prev.log];
+      for (let i = log.length - 1; i >= 0; i--) {
+        const e = log[i];
+        if (e.kind === "me" && !e.argSettled) {
+          const analysis = e.analysis ? { ...e.analysis, arg_quality: msg.value } : undefined;
+          log[i] = { ...e, analysis, argSettled: true, judged: msg.judged };
+          return { ...prev, log };
+        }
+      }
+      return prev;
+    }
+
+    case "opponent": {
+      const log = [...prev.log];
+      // Запасной путь: теги обычно уже привязаны сообщением `analysis` выше, и
+      // тогда эта ветка ничего не делает. Она держит ход, до которого
+      // `turn.analysis` не доехал (старый сервер, потерянное событие) — но
+      // ЧИСЛО отсюда не берётся: `argSettled` ставит только `arg_quality`.
+      for (let i = log.length - 1; i >= 0; i--) {
+        const e = log[i];
+        if (e.kind !== "me" || e.deltas) continue;
+        log[i] = { ...e, analysis: e.analysis ?? msg.analysis, deltas: msg.deltas };
+        break;
       }
       // Finalize (or add) the opponent bubble with the authoritative text.
       const last = log[log.length - 1];
@@ -368,6 +414,14 @@ function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): N
     case "layer_failed":
       // Партия НЕ прерывается: `busy` не трогаем, ход играется текстом.
       return { ...prev, layerFail: { ...prev.layerFail, [msg.layer]: msg.reason } };
+
+    case "notice":
+      // Строкой в ленте, а не баннером: человек смотрит в стол, и объяснение
+      // должно лежать там, где он читает. `busy` снимаем — партия остановлена,
+      // и крутящийся индикатор «оппонент печатает» был бы обещанием ответа,
+      // которого не будет.
+      return { ...prev, busy: false, phase: null,
+               log: [...prev.log, { id: nextId(), kind: "sys", text: msg.text }] };
 
     case "error":
       return { ...prev, busy: false, error: msg.message };
