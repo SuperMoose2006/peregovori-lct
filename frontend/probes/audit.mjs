@@ -62,6 +62,42 @@ const RX = {
   back:    /←/,
 };
 
+// КУРС ЧИТАЕТСЯ ИЗ КАТАЛОГА, А НЕ ПЕРЕПИСЫВАЕТСЯ ЗДЕСЬ. В приборе стояли три
+// копии одного и того же знания — девять идентификаторов блоков для посева
+// прогресса, десять типов разметки списком и «42 урока, 90 упражнений» в
+// комментарии, — и все три протухли в один день, когда в курс лёг
+// одиннадцатый блок. Хуже посева: два блока переставали открываться, а прибор
+// молча ходил по девяти и печатал «увидено 10/10».
+//
+// Банк генерируется из Python (`tools/sync_course.py`), формат — обычный JSON
+// внутри TS, поэтому разбирается регуляркой без сборщика. Пустой каталог — это
+// находка, а не повод продолжать: прогон по курсу без блоков ничего не значит.
+const COURSE = (() => {
+  const read = (rel) => fs.readFileSync(new URL(rel, import.meta.url), "utf8");
+  const blocksSrc = read("../src/data/course.blocks.generated.ts");
+  const bankSrc = read("../src/data/course.generated.ts");
+  // Только БАНК: следом в том же файле лежит COURSE_MASTER (капстоун), его
+  // упражнения по блокам не разложены и в обход не входят.
+  const from = bankSrc.indexOf("export const COURSE_BANK");
+  const to = bankSrc.indexOf("export const COURSE_MASTER");
+  const bank = from >= 0 && to > from ? bankSrc.slice(from, to) : "";
+  const blocks = [...blocksSrc.matchAll(/"id":\s*"([^"]+)"/g)].map((m) => m[1]);
+  const kinds = [...new Set([...bank.matchAll(/"type":\s*"([^"]+)"/g)].map((m) => m[1]))];
+  const lessons = new Set([...bank.matchAll(/"block":\s*"([^"]+)",\s*\n\s*"lesson":\s*(\d+)/g)]
+    .map((m) => m[1] + "/" + m[2]));
+  // Считаем по "block", а не по "id": внутри упражнения свои id есть у
+  // вариантов, пар соответствия и шагов, и наивный счёт по "id" давал 143 там,
+  // где банк отдаёт 101. Число, которое прибор печатает, обязано совпадать с
+  // тем, что говорит /api/health, иначе это ещё одна копия, разошедшаяся с
+  // каталогом, — то самое, ради избавления от чего разбор и заведён.
+  const exercises = (bank.match(/"block":\s*"/g) || []).length;
+  if (!blocks.length || !kinds.length || !exercises)
+    throw new Error("каталог курса не разобрался — обход по курсу мерил бы пустоту");
+  return { blocks, kinds, lessons: lessons.size, exercises };
+})();
+console.log(`каталог курса: блоков ${COURSE.blocks.length}, уроков ${COURSE.lessons}, ` +
+            `упражнений ${COURSE.exercises}, типов разметки ${COURSE.kinds.length}`);
+
 const findings = [];
 let VP = "";
 const add = (sev, where, kind, msg) => findings.push({ sev, where: where + "@" + VP, kind, msg });
@@ -326,6 +362,20 @@ const GEOM = `(() => {
   const dialog = document.querySelector("[role=dialog], dialog[open]");
   const skip = (el) => el.closest("[inert], [aria-hidden=true]") || (dialog && !dialog.contains(el));
 
+  // ГЕОМЕТРИЯ ЛИСТАЕТ ВЛОЖЕННЫЕ СКРОЛЛЕРЫ И ОБЯЗАНА ВЕРНУТЬ ИХ НА МЕСТО.
+  // Проверка перекрытия подводит каждое управление под кромку "scrollIntoView",
+  // а он прокручивает не только документ, но и рельс. Прежняя редакция
+  // возвращала на место только окно ("window.scrollTo(0, 0)"), и дальше
+  // страдали двое: снимок стола уходил в отчёт с рельсом, прокрученным на 72
+  // пикселя (портрет оппонента срезан сверху — это видно на desk-game-turn0),
+  // а проверка прилипшего низа мерила «покой» в точке, где игрок рельс никогда
+  // не застаёт. Лента реплик при этом прокручена вниз ПРОДУКТОМ, поэтому
+  // возвращаем не нули, а исходные значения.
+  const scrollers = [...document.querySelectorAll("body *")]
+    .filter((el) => el.scrollHeight > el.clientHeight + 1)
+    .map((el) => [el, el.scrollTop]);
+  const restoreScroll = () => { for (const [el, t] of scrollers) el.scrollTop = t; };
+
   // 1. ПЕРЕКРЫТИЕ. Пять точек на управлении: центр и четыре угла внутрь на 3px.
   // Три из пяти в чужом элементе — по кнопке нельзя попасть.
   const ctl = [...document.querySelectorAll("button, a[href], input:not([type=hidden]), select, textarea, [role=button]")];
@@ -350,6 +400,7 @@ const GEOM = `(() => {
         " ← закрыт " + nm(by) + " (" + blocked + " из " + inside + " точек)");
   }
   window.scrollTo(0, 0);
+  restoreScroll();
 
   // 2. СОДЕРЖИМОЕ НИЖЕ СВОЕЙ КОРОБКИ. Родитель не клипует, значит текст видно —
   // но лежит он уже на соседе, и это ровно то, из чего получается перекрытие.
@@ -371,9 +422,56 @@ const GEOM = `(() => {
       out.spill.push(Math.round(over) + "px ниже коробки :: " + nm(el).slice(0, 44) + " ← " + nm(who).slice(0, 44));
   }
 
-  // 3. СРЕЗАНО ПРИЛИПШИМ НИЗОМ. Вложенный скроллер с «position: sticky» внутри
-  // не «прокручивается до конца»: последняя панель остаётся ПОД прилипшей
-  // полосой навсегда. Меряем то, до чего нельзя доскроллить.
+  // 3. ПРИЛИПШИЙ НИЗ ЗАКРАШИВАЕТ СОДЕРЖИМОЕ.
+  //
+  // ПРЕЖНЯЯ РЕДАКЦИЯ ЭТОЙ ПРОВЕРКИ НЕ МОГЛА СРАБОТАТЬ НИ РАЗУ, и это выяснилось
+  // замером, а не чтением. Она домагивала скроллер до конца (scrollTop =
+  // scrollHeight) и спрашивала «что осталось под полосой» — то есть искала
+  // содержимое, до которого нельзя доскроллить. Но прилипший низ у нас —
+  // ПОСЛЕДНИЙ элемент потока (".side-foot", "margin-top: auto"), а такой на
+  // максимуме прокрутки стоит ровно на своём месте в потоке и не закрывает
+  // собой ничего по определению. Проверка исправно возвращала пустой список на
+  // рельсе, у которого при этом целая кнопка была не видна. Прибор, который не
+  // может сработать, хуже отсутствующего: его молчание читают как «чисто».
+  //
+  // Меряем теперь ДВЕ разные беды, и первая — та, что есть на самом деле.
+  //
+  // (а) НА ПОКОЕ. Полоса непрозрачна ("background: var(--ground)"), и всё, что
+  //     оказалось под ней при том "scrollTop", в котором игрок застаёт рельс,
+  //     он не видит вовсе — хотя место на экране под это отведено. Замер на
+  //     1440×900 за столом: ".side-foot" 134 px пришпилен на 750..884, панель
+  //     «Условия сделки» лежит 668..822 — 72 px закрашено, — а кнопка брифинга
+  //     832..874 закрыта ЦЕЛИКОМ. Пятиточечный hit-тест выше её не ловит: он
+  //     сперва подводит элемент под кромку "scrollIntoView", и правильно
+  //     делает — там речь о другом дефекте.
+  // (б) НЕДОСТИЖИМОЕ. Если прилипший низ не последний в потоке, часть
+  //     содержимого не выводится под кромку никаким скроллом. Класс редкий, но
+  //     настоящий, поэтому остаётся.
+  const floorHit = (sc, stick, floorTop, scRect, when) => {
+    // Элемент, целиком уехавший ниже коробки скроллера, — это обычная
+    // прокрутка, а не работа полосы: без неё его тоже не было бы видно.
+    const painted = (cr) => cr.top >= floorTop - 1 && cr.top < scRect.bottom - 1;
+    for (const el of sc.querySelectorAll("button, a[href], input:not([type=hidden]), select, textarea, [role=button]")) {
+      // Кнопки САМОЙ полосы лежат ниже её кромки по определению — она их и
+      // держит. Без этой строки прибор докладывал бы о выходе со стола как о
+      // закрытом им же самим.
+      if (!vis(el) || skip(el) || stick.some((s) => s.contains(el))) continue;
+      const cr = el.getBoundingClientRect();
+      if (!painted(cr)) continue;
+      out.cut.push("управление закрыто прилипшим низом " + when + ": " +
+        Math.round(cr.width) + "x" + Math.round(cr.height) + " на " + Math.round(cr.top) + ".." +
+        Math.round(cr.bottom) + " при кромке " + Math.round(floorTop) + " :: " + nm(el).slice(0, 40));
+    }
+    for (const ch of sc.children) {
+      if (!vis(ch) || skip(ch) || getComputedStyle(ch).position === "sticky") continue;
+      const cr = ch.getBoundingClientRect();
+      const hidden = Math.min(cr.bottom, scRect.bottom) - floorTop;
+      if (hidden > 6 && cr.top < floorTop - 1)
+        out.cut.push(Math.round(hidden) + "px закрашено прилипшим низом " + when + " (" +
+          Math.round(cr.top) + ".." + Math.round(cr.bottom) + " при кромке " +
+          Math.round(floorTop) + ") :: " + nm(ch).slice(0, 40));
+    }
+  };
   for (const sc of document.querySelectorAll("body *")) {
     if (!vis(sc)) continue;
     const ss = getComputedStyle(sc);
@@ -384,19 +482,17 @@ const GEOM = `(() => {
       return cs.position === "sticky" && vis(c) && parseFloat(cs.bottom || "auto") >= 0;
     });
     if (!stick.length) continue;
-    const was = sc.scrollTop;
+    const scRect = sc.getBoundingClientRect();
+    const topOf = () => Math.min(...stick.map((c) => c.getBoundingClientRect().top));
+    // «Покой» — это НОЛЬ, а не то, где скроллер оставила проверка перекрытия
+    // выше. Рельс продукт не прокручивает никогда: игрок застаёт его в начале
+    // и уезжает от начала только сам.
+    sc.scrollTop = 0;
+    floorHit(sc, stick, topOf(), scRect, "на покое");
     sc.scrollTop = sc.scrollHeight;
-    const floorTop = Math.min(...stick.map((c) => c.getBoundingClientRect().top));
-    for (const ch of sc.children) {
-      if (!vis(ch) || stick.includes(ch)) continue;
-      const cr = ch.getBoundingClientRect();
-      const hidden = cr.bottom - floorTop;
-      if (hidden > 6 && cr.top < floorTop)
-        out.cut.push(Math.round(hidden) + "px под прилипшим низом (" + Math.round(cr.top) + ".." +
-          Math.round(cr.bottom) + " при кромке " + Math.round(floorTop) + ") :: " + nm(ch).slice(0, 44));
-    }
-    sc.scrollTop = was;
+    floorHit(sc, stick, topOf(), scRect, "и до него не доскроллить");
   }
+  restoreScroll();
   return out;
 })()`;
 
@@ -567,8 +663,10 @@ for (const vp of VPS) {
   //
   // Раньше здесь стояло `desk || mob || en`, и рассуждение было такое: «тёмные
   // варианты для упражнений почти ничего не добавляют — те же токены, что
-  // везде». Рассуждение неверное. Курс — самая текстовая часть продукта (42
-  // урока, 90 упражнений, десять типов разметки), и у него СВОИ цвета: рамка
+  // везде». Рассуждение неверное. Курс — самая текстовая часть продукта (счёт
+  // блоков, уроков, упражнений и типов разметки прибор печатает при старте, из
+  // каталога — вписывать их сюда значит завести четвёртую копию, которая
+  // протухнет вместе с остальными), и у него СВОИ цвета: рамка
   // вердикта, подсветка выбранного варианта, фон карточки соответствия,
   // приглушённый текст разбора. Ни одна из них на контраст в тёмной теме не
   // проверялась ни разу — а системная тёмная (`dark-sys`) вдобавок не получает
@@ -605,9 +703,7 @@ for (const vp of VPS) {
   // успевает перезаписать сам продукт (серия, цель дня), и посеянный на старте
   // прогресс к этому моменту исчезал — обходчик видел один открытый блок вместо
   // семи и не доходил до четырёх типов упражнений.
-  await page.evaluate(() => {
-    const blocks = ["foundations","spin-ladder","active-listening","objective-criteria",
-                    "batna-zopa","anchoring","logrolling","pressure-defense","closing"];
+  await page.evaluate((blocks) => {
     const course = {};
     for (const b of blocks) {
       course[b] = { lessons:[1,2,3,4], solved:[], missed:[], examBest:5, examTotal:5,
@@ -617,7 +713,7 @@ for (const vp of VPS) {
     const prof = raw ? JSON.parse(raw) : {};
     prof.course = course; prof.xp = 900;
     localStorage.setItem("dialog.progress.v1", JSON.stringify(prof));
-  }).catch(()=>{});
+  }, COURSE.blocks).catch(()=>{});
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2000);
   // Язык живёт в состоянии React и перезагрузку не переживает — после reload
@@ -631,13 +727,18 @@ for (const vp of VPS) {
   await page.locator('[data-nav="course"]').first().click().catch(()=>{});
   await page.waitForTimeout(1300);
 
-  const ALL_KINDS = ["choice","spot_error","order","freeform","match","meters",
-                     "numeric","reaction","face","drill"];
+  const ALL_KINDS = COURSE.kinds;
   const seen = new Set();
   // Типы упражнений разложены по РАЗНЫМ блокам, поэтому одного блока мало.
   // Идём по блокам, пока не увидим все десять или пока блоки не кончатся.
   const blockCount = deepCourse ? await page.locator(".cnode-btn:not(:disabled)").count() : 0;
-  if (vp.tag === "desk") console.log("  открытых блоков:", blockCount);
+  if (vp.tag === "desk") console.log("  открытых блоков:", blockCount, "из", COURSE.blocks.length);
+  // ПОСЕВ ПРОГРЕССА ОБЯЗАН ОТКРЫТЬ ВЕСЬ КАТАЛОГ, И ЭТО ПРОВЕРЯЕТСЯ. Список
+  // блоков в приборе однажды отстал от курса на два блока, обход молча ходил
+  // по девяти и печатал «увидено 10/10» — то есть отчитывался об успехе там,
+  // где два блока не открывались вовсе.
+  if (deepCourse && blockCount < COURSE.blocks.length)
+    add("BAD", "course", "nav", `посев открыл ${blockCount} блоков из ${COURSE.blocks.length} — часть курса не обойдена`);
   for (let bi = 0; bi < Math.min(blockCount, 6) && seen.size < ALL_KINDS.length; bi++) {
     const blocks = page.locator(".cnode-btn:not(:disabled)");
     if (await blocks.count() <= bi) break;
@@ -823,4 +924,4 @@ const group = (list) => {
   for (const [k, v] of m) { console.log(`— ${k} (${v.length})`); for (const f of v.slice(0, 8)) console.log(`   [${f.where}] ${f.msg}`); }
 };
 group(bad); group(warn);
-fs.writeFileSync("/tmp/ui-audit/findings.json", JSON.stringify(findings, null, 1));
+fs.writeFileSync(`${OUT}/findings.json`, JSON.stringify(findings, null, 1));

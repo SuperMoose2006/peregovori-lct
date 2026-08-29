@@ -32,6 +32,9 @@ import { applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDa
          activeCampaignId, chooseNextStep, emptyCampaign, getCampaignProgress,
          recordCampaignStage, resetCampaign,
          type GameResult, type Grade, type NextStepPick, type PastRun, type Profile } from "./lib/progress";
+// История партий — ВИТРИНА, а не механика: свой ключ в localStorage, профиль
+// оценки о ней не знает, в score_session отсюда не уходит ничего (инвариант 6).
+import { appendHistory } from "./lib/growth";
 import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 import { scrollTo, scrollTop } from "./lib/motion";
@@ -53,6 +56,9 @@ const loadDebrief = () => import("./components/Debrief").then((m) => ({ default:
 const loadCourse = () => import("./components/CourseScreen").then((m) => ({ default: m.CourseScreen }));
 const loadWarmup = () => import("./components/Warmup").then((m) => ({ default: m.Warmup }));
 const loadRematchRail = () => import("./components/Rematch").then((m) => ({ default: m.RematchRail }));
+// Витрина роста на экране профиля: график истории партий. Тоже отложена — на
+// домашнем экране её нет, а тянуть её туда ради одной карточки незачем.
+const loadGrowth = () => import("./components/Growth").then((m) => ({ default: m.Growth }));
 
 /**
  * Прогрев на простое — цена, которой оплачен инвариант 5.
@@ -67,7 +73,7 @@ const loadRematchRail = () => import("./components/Rematch").then((m) => ({ defa
  * ничего показывать. Настоящий отказ увидит тот, кто в этот экран пойдёт.
  */
 const WARM: Array<() => Promise<unknown>> = [
-  loadTable, loadDebrief, loadCourse, loadWarmup, loadRematchRail,
+  loadTable, loadDebrief, loadCourse, loadWarmup, loadRematchRail, loadGrowth,
   // Транспорты: с сервером и без него. Второй — офлайн-ядро, ради которого всё
   // это и делается.
   () => import("./realtime/transport"),
@@ -272,6 +278,10 @@ export default function App() {
     saveProfile(res.profile);
     setProfile(res.profile);
     setLastGame(res);
+    // Тем же разбором, из которого получился грейд, — и ОТДЕЛЬНО от профиля:
+    // запись истории не имеет права ни изменить оценку, ни уронить партию, если
+    // хранилище закрыто (внутри всё best-effort).
+    appendHistory(scenarioId, nego.debrief);
   }, [nego.debrief, nego.scenario, currentScenario]);
 
   // След идущей партии: одно состояние на ход. Дедупликация по НОМЕРУ хода, а не
@@ -1044,6 +1054,7 @@ export default function App() {
             busy={nego.busy}
             phase={nego.phase}
             judgeActive={nego.judgeActive}
+            cloudAi={typeof nego.capabilities?.cloud_ai === "boolean" ? nego.capabilities.cloud_ai : null}
             avatarState={nego.avatarState}
             oppSpeaking={nego.oppSpeaking}
             layers={activeLayers}
@@ -1186,7 +1197,17 @@ export default function App() {
 
       {screen === "profile" && (
         <>
-          <SkillsProfile t={t} lang={lang} profile={profile} onHome={goHome} />
+          <SkillsProfile
+            t={t} lang={lang} profile={profile} onHome={goHome}
+            growth={
+              /* `silent`: карточка — надстройка над экраном, а не сам экран.
+                 Пока её файл едет и если он не доехал, здесь пусто — сообщать о
+                 поломке там, где человек ничего не ждал, незачем. */
+              <LazyScreen lang={lang} silent load={loadGrowth} render={(Growth) => (
+                <Growth t={t} lang={lang} />
+              )} />
+            }
+          />
           {/* Слои — настройка, а не ворота перед партией. Здесь стоит их дом:
               выбранное отсюда достаётся следующему столу, а править его можно и
               за столом, до первого хода. */}

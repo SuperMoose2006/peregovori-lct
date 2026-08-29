@@ -38,6 +38,11 @@ interface Props {
   // Whether the live semantic judge scored this session (drives the "graded by
   // meaning" badge on coach lines). False offline/mock — nothing to claim.
   judgeActive: boolean;
+  /** `capabilities.cloud_ai` из `session.created`. Сервер поднялся, но ключа у
+   *  него нет → реплики оппонента шаблонные, и об этом обязана быть строка на
+   *  экране. `null` — сессии ещё нет, утверждать нечего (принцип 2: пока
+   *  сервер не ответил, «нет ИИ» такая же неправда, как «ИИ есть»). */
+  cloudAi?: boolean | null;
   onSend: (text: string) => void;
   onHint: () => void;
   onQuit: () => void;
@@ -97,7 +102,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -240,6 +245,19 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   // stays short and the chat/composer are reachable without endless scrolling.
   // On desktop this section is always expanded (the toggle is hidden by CSS).
   const [moreOpen, setMoreOpen] = useState(false);
+  // Подпись раскрывающегося блока зависит от того, что в нём лежит: у сценария
+  // без вторичных вопросов `DealTerms` не рисуется вовсе, и обещать «условия
+  // сделки» было бы обещанием пустоты.
+  const hasTerms = (scenario.secondary_issues ?? []).length > 0;
+  // Раскрытый блок ВЫШЕ остатка рельса: 285 px содержимого против 40–100 px
+  // свободных под кнопкой. Без подвода в поле зрения человек нажимает и видит
+  // первую строку, а остальное остаётся ниже сгиба — то есть нажатие выглядит
+  // как «ничего не произошло». `scrollTo` спрашивает про reduced-motion, а не
+  // задаёт «плавно» константой.
+  const moreRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (moreOpen) scrollTo(moreRef.current, { block: "end" });
+  }, [moreOpen]);
   // Interest-reveal delight: when the engine's interests_found ticks up, flash
   // the tracker and float a brief toast. Purely celebratory — we never reveal
   // the interest text the backend withheld, only that the COUNT rose. Suppressed
@@ -430,6 +448,13 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
         </ScreenHeading>
         <div className="table">
           <aside className="side">
+            {/* ТЕЛО РЕЛЬСА — ОТДЕЛЬНЫЙ ЭЛЕМЕНТ, И ЭТО НЕ ОБЁРТКА РАДИ ОБЁРТКИ.
+                Прокручивается ОНО, а «тренер + выход» стоят строкой ниже, вне
+                скролла. Пока низ прилипал внутри общего скроллера, он не
+                ограничивал прокрутку, а закрашивал собой карточки: на 1440×900
+                72 px «Условий сделки» и кнопка брифинга целиком, на ×800 и ×720
+                — BATNA и темы (числа и разбор — в styles.css у `.side`). */}
+            <div className="side-scroll">
             {/* While a "read her face" question is open the portrait becomes the
                 main object on screen — this is the one beat that justifies the
                 parametric expressions, which otherwise work almost unnoticed. */}
@@ -506,31 +531,50 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               <span>{scenario.batna}</span>
             </div>
 
-            {/* Visible logrolling: the tradeable "package" forming. Стоит ниже
-                тем и BATNA намеренно: рельс не вмещает всё, и порядок здесь —
-                это порядок, в котором новичок теряет панели. Терять первым
-                обязан пояснитель размена, а не строка, отвечающая на вопрос
-                «о чём вообще спрашивать». Renders only for scenarios that carry
-                secondary issues. */}
-            <DealTerms scenario={scenario} state={st} t={t} />
+            {/* УСЛОВИЯ СДЕЛКИ УЕХАЛИ ПОД КНОПКУ — И ЭТО РЕШЕНИЕ ПО ЗАМЕРУ.
+                Панель стояла здесь, между BATNA и брифингом, и «теряться
+                первой» у неё выходило худшим из возможных способов: прилипший
+                низ рельса непрозрачен, и на 1440×900 он ЗАКРАШИВАЛ её нижнюю
+                часть — 10 px на нулевом ходу и 72 px со второго (панель
+                668..822 при кромке 750), а кнопку брифинга под ней (340×42 на
+                832..874) закрывал целиком. То есть панель не терялась, а
+                показывалась наполовину, и человек не знал, что дальше что-то
+                есть.
 
-            <div className={`side-more${moreOpen ? " open" : ""}`}>
+                Рельсу 665 px выше прилипшего низа, а содержимого было 789.
+                Значит что-то обязано уйти, и уйти оно должно НАЗВАННЫМ, а не
+                под полосу. Уходит именно эта панель, потому что она
+                единственная в рельсе повторяет то, что уже написано рядом:
+                строка переключается только после того, как игрок САМ произнёс
+                размен, — его собственный пузырь стоит в ленте слева, — а урок
+                про размен доносит разбор (`terms.debriefLabel` /
+                `debriefNone`). Цена, темы, BATNA и лицо не написаны на столе
+                больше нигде, поэтому остаются снаружи.
+
+                Подпись кнопки называет ОБЕ вещи внутри: кнопка, обещающая
+                брифинг и прячущая ещё и условия сделки, — это второй принцип
+                наизнанку. */}
+            <div ref={moreRef} className={`side-more${moreOpen ? " open" : ""}`}>
               <button
                 className="side-more-toggle"
                 onClick={() => setMoreOpen((o) => !o)}
                 aria-expanded={moreOpen}
               >
-                <span>📋 {t.moreLabel}</span>
+                <span>📋 {hasTerms ? `${t.moreLabel} · ${t.terms.title}` : t.moreLabel}</span>
                 <span className="chev" aria-hidden="true">▾</span>
               </button>
               <div className="side-more-body">
+                {/* Visible logrolling: the tradeable "package" forming. Renders
+                    only for scenarios that carry secondary issues. */}
+                <DealTerms scenario={scenario} state={st} t={t} />
                 <div className="brief">{scenario.briefing}</div>
               </div>
             </div>
-            {/* Карл и выход прилипают к низу рельса ВМЕСТЕ. Прилипал один Карл,
-                а кнопка выхода стояла под ним — то есть за краем окна: уйти со
-                стола можно было только прокрутив рельс. Выход не бывает
-                «где-то ниже». В экзамене Карла нет — там подсказок не бывает. */}
+            </div>
+            {/* Карл и выход стоят внизу рельса ВМЕСТЕ. Стоял внизу один Карл, а
+                кнопка выхода — под ним, то есть за краем окна: уйти со стола
+                можно было только прокрутив рельс. Выход не бывает «где-то
+                ниже». В экзамене Карла нет — там подсказок не бывает. */}
             <div className="side-foot">
               {!exam ? <Karl state={karl} name={t.mascot.karl} alt={t.mascot.alt} /> : null}
               <div className="side-acts">
@@ -590,6 +634,15 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                       .replace("{n}", String(st?.turn ?? 0))
                       .replace("{max}", String(st?.max_turns ?? 12))}
                 {kind === "mock" ? <span className="conn mock">{t.usingMock}</span> : null}
+                {/* ДВА РАЗНЫХ СОСТОЯНИЯ, ДВА РАЗНЫХ БЕЙДЖА. Соседний говорит
+                    «сервера нет вовсе»; этот — «сервер есть, ключа модели нет»,
+                    и реплики оппонента идут шаблонами движка. Без него партия
+                    на голом шлюзе выглядит как живая — то самое четвёртое
+                    состояние, которого не бывает. Рисуется только когда сервер
+                    ОТВЕТИЛ (`kind !== "mock"`) и сказал прямо, что ИИ нет:
+                    `undefined` и `null` бейджа не дают. */}
+                {kind !== "mock" && cloudAi === false
+                  ? <span className="conn noai" title={t.noAiWhy}>{t.noAiChip}</span> : null}
                 {kind === null ? <span className="conn">{t.connecting}</span> : null}
               </div>
             </div>
