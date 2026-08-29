@@ -606,8 +606,16 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .tag.batna { border-color: color-mix(in srgb, var(--leverage) 45%, transparent); color: var(--leverage-ink); }
 .tag.empathy, .tag.interests, .tag.tradeoff, .tag.rapport, .tag.accept, .tag.concession { border-color: color-mix(in srgb, var(--trust) 45%, transparent); color: var(--trust-ink); }
 .tag.threat, .tag.hostile { border-color: color-mix(in srgb, var(--tension) 50%, transparent); color: var(--tension-ink); }
-.arg { font-size: 10.5px; color: var(--ink-faint); }
+.arg { font-size: 10.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 .arg b { color: var(--ink-dim); }
+/* Качество довода готово позже тегов: судья его перепишет, штраф за повтор
+   обрежет. Пока движок считает, на месте числа стоят точки — того же кегля и
+   тех же цифровых метрик (tabular-nums), поэтому появление балла ничего не
+   сдвигает. Пульсация тут не украшение: она отличает «ещё считаем» от
+   «посчитали ноль». */
+.arg.pending b { color: var(--ink-faint); animation: argWait 1.1s ease-in-out infinite; }
+@keyframes argWait { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) { .arg.pending b { animation: none; } }
 /* Перенос обязателен: к коротким «Дов +4» добавилась подпись причины
    («повтор — на эти слова уже ответили»), и на 390 px строка выходила за
    пузырь. Прижата вправо — как и сам пузырь игрока. */
@@ -2354,7 +2362,16 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .rc-rank { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .rc-rank b { font-size: 16px; }
 .rc-rank span { font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
-.rc-bar { height: 10px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
+/* `display: block` — НЕ УКРАШЕНИЕ. Полосу рисуют двумя тегами: в карточках
+   рейла это <div>, а в карточках курса и «Чтения стола» — <span>. У инлайнового
+   span `height` не применяется вовсе, а блочный <i> внутри него разрывает
+   строку — коробка карточки считалась без полосы и оказывалась на 153 и 218
+   пикселей короче своего содержимого. Кнопка «Продолжить курс →» уезжала под
+   СЛЕДУЮЩУЮ карточку (замер 390×844: кнопка 398–446, поверх неё p.rc-note
+   соседа, 5 точек из 5), «Читать партию →» — туда же. Дефект старше обеих
+   карточек: правило никогда не задавало полосе блочность, и любой <span>
+   ломался бы так же. */
+.rc-bar { display: block; height: 10px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
 .rc-bar i { display: block; height: 100%; border-radius: 999px; background: var(--brass); transition: width 0.5s ease; }
 .rc-next { margin: 9px 0 0; font-size: 11.5px; color: var(--ink-dim); }
 .rc-method { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }

@@ -9,7 +9,9 @@ const EXE = "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome";
 // Обходчик гоняется против ОФЛАЙН-сборки на отдельном порту (см. README), а не
 // против гейтвея, поэтому у него своя переменная и своё умолчание.
 const BASE = (process.env.AUDIT_BASE ?? "http://127.0.0.1:5199/").replace(/\/+$/, "") + "/";
-const OUT = "/tmp/ui-audit";
+// Каталог снимков переопределяется: два прогона разом писали в один и тот же
+// путь, и половина снимков в отчёте оказывалась чужой.
+const OUT = process.env.AUDIT_OUT ?? "/tmp/ui-audit";
 fs.mkdirSync(OUT, { recursive: true });
 
 // СВЕРКА СВЕЖЕСТИ ЖИВЁТ В ОБЩЕМ МОДУЛЕ `_fresh.mjs`. Она родилась здесь — на
@@ -22,7 +24,16 @@ fs.mkdirSync(OUT, { recursive: true });
 // Шлюз обходчику НЕ обязателен: домашний экран и курс он умеет обойти по
 // офлайн-ядру. Отсюда `optional` — единственное отличие от остальных приборов,
 // для которых шлюз и есть предмет замера.
-await assertBundle(BASE);
+// СВЕРЯЕМСЯ С ОФЛАЙН-СБОРКОЙ, А НЕ С `dist`. README велит гонять обходчик
+// против `dist-mock` — и ровно на этом сверка свежести отказывала: она по
+// умолчанию смотрит в `frontend/dist`, у которого другой хеш входного файла
+// (VITE_MOCK меняет код). Прибор, который не может стартовать по инструкции из
+// собственного README, — это прибор, которым не пользуются.
+const DIST = new URL(
+  fs.existsSync(new URL("../dist-mock/index.html", import.meta.url)) ? "../dist-mock/index.html" : "../dist/index.html",
+  import.meta.url,
+);
+await assertBundle(BASE, DIST);
 await assertGateway(BASE, { optional: true });
 
 const ONLY = (process.env.AUDIT_VPS || "").split(",").map((x) => x.trim()).filter(Boolean);
@@ -279,6 +290,116 @@ const PROBE = `(() => {
   return out;
 })()`;
 
+// ——— ГЕОМЕТРИЯ: перекрытие и вынос содержимого за коробку ———
+//
+// ПОЧЕМУ ЭТО ОТДЕЛЬНАЯ ПРОВЕРКА, А НЕ ЧАСТЬ PROBE. Всё в PROBE меряется там,
+// где элемент лежит; перекрытие меряется только hit-тестом, а hit-тест работает
+// в координатах ОКНА — значит каждый элемент надо сперва подвести под кромку.
+// Отсюда `scrollIntoView` в цикле и отдельный вызов.
+//
+// ЧТО ОНА НАШЛА. На 390×844 кнопки карточек правого рейла лежали ПОД следующей
+// карточкой: «Продолжить курс →» 324×48 на 398–446, и все пять контрольных
+// точек попадали в `p.rc-note` соседней карточки; «Читать партию →» — то же
+// самое. Причина не в отступе, а в том, что полосу прогресса в этих двух
+// карточках рисует <span>: инлайновая коробка игнорирует `height`, и секция
+// считалась на 153 и 218 пикселей короче своего содержимого. Ни одна прежняя
+// проверка этого не видела — переполнение прибор ищет по ГОРИЗОНТАЛИ, а
+// «выглядит тесно» дефектом не является. Дефект — это два прямоугольника.
+const GEOM = `(() => {
+  const out = { covered: [], spill: [], cut: [] };
+  const vis = (el) => { const s = getComputedStyle(el);
+    if (s.display === "none" || s.visibility === "hidden" || +s.opacity === 0) return false;
+    // ЗАКРЫТЫЙ <details> — НЕ ДЕФЕКТ. Браузер прячет его содержимое через
+    // content-visibility, а не display, поэтому наивная проверка видимости
+    // считала свёрнутый блок «Почему это учит» видимым и рапортовала 1434px
+    // содержимого ниже коробки. Прибор, который врёт, чинят раньше продукта.
+    if (el.tagName !== "SUMMARY" && el.closest("details:not([open])")) return false;
+    const r = el.getBoundingClientRect(); return r.width > 2 && r.height > 2; };
+  const nm = (el) => {
+    if (!el) return "—";
+    const c = typeof el.className === "string" ? el.className.trim().split(/\\s+/).filter(Boolean).slice(0, 3).join(".") : "";
+    return (c ? el.tagName.toLowerCase() + "." + c : el.tagName.toLowerCase())
+      + (el.textContent ? " «" + el.textContent.trim().slice(0, 26) + "»" : "");
+  };
+  // Открытая шторка ЗАКРЫВАЕТ фон намеренно — это не дефект, а её работа.
+  // Пока диалог открыт, смотрим только внутрь него.
+  const dialog = document.querySelector("[role=dialog], dialog[open]");
+  const skip = (el) => el.closest("[inert], [aria-hidden=true]") || (dialog && !dialog.contains(el));
+
+  // 1. ПЕРЕКРЫТИЕ. Пять точек на управлении: центр и четыре угла внутрь на 3px.
+  // Три из пяти в чужом элементе — по кнопке нельзя попасть.
+  const ctl = [...document.querySelectorAll("button, a[href], input:not([type=hidden]), select, textarea, [role=button]")];
+  for (const el of ctl.slice(0, 80)) {
+    if (!vis(el) || skip(el)) continue;
+    el.scrollIntoView({ block: "center", inline: "nearest" });
+    const r = el.getBoundingClientRect();
+    const pts = [[r.left + r.width / 2, r.top + r.height / 2],
+                 [r.left + 3, r.top + 3], [r.right - 3, r.top + 3],
+                 [r.left + 3, r.bottom - 3], [r.right - 3, r.bottom - 3]];
+    let blocked = 0, by = null, inside = 0;
+    for (const [x, y] of pts) {
+      if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
+      inside++;
+      const top = document.elementFromPoint(x, y);
+      if (!top || top === el || el.contains(top) || top.contains(el)) continue;
+      blocked++; by = top;
+    }
+    if (inside >= 3 && blocked >= 3)
+      out.covered.push(Math.round(r.width) + "x" + Math.round(r.height) +
+        " y=" + Math.round(r.top) + ".." + Math.round(r.bottom) + " " + nm(el) +
+        " ← закрыт " + nm(by) + " (" + blocked + " из " + inside + " точек)");
+  }
+  window.scrollTo(0, 0);
+
+  // 2. СОДЕРЖИМОЕ НИЖЕ СВОЕЙ КОРОБКИ. Родитель не клипует, значит текст видно —
+  // но лежит он уже на соседе, и это ровно то, из чего получается перекрытие.
+  for (const el of document.querySelectorAll("body *")) {
+    if (!vis(el) || !el.children.length) continue;
+    const s = getComputedStyle(el);
+    if (s.overflowY !== "visible" || s.position === "absolute" || s.position === "fixed") continue;
+    const r = el.getBoundingClientRect();
+    let low = -1e9, who = null;
+    for (const ch of el.children) {
+      const cs = getComputedStyle(ch);
+      if (cs.position === "absolute" || cs.position === "fixed" || !vis(ch)) continue;
+      if (parseFloat(cs.marginBottom) < 0) continue;   // выступ намеренный
+      const cr = ch.getBoundingClientRect();
+      if (cr.bottom > low) { low = cr.bottom; who = ch; }
+    }
+    const over = low - r.bottom - parseFloat(s.paddingBottom || 0);
+    if (who && over > 4)
+      out.spill.push(Math.round(over) + "px ниже коробки :: " + nm(el).slice(0, 44) + " ← " + nm(who).slice(0, 44));
+  }
+
+  // 3. СРЕЗАНО ПРИЛИПШИМ НИЗОМ. Вложенный скроллер с «position: sticky» внутри
+  // не «прокручивается до конца»: последняя панель остаётся ПОД прилипшей
+  // полосой навсегда. Меряем то, до чего нельзя доскроллить.
+  for (const sc of document.querySelectorAll("body *")) {
+    if (!vis(sc)) continue;
+    const ss = getComputedStyle(sc);
+    if (ss.overflowY !== "auto" && ss.overflowY !== "scroll") continue;
+    if (sc.scrollHeight <= sc.clientHeight + 1) continue;
+    const stick = [...sc.children].filter((c) => {
+      const cs = getComputedStyle(c);
+      return cs.position === "sticky" && vis(c) && parseFloat(cs.bottom || "auto") >= 0;
+    });
+    if (!stick.length) continue;
+    const was = sc.scrollTop;
+    sc.scrollTop = sc.scrollHeight;
+    const floorTop = Math.min(...stick.map((c) => c.getBoundingClientRect().top));
+    for (const ch of sc.children) {
+      if (!vis(ch) || stick.includes(ch)) continue;
+      const cr = ch.getBoundingClientRect();
+      const hidden = cr.bottom - floorTop;
+      if (hidden > 6 && cr.top < floorTop)
+        out.cut.push(Math.round(hidden) + "px под прилипшим низом (" + Math.round(cr.top) + ".." +
+          Math.round(cr.bottom) + " при кромке " + Math.round(floorTop) + ") :: " + nm(ch).slice(0, 44));
+    }
+    sc.scrollTop = was;
+  }
+  return out;
+})()`;
+
 // :focus-visible не включается от программного .focus() — только от настоящей
 // клавиатуры. Поэтому жмём Tab и сравниваем вид элемента с его же видом без фокуса.
 async function keyboardFocus(page, where) {
@@ -326,13 +447,35 @@ async function probe(page, where, tag, lang = "ru") {
   }
   for (const h of (r.headings || []).slice(0, 3)) add("WARN", where, "heading", "пропуск уровня " + h);
   for (const u of (r.unlabelled || []).slice(0, 3)) add("BAD", where, "label", "поле без подписи: " + u);
+  // Геометрия идёт ПОСЛЕ остальных проверок и ДО снимка: она листает страницу,
+  // и снимок с середины прокрутки читался бы как другой экран.
+  const g = await page.evaluate(GEOM);
+  for (const c of (g.covered || []).slice(0, 4)) add("BAD", where, "overlap", "управление перекрыто: " + c);
+  for (const c of (g.cut || []).slice(0, 4)) add("BAD", where, "cut", "срезано: " + c);
+  for (const sp of (g.spill || []).slice(0, 4)) add("BAD", where, "spill", "содержимое ниже своей коробки: " + sp);
+  await page.evaluate(() => window.scrollTo(0, 0));
   if (tag === "en") {
     for (const c of (r.cyr || []).slice(0, 6)) add("BAD", where, "i18n", "непереведено: " + c);
   }
   await page.screenshot({ path: `${OUT}/${tag}-${where.replace(/[^\w-]/g, "_")}.png`, fullPage: tag === "desk" });
 }
 
-const browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] });
+// ФЛАГИ ПАМЯТИ — НЕ УКРАШЕНИЕ. README честно пишет, что прогон целиком не
+// влезает в память коробки и хром падает по oom-kill на середине курса; упавший
+// прибор не отчитывается ни о чём. Общая память тут делится с гейтвеем и
+// тестами, поэтому отбираем у браузера всё, что не нужно обходчику: общую
+// память /dev/shm (её тут 64 МБ), GPU, лишние процессы отрисовки.
+const browser = await chromium.launch({
+  executablePath: EXE,
+  args: [
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--renderer-process-limit=1",
+    "--disable-background-networking",
+    "--js-flags=--max-old-space-size=256",
+  ],
+});
 
 for (const vp of VPS) {
   VP = vp.tag;
@@ -364,6 +507,36 @@ for (const vp of VPS) {
   }
 
   await probe(page, "home", vp.tag, vp.lang || "ru");
+
+  // ——— «ЧТЕНИЕ СТОЛА»: ШТОРКА, КОТОРУЮ ОБХОДЧИК НЕ ВИДЕЛ НИ РАЗУ ———
+  // Режим живёт карточкой в рейле и открывается порталом в <body> поверх
+  // инертной оболочки — то есть ни один из обходов по разделам сюда не попадал.
+  // Ходим по `data-reading`, а не по подписи: подпись переводится.
+  {
+    const open = page.locator('[data-reading="open"]').first();
+    if (await open.count()) {
+      await open.click();
+      // Экран режима едет отдельным куском сборки: ждём его, а не таймаут.
+      const got = await page.waitForSelector(".rd-shell .rd-head", { timeout: 15000 }).catch(() => null);
+      if (!got) add("BAD", "reading", "nav", "карточка «Чтение стола» не открыла экран режима");
+      else {
+        await probe(page, "reading", vp.tag, vp.lang || "ru");
+        // Остановка с вопросом — то состояние, ради которого режим и сделан.
+        const opt = page.locator(".rd-opts button").first();
+        if (await opt.count()) {
+          await opt.click().catch(() => {});
+          await page.waitForTimeout(800);
+          await probe(page, "reading-answer", vp.tag, vp.lang || "ru");
+        } else {
+          add("BAD", "reading", "nav", "у остановки нет вариантов ответа — экран показал не то");
+        }
+      }
+      await page.keyboard.press("Escape").catch(() => {});
+      await page.waitForTimeout(600);
+    } else {
+      add("BAD", "reading", "nav", "карточки «Чтение стола» нет в рейле");
+    }
+  }
 
   // ПЕРЕХОД ОБЯЗАН СОСТОЯТЬСЯ, И ЭТО ПРОВЕРЯЕТСЯ. Раньше клик по русской
   // подписи глотался `.catch(()=>{})`: в английском режиме навигация не
@@ -566,6 +739,23 @@ for (const vp of VPS) {
   }
   await page.waitForTimeout(1600);
   await probe(page, "game-turn0", vp.tag, vp.lang || "ru");
+
+  // ——— ШТОРКА СЛОЁВ. Полноэкранный экран подготовки убран, слои переехали
+  // внутрь стола, и обходчик за ними следом не пошёл: состояние, где четыре
+  // тумблера и объяснение запрета в зачётных режимах, не проверялось ни разу.
+  {
+    const lay = page.locator(".lay-open").first();
+    if (await lay.count()) {
+      await lay.click();
+      const sheet = await page.waitForSelector(".lay-sheet", { timeout: 8000 }).catch(() => null);
+      if (!sheet) add("BAD", "layers", "nav", "кнопка слоёв не открыла шторку");
+      else await probe(page, "layers", vp.tag, vp.lang || "ru");
+      await page.keyboard.press("Escape").catch(() => {});
+      await page.waitForTimeout(500);
+    } else {
+      add("BAD", "layers", "nav", "кнопки слоёв за столом нет");
+    }
+  }
 
   // ОДНА ПОДСКАЗКА НА ХОД. На нулевом ходу их было до пяти разом: карточка
   // «Стол накрыт» с тремя затравками, строка тренера, чип-затравка над полем,
