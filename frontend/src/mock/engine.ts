@@ -4,7 +4,7 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, StateView, Status, Tag, WhatIfBranch } from "../types";
-import { LEX, cnt, has, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
+import { LEX, cnt, has, hasUnnegated, isShortClose, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import type { CounterpartStyle, ScenarioDef } from "../data/scenarios";
 
@@ -33,7 +33,9 @@ export function analyze(raw: string): RawAnalysis {
   let spin: string | null = null;
   if (has(t, LEX.spinNeedPayoff)) { spin = "need-payoff"; moves.add("spin_needpayoff"); addT("spin", "SPIN · Need-payoff"); }
   else if (has(t, LEX.spinImplication)) { spin = "implication"; moves.add("spin_implication"); addT("spin", "SPIN · Implication"); }
-  else if (has(t, LEX.spinProblem)) { spin = "problem"; moves.add("spin_problem"); addT("spin", "SPIN · Problem"); }
+  // Отрицание перед словом отменяет стадию: «no problem» — отговорка, а не
+  // проблема. Зеркало techniques.py::analyze.
+  else if (hasUnnegated(t, LEX.spinProblem)) { spin = "problem"; moves.add("spin_problem"); addT("spin", "SPIN · Problem"); }
   else if (has(t, LEX.spinSituation)) { spin = "situation"; moves.add("spin_situation"); addT("spin", "SPIN · Situation"); }
   if (has(t, LEX.interestsProbe)) { moves.add("interests_probe"); addT("interests", "Интерес / Interest"); }
   if (has(t, LEX.acknowledge)) { moves.add("acknowledge"); addT("empathy", "Активное слушание"); }
@@ -44,12 +46,17 @@ export function analyze(raw: string): RawAnalysis {
   if (has(t, LEX.hostile)) { moves.add("hostile"); addT("hostile", "Грубость"); }
   if (has(t, LEX.concession)) { moves.add("concession"); addT("concession", "Уступка"); }
   if (has(t, LEX.anchor)) { moves.add("anchor"); addT("anchor", "Якорь"); }
-  if (has(t, LEX.accept)) { moves.add("accept"); addT("accept", "Закрытие"); }
+  if (has(t, LEX.accept) || isShortClose(t)) { moves.add("accept"); addT("accept", "Закрытие"); }
   if (has(t, LEX.rapport)) { moves.add("rapport"); addT("rapport", "Контакт"); }
   // Число становится офертой только при намерении назвать цену — зеркало
   // techniques.py::offer_number. Порядок важен: приёмы уже собраны выше.
   const number = offerNumber(t, moves);
-  if (number !== null && !moves.has("accept") && !q) { moves.add("offer"); addT("offer", "Оффер / число"); }
+  // Вопросительная форма оффер НЕ отменяет, если реплика несёт формулу
+  // предложения цены: «How about 120?», «А если 86?» — это контроффер.
+  // Зеркало techniques.py::analyze.
+  if (number !== null && !moves.has("accept") && (!q || has(t, LEX.offerIntent))) {
+    moves.add("offer"); addT("offer", "Оффер / число");
+  }
   if (q && !spin && !moves.has("interests_probe")) { moves.add("open_question"); addT("spin", "Открытый вопрос"); }
   if (moves.size === 0) moves.add("statement");
   const words = t.split(" ").filter(Boolean).length;

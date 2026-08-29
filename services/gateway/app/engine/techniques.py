@@ -86,8 +86,55 @@ def _starts_at_word(text: str, word: str) -> bool:
         start = at + 1
 
 
+def _word_starts(t: str, word: str) -> list[int]:
+    """Все позиции, где основа стоит С НАЧАЛА слова (см. `_starts_at_word`)."""
+    out: list[int] = []
+    start = 0
+    while True:
+        at = t.find(word, start)
+        if at < 0:
+            return out
+        before = t[at - 1] if at else " "
+        if not before.isalpha():
+            out.append(at)
+        start = at + 1
+
+
+#: Сколько слов перед триггером считается «прямо перед ним».
+#:
+#: Три, и число замерено, а не выбрано: «no problem» кладёт отрицание за одно
+#: слово, «not a problem» за два, «isn't a problem» после нормализации («isn t a
+#: problem») — за три. Четвёртое слово уже перевешивает в другую сторону: «no,
+#: that is a problem» — это ПОДТВЕРЖДЕНИЕ проблемы, и окно обязано его
+#: пропустить.
+_NEGATION_WINDOW = 3
+
+
+def _negated_at(t: str, at: int) -> bool:
+    """Стоит ли отрицание вплотную ПЕРЕД совпадением на позиции `at`."""
+    head = t[:at].split()
+    return any(w in _NEGATORS for w in head[-_NEGATION_WINDOW:])
+
+
 def _has(t: str, arr: list[str]) -> bool:
     return any(_starts_at_word(t, w) for w in arr)
+
+
+def _has_unnegated(t: str, arr: list[str]) -> bool:
+    """`_has`, но совпадение под отрицанием не считается.
+
+    ЗАЧЕМ. «No problem» — это вежливая отговорка, а движок засчитывал ей стадию
+    SPIN «Проблема» и +14 к аргументации. На чужом корпусе (CraigslistBargain,
+    38 791 реплика) слово `problem` совпало 311 раз, и 149 из них — «no problem»
+    / «not a problem» / «isn't a problem». Расширением словаря это не чинится:
+    отрицание — не слово, а отношение к слову, и лежит оно ПЕРЕД ним.
+
+    То же самое сторожит короткое закрытие: «no deal» — это отказ, а не сделка,
+    и без этой проверки формула закрытия читалась бы наоборот.
+    """
+    return any(
+        any(not _negated_at(t, at) for at in _word_starts(t, w)) for w in arr
+    )
 
 
 def _count_matches(t: str, arr: list[str]) -> int:
@@ -191,7 +238,7 @@ LEX: dict[str, list[str]] = {
     "tradeoff": [
         "если вы, то мы", "взамен", "в обмен", "при условии", "пакет", "если добавите",
         "давайте свяжем", "обменяем", "в ответ на", "если мы дадим", "если мы",
-        "если пойдём навстречу", "сможете подвинуться", "сможете ли вы", "готовы ли вы взамен",
+        "если пойдем навстречу", "сможете подвинуться", "сможете ли вы", "готовы ли вы взамен",
         "if you, then we", "in exchange", "in return", "provided that", "package",
         "we could trade", "link", "as long as you", "if we give", "if we offer",
         "if you add", "can you move on", "can you move down", "can you move to",
@@ -226,8 +273,28 @@ LEX: dict[str, list[str]] = {
     ],
     "accept": [
         "по рукам", "договорились", "принимаю", "мы согласны", "заключаем", "подписываем",
-        "меня устраивает", "сделка", "deal at", "deal on", "we have a deal", "i accept",
+        "меня устраивает", "deal at", "deal on", "we have a deal", "i accept",
         "we agree", "done deal", "let us sign", "i can live with", "that works for us",
+    ],
+    # Закрытие, сказанное ОДНИМ СЛОВОМ. Читается только у короткой реплики и
+    # только вне отрицания — см. `_is_short_close`.
+    #
+    # ПОЧЕМУ ОТДЕЛЬНЫМ СПИСКОМ, А НЕ ДОПИСКОЙ В `accept`. Английское «deal» —
+    # обычное существительное: на чужом корпусе основа совпала 2404 раза, и это
+    # «good deal», «the deal is», «dealer». Приём `accept` у нас высшего
+    # приоритета и ведёт стол к закрытию, поэтому цена ошибки здесь
+    # несимметрична: пропустить закрытие дешевле, чем закрыть сделку за игрока.
+    # Ограничение «вся реплика — формула» снимает ровно эту двусмысленность:
+    # «Deal.» закрывает, «that would be a good deal for you» — нет.
+    #
+    # Русская половина короче не по недосмотру: по-русски закрытие говорят
+    # СВОИМИ идиомами («по рукам», «договорились»), которые ничего другого не
+    # значат и потому стоят в `accept` без всяких условий. Сюда уехало то, что
+    # двусмысленно и у нас: «сделка» — такое же обычное существительное, как
+    # «deal» («эта сделка нам невыгодна» закрывала стол), и «годится».
+    "acceptShort": [
+        "сделка", "годится",
+        "deal", "agreed",
     ],
     # Слова, при которых число в реплике — ЦЕНА, а не просто цифра. Нужны потому,
     # что «цена 300000» не содержит ни одного приёма из словарей выше, но это
@@ -255,7 +322,75 @@ LEX: dict[str, list[str]] = {
         "years", "year", "people", "person", "engineer", "employee", "week",
         "month", "day", "hour", "minute", "times", "items", "points", "options",
     ],
+    # НАМЕРЕНИЕ НАЗВАТЬ ЦЕНУ. Читает этот список ТОЛЬКО `offer_number` — ни
+    # одного тега приёма отсюда не берётся, и это главное свойство ключа.
+    #
+    # ЗАЧЕМ ОН ОТДЕЛЬНЫЙ. «How about 120?» — контроффер, но не якорь (якорь
+    # заявляет позицию) и не уступка (покупатель здесь не уступает). Положить
+    # эти формулы в `anchor` или `concession` значило бы соврать о приёме ради
+    # числа. Поэтому ключ доказывает только одно: рядом стоящее число — цена.
+    #
+    # ЗАМЕР. На чужом корпусе (CraigslistBargain) 3239 реплик, где разметчик
+    # видел названную цену, а мы нет; во ВСЕХ 3239 число в тексте было — отказ
+    # шёл от `offer_number`, не нашедшего доказательства, что число это цена.
+    # Верхние формулы: «how about» 412, «i can do» 167, «i can go» 113,
+    # «lowest» 89, «asking» 80, «i could do» 76. Отчёт — docs/validation.md
+    # § 4.7; там же — почему «give you» (95 попаданий, второй результат) из
+    # списка ВЫЛЕТЕЛА: на ней покраснел tools/bilingual_audit.py.
+    #
+    # Русская половина написана по симметрии, а не по замеру: русскоязычного
+    # корпуса переговоров с разметкой найти не удалось. Она страдает тем же —
+    # «а если 86?» тоже не оффер, — и лечится тем же списком.
+    "offerIntent": [
+        "как насчет", "как вам", "а если", "могу дать", "могу отдать", "могу сделать",
+        "могу пойти на", "отдам за", "возьму за", "уступлю до", "сойдемся на",
+        "давайте за", "мой минимум", "мой максимум", "не меньше", "не больше",
+        "how about", "what about", "how does", "i can do", "i can go", "i could do",
+        "i could go", "i ll do", "i ll go", "i ll give", "i will give", "offer you",
+        "would you take", "will you take", "lowest", "asking",
+        "go down to", "go up to", "come down to",
+        "go as low as", "willing to go", "settle for", "sell it for", "take it for",
+        "make it",
+    ],
+    # Отрицание ПЕРЕД словом-триггером. Не приём: служебный список для
+    # `_has_unnegated`, см. `_NEGATION_WINDOW`.
+    #
+    # «t» — не опечатка, а осколок. Нормализация выбрасывает апостроф, поэтому
+    # ВСЕ английские отрицательные стяжения («isn't», «don't», «won't»,
+    # «can't») распадаются на слово и одинокую «t». Одна запись покрывает их
+    # все; перечислять «isn», «don», «won» по отдельности значило бы забыть
+    # ровно то стяжение, которое напишет игрок.
+    "negators": [
+        "не", "нет", "без",
+        "no", "not", "never", "t",
+    ],
 }
+
+#: Множество для `_negated_at` — список выше, но со скоростью проверки.
+_NEGATORS = frozenset(LEX["negators"])
+
+#: Длина реплики, при которой формула закрытия читается как закрытие.
+#:
+#: Четыре слова, и порог замерен: на чужом корпусе правило ловит 437 реплик, из
+#: них в классах, которые ТОЧНО не закрытие (отказ, контроффер, вопрос), — две,
+#: и обе на самом деле закрывают сделку названной ценой («$14 Deal»). При
+#: восьми словах таких становится 182: длинная реплика со словом «deal» — это
+#: разговор О сделке, а не закрытие ЕЁ.
+_ACCEPT_SHORT_MAX_WORDS = 4
+
+
+def _is_short_close(t: str) -> bool:
+    """Вся реплика — формула закрытия: «Deal.», «Сделка!», «Agreed».
+
+    Три условия, и каждое снимает свой класс ошибки: короткая реплика (в
+    длинной «deal» — существительное), не вопрос («Deal?» спрашивает, а не
+    закрывает) и не под отрицанием («no deal» — отказ).
+    """
+    if "?" in t:
+        return False
+    if len([w for w in t.split(" ") if w]) > _ACCEPT_SHORT_MAX_WORDS:
+        return False
+    return _has_unnegated(t, LEX["acceptShort"])
 
 #: Суффикс валюты/масштаба вплотную к числу — сам по себе доказательство цены.
 _MONEY_SUFFIX_RE = re.compile(
@@ -333,6 +468,13 @@ def offer_number(t: str, moves: list[str]) -> Optional[float]:
         return val
     if _has(t, LEX["priceContext"]):
         return val
+    # Формула предложения цены — такое же доказательство, как слово «цена».
+    # «How about 120», «i can do 480», «а если 86» не несут ни одного слова
+    # ценового контекста и ни одного приёма, но число в них — цена и ничто
+    # иное. Список читается ЗДЕСЬ И ТОЛЬКО ЗДЕСЬ: он доказывает число, а не
+    # называет приём (см. LEX["offerIntent"]).
+    if _has(t, LEX["offerIntent"]):
+        return val
     # Вся реплика — одно число: в переговорах это цена и ничто иное.
     if len([w for w in t.split(" ") if w]) <= 1:
         return val
@@ -371,7 +513,7 @@ def analyze(raw_text: Optional[str]) -> Analysis:
         spin = "need-payoff"; add_move("spin_needpayoff"); add_tag("spin", "SPIN · Need-payoff")
     elif _has(t, LEX["spinImplication"]):
         spin = "implication"; add_move("spin_implication"); add_tag("spin", "SPIN · Implication")
-    elif _has(t, LEX["spinProblem"]):
+    elif _has_unnegated(t, LEX["spinProblem"]):
         spin = "problem"; add_move("spin_problem"); add_tag("spin", "SPIN · Problem")
     elif _has(t, LEX["spinSituation"]):
         spin = "situation"; add_move("spin_situation"); add_tag("spin", "SPIN · Situation")
@@ -394,7 +536,7 @@ def analyze(raw_text: Optional[str]) -> Analysis:
         add_move("concession"); add_tag("concession", "Concession")
     if _has(t, LEX["anchor"]):
         add_move("anchor"); add_tag("anchor", "Anchoring")
-    if _has(t, LEX["accept"]):
+    if _has(t, LEX["accept"]) or _is_short_close(t):
         add_move("accept"); add_tag("accept", "Closing / accept")
     if _has(t, LEX["rapport"]):
         add_move("rapport"); add_tag("rapport", "Rapport")
@@ -402,7 +544,15 @@ def analyze(raw_text: Optional[str]) -> Analysis:
     number = offer_number(t, moves)
     if number is not None and "accept" not in moves:
         # A bare number is an offer/counter unless it's clearly a question stat.
-        if not is_question:
+        #
+        # …но вопросительная форма сама по себе оффер НЕ отменяет: «How about
+        # 120?» и «А если 86?» — это контроффер, произнесённый вопросом. Раньше
+        # такая реплика получала число и не получала хода: `apply_move` кладёт
+        # цену на стол только при `offer/anchor/concession/accept/tradeoff`, и
+        # 1149 из 3239 пропущенных офферов чужого корпуса (35.5%) были именно
+        # вопросами. Отменяет оффер только вопрос БЕЗ формулы предложения —
+        # «сколько из 100 у вас на складе?».
+        if not is_question or _has(t, LEX["offerIntent"]):
             add_move("offer"); add_tag("offer", "Offer / number")
 
     if is_question and spin is None and "interests_probe" not in moves:

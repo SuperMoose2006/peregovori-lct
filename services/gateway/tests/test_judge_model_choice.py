@@ -118,7 +118,7 @@ def test_the_instrument_plays_the_whole_ladder_and_every_principled_table():
     """Вывод о ПОРЯДКЕ нельзя получить по одной партии, а инвариант 2 — по
     одному столу. Обе развёртки обязаны существовать командой."""
     ladder = JS.expand_games("all")
-    assert ladder[0] == "passive" and ladder[-1] == "exemplary"
+    assert ladder[0] == "haggling" and ladder[-1] == "exemplary"
     assert len(ladder) == 7
     principled = JS.expand_games("principled.all")
     assert len(principled) == 9

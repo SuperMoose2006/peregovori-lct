@@ -257,6 +257,17 @@
    "spin": null
   },
   {
+   "text": "Agreed.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 5,
+   "words": 1,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Alexey, I hear you: leadership is pressing you, and it is you who has to face the director. Let us look at what we can do about it.",
    "moves": [
     "acknowledge"
@@ -326,6 +337,17 @@
    "spin": null
   },
   {
+   "text": "Deal",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 5,
+   "words": 1,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Deal at 800 thousand, let us close it.",
    "moves": [
     "accept"
@@ -334,6 +356,17 @@
    "arg": 26,
    "words": 7,
    "number": 800000.0,
+   "spin": null
+  },
+  {
+   "text": "Deal?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 5,
+   "words": 1,
+   "number": null,
    "spin": null
   },
   {
@@ -508,6 +541,18 @@
    "spin": null
   },
   {
+   "text": "How about 120?",
+   "moves": [
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 120.0,
+   "spin": null
+  },
+  {
    "text": "How is order planning set up today?",
    "moves": [
     "open_question"
@@ -552,6 +597,18 @@
    "spin": "need-payoff"
   },
   {
+   "text": "I am asking 500 for it.",
+   "moves": [
+    "anchor",
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 6,
+   "number": 500.0,
+   "spin": null
+  },
+  {
    "text": "I am worth more than that, trust me.",
    "moves": [
     "statement"
@@ -571,6 +628,17 @@
    "arg": 20,
    "words": 10,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "I can do 480 if you pick it up.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 9,
+   "number": 480.0,
    "spin": null
   },
   {
@@ -1066,6 +1134,17 @@
    "spin": null
   },
   {
+   "text": "No problem waiting until the end of the day.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Quality risk lowers the alternative's real value: paying 92 here beats 95 there.",
    "moves": [
     "batna",
@@ -1111,6 +1190,17 @@
    "spin": "situation"
   },
   {
+   "text": "That is a problem for us.",
+   "moves": [
+    "spin_problem"
+   ],
+   "primary": "spin_problem",
+   "arg": 34,
+   "words": 6,
+   "number": null,
+   "spin": "problem"
+  },
+  {
    "text": "That is not our fault, look at the facts.",
    "moves": [
     "statement"
@@ -1129,6 +1219,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 7,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "That would be a good deal for you honestly.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
    "number": null,
    "spin": null
   },
@@ -1577,12 +1678,13 @@
   {
    "text": "What about 65? That is too much for me.",
    "moves": [
+    "offer",
     "open_question"
    ],
-   "primary": "open_question",
-   "arg": 20,
+   "primary": "offer",
+   "arg": 26,
    "words": 9,
-   "number": null,
+   "number": 65.0,
    "spin": null
   },
   {
@@ -1708,14 +1810,26 @@
    "spin": null
   },
   {
+   "text": "no deal",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 5,
+   "words": 2,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "А если 65? Мне это дорого.",
    "moves": [
+    "offer",
     "open_question"
    ],
-   "primary": "open_question",
-   "arg": 20,
+   "primary": "offer",
+   "arg": 26,
    "words": 6,
-   "number": null,
+   "number": 65.0,
    "spin": null
   },
   {
@@ -1853,6 +1967,17 @@
    "words": 7,
    "number": null,
    "spin": "situation"
+  },
+  {
+   "text": "Годится.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 5,
+   "words": 1,
+   "number": null,
+   "spin": null
   },
   {
    "text": "Годовой контракт: максимум ценности для неё при минимуме затрат для вас",
@@ -2065,6 +2190,18 @@
    "spin": null
   },
   {
+   "text": "Как насчёт 86?",
+   "moves": [
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 86.0,
+   "spin": null
+  },
+  {
    "text": "Как сейчас устроено планирование заказов?",
    "moves": [
     "spin_situation"
@@ -2218,6 +2355,28 @@
    "arg": 20,
    "words": 5,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "Могу дать 480, если заберёте сами.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 6,
+   "number": 480.0,
+   "spin": null
+  },
+  {
+   "text": "Мой минимум 500.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 500.0,
    "spin": null
   },
   {
@@ -2807,25 +2966,47 @@
    "spin": "problem"
   },
   {
-   "text": "Сделка закроется на 80 — вы же согласились",
+   "text": "Сделка",
    "moves": [
     "accept"
    ],
    "primary": "accept",
-   "arg": 26,
+   "arg": 5,
+   "words": 1,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Сделка закроется на 80 — вы же согласились",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
    "words": 7,
-   "number": 80.0,
+   "number": null,
    "spin": null
   },
   {
    "text": "Сделка закроется на 84, её дне",
    "moves": [
-    "accept"
+    "statement"
    ],
-   "primary": "accept",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 6,
-   "number": 84.0,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Сделка?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 5,
+   "words": 1,
+   "number": null,
    "spin": null
   },
   {
@@ -3096,6 +3277,17 @@
    "spin": null
   },
   {
+   "text": "Эта сделка нам совсем невыгодна.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Это ваше последнее слово? Иначе мы уходим.",
    "moves": [
     "threat",
@@ -3164,6 +3356,17 @@
    "spin": null
   },
   {
+   "text": "Это не проблема, подождём.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 4,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Это несправедливо по отношению ко мне.",
    "moves": [
     "statement"
@@ -3195,6 +3398,17 @@
    "words": 15,
    "number": null,
    "spin": null
+  },
+  {
+   "text": "Это проблема для нас.",
+   "moves": [
+    "spin_problem"
+   ],
+   "primary": "spin_problem",
+   "arg": 34,
+   "words": 4,
+   "number": null,
+   "spin": "problem"
   },
   {
    "text": "Это ультиматум",

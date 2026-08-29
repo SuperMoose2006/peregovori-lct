@@ -58,6 +58,50 @@ export const has = (t: string, arr: string[]): boolean => arr.some((w) => starts
 export const cnt = (t: string, arr: string[]): number =>
   arr.reduce((n, w) => n + (startsAtWord(t, w) ? 1 : 0), 0);
 
+// Сколько слов перед триггером считается «прямо перед ним». Зеркало
+// techniques.py::_NEGATION_WINDOW — три: «no problem» кладёт отрицание за одно
+// слово, «not a problem» за два, «isn't a problem» после нормализации за три.
+const NEGATION_WINDOW = 3;
+const NEGATORS = new Set(LEX.negators);
+
+/** `has`, но совпадение ПОД ОТРИЦАНИЕМ не считается.
+ *
+ * «No problem» — вежливая отговорка, а не стадия SPIN «Проблема»: на чужом
+ * корпусе слово `problem` совпало 311 раз, и 149 из них были отрицанием.
+ * Словарём это не чинится — отрицание лежит ПЕРЕД словом. Тем же сторожится
+ * короткое закрытие: «no deal» — отказ.
+ *
+ * Зеркало services/gateway/app/engine/techniques.py::_has_unnegated —
+ * менять синхронно (инвариант 8). */
+export const hasUnnegated = (t: string, arr: string[]): boolean =>
+  arr.some((w) => {
+    for (let at = t.indexOf(w); at >= 0; at = t.indexOf(w, at + 1)) {
+      const before = at === 0 ? " " : t[at - 1];
+      if (/\p{L}/u.test(before)) continue;
+      const head = t.slice(0, at).split(/\s+/).filter(Boolean);
+      if (!head.slice(-NEGATION_WINDOW).some((x) => NEGATORS.has(x))) return true;
+    }
+    return false;
+  });
+
+// Длина реплики, при которой формула закрытия читается как закрытие. Зеркало
+// techniques.py::_ACCEPT_SHORT_MAX_WORDS.
+const ACCEPT_SHORT_MAX_WORDS = 4;
+
+/** Вся реплика — формула закрытия: «Deal.», «Сделка!», «Agreed».
+ *
+ * Английское «deal» — обычное существительное (2404 совпадения на чужом
+ * корпусе: «good deal», «the deal is», «dealer»), а `accept` у нас высшего
+ * приоритета и ведёт стол к закрытию. Поэтому три условия: короткая реплика,
+ * не вопрос («Deal?» спрашивает), не под отрицанием («no deal» — отказ).
+ *
+ * Зеркало techniques.py::_is_short_close — менять синхронно. */
+export function isShortClose(t: string): boolean {
+  if (t.includes("?")) return false;
+  if (t.split(" ").filter(Boolean).length > ACCEPT_SHORT_MAX_WORDS) return false;
+  return hasUnnegated(t, LEX.acceptShort);
+}
+
 // Две ветки, порядок важен: сперва число с разделителями групп («300 000»),
 // затем сплошной ряд цифр. Вторая добавлена по найденному дефекту — прежняя
 // регулярка требовала разделитель, и «300000» читалось как 300.
@@ -104,6 +148,11 @@ export function offerNumber(t: string, moves: Iterable<string>): number | null {
   if (["anchor", "concession", "accept", "tradeoff"].some((k) => mv.has(k))) return v;
   if (MONEY_SUFFIX.test(tail)) return v;
   if (has(t, LEX.priceContext)) return v;
+  // Формула предложения цены — такое же доказательство, как слово «цена»:
+  // «how about 120», «i can do 480», «а если 86» не несут ни ценового
+  // контекста, ни приёма, но число в них — цена. Список читается ТОЛЬКО здесь
+  // и ни одного тега приёма не даёт. Зеркало techniques.py::offer_number.
+  if (has(t, LEX.offerIntent)) return v;
   if (t.split(" ").filter(Boolean).length <= 1) return v;
   return null;
 }

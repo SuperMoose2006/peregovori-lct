@@ -86,7 +86,7 @@ export const LEX: Record<string, string[]> = {
   tradeoff: [
     "если вы, то мы", "взамен", "в обмен", "при условии", "пакет", "если добавите",
     "давайте свяжем", "обменяем", "в ответ на", "если мы дадим", "если мы",
-    "если пойдём навстречу", "сможете подвинуться", "сможете ли вы", "готовы ли вы взамен",
+    "если пойдем навстречу", "сможете подвинуться", "сможете ли вы", "готовы ли вы взамен",
     "if you, then we", "in exchange", "in return", "provided that", "package", "we could trade",
     "link", "as long as you", "if we give", "if we offer", "if you add", "can you move on",
     "can you move down", "can you move to", "would you move", "would you come down",
@@ -112,8 +112,11 @@ export const LEX: Record<string, string[]> = {
   ],
   accept: [
     "по рукам", "договорились", "принимаю", "мы согласны", "заключаем", "подписываем",
-    "меня устраивает", "сделка", "deal at", "deal on", "we have a deal", "i accept", "we agree",
+    "меня устраивает", "deal at", "deal on", "we have a deal", "i accept", "we agree",
     "done deal", "let us sign", "i can live with", "that works for us",
+  ],
+  acceptShort: [
+    "сделка", "годится", "deal", "agreed",
   ],
   priceContext: [
     "цен", "прайс", "руб", "стоит", "стоимост", "оклад", "зарплат", "аренд", "ставк", "тариф",
@@ -126,5 +129,17 @@ export const LEX: Record<string, string[]> = {
     "день", "час", "минут", "штук", "раз", "пункт", "услови", "вариант", "years", "year",
     "people", "person", "engineer", "employee", "week", "month", "day", "hour", "minute",
     "times", "items", "points", "options",
+  ],
+  offerIntent: [
+    "как насчет", "как вам", "а если", "могу дать", "могу отдать", "могу сделать",
+    "могу пойти на", "отдам за", "возьму за", "уступлю до", "сойдемся на", "давайте за",
+    "мой минимум", "мой максимум", "не меньше", "не больше", "how about", "what about",
+    "how does", "i can do", "i can go", "i could do", "i could go", "i ll do", "i ll go",
+    "i ll give", "i will give", "offer you", "would you take", "will you take", "lowest",
+    "asking", "go down to", "go up to", "come down to", "go as low as", "willing to go",
+    "settle for", "sell it for", "take it for", "make it",
+  ],
+  negators: [
+    "не", "нет", "без", "no", "not", "never", "t",
   ],
 };
