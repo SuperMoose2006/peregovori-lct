@@ -447,35 +447,88 @@ async def test_classic_pipeline_waits_for_an_unfinished_thought():
 
 
 @pytest.mark.asyncio
-async def test_classic_pipeline_has_no_automatic_ceiling_on_waiting():
-    """`force_threshold_ms` НИКТО НЕ ЗОВЁТ — потолок ожидания только у кнопки.
+async def test_stubborn_unfinished_eventually_commits_by_itself():
+    """Потолок ожидания, обещанный `force_threshold_ms`, теперь настоящий.
 
-    `turn_detect.py` обещает: «есть `force_threshold_ms` — потолок ожидания,
-    после которого ход считается сделанным, что бы ни решил детектор». В коде
-    его не спрашивает никто: единственный путь к `force_commit` — `input.commit`
-    от клиента. Значит при упрямом `unfinished` (а это ещё и значение по
-    умолчанию при ЛЮБОЙ ошибке детектора) ход сам не уедет никогда.
+    Раньше здесь стоял тест-закрепитель: «потолка нет, единственный выход —
+    кнопка». Он был прав и держал расхождение громким, пока его не закрыли.
 
-    Тест закрепляет факт, чтобы обещание и поведение разошлись громко, а не
-    тихо: появится автоматический потолок — тест упадёт и потребует переписать
-    ожидание.
+    Почему потолок обязателен. `eval` возвращает UNFINISHED не только когда
+    человек правда не договорил: это ЖЕ значение — ответ на любую беду самого
+    детектора, включая таймаут и отсутствие ключа. Без потолка сетевая заминка
+    даёт микрофон, который работает, расшифровку, которая видна, и ход, который
+    не уезжает никогда. Снаружи это неотличимо от «нас внимательно слушают» —
+    четвёртое состояние, которого по принципу 2 не бывает.
     """
-    import inspect
-
-    from app.perception import voice_pipeline as vp
-
-    source = inspect.getsource(vp)
-    assert "force_threshold_ms" not in source.replace(
-        "`force_threshold_ms` из TEN", ""), "появился автопотолок — обнови документацию"
-
     asr = _FakeASR("Я готов согласиться")
     pipe, turns, _ = _classic(asr, TurnDecision.UNFINISHED)
+    pipe._turn_detector.config.force_threshold_ms = 60  # в тесте не ждём пять секунд
+
     pipe._audio.append(np.full(SAMPLE_RATE, 300, dtype=np.int16))
     await pipe._settle_turn()
-    assert turns == []
-    # Кнопка «готово» — единственный выход, и он работает.
-    await pipe.force_commit()
-    assert turns == ["Я готов согласиться"]
+    assert turns == [], "ход уехал сразу — потолок подменил собой детектор"
+
+    await asyncio.sleep(0.2)
+    assert turns == ["Я готов согласиться"], "потолок не сработал: ход не уедет никогда"
+    assert pipe.stats.forced == 1
+
+
+@pytest.mark.asyncio
+async def test_the_ceiling_counts_silence_and_not_the_length_of_the_thought():
+    """Заговорил снова — отсчёт снимается. Иначе потолок режет длинную мысль.
+
+    Пять секунд ТИШИНЫ после того, как человек замолчал, однозначны. Пять
+    секунд ОТ НАЧАЛА фразы — нет: ровно столько длится обычная реплика в
+    переговорах (docs/latency.md: 5.5 с), и такой потолок обрывал бы каждую
+    вторую на середине.
+    """
+    asr = _FakeASR("Я готов")
+    pipe, turns, _ = _classic(asr, TurnDecision.UNFINISHED)
+    pipe._turn_detector.config.force_threshold_ms = 60
+
+    pipe._audio.append(np.full(SAMPLE_RATE, 300, dtype=np.int16))
+    await pipe._settle_turn()          # детектор: «не договорил», потолок взведён
+    pipe._speech_started()             # человек продолжил мысль
+    await asyncio.sleep(0.2)
+    assert turns == [], "потолок дотикал, пока человек говорил — мысль обрезана"
+
+    # А когда он снова замолчал — потолок опять при деле.
+    await pipe._settle_turn()
+    await asyncio.sleep(0.2)
+    assert turns == ["Я готов"]
+
+
+@pytest.mark.asyncio
+async def test_the_button_still_works_and_does_not_send_the_turn_twice():
+    """Кнопка «готово» была единственным выходом и осталась выходом.
+
+    Гонка здесь настоящая: человек жмёт кнопку в ту же секунду, когда дотикал
+    потолок. Оба пути ведут в `force_commit`, и если бы он не чистил за собой,
+    один ход ушёл бы в движок дважды.
+    """
+    asr = _FakeASR("Я готов согласиться")
+    pipe, turns, _ = _classic(asr, TurnDecision.UNFINISHED)
+    pipe._turn_detector.config.force_threshold_ms = 60
+
+    pipe._audio.append(np.full(SAMPLE_RATE, 300, dtype=np.int16))
+    await pipe._settle_turn()
+    await pipe.force_commit()          # кнопка успела первой
+    await asyncio.sleep(0.2)           # потолок дотикивает в пустоту
+    assert turns == ["Я готов согласиться"], f"ход ушёл {len(turns)} раз(а)"
+
+
+@pytest.mark.asyncio
+async def test_closing_the_game_takes_the_ceiling_with_it():
+    """Партия кончилась — потолок не имеет права досчитать и сходить за неё."""
+    asr = _FakeASR("Я готов согласиться")
+    pipe, turns, _ = _classic(asr, TurnDecision.UNFINISHED)
+    pipe._turn_detector.config.force_threshold_ms = 60
+
+    pipe._audio.append(np.full(SAMPLE_RATE, 300, dtype=np.int16))
+    await pipe._settle_turn()
+    await pipe.close()
+    await asyncio.sleep(0.2)
+    assert turns == [], "потолок сходил уже после конца партии"
 
 
 # ---------------------------------------------------------------------------

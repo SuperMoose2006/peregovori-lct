@@ -96,6 +96,9 @@ class VoicePipeline:
         #: выставлен, перебивание ещё не объявлено — идёт окно проверки.
         self._guard_started_at: Optional[float] = None
         self._pending: Optional[asyncio.Task] = None
+        #: Потолок ожидания. Пока он тикает, детектор уже сказал «не договорил»,
+        #: а человек молчит. Досчитает — ход уедет сам.
+        self._ceiling: Optional[asyncio.Task] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self.stats = VoiceStats()
 
@@ -117,6 +120,7 @@ class VoicePipeline:
             self._guard_started_at = None
 
     def reset(self) -> None:
+        self._cancel_ceiling()
         self._vad.reset()
         self._audio.clear()
         self._transcript = ""
@@ -160,6 +164,8 @@ class VoicePipeline:
 
         self.stats.segments += 1
         self._publish({"type": "user.speech.started"})
+        # Человек продолжил — значит детектор был прав, и торопить его нечем.
+        self._cancel_ceiling()
         if not self._loop:
             return
         if self._opponent_speaking:
@@ -201,11 +207,52 @@ class VoicePipeline:
         self.stats.turn_detect_ms = (time.perf_counter() - t1) * 1000
 
         if decision is TurnDecision.FINISHED:
+            self._cancel_ceiling()
             self._audio.clear()
             self._transcript = ""
             await self._on_turn(text)
+            return
+
         # UNFINISHED / WAIT — продолжаем слушать. Накопленный звук НЕ чистим:
         # следующий кусок допишется к нему и распознается вместе.
+        #
+        # Но ждать бесконечно нельзя, и вот почему. `eval` возвращает
+        # UNFINISHED не только когда человек правда не договорил, — это ещё и
+        # ответ на ЛЮБУЮ свою беду: таймаут, отмену, исключение, отсутствие
+        # ключа. То есть при сетевой заминке микрофон работает, расшифровка
+        # на экране, а ход не уезжает — и снаружи это неотличимо от «нас
+        # слушают». Ровно четвёртое состояние, которого по принципу 2 не
+        # существует.
+        #
+        # Потолок отсчитывается от КОНЦА РЕЧИ, а не от начала хода: пять
+        # секунд тишины после того, как человек замолчал, — однозначны, а
+        # пять секунд от начала фразы обрезали бы длинную мысль на середине.
+        self._arm_ceiling()
+
+    def _cancel_ceiling(self) -> None:
+        if self._ceiling and not self._ceiling.done():
+            self._ceiling.cancel()
+        self._ceiling = None
+
+    def _arm_ceiling(self) -> None:
+        """Взвести потолок ожидания, если он включён и ещё не тикает."""
+        if not self._turn_detector.force_chat_enabled() or not self._loop:
+            return
+        if self._ceiling and not self._ceiling.done():
+            return  # уже тикает с прошлого «не договорил» — перезапуск сдвинул
+                    # бы срок каждым новым решением, и потолка снова бы не было
+        self._ceiling = self._loop.create_task(self._ceiling_wait())
+
+    async def _ceiling_wait(self) -> None:
+        ms = self._turn_detector.config.force_threshold_ms
+        try:
+            await asyncio.sleep(ms / 1000)
+        except asyncio.CancelledError:
+            return
+        # Проверяем ещё раз здесь, а не только при взводе: пока мы спали, ход
+        # мог уехать обычным путём, и тогда `_transcript` уже пуст.
+        if self._transcript.strip():
+            await self.force_commit()
 
     async def close(self) -> None:
         """Партия кончилась. Та же поверхность, что у realtime-конвейера.
@@ -215,6 +262,7 @@ class VoicePipeline:
         модели пережили бы сокет и досчитались бы в пустоту, уже за деньги.
         """
         self._turn_detector.cancel()
+        self._cancel_ceiling()
         if self._pending and not self._pending.done():
             self._pending.cancel()
         self._pending = None
@@ -229,6 +277,7 @@ class VoicePipeline:
         if not text:
             return
         self.stats.forced += 1
+        self._cancel_ceiling()
         self._audio.clear()
         self._transcript = ""
         await self._on_turn(text)
