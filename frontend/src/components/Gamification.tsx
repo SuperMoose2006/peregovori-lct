@@ -9,7 +9,9 @@ import type { Lang } from "../types";
 import type { Strings } from "../i18n";
 import { ScreenHeading } from "./ScreenHeading";
 import { Karl, MascotImg } from "./Mascot";
-import { COURSE_BLOCKS, exercisesOf } from "../lib/course";
+// Карта курса, а не банк: профилю нужно ЧИСЛО упражнений в блоке, и ради
+// одного числа тянуть весь банк на домашний экран незачем.
+import { COURSE_BLOCKS, blockSize } from "../lib/courseMap";
 import { plural } from "../lib/format";
 import { useModalShell } from "../lib/modal";
 import { haptic, play } from "../lib/sound";
@@ -208,7 +210,7 @@ export function SkillsProfile({
           <ul className="course-mini">
             {COURSE_BLOCKS.map((b) => {
               const bp = getBlockProgress(profile, b.id);
-              const pct = Math.round(blockCompletion(bp, b.lessons.length, exercisesOf(b.id).length) * 100);
+              const pct = Math.round(blockCompletion(bp, b.lessons.length, blockSize(b.id)) * 100);
               return (
                 <li key={b.id} className={bp.passed ? "done" : ""}>
                   <span className="cm-ic" aria-hidden="true">{bp.passed ? "★" : b.icon}</span>

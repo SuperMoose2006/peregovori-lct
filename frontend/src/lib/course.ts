@@ -14,19 +14,18 @@
 // считает тем же движком-зеркалом и по-прежнему работает без сети.
 //
 // Зеркало: services/gateway/app/course/check.py. Менять синхронно.
-import { COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK } from "../data/course.generated";
+import { COURSE_BANK, COURSE_MASTER, MASTER_PASS_MARK } from "../data/course.generated";
 import type { Exercise, ItemWithId, PassCondition } from "./courseTypes";
 import { REACTION_SCALE, type Reaction } from "./probe";
 import type { StateView } from "../types";
 
-export { COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK };
+export { COURSE_BANK, COURSE_MASTER, MASTER_PASS_MARK };
+export { COURSE_BLOCKS, BLOCK_IDS, blockById, masterUnlocked, blockSize, nextStep } from "./courseMap";
+export type { NextStep } from "./courseMap";
 export type { Exercise } from "./courseTypes";
 
-export const BLOCK_IDS = COURSE_BLOCKS.map((b) => b.id);
 /** Экзамен мастера открыт, когда сданы все девять блоков. Не раньше: три партии
  *  подряд на незнакомых столах — это проверка навыка, а не разминка. */
-export const masterUnlocked = (passedBlocks: number) => passedBlocks >= COURSE_BLOCKS.length;
-export const blockById = (id: string) => COURSE_BLOCKS.find((b) => b.id === id);
 export const exercisesOf = (blockId: string) => COURSE_BANK.filter((x) => x.block === blockId);
 export const exercisesOfLesson = (blockId: string, lesson: number) =>
   COURSE_BANK.filter((x) => x.block === blockId && x.lesson === lesson);
@@ -271,26 +270,6 @@ export function blockForWeakest(signals: Record<string, number>): string | null 
 
 // ------------------------------------------------------------ «что дальше»
 
-export interface NextStep {
-  blockId: string;
-  /** Урок, который стоит открыть; null — уроки пройдены, ждёт экзамен. */
-  lesson: number | null;
-}
 
-/**
- * Первый незакрытый шаг курса.
- *
- * Нужен ровно для одного: на домашнем экране кнопка обязана вести В КОНКРЕТНОЕ
- * место. «Открыть курс» заставляет вспоминать, где ты остановился, — а это и
- * есть та секунда сомнения, на которой человек закрывает вкладку.
- */
-export function nextStep(done: { lessons: number[]; passed: boolean }[]): NextStep | null {
-  for (let i = 0; i < COURSE_BLOCKS.length; i++) {
-    const block = COURSE_BLOCKS[i];
-    const p = done[i] ?? { lessons: [], passed: false };
-    const lesson = block.lessons.find((l) => !p.lessons.includes(l.idx));
-    if (lesson) return { blockId: block.id, lesson: lesson.idx };
-    if (!p.passed) return { blockId: block.id, lesson: null };
-  }
-  return null;
-}
+
+

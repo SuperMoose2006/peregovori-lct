@@ -5,7 +5,7 @@
 import type { CampaignView, Lang } from "../types";
 import type { Strings } from "../i18n";
 import { EPILOGUE_BANDS } from "../data/campaigns.generated";
-import { COURSE_BLOCKS } from "../lib/course";
+import { COURSE_BLOCKS } from "../lib/courseMap";
 import { ScreenHeading } from "./ScreenHeading";
 
 // Per-stage record the App accumulates as the player advances the arc.

@@ -10,8 +10,8 @@ import { ScreenHeading } from "./components/ScreenHeading";
 import { SideNav } from "./components/SideNav";
 import type { ExamCtx } from "./components/CourseScreen";
 import {
-  COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, checkDrill, nextStep,
-} from "./lib/course";
+  COURSE_BLOCKS, blockById, nextStep,
+} from "./lib/courseMap";
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { LayersPanel } from "./components/Setup";
@@ -73,6 +73,9 @@ const WARM: Array<() => Promise<unknown>> = [
   () => import("./lib/rematchReplay"),
   () => import("./api/whatif"),
   () => import("./lib/courseCheck"),
+  // Банк упражнений: предикат капстоуна и экзамен мастера. С главной он
+  // ушёл ради первой отрисовки, но без сети обязан быть на месте.
+  () => import("./lib/courseExam"),
 ];
 
 function warmScreens() {
@@ -387,24 +390,37 @@ export default function App() {
     if (!drill || !nego.debrief || !nego.state) return;
     if (recordedDrill.current === nego.debrief) return;
     recordedDrill.current = nego.debrief;
-    const verdict = checkDrill(drill.ex, nego.state);
-    setDrillVerdict({ ok: verdict.ok });
-    setProfile((prev) => {
-      let next = drill.exam
-        ? recordExam(prev, drill.blockId, drill.exam.score + (verdict.ok ? 2 : 0),
-                     drill.exam.total, drill.exam.passMark).profile
-        : recordExercise(prev, drill.blockId, drill.ex.id, drill.ex.xp, verdict.ok).profile;
-      // Экзамен мастера считается по числу СДАННЫХ партий: две из трёх и он
-      // закрыт. Отдельной попытки не заводим — переигрывать можно любую.
-      if (drill.blockId === MASTER_ID) {
-        const solved = next.course[MASTER_ID]?.solved.length ?? 0;
-        if (solved >= MASTER_PASS_MARK && !next.course[MASTER_ID]?.passed) {
-          next = recordExam(next, MASTER_ID, solved, COURSE_MASTER.length, MASTER_PASS_MARK).profile;
+    const state = nego.state;
+    const ex = drill;
+    // БАНК УПРАЖНЕНИЙ ГРУЗИТСЯ ЗДЕСЬ, А НЕ НА ГЛАВНОЙ. Три обращения — предикат
+    // капстоуна, длина экзамена мастера и его проходной балл — тянули на
+    // домашний экран весь банк: 116 КБ формулировок и разборов на двух языках,
+    // нужных только тому, кто уже играет упражнение курса. Момент подходящий:
+    // сюда попадают ПОСЛЕ доигранной партии, файл давно в кеше от прогрева, а
+    // если нет — эта же секунда всё равно уходит на разбор.
+    let alive = true;
+    void import("./lib/courseExam").then(({ checkDrill, COURSE_MASTER, MASTER_PASS_MARK }) => {
+      if (!alive) return;
+      const verdict = checkDrill(ex.ex, state);
+      setDrillVerdict({ ok: verdict.ok });
+      setProfile((prev) => {
+        let next = ex.exam
+          ? recordExam(prev, ex.blockId, ex.exam.score + (verdict.ok ? 2 : 0),
+                       ex.exam.total, ex.exam.passMark).profile
+          : recordExercise(prev, ex.blockId, ex.ex.id, ex.ex.xp, verdict.ok).profile;
+        // Экзамен мастера считается по числу СДАННЫХ партий: две из трёх и он
+        // закрыт. Отдельной попытки не заводим — переигрывать можно любую.
+        if (ex.blockId === MASTER_ID) {
+          const solved = next.course[MASTER_ID]?.solved.length ?? 0;
+          if (solved >= MASTER_PASS_MARK && !next.course[MASTER_ID]?.passed) {
+            next = recordExam(next, MASTER_ID, solved, COURSE_MASTER.length, MASTER_PASS_MARK).profile;
+          }
         }
-      }
-      saveProfile(next);
-      return next;
+        saveProfile(next);
+        return next;
+      });
     });
+    return () => { alive = false; };
   }, [drill, nego.debrief, nego.state]);
 
   // Куда именно ведёт кнопка курса: первый незакрытый урок, а не «в курс».

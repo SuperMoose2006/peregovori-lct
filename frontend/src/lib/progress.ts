@@ -7,7 +7,7 @@
 // only loadProfile/saveProfile touch localStorage, and they're defensive — any
 // corrupt/missing/half-shaped blob degrades to sane defaults rather than throwing.
 
-import { COURSE_BLOCKS } from "../data/course.generated";
+import { COURSE_BLOCKS } from "../data/course.blocks.generated";
 import type { Debrief, Mode } from "../types";
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
