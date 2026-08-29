@@ -164,7 +164,7 @@ def test_judge_cam_surfaces_techniques_and_reject(monkeypatch):
     """Сильная реплика зажигает приёмы; заученный набор слов — плашку «не смысл»."""
     from app.orchestrator import negotiation as module
 
-    monkeypatch.setattr(module, "judge_enabled", lambda: True)
+    monkeypatch.setattr(module, "judge_enabled_for", lambda _mode: True)
 
     async def fake_judge(ctx, text, lang, interests, secondary):
         if "важнее" in text:
@@ -203,7 +203,7 @@ def test_judge_frames_bracket_the_wait(monkeypatch):
         seen = _turn(ws, "А что для вас важнее всего?")
         assert "judge.started" not in seen and "judge.completed" not in seen
 
-    monkeypatch.setattr(module, "judge_enabled", lambda: True)
+    monkeypatch.setattr(module, "judge_enabled_for", lambda _mode: True)
 
     async def silent_judge(*args, **kwargs):
         return None

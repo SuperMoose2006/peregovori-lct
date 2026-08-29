@@ -174,7 +174,7 @@ def test_judge_failure_falls_back_to_the_keyword_score(monkeypatch):
     """Судья не ответил — ход считается по детерминированному keyword-баллу."""
     from app.orchestrator import negotiation as module
 
-    monkeypatch.setattr(module, "judge_enabled", lambda: True)
+    monkeypatch.setattr(module, "judge_enabled_for", lambda _mode: True)
 
     async def explode(*args, **kwargs):
         raise RuntimeError("судья недоступен")

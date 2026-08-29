@@ -33,7 +33,7 @@ from pydantic import ValidationError
 from app import engine, views
 from app.avatar.base import AvatarProvider
 from app.avatar.presence import PresenceAvatar
-from app.orchestrator.judge import judge_enabled
+from app.orchestrator.judge import judge_enabled_for
 from app.orchestrator.negotiation import NegotiationOrchestrator
 from app.orchestrator.tts_manager import TTSTaskManager
 from app.perception.vision import VisionSampler
@@ -793,7 +793,9 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         # Условие дня — не возможность, а факт партии, но едет тем же путём:
         # клиент показывает подпись, только если условие ДЕЙСТВИТЕЛЬНО легло.
         "daily": session.daily,
-        "judge": judge_enabled(),
+        # Не глобальный выключатель, а ответ про ЭТОТ стол: на экзамене
+        # судьи нет, и бейдж «судит ИИ по смыслу» рисовать не на чем.
+        "judge": judge_enabled_for(session.game_mode),
         "cloud_ai": orchat.available(),
         "models": describe_models(),
         "avatar": {"available": False, "lipsync": False, "transport": "none"},

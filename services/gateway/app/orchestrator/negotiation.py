@@ -2,7 +2,8 @@
 
 ╔══════════════════════════════════════════════════════════════════════════╗
 ║ ПОРТ UPSTREAM-КОДА                                                       ║
-║ Источник: TEN Framework, Apache-2.0                                      ║
+║ Источник: TEN Framework, Apache-2.0 + доп. условия Agora (неконкуренция); ║
+║           разбор — docs/upstream-code-map.md §5                          ║
 ║ Коммит:   2e56d9659d8599350962374c0dc24725a03d73ce                       ║
 ║ Файл:     ai_agents/agents/examples/voice-assistant/tenapp/              ║
 ║           ten_packages/extension/main_python/extension.py                ║
@@ -46,12 +47,17 @@ from typing import Callable, Optional
 from app import engine, views
 from app.ai.prompts import build_prompts
 from app.avatar.base import AvatarProvider, state_for_reaction
-from app.orchestrator.judge import judge_enabled, judge_turn
+from app.orchestrator.judge import judge_enabled_for, judge_turn
 from app.orchestrator.tts_manager import TTSTaskManager
 from app.providers.openrouter import chat as orchat
 from app.realtime.events import output_delta, response_done
 from app.realtime.session import RealtimeSession
 from app.vendor.olv.sentence_divider import SentenceDivider
+
+
+#: Сколько ждём слово наставника, прежде чем отдать разбор без него. Разбор
+#: самодостаточен: грейд, шкалы, ключевые ходы и советы посчитал движок.
+DEBRIEF_NOTE_BUDGET_S = 8.0
 
 
 class NegotiationOrchestrator:
@@ -108,7 +114,9 @@ class NegotiationOrchestrator:
         #    момент ещё ничего не «печатает» — движок не может посчитать ход,
         #    пока не получил балл.
         judgement = None
-        if judge_enabled():
+        # На экзамене судьи нет вовсе — см. `judge_enabled_for`: его балл
+        # невоспроизводим, а сертификат обязан быть воспроизводимым.
+        if judge_enabled_for(sess.game_mode):
             bus.publish({"type": "judge.started", "turn_id": turn_id})
             if self.avatar:
                 await self.avatar.set_state("thinking")
@@ -306,12 +314,17 @@ class NegotiationOrchestrator:
             deb["observations"] = sess.observations
 
         if orchat.available():
+            # Слово наставника — украшение поверх готового разбора, поэтому у него
+            # есть потолок ожидания. Без него медленная модель задерживала ВЕСЬ
+            # разбор: он публикуется одним событием, и человек смотрел в пустоту
+            # столько, сколько думала модель (замер на glm-5.3 — минуты).
             try:
                 facts = views.debrief_facts(sess.engine_session, deb, sess.lang)
-                note = await self._debrief_note(facts, sess.lang)
+                note = await asyncio.wait_for(
+                    self._debrief_note(facts, sess.lang), timeout=DEBRIEF_NOTE_BUDGET_S)
                 if note:
                     deb.update(note)
-            except Exception:
+            except Exception:  # включая TimeoutError: разбор важнее украшения
                 pass
 
         sess.bus.publish({"type": "debrief", "debrief": deb})
