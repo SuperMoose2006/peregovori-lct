@@ -86,7 +86,7 @@
    "deal_text": "Без соглашения",
    "status": "active",
    "interests_found": 0,
-   "offer_opp": 86.13,
+   "offer_opp": 89.0,
    "deal": null,
    "turn": 11
   },
@@ -99,21 +99,21 @@
    "deal_text": "Без соглашения",
    "status": "active",
    "interests_found": 0,
-   "offer_opp": 86.34,
+   "offer_opp": 87.0,
    "deal": null,
    "turn": 11
   },
   "basic": {
-   "overall": 36,
+   "overall": 29,
    "grade": "F",
-   "economic": 17,
+   "economic": 0,
    "relationship": 64,
    "technique": 38,
-   "deal_text": "90,95 ₽/шт",
+   "deal_text": "92 ₽/шт",
    "status": "agreement",
    "interests_found": 1,
-   "offer_opp": 90.95,
-   "deal": 90.95,
+   "offer_opp": 92.0,
+   "deal": 92.0,
    "turn": 4
   },
   "good": {
@@ -125,7 +125,7 @@
    "deal_text": "87 ₽/шт",
    "status": "agreement",
    "interests_found": 2,
-   "offer_opp": 84.71,
+   "offer_opp": 85.0,
    "deal": 87.0,
    "turn": 5
   },
@@ -138,7 +138,7 @@
    "deal_text": "86 ₽/шт",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 84.29,
+   "offer_opp": 85.0,
    "deal": 86.0,
    "turn": 6
   }
@@ -153,21 +153,21 @@
    "deal_text": "230k ₽/мес",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 211.47,
+   "offer_opp": 210.0,
    "deal": 230.0,
    "turn": 6
   },
   "conflict": {
-   "overall": 79,
+   "overall": 76,
    "grade": "B",
-   "economic": 78,
+   "economic": 71,
    "relationship": 98,
    "technique": 66,
-   "deal_text": "6,54дней сдвига",
+   "deal_text": "7дней сдвига",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 6.54,
-   "deal": 6.54,
+   "offer_opp": 7.0,
+   "deal": 7.0,
    "turn": 6
   },
   "freelance_rate": {
@@ -179,21 +179,21 @@
    "deal_text": "19k ₽/день",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 19.82,
+   "offer_opp": 19.5,
    "deal": 19.0,
    "turn": 6
   },
   "investor": {
-   "overall": 74,
+   "overall": 73,
    "grade": "B",
-   "economic": 65,
+   "economic": 62,
    "relationship": 98,
    "technique": 67,
-   "deal_text": "18,19% доли",
+   "deal_text": "18,42% доли",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 18.45,
-   "deal": 18.19,
+   "offer_opp": 19.0,
+   "deal": 18.42,
    "turn": 6
   },
   "rent": {
@@ -202,11 +202,11 @@
    "economic": 100,
    "relationship": 100,
    "technique": 69,
-   "deal_text": "62,34k ₽/мес",
+   "deal_text": "63k ₽/мес",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 62.34,
-   "deal": 62.34,
+   "offer_opp": 63.0,
+   "deal": 63.0,
    "turn": 6
   },
   "salary": {
@@ -218,7 +218,7 @@
    "deal_text": "230k ₽/мес",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 238.46,
+   "offer_opp": 235.0,
    "deal": 230.0,
    "turn": 6
   },
@@ -228,11 +228,11 @@
    "economic": 100,
    "relationship": 98,
    "technique": 66,
-   "deal_text": "99,86% аптайм",
+   "deal_text": "99,85% аптайм",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 99.86,
-   "deal": 99.86,
+   "offer_opp": 99.85,
+   "deal": 99.85,
    "turn": 6
   },
   "supplier": {
@@ -244,7 +244,7 @@
    "deal_text": "86 ₽/шт",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 84.29,
+   "offer_opp": 85.0,
    "deal": 86.0,
    "turn": 6
   },
@@ -257,7 +257,7 @@
    "deal_text": "1 060k ₽",
    "status": "agreement",
    "interests_found": 3,
-   "offer_opp": 1044.31,
+   "offer_opp": 1050.0,
    "deal": 1060.0,
    "turn": 6
   }

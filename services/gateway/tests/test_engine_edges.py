@@ -270,3 +270,67 @@ def test_a_threat_to_leave_is_not_a_trade():
 
     trade = analyze("Если мы дадим годовой контракт — сможете подвинуться?")
     assert "tradeoff" in [t["key"] for t in trade.tags]
+
+
+# ------------------------------------------------------------ шаг цены
+
+def test_the_opponent_moves_in_human_steps():
+    """«96 рублей 11 копеек за штуку» оппонент произносил вслух.
+
+    Уступка считалась долей оставшегося пути и округлялась до сотых. Копейки в
+    первой же реплике ломают достоверность сильнее любой ошибки модели: живые
+    люди двигаются на 96, на 95,50, на 95.
+    """
+    import json
+    from pathlib import Path
+
+    from app.engine import engine
+    from app.engine.techniques import analyze
+
+    fixture = (Path(__file__).resolve().parents[3]
+               / "frontend" / "test" / "fixtures" / "games.json")
+    lines = json.loads(fixture.read_text(encoding="utf-8"))["principled"]["supplier"]["ru"]
+
+    sess = engine.create_session("supplier", "ru")
+    step = engine.price_step(engine.by_id("supplier"))
+    seen = []
+    for line in lines:
+        sess.turn += 1
+        engine.apply_move(sess, analyze(line), line)
+        seen.append(sess.state.offer_opp)
+
+    for price in seen:
+        units = price / step
+        assert abs(units - round(units)) < 1e-6, f"{price} не кратно шагу {step}"
+
+
+def test_the_step_fits_the_scale_of_every_table():
+    """Шкалы девяти столов отличаются в двести раз — шаг обязан быть у каждого свой."""
+    from app.engine import engine
+    from app.engine.scenarios import SCENARIOS
+
+    for sc in SCENARIOS:
+        span = abs(sc.opponent_open - sc.opponent_reservation)
+        step = engine.price_step(sc)
+        assert 0 < step <= span / 4, f"{sc.id}: шаг {step} при размахе {span}"
+        # Дюжина заметных шагов на партию — это торг; сотня — это шум.
+        assert span / step >= 4, f"{sc.id}: шагов всего {span / step:.1f}"
+
+
+def test_rounding_to_a_step_never_crosses_the_floor():
+    """Округление к ближайшему могло бы перебросить цену ЗА дно.
+
+    Поэтому округляем в сторону оппонента: инвариант 1 от шага становится
+    строже, а не слабее.
+    """
+    from app.engine import engine
+    from app.engine.scenarios import SCENARIOS
+
+    for sc in SCENARIOS:
+        sess = engine.create_session(sc.id, "ru")
+        for _ in range(80):
+            engine._concede(sess, 0.7)
+            if sc.opponent_open > sc.opponent_reservation:
+                assert sess.state.offer_opp >= sc.opponent_reservation - 1e-9, sc.id
+            else:
+                assert sess.state.offer_opp <= sc.opponent_reservation + 1e-9, sc.id

@@ -279,8 +279,33 @@ export function flex(s: Session): number {
     0.45 * (s.trust / 100) + 0.3 * (s.info / 100) + 0.25 * (clamp(s.leverage) / 100) - 0.5 * (s.tension / 100);
   return clamp(raw, 0, 1);
 }
+/** Из каких шагов выбирается шаг цены: живые люди двигаются на 5, на 0.5, на 1 —
+ *  но не на 1.37. Зеркало engine.py::_NICE_STEPS. */
+const NICE_STEPS = [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50];
+
+/** Шаг цены выводится из размаха шкалы, а не вписывается числом: шкалы девяти
+ *  столов отличаются в двести раз, а «своя сделка» генерируется на ходу.
+ *  Зеркало engine.py::price_step. */
+export function priceStep(sc: ScenarioDef): number {
+  const span = Math.abs(sc.open - sc.floor);
+  if (span <= 0) return 0.01;
+  const target = span / 16;
+  return NICE_STEPS.reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a));
+}
+
 function concede(s: Session, f: number): void {
-  s.offerOpp = Math.round((s.offerOpp + (s.sc.floor - s.offerOpp) * f) * 100) / 100;
+  const moved = s.offerOpp + (s.sc.floor - s.offerOpp) * f;
+  const step = priceStep(s.sc);
+  // Округляем ПРОТИВ движения: оппонент уступает ровно на человеческий шаг и ни
+  // копейкой больше, поэтому дно от округления только дальше (инвариант 1).
+  const units = moved / step;
+  let snapped = (s.sc.floor < s.offerOpp ? Math.ceil(units) : Math.floor(units)) * step;
+  // Шаг не должен съесть уступку целиком.
+  const dist = (s.sc.floor - s.offerOpp) * f;
+  if (Math.abs(snapped - s.offerOpp) < step / 2 && Math.abs(dist) > step / 2) {
+    snapped = s.offerOpp + (s.sc.floor < s.offerOpp ? -step : step);
+  }
+  s.offerOpp = Math.round(snapped * 100) / 100;
 }
 // Обратный ход: оппонент снимает часть уже данной уступки, цена уходит назад к
 // его стартовому якорю. Наказание, которого не видно в цифре, — не наказание.

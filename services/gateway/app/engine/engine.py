@@ -207,13 +207,64 @@ def flexibility(sess: Session) -> float:
     return clamp(raw, 0, 1)
 
 
+#: Из каких шагов выбирается шаг цены. Список «человеческих» чисел: живые люди
+#: двигаются на 5, на 0.5, на 1 — но не на 1.37.
+_NICE_STEPS = (0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0)
+
+
+def price_step(sc: Scenario) -> float:
+    """Шаг, которым двигается цена на этом столе.
+
+    ЗАЧЕМ. Уступка считалась долей оставшегося пути и округлялась до сотых, из-за
+    чего оппонент называл «96,11» и произносил это вслух: «при цене в девяносто
+    шесть рублей одиннадцать копеек за штуку». Копейки в первой же реплике ломают
+    достоверность сильнее, чем любая ошибка модели, — живые люди двигаются на 96,
+    на 95,50, на 95.
+
+    ВЫВОДИТСЯ ИЗ РАЗМАХА, А НЕ ВПИСЫВАЕТСЯ ЧИСЛОМ: на девяти столах шкалы
+    отличаются в двести раз (0.9 процентного пункта аптайма против 160 тысяч за
+    машину), а «своя сделка» генерируется на ходу — руками для неё шаг не
+    пропишешь. Шестнадцатая часть размаха даёт примерно дюжину заметных шагов на
+    партию, что и есть торг.
+    """
+    span = abs(sc.opponent_open - sc.opponent_reservation)
+    if span <= 0:
+        return 0.01
+    target = span / 16
+    return min(_NICE_STEPS, key=lambda x: abs(x - target))
+
+
+def _to_step(value: float, step: float, floor: float, toward_floor: bool) -> float:
+    """Округлить цену к шагу — В СТОРОНУ ОППОНЕНТА, а не к ближайшему.
+
+    Направление важнее аккуратности: округление к ближайшему может перебросить
+    цену ЗА дно, а инвариант 1 говорит, что оппонент не переходит свой пол
+    никогда. Округляя в его сторону, мы делаем инвариант строже, а не слабее.
+    """
+    if step <= 0:
+        return _round2(value)
+    units = value / step
+    rounded = (math.floor(units) if toward_floor == (floor > value) else math.ceil(units)) * step
+    return _round2(rounded)
+
+
 def _concede(sess: Session, fraction: float) -> None:
     """Move opponent's number a fraction of the remaining distance to their floor."""
     sc = by_id(sess.scenario_id)
     s = sess.state
     floor = sc.opponent_reservation
     dist = floor - s.offer_opp  # signed; toward player
-    s.offer_opp = _round2(s.offer_opp + dist * fraction)
+    moved = s.offer_opp + dist * fraction
+    step = price_step(sc)
+    # Округляем ПРОТИВ движения: оппонент уступает ровно на «человеческий» шаг
+    # и ни копейкой больше. Дно от этого только дальше.
+    units = moved / step
+    snapped = (math.ceil(units) if floor < s.offer_opp else math.floor(units)) * step
+    # Шаг не должен съесть уступку целиком: если после округления цена не
+    # сдвинулась, а движение было — двигаем ровно на один шаг.
+    if abs(snapped - s.offer_opp) < step / 2 and abs(dist * fraction) > step / 2:
+        snapped = s.offer_opp + (-step if floor < s.offer_opp else step)
+    s.offer_opp = _round2(snapped)
 
 
 def _retract(sess: Session, fraction: float) -> None:
