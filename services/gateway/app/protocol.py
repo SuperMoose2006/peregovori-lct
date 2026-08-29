@@ -55,6 +55,19 @@ class Deltas(BaseModel):
     leverage: float = 0
 
 
+class InterestSlot(BaseModel):
+    """Один скрытый интерес глазами игрока: ТЕМА видна всегда, ТЕКСТ — только
+    после вскрытия.
+
+    Тема — область, в которой интерес лежит («производство»), а не он сам
+    («стабильная загрузка производства»): игрок знает, где копать, и не знает,
+    что там. `text=None` — «ещё не вскрыт», и рисовать вместо него нечего
+    (второй принцип). Текст вскрытого оппонент к этому моменту уже произнёс
+    вслух."""
+    topic: str
+    text: Optional[str] = None
+
+
 class StateView(BaseModel):
     """The public slice of game state the client renders."""
     trust: int
@@ -67,6 +80,8 @@ class StateView(BaseModel):
     deal: Optional[float] = None
     interests_found: int
     interests_total: int
+    #: Темы стола + тексты уже вскрытых интересов, по слоту на интерес.
+    interests: list[InterestSlot] = Field(default_factory=list)
     terms_conceded: list[str] = Field(default_factory=list)  # ids of secondary issues traded so far
     status: Status
     turn: int

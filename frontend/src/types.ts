@@ -45,6 +45,13 @@ export interface Deltas {
   leverage: number;
 }
 
+// Один скрытый интерес глазами игрока: ТЕМА видна всегда, ТЕКСТ — только после
+// вскрытия. Зеркало backend protocol.py::InterestSlot.
+export interface InterestSlot {
+  topic: string;
+  text: string | null;
+}
+
 export interface StateView {
   trust: number;
   tension: number;
@@ -58,6 +65,10 @@ export interface StateView {
   deal?: number | null;
   interests_found: number;
   interests_total: number;
+  // Темы стола + тексты уже вскрытых интересов, по слоту на интерес (зеркало
+  // backend InterestSlot). Тема видна всегда — она называет ОБЛАСТЬ, а не
+  // секрет; `text: null` значит «ещё не вскрыт», и рисовать вместо него нечего.
+  interests?: InterestSlot[];
   // ids of secondary issues the player has traded so far (logrolling "package").
   // Empty/absent for scenarios without tradeable secondary issues. Grows per turn.
   terms_conceded?: string[];

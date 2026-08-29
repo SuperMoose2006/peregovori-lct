@@ -51,6 +51,12 @@ export interface ScenarioDef {
   // aligned with `interests`. A probe whose text matches an unrevealed interest's
   // keywords uncovers THAT interest; a vague probe falls back to next-in-order.
   hiddenInterestKeywords?: Record<Lang, string[][]>;
+  // ТЕМЫ переговоров — области, в которых лежат скрытые интересы (зеркало
+  // backend Scenario.interest_topics), index-aligned с `interests`. Тема не
+  // секрет: она говорит игроку, ГДЕ копать, и молчит о том, что там. Ярлык темы
+  // одновременно и чип на столе, и то, по чему движок засчитывает попадание —
+  // основы выводятся из самого ярлыка (mock/engine.ts::topicStems).
+  interestTopics: Record<Lang, string[]>;
   brief: L;
 }
 
@@ -84,6 +90,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["cash flow", "cashflow", "upfront", "prepay", "advance", "working capital", "liquidity"],
         ["long-term", "long term", "one-off", "ongoing", "multi-year", "lasting", "annual contract"],
       ],
+    },
+    interestTopics: {
+      ru: ["Производство", "Оплата", "Срок контракта"],
+      en: ["Production", "Payments", "Contract term"],
     },
     tradeoffs: {
       ru: ["годовой контракт", "предоплату 30%", "совместный прогноз спроса"],
@@ -144,6 +154,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["finance", "justify the band", "salary band", "band to finance", "cfo", "approve the band"],
       ],
     },
+    interestTopics: {
+      ru: ["Бюджет отдела", "Сроки найма", "Согласование с финансами"],
+      en: ["Team budget", "Hiring timeline", "Finance approval"],
+    },
     tradeoffs: {
       ru: ["пересмотр через 6 мес по KPI", "подписной бонус", "доп. отпуск и удалёнку"],
       en: ["a 6-month KPI review", "a signing bonus", "extra leave and remote days"],
@@ -202,6 +216,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["staffing", "short-staffed", "not enough people", "headcount", "understaffed", "shortage of people"],
         ["save face", "face", "reputation", "pride", "dignity"],
       ],
+    },
+    interestTopics: {
+      ru: ["Разговор с руководством", "Ресурсы команды", "Репутация"],
+      en: ["Leadership pressure", "Team resources", "Reputation"],
     },
     tradeoffs: {
       ru: ["совместный статус руководству", "временно поделиться ресурсом", "переразбить объём работ"],
@@ -270,6 +288,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["speed of closing", "close quickly", "closing speed", "how fast", "time to close", "close fast"],
       ],
     },
+    interestTopics: {
+      ru: ["Мотивация фаундера", "Контроль и управление", "Сроки закрытия"],
+      en: ["Founder motivation", "Control and governance", "Closing timeline"],
+    },
     tradeoffs: {
       ru: ["место в совете", "транши по метрикам", "pro-rata в следующем раунде"],
       en: ["a board seat", "milestone tranches", "pro-rata rights next round"],
@@ -335,6 +357,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["on time", "pay on time", "reliable payment", "timely payment", "pay promptly", "never late"],
       ],
     },
+    interestTopics: {
+      ru: ["Поиск жильцов", "Тишина и порядок", "Оплата"],
+      en: ["Finding tenants", "Peace and quiet", "Payments"],
+    },
     tradeoffs: {
       ru: ["договор на 11+ месяцев", "депозит за 2 месяца вперёд", "мелкий ремонт на себя"],
       en: ["an 11+ month lease", "two months' deposit", "handling minor repairs myself"],
@@ -398,6 +424,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["good hands", "caring owner", "look after the car", "take care of the car", "good home for the car"],
         ["serious buyer", "tire-kicker", "tire kicker", "just looking", "real buyer", "genuine buyer"],
       ],
+    },
+    interestTopics: {
+      ru: ["Сроки продажи", "Будущий владелец", "Ваш покупатель"],
+      en: ["Sale timing", "The next owner", "The buyer"],
     },
     tradeoffs: {
       ru: ["оплату наличными сразу", "перерегистрацию беру на себя", "забрать в течение 2 дней"],
@@ -464,6 +494,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["senior expertise", "senior", "rework", "not redo", "quality code", "experience so nothing"],
       ],
     },
+    interestTopics: {
+      ru: ["Бюджет проекта", "Сроки и запуск", "Уровень команды"],
+      en: ["The budget", "Timeline and launch", "Team seniority"],
+    },
     tradeoffs: {
       ru: ["фикс-прайс за этап", "приоритет и сжатые сроки", "документацию и передачу знаний"],
       en: ["a fixed price per phase", "priority & a tighter timeline", "documentation and knowledge transfer"],
@@ -529,6 +563,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["contract grew", "show leadership", "grow the contract", "upsell", "contract growth", "bigger deal"],
       ],
     },
+    interestTopics: {
+      ru: ["Продление и выручка", "Штрафы и эксплуатация", "Взгляд руководства"],
+      en: ["Renewal and revenue", "Penalties and operations", "How leadership sees it"],
+    },
     tradeoffs: {
       ru: ["продление на 3 года", "ступенчатый SLA по кварталам", "совместное дежурство"],
       en: ["a 3-year renewal", "a phased SLA by quarter", "joint on-call"],
@@ -593,6 +631,10 @@ export const SCENARIOS: ScenarioDef[] = [
         ["architect", "grow", "legacy", "career", "mentor", "stagnat", "senior track"],
         ["laid off", "layoff", "job security", "probation", "guarantee", "let go", "without warning"],
       ],
+    },
+    interestTopics: {
+      ru: ["Переезд и жильё", "Карьера и рост", "Стабильность"],
+      en: ["Moving and housing", "Career growth", "Job security"],
     },
     tradeoffs: {
       ru: ["трек до архитектора", "подъёмные на переезд", "сокращённый испытательный срок"],

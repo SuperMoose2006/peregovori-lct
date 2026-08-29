@@ -316,9 +316,21 @@ def compute_hint(sess: "engine.Session", lang: str) -> str:
     sc = engine.by_id(sess.scenario_id)
     ru = lang == "ru"
     if s.info < 40:
-        return ("Вы почти не знаете, что движет оппонентом. Задайте вопрос: «Что для вас важнее всего в этой сделке?»"
+        # ТРЕНЕР ЦИТИРУЕТ ТОЛЬКО ТО, ЧТО ДВИЖОК ЗАСЧИТЫВАЕТ. Здесь стояло «Что
+        # для вас важнее всего в этой сделке?» — вопрос без темы, то есть ровно
+        # тот, на который движок отвечает probe_vague: тренер называл приём и не
+        # давал его. Подставляем ТЕМУ ещё не вскрытого интереса — область, а не
+        # секрет; тест `test_suggested_lines.py` прогоняет эту цитату через
+        # движок на всех столах.
+        topics = (sc.interest_topics.get(lang) if sc.interest_topics else None) or []
+        rest = [t for i, t in enumerate(topics) if i not in s.interests_found]
+        topic = (rest or topics or [""])[0]
+        # Ярлык темы идёт в цитату КАК ЕСТЬ, в именительном: «важно в
+        # производство» было бы косноязычием, «в этой теме — Производство»
+        # склоняться не обязано.
+        return (f"Вы почти не знаете, что движет оппонентом. Спросите по теме: «Что для вас важно в этой теме — {topic}?»"
                 if ru else
-                'You barely know what drives them. Ask: "What matters most to you in this deal?"')
+                f'You barely know what drives them. Ask about a topic: "What matters to you here — {topic}?"')
     if s.tension > 60:
         return ("Напряжение высокое — уступки заморожены. Признайте их позицию: «Понимаю, откуда вы идёте…»"
                 if ru else

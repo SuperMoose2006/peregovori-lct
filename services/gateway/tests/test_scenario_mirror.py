@@ -81,3 +81,29 @@ def test_the_mirror_carries_three_hidden_interests_per_table():
         # уровня грубо — важно, что их три, а не что текст совпал дословно.
         block = blocks[sc.id]
         assert "interests:" in block, f"{sc.id}: в зеркале нет интересов"
+
+
+def test_the_mirror_carries_the_same_negotiation_topics():
+    """Темы — не оформление, а вход движка.
+
+    Ярлык темы ОДНОВРЕМЕННО чип на столе и то, по чему офлайновое ядро
+    засчитывает попадание (см. engine._topic_stems). Разошедшийся ярлык означает,
+    что один и тот же вопрос вскрывает интерес на сервере и не вскрывает в
+    браузере, — инвариант 8 ломается молча, а видно это только сравнив таблицы."""
+    blocks = _mirror_blocks()
+    wrong: list[str] = []
+    for sc in SCENARIOS:
+        block = blocks[sc.id]
+        found = re.search(r"interestTopics: \{(.*?)\n    \},", block, re.S)
+        if not found:
+            wrong.append(f"{sc.id}: в зеркале нет interestTopics")
+            continue
+        body = found.group(1)
+        for lang in ("ru", "en"):
+            want = sc.interest_topics[lang]
+            assert len(want) == 3, f"{sc.id}/{lang}: тем должно быть три"
+            row = re.search(rf"\n      {lang}: \[(.*?)\],", body, re.S)
+            got = re.findall(r'"((?:[^"\\]|\\.)*)"', row.group(1)) if row else []
+            if got != want:
+                wrong.append(f"{sc.id}.{lang}: зеркало {got}, движок {want}")
+    assert not wrong, "темы столов разошлись между движками:\n  " + "\n  ".join(wrong)

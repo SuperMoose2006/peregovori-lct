@@ -132,6 +132,10 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
 
   const iFound = st?.interests_found ?? 0;
   const iTotal = st?.interests_total ?? 0;
+  // Слоты интересов: тема видна всегда, текст — только у вскрытых. Пустой список
+  // (сервер постарше слотов не шлёт) не подменяется выдуманным: рельс остаётся
+  // счётчиком без тем — слоя нет, и он честно не рисуется.
+  const interestSlots = st?.interests ?? [];
   // Exam is an assessment: all live coaching feedback (meters, interests tracker,
   // technique chips/badges, meter deltas, hint) is withheld until the debrief.
   const exam = mode === "exam";
@@ -428,17 +432,33 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               </div>
             ) : null}
 
+            {/* ЗАНАВЕС, НАЧАТЫЙ ЗА СТОЛОМ. Здесь стояли три пустых кружка и
+                счётчик «0/3»: цифра без единой зацепки, по которой можно понять,
+                О ЧЁМ вообще спрашивать. Игрок был обязан УГАДАТЬ содержание
+                секрета, чтобы секрет открылся. Теперь невскрытый слот показывает
+                ТЕМУ — область, в которой интерес лежит, — и вопрос становится
+                выбором; вскрытый разворачивается в сам интерес, тот же текст,
+                который оппонент уже произнёс вслух. Второй принцип цел: тема
+                секрета не выдаёт, а текста, которого движок не отдал, здесь нет
+                (`text === null` рисует тему, а не заглушку под неё). */}
             {iTotal > 0 && !exam ? (
-              <div ref={interestsRef} className={`interests-line${flash ? " flash" : ""}`}>
-                <span>{t.interests}:</span>
-                <span className="pips">
-                  {Array.from({ length: iTotal }, (_, i) => (
-                    <i className={i < iFound ? "on" : ""} key={i} />
+              <div ref={interestsRef} className={`interests-rail${flash ? " flash" : ""}`}>
+                <div className="ir-head">
+                  <span>{t.interests}</span>
+                  <span className="ir-count">
+                    {iFound}/{iTotal}
+                  </span>
+                </div>
+                {interestSlots.length ? (
+                <ul className="ir-chips">
+                  {interestSlots.map((slot, i) => (
+                    <li key={i} className={slot.text ? "on" : ""}>
+                      <span className="ir-mark" aria-hidden="true">{slot.text ? "🔓" : "🔍"}</span>
+                      <span className="ir-txt">{slot.text ?? slot.topic}</span>
+                    </li>
                   ))}
-                </span>
-                <span>
-                  {iFound}/{iTotal}
-                </span>
+                </ul>
+                ) : null}
               </div>
             ) : null}
 

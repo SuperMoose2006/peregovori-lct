@@ -168,13 +168,39 @@ export function newSession(sc: ScenarioDef, lang: Lang): Session {
 // запасной ход «не совпало — отдай следующий по списку», и три одинаковых общих
 // «Почему?» вскрывали все три интереса: главный тезис продукта выполнялся
 // троекратным нажатием подсказанной кнопки. Не совпало — не вскрыли.
+// Слово темы короче четырёх букв в основы не идёт: «в», «и», «с» совпадут с чем
+// угодно. Хвост в две буквы срезается ради русской морфологии — «оплата» обязана
+// ловить «оплате» и «оплату», иначе тема, написанная на чипе, не работала бы в
+// той форме, в какой её произносит человек. Зеркало engine.py::_TOPIC_MIN_WORD.
+const TOPIC_MIN_WORD = 4;
+
+/** Основы, по которым засчитывается попадание ПО ТЕМЕ. Выводятся из самого
+ *  ярлыка темы — того, что игрок читает чипом на столе: что написано на чипе, то
+ *  и работает, и разъехаться эти две вещи не могут по построению.
+ *  Зеркало engine.py::_topic_stems. */
+export function topicStems(label: string): string[] {
+  const out: string[] = [];
+  for (const w of norm(label).split(" ")) {
+    if (w.length < TOPIC_MIN_WORD) continue;
+    out.push(w.slice(0, Math.max(TOPIC_MIN_WORD, w.length - 2)));
+  }
+  return out;
+}
+
+// ПОПАДАНИЕ ПО НАЗВАНИЮ ТЕМЫ РАВНО ПОПАДАНИЮ ПО КЛЮЧЕВОМУ СЛОВУ. Один
+// keyword-путь требовал НАЗВАТЬ СОДЕРЖАНИЕ СЕКРЕТА, чтобы секрет открылся:
+// «что для вас важнее всего в этой сделке?» давало probe_vague, а «что для вас
+// важно в загрузке производства?» — вскрытие. Темы игрок видит на столе, значит
+// вопрос по теме это ВЫБОР, а не угадывание. Зеркало engine.py.
 function revealIndexOffline(sc: ScenarioDef, curNorm: string, lang: Lang, found: number[]): number | null {
   const total = sc.interests[lang].length;
-  const kw = sc.hiddenInterestKeywords?.[lang];
-  if (!kw) return null;
-  for (let i = 0; i < Math.min(total, kw.length); i++) {
+  const kw = sc.hiddenInterestKeywords?.[lang] ?? [];
+  const topics = sc.interestTopics?.[lang] ?? [];
+  if (!kw.length && !topics.length) return null;
+  for (let i = 0; i < total; i++) {
     if (found.includes(i)) continue;
-    if (has(curNorm, kw[i])) return i;
+    if (i < kw.length && has(curNorm, kw[i])) return i;
+    if (i < topics.length && has(curNorm, topicStems(topics[i]))) return i;
   }
   return null;
 }
@@ -931,6 +957,14 @@ export function stateView(s: Session): StateView {
     offer_player: s.offerPlayer,
     interests_found: s.interests.length,
     interests_total: s.sc.interests[s.lang].length,
+    // Занавес, начатый ЗА СТОЛОМ: тема едет всегда (она не секрет), текст
+    // интереса — только у вскрытых. Зеркало engine.py::_interest_slots.
+    interests: (s.sc.interestTopics?.[s.lang]?.length
+      ? s.sc.interests[s.lang].map((text, i) => ({
+          topic: s.sc.interestTopics[s.lang][i] ?? "",
+          text: s.interests.includes(i) ? text : null,
+        }))
+      : []),
     terms_conceded: [...s.termsConceded],
     status: s.status,
     turn: s.turn,
@@ -1065,7 +1099,17 @@ export function hintText(s: Session): string {
 // item where the situation calls for one, so it is never generic filler.
 export function hintLine(s: Session): string {
   const L = HINT_LINES[s.lang];
-  if (s.info < 40) return L.info;
+  if (s.info < 40) {
+    // ТРЕНЕР ПРЕДЛАГАЕТ ТОЛЬКО ТО, ЧТО ДВИЖОК ЗАСЧИТЫВАЕТ. Здесь стояло «Что
+    // для вас важнее всего в этой сделке и почему именно это?» — вопрос без
+    // темы, то есть ровно тот, на который движок отвечает probe_vague. Тренер
+    // называл приём и не давал его. Подставляем ТЕМУ ещё не вскрытого интереса.
+    // Зеркало views.py::compute_hint.
+    const topics = s.sc.interestTopics?.[s.lang] ?? [];
+    const rest = topics.filter((_, i) => !s.interests.includes(i));
+    const topic = rest[0] ?? topics[0] ?? "";
+    return topic ? L.info.replace("{topic}", topic) : L.infoPlain;
+  }
   if (s.tension > 60) return L.tension;
   if (s.met.crit === 0) return L.crit;
   if (s.tradeoffs.length === 0 && s.info > 40) {
@@ -1076,14 +1120,19 @@ export function hintLine(s: Session): string {
 }
 const HINT_LINES: Record<Lang, Record<string, string>> = {
   ru: {
-    info: "Что для вас важнее всего в этой сделке и почему именно это?",
+    // Ярлык темы идёт в реплику КАК ЕСТЬ, в именительном: «важно в производство»
+    // было бы косноязычием, «в этой теме — Производство» склоняться не обязано.
+    info: "Что для вас важно в этой теме — {topic}?",
+    // Запасной вариант для стола без тем («своя сделка»): там подставить нечего.
+    infoPlain: "Что для вас важнее всего в этой сделке и почему именно это?",
     tension: "Понимаю, откуда вы идёте. Давайте вернёмся к сути — что для вас критично?",
     crit: "По рынку сопоставимые условия идут в другом диапазоне. Давайте опираться на этот ориентир, а не на позиции.",
     trade: "Если мы дадим {item}, сможете подвинуться по цене?",
     close: "Тогда фиксируем: условия, о которых договорились, и цена. Подписываем?",
   },
   en: {
-    info: "What matters most to you in this deal, and why exactly that?",
+    info: "What matters to you here — {topic}?",
+    infoPlain: "What matters most to you in this deal, and why exactly that?",
     tension: "I understand where you're coming from. Let's get back to substance — what is critical for you?",
     crit: "Comparable terms on the market sit in a different range. Let's anchor on that benchmark rather than positions.",
     trade: "If we give you {item}, can you move on price?",
@@ -1092,14 +1141,14 @@ const HINT_LINES: Record<Lang, Record<string, string>> = {
 };
 const HINTS: Record<Lang, Record<string, string>> = {
   ru: {
-    info: "Вы почти не знаете, что движет оппонентом. Спросите: «Что для вас важнее всего и почему?»",
+    info: "Вы почти не знаете, что движет оппонентом. Спросите ПО ТЕМЕ — темы стола перечислены в панели «Скрытые интересы».",
     tension: "Напряжение высокое — уступки заморожены. Признайте: «Понимаю, откуда вы идёте…»",
     crit: "Подкрепите позицию объективным критерием — сошлитесь на рыночные данные.",
     trade: "Вы знаете их интересы — предложите размен.",
     close: "Хорошая траектория. Назовите число и предложите зафиксировать сделку.",
   },
   en: {
-    info: 'You barely know what drives them. Ask: "What matters most to you, and why?"',
+    info: "You barely know what drives them. Ask about a TOPIC — they are listed in the “Hidden interests” panel.",
     tension: 'Tension is high — concessions are frozen. Acknowledge: "I understand where you\'re coming from…"',
     crit: "Back your position with an objective criterion — cite market data.",
     trade: "You know their interests — propose a trade.",

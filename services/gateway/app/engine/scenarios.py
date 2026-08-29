@@ -89,6 +89,17 @@ class Scenario:
     # speaks to an interest the player didn't actually ask about. Empty default ⇒
     # pure next-in-order behaviour (unchanged). See engine._reveal_index_offline.
     hidden_interest_keywords: dict[str, list[list[str]]] = field(default_factory=dict)
+    # ТЕМЫ переговоров — области, В КОТОРЫХ лежат скрытые интересы, по одной на
+    # интерес (index-aligned с `hidden_interests`). Тема — не секрет: «производство»
+    # не выдаёт «стабильную загрузку», но говорит игроку, ГДЕ копать. Без тем
+    # офлайновое вскрытие было угадыванием — попасть можно было только назвав
+    # содержание секрета, то есть зная ответ заранее.
+    #
+    # Ярлык темы ОДНОВРЕМЕННО и то, что игрок видит чипом на столе, и то, по чему
+    # движок засчитывает попадание: основы для сравнения выводятся из самого
+    # ярлыка (engine._topic_stems). Что написано на чипе — то и работает, и
+    # разъехаться эти две вещи не могут по построению.
+    interest_topics: dict[str, list[str]] = field(default_factory=dict)
 
 
 SCENARIOS: list[Scenario] = [
@@ -133,6 +144,10 @@ SCENARIOS: list[Scenario] = [
                 "Upfront payment / cash flow",
                 "Long-term contract over one-off deal",
             ],
+        },
+        interest_topics={
+            "ru": ["Производство", "Оплата", "Срок контракта"],
+            "en": ["Production", "Payments", "Contract term"],
         },
         hidden_interest_keywords={
             "ru": [
@@ -216,6 +231,10 @@ SCENARIOS: list[Scenario] = [
             "ru": ["Удержать бюджет отдела в рамках", "Быстро закрыть позицию", "Обосновать вилку перед финансами"],
             "en": ["Keep the team budget in bounds", "Close the role quickly", "Justify the band to finance"],
         },
+        interest_topics={
+            "ru": ["Бюджет отдела", "Сроки найма", "Согласование с финансами"],
+            "en": ["Team budget", "Hiring timeline", "Finance approval"],
+        },
         hidden_interest_keywords={
             "ru": [
                 ["бюджет отдел", "бюджет команд", "бюджет в рамк", "рамки бюджет", "бюджет", "перерасход", "фонд оплаты"],
@@ -297,6 +316,10 @@ SCENARIOS: list[Scenario] = [
         hidden_interests={
             "ru": ["Не выглядеть виноватым перед руководством", "Реальная нехватка людей в его команде", "Сохранить лицо"],
             "en": ["Not look at fault to leadership", "A real staffing shortage on his side", "Save face"],
+        },
+        interest_topics={
+            "ru": ["Разговор с руководством", "Ресурсы команды", "Репутация"],
+            "en": ["Leadership pressure", "Team resources", "Reputation"],
         },
         hidden_interest_keywords={
             "ru": [
@@ -386,6 +409,10 @@ SCENARIOS: list[Scenario] = [
         hidden_interests={
             "ru": ["Мотивированный фаундер с большой долей", "Место в совете директоров", "Скорость закрытия сделки"],
             "en": ["A motivated founder with meaningful equity", "A board seat", "Speed of closing"],
+        },
+        interest_topics={
+            "ru": ["Мотивация фаундера", "Контроль и управление", "Сроки закрытия"],
+            "en": ["Founder motivation", "Control and governance", "Closing timeline"],
         },
         hidden_interest_keywords={
             "ru": [
@@ -482,6 +509,10 @@ SCENARIOS: list[Scenario] = [
                 "Reliable payment exactly on time",
             ],
         },
+        interest_topics={
+            "ru": ["Поиск жильцов", "Тишина и порядок", "Оплата"],
+            "en": ["Finding tenants", "Peace and quiet", "Payments"],
+        },
         hidden_interest_keywords={
             "ru": [
                 ["простой", "пуст месяц", "без жильц", "простаива", "пустует", "не пустовал", "чтобы не пустовал", "поиск жильц"],
@@ -575,6 +606,10 @@ SCENARIOS: list[Scenario] = [
                 "Wants the car to go to a caring owner",
                 "Tired of tire-kickers — wants a serious buyer",
             ],
+        },
+        interest_topics={
+            "ru": ["Сроки продажи", "Будущий владелец", "Ваш покупатель"],
+            "en": ["Sale timing", "The next owner", "The buyer"],
         },
         hidden_interest_keywords={
             "ru": [
@@ -671,6 +706,10 @@ SCENARIOS: list[Scenario] = [
                 "Senior expertise so nothing gets reworked",
             ],
         },
+        interest_topics={
+            "ru": ["Бюджет проекта", "Сроки и запуск", "Уровень команды"],
+            "en": ["The budget", "Timeline and launch", "Team seniority"],
+        },
         hidden_interest_keywords={
             "ru": [
                 ["предсказуем бюджет", "без перерасход", "перерасход", "уложиться в бюджет", "не выйти за бюджет", "предсказуем стоимост", "контроль бюджет", "юнит-экономик"],
@@ -765,6 +804,10 @@ SCENARIOS: list[Scenario] = [
                 "Avoid penalties his ops team can't sustain",
                 "Show his leadership the contract grew",
             ],
+        },
+        interest_topics={
+            "ru": ["Продление и выручка", "Штрафы и эксплуатация", "Взгляд руководства"],
+            "en": ["Renewal and revenue", "Penalties and operations", "How leadership sees it"],
         },
         hidden_interest_keywords={
             "ru": [
@@ -864,6 +907,10 @@ SCENARIOS: list[Scenario] = [
                 "Growth toward architect, not legacy maintenance",
                 "Security after being laid off without warning",
             ],
+        },
+        interest_topics={
+            "ru": ["Переезд и жильё", "Карьера и рост", "Стабильность"],
+            "en": ["Moving and housing", "Career growth", "Job security"],
         },
         hidden_interest_keywords={
             "ru": [

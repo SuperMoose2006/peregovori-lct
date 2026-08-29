@@ -22,6 +22,10 @@ from typing import Optional
 from .format import format_deal, format_number
 from .scenarios import Scenario, by_id
 from .techniques import Analysis, analyze, norm
+# `_has` — то же сравнение «основа с начала слова», по которому работают все
+# словари приёмов. Тема обязана засчитываться ровно так же, как ключевое
+# слово, иначе на одном столе будут два разных правила совпадения.
+from .techniques import _has
 
 
 def _js_round(x: float) -> int:
@@ -363,6 +367,30 @@ def _acceptable(sess: Session, number: float) -> bool:
     return number <= sc.opponent_reservation + 0.001
 
 
+#: Слово темы короче четырёх букв в основы не идёт: «в», «и», «с» совпадут с
+#: чем угодно. Хвост в две буквы срезается ради русской морфологии — «оплата»
+#: обязана ловить «оплате» и «оплату», иначе тема, написанная на чипе, не
+#: работала бы в той форме, в какой её произносит человек. Нижняя граница в
+#: четыре буквы держит основу осмысленной («деньги» → «день» было бы приветствием).
+_TOPIC_MIN_WORD = 4
+
+
+def _topic_stems(label: str) -> list[str]:
+    """Основы, по которым засчитывается попадание ПО ТЕМЕ.
+
+    Выводятся из самого ярлыка темы — того, что игрок читает чипом на столе.
+    Это не оптимизация, а инвариант: что написано на чипе, то и работает.
+    Отдельный список основ рядом с ярлыком разъехался бы с ним при первой же
+    правке текста, и продукт снова начал бы предлагать слова, которых не
+    засчитывает. Зеркало — mock/engine.ts::topicStems."""
+    out: list[str] = []
+    for w in norm(label).split(" "):
+        if len(w) < _TOPIC_MIN_WORD:
+            continue
+        out.append(w[:max(_TOPIC_MIN_WORD, len(w) - 2)])
+    return out
+
+
 def _reveal_index_offline(sc: Scenario, cur_norm: str, lang: str,
                           found: list[int]) -> Optional[int]:
     """Which hidden interest does an OFFLINE probe uncover (judge is None)?
@@ -374,15 +402,27 @@ def _reveal_index_offline(sc: Scenario, cur_norm: str, lang: str,
     все три интереса. Выигрывал не тот, кто вскрыл интересы, а тот, кто трижды
     нажал подсказанную кнопку. Не совпало — не вскрыли, и оппонент честно
     переспрашивает (реакция probe_vague). Возвращает None и когда всё уже
-    вскрыто."""
+    вскрыто.
+
+    ПОПАДАНИЕ ПО НАЗВАНИЮ ТЕМЫ РАВНО ПОПАДАНИЮ ПО КЛЮЧЕВОМУ СЛОВУ. Один
+    keyword-путь требовал от игрока НАЗВАТЬ СОДЕРЖАНИЕ СЕКРЕТА, чтобы секрет
+    открылся: «что для вас важнее всего в этой сделке?» давало probe_vague, а
+    «что для вас важно в загрузке производства?» — вскрытие. Без сети главный
+    тезис продукта был недостижим, то есть инвариант 5 держался на вере. Темы
+    видны игроку (`Scenario.interest_topics` едет в состояние стола), поэтому
+    вопрос по теме — ВЫБОР, а не угадывание, а секрет остаётся секретом: тема
+    называет область, а не содержание."""
     total = len(sc.hidden_interests[lang])
-    kw = sc.hidden_interest_keywords.get(lang) if sc.hidden_interest_keywords else None
-    if not kw:
+    kw = (sc.hidden_interest_keywords.get(lang) or []) if sc.hidden_interest_keywords else []
+    topics = (sc.interest_topics.get(lang) or []) if sc.interest_topics else []
+    if not kw and not topics:
         return None
-    for i in range(min(total, len(kw))):
+    for i in range(total):
         if i in found:
             continue
-        if any(k in cur_norm for k in kw[i]):
+        if i < len(kw) and any(k in cur_norm for k in kw[i]):
+            return i
+        if i < len(topics) and _has(cur_norm, _topic_stems(topics[i])):
             return i
     return None
 
@@ -1625,6 +1665,29 @@ def score_session(sess: Session) -> dict:
 # View helpers producing the protocol shapes (StateView / Debrief).
 # -----------------------------------------------------------------------------
 
+def _interest_slots(sess: Session) -> list[dict]:
+    """Темы стола + тексты УЖЕ вскрытых интересов, по одному слоту на интерес.
+
+    Текст невскрытого не уезжает никуда: `text=None` — это и есть «ещё не
+    вскрыто». Текст вскрытого оппонент к этому моменту уже произнёс вслух
+    (реакция `opened_up` подставляет его в реплику), так что слот ничего не
+    выдаёт сверх сказанного."""
+    sc = by_id(sess.scenario_id)
+    lang = sess.lang
+    ilist = sc.hidden_interests[lang]
+    topics = (sc.interest_topics.get(lang) if sc.interest_topics else None) or []
+    if not topics:
+        # У сгенерированного стола («своя сделка») тем нет — и выдумывать их
+        # некому. Пустой список честнее пустых чипов: рельс остаётся счётчиком.
+        return []
+    found = set(sess.state.interests_found)
+    return [
+        {"topic": topics[i] if i < len(topics) else "",
+         "text": ilist[i] if i in found else None}
+        for i in range(len(ilist))
+    ]
+
+
 def to_state_view(sess: Session) -> dict:
     """Public slice of game state (mirrors legacy server.js publicState).
 
@@ -1647,6 +1710,12 @@ def to_state_view(sess: Session) -> dict:
         "deal": s.deal,
         "interests_found": len(s.interests_found),
         "interests_total": len(sc.hidden_interests[sess.lang]),
+        # Занавес, начатый ЗА СТОЛОМ, а не в разборе. Раньше рельс показывал три
+        # пустых кружка: счётчик без единой зацепки, по которой можно понять, о
+        # чём вообще спрашивать. Тема едет всегда (она не секрет), текст
+        # интереса — только у вскрытых: невскрытый несёт None, и второй принцип
+        # не даёт клиенту нарисовать то, чего движок ещё не отдал.
+        "interests": _interest_slots(sess),
         "terms_conceded": list(s.terms_conceded),
         "status": s.status,
         "turn": sess.turn,
