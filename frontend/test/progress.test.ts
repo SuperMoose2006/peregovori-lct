@@ -19,6 +19,7 @@ import {
   shouldRunTutorial,
   skillSignals,
   strongestWeakest,
+  streakView,
   updateStreak,
   xpForDebrief,
   type Profile,
@@ -402,6 +403,58 @@ test("updateStreak: a gap larger than held freezes resets (held freezes survive)
 test("updateStreak: first finish and same-day replay never spend a freeze", () => {
   assert.deepEqual(updateStreak({ streak: 0, freezes: 0 }, "", "2026-02-01"), { streak: 1, freezes: 0, freezeUsed: false });
   assert.deepEqual(updateStreak({ streak: 3, freezes: 1 }, "2026-02-01", "2026-02-01"), { streak: 3, freezes: 1, freezeUsed: false });
+});
+
+// ---- streakView: что карточка серии в рейле скажет о СЕГОДНЯШНЕМ дне ------
+//
+// Карточка ничего не решает сама и обязана обещать ровно то, что произойдёт:
+// её состояние считает `updateStreak` — тот же, которым серия записывается
+// после партии. Тесты ниже держат это в одном месте с самой серией, потому что
+// разъехаться они могут только вместе.
+const withStreak = (streak: number, lastDay: string, freezes = 0): Profile =>
+  ({ ...emptyProfile(), streak, lastStreakDay: lastDay, freezes });
+
+test("streakView: без единой законченной партии карточки нет вовсе", () => {
+  assert.equal(streakView(emptyProfile(), "2026-02-10"), null);
+});
+
+test("streakView: сегодняшний день засчитан — kept", () => {
+  const v = streakView(withStreak(3, "2026-02-10"), "2026-02-10")!;
+  assert.equal(v.mood, "kept");
+  assert.equal(v.streak, 3);
+});
+
+test("streakView: вчера играли, сегодня нет — waiting, и партия продлит серию", () => {
+  const v = streakView(withStreak(3, "2026-02-09"), "2026-02-10")!;
+  assert.equal(v.mood, "waiting");
+  assert.equal(v.ifPlayed, 4, "обещание карточки — это результат updateStreak, а не её мнение");
+});
+
+test("streakView: пропуск, который покроет заморозка — shielded", () => {
+  const v = streakView(withStreak(6, "2026-02-08", 2), "2026-02-10")!;
+  assert.equal(v.mood, "shielded");
+  assert.equal(v.freezes, 2);
+  assert.equal(v.ifPlayed, 7, "серия переживёт пропуск — ровно как в updateStreak");
+});
+
+test("streakView: пропуск без заморозок — серия прервана", () => {
+  const v = streakView(withStreak(6, "2026-02-08"), "2026-02-10")!;
+  assert.equal(v.mood, "lost");
+  assert.equal(v.ifPlayed, 1);
+});
+
+test("streakView: длинный перерыв отличается от вчерашней осечки", () => {
+  // Неделя без игры — это не «серия под угрозой», и говорить об этом надо иначе.
+  const v = streakView(withStreak(6, "2026-02-01"), "2026-02-10")!;
+  assert.equal(v.mood, "away");
+  assert.equal(v.awayDays, 9);
+});
+
+test("streakView: нулевая серия при непустом последнем дне не выдаётся за живую", () => {
+  // Такие профили приезжают из старых сохранений. Ветка «серия выросла» назвала
+  // бы прерванную серию живой, потому что ЛЮБАЯ партия увеличивает ноль.
+  const v = streakView(withStreak(0, "2026-02-01"), "2026-02-10")!;
+  assert.equal(v.mood, "away");
 });
 
 test("applyDebrief: a missed day is auto-saved by a held freeze", () => {

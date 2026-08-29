@@ -113,6 +113,13 @@ export function synthCustomScenario(situation: string, lang: Lang): ScenarioDef 
       ru: ["Не потерять лицо и репутацию", "Уложиться в бюджет и сроки", "Сохранить отношения на будущее"],
       en: ["Save face and reputation", "Stay within budget and timeline", "Preserve the relationship for the future"],
     },
+    // Темы шаблонные, как и интересы: у синтезированного стола нет ключевых слов
+    // (`hiddenInterestKeywords` здесь не заводится), и без тем вскрыть интерес
+    // офлайн было бы вовсе нечем.
+    interestTopics: {
+      ru: ["Репутация", "Бюджет и сроки", "Отношения"],
+      en: ["Reputation", "Budget and timeline", "The relationship"],
+    },
     tradeoffs: {
       ru: ["гибкость по срокам", "объём или долгосрочность сотрудничества"],
       en: ["flexibility on timing", "volume or a longer-term commitment"],

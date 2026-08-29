@@ -222,6 +222,63 @@ export function updateStreak(prev: StreakState, lastDay: string, today: string):
   return { streak: 1, freezes: f0, freezeUsed: false };
 }
 
+// ---- Что серия скажет о СЕГОДНЯШНЕМ дне -------------------------------------
+//
+// Полоска «🔥 N» в шапке говорит, сколько дней подряд игрок возвращался, и
+// молчит о единственном, что от него сейчас зависит: засчитан ли СЕГОДНЯШНИЙ
+// день. Разница между «серия жива, но сегодня вы ещё не играли» и «день уже
+// записан» — это ровно то, ради чего серию вообще смотрят.
+//
+// Считается тем же `updateStreak`, что и настоящая запись после партии. Это не
+// удобство, а условие честности: карточка обещает то, что и произойдёт, а не
+// свою отдельную оценку положения дел (принцип 2). Разойтись они не могут —
+// функция одна.
+export type StreakMood =
+  | "kept"      // сегодняшний день уже засчитан
+  | "waiting"   // серия жива, сегодня партии ещё не было
+  | "shielded"  // пропуск был, но его покроет заморозка
+  | "lost"      // серия прервётся: заморозок не хватило
+  | "away";     // прервётся, и перерыв длинный
+
+/** Порог «долгого перерыва». Неделя — потому что серия и так живёт днями:
+ *  два пропущенных дня это осечка, семь — другой разговор. */
+const AWAY_DAYS = 7;
+
+export interface StreakView {
+  mood: StreakMood;
+  streak: number;   // серия сейчас, как она записана в профиле
+  ifPlayed: number; // какой она станет, если закончить партию сегодня
+  freezes: number;  // заморозок в запасе сейчас
+  awayDays: number; // сколько дней прошло с последнего засчитанного дня
+}
+
+/**
+ * Состояние серии на сегодня — или null, если серии ещё не было ни разу.
+ *
+ * `null` намеренно: игроку без единой законченной партии рассказывать о
+ * прерванной серии нечего, а карточка «0 дней» — украшение. Первый шаг ему
+ * называет «Ваш следующий шаг», и второго голоса об этом не нужно.
+ */
+export function streakView(profile: Profile, today: string = dayKey()): StreakView | null {
+  const last = profile.lastStreakDay;
+  if (!last) return null;
+  const streak = Math.max(0, profile.streak);
+  const freezes = clamp(profile.freezes, 0, FREEZE_CAP);
+  const gap = daysBetween(last, today);
+  const awayDays = Number.isFinite(gap) ? Math.max(0, gap) : 0;
+  const next = updateStreak({ streak, freezes }, last, today);
+  const view = { streak, ifPlayed: next.streak, freezes, awayDays };
+
+  // Ветвление идёт по РАЗРЫВУ, а не по тому, вырос ли счётчик: у профиля с
+  // нулевой серией и непустым последним днём (такие приезжают из старых
+  // сохранений) любая партия «увеличивает» серию, и проверка по числу назвала
+  // бы прерванную серию живой.
+  if (last === today) return { ...view, mood: "kept" };
+  if (awayDays === 1) return { ...view, mood: "waiting" };
+  if (next.freezeUsed) return { ...view, mood: "shielded" };
+  return { ...view, mood: awayDays >= AWAY_DAYS ? "away" : "lost" };
+}
+
 // ---- Daily goal (customizable target, per-day progress) ----------------------
 
 export interface DailyGoalView {
