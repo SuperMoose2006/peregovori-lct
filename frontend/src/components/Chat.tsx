@@ -1,7 +1,7 @@
 // Chat.tsx — the negotiation chat log: opponent/player bubbles, technique tag
 // badges + argumentation score on player lines, per-turn meter delta flashes,
 // streaming opponent text, hint bubbles.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Analysis, Deltas } from "../types";
 import type { MeterLabels, Strings } from "../i18n";
@@ -17,6 +17,10 @@ interface Props {
   // accessible name for the log live region
   logLabel: string;
   argLabel: string;
+  // Подпись хода, от которого не сдвинулась ни одна шкала.
+  deltaNone: string;
+  // Подпись дословного повтора своей же реплики.
+  deltaRepeat: string;
   tagLabels: Strings["tagLabels"];
   // exam mode withholds per-turn technique badges + arg score + meter deltas +
   // the judge's live coach line (exam gives its feedback only at the debrief).
@@ -59,18 +63,48 @@ interface Props {
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
+/** К какому краю прижата лента.
+ *
+ *  Верх — пока в ленте лежит карточка «Стол накрыт» и догонять нечего: на
+ *  телефоне лента обрезана 48vh, и погоня за низом срезала карточке заголовок и
+ *  сцену. Но пин был безусловным на всё время жизни карточки, а живёт она до
+ *  КОНЦА первого хода: её условие — `turn === 0`, а счётчик движок крутит
+ *  только вместе с ответом оппонента. Полторы секунды между «отправить» и
+ *  ответом новичок смотрел на ту же карточку: его собственная реплика и пузырь
+ *  «ИИ-судья разбирает вашу реплику…» стояли ниже кромки. Первый ход выглядел
+ *  как нажатие, которое ничего не сделало. */
+export function logAnchor(opening: boolean, played: boolean): "top" | "bottom" {
+  return opening && !played ? "top" : "bottom";
+}
+
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, deltaNone, deltaRepeat, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
+  const played = log.some((e) => e.kind === "me");
+  // ПОСИМВОЛЬНЫЙ повтор своей же реплики — и только он. Движок считает повтор
+  // непрерывно (пересечение слов и приёмов), но повторять его меру на клиенте
+  // значит завести второй источник правды: разойдясь на полбалла, подпись
+  // объявила бы повтором ход, который движок засчитал. Дословное совпадение —
+  // заведомо жёсткий повтор по любой мерке, поэтому подпись под ним ничего не
+  // выдумывает, а лишь называет уже случившееся.
+  const repeatedIds = useMemo(() => {
+    const seen = new Set<string>();
+    const ids = new Set<number>();
+    for (const e of log) {
+      if (e.kind !== "me") continue;
+      const key = e.text.trim().toLowerCase().replace(/\s+/g, " ");
+      if (!key) continue;
+      if (seen.has(key)) ids.add(e.id);
+      else seen.add(key);
+    }
+    return ids;
+  }, [log]);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // At turn 0 there is no conversation to catch up to — the opening card IS
-    // the content, and on a phone (where the log is capped at 48vh) chasing the
-    // bottom cut its title and scene off the top.
-    el.scrollTop = opening ? 0 : el.scrollHeight;
-  }, [log, typing, opening]);
+    el.scrollTop = logAnchor(!!opening, played) === "top" ? 0 : el.scrollHeight;
+  }, [log, typing, opening, played]);
 
   return (
     // The log is a polite live region: new opponent replies and coach lines are
@@ -240,7 +274,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
             <div className="bub">{e.text}</div>
             {!exam && e.analysis ? <TagRow analysis={e.analysis} argLabel={argLabel} tagLabels={tagLabels} /> : null}
             {!exam && e.deltas ? (
-              <DeltaRow deltas={e.deltas} labels={metersShort} full={metersFull} deltaAria={deltaAria} />
+              <DeltaRow deltas={e.deltas} labels={metersShort} full={metersFull} deltaAria={deltaAria} noneLabel={deltaNone} repeatLabel={repeatedIds.has(e.id) ? deltaRepeat : null} />
             ) : null}
           </div>
         );
@@ -275,12 +309,15 @@ function TagRow({ analysis, argLabel, tagLabels }: {
 }
 
 function DeltaRow({
-  deltas, labels, full, deltaAria,
+  deltas, labels, full, deltaAria, noneLabel, repeatLabel,
 }: {
   deltas: Deltas;
   labels: MeterLabels;
   full: MeterLabels;
   deltaAria: string;
+  noneLabel: string;
+  /** Непусто — реплика дословно повторяет уже сказанную. */
+  repeatLabel: string | null;
 }) {
   // tension is "inverted" — a drop is good (shown green).
   const cells: Array<{ label: string; full: string; v: number; invert?: boolean }> = [
@@ -290,9 +327,21 @@ function DeltaRow({
     { label: labels.leverage, full: full.leverage, v: deltas.leverage },
   ];
   const shown = cells.filter((c) => Math.abs(c.v) >= 0.5);
-  if (!shown.length) return null;
+  // Ноль — тоже результат хода, и молчать о нём нельзя. «Ок», «да», «сколько?»
+  // не двигают ни одной шкалы; раньше под такой репликой не появлялось ничего,
+  // и человек, жмущий наугад, шесть ходов подряд читал пустоту как «программа
+  // меня не заметила». Движок его заметил и насчитал ноль — так и написано.
+  if (!shown.length && !repeatLabel) {
+    return (
+      <div className="deltas">
+        <span className="none">{noneLabel}</span>
+      </div>
+    );
+  }
   return (
     <div className="deltas">
+      {/* Причина стоит ПЕРЕД следствием: «повтор» слева, «Напр +6» справа. */}
+      {repeatLabel ? <span className="rep">{repeatLabel}</span> : null}
       {shown.map((c, i) => {
         const good = c.invert ? c.v < 0 : c.v > 0;
         const signed = `${c.v > 0 ? "+" : ""}${Math.round(c.v)}`;

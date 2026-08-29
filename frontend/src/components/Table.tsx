@@ -85,6 +85,18 @@ interface Props {
   onProbeAnswer?: (id: number, choice: number) => void;
 }
 
+/** Какая подсветка сейчас на столе. `first` — гарантированная: см. эффект №3. */
+type TutMark = null | "interest" | "deal" | "first";
+
+/** Текст гарантированной подсказки. Чистая функция — числа и тема в ней
+ *  настоящие, поэтому она проверяется тестом, а не глазами: «спросите про
+ *  «Производство»» обязано называть тему С ЭТОГО стола, а не любую. */
+export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic: string): string {
+  const n = Math.round(infoDelta);
+  const gain = n > 0 ? o.firstGain.replace("{n}", String(n)) : o.firstGainNone;
+  return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
+}
+
 export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
@@ -260,17 +272,20 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   // его вместе со строкой тренера, то есть ровно тот момент, ради которого
   // существует.
   //
-  // СТАЛО: новичку подсвечивается ОДИН элемент — и только когда движок с ним
-  // что-то сделал: вскрыт интерес, поехала их цена. Роль вводной на нулевом
-  // ходу играет карточка «Стол накрыт»: она уже лежит в ленте и ничего не
-  // перекрывает. Подсветка ждёт, пока стол замрёт (`busy`), поэтому поверх
-  // приходящего ответа не встаёт никогда.
+  // СТАЛО: новичку подсвечивается ОДИН элемент за ход — и только когда движок
+  // с ним что-то сделал: вскрыт интерес, поехала их цена, сделан первый ход.
+  // Роль вводной на нулевом ходу играет карточка «Стол накрыт»: она уже лежит
+  // в ленте и ничего не перекрывает. Подсветка ждёт, пока стол замрёт (`busy`),
+  // поэтому поверх приходящего ответа не встаёт никогда.
+  //
+  // Третье событие — «первый ход» — существует потому, что первые два зависят
+  // от удачи игрока, а вводная не имеет права её ждать: см. эффект №3 ниже.
   const [tutOn, setTutOn] = useState(newcomer.current);
-  const [tutMark, setTutMark] = useState<null | "interest" | "deal">(null);
-  const [tutQueue, setTutQueue] = useState<Array<"interest" | "deal">>([]);
+  const [tutMark, setTutMark] = useState<TutMark>(null);
+  const [tutQueue, setTutQueue] = useState<Exclude<TutMark, null>[]>([]);
   const tutOnRef = useRef(tutOn);
   tutOnRef.current = tutOn;
-  const tutSeen = useRef({ interest: false, deal: false });
+  const tutSeen = useRef({ interest: false, deal: false, first: false });
   const tutFirstOffer = useRef<number | null>(null);
   const tutFound = useRef(iFound);
   const tutDoneOnce = useRef(false);
@@ -290,7 +305,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
   }, []);
 
   // Queue an event-driven reveal, once each, only while the highlights are live.
-  const queueTutMark = useCallback((ev: "interest" | "deal") => {
+  const queueTutMark = useCallback((ev: Exclude<TutMark, null>) => {
     if (!tutOnRef.current) return;
     if (tutSeen.current[ev]) return;
     tutSeen.current[ev] = true;
@@ -314,16 +329,44 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     if (st.offer_opp !== tutFirstOffer.current) queueTutMark("deal");
   }, [st, queueTutMark]);
 
+  // Real event #3 — ГАРАНТИРОВАННОЕ: игрок сходил хотя бы раз. Два события выше
+  // привязаны к УДАЧЕ: вопрос попал в тему, ход заработал движение цены. У
+  // новичка, который жмёт наугад, за всю партию не случается ни одного — и
+  // вводной он не видит вовсе (проверено прогоном: шесть ходов «ок / да /
+  // сколько?» — ноль подсветок). Первый ход случается всегда, и подсказка на
+  // нём говорит ровно то, чего человеку не хватило: интерес открывает не
+  // вопрос, а вопрос ПО ТЕМЕ, и темы лежат вот здесь.
+  //
+  // Стоит ПОСЛЕ двух эффектов выше не случайно: они успевают пометить свои
+  // события в том же коммите, и удачный первый ход получает свою — «вы вскрыли
+  // интерес», — а не эту. Двух подсказок на один ход не бывает.
+  useEffect(() => {
+    if (!st || st.turn < 1) return;
+    if (tutSeen.current.interest || tutSeen.current.deal) return;
+    // Показывать не на что: рельс тем не нарисован (экзамен, старый сервер без
+    // слотов) — а подсказка без цели у нас не живёт.
+    if (exam || !interestSlots.some((slot) => !slot.text)) return;
+    queueTutMark("first");
+  }, [st, exam, interestSlots, queueTutMark]);
+
   // Показываем по одной — и ТОЛЬКО когда стол замер. Пока идёт ответ оппонента
   // или открыт вопрос «прочтите лицо», подсветка ждёт: перекрывать реплику,
   // которую человек ещё не прочитал, она не имеет права.
+  //
+  // ОДНА НА ХОД, а не одна на экран. Удачный первый ход умеет вскрыть интерес и
+  // сдвинуть цену разом — и очередь выкладывала обе подсказки подряд: «Понятно»
+  // по первой мгновенно поднимало вторую. Человек, сходивший ОДИН раз, получал
+  // два всплывших окна; ровно от этого вводную здесь и сокращали.
+  const tutShownTurn = useRef(-1);
   useEffect(() => {
     if (!tutOn || tutMark !== null) return;
     if (busy || finished || probeOpen) return;
     if (tutQueue.length === 0) return;
+    if (turnNow <= tutShownTurn.current) return;
+    tutShownTurn.current = turnNow;
     setTutMark(tutQueue[0]);
     setTutQueue((q) => q.slice(1));
-  }, [tutOn, tutMark, tutQueue, busy, finished, probeOpen]);
+  }, [tutOn, tutMark, tutQueue, busy, finished, probeOpen, turnNow]);
 
   // Игрок пошёл дальше — подсветка снимается сама. Висеть до клика по «Понятно»
   // она не имеет права: это подсказка, а не шлагбаум.
@@ -362,6 +405,12 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     tutStep = { stepKey: "m-interest", targetRef: interestsRef, title: o.interestTitle, body: o.interestBody, ...mark };
   } else if (tutMark === "deal") {
     tutStep = { stepKey: "m-deal", targetRef: dealRef, title: o.dealTitle, body: o.dealBody, ...mark };
+  } else if (tutMark === "first") {
+    tutStep = {
+      stepKey: "m-first", targetRef: interestsRef, title: o.firstTitle,
+      body: firstMoveBody(o, lastDeltas?.info ?? 0, interestSlots.find((slot) => !slot.text)?.topic ?? ""),
+      ...mark,
+    };
   }
 
   return (
@@ -405,23 +454,14 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               <DealTracker scenario={scenario} state={st} t={t} lang={lang} />
             </div>
 
-            {/* BATNA НАРУЖУ И ВЫСОКО, брифинг под кнопку. Раньше оба лежали в
-                одной развёрнутой панели на 162 пикселя внизу рельса — то есть
-                за краем окна. Брифинг из них — чистый повтор: цель и красную
-                линию показывает шкала ZOPA прямо над ним, а «у второй стороны
-                скрытые интересы, спрашивайте» стоит в карточке «Стол накрыт».
-                BATNA не повторяется нигде, и её место здесь, рядом с ценой:
-                сила уйти читается вместе с цифрой, против которой она стоит. */}
-            <div className="batna">
-              <b>🛡 {t.batna}</b>
-              <span>{scenario.batna}</span>
-            </div>
-
-            {/* Visible logrolling: the tradeable "package" forming, right under
-                the price tracker so the price move and the trade read together.
-                Renders only for scenarios that carry secondary issues. */}
-            <DealTerms scenario={scenario} state={st} t={t} />
-
+            {/* ТЕМЫ СТОЯТ ВЫШЕ BATNA — потому что иначе их не видно. Рельс это
+                вложенный скроллер с прилипшим низом (Карл + выход, 134 px), и
+                на первом же ходу карточка цены отращивает график динамики: всё,
+                что лежало ниже, уезжает под прилипший низ. Замер на 1440×900:
+                до хода чипы тем стояли на 684–747 при кромке низа 750, после
+                хода — на 747–808, то есть за ней. Единственная строка на столе,
+                отвечающая на вопрос «а о чём вообще спрашивать», пропадала
+                ровно в тот момент, когда игрок начинал спрашивать. */}
             {/* ЗАНАВЕС, НАЧАТЫЙ ЗА СТОЛОМ. Здесь стояли три пустых кружка и
                 счётчик «0/3»: цифра без единой зацепки, по которой можно понять,
                 О ЧЁМ вообще спрашивать. Игрок был обязан УГАДАТЬ содержание
@@ -451,6 +491,28 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 ) : null}
               </div>
             ) : null}
+
+            {/* BATNA НАРУЖУ И ВЫСОКО, брифинг под кнопку. Раньше оба лежали в
+                одной развёрнутой панели на 162 пикселя внизу рельса — то есть
+                за краем окна. Брифинг из них — чистый повтор: цель и красную
+                линию показывает шкала ZOPA прямо над ним, а «у второй стороны
+                скрытые интересы, спрашивайте» стоит в карточке «Стол накрыт».
+                BATNA не повторяется нигде, и её место в верхней половине
+                рельса: сила уйти читается вместе с ценой, против которой она
+                стоит, — темы между ними стоят ровно потому, что ниже их не
+                видно (см. выше). */}
+            <div className="batna">
+              <b>🛡 {t.batna}</b>
+              <span>{scenario.batna}</span>
+            </div>
+
+            {/* Visible logrolling: the tradeable "package" forming. Стоит ниже
+                тем и BATNA намеренно: рельс не вмещает всё, и порядок здесь —
+                это порядок, в котором новичок теряет панели. Терять первым
+                обязан пояснитель размена, а не строка, отвечающая на вопрос
+                «о чём вообще спрашивать». Renders only for scenarios that carry
+                secondary issues. */}
+            <DealTerms scenario={scenario} state={st} t={t} />
 
             <div className={`side-more${moreOpen ? " open" : ""}`}>
               <button
@@ -540,6 +602,8 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               deltaAria={t.a11y.delta}
               logLabel={t.a11y.chatLog}
               argLabel={t.argLabel}
+              deltaNone={t.deltaNone}
+              deltaRepeat={t.deltaRepeat}
               exam={exam}
               coachLabel={t.coachLabel}
               dismissLabel={t.a11y.dismiss}
