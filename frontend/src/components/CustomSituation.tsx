@@ -1,7 +1,13 @@
-// CustomSituation.tsx — the "Своя сделка" input: a free-text description of a
-// real negotiation the user faces. On submit the app generates a scenario (real
-// backend, or the MockServer's synth) and drops the player into the normal game.
-// Rendered in place of the scenario cards when the "custom" mode is selected.
+// CustomSituation.tsx — экран «Своя сделка»: свободное описание реальных
+// переговоров, из которого генератор собирает сценарий (настоящий бэкенд или
+// синтез MockServer), после чего игрок садится за обычный стол.
+//
+// Экран был заголовком, полем и кнопкой над восемью сотнями пикселей пустоты:
+// самый амбициозный режим продукта выглядел самым заброшенным и молчал о том,
+// что вообще произойдёт по нажатию. Теперь под полем стоят три примера в один
+// клик (конфликты РАЗНОГО типа — срыв обязательств, доля, цена) и честная
+// строка о том, что соберут и сколько это займёт. Двух секунд ожидания без
+// объяснения хватает, чтобы человек решил, что кнопка не работает.
 import type { Lang } from "../types";
 import type { Strings } from "../i18n";
 
@@ -30,6 +36,7 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate }:
           </div>
         ) : null}
         <textarea
+          id="custom-situation"
           className="cust-ta"
           value={value}
           placeholder={t.custom.placeholder}
@@ -43,6 +50,28 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate }:
           }}
           rows={6}
         />
+
+        {/* Примеры СРАЗУ под полем: это подсказка ко вводу, а не витрина.
+            Кнопка, а не карточка-ссылка: клик меняет содержимое поля выше,
+            поэтому она и объявляет себя полю через aria-controls. */}
+        <div className="cust-ex">
+          <div className="cust-ex-head" id="cust-ex-head">{t.custom.examplesHead}</div>
+          <div className="cust-ex-row" role="group" aria-labelledby="cust-ex-head">
+            {t.custom.examples.map((ex) => (
+              <button
+                key={ex.title}
+                type="button"
+                className={`cust-ex-card${value.trim() === ex.text ? " on" : ""}`}
+                aria-controls="custom-situation"
+                onClick={() => onChange(ex.text)}
+              >
+                <b>{ex.title}</b>
+                <span>{ex.text}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="cust-actions">
           <span className="cust-hint">
             {lang === "ru" ? "Ctrl+Enter — сгенерировать" : "Ctrl+Enter to generate"}
@@ -51,6 +80,13 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate }:
             {error ? t.custom.retry : t.custom.generate}
           </button>
         </div>
+
+        {/* Стоит ПОД кнопкой: это ответ на вопрос «что случится, если нажать».
+            Никакого «мгновенно» — генерация занимает секунды, и обещать иное
+            значит заставить человека нажать второй раз. */}
+        <p className="cust-promise">
+          <span aria-hidden="true">🎲</span> {t.custom.promise}
+        </p>
       </div>
     </>
   );

@@ -807,7 +807,7 @@ export default function App() {
       <SideNav
         t={t}
         active={screen === "profile" ? "profile" : screen === "course" ? "course" : mode}
-        onMode={(m) => { setMode(m); if (screen !== "home") goHome(); }}
+        onMode={(m) => { selectMode(m); if (screen !== "home") goHome(); }}
         onProfile={openProfile}
         onCourse={() => openCourse(null)}
       />
@@ -893,7 +893,6 @@ export default function App() {
               t={t}
               lang={lang}
               mode={mode}
-              onSelectMode={selectMode}
               onStart={start}
               situation={situation}
               customError={nego.error}
@@ -910,12 +909,8 @@ export default function App() {
               onRoute={goRoute}
               examName={examName}
               onExamNameChange={setExamName}
-              hideModes
-              onCourse={() => openCourse(null)}
               onCourseBlock={(blockId) => openCourse({ blockId, lesson: null })}
               onWarmup={(blockId) => { setWarmupBlock(blockId); setScreen("warmup"); }}
-              courseDone={coursePassed}
-              courseTotal={COURSE_BLOCKS.length}
             />
             </div>
             <aside className="rail">

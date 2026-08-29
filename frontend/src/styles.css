@@ -255,24 +255,7 @@ h1, h2, h3, .serif { font-family: var(--serif); }
   .td-dot { left: 52%; opacity: 1; }
 }
 
-/* ---------- Mode picker ---------- */
 .section-head { font-size: 12.5px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-faint); margin: 34px 0 16px; }
-.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
-.mode {
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
-  padding: 16px 18px; text-align: left; display: flex; flex-direction: column; gap: 6px;
-  position: relative; transition: border-color 0.18s, transform 0.18s;
-}
-.mode.sel { border-color: var(--brass); box-shadow: var(--shadow); }
-.mode:not(.disabled):hover { transform: translateY(-2px); border-color: var(--brass); }
-.mode .mt { font-family: var(--serif); font-size: 17px; font-weight: 600; }
-.mode .md { font-size: 12.5px; color: var(--ink-dim); }
-.mode.disabled { opacity: 0.62; cursor: not-allowed; }
-.soon {
-  position: absolute; top: 12px; right: 12px; font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase;
-  color: var(--ink-faint); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 8px;
-}
-
 /* ---------- Scenario picker ---------- */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
 .card {
@@ -313,6 +296,33 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 }
 .cust-err b { color: var(--tension-ink); font-family: var(--serif); font-size: 14px; }
 .cust-err span { color: var(--ink-dim); }
+
+/* Три примера в один клик. Ряд, а не сетка на всю ширину: карточек ровно три,
+   и на широком экране они обязаны читаться как подсказка к полю над ними, а не
+   как вторая полка сценариев. */
+.cust-ex { display: flex; flex-direction: column; gap: 9px; }
+.cust-ex-head { font-size: 12.5px; color: var(--ink-dim); }
+.cust-ex-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.cust-ex-card {
+  display: flex; flex-direction: column; gap: 5px; text-align: left; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px;
+  padding: 12px 13px; color: var(--ink); font: inherit;
+  transition: border-color 0.15s, transform 0.06s, background 0.15s;
+}
+.cust-ex-card:hover { border-color: var(--brass); }
+.cust-ex-card:active { transform: translateY(1px); }
+.cust-ex-card.on { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 8%, var(--panel)); }
+.cust-ex-card b { font-size: 13.5px; font-weight: 800; }
+/* Текст примера обрезан тремя строками: карточка обещает тему, а полный текст
+   человек прочитает в поле, куда клик его и положит. */
+.cust-ex-card span {
+  font-size: 12px; line-height: 1.45; color: var(--ink-dim);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.cust-promise {
+  margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-dim);
+  background: var(--panel-2); border-radius: 12px; padding: 12px 14px;
+}
 
 /* Слой просили, а устройство не встало. Место строки — ровно там, где стояла
    бы живая полоса слоёв: человек ищет её взглядом именно здесь, и вместо
@@ -478,22 +488,10 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .dt-spark-l { font-size: 9.5px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); }
 .dt-spark svg { display: block; overflow: visible; }
 
-.meters { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-.m { border-radius: 6px; outline: none; cursor: help; }
-.m:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 55%, transparent); }
-.m .mh { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-dim); margin-bottom: 5px; }
-.m .mh b { color: var(--ink); font-variant-numeric: tabular-nums; }
-.track { position: relative; height: 7px; background: var(--panel-2); border-radius: 5px; overflow: visible; }
-.track .fill { overflow: hidden; }
 /* one-shot glow on the meter that moved most this turn (keyed on turn) */
 .pulse-glow { position: absolute; inset: -2px; border-radius: 6px; pointer-events: none;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 50%, transparent); animation: meterpulse 0.9s ease-out; }
 @keyframes meterpulse { from { opacity: 0.85; transform: scale(1); } to { opacity: 0; transform: scale(1.03); } }
-.fill { height: 100%; width: 40%; border-radius: 5px; transition: width 0.55s cubic-bezier(0.4, 0, 0.2, 1); }
-.fill.trust { background: var(--trust); }
-.fill.tension { background: var(--tension); }
-.fill.info { background: var(--info); }
-.fill.leverage { background: var(--leverage); }
 
 /* Рельс скрытых интересов. Раньше здесь стояли три пустых кружка: счётчик без
    единой зацепки, по которой можно понять, О ЧЁМ спрашивать. Теперь невскрытый
@@ -850,7 +848,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
   /* The rail's explanatory chrome: 9-11.5px is unreadable past the third row. */
   .ob .l, .dt-legend, .dt-mark .lbl { font-size: 11.5px; }
   .dtm-explain, .ir-chips li { font-size: 12.5px; }
-  .tag, .arg, .deltas, .jc-chip, .sc-chip { font-size: 12px; }
+  .tag, .arg, .deltas, .jc-chip { font-size: 12px; }
 
   .bub { font-size: 15.5px; }
   .log { padding: 22px 20px; gap: 15px; }
@@ -908,15 +906,15 @@ textarea:focus { outline: none; border-color: var(--brass); }
   }
   .hero-cta:active { filter: brightness(0.94); }
 
-  /* Home: single-column cards + modes, big tap targets. */
-  .modes { grid-template-columns: 1fr; gap: 10px; }
-  .mode { padding: 15px 16px; min-height: 64px; }
+  /* Home: single-column cards, big tap targets. */
   .cards { grid-template-columns: 1fr; gap: 12px; }
   .card { padding: 17px; }
   .card .cr { min-height: 0; }
 
   /* Custom deal: full-width action. */
   .custom { max-width: none; }
+  .cust-ex-row { grid-template-columns: 1fr; }
+  .cust-ex-card span { -webkit-line-clamp: 2; }
   .cust-actions { flex-direction: column-reverse; align-items: stretch; gap: 10px; }
   .cust-go { min-width: 0; width: 100%; padding: 14px; }
   .cust-hint { text-align: center; }
@@ -929,11 +927,6 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .opp .nm { font-size: 15px; }
 
   .dealtracker { padding: 12px 13px 11px; gap: 9px; }
-
-  /* Meters become a slim 2×2 grid instead of a tall stack. */
-  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; padding: 13px; }
-  .m .mh { margin-bottom: 4px; }
-  .m { padding: 4px; min-height: 44px; }        /* comfortable tap/focus target for the tooltip */
 
   /* Briefing + BATNA collapse behind a tappable header. */
   /* На телефоне кнопка крупнее — палец, а не курсор. Остальное общее. */
@@ -999,9 +992,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
   .foot { flex-direction: column; gap: 4px; text-align: center; align-items: center; margin-top: 28px; }
 }
 
-/* Very small phones: give the meter grid room to breathe as a single column. */
 @media (max-width: 360px) {
-  .meters { grid-template-columns: 1fr; }
   .brand .mark { font-size: 20px; }
 }
 
@@ -1576,25 +1567,6 @@ textarea:focus-visible,
   background: var(--panel-2); border: 1px solid var(--line-2);
 }
 
-/* ---------- Rubric scorecard chips (item 2) ----------
-   A compact, always-offline read of the latest turn under the meters — pure
-   presentation of the deterministic engine's analysis/deltas/flags. */
-.scorecard { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
-.sc-chip {
-  font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
-  white-space: nowrap; border: 1px solid var(--line-2); font-variant-numeric: tabular-nums;
-}
-.sc-chip.good {
-  color: var(--trust-ink);
-  background: color-mix(in srgb, var(--trust) 12%, var(--panel));
-  border-color: color-mix(in srgb, var(--trust) 38%, var(--line));
-}
-.sc-chip.warn {
-  color: var(--tension-ink);
-  background: color-mix(in srgb, var(--tension) 12%, var(--panel));
-  border-color: color-mix(in srgb, var(--tension) 40%, var(--line));
-}
-
 /* ---------- Technique-floor note (item 4) ----------
    One honest line when a great price is capped by thin method (price ≠ grade). */
 .tfloor {
@@ -1743,6 +1715,70 @@ textarea:focus-visible,
   .rv-badge { grid-column: 2; }
 }
 
+/* ============================================================================
+   «С той стороны стола» — разбор глазами оппонента
+   ----------------------------------------------------------------------------
+   Стоит сразу под занавесом и повторяет его форму (тот же фон, та же кромка),
+   потому что это ПРОДОЛЖЕНИЕ той же мысли: занавес показывает, что она прятала,
+   колонка — почему оно осталось спрятанным.
+
+   Именно лента, а не список карточек: порядок ходов здесь несёт столько же
+   смысла, сколько их текст, и точка на рельсе красится по тону хода. Зелёная —
+   ход сыграл ей навстречу, красная — против, серая — не сдвинул ничего. Тон
+   считает движок (`tone` в разборе), а не вёрстка: раскрашивать реплику
+   собственным мнением о ней — это второй источник правды.
+   ========================================================================= */
+.herside {
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--info); border-radius: var(--r);
+  padding: 18px 20px; margin-bottom: 20px;
+}
+.herside h2 { margin: 0 0 4px; font-size: 16px; color: var(--info-ink); }
+.hs-lead { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.hs-lead p { margin: 0; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+.hs-tape {
+  list-style: none; margin: 16px 0 0; padding: 2px 0 2px 18px;
+  border-left: 2px solid var(--line); display: flex; flex-direction: column; gap: 16px;
+}
+.hs-tape li { position: relative; }
+.hs-tape li::before {
+  content: ""; position: absolute; left: -23px; top: 4px;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--line-2);
+}
+.hs-tape li.hs-good::before { background: var(--trust); }
+.hs-tape li.hs-bad::before { background: var(--tension); }
+.hs-when {
+  display: block; font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase;
+  font-weight: 700; color: var(--ink-faint);
+}
+.hs-quote {
+  margin: 4px 0 0; font-family: var(--serif); font-style: italic; font-size: 14px;
+  color: var(--ink-dim); line-height: 1.45;
+}
+.hs-quote b { font-style: normal; font-family: var(--sans); font-size: 12px; color: var(--ink-faint); }
+/* Реплика оппонента — главная строка ленты, поэтому она полного контраста, а
+   цитата игрока над ней приглушена: он свои слова и так помнит. */
+.hs-said { margin: 6px 0 0; font-size: 13.5px; color: var(--ink); line-height: 1.55; }
+.hs-said b { color: var(--info-ink); }
+.hs-meters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.hs-meters i {
+  font-style: normal; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums; color: var(--ink-faint);
+  border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px;
+}
+/* «Чего вы так и не узнали» — вывод колонки, поэтому он отделён линией и
+   написан в полный контраст: это и есть урок, ради которого её читают. */
+.hs-missed { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.hs-missed h3 { margin: 0 0 6px; font-size: 13px; color: var(--brass); }
+.hs-missed p { margin: 0; font-size: 13.5px; color: var(--ink); line-height: 1.5; }
+.hs-ask { margin-top: 8px !important; color: var(--ink-dim) !important; }
+
+@media (max-width: 640px) {
+  .herside { padding: 16px; }
+  .hs-tape { padding-left: 14px; gap: 14px; }
+  .hs-tape li::before { left: -19px; }
+}
+
 /* ---------- Mentor's closing word (live AI only) ----------
    Deliberately warmer than the surrounding scorecards: this is the one block on
    the debrief that speaks TO the player rather than measuring them, so it leads
@@ -1840,9 +1876,9 @@ textarea:focus-visible,
 :root .opp,
 :root .offers,
 :root .dealtracker,
-:root .meters,
 :root .camp,
 :root .reveal,
+:root .herside,
 :root .mentor,
 :root .tpoints,
 :root .coach,
@@ -1889,13 +1925,11 @@ textarea:focus-visible,
 :root .msg.opp .bub { border-width: 2px; border-bottom-left-radius: 6px; }
 :root .msg.me .bub { border-bottom-right-radius: 6px; }
 
-/* Meters become the thick rounded bars Duolingo uses for lesson progress. */
-:root .track { height: 14px; border-radius: 999px; }
+/* Bars read as the thick rounded progress Duolingo uses. */
 :root .sbt { height: 16px; border-radius: 999px; }
-:root .fill,
 :root .sbf { border-radius: 999px; }
-/* `.sb` and `.meters` are cards too, and the 2px rule above already caught
-   `.meters`; the score-bar panel needs it by its own name. */
+/* `.sb` is a card too, but the 2px rule above lists panels by name and the
+   score-bar panel needs its own line. */
 :root .sb { border-width: 2px; box-shadow: none; }
 
 /* No serif anywhere — including the places that ask for it by name. */
@@ -2220,25 +2254,6 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   .opp.reading, .opp.reading .face { transition: none; }
 }
 
-/* Meters duplicated inside an open question. Desktop already shows them in the
-   rail beside the card, so this only exists where the rail is out of sight. */
-.pb-meters { display: none; }
-@media (max-width: 860px) {
-  .pb-meters {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 7px 12px; margin-bottom: 12px;
-    padding-bottom: 12px; border-bottom: 1px solid var(--line);
-  }
-  .pm { display: flex; align-items: center; gap: 6px; font-size: 10.5px; min-width: 0; }
-  .pm b { font-weight: 700; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; }
-  .pm-bar { flex: 1; height: 5px; border-radius: 3px; background: var(--panel-2); overflow: hidden; }
-  .pm-fill { display: block; height: 100%; border-radius: 3px; }
-  .pm-fill.trust { background: var(--trust); }
-  .pm-fill.tension { background: var(--tension); }
-  .pm-fill.info { background: var(--info); }
-  .pm-fill.leverage { background: var(--leverage); }
-  .pm u { text-decoration: none; font-weight: 700; font-variant-numeric: tabular-nums; }
-}
-
 /* ---------- SKIN "game": the third column ----------
    The shell is sidebar · content · rail. Without the rail the content column is
    the whole width and the layout stops reading as an app — that was the gap
@@ -2470,20 +2485,43 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   background: var(--ink-dim); border-bottom-color: var(--ink);
 }
 
-/* ---------- The live HUD ----------
-   Four meters pinned to the top of the chat card. Only in the game skin, where
-   it REPLACES the rail's meter panel: keeping both would show the same numbers
-   twice. */
-.hud { display: none; }
+/* ---------- The live meter strip ----------
+   ЕДИНСТВЕННАЯ панель шкал в игре. Их было две: эта полоса с обрубками
+   («Дов · Напр · Инфо · Рыч») и панель на рельсе с полными подписями и
+   объяснениями — которую тут же гасил `display: none`. Полоса забрала подписи
+   и подсказки себе, панель удалена вместе с разметкой: четыре числа — это вся
+   модель игры, и все четыре обязаны быть читаемы. */
 :root .hud {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px;
   padding: 11px 16px; border-bottom: 2px solid var(--line); background: var(--panel);
 }
-:root .hud-m { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; }
+/* Подпись НАД полоской, а не слева от неё. В строку полоска получала остаток
+   после подписи — и «Доверие» ехало с дорожкой в 94 px, а «Информация» с 75 px
+   (замер на 1440). Дорожки разной длины сравнивать нельзя: заливка в них —
+   процент, и глаз читает не значение, а ширину. Сверху подпись — снизу четыре
+   одинаковые дорожки. */
+:root .hud-m {
+  position: relative; display: grid; min-width: 0;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "label label" "bar value";
+  align-items: center; gap: 3px 8px;
+  font-size: 12px; border-radius: 7px; outline: none; cursor: help;
+}
+:root .hud-m b { grid-area: label; }
+:root .hud-bar { grid-area: bar; }
+:root .hud-m u { grid-area: value; }
+:root .hud-m:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 55%, transparent);
+}
 :root .hud-m b {
   font-weight: 800; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--ink-faint); white-space: nowrap;
 }
+/* Полная подпись — не капслоком: «НАПРЯЖЕНИЕ» и шире, и крикливее, чем нужно
+   слову, которое человек читает каждый ход. Обрубок капслоком остаётся: там
+   три буквы, и заглавные помогают отличить подпись от числа рядом. */
+:root .hud-full { text-transform: none; letter-spacing: 0.01em; font-size: 11.5px; }
+:root .hud-abbr { display: none; }
 :root .hud-bar {
   flex: 1; min-width: 18px; height: 9px; border-radius: 999px;
   background: var(--panel-2); overflow: hidden;
@@ -2494,12 +2532,20 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 :root .hud-m.info .hud-bar i { background: var(--info); }
 :root .hud-m.leverage .hud-bar i { background: var(--leverage); }
 :root .hud-m u { text-decoration: none; font-weight: 800; font-variant-numeric: tabular-nums; }
-/* The rail's meter panel and the in-question duplicate both become redundant
-   once the HUD is always on screen. */
-:root .side .meters,
-:root .side .scorecard,
-:root .pb-meters { display: none; }
-
+/* Единственная ширина, где полное слово не влезает: рельс ещё на экране, а
+   лента уже узкая. Замер: на 1280 ячейка 134 px и «Информация» (77 px) стоит
+   свободно; на 1220 ячейка 119 px и дорожка ужимается до минимума. Здесь — и
+   только здесь — подпись сокращается до обрубка и уходит В СТРОКУ к дорожке:
+   «Инфо» экономит и ширину, и высоту. Ниже 860 px рельс уходит вниз, полоса
+   становится 2×2 по ~158 px, и полные слова возвращаются. */
+@media (min-width: 861px) and (max-width: 1279px) {
+  :root .hud-full { display: none; }
+  :root .hud-abbr { display: inline; }
+  :root .hud-m {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "label bar value";
+  }
+}
 @media (max-width: 860px) {
   /* The conversation comes FIRST on a phone. With both at order:0 the DOM won,
      the rail stacked on top, and the composer sat 1443px down a 844px screen —
@@ -2507,6 +2553,13 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   :root .chat { order: 0; }
   :root .side { order: 1; }
   :root .hud { grid-template-columns: 1fr 1fr; padding: 10px 13px; }
+  /* 2×2 по ~158 px: полное слово встаёт В СТРОКУ с дорожкой и влезает. Подпись
+     сверху стоила бы 42 лишних пикселя высоты на экране 844 px — а высоту здесь
+     забирает разговор, ради которого сюда и пришли. */
+  :root .hud-m {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "label bar value";
+  }
 }
 
 /* ---------- Debrief beats ----------
@@ -2980,9 +3033,6 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .exam-quit { margin-left: auto; padding: 6px 12px; font-size: 12px; }
 .rc-note { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-dim); }
 .rc-go { margin-top: 10px; width: 100%; justify-content: center; }
-/* Карточка курса в строке режимов (скин «додзё»): тот же вид, что у режимов,
-   но это не режим партии — поэтому и подпись другая, и состояния «выбран» нет. */
-.mode.course-mode { border-style: dashed; }
 /* Урок восстановления после провала: маршрут, а не констатация. */
 .recovery { margin: 16px 0; padding: 14px 16px; border-radius: var(--r);
   background: var(--panel-2); text-align: left; }

@@ -41,8 +41,6 @@ interface Props {
   // Copy + callback for the "read her face" layer. Absent when the layer is off.
   probeLabels: Strings["probe"];
   probeTally?: string;
-  /** Compact meters shown inside an open question on narrow screens. */
-  probeMeters?: React.ReactNode;
   /** Lets the parent move focus onto a question when it opens. */
   registerProbe?: (id: number, el: HTMLDivElement | null) => void;
   onProbeAnswer?: (id: number, choice: number) => void;
@@ -61,7 +59,7 @@ interface Props {
   useLineLabel: string;
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, probeMeters, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
+export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
@@ -152,10 +150,6 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
                 <b id={`pb-q-${e.id}`}>🎭 {probeLabels.ask}</b>
                 {probeTally ? <span className="pb-tally">{probeTally}</span> : null}
               </div>
-              {/* On a phone the instrument rail sits far above the question, so
-                  the meters the player must read to answer are duplicated INTO
-                  the card. Desktop hides this — the rail is already beside it. */}
-              {probeMeters ? <div className="pb-meters">{probeMeters}</div> : null}
               <div className="pb-opts">
                 {e.options.map((o, i) => {
                   const mark = !answered ? "" : i === e.answer ? " ok" : i === e.picked ? " bad" : " dim";

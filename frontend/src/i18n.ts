@@ -35,8 +35,6 @@ export interface Strings {
     demoCap: string; // caption under the price-dot micro-animation
   };
   pickHead: string;
-  modesHead: string;
-  soon: string;
   modes: Record<Mode, { title: string; desc: string }>;
   theirOffer: string;
   yourTarget: string;
@@ -87,16 +85,6 @@ export interface Strings {
   // Only ever shown when the live judge ran — the recognized-technique chips reuse
   // the already-localized labels the judge itself returns.
   judgeReject: string;
-  // rubric scorecard chips (item 2): a compact, always-offline read of the LATEST
-  // turn, derived purely from the deterministic engine's analysis/deltas/flags.
-  scorecard: {
-    interest: string;    // info rose sharply — an interest surfaced
-    criteria: string;    // an objective-criterion move landed
-    tradeoff: string;    // a trade-off (logroll) move landed
-    tensionUp: string;   // tension spiked this turn
-    trustUp: string;     // trust rose this turn
-    aggression: string;  // a hostile line
-  };
   typingLabel: string; // opponent "typing…" indicator while a reply is pending
   // Shown INSTEAD of typingLabel while the semantic judge is still reading the
   // player's line. During those seconds the opponent has not started composing —
@@ -138,6 +126,14 @@ export interface Strings {
   custom: {
     head: string;
     placeholder: string;
+    /** Что именно соберёт генератор и сколько это займёт. Замер бейк-оффа для
+     *  дефолтной модели роли `reasoning` — 2.3 с (docs/model-bakeoff.md). */
+    promise: string;
+    examplesHead: string;
+    /** Три готовых описания: заголовок на кнопке, текст — в поле. Конфликты
+     *  разного типа (срыв обязательств · доля · цена), чтобы пример не читался
+     *  как «сюда пишут только про скидки». */
+    examples: { title: string; text: string }[];
     generate: string;
     generating: string;
     generatingSub: string;
@@ -366,6 +362,20 @@ export interface Strings {
   };
   // debrief
   turningPoints: { title: string; turn: string }; // "Ключевые ходы" / "Ход {n}"
+  // «С той стороны стола»: ход за ходом глазами оппонента. ТЕКСТ РЕПЛИК СЮДА НЕ
+  // ВХОДИТ — его собирает движок на языке партии (views.her_side и его зеркало
+  // в mock/engine.ts), потому что он зависит от персоны и от того, что случилось
+  // за столом. Здесь только рама: заголовок, подписи, ярлык хода.
+  herSide: {
+    title: string;
+    // Одна строка под заголовком. {name} стоит ПЕРВЫМ и в именительном: «глазами
+    // {name}» требовало бы родительного падежа, а склонять чужую строку нечем.
+    lead: string;
+    turn: string;        // "Ход"
+    you: string;         // "Вы" — подпись над цитатой игрока
+    missedTitle: string; // "Чего вы так и не узнали"
+    mascotAlt: string;   // подпись к картинке Тихона для диктора
+  };
   // "Что сказал бы мастер" (item 3): on the single weakest turning point, a
   // side-by-side of the player's line vs a principled master reformulation. The
   // SELECTION (weak turn + missing technique) is an engine fact; the reformulation
@@ -638,8 +648,6 @@ export const I18N: Record<Lang, Strings> = {
       demoCap: "Вскрыли интерес — их цена поехала к вашей цели.",
     },
     pickHead: "Выберите оппонента за столом",
-    modesHead: "Режим тренировки",
-    soon: "скоро",
     modes: {
       practice: { title: "🥋 Практика", desc: "Один сценарий из библиотеки. Подсказки включены." },
       campaign: { title: "📖 Кампания", desc: "Сюжетная карьерная арка, последствия переносятся." },
@@ -688,14 +696,6 @@ export const I18N: Record<Lang, Strings> = {
       aria: "Семантический ИИ-судья оценивает аргументацию по смыслу, а не по ключевым словам.",
     },
     judgeReject: "распознал шаблон, не смысл",
-    scorecard: {
-      interest: "вскрыли интерес",
-      criteria: "объективный критерий",
-      tradeoff: "размен",
-      tensionUp: "↑ напряжение",
-      trustUp: "↑ доверие",
-      aggression: "агрессия",
-    },
     typingLabel: "печатает…",
     judgingLabel: "ИИ-судья разбирает вашу реплику…",
     batna: "BATNA",
@@ -727,6 +727,23 @@ export const I18N: Record<Lang, Strings> = {
       head: "Опишите вашу ситуацию",
       placeholder:
         "Опишите вашу переговорную ситуацию… Например: «Я фрилансер, клиент просит скидку 20% на проект, а я не готов опускаться ниже своей ставки. Нужно сохранить контракт и не обесценить работу.»",
+      promise:
+        "По описанию ИИ соберёт оппонента: характер и манеру речи, красную линию, за которую он не пойдёт, зону возможного согласия и три скрытых интереса — их придётся вскрывать вопросами. Обычно занимает 2-3 секунды.",
+      examplesHead: "Не с чего начать? Возьмите пример — он подставится в поле:",
+      examples: [
+        {
+          title: "Подрядчик сорвал сроки",
+          text: "Подрядчик сорвал ремонт офиса на три недели и просит доплату за материалы. Мне нужны компенсация и новый график с гарантией, но менять его посреди работ я не могу — переделка выйдет дороже.",
+        },
+        {
+          title: "Партнёр хочет 50%",
+          text: "Сооснователь требует половину компании: он вложил деньги на старте, продукт и команда — на мне. Долю отдать готов, контроль — нет. Разойтись нельзя, ключевые клиенты пришли через него.",
+        },
+        {
+          title: "Клиент требует скидку 30%",
+          text: "Крупный клиент требует скидку 30% при продлении годового контракта, иначе уходит к конкуренту. Ниже 15% мы работаем в убыток, но потерять этот логотип — потерять и половину входящих заявок.",
+        },
+      ],
       generate: "Сгенерировать сценарий →",
       generating: "Генерируем вашего оппонента…",
       generatingSub: "ИИ проектирует персону, скрытые интересы и зону торга под вашу ситуацию.",
@@ -1043,6 +1060,14 @@ export const I18N: Record<Lang, Strings> = {
         "Смотрите: их цена сдвинулась к вашей цели. Каждый удачный ход двигает её — следите за этой шкалой.",
     },
     turningPoints: { title: "Ключевые ходы", turn: "Ход" },
+    herSide: {
+      title: "С той стороны стола",
+      lead: "{name} по ту сторону стола: что там происходило ход за ходом, пока вы играли по эту.",
+      turn: "Ход",
+      you: "Вы",
+      missedTitle: "Чего вы так и не узнали",
+      mascotAlt: "Тихон показывает на цифру",
+    },
     tagLabels: {
       spinSituation: "SPIN · Ситуация",
       spinProblem: "SPIN · Проблема",
@@ -1309,8 +1334,6 @@ export const I18N: Record<Lang, Strings> = {
       demoCap: "Uncover an interest — their price slides toward your target.",
     },
     pickHead: "Choose your counterpart",
-    modesHead: "Training mode",
-    soon: "soon",
     modes: {
       practice: { title: "🥋 Practice", desc: "A single scenario from the library. Hints on." },
       campaign: { title: "📖 Campaign", desc: "A narrative career arc; consequences carry over." },
@@ -1359,14 +1382,6 @@ export const I18N: Record<Lang, Strings> = {
       aria: "A semantic AI judge scores your argumentation by meaning, not by keywords.",
     },
     judgeReject: "recognized a pattern, not meaning",
-    scorecard: {
-      interest: "surfaced an interest",
-      criteria: "objective criterion",
-      tradeoff: "trade-off",
-      tensionUp: "↑ tension",
-      trustUp: "↑ trust",
-      aggression: "aggression",
-    },
     typingLabel: "typing…",
     judgingLabel: "the AI judge is reading your line…",
     batna: "BATNA",
@@ -1398,6 +1413,23 @@ export const I18N: Record<Lang, Strings> = {
       head: "Describe your situation",
       placeholder:
         "Describe your negotiation situation… e.g. “I'm a freelancer, a client wants a 20% discount on the project, but I can't go below my rate. I need to keep the contract without devaluing my work.”",
+      promise:
+        "From your description the AI builds a counterpart: character and voice, the red line they will not cross, the bargaining zone, and three hidden interests you'll have to surface with questions. Usually takes 2-3 seconds.",
+      examplesHead: "Not sure where to start? Take an example — it fills the box:",
+      examples: [
+        {
+          title: "Contractor missed the deadline",
+          text: "A contractor is three weeks late on our office refit and now wants extra money for materials. I need compensation and a guaranteed new schedule, but replacing him mid-job would cost more than finishing with him.",
+        },
+        {
+          title: "Partner wants 50%",
+          text: "My co-founder demands half the company: he put in the seed money, the product and the team are mine. I'll give up equity, not control. Walking away isn't an option — our key clients came through him.",
+        },
+        {
+          title: "Client demands a 30% discount",
+          text: "A major client demands a 30% discount to renew the annual contract, otherwise they go to a competitor. Below 15% we're losing money, but losing this logo also costs us half of our inbound leads.",
+        },
+      ],
       generate: "Generate scenario →",
       generating: "Generating your counterpart…",
       generatingSub: "The AI is designing a persona, hidden interests and a bargaining zone for your situation.",
@@ -1703,6 +1735,14 @@ export const I18N: Record<Lang, Strings> = {
         "Look: their price slid toward your target. Every good move nudges it — keep an eye on this scale.",
     },
     turningPoints: { title: "Turning points", turn: "Turn" },
+    herSide: {
+      title: "From their side of the table",
+      lead: "{name}, on the other side of the table: what was happening there, turn by turn, while you played this side.",
+      turn: "Turn",
+      you: "You",
+      missedTitle: "What you never found out",
+      mascotAlt: "Tikhon points at the number",
+    },
     tagLabels: {
       spinSituation: "SPIN · Situation",
       spinProblem: "SPIN · Problem",

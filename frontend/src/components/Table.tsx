@@ -1,7 +1,9 @@
 // Table.tsx — the negotiation screen. Left: counterpart card, offers board,
-// live meters, briefing, BATNA, interests tracker. Right: chat log + composer.
+// BATNA, deal terms, interests tracker. Right: the meter strip, chat log and
+// composer. Шкалы стоят в правой карточке, а не на рельсе: рельс — вложенный
+// скроллер, и «выигрываю ли я» уезжало за его край.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Analysis, Deltas, Lang, Mode, ScenarioView, StateView } from "../types";
+import type { Deltas, Lang, Mode, ScenarioView, StateView } from "../types";
 import type { TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
@@ -12,7 +14,6 @@ import { OpponentFace } from "./OpponentFace";
 import { ScreenHeading } from "./ScreenHeading";
 import { scrollTo } from "../lib/motion";
 import { Meters } from "./Meters";
-import { Scorecard } from "./Scorecard";
 import { Chat } from "./Chat";
 import { Composer } from "./Composer";
 import { LiveBar } from "./LiveBar";
@@ -191,15 +192,11 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     : teachingPlaceholder(turnNow, t.placeholder, t.placeholderNudges);
   // Latest turn's deltas (for the meter pulse cue) — read off the most recent
   // player line in the log. Never used in exam (meters are hidden there anyway).
-  // Latest turn's deltas + analysis feed both the meter pulse and the rubric
-  // scorecard (item 2) — both read off the most recent classified player line.
   let lastDeltas: Deltas | null = null;
-  let lastAnalysis: Analysis | null = null;
   for (let i = log.length - 1; i >= 0; i--) {
     const e = log[i];
     if (e.kind === "me" && e.deltas) {
       lastDeltas = e.deltas;
-      lastAnalysis = e.analysis ?? null;
       break;
     }
   }
@@ -425,13 +422,6 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 Renders only for scenarios that carry secondary issues. */}
             <DealTerms scenario={scenario} state={st} t={t} />
 
-            {st && !exam ? (
-              <div className="onb-anchor">
-                <Meters state={st} labels={t.meters} info={t.meterInfo} deltas={lastDeltas} />
-                <Scorecard analysis={lastAnalysis} deltas={lastDeltas} labels={t.scorecard} />
-              </div>
-            ) : null}
-
             {/* ЗАНАВЕС, НАЧАТЫЙ ЗА СТОЛОМ. Здесь стояли три пустых кружка и
                 счётчик «0/3»: цифра без единой зацепки, по которой можно понять,
                 О ЧЁМ вообще спрашивать. Игрок был обязан УГАДАТЬ содержание
@@ -507,21 +497,17 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               живую область лента уже называет сама, и второй ориентир с тем же
               именем — лишний пункт в списке, а не помощь. */}
           <section className="chat">
-            {/* The live HUD. It lives in the CHAT card, not the rail, because the
-                rail is a nested scroller: at 1280x800 all four meters — the whole
-                "am I winning?" signal — scrolled out of sight inside it. This
-                strip never scrolls away at any width. Game skin only. */}
+            {/* Единственная панель шкал в игре: полные подписи, объяснение в
+                подсказке, обрубки только там, где полное слово не влезает. */}
             {st && !exam ? (
-              <div className="hud" role="img" aria-label={t.a11y.hud}>
-                {([["trust", st.trust], ["tension", st.tension],
-                   ["info", st.info], ["leverage", st.leverage]] as const).map(([k, v]) => (
-                  <span className={`hud-m ${k}`} key={k}>
-                    <b>{t.metersShort[k]}</b>
-                    <i className="hud-bar"><i style={{ width: `${v}%` }} /></i>
-                    <u>{v}</u>
-                  </span>
-                ))}
-              </div>
+              <Meters
+                state={st}
+                labels={t.meters}
+                short={t.metersShort}
+                info={t.meterInfo}
+                groupLabel={t.a11y.hud}
+                deltas={lastDeltas}
+              />
             ) : null}
             <div className="ch">
               {/* The game skin turns the turn counter into a spent-budget bar:
@@ -569,20 +555,6 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               probeLabels={t.probe}
               probeTally={probeTally}
               registerProbe={registerProbe}
-              probeMeters={
-                st ? (
-                  <>
-                    {([["trust", st.trust], ["tension", st.tension],
-                       ["info", st.info], ["leverage", st.leverage]] as const).map(([k, v]) => (
-                      <span className="pm" key={k}>
-                        <b>{t.metersShort[k]}</b>
-                        <i className="pm-bar"><i className={`pm-fill ${k}`} style={{ width: `${v}%` }} /></i>
-                        <u>{v}</u>
-                      </span>
-                    ))}
-                  </>
-                ) : undefined
-              }
               onProbeAnswer={onProbeAnswer}
             />
             {finished && onSeeDebrief ? (

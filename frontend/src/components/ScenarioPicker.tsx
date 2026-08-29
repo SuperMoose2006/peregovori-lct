@@ -1,6 +1,7 @@
-// ScenarioPicker.tsx — mode picker (Практика · Своя сделка · Экзамен wired;
-// Кампания shown as a "soon" card). For library modes it lists scenario cards;
-// for "custom" it swaps in the free-text situation input (CustomSituation).
+// ScenarioPicker.tsx — содержимое главной колонки для выбранного режима.
+// Сам ВЫБОР режима живёт в сайдбаре (SideNav) и только там: дублирующий ряд
+// кнопок здесь был, но всегда отключался пропом, то есть не показывался никогда.
+// practice/exam — полка сценариев, campaign — арка, custom — поле ввода.
 import type { CampaignView, Lang, Mode } from "../types";
 import type { Strings } from "../i18n";
 import { catalog, SCENARIO_MAP } from "../data/scenarios";
@@ -20,14 +21,10 @@ const GRADE_COLOR: Record<string, string> = {
   F: "var(--tension)",
 };
 
-const MODES: Mode[] = ["practice", "campaign", "custom", "exam"];
-const WIRED: Record<Mode, boolean> = { practice: true, campaign: true, custom: true, exam: true };
-
 interface Props {
   t: Strings;
   lang: Lang;
   mode: Mode;
-  onSelectMode: (m: Mode) => void;
   onStart: (scenarioId: string) => void;
   // custom-mode wiring
   situation: string;
@@ -48,17 +45,10 @@ interface Props {
   // exam-mode wiring: the (optional) name printed on a passing certificate.
   examName: string;
   onExamNameChange: (v: string) => void;
-  /** True in the game skin, whose sidebar already lists the modes. */
-  hideModes?: boolean;
-  /** Курс приёмов — не режим партии, но входить в него надо оттуда же.
-      В скине «додзё» сайдбара нет вовсе, и без этой карточки курс недостижим. */
-  onCourse?: () => void;
   /** Открыть конкретный блок курса — из акта кампании. */
   onCourseBlock?: (blockId: string) => void;
   /** Разминка перед актом кампании. */
   onWarmup?: (blockId: string) => void;
-  courseDone?: number;
-  courseTotal?: number;
   /** «Ваш следующий шаг»: что показать и куда это ведёт. null — карточки нет. */
   route?: NextStepPick | null;
   onRoute?: (pick: NextStepPick) => void;
@@ -162,12 +152,12 @@ function BestChip({ t, profile, id }: { t: Strings; profile: Profile; id: string
 }
 
 export function ScenarioPicker({
-  t, lang, mode, onSelectMode, onStart,
+  t, lang, mode, onStart,
   situation, customError, onSituationChange, onStartCustom,
   campaign, campaignProgress, onBeginStage, profile,
   campaigns = [], campaignProgressOf, onPickCampaign,
-  examName, onExamNameChange, hideModes, onCourse, onCourseBlock, onWarmup,
-  courseDone = 0, courseTotal = 0, route = null, onRoute,
+  examName, onExamNameChange, onCourseBlock, onWarmup,
+  route = null, onRoute,
 }: Props) {
   const rows = catalog(lang);
   return (
@@ -178,41 +168,6 @@ export function ScenarioPicker({
       {route && onRoute && mode === "practice" ? (
         <NextStepCard t={t} lang={lang} pick={route} campaigns={campaigns} onGo={onRoute} />
       ) : null}
-      {/* The game skin's sidebar already carries all four modes, so the row is a
-          duplicate there. Removed rather than CSS-hidden: a hidden-but-focusable
-          copy of the navigation is worse for keyboard users than none at all. */}
-      {hideModes ? null : (
-      <>
-      <div className="section-head">{t.modesHead}</div>
-      <div className="modes">
-        {MODES.map((m) => {
-          const wired = WIRED[m];
-          const cls = `mode${mode === m ? " sel" : ""}${wired ? "" : " disabled"}`;
-          return (
-            <button
-              key={m}
-              className={cls}
-              disabled={!wired}
-              onClick={() => wired && onSelectMode(m)}
-            >
-              {!wired ? <span className="soon">{t.soon}</span> : null}
-              <span className="mt">{t.modes[m].title}</span>
-              <span className="md">{t.modes[m].desc}</span>
-            </button>
-          );
-        })}
-        {onCourse ? (
-          <button className="mode course-mode" onClick={onCourse}>
-            <span className="mt">{t.course.title}</span>
-            <span className="md">
-              {t.course.blocksDone.replace("{n}", String(courseDone)).replace("{total}", String(courseTotal))}
-            </span>
-          </button>
-        ) : null}
-      </div>
-      </>
-      )}
-
       {mode === "custom" ? (
         <CustomSituation
           t={t}
