@@ -10,14 +10,17 @@ import {
   emptyProfile,
   FREEZE_CAP,
   isBetter,
+  loadProfile,
   masteryOf,
   milestonesForGame,
   nextStreak,
   rankForXp,
   recordDebrief,
+  saveProfile,
   setDailyGoalTarget,
   shouldRunTutorial,
   skillSignals,
+  skillViews,
   strongestWeakest,
   streakView,
   updateStreak,
@@ -684,4 +687,81 @@ test("день с уроком или экзаменом курса засчит
 
   p = markLessonDone(p, "foundations", 3, tue);
   assert.equal(p.streak, 2);
+});
+
+// ---------------------------------------------------------------------------
+// Испорченное хранилище: прогресс не обязан выживать, приложение обязано
+// ---------------------------------------------------------------------------
+//
+// `loadProfile` написан защитно — каждое поле проверяется по типу, — но
+// доказательства этому не было ни одного из сорока семи тестов профиля.
+// А испорченный блоб не выдумка: он появляется от прерванной записи, от
+// правки в инструментах разработчика, от чужой вкладки со старой версией и от
+// смены версии формата. Цена ошибки здесь — белый экран на весь продукт, а не
+// потерянная серия.
+//
+// Проверяется ровно это разделение: прогресс потерять МОЖНО, упасть — НЕЛЬЗЯ.
+
+function withStorage(raw: string | null, run: () => void): void {
+  const prev = (globalThis as { localStorage?: unknown }).localStorage;
+  (globalThis as { localStorage?: unknown }).localStorage = {
+    getItem: (k: string) => (k === "dialog.progress.v1" ? raw : null),
+    setItem: () => {},
+    removeItem: () => {},
+  };
+  try {
+    run();
+  } finally {
+    (globalThis as { localStorage?: unknown }).localStorage = prev;
+  }
+}
+
+test("испорченное хранилище не роняет продукт, а только теряет прогресс", () => {
+  const blobs: [string, string | null][] = [
+    ["хранилища нет вовсе", null],
+    ["не JSON", "{не json"],
+    ["JSON, но не объект", '"строка"'],
+    ["массив вместо объекта", "[1,2,3]"],
+    ["null", "null"],
+    ["пустой объект", "{}"],
+    ["поля не тех типов", '{"streak":"пять","xp":null,"scenarios":42,"achievements":"нет"}'],
+    ["бесконечность и отрицательные", '{"streak":-3,"xp":1e999,"freezes":-1}'],
+    ["версия из будущего", '{"version":99,"streak":4}'],
+    ["курс — не объект", '{"course":"да"}'],
+  ];
+  for (const [what, raw] of blobs) {
+    withStorage(raw, () => {
+      const p = loadProfile();
+      assert.equal(typeof p.xp, "number", `${what}: xp не число`);
+      assert.ok(isFinite(p.xp) && p.xp >= 0, `${what}: xp = ${p.xp}`);
+      assert.ok(p.streak >= 0 && Number.isInteger(p.streak), `${what}: серия = ${p.streak}`);
+      assert.equal(typeof p.scenarios, "object", `${what}: столы не объект`);
+      assert.ok(Array.isArray(p.achievements), `${what}: значки не массив`);
+      // Номер версии берётся у самого продукта, а не вписывается числом:
+      // вписанный устареет молча при следующей смене формата — ровно тот
+      // класс, из-за которого этот тест и появился.
+      assert.equal(p.version, emptyProfile().version,
+                   `${what}: версия не приведена к текущей`);
+      // И самое главное: то, что вернулось, годится для дальнейшей работы —
+      // на нём считаются те же витрины, что и на настоящем профиле.
+      assert.doesNotThrow(() => skillViews(p), `${what}: витрина навыков упала`);
+      assert.doesNotThrow(() => rankForXp(p.xp), `${what}: ранг упал`);
+    });
+  }
+});
+
+test("запись в переполненное хранилище не роняет партию", () => {
+  // Приватный режим и переполнение бросают из `setItem`. Прогресс тогда не
+  // переживёт перезагрузку — это приемлемо; исключение наружу — нет.
+  const prev = (globalThis as { localStorage?: unknown }).localStorage;
+  (globalThis as { localStorage?: unknown }).localStorage = {
+    getItem: () => null,
+    setItem: () => { throw new Error("QuotaExceededError"); },
+    removeItem: () => {},
+  };
+  try {
+    assert.doesNotThrow(() => saveProfile(emptyProfile()));
+  } finally {
+    (globalThis as { localStorage?: unknown }).localStorage = prev;
+  }
 });
