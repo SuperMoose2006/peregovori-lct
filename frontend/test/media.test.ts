@@ -169,3 +169,104 @@ test("«не найдено» договаривает: камеры нет во
     "камеры есть — значит дело не в их отсутствии, и об этом обязана быть строка");
   assert.match(String(report.camera), /занято другой программой/);
 });
+
+// --- сколько кадров уходит наружу -----------------------------------------
+//
+// ЧТО ЗДЕСЬ МЕРИТСЯ И ПОЧЕМУ ЭТО ДЕНЬГИ. Клиент снимает кадр раз в секунду.
+// Раньше каждый снятый кадр уходил на сервер безусловно: пятиминутная партия
+// выгружала около трёхсот кадров (≈4.5 МБ), из которых сервер смотрел в лучшем
+// случае тридцать восемь, а в неподвижной комнате — один. Остальные проезжали
+// сокет, чтобы быть выброшенными по порогу, который браузер УЖЕ ПОСЧИТАЛ у себя:
+// доля изменившихся проб яркости считается здесь, в canvas, и едет вместе с
+// кадром.
+//
+// Теперь неизменившийся кадр не едет вовсе, а такт heartbeat зеркалит серверный
+// интервал взгляда. Число обращений к модели от этого не меняется — меняется
+// только трафик, и проверяется здесь именно это.
+
+/** Экран, который можно заставить измениться. */
+function screen() {
+  let level = 10;
+  const w = 320, h = 240;
+  const data = new Uint8ClampedArray(w * h * 4);
+  const paint = () => data.fill(level);
+  paint();
+  return {
+    w, h,
+    move(to: number) { level = to; paint(); },
+    ctx2d: {
+      drawImage() { /* уже нарисовано */ },
+      getImageData: () => ({ data }),
+    },
+  };
+}
+
+function installClock() {
+  const g = globalThis as Record<string, unknown>;
+  const clock = { t: 0 };
+  g.performance = { now: () => clock.t };
+  return clock;
+}
+
+test("неизменившийся кадр наружу не едет — за него платят зря", async () => {
+  install({ camera: true, mic: false });
+  const clock = installClock();
+  const s = screen();
+  const { MediaProvider, SEND_HEARTBEAT_MS } = await load();
+
+  const video = { videoWidth: s.w, videoHeight: s.h, srcObject: null as unknown,
+                  play: async () => {} };
+  const canvas = { width: 0, height: 0, getContext: () => s.ctx2d,
+                   toDataURL: () => "data:image/jpeg;base64,ZZZZ" };
+  const p = new MediaProvider({
+    video: video as unknown as HTMLVideoElement,
+    canvas: canvas as unknown as HTMLCanvasElement,
+    frameIntervalMs: 1000,
+  });
+  const sent: string[] = [];
+  p.onFrame = (f) => sent.push(f);
+  await p.start({ camera: true, mic: false });
+
+  // Пять минут неподвижной комнаты при такте «кадр в секунду».
+  for (let i = 0; i < 300; i++) {
+    clock.t += 1000;
+    // Таймер провайдера в тестовой среде не тикает — дёргаем тот же путь руками.
+    const f = (p as unknown as { grabFrame(): string | null }).grabFrame();
+    if (f) p.onFrame?.(f);
+  }
+
+  const heartbeats = Math.floor(300_000 / SEND_HEARTBEAT_MS) + 1;
+  assert.ok(sent.length <= heartbeats,
+            `в неподвижной комнате ушло ${sent.length} кадров вместо ${heartbeats}`);
+  assert.ok(sent.length >= 2,
+            "молчащий транспорт неотличим от сломанной камеры: такт обязан быть");
+  await p.stop();
+});
+
+test("изменившийся кадр едет сразу — экономия не имеет права съесть событие", async () => {
+  install({ camera: true, mic: false });
+  const clock = installClock();
+  const s = screen();
+  const { MediaProvider } = await load();
+
+  const video = { videoWidth: s.w, videoHeight: s.h, srcObject: null as unknown,
+                  play: async () => {} };
+  const canvas = { width: 0, height: 0, getContext: () => s.ctx2d,
+                   toDataURL: () => "data:image/jpeg;base64,ZZZZ" };
+  const p = new MediaProvider({
+    video: video as unknown as HTMLVideoElement,
+    canvas: canvas as unknown as HTMLCanvasElement,
+    frameIntervalMs: 1000,
+  });
+  const grab = () => (p as unknown as { grabFrame(): string | null }).grabFrame();
+  await p.start({ camera: true, mic: false });
+
+  clock.t += 1000;
+  assert.ok(grab(), "первый кадр обязан уйти безусловно — с него начинается взгляд");
+  clock.t += 1000;
+  assert.equal(grab(), null, "комната не изменилась, а кадр всё равно уехал");
+  s.move(200);                                   // человек вошёл в кадр
+  clock.t += 1000;
+  assert.ok(grab(), "кадр изменился, а наружу не поехал — событие потеряно");
+  await p.stop();
+});

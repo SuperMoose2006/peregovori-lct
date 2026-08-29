@@ -63,6 +63,11 @@ from typing import Callable, Optional
 
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import model_for
+# Единственная связь perception → realtime, и она к схеме, а не к транспорту:
+# `events.py` не импортирует ничего из приложения, поэтому цикла нет. Отказ слоя
+# обязан выглядеть для клиента так же, как любой другой отказ, — значит и
+# собираться той же функцией, а не похожим словарём рядом.
+from app.realtime.events import error as _error
 
 #: Не чаще одного обращения к модели зрения за столько секунд.
 _MIN_INTERVAL_S = 8.0
@@ -76,6 +81,31 @@ _CHANGE_RATIO = 0.18
 #: Восемь процентов решётки — это уже движение человека, а не шум сенсора:
 #: порог по яркости (12 из 255) шум отсекает раньше.
 _CHANGE_PIXELS = 0.08
+
+#: Свой потолок ожидания у взгляда, а не общий читательский (60 с у клиента
+#: OpenRouter). Наблюдение отвечает на вопрос «что происходит СЕЙЧАС»: ответ,
+#: пришедший через минуту, описывает кадр из другой эпохи партии, а всё это
+#: время сэмплер стоит — следующий кадр он не смотрит, пока не вернулся
+#: предыдущий. Замер: наблюдение занимает 1.2–1.7 с (docs/latency.md), так что
+#: двенадцать секунд это семикратный запас, а не жадность.
+_LOOK_TIMEOUT_S = 12.0
+
+#: Сколько взглядов подряд должны сорваться, прежде чем слой скажет об этом
+#: вслух. Один сорванный взгляд — сетевая заминка, о которой сообщать нечего:
+#: следующий кадр придёт через восемь секунд. Три подряд — это уже полминуты
+#: молчания, а молчащий слой неотличим от сломанной камеры (принцип 2).
+_QUIET_AFTER_FAILURES = 3
+
+#: Что говорится, когда взгляды срываются подряд. Формулировка обязана назвать
+#: СЛОЙ и сказать, что с партией: «ошибка» без этого на показе неотличима от
+#: сломанного сервера.
+_QUIET_MESSAGE = {
+    "ru": ("Модель зрения не отвечает: три взгляда подряд сорвались, наблюдений "
+           "сейчас нет. Слой продолжит пробовать; на игру и на оценку это не влияет."),
+    "en": ("The vision model is not answering: three looks in a row failed, so there "
+           "are no observations right now. The layer keeps trying; neither the game "
+           "nor the grade is affected."),
+}
 
 _SYSTEM = {
     "ru": ("Ты смотришь на кадр с веб-камеры участника деловых переговоров.\n"
@@ -197,6 +227,10 @@ class VisionStats:
     #: Кадров, на которых лицо несло явное выражение. Считается только при
     #: включённом «покерфейсе»; иначе модель этого вопроса даже не видит.
     tells: int = 0
+    #: Взглядов, сорвавшихся ПОДРЯД. Обнуляется первым же удавшимся: слой,
+    #: который отвечал и замолчал, и слой, который не отвечал никогда, — разные
+    #: новости, и различить их можно только по этому счётчику.
+    failures_in_a_row: int = 0
 
 
 class VisionSampler:
@@ -302,7 +336,12 @@ class VisionSampler:
             "max_tokens": 90,
             "temperature": 0.0,
         }
-        response = await orchat._get_client().post("/chat/completions", json=payload)
+        # Потолок тот же, что у взгляда, и по той же причине: страница проверки
+        # оборудования ждёт ответа с человеком перед экраном, и минута ожидания
+        # там — это «камера не работает», а не диагноз.
+        response = await asyncio.wait_for(
+            orchat._get_client().post("/chat/completions", json=payload),
+            timeout=_LOOK_TIMEOUT_S)
         response.raise_for_status()
         text = (response.json()["choices"][0]["message"]["content"] or "").strip()
         return parse_calibration(text)
@@ -323,14 +362,25 @@ class VisionSampler:
             "temperature": 0.2,
         }
         try:
-            response = await orchat._get_client().post("/chat/completions", json=payload)
+            response = await asyncio.wait_for(
+                orchat._get_client().post("/chat/completions", json=payload),
+                timeout=_LOOK_TIMEOUT_S)
             response.raise_for_status()
             text = (response.json()["choices"][0]["message"]["content"] or "").strip()
         except Exception:
             # Зрение — украшение, а не механика. Отвалилось — партия идёт дальше.
+            # Но МОЛЧА идёт дальше только первые два раза: дальше слой обязан
+            # назвать себя, иначе он неотличим от сломанной камеры. Чип за
+            # столом горит от ушедшего кадра, а кадр уходит и в мёртвое зрение.
+            self.stats.failures_in_a_row += 1
+            if self.stats.failures_in_a_row == _QUIET_AFTER_FAILURES:
+                self._publish(_error("vision_unavailable",
+                                     _QUIET_MESSAGE.get(self._lang, _QUIET_MESSAGE["ru"]),
+                                     "layer_unavailable"))
             return
 
         self.stats.calls_made += 1
+        self.stats.failures_in_a_row = 0
         self.stats.last_ms = (time.perf_counter() - started) * 1000
 
         # «ЛИЦО: да/нет» снимается ДО проверки на пустое наблюдение: кадр может

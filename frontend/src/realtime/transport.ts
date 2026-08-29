@@ -16,7 +16,8 @@
 import type { Analysis, ClientMsg, Deltas, Lang, ScenarioView, StateView } from "../types";
 import type { ConnStatus, ServerMsgHandler, Transport } from "../api/transport";
 import { I18N } from "../i18n";
-import { buildProbe, shouldProbe } from "../lib/probe";
+import { SERVER_SIDE_REASON } from "../lib/layers";
+import { NO_PROBES, nextProbe, type ProbeMemory } from "../lib/probe";
 import { AudioPlayer } from "./vendor/audio-player";
 import { MediaProvider, toBase64 } from "./vendor/media-provider";
 import {
@@ -89,6 +90,9 @@ export class RealtimeTransport implements Transport {
   private lastReaction: string | null = null;
   private turnCounter = 0;
   private probeEnabled = false;
+  /** Что слой «читай лицо» уже спрашивал. Живёт здесь, а не в `lib/probe.ts`:
+   *  функция там чистая, и состояние партии обязано принадлежать партии. */
+  private probeMemory: ProbeMemory = { ...NO_PROBES };
   private voiceWanted = false;
   private cameraWanted = false;
   private closed = false;
@@ -151,6 +155,7 @@ export class RealtimeTransport implements Transport {
     this.live = false;
     this.lang = message.lang;
     this.probeEnabled = !!layers.probe;
+    this.probeMemory = { ...NO_PROBES };
     this.voiceWanted = !!layers.voice;
     this.cameraWanted = !!layers.camera;
 
@@ -183,12 +188,48 @@ export class RealtimeTransport implements Transport {
         text: String(created.greeting ?? ""),
         judge_active: Boolean((created.capabilities as Record<string, unknown>)?.judge),
       });
+      // ЧТО СЕРВЕР СКАЗАЛ ПРО СЛОИ — ЧИТАЕТСЯ, А НЕ ЛЕЖИТ. `capabilities`
+      // приезжали в состояние и не читались НИГДЕ, кроме бейджа судьи. Из-за
+      // этого партия с камерой на сервере без ключа зрения выглядела ровно как
+      // рабочая: браузер спрашивал доступ, кадр уходил раз в секунду, чип горел
+      // «кадры идут» — а смотреть на них было некому. Ушедший кадр доказывает
+      // транспорт, а не зрение; тот же признак получается при мёртвом слое.
+      this.honourServerCapabilities(this.session.capabilities);
       // Камера — самостоятельный слой: без этого условия она включалась
       // только заодно с голосом, а сама по себе молча не работала.
       if (this.voiceWanted || this.cameraWanted) await this.startMedia();
     } catch (error) {
       this.emit({ type: "error", message: (error as Error).message });
       this.onConn("lost");
+    }
+  }
+
+  /**
+   * Слой, который сервер не поднял, называется поимённо и НЕ ОТКРЫВАЕТСЯ.
+   *
+   * Второе здесь важнее первого. Просить у человека камеру ради кадров, которые
+   * никто не посмотрит, — это не только неправда на экране: это разрешение,
+   * взятое ни за чем, и четыре с половиной мегабайта наружу за пятиминутную
+   * партию. Слой гасится ДО `startMedia`, поэтому браузер даже не спрашивает
+   * доступ.
+   *
+   * «Покерфейс» отдельной строки не получает намеренно: он считает кадры той же
+   * камеры и без неё не существует, поэтому одна причина объясняет оба.
+   */
+  private honourServerCapabilities(capabilities: Record<string, unknown>): void {
+    if (this.cameraWanted && capabilities.camera === false) {
+      this.cameraWanted = false;
+      this.emit({ type: "layer_failed", layer: "camera",
+                  reason: SERVER_SIDE_REASON.camera[this.lang] });
+    }
+    if (this.voiceWanted && capabilities.microphone === false) {
+      // ТОТ ЖЕ ДЕФЕКТ НА ГОЛОСЕ, НО ГАСИТЬ СЛОЙ ЗДЕСЬ НЕЛЬЗЯ. Микрофон
+      // открывается, звук уходит в сокет, а конвейера распознавания на сервере
+      // нет — ход не случается никогда. Слой, однако, двусторонний: оппонента в
+      // это время СЛЫШНО, и выключение забрало бы вместе с неработающим входом
+      // работающий выход. Поэтому голос называется вслух, но остаётся поднятым.
+      this.emit({ type: "layer_failed", layer: "voice",
+                  reason: SERVER_SIDE_REASON.voice[this.lang] });
     }
   }
 
@@ -408,10 +449,13 @@ export class RealtimeTransport implements Transport {
 
     // «Читай лицо»: вопрос строится из НАСТОЯЩЕЙ реакции движка, поэтому он
     // одинаково честен онлайн и офлайн. Ни одна модель тут не участвует.
+    // Решает `nextProbe` — та же функция, что и в офлайн-ядре: два одинаковых
+    // решения в двух файлах разъезжаются ровно тогда, когда одно из них правят.
     const closed = this.pendingState.status !== "active";
-    if (this.probeEnabled && this.lastReaction && shouldProbe(this.turnCounter, closed)) {
-      const probe = buildProbe(this.lastReaction, this.turnCounter);
+    if (this.probeEnabled && this.lastReaction) {
+      const probe = nextProbe(this.lastReaction, this.turnCounter, closed, this.probeMemory);
       if (probe) {
+        this.probeMemory = { lastTurn: probe.turn, lastReaction: this.lastReaction };
         this.emit({ type: "probe", turn: probe.turn, options: probe.options as unknown as string[],
                     answer: probe.answer });
       }

@@ -2,7 +2,7 @@
 // сказать «недоступно», а не притвориться. Этот файл держит вторую половину.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { NO_LAYERS, PRESETS, pruneLayers, sessionLayers, detectLayers, type Layers } from "../src/lib/layers";
+import { NO_LAYERS, PRESETS, pruneLayers, sessionLayers, detectLayers, SERVER_SIDE_REASON, type Layers } from "../src/lib/layers";
 import { visionTape, visionClock, VISION_TAPE_ROWS } from "../src/components/Debrief";
 import type { VisionNote } from "../src/types";
 import { I18N } from "../src/i18n";
@@ -200,4 +200,22 @@ test("лента не обещает спокойное лицо там, где 
                            note({ turn: 2, expressive: false, text: "б" }),
                            note({ turn: 3, expressive: true, text: "в" })]).tape;
   assert.deepEqual(rows.map((n) => n.expressive === true), [false, false, true]);
+});
+
+// --- причина, которую знает только сервер ----------------------------------
+
+test("у серверной причины есть оба языка, и английский написан по-английски", () => {
+  for (const key of ["camera", "voice"] as const) {
+    const r = SERVER_SIDE_REASON[key];
+    assert.ok(r.ru.length > 20 && r.en.length > 20, `${key}: причина обязана объяснять`);
+    assert.ok(!/[а-яё]/i.test(r.en), `${key}: в английской строке кириллица`);
+    assert.ok(/[а-яё]/i.test(r.ru), `${key}: русская строка не русская`);
+    assert.notEqual(r.ru, r.en);
+  }
+});
+
+test("причина камеры называет ПРИЧИНУ, а не «недоступно»", () => {
+  // «Камера не работает» — это не сведения. Сведения — почему именно.
+  assert.match(SERVER_SIDE_REASON.camera.ru, /зрени/);
+  assert.match(SERVER_SIDE_REASON.camera.en, /vision/);
 });

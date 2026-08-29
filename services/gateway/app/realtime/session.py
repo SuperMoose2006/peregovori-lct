@@ -16,6 +16,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from app.ai.sanitize import sanitize
 from app.realtime.bus import EventBus, new_generation_id
 
 
@@ -178,6 +179,18 @@ class RealtimeSession:
     #: этого поля нет, поэтому `score_session` до него не дотянется физически.
     tells: int = 0
 
+    #: Сколько раз модель зрения ДОСМОТРЕЛА кадр до ответа — включая ответы
+    #: «ничего примечательного», которые записью в ленту не становятся.
+    #:
+    #: ЗАЧЕМ ОТДЕЛЬНЫЙ СЧЁТЧИК, ЕСЛИ ЕСТЬ ЛЕНТА. Пустая лента отвечает сразу на
+    #: два разных вопроса и не различает их: «слой смотрел и ему нечего было
+    #: сказать» и «слой не посмотрел ни разу». Первое — штатная работа, второе —
+    #: невставший слой, и человеку это разные новости. Без счётчика разбор молчит
+    #: одинаково в обоих случаях, то есть работающий слой выглядит как мёртвый.
+    #: В счёт не входит по той же причине, что и всё остальное здесь:
+    #: `score_session` принимает `engine.Session`, а это `RealtimeSession`.
+    vision_looks: int = 0
+
     # ------------------------------------------------------------------ ходы
 
     @property
@@ -208,6 +221,10 @@ class RealtimeSession:
         вовсе: пустая строка в ленте — это не наблюдение, а её отсутствие.
         """
         text = (text or "").strip()
+        # Счётчик растёт РАНЬШЕ любого выхода: сюда приходит каждый досмотренный
+        # кадр, и «модель ответила „ничего примечательного“» — это тоже работа
+        # слоя, просто без записи в ленту.
+        self.vision_looks += 1
         if text:
             self.observations.append(text)
         if not text and not expressive:
@@ -245,12 +262,27 @@ class RealtimeSession:
         if gen is None:
             return None
         self.bus.cancel(gen)
-        heard = self.spoken_so_far.strip()
+        # ЧЕРЕЗ САНИТАЙЗЕР, А НЕ СЫРЬЁМ. `spoken_so_far` копится из чанков
+        # модели, то есть ДО санитайзера: тот судит реплику целиком и только
+        # когда модель дописала, а при перебивании до конца дело не доходит
+        # вовсе. Значит выход из роли («как языковая модель, я не могу вести
+        # переговоры»), иероглифы и сырой markdown попадали в журнал как
+        # собственные слова оппонента — и оттуда в стенограмму следующего хода
+        # (`views._transcript` → промпт), где модель видела свой же выход из
+        # роли как прецедент, и в разбор, где его читал человек.
+        #
+        # Отвергнутый кусок не пишется НИКАК: потерять метку «его перебили»
+        # дешевле, чем показать человеку служебную строку и научить модель
+        # повторять испорченную реплику.
+        heard = sanitize(self.spoken_so_far)
         if heard:
             # Ровно та формулировка, что у Open-LLM-VTuber: оппонент видит в
             # истории собственную оборванную реплику и метку, что его прервали.
+            # Многоточие не удваивается: `sanitize` ставит своё, когда обрезает
+            # реплику по длине.
+            text = heard if heard.endswith("…") else heard + " …"
             self.engine_session.log.append(
-                {"role": "opp", "text": heard + " …", "interrupted": True}
+                {"role": "opp", "text": text, "interrupted": True}
             )
         self.generation_id = None
         self.spoken_so_far = ""
@@ -297,8 +329,8 @@ class RealtimeSession:
 # метро показывал ленту, начинающуюся с середины партии, и молчал о том, что
 # начала он не знает. Лента с дырой хуже отсутствующей: дыры в ней не видно.
 
-#: session_id → (положено_в, сколько_шла_партия, наблюдения, лента).
-_KEPT: dict[str, tuple[float, float, list[str], list[dict]]] = {}
+#: session_id → (положено_в, сколько_шла_партия, наблюдения, лента, взгляды).
+_KEPT: dict[str, tuple[float, float, list[str], list[dict], int]] = {}
 
 #: Столько же, сколько ждёт брошенную партию `app/session.py`: смысла держать
 #: ленту дольше самой партии нет.
@@ -314,10 +346,14 @@ def keep_for_resume(session: "RealtimeSession") -> None:
     """Отложить наблюдения на случай, что к партии вернутся."""
     now = time.monotonic()
     _reap_kept(now)
-    if not session.observations and not session.vision_notes:
+    # Взгляды считаются наравне с записями: партия, где камера смотрела и
+    # молчала, обязана пережить обрыв так же, как разговорчивая, — иначе после
+    # метро разбор скажет «слой не поднялся» про слой, который работал.
+    if not session.observations and not session.vision_notes and not session.vision_looks:
         return
     _KEPT[session.session_id] = (now, now - session.started_at,
-                                 list(session.observations), list(session.vision_notes))
+                                 list(session.observations), list(session.vision_notes),
+                                 session.vision_looks)
 
 
 def restore_from_resume(session: "RealtimeSession", session_id: str) -> None:
@@ -330,8 +366,9 @@ def restore_from_resume(session: "RealtimeSession", session_id: str) -> None:
     kept = _KEPT.pop(session_id, None)
     if kept is None:
         return
-    _at, elapsed, observations, notes = kept
+    _at, elapsed, observations, notes, looks = kept
     session.observations[:0] = observations
     session.vision_notes[:0] = notes
+    session.vision_looks += looks
     del session.vision_notes[:-MAX_VISION_NOTES]     # предел общий, а не на связь
     session.started_at = time.monotonic() - elapsed

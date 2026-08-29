@@ -10,7 +10,7 @@ import {
   analyze, applyMove, greetingText, hintLine, hintText, newSession, renderLine,
   scoreSession, stateView, toAnalysis, type Session,
 } from "./engine";
-import { shouldProbe, buildProbe } from "../lib/probe";
+import { NO_PROBES, nextProbe, type ProbeMemory } from "../lib/probe";
 import { dailyTable } from "../lib/daily";
 import { EPILOGUE_BANDS, REPUTATION_LINES } from "../data/campaigns.generated";
 
@@ -34,6 +34,9 @@ export class MockServer implements Transport {
   /** Which optional layers this session runs with. Only `probe` is honoured — the
    *  others report themselves unavailable and never reach here. */
   private layers: { probe?: boolean } | null = null;
+  /** Память слоя «читай лицо» — та же, что у живого транспорта, и по той же
+   *  причине: решение принимает общая чистая функция, а помнит его партия. */
+  private probeMemory: ProbeMemory = { ...NO_PROBES };
 
   constructor(onMessage: ServerMsgHandler) {
     this.onMessage = onMessage;
@@ -78,6 +81,7 @@ export class MockServer implements Transport {
   private async handleStart(msg: Extract<ClientMsg, { type: "start" }>): Promise<void> {
     const lang: Lang = msg.lang;
     this.layers = msg.layers ?? null;
+    this.probeMemory = { ...NO_PROBES };
     let def: ScenarioDef | undefined;
     let genDelay = 150;
 
@@ -203,9 +207,12 @@ export class MockServer implements Transport {
     //   about is the same one the engine computed for this turn, so the answer is
     //   genuinely deterministic and offline.
     //   Real when: CONTRACT(probe) below lands and the server emits it instead.
-    if (this.layers?.probe && shouldProbe(s.turn, result.closed)) {
-      const p = buildProbe(result.reaction, s.turn);
-      if (p) this.emit({ type: "probe", turn: p.turn, options: p.options, answer: p.answer });
+    if (this.layers?.probe) {
+      const p = nextProbe(result.reaction, s.turn, result.closed, this.probeMemory);
+      if (p) {
+        this.probeMemory = { lastTurn: p.turn, lastReaction: result.reaction };
+        this.emit({ type: "probe", turn: p.turn, options: p.options, answer: p.answer });
+      }
     }
 
     if (result.closed) {

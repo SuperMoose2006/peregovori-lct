@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { synthCampaigns } from "../src/data/campaigns";
 import { dailyTable } from "../src/lib/daily";
-import { buildProbe, shouldProbe } from "../src/lib/probe";
+import { buildProbe, nextProbe, NO_PROBES } from "../src/lib/probe";
 import { COURSE_BANK } from "../src/data/course.generated";
 import { COURSE_BLOCKS } from "../src/data/course.blocks.generated";
 import { check } from "../src/lib/courseCheck";
@@ -112,7 +112,7 @@ test("кампании, стол дня и слой «читай лицо» сч
     }
     const t = dailyTable(new Date(2026, 7, 28));
     assert.ok(SCENARIO_MAP[t.scenarioId], "стол дня указал в пустоту");
-    assert.ok(shouldProbe(6, false));
+    assert.ok(nextProbe("warmed", 6, false, NO_PROBES));
     assert.ok(buildProbe("warmed", 6));
   } finally {
     net.restore();

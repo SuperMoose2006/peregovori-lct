@@ -413,6 +413,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         # детектора конца хода. Уважаем — человек решил сам.
                         await voice.force_commit()
                     elif text:
+                        await _turn_budget(session)
                         if not work.start_turn(orchestrator, session, text):
                             await websocket.send_json(error("busy", "turn already in flight"))
                     continue
@@ -652,17 +653,27 @@ def _wire(session: RealtimeSession) -> tuple[
         # NEGO_VOICE=classic принудительно возвращает старый путь. Нужен не для
         # красоты: это и аварийный выход, если realtime-сессия начнёт капризничать
         # на показе, и способ честно сравнить два конвейера на одной записи.
+        async def guarded_turn(text: str) -> None:
+            """Ход из голоса — через ту же калитку, что и напечатанный.
+
+            Два пути к движку — `input.commit` и распознанная речь, — и предел
+            обязан стоять на обоих. Иначе он превращается в предел на КЛАВИАТУРУ:
+            микрофон остаётся открытым входом в те же три платных вызова.
+            """
+            await _turn_budget(session)
+            await orchestrator.on_player_turn(text)
+
         want_classic = os.getenv("NEGO_VOICE", "").strip().lower() == "classic"
         pipeline = None if want_classic else RealtimeVoicePipeline(
             lang=session.lang,
-            on_turn=orchestrator.on_player_turn,
+            on_turn=guarded_turn,
             on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
             publish=session.bus.publish,
         )
         if pipeline is None or not pipeline.available:
             pipeline = VoicePipeline(
                 asr=OpenRouterASR(), lang=session.lang,
-                on_turn=orchestrator.on_player_turn,
+                on_turn=guarded_turn,
                 on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
                 publish=session.bus.publish,
             )
@@ -689,6 +700,26 @@ def _wire(session: RealtimeSession) -> tuple[
         vision = sampler if sampler.available() else None
 
     return orchestrator, voice, vision
+
+
+async def _turn_budget(session: RealtimeSession) -> None:
+    """Придержать ход, если с этого адреса они идут слишком часто.
+
+    ПОЧЕМУ ПРЕДЕЛ ЕСТЬ. Ход — самый дорогой вход в продукт: судья, поток
+    реплики оппонента, синтез речи. Три платных вызова, и не ограничивало их
+    ничто — при том что куда более дешёвый взгляд камеры считали внимательно.
+    Довод про пароль тот же, что в `limits.py`: на показе его знают все, кому
+    назвали.
+
+    ПОЧЕМУ ЗДЕСЬ НЕТ ОТКАЗА. Отказанный ход оставил бы человека перед вечным
+    «оппонент печатает»: клиент ждёт `response.done`, а ошибка внутри партии
+    ложится строкой в ленту и индикатор не гасит. Поэтому ход не отвергается
+    никогда — он ждёт. Живая комната идёт вдвое медленнее предела и ожидания
+    не заметит; скрипт поедет медленнее, что и требовалось.
+    """
+    delay = limits.turn_delay(session.client_host)
+    if delay > 0:
+        await asyncio.sleep(delay)
 
 
 def _vision_budget(session: RealtimeSession) -> bool:
@@ -835,6 +866,14 @@ def _attach_vision_tape(event: dict, session: RealtimeSession) -> None:
     КЛЮЧА НЕТ ВОВСЕ, если слой не высказался ни разу: пустая лента под
     невставшей камерой — это обещание, выданное за наблюдение (принцип 2).
     Без ключа сэмплер не создаётся, записей нет, карточки на клиенте нет.
+
+    А ВОТ «СМОТРЕЛ И МОЛЧАЛ» — ЭТО НЕ «НЕ СМОТРЕЛ». Пустая лента отвечала сразу
+    на два разных вопроса одинаково: слой, который посмотрел двенадцать раз и
+    каждый раз честно ответил «ничего примечательного», выглядел в разборе точно
+    так же, как слой, не поднявшийся вовсе. Это то самое четвёртое состояние,
+    только с обратным знаком — работающий слой, показанный как отсутствующий.
+    Поэтому число досмотренных кадров едет отдельным ключом, и едет ТОЛЬКО когда
+    смотреть и правда получалось.
     """
     deb = event.get("debrief")
     if not isinstance(deb, dict):
@@ -843,6 +882,10 @@ def _attach_vision_tape(event: dict, session: RealtimeSession) -> None:
         deb["observations"] = list(session.vision_notes)
     else:
         deb.pop("observations", None)
+    if session.vision_looks:
+        deb["observation_looks"] = session.vision_looks
+    else:
+        deb.pop("observation_looks", None)
 
 
 async def _pump(websocket: WebSocket, session: RealtimeSession) -> None:

@@ -74,27 +74,95 @@ def test_score_source_mentions_no_layer():
         assert not hit, f"score_session упоминает «{hit.group(0)}»"
 
 
-def test_identical_play_scores_identically_whatever_the_layers():
-    """Поведенческая проверка: одни и те же ходы — один и тот же грейд.
+MOVES = [
+    "Что для вас важнее всего в этой сделке и почему именно это?",
+    "По рыночным данным справедливый ориентир другой; давайте опираться на них.",
+    "Договорились, фиксируем на этих условиях?",
+]
 
-    Слои живут в `RealtimeSession`, счёт считает по `engine.Session`. Если
-    когда-нибудь между ними появится мостик, эта проверка упадёт первой, не
-    полагаясь на то, как мостик назовут.
+SCORE_FIELDS = ("overall", "grade", "economic", "relationship", "technique")
+
+
+def test_the_same_play_is_deterministic():
+    """Опорная проверка: без неё сравнение со слоями ничего не доказывало бы.
+
+    Она И БЫЛА тем, что здесь стояло, — под именем
+    «…whatever the layers» и с обещанием поймать мостик между слоями и счётом.
+    Обещание было пустым: в тесте не участвовало НИ ОДНОГО слоя, обе партии шли
+    голым движком, и упасть он мог только от недетерминированности самого
+    движка. Прибор мерил не то, что написано на его шкале.
     """
-    moves = [
-        "Что для вас важнее всего в этой сделке и почему именно это?",
-        "По рыночным данным справедливый ориентир другой; давайте опираться на них.",
-        "Договорились, фиксируем на этих условиях?",
-    ]
-
     def play() -> dict:
         sess = engine.create_session("supplier", "ru")
-        for line in moves:
+        for line in MOVES:
             sess.turn += 1
             if engine.apply_move(sess, engine.analyze(line), line).closed:
                 break
         return engine.score_session(sess)
 
     first, second = play(), play()
-    for key in ("overall", "grade", "economic", "relationship", "technique"):
+    for key in SCORE_FIELDS:
         assert first[key] == second[key], f"счёт недетерминирован по полю {key}"
+
+
+def test_layers_that_actually_spoke_change_nothing_in_the_score():
+    """А ВОТ ЗДЕСЬ СЛОИ ДЕЙСТВИТЕЛЬНО РАБОТАЮТ — и счёт обязан их не заметить.
+
+    Партия проигрывается дважды одними и теми же репликами. Во второй раз все
+    слои включены, камера успевает высказаться между ходами, «покерфейс»
+    считает сорвавшееся лицо, а голосовое перебивание дописывает оборванную
+    реплику оппонента в `engine.Session.log` — единственное место, где слой
+    вообще касается структуры движка. Совпадение всех пяти чисел и есть
+    инвариант 6.
+
+    Ход `interrupt()` здесь не декорация: это ЕДИНСТВЕННЫЙ известный путь, по
+    которому слой пишет внутрь сессии движка. Если счёт когда-нибудь начнёт
+    читать `log` — длину, тон, что угодно, — упадёт эта проверка, а не разбор
+    на показе.
+    """
+    from app.realtime.session import Layers, RealtimeSession
+
+    def play(with_layers: bool) -> dict:
+        eng = engine.create_session("supplier", "ru")
+        rt = RealtimeSession(
+            session_id="s", engine_session=eng, lang="ru",
+            layers=Layers(probe=True, voice=True, camera=True, avatar=True,
+                          pokerface=True) if with_layers else Layers())
+        for i, line in enumerate(MOVES):
+            if with_layers:
+                rt.note_vision("в кадре появился второй человек", turn=i,
+                               expressive=True)
+                rt.tells += 1
+                # Перебивание голосом: слой пишет в журнал сессии ДВИЖКА.
+                rt.begin_generation()
+                rt.spoken_so_far = "Мы не готовы двигаться по цене"
+                rt.interrupt()
+            eng.turn += 1
+            if engine.apply_move(eng, engine.analyze(line), line).closed:
+                break
+        assert not with_layers or (rt.vision_notes and rt.tells and rt.vision_looks)
+        return engine.score_session(eng)
+
+    bare, layered = play(False), play(True)
+    for key in SCORE_FIELDS:
+        assert bare[key] == layered[key], (
+            f"слой дотянулся до счёта: {key} = {bare[key]} без слоёв "
+            f"и {layered[key]} со слоями")
+
+
+def test_what_the_judge_sees_carries_no_layer_signal():
+    """Обходной путь, которого тут могло бы не хватать: слой → судья → счёт.
+
+    Наблюдение камеры уходит в системный промпт ОППОНЕНТА, и это законно: живой
+    человек на видеозвонке тоже видит собеседника. Но балл судьи входит в
+    `apply_move`, то есть в счёт напрямую, — значит, до судьи наблюдение
+    доходить не имеет права. Здесь проверяется, что контекст судьи собирается
+    из сценария и состояния и ни строчки не берёт из журнала разговора.
+    """
+    from app import views
+
+    sess = engine.create_session("supplier", "ru")
+    sess.log.append({"role": "opp", "text": "в кадре появился второй человек"})
+    context, interests = views.judge_context(sess)
+    assert "кадр" not in context, "наблюдение камеры доехало до судьи"
+    assert all("кадр" not in i for i in interests)

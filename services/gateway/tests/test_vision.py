@@ -10,6 +10,7 @@ import asyncio
 
 import pytest
 
+from app.perception import vision as vision_module
 from app.perception.vision import VisionSampler
 from app import engine
 
@@ -48,20 +49,69 @@ async def test_first_frame_is_always_examined(monkeypatch):
     assert len(calls) == 1
 
 
+class _Clock:
+    """Часы партии, которые ИДУТ.
+
+    ЗАЧЕМ. Здесь стоял замер «двести кадров — одно обращение», и это число даже
+    попало в docs/latency.md. Оно ничего не измеряло: кадры предлагались подряд
+    в НУЛЕВОЕ время, поэтому восьмисекундный интервал не истекал ни разу, и
+    единственное обращение было первым и безусловным. Прибор мерил сам себя —
+    ровно та ошибка, о которой предупреждает раздел «чему верить» в latency.md,
+    и, как всегда, она льстила: настоящая цена оказалась в двадцать пять раз
+    выше.
+
+    В партии время идёт, и мерить надо с часами.
+    """
+
+    def __init__(self) -> None:
+        self.t = 1000.0
+
+    def monotonic(self) -> float:
+        return self.t
+
+    def perf_counter(self) -> float:
+        return self.t
+
+
+async def _play_frames(monkeypatch, seconds: int, change) -> tuple[int, int]:
+    """Прогнать партию длиной `seconds` при клиентском такте 1 кадр/с.
+
+    Возвращает (кадров предложено, обращений к модели).
+    """
+    clock = _Clock()
+    monkeypatch.setattr(vision_module, "time", clock)
+    sampler, calls, _e, _n = _sampler(monkeypatch, interval=8.0)
+    for i in range(seconds):
+        clock.t += 1.0
+        sampler.offer(["x" * 15_000], change=change(i))
+        await _settle(sampler)
+    return seconds, len(calls)
+
+
 @pytest.mark.asyncio
 async def test_a_flood_of_frames_does_not_become_a_flood_of_calls(monkeypatch):
     """Тридцать кадров в секунду в облако — это счёт и задержка, а не зоркость.
 
     Транспорт камеры и зрительный вывод — разные вещи: кадры могут идти
-    непрерывно, обращения к модели — нет.
+    непрерывно, обращения к модели — нет. Проверяется ПОТОЛОК, а не красивое
+    число: за пять минут при непрерывном движении в кадре взглядов не больше,
+    чем помещается тактов по восемь секунд.
     """
-    sampler, calls, _events, _notes = _sampler(monkeypatch, interval=8.0)
-    for i in range(200):
-        sampler.offer([f"кадр-{i}" + "x" * (i * 7)])   # размер всё время меняется
-        await asyncio.sleep(0)
-        if sampler._task:
-            await sampler._task
-    assert len(calls) == 1, f"за 200 кадров сделано {len(calls)} обращений вместо одного"
+    frames, calls = await _play_frames(monkeypatch, 300, lambda i: 1.0)
+    assert frames == 300
+    assert calls <= 300 // 8 + 1, f"за 5 минут {calls} обращений — такт не держится"
+    assert calls >= 30, "при непрерывном движении слой обязан смотреть, а не спать"
+
+
+@pytest.mark.asyncio
+async def test_a_still_room_costs_one_look_for_the_whole_game(monkeypatch):
+    """Неподвижная комната — один взгляд за партию, и он первый.
+
+    Отдельного повода «долгая тишина» здесь нет намеренно: уход из кадра сам по
+    себе меняет кадр. Таймер, смотрящий в пустую комнату, платил бы за это.
+    """
+    _frames, calls = await _play_frames(monkeypatch, 300, lambda i: 0.0)
+    assert calls == 1
 
 
 @pytest.mark.asyncio
