@@ -59,7 +59,7 @@ services/gateway/            Python 3.12, FastAPI, :8010
     perception/              vad · turn_detect · voice_pipeline · vision
     orchestrator/            ход, судья, синтез речи
     providers/               маршрутизация «роль → модель»
-    avatar/                  presence (липсинк делает OpenTalking)
+    avatar/                  presence — картинка по реакции движка, ЛИПСИНКА НЕТ
     vendor/                  перенесённый upstream-код
   tests/
 frontend/
