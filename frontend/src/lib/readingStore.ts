@@ -41,9 +41,11 @@ export interface ReadingLog {
  * чужих стенограмм (`data/readingGames.ts`). Ровно от такого и стережёт
  * `test/lazy.test.ts`.
  *
- * Хранить ЧИСЛО вместо списка было бы дешевле и неверно: партии лестницы
- * качества есть только по-русски, и прочитанное в русском каталоге нельзя
- * засчитывать в английском — счётчик соврал бы «1 из 9», не прочитав ни одной.
+ * Хранить ЧИСЛО вместо списка было бы дешевле и неверно: каталоги языков — это
+ * два разных СПИСКА, а не одно число, и прочитанное в одном нельзя засчитывать
+ * в другом. Пока лестница качества была одноязычной, списки ещё и различались
+ * длиной (12 против 9); теперь длина совпала, но совпадение — не правило, и
+ * держать его правилом было бы ошибкой.
  *
  * Второй источник правды опасен молчанием, поэтому он не молчит:
  * `test/reading.test.ts` сверяет этот список с настоящим каталогом на обоих
@@ -52,7 +54,7 @@ export interface ReadingLog {
 export const READING_IDS: Record<Lang, string[]> = {
   ru: ["haggling", "basic", "good", "supplier", "salary", "conflict", "investor", "rent",
        "used_car", "freelance_rate", "sla_renewal", "candidate_offer"],
-  en: ["supplier", "salary", "conflict", "investor", "rent",
+  en: ["haggling", "basic", "good", "supplier", "salary", "conflict", "investor", "rent",
        "used_car", "freelance_rate", "sla_renewal", "candidate_offer"],
 };
 

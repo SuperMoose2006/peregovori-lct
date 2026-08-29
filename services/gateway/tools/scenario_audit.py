@@ -186,6 +186,10 @@ def calibrate() -> tuple[bool, list[str]]:
                 bad.append(f"{sid}.{field}: прибор {got[field]!r}, эталон {want[field]!r}")
     # Вторая половина известного ответа: лестница качества на одном столе.
     ladder = GAMES["ladder"]
+    # `mirror` — половина, по которой посчитан games.scores.json (у лестницы она
+    # русская); калибровка обязана играть ИМЕННО её, иначе прибор сверяет
+    # английскую партию с русским эталоном и объявляет сломанным движок.
+    lad_lang = ladder.get("mirror") or ladder["lang"]
     for gid, want in SCORES["ladder"].items():
         game = next(g for g in ladder["games"] if g["id"] == gid)
         lines = game["lines"]
@@ -193,8 +197,10 @@ def calibrate() -> tuple[bool, list[str]]:
             # Ловушка, на которой прибор уже обжигался: строка-ссылка перебиралась
             # ПО БУКВАМ, и партия «@principled.supplier» превращалась в двадцать
             # ходов «@», «p», «r» — 12 F вместо 92 A.
-            lines = PRINCIPLED[lines.split(".", 1)[1]][ladder["lang"]]
-        _, got = play(ladder["scenario"], lines, ladder["lang"])
+            lines = PRINCIPLED[lines.split(".", 1)[1]][lad_lang]
+        elif isinstance(lines, dict):
+            lines = lines[lad_lang]
+        _, got = play(ladder["scenario"], lines, lad_lang)
         for field in _CALIBRATION_FIELDS:
             if got[field] != want[field]:
                 bad.append(f"ladder/{gid}.{field}: прибор {got[field]!r}, эталон {want[field]!r}")

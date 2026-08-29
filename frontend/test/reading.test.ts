@@ -40,10 +40,10 @@ const LANGS: Lang[] = ["ru", "en"];
 // ---- 1. Материал: ни одной придуманной реплики ------------------------------
 
 test("каждая реплика каталога совпадает с эталонной фикстурой посимвольно", () => {
-  const ladder = new Map<string, string[]>(
-    (GAMES.ladder.games as { id: string; lines: string[] | string }[])
-      .filter((g) => Array.isArray(g.lines))
-      .map((g) => [g.id, g.lines as string[]]),
+  const ladder = new Map<string, Record<string, string[]>>(
+    (GAMES.ladder.games as { id: string; lines: Record<string, string[]> | string }[])
+      .filter((g) => typeof g.lines === "object" && !Array.isArray(g.lines))
+      .map((g) => [g.id, g.lines as Record<string, string[]>]),
   );
   const principled = GAMES.principled as Record<string, { ru: string[]; en: string[] }>;
 
@@ -51,11 +51,9 @@ test("каждая реплика каталога совпадает с эта�
     for (const lang of LANGS) {
       const lines = game.lines[lang];
       if (!lines) continue;
-      const want = ladder.get(game.id) ?? principled[game.id]?.[lang];
+      const want = ladder.get(game.id)?.[lang] ?? principled[game.id]?.[lang];
       assert.ok(want, `${game.id}/${lang}: партии нет в games.json — откуда взялись реплики?`);
       assert.deepEqual(lines, want, `${game.id}/${lang} разошлась с фикстурой`);
-      // Лестница качества одноязычна: её партии берутся только в русский каталог.
-      if (ladder.has(game.id)) assert.equal(lang, "ru", `${game.id}: лестница есть только по-русски`);
     }
     const sc = SCENARIO_MAP[game.scenario];
     assert.ok(sc, `${game.id}: стол ${game.scenario} не существует`);
@@ -68,8 +66,10 @@ test("список партий в хранилище совпадает с ка
   for (const lang of LANGS) {
     assert.deepEqual(READING_IDS[lang], readingGamesFor(lang).map((g) => g.id), lang);
   }
+  // Обе половины лестницы качества на месте — режим одинаково полон на двух
+  // языках. Разошлись длины: значит половину партий англоговорящий не увидит.
   assert.equal(READING_IDS.ru.length, 12);
-  assert.equal(READING_IDS.en.length, 9);
+  assert.equal(READING_IDS.en.length, 12);
   // Девять столов продукта обязаны быть в обоих каталогах: именно они делают
   // режим переносимым, а не тренировкой одного стола.
   for (const lang of LANGS) {

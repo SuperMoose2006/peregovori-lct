@@ -72,7 +72,19 @@ def render() -> str:
         lines = game["lines"]
         if isinstance(lines, str) and lines.startswith("@principled."):
             return principled[lines.split(".", 1)[1]][lang]
+        if isinstance(lines, dict):
+            return lines[lang]
         return lines
+
+    def mirror_lang(section: dict) -> str:
+        """Половина, по которой сверяется браузерное зеркало.
+
+        Инвариант 8 — про совпадение ДВУХ РЕАЛИЗАЦИЙ движка, а не двух языков,
+        поэтому зеркалу хватает одной половины; вторую гоняет бэкенд на обоих
+        языках (tests/test_reference_games.py). У двуязычного раздела эта
+        половина названа полем `mirror`, у одноязычного — единственным `lang`.
+        """
+        return section.get("mirror") or section["lang"]
 
     out = {
         "source": "engine/engine.py::score_session",
@@ -87,8 +99,9 @@ def render() -> str:
         ],
         "ladder": {
             gid: _play(ladder["scenario"],
-                       lines_of(next(g for g in ladder["games"] if g["id"] == gid), ladder["lang"]),
-                       ladder["lang"])
+                       lines_of(next(g for g in ladder["games"] if g["id"] == gid),
+                                mirror_lang(ladder)),
+                       mirror_lang(ladder))
             for gid in ladder["order"]
         },
         # Браузерное зеркало сверяется по русской половине: инвариант 8 — про
@@ -99,7 +112,8 @@ def render() -> str:
         # Сдвиг рамки живёт в apply_move и в его браузерном зеркале — то есть
         # ровно там, где две реализации расходятся молча.
         "first_word": {
-            g["id"]: _play(first_word["scenario"], g["lines"], first_word["lang"])
+            g["id"]: _play(first_word["scenario"],
+                           lines_of(g, mirror_lang(first_word)), mirror_lang(first_word))
             for g in first_word["games"]
         },
     }

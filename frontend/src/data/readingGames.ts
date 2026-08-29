@@ -16,12 +16,16 @@
 // лету (`lib/reading.ts`), потому что записанный ответ разошёлся бы с балансом
 // молча — ровно та ошибка, ради которой курс не пишут, а доказывают.
 //
-// ПОЧЕМУ У ПЕРВЫХ ТРЁХ ПАРТИЙ НЕТ АНГЛИЙСКОЙ ПОЛОВИНЫ. Лестница качества в
-// фикстуре одноязычна (`ladder.lang: "ru"`), английскую половину там гоняет
-// только принципиальная партия. Придумать перевод — значит завести партию,
-// которую никто не доказывал; поэтому английский каталог состоит из девяти
-// столов, а русский — из двенадцати. Каталог языка строит `readingGamesFor`,
-// и пустого места в интерфейсе от этого не возникает.
+// ОБЕ ПОЛОВИНЫ ЕСТЬ У ВСЕХ. Раньше лестница качества в фикстуре была
+// одноязычной (`ladder.lang: "ru"`), и английский каталог состоял из девяти
+// столов против двенадцати русских: англоговорящему были недоступны ровно те
+// три партии, ради которых режим и заводился, — один стол, сыгранный тремя
+// разными переговорщиками. Теперь лестница двуязычная
+// (`ladder.langs: ["ru","en"]`), и её английские реплики не переведены, а
+// написаны по-английски и доказаны прогоном движка: порядок качества
+// (торг ниже базовой игры, базовая ниже хорошей) держится на обоих языках —
+// services/gateway/tests/test_reference_games.py и test/games.test.ts.
+// Каталог языка по-прежнему строит `readingGamesFor`.
 import type { Lang } from "../types";
 
 export interface ReadingGame {
@@ -48,6 +52,14 @@ export const READING_GAMES: ReadingGame[] = [
         "Наша цена 90.",
         "Договорились, 90.",
       ],
+      en: [
+        "Our price is 86.",
+        "We propose 87, that is our position.",
+        "Our price is 88, we will not go further.",
+        "We propose 89.",
+        "Our price is 90.",
+        "We have a deal at 90.",
+      ],
     },
   },
   {
@@ -59,6 +71,12 @@ export const READING_GAMES: ReadingGame[] = [
         "По рыночным данным медиана независимых прайсов 88, потому что это отраслевой стандарт.",
         "Наша цена 88, мы предлагаем сойтись на ней.",
         "Договорились.",
+      ],
+      en: [
+        "Why is steady factory utilization so important to you?",
+        "Independent market data puts the median at 88 per unit, because that is the industry standard.",
+        "Our price is 88, we propose we settle there.",
+        "We have a deal.",
       ],
     },
   },
@@ -72,6 +90,13 @@ export const READING_GAMES: ReadingGame[] = [
         "По рыночным данным медиана независимых прайсов 87, потому что это отраслевой стандарт.",
         "Если мы дадим предоплату, сможете подвинуться к 87?",
         "Фиксируем пакет: предоплата — и цена 87. Договорились?",
+      ],
+      en: [
+        "Why is steady factory utilization so important to you?",
+        "And why are you so focused on cash flow and upfront payment?",
+        "Independent market data puts the median at 87 per unit, because that is the industry standard.",
+        "If we give you prepay, can you move down to 87?",
+        "Let us fix the package: prepay — and a price of 87. Do we have a deal?",
       ],
     },
   },
@@ -112,7 +137,7 @@ export const READING_GAMES: ReadingGame[] = [
       en: [
         "Why is it so important to you to keep the team budget within bounds?",
         "Why are you in a hurry to close the role — what is driving that timeline?",
-        "That makes sense. What matters to you when you justify the band to finance?",
+        "What matters to you when you justify the band to finance?",
         "The salary survey puts the median for this role at 230, because that is the market rate.",
         "If we give you a KPI review in six months, can you move to 230?",
         "Let us fix the package: a KPI review in six months — and a base of 230. Do we have a deal?",

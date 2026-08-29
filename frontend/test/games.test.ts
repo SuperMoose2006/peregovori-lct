@@ -17,9 +17,11 @@ import type { Lang } from "../src/types";
 const GAMES = JSON.parse(readFileSync(new URL("./fixtures/games.json", import.meta.url), "utf8"));
 const SCORES = JSON.parse(readFileSync(new URL("./fixtures/games.scores.json", import.meta.url), "utf8"));
 
-// Партии двуязычные ({ru, en}); зеркало сверяется по русской половине —
-// инвариант 8 про совпадение двух РЕАЛИЗАЦИЙ движка, а не двух языков.
-// Английскую половину гоняет services/gateway/tests/test_reference_games.py.
+// Партии двуязычные ({ru, en}); числа зеркало сверяет по одной половине
+// (`ladder.mirror`) — инвариант 8 про совпадение двух РЕАЛИЗАЦИЙ движка, а не
+// двух языков, и вторая половина удвоила бы фикстуру, ничего не доказав.
+// Порядок качества — другое дело: он проверяется здесь на ОБОИХ языках, потому
+// что защиту от накрутки обходят словами, а слова у языков разные.
 const PRINCIPLED: Record<string, string[]> = Object.fromEntries(
   Object.entries(GAMES.principled)
     .filter(([k]) => k !== "note")
@@ -27,9 +29,16 @@ const PRINCIPLED: Record<string, string[]> = Object.fromEntries(
 ) as Record<string, string[]>;
 const LADDER = GAMES.ladder;
 
-function linesOf(game: { lines: string[] | string }): string[] {
+type Lines = string[] | string | Record<string, string[]>;
+
+const MIRROR: Lang = (GAMES.ladder.mirror ?? GAMES.ladder.lang ?? "ru") as Lang;
+
+function linesOf(game: { lines: Lines }, lang: Lang = MIRROR): string[] {
   const l = game.lines;
-  return typeof l === "string" && l.startsWith("@principled.") ? PRINCIPLED[l.split(".")[1]] : (l as string[]);
+  if (typeof l === "string" && l.startsWith("@principled.")) {
+    return (GAMES.principled as Record<string, Record<string, string[]>>)[l.split(".")[1]][lang];
+  }
+  return Array.isArray(l) ? l : (l as Record<string, string[]>)[lang];
 }
 
 // Ровно тот же цикл, что у MockServer.handleTurn и у backend-хелпера play().
@@ -45,7 +54,7 @@ function play(scenarioId: string, lines: string[], lang: Lang = "ru") {
 }
 
 function checkAgainstBackend(name: string, scenarioId: string, lines: string[], want: Record<string, unknown>) {
-  const { s, debrief } = play(scenarioId, lines, (LADDER.lang ?? "ru") as Lang);
+  const { s, debrief } = play(scenarioId, lines, MIRROR);
   // `deal_text` намеренно НЕ сверяется: единица у клиента короче (« ₽» против
   // «₽/шт») — это решение вёрстки, а не движка. Саму печать цифры проверяет
   // тест «печать цифры сделки» ниже, на одинаковых входах.
@@ -88,11 +97,12 @@ for (const sid of Object.keys(PRINCIPLED)) {
 // же цифры голой. Сдвиг рамки живёт в applyMove, а не в классификаторе, — то
 // есть ровно там, где два ядра расходятся молча, оставив чипы синхронными.
 const FIRST_WORD = GAMES.first_word;
+const FW_MIRROR: Lang = (FIRST_WORD.mirror ?? FIRST_WORD.lang ?? "ru") as Lang;
 
 for (const gid of FIRST_WORD.order as string[]) {
   test(`инвариант 8: первое слово — партия «${gid}» считается так же, как на сервере`, () => {
     const game = FIRST_WORD.games.find((g: { id: string }) => g.id === gid);
-    checkAgainstBackend(gid, FIRST_WORD.scenario, game.lines, SCORES.first_word[gid]);
+    checkAgainstBackend(gid, FIRST_WORD.scenario, linesOf(game, FW_MIRROR), SCORES.first_word[gid]);
   });
 }
 
@@ -100,7 +110,7 @@ test("первое слово: обоснованный якорь стоит д
   const played: Record<string, { overall: number; technique: number; offerOpp: number }> = {};
   for (const gid of FIRST_WORD.order as string[]) {
     const game = FIRST_WORD.games.find((g: { id: string }) => g.id === gid);
-    const { s, debrief } = play(FIRST_WORD.scenario, game.lines, FIRST_WORD.lang as Lang);
+    const { s, debrief } = play(FIRST_WORD.scenario, linesOf(game, FW_MIRROR), FW_MIRROR);
     played[gid] = { overall: debrief.overall, technique: debrief.technique, offerOpp: s.offerOpp };
   }
   assert.ok(
@@ -142,27 +152,32 @@ test("первое слово тратится один раз и не пров�
   assert.equal(s.frameOpen, first.frameOpen, "наглый якорь тянет рамку дальше обоснованного");
 });
 
-test("лестница качества: спам обязан быть ниже базовой игры", () => {
-  const scores: Record<string, number> = {};
-  for (const gid of LADDER.order as string[]) {
-    const game = LADDER.games.find((g: { id: string }) => g.id === gid);
-    scores[gid] = play(LADDER.scenario, linesOf(game)).debrief.overall;
-  }
-  const order = LADDER.order as string[];
-  for (let i = 1; i < order.length; i++) {
-    assert.ok(
-      scores[order[i - 1]] <= scores[order[i]],
-      `«${order[i - 1]}» (${scores[order[i - 1]]}) выше «${order[i]}» (${scores[order[i]]})`,
-    );
-  }
-  assert.ok(scores.spam < scores.basic, `спам ${scores.spam} не ниже базовой ${scores.basic}`);
-  assert.ok(scores.alternating < scores.basic, `чередование ${scores.alternating} не ниже базовой ${scores.basic}`);
-  assert.ok(scores.exemplary >= 85, `образцовая партия ${scores.exemplary} не дотянула до A`);
-});
+// Анти-игровой порядок — на КАЖДОМ языке лестницы. Пока английской половины не
+// было, «спам ниже базовой игры» было доказано по-русски и обещано по-английски;
+// обходят же защиту словами, и словари у языков разные.
+for (const lang of (LADDER.langs ?? [LADDER.lang ?? "ru"]) as Lang[]) {
+  test(`лестница качества (${lang}): спам обязан быть ниже базовой игры`, () => {
+    const scores: Record<string, number> = {};
+    for (const gid of LADDER.order as string[]) {
+      const game = LADDER.games.find((g: { id: string }) => g.id === gid);
+      scores[gid] = play(LADDER.scenario, linesOf(game, lang), lang).debrief.overall;
+    }
+    const order = LADDER.order as string[];
+    for (let i = 1; i < order.length; i++) {
+      assert.ok(
+        scores[order[i - 1]] <= scores[order[i]],
+        `${lang}: «${order[i - 1]}» (${scores[order[i - 1]]}) выше «${order[i]}» (${scores[order[i]]})`,
+      );
+    }
+    assert.ok(scores.spam < scores.basic, `${lang}: спам ${scores.spam} не ниже базовой ${scores.basic}`);
+    assert.ok(scores.alternating < scores.basic, `${lang}: чередование ${scores.alternating} не ниже базовой ${scores.basic}`);
+    assert.ok(scores.exemplary >= 85, `${lang}: образцовая партия ${scores.exemplary} не дотянула до A`);
+  });
+}
 
 test("двенадцать пустых реплик не двигают цену", () => {
   const game = LADDER.games.find((g: { id: string }) => g.id === "passive");
-  const { s } = play(LADDER.scenario, linesOf(game));
+  const { s } = play(LADDER.scenario, linesOf(game), MIRROR);
   const sc = SCENARIO_MAP[LADDER.scenario];
   assert.ok(Math.abs(s.offerOpp - sc.open) <= 0.03 * Math.abs(sc.open), `цена уехала до ${s.offerOpp}`);
 });

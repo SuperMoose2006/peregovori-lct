@@ -205,11 +205,14 @@ def _fixture_lines(game_id: str) -> tuple[str, str, list[str]]:
     data = json.loads(FIXTURE.read_text(encoding="utf-8"))
     ladder = data["ladder"]
     game = next(g for g in ladder["games"] if g["id"] == game_id)
+    lang = ladder.get("mirror") or ladder["lang"]
     lines = game["lines"]
     if isinstance(lines, str) and lines.startswith("@principled."):
         key = lines.split(".", 1)[1]
-        return key, ladder["lang"], data["principled"][key][ladder["lang"]]
-    return ladder["scenario"], ladder["lang"], lines
+        return key, lang, data["principled"][key][lang]
+    if isinstance(lines, dict):
+        lines = lines[lang]
+    return ladder["scenario"], lang, lines
 
 
 async def _play_once(scenario_id: str, lang: str, lines: list[str],

@@ -167,12 +167,17 @@ def _fixture_games():
         g = json.load(fh)
     principled = {k: v for k, v in g["principled"].items() if k != "note"}
     lad = g["ladder"]
+    # У двуязычного раздела ведущая половина названа полем `mirror`; шкала
+    # грейдов меряется на одной, иначе каждая точка удвоилась бы.
+    lang = lad.get("mirror") or lad["lang"]
     out = []
     for rec in lad["games"]:
         lines = rec["lines"]
         if isinstance(lines, str) and lines.startswith("@principled."):
-            lines = principled[lines.split(".", 1)[1]][lad["lang"]]
-        out.append((rec["id"], lad["scenario"], lad["lang"], lines))
+            lines = principled[lines.split(".", 1)[1]][lang]
+        elif isinstance(lines, dict):
+            lines = lines[lang]
+        out.append((rec["id"], lad["scenario"], lang, lines))
     return out
 
 

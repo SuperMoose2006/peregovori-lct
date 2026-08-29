@@ -136,7 +136,9 @@ _FIXTURE = (Path(__file__).resolve().parents[3]
 
 def _good_game_lines() -> list[str]:
     data = json.loads(_FIXTURE.read_text(encoding="utf-8"))
-    return next(g for g in data["ladder"]["games"] if g["id"] == "good")["lines"]
+    # Партия двуязычная; замер дрожи судьи идёт на русской половине — той же,
+    # по которой посчитаны все числа в docs/judge-reproducibility.md.
+    return next(g for g in data["ladder"]["games"] if g["id"] == "good")["lines"]["ru"]
 
 
 def _play(lines: list[str], judge_scores: list[int] | None = None) -> dict:
