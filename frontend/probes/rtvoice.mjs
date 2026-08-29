@@ -1,4 +1,12 @@
 import { chromium } from "playwright-core";
+import { enterTable, enableLayers } from "./_layers.mjs";
+// СВЕЖЕСТЬ ДОКАЗЫВАЕТСЯ ДО ЗАПУСКА БРАУЗЕРА. Прибор ходил на жёстко вписанный
+// https://127.0.0.1:8443, где висел процесс, поднятый 25 августа и не знающий
+// даже поля `build` в /api/health, — и отчитался бы об успехе, измерив
+// четырёхдневный код. Общий модуль отказывает в прогоне, если сборка или шлюз
+// не те, что лежат на диске. Адрес меняется через DIALOG_HOST.
+import { HOST, assertFresh } from "./_fresh.mjs";
+await assertFresh(HOST);
 const b = await chromium.launch({ executablePath: "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
   args:["--no-sandbox","--use-fake-ui-for-media-stream","--use-fake-device-for-media-stream",
         "--use-file-for-fake-audio-capture=/tmp/fake-mic-48k.wav%noloop","--autoplay-policy=no-user-gesture-required"] });
@@ -20,13 +28,13 @@ p.on("websocket", ws => ws.on("framereceived", f => {
     }
   } catch {} }));
 await p.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1","1"); } catch {} });
-await p.goto("https://127.0.0.1:8443/", { waitUntil:"domcontentloaded", timeout:40000 });
+await p.goto(HOST + "/", { waitUntil:"domcontentloaded", timeout:40000 });
 await p.waitForTimeout(2800);
-await p.locator(".card .go, .card button").first().click().catch(()=>{});
-await p.waitForTimeout(1500);
-await p.locator(".layer",{hasText:"Голосом"}).locator(".ly-sw").click().catch(()=>{});
-await p.locator("button:has-text('НАЧАТЬ'), button:has-text('ЗА СТОЛ')").first().click().catch(()=>{});
-await p.waitForSelector(".chat", { timeout:40000 }).catch(()=>{});
+// Слой включается из шторки стола, и промах ВАЛИТ прогон: прибор, который
+// молча отыграл партию без голоса, доложил бы об успехе замера голоса.
+await enterTable(p);
+console.log("включён слой:", (await enableLayers(p, ["Голосом"]))
+  .filter(s=>s.on).map(s=>s.name).join(", "));
 await p.waitForTimeout(26000);
 console.log("от начала речи:");
 for (const [t,k,x] of marks) console.log(`  +${t} с  ${k.padEnd(9)} ${x}`);

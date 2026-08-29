@@ -52,7 +52,10 @@ const UNLOCKED = `(() => {
   localStorage.setItem("dialog.progress.v1", JSON.stringify({ version: 4, scenarios: {}, streak: 0,
     lastStreakDay: "", xp: 900, skills: {}, achievements: [], freezes: 0, dailyGoalTarget: 1,
     dailyDoneDay: "", dailyDoneCount: 0, celebratedMilestones: [], course: blocks }));
-  localStorage.setItem("dialog.tutorial.v1", "done");
+  // Ключ и значение — как в lib/progress.ts. Раньше здесь стоял
+  // "dialog.tutorial.v1"/"done": ключ, которого продукт не знает, то есть
+  // подготовка профиля молча не делала того, ради чего написана.
+  localStorage.setItem("dialog.tutorialDone.v1", "1");
 })()`;
 
 async function open(name, { width = 1440, height = 950, unlocked = false } = {}) {
@@ -87,6 +90,22 @@ const nav = async (page, key) => {
     throw new Error(`переход в «${key}» не состоялся — снимок показал бы не тот экран`);
 };
 
+// ОТЧЁТ ПЕЧАТАЕТСЯ ВСЕГДА, В ТОМ ЧИСЛЕ ИЗ-ПОД ИСКЛЮЧЕНИЯ. Раньше `problems`
+// выводился единственной строкой в самом конце файла, поэтому первый же
+// сорвавшийся клик (а сорвался он на опечатке в ключе раздела) уносил в
+// небытие всё, что прибор успел найти до него: на экран падал стек playwright
+// и ни слова о находках. Прибор, который при сбое молчит обо всём предыдущем,
+// хуже отсутствующего — ему верят ровно до первой поломки, а потом он теряет
+// именно то, ради чего написан.
+function report(fatal) {
+  if (fatal) console.error(`ОБХОД ОБОРВАЛСЯ: ${fatal}`);
+  if (problems.length) console.error(`ПРОБЛЕМЫ (${problems.length}):\n` + problems.join("\n"));
+  if (fatal || problems.length) process.exit(1);
+  console.log(`обход пройден, ошибок нет · скриншоты: ${OUT}`);
+  process.exit(0);
+}
+
+try {
 // 1. Домашний экран, кампания, своя сделка, экзамен, прогресс
 {
   const page = await open("shell");
@@ -117,6 +136,11 @@ const nav = async (page, key) => {
 }
 
 // 3. Экзамен блока целиком (ответы наугад) — экран провала и урок восстановления
+//
+// ЦИКЛ ОБХОДИЛ ВОСЕМЬ ЗАДАНИЙ ИЗ ОДИННАДЦАТИ. Экран итога он не видел ни разу,
+// а проверку «после провала есть урок восстановления» гонял по недошедшему
+// экзамену — то есть докладывал о продукте то, до чего сам не дошёл. Границу
+// берём из самого экзамена («задание N из M»), а не из головы.
 {
   const page = await open("exam");
   await nav(page, "course");
@@ -124,7 +148,15 @@ const nav = async (page, key) => {
   await page.waitForTimeout(300);
   await page.locator("button:has-text('Сдавать экзамен')").click();
   await page.waitForTimeout(400);
-  for (let i = 0; i < 8; i++) {
+  const steps = Number(((await page.locator(".lesson-step").first().textContent()) || "")
+    .match(/из\s+(\d+)/)?.[1] ?? 0);
+  if (!steps) problems.push("exam: экзамен не сказал, из скольких заданий он состоит");
+  let capstone = false;
+  for (let i = 0; i < steps + 1; i++) {
+    // Капстоун — настоящая мини-партия, и «Проверить» у него нет вовсе.
+    // Смоук партий не играет (см. шапку), поэтому здесь он только фиксирует,
+    // что экзамен упёрся в капстоун, и уходит — партию доигрывает e2e/course.mjs.
+    if (await page.locator(".ex-drill").count()) { capstone = true; break; }
     const match = page.locator(".ex-match");
     if (await match.count()) {
       const left = match.locator("ul").first().locator("button");
@@ -147,7 +179,21 @@ const nav = async (page, key) => {
     await next.click(); await page.waitForTimeout(350);
   }
   await shot(page, "20-exam-result");
-  if (!(await page.locator(".recovery").count())) {
+  // ЭКРАН ИТОГА ЭКЗАМЕНА НЕДОСТИЖИМ, И ЭТО НАХОДКА В ПРОДУКТЕ, А НЕ В ПРИБОРЕ.
+  // `drawExam` ставит капстоун последним, «Завершить» рисуется только по
+  // `answered`, а `answered` ставит `onDone` — которого у капстоуна нет
+  // (Exercise.tsx рисует `.ex-go` только для НЕ-капстоуна). Значит `finish()`
+  // не вызывается никогда, и вместе с ним не показываются ни счёт, ни разбор
+  // промахов, ни урок восстановления: провал экзамена заканчивается
+  // констатацией в партии, а не маршрутом. Проверку не снимаем — прибор,
+  // который перестал спрашивать, чтобы стать зелёным, бесполезен.
+  const done = await page.locator(".wrap.lesson.done").count();
+  if (!done) {
+    problems.push(capstone
+      ? "exam: экран итога экзамена недостижим — последним заданием стоит капстоун, " +
+        "а он уводит в партию; счёт, разбор промахов и урок восстановления не показываются никогда"
+      : "exam: экзамен не дошёл до экрана итога");
+  } else if (!(await page.locator(".recovery").count())) {
     problems.push("exam: после провала нет урока восстановления");
   }
   await page.context().close();
@@ -174,14 +220,14 @@ const nav = async (page, key) => {
   const en = await open("en");
   await en.locator("button:has-text('EN')").first().click();
   await en.waitForTimeout(300);
-  await nav(en, "Course"); await shot(en, "41-course-en");
+  await nav(en, "course"); await shot(en, "41-course-en");
   await en.context().close();
 }
 
-await browser.close();
-
-if (problems.length) {
-  console.error(`ПРОБЛЕМЫ (${problems.length}):\n` + problems.join("\n"));
-  process.exit(1);
+} catch (e) {
+  await browser.close().catch(() => {});
+  report(String(e).split("\n")[0]);
 }
-console.log(`обход пройден, ошибок нет · скриншоты: ${OUT}`);
+
+await browser.close();
+report(null);

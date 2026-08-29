@@ -9,6 +9,15 @@
 // Затем сдаётся экзамен блока теми же ответами и проверяется, что блок стал
 // пройденным, а следующий открылся.
 //
+// ЭКЗАМЕН БЛОКА ЗАКАНЧИВАЕТСЯ КАПСТОУНОМ, И ЕГО НАДО СЫГРАТЬ. `drawExam`
+// ставит упражнения типа `drill` последними, а у капстоуна нет ни «Проверить»,
+// ни «Завершить»: единственная кнопка ведёт в настоящую мини-партию, и экзамен
+// закрывается её итогом (App.tsx кладёт в профиль `score + 2` за сданный
+// капстоун). Прибор раньше видел капстоун и считал экзамен законченным —
+// жал первую попавшуюся `button.btn.primary`, уходил в партию и уже не
+// возвращался. Из-за этого три главных утверждения ниже — «экзамен сдан»,
+// «блок пройден», «следующий открылся» — не проверялись НИ РАЗУ.
+//
 //   node e2e/course.mjs [--url http://127.0.0.1:8010] [--out /tmp/dialog-e2e]
 import { chromium } from "playwright-core";
 import { readFileSync, mkdirSync } from "node:fs";
@@ -30,6 +39,15 @@ const bankJson = src.slice(src.indexOf("export const COURSE_BANK: Exercise[] = "
 const BANK = JSON.parse(bankJson);
 const byId = Object.fromEntries(BANK.map((x) => [x.id, x]));
 
+// ЛИНИЯ КАПСТОУНА БЕРЁТСЯ ИЗ ФИКСТУРЫ ЭТАЛОННЫХ ПАРТИЙ, А НЕ ПИШЕТСЯ ЗДЕСЬ.
+// `frontend/test/fixtures/games.json` — тот же набор, которым
+// tests/test_reference_games.py и test/games.test.ts доказывают инвариант 2 и
+// инвариант 8. Своя линия «по мотивам» однажды уже перестала закрывать сделку и
+// увела на полдня в поиск несуществующего дефекта движка: правки лексикона и
+// баланса до неё не доходили, потому что её никто не проверял.
+const GAMES = JSON.parse(
+  readFileSync(new URL("../test/fixtures/games.json", import.meta.url), "utf8"));
+
 let browser;
 try {
   browser = await chromium.launch({ executablePath: EXE });
@@ -44,7 +62,11 @@ p.on("pageerror", (e) => errs.push(String(e)));
 p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("Failed to load")) errs.push(m.text().slice(0,120)); });
 
 await p.goto(BASE, { waitUntil: "networkidle" });
-await p.evaluate(() => localStorage.setItem("dialog.tutorial.v1", "done"));
+// КЛЮЧ ОБУЧЕНИЯ — `dialog.tutorialDone.v1` СО ЗНАЧЕНИЕМ "1" (lib/progress.ts).
+// Прибор ставил `dialog.tutorial.v1` = "done": ключ, которого продукт не знает.
+// На экранах курса это ничем не пахло, а вот капстоун идёт в режиме practice —
+// и вводный тур вставал ровно поперёк партии, которую прибор пришёл играть.
+await p.evaluate(() => localStorage.setItem("dialog.tutorialDone.v1", "1"));
 await p.reload({ waitUntil: "networkidle" });
 
 // Отвечает верно на текущее задание, опознавая тип по разметке.
@@ -112,6 +134,71 @@ async function answer() {
   return type;
 }
 
+/**
+ * Убирает модальные вехи, если продукт их показал.
+ *
+ * «Веха» (`.milestone-scrim`) — полноэкранный диалог про серию и повышение
+ * ранга; он всплывает по накопленному XP, то есть ровно посреди прохода курса.
+ * Playwright не жмёт сквозь него и падает по таймауту с «intercepts pointer
+ * events» — а выглядит это как «кнопки капстоуна нет». Вех может прийти
+ * несколько подряд (кнопка подписана «1/2»), поэтому закрываем в цикле.
+ */
+async function clearScrims() {
+  for (let i = 0; i < 6; i++) {
+    if (!(await p.locator(".milestone-scrim").count())) return;
+    await p.locator(".milestone-go").first().click({ timeout: 5000 }).catch(() => {});
+    await p.waitForTimeout(400);
+  }
+}
+
+/** Ищет упражнение по тексту вопроса — как это делает `answer()`. */
+function exByPrompt(text) {
+  const ex = BANK.find((x) => x.prompt.ru === (text || "").trim());
+  if (!ex) throw new Error("не нашли задание по тексту: " + text);
+  return ex;
+}
+
+/**
+ * Доигрывает капстоун: настоящая мини-партия эталонной линией.
+ *
+ * Ждать фиксированные паузы здесь нельзя — ход идёт в модель, и на живом
+ * шлюзе он занимает от секунды до десятка. Ждём СОБЫТИЯ: появления новой
+ * реплики оппонента, а на последнем ходу — вердикта капстоуна.
+ */
+async function playCapstone() {
+  await clearScrims();
+  const ex = exByPrompt(await p.locator(".ex-prompt").textContent());
+  const lines = GAMES.principled?.[ex.scenario_id]?.ru;
+  if (!lines) throw new Error(
+    `нет эталонной линии для стола «${ex.scenario_id}» в test/fixtures/games.json`);
+  console.log(`  капстоун ${ex.id}: стол «${ex.scenario_id}», ${lines.length} реплик`);
+
+  await p.locator(".ex-drill button.btn.primary").click();
+  await p.waitForSelector(".chat textarea", { timeout: 40000 });
+  for (const line of lines) {
+    if (await p.locator(".drill-verdict, .debrief").count()) break;
+    await clearScrims();
+    const before = await p.locator(".msg.opp").count();
+    await p.locator(".chat textarea").fill(line);
+    await p.locator(".send").click({ timeout: 20000 });
+    // Либо оппонент ответил, либо партия закрылась — обоих ждём одним условием.
+    await p.waitForFunction(
+      (n) => document.querySelectorAll(".msg.opp").length > n
+             || document.querySelector(".drill-verdict, .debrief") !== null,
+      before, { timeout: 120000 });
+  }
+  await p.waitForSelector(".drill-verdict", { timeout: 120000 });
+  await clearScrims();
+  const ok = (await p.locator(".drill-verdict.ok").count()) === 1;
+  const verdict = ((await p.locator(".drill-verdict b").textContent()) || "").trim();
+  await p.screenshot({ path: `${OUT}/block-03-capstone.png`, fullPage: true });
+  // «← В курс» с экрана вердикта ведёт СРАЗУ на карту блоков (App.backToCourse),
+  // промежуточного экрана экзамена за ним нет.
+  await p.locator(".drill-verdict button.btn.primary").click();
+  await p.waitForTimeout(1200);
+  return { ok, verdict };
+}
+
 // По ключу раздела, а не по русской подписи: см. смоук.
 await p.locator('[data-nav="course"]').click();
 await p.waitForTimeout(400);
@@ -120,13 +207,16 @@ await p.waitForTimeout(300);
 
 const lessons = await p.locator(".lesson-list button").count();
 for (let i = 0; i < lessons; i++) {
+  await clearScrims();
   await p.locator(".lesson-list button").nth(i).click();
   await p.waitForTimeout(300);
   await p.locator("button:has-text('К заданиям'), button:has-text('Урок пройден')").first().click();
   await p.waitForTimeout(350);
   while (await p.locator(".ex").count()) {
-    const type = await answer();
-    if (type === "drill") break;
+    // Капстоун ВНУТРИ УРОКА необязателен: рядом с ним стоит «Дальше →», и его
+    // можно пройти мимо. Раньше здесь стоял `break`, и он уносил не только
+    // капстоун, но и все задания урока после него.
+    await answer();
     const next = p.locator("button:has-text('Дальше')").first();
     if (!(await next.count())) break;
     await next.click();
@@ -141,35 +231,53 @@ for (let i = 0; i < lessons; i++) {
 await p.screenshot({ path: `${OUT}/block-01-done.png`, fullPage: true });
 
 // Экзамен блока — те же эталонные ответы
+await clearScrims();
 await p.locator("button:has-text('Сдавать экзамен')").click();
 await p.waitForTimeout(400);
+let capstone = null;
 while (await p.locator(".ex").count()) {
   const type = await answer();
-  if (type === "drill") break;
+  if (type === "drill") {
+    await p.screenshot({ path: `${OUT}/block-02-exam.png`, fullPage: true });
+    capstone = await playCapstone();
+    break;
+  }
   const next = p.locator("button:has-text('Дальше'), button:has-text('Завершить')").first();
   if (!(await next.count())) break;
   await next.click();
   await p.waitForTimeout(350);
 }
 await p.waitForTimeout(600);
-await p.screenshot({ path: `${OUT}/block-02-exam.png`, fullPage: true });
-const passed = await p.locator("h1, h2").filter({ hasText: "Экзамен сдан" }).count();
-await p.locator("button.btn.primary").first().click();
-await p.waitForTimeout(400);
-await p.locator("button:has-text('Все блоки')").click();
-await p.waitForTimeout(500);
-await p.screenshot({ path: `${OUT}/block-03-map.png`, fullPage: true });
-const unlocked = await p.locator(".cnode.current").count();
-const done = await p.locator(".cnode.done").count();
+await p.screenshot({ path: `${OUT}/block-04-map.png`, fullPage: true });
+
+// УТВЕРЖДЕНИЯ СНИМАЮТСЯ С КАРТЫ, А НЕ СО СЧЁТЧИКОВ. `.cnode` идут в порядке
+// курса, поэтому «первый пройден» и «второй открылся» проверяются по позиции:
+// счётчик «хотя бы один done» держался бы и на чужом блоке.
+const nodes = await p.locator(".cnode").evaluateAll(
+  (els) => els.map((e) => e.className.replace("cnode", "").trim()));
+const onMap = await p.locator(".course-path").count() === 1;
 await browser.close();
 
 const problems = [];
-if (passed !== 1) problems.push("экзамен блока не сдан эталонными ответами");
-if (done < 1) problems.push("блок не отмечен пройденным на карте");
-if (unlocked < 1) problems.push("следующий блок не открылся");
+if (!capstone) {
+  problems.push("экзамен блока не дошёл до капстоуна — раньше здесь прибор молча " +
+                "считал экзамен законченным и не проверял ничего из нижнего");
+} else if (!capstone.ok) {
+  // Капстоун сдан ЭТАЛОННОЙ линией — той же, которой tests/test_reference_games
+  // доказывает инвариант 2. Не сдан — это находка, а не случайность прогона.
+  problems.push(`капстоун не сдан эталонной линией: «${capstone.verdict}»`);
+}
+if (!onMap) problems.push("после капстоуна не вернулись на карту блоков");
+if (nodes[0] !== "done") {
+  problems.push(`экзамен блока не сдан: первый узел карты «${nodes[0]}», ожидалось «done»`);
+}
+if (nodes[1] !== "current") {
+  problems.push(`следующий блок не открылся: второй узел карты «${nodes[1]}», ожидалось «current»`);
+}
 if (errs.length) problems.push(...errs);
 if (problems.length) {
   console.error("ПРОБЛЕМЫ:\n" + problems.join("\n"));
   process.exit(1);
 }
-console.log(`блок пройден целиком, экзамен сдан · скриншоты: ${OUT}`);
+console.log(`блок пройден целиком, капстоун сдан («${capstone.verdict}»), ` +
+            `экзамен сдан, следующий блок открыт · скриншоты: ${OUT}`);

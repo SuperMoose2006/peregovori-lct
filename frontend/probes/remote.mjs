@@ -10,13 +10,16 @@
 // через прокси, и он отвечал 407 на публичный адрес. Полдня это выглядело как
 // «сайт просит пароль и не принимает его».
 import { chromium } from "playwright-core";
-// Пароль НЕ живёт в репозитории (CLAUDE.md: секреты — в services/gateway/.env).
-// Прибор берёт его оттуда же, откуда его берёт сам гейтвей.
-import { readFileSync } from "node:fs";
-const PASS = (process.env.NEGO_HTTP_PASSWORD
-  ?? (readFileSync(new URL("../../services/gateway/.env", import.meta.url), "utf8")
-        .match(/^NEGO_HTTP_PASSWORD=(.*)$/m)?.[1] ?? "")).trim();
-const HOST = process.env.DIALOG_HOST ?? "https://185-154-194-88.nip.io/";
+import { enterTable, enableLayers } from "./_layers.mjs";
+// Пароль и адрес — из общего модуля: пароль НЕ живёт в репозитории (CLAUDE.md:
+// секреты — в services/gateway/.env), а свежесть доказывается ДО запуска
+// браузера. Прибор, который не может доказать, что меряет ЭТОТ код, обязан
+// отказаться от прогона: молчаливый отчёт по чужой сборке хуже отсутствующего.
+// Умолчание здесь — публичный стенд: этот прибор затем и написан, чтобы идти
+// путём зрителя. Меняется через DIALOG_HOST.
+import { PASS, STAND, assertFresh, hostOf } from "./_fresh.mjs";
+const HOST = hostOf(STAND);
+await assertFresh(HOST);
 const b = await chromium.launch({ executablePath: "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
   args:["--no-sandbox","--no-proxy-server","--use-fake-ui-for-media-stream","--use-fake-device-for-media-stream",
         "--use-file-for-fake-audio-capture=/tmp/fake-mic-48k.wav%noloop","--autoplay-policy=no-user-gesture-required"] });
@@ -39,19 +42,16 @@ await p.addInitScript(() => {
     try { const s = await o(c); window.__gum.push("ok:"+s.getTracks().map(t=>t.kind).join(",")); return s; }
     catch (e) { window.__gum.push("fail:"+e.name); throw e; } };
 });
-await p.goto(HOST, { waitUntil:"domcontentloaded", timeout:40000 });
+await p.goto(HOST + "/", { waitUntil:"domcontentloaded", timeout:40000 });
 await p.waitForTimeout(3000);
 console.log("защищённый контекст:", await p.evaluate(()=>window.isSecureContext));
 await p.waitForTimeout(2000);
 console.log("service worker:", await p.evaluate(async()=>{try{return await navigator.serviceWorker.getRegistration()?"зарегистрирован":"нет"}catch(e){return "ошибка:"+e.name}}));
-await p.locator(".card .go, .card button").first().click().catch(()=>{});
-await p.waitForTimeout(1600);
-for (const n of ["Голосом","Камера","Лицо оппонента"]) await p.locator(".layer",{hasText:n}).locator(".ly-sw").click().catch(()=>{});
-await p.waitForTimeout(500);
-console.log("включены слои:", await p.evaluate(()=>[...document.querySelectorAll(".layer")]
-  .filter(e=>/\bon\b/.test(e.className)).map(e=>e.textContent.trim().slice(0,13)).join(", ")));
-await p.locator("button:has-text('НАЧАТЬ'), button:has-text('ЗА СТОЛ')").first().click().catch(()=>{});
-await p.waitForSelector(".chat", { timeout:40000 }).catch(()=>{});
+// Карточка ведёт СРАЗУ за стол, слои включаются из шторки стола — и промах
+// здесь ВАЛИТ прогон, а не глотается: см. _layers.mjs.
+await enterTable(p);
+const layerState = await enableLayers(p, ["Голосом","Камера","Лицо оппонента"]);
+console.log("включены слои:", layerState.filter(s=>s.on).map(s=>s.name).join(", ") || "НИ ОДНОГО");
 await p.waitForTimeout(20000);
 console.log("\ngetUserMedia:", await p.evaluate(()=>window.__gum));
 console.log("видео:", await p.evaluate(()=>{const v=document.querySelector("video");return v?{поток:!!v.srcObject,ширина:v.videoWidth,играет:!v.paused}:null;}));

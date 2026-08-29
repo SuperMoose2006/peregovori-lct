@@ -1,4 +1,12 @@
 import { chromium } from "playwright-core";
+import { enterTable, enableLayers } from "./_layers.mjs";
+// СВЕЖЕСТЬ ДОКАЗЫВАЕТСЯ ДО ЗАПУСКА БРАУЗЕРА. Прибор ходил на жёстко вписанный
+// https://127.0.0.1:8443, где висел процесс, поднятый 25 августа и не знающий
+// даже поля `build` в /api/health, — и отчитался бы об успехе, измерив
+// четырёхдневный код. Общий модуль отказывает в прогоне, если сборка или шлюз
+// не те, что лежат на диске. Адрес меняется через DIALOG_HOST.
+import { HOST, assertFresh } from "./_fresh.mjs";
+await assertFresh(HOST);
 const b = await chromium.launch({ executablePath: "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome",
   args:["--no-sandbox","--use-fake-ui-for-media-stream","--use-fake-device-for-media-stream",
         "--use-file-for-fake-audio-capture=/tmp/fake-mic-48k.wav%noloop","--autoplay-policy=no-user-gesture-required"] });
@@ -21,17 +29,14 @@ await p.addInitScript(() => {
     try { const s = await o(c); window.__gum.push("ok:"+s.getTracks().map(t=>t.kind).join(",")); return s; }
     catch (e) { window.__gum.push("fail:"+e.name); throw e; } };
 });
-await p.goto("https://127.0.0.1:8443/", { waitUntil:"domcontentloaded", timeout:40000 });
+await p.goto(HOST + "/", { waitUntil:"domcontentloaded", timeout:40000 });
 await p.waitForTimeout(3000);
 console.log("защищённый контекст:", await p.evaluate(()=>window.isSecureContext));
-await p.locator(".card .go, .card button").first().click().catch(()=>{});
-await p.waitForTimeout(1600);
-for (const n of ["Голосом","Камера","Лицо оппонента"]) await p.locator(".layer",{hasText:n}).locator(".ly-sw").click().catch(()=>{});
-await p.waitForTimeout(500);
-console.log("включены слои:", await p.evaluate(()=>[...document.querySelectorAll(".layer")]
-  .filter(e=>/\bon\b/.test(e.className)).map(e=>e.textContent.trim().slice(0,13)).join(", ")));
-await p.locator("button:has-text('НАЧАТЬ'), button:has-text('ЗА СТОЛ')").first().click().catch(()=>{});
-await p.waitForSelector(".chat", { timeout:40000 }).catch(()=>{});
+// Карточка ведёт СРАЗУ за стол, слои включаются из шторки стола — и промах
+// здесь ВАЛИТ прогон, а не глотается: см. _layers.mjs.
+await enterTable(p);
+const layerState = await enableLayers(p, ["Голосом","Камера","Лицо оппонента"]);
+console.log("включены слои:", layerState.filter(s=>s.on).map(s=>s.name).join(", ") || "НИ ОДНОГО");
 await p.waitForTimeout(20000);
 console.log("\ngetUserMedia:", await p.evaluate(()=>window.__gum));
 console.log("видео:", await p.evaluate(()=>{const v=document.querySelector("video");return v?{поток:!!v.srcObject,ширина:v.videoWidth,играет:!v.paused}:null;}));

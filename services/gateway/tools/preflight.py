@@ -16,13 +16,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+GATEWAY = Path(__file__).resolve().parents[1]
 OK, WARN, BAD = "  ✓", "  ⚠", "  ✗"
+
+# Публичный стенд: имя из docs/hosting.md, переопределяется NEGO_STAND_URL.
+# Пароль — только из окружения или .env, НИКОГДА из командной строки: строка
+# запуска видна в `ps` любому пользователю коробки и оседает в истории оболочки.
+STAND_DEFAULT = "https://185-154-194-88.nip.io"
+CERT = GATEWAY / "certs" / "le-fullchain.pem"
+CERT_WARN_DAYS, CERT_FAIL_DAYS = 21, 7
 
 problems: list[str] = []
 warnings: list[str] = []
@@ -40,6 +50,23 @@ def warn(line: str) -> None:
 
 def ok(line: str) -> None:
     print(f"{OK} {line}")
+
+
+def _secret(key: str, default: str = "") -> str:
+    """Значение из окружения, иначе из services/gateway/.env — как у гейтвея.
+
+    preflight запускается без ключей в окружении (`make preflight` их не
+    подставляет), а секреты по конвенции репозитория живут в .env и только там.
+    """
+    val = os.environ.get(key)
+    if val:
+        return val.strip()
+    env = GATEWAY / ".env"
+    if env.is_file():
+        for line in env.read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith(f"{key}="):
+                return line.split("=", 1)[1].strip()
+    return default
 
 
 def check_files() -> None:
@@ -80,6 +107,40 @@ def check_files() -> None:
     ok(f"маскоты: {m} картинок") if m >= 8 else warn(f"маскотов мало ({m})")
 
 
+def on_disk_build() -> dict[str, int]:
+    """Отпечаток кода НА ДИСКЕ — то, с чем сверяется живой процесс."""
+    sys.path.insert(0, str(GATEWAY))
+    try:
+        from app.course.bank import BANK as _BANK
+        from app.engine.scenarios import SCENARIOS as _SC
+    except Exception:  # noqa: BLE001
+        return {}
+    return {"exercises": len(_BANK), "scenarios": len(_SC)}
+
+
+def compare_build(build: dict, who: str) -> None:
+    """Сверка отпечатка живого процесса с кодом на диске.
+
+    ЗАЧЕМ ЭТО ЗДЕСЬ. Шлюз — долгоживущий процесс. Тот, что раздавал демо,
+    крутился двое с половиной суток и отвечал кодом позавчерашнего дня: курс
+    на диске знал упражнение, живой шлюз — нет. Перед показом это самая
+    дорогая из возможных неожиданностей, и ловится она одним сравнением.
+    """
+    if not build:
+        warn(f"{who} старый: /api/health не знает про build — перезапустите процесс")
+        return
+    disk = on_disk_build()
+    stale = [k for k, v in disk.items() if build.get(k) != v]
+    if stale:
+        fail(f"{who.upper()} ОТВЕЧАЕТ СТАРЫМ КОДОМ: "
+             + ", ".join(f"{k} у процесса {build.get(k)}, на диске {disk[k]}"
+                         for k in stale)
+             + " — перезапустите процесс")
+    else:
+        ok(f"{who} свежий: упражнений {build.get('exercises')}, "
+           f"столов {build.get('scenarios')}, кампаний {build.get('campaigns')}")
+
+
 def check_health(url: str) -> None:
     print("\nбэкенд")
     try:
@@ -91,30 +152,7 @@ def check_health(url: str) -> None:
 
     ok(f"гейтвей отвечает: {url}")
 
-    # ЗАЧЕМ ЭТО ЗДЕСЬ. Шлюз — долгоживущий процесс. Тот, что раздавал демо,
-    # крутился двое с половиной суток и отвечал кодом позавчерашнего дня: курс
-    # на диске знал упражнение, живой шлюз — нет. Перед показом это самая
-    # дорогая из возможных неожиданностей, и ловится она одним сравнением.
-    build = data.get("build") or {}
-    if not build:
-        warn("шлюз старый: /api/health не знает про build — перезапустите процесс")
-    else:
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-        try:
-            from app.course.bank import BANK as _BANK
-            from app.engine.scenarios import SCENARIOS as _SC
-            on_disk = {"exercises": len(_BANK), "scenarios": len(_SC)}
-        except Exception:  # noqa: BLE001
-            on_disk = {}
-        stale = [k for k, v in on_disk.items() if build.get(k) != v]
-        if stale:
-            fail("ШЛЮЗ ОТВЕЧАЕТ СТАРЫМ КОДОМ: "
-                 + ", ".join(f"{k} у процесса {build.get(k)}, на диске {on_disk[k]}"
-                             for k in stale)
-                 + " — перезапустите гейтвей")
-        else:
-            ok(f"шлюз свежий: упражнений {build.get('exercises')}, "
-               f"столов {build.get('scenarios')}, кампаний {build.get('campaigns')}")
+    compare_build(data.get("build") or {}, "шлюз")
     if data.get("cloud_ai"):
         ok(f"облачный ИИ включён · оппонент: {data.get('models', {}).get('opponent', '—')}")
     else:
@@ -169,6 +207,106 @@ def check_course() -> None:
         fail("зеркало курса устарело — `python tools/sync_course.py`")
     else:
         ok("зеркало курса синхронно")
+
+
+def check_cert() -> None:
+    """Сколько дней осталось у сертификата публичного стенда.
+
+    ЗАЧЕМ. Продление РУЧНОЕ: `crontab -l` пуст, acme.sh задания себе не ставил,
+    и docs/hosting.md об этом честно предупреждает — но предупреждение читает
+    человек, а не прибор. День икс наступал молча: в одно утро демо просто
+    перестанет открываться, и вместе с ним отвалятся микрофон и камера, потому
+    что «мощные возможности» браузера живут не в HTTPS вообще, а в ДОВЕРЕННОМ
+    HTTPS. Стоимость проверки — чтение локального файла, поэтому она в обычном
+    прогоне, а не под флагом.
+
+    Пороги: 21 день — предупреждение (окно продления Let's Encrypt уже открыто,
+    пора), 7 дней — отказ (продление требует остановки гейтвея на 443, это
+    планируемая работа, а не то, что делают за час до показа).
+    """
+    print("\nсертификат стенда")
+    if not CERT.is_file():
+        warn(f"сертификата нет: {CERT} — стенд стоит на самоподписанном, "
+             "а на нём не работают ни микрофон, ни камера (docs/hosting.md)")
+        return
+    try:
+        from cryptography import x509
+
+        expires = x509.load_pem_x509_certificate(CERT.read_bytes()).not_valid_after_utc
+    except ImportError:
+        import subprocess
+
+        try:
+            out = subprocess.run(  # noqa: S603 — путь фиксирован, ввода нет
+                ["openssl", "x509", "-in", str(CERT), "-noout", "-enddate"],
+                capture_output=True, text=True, timeout=10, check=True).stdout
+            expires = datetime.strptime(out.strip().split("=", 1)[1],
+                                        "%b %d %H:%M:%S %Y %Z").replace(tzinfo=timezone.utc)
+        except Exception as exc:  # noqa: BLE001
+            warn(f"срок сертификата не прочитан: {exc}")
+            return
+    except Exception as exc:  # noqa: BLE001
+        warn(f"срок сертификата не прочитан: {exc}")
+        return
+
+    left = (expires - datetime.now(timezone.utc)).days
+    when = expires.strftime("%d.%m.%Y")
+    if left < CERT_FAIL_DAYS:
+        fail(f"сертификат истекает через {left} дн. ({when}) — продлевать надо СЕЙЧАС: "
+             "`acme.sh --renew --alpn --tlsport 443` при остановленном гейтвее "
+             "(docs/hosting.md); просроченный сертификат уносит с собой голос и камеру")
+    elif left < CERT_WARN_DAYS:
+        warn(f"сертификату осталось {left} дн. ({when}) — продление РУЧНОЕ, "
+             "cron его не сделает (docs/hosting.md)")
+    else:
+        ok(f"сертификат действует ещё {left} дн. (до {when})")
+
+
+def check_stand() -> None:
+    """Тот же отпечаток кода, но у процесса, который видит ЖЮРИ.
+
+    ЗАЧЕМ ОТДЕЛЬНО. `preflight` сверял свежесть только с локальным :8010, а
+    `probes/audit.mjs` — со своим шлюзом за :5199. Процесс на :443 не сверял
+    никто, и однажды он четыре часа отдавал вчерашний курс (84 упражнения
+    против 90) — нашлось это руками и случайно. Локальная зелень ничего не
+    говорит о стенде: это разные процессы, поднятые в разное время.
+
+    ПОД ФЛАГОМ, ПОТОМУ ЧТО ХОДИТ В СЕТЬ. Обычный `make preflight` обязан
+    оставаться локальным и работать без сети. Запрос ровно один — /api/health.
+    """
+    print("\nпубличный стенд")
+    url = _secret("NEGO_STAND_URL", STAND_DEFAULT).rstrip("/")
+    password = _secret("NEGO_HTTP_PASSWORD")
+    if not password:
+        warn("NEGO_HTTP_PASSWORD не найден (окружение или services/gateway/.env) — "
+             "стенд ответит 401")
+
+    req = urllib.request.Request(f"{url}/api/health")
+    if password:
+        import base64
+
+        token = base64.b64encode(f"dialog:{password}".encode()).decode()
+        req.add_header("Authorization", f"Basic {token}")
+    # МИМО ПРОКСИ. В песочнице разработки исходящий HTTP идёт через прокси, и он
+    # отвечает 407 на публичный адрес — полдня это выглядело как «стенд просит
+    # пароль и не принимает его» (см. probes/remote.mjs и его --no-proxy-server).
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(req, timeout=15) as r:
+            data = json.loads(r.read())
+    except urllib.error.HTTPError as exc:
+        fail(f"{url}/api/health отвечает {exc.code} "
+             + ("— пароль не подошёл" if exc.code == 401 else f"({exc.reason})"))
+        return
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        fail(f"стенд не отвечает: {url} ({exc}) — он и есть то, что увидит жюри")
+        return
+
+    ok(f"стенд отвечает: {url}")
+    compare_build(data.get("build") or {}, "стенд")
+    ok(f"на стенде синтез: {data.get('tts', '—')} · распознавание: {data.get('voice', '—')}")
+    if not data.get("cloud_ai"):
+        warn("на стенде нет облачного ИИ — партия пойдёт на шаблонных репликах")
 
 
 def check_live_turn(url: str) -> None:
@@ -398,12 +536,18 @@ def main() -> int:
     parser.add_argument("--live", action="store_true",
                         help="сыграть один настоящий ход настоящей моделью "
                              "(тратит запросы, требует сеть)")
+    parser.add_argument("--stand", action="store_true",
+                        help="сверить ещё и публичный стенд (адрес NEGO_STAND_URL, "
+                             "пароль NEGO_HTTP_PASSWORD — из окружения или .env)")
     args = parser.parse_args()
 
     print("«Диалог» — проверка перед показом")
     check_files()
     check_health(args.url.rstrip("/"))
     check_course()
+    check_cert()
+    if args.stand:
+        check_stand()
     if args.live:
         check_live_turn(args.url.rstrip("/"))
         check_custom_scenario(args.url.rstrip("/"))
