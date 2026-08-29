@@ -136,10 +136,10 @@ MODELS = {
         "inclusionai/ling-3.0-flash",            # наследник исчезнувшей ling-2.6
     ],
     "judge": [
-        "google/gemini-3.5-flash-lite",          # дефолт сегодня
+        "google/gemini-3.5-flash-lite",          # дефолт до 29 августа 2026
         "google/gemini-3.1-flash-lite",
         "mistralai/mistral-nemo",
-        "google/gemini-2.5-flash-lite",          # «не различает спам» — проверяем
+        "google/gemini-2.5-flash-lite",          # дефолт сегодня
     ],
     "reasoning": [
         "google/gemini-3.5-flash-lite",          # дефолт сегодня

@@ -162,7 +162,7 @@ TEN `parse_sentences` — 20 строк, режет по `.!?`. Open-LLM-VTuber
 |---|---|---|---|
 | Мозг оппонента | `moonshotai/kimi-k3` | $3 / $15 | ✅ есть в каталоге, **но дефолтом не стал**: в коде это константа `PREMIUM_OPPONENT`, а дефолт — `google/gemini-3.5-flash-lite` |
 | Тяжёлое рассуждение (разбор, генерация сценария) | `z-ai/glm-5.3` | $1.4 / $4.4 | ✅ в каталоге, **отвергнута живым замером**: 142 с на две попытки и ни одного валидного JSON. Дефолт роли — `google/gemini-3.5-flash-lite` |
-| Судья каждого хода (быстрый) | `google/gemini-3.5-flash-lite` | $0.30 / $2.50 | ✅ |
+| Судья каждого хода (быстрый) | `google/gemini-2.5-flash-lite` | $0.10 / $0.40 | ✅ дефолт с 29 августа 2026: прежний `google/gemini-3.5-flash-lite` не читал русский объективный критерий (docs/model-bakeoff.md) |
 | Зрение | `google/gemini-3.1-flash-lite` | $0.25 / $1.50 | ✅ мультимодальный |
 | **ASR** | `google/gemini-3.7-flash` | $0.375 / $1.875 | ✅ `input_modalities` содержит `audio` |
 | **TTS** | `openai/gpt-audio-mini` | audio_output $2.4 | ✅ `output_modalities` содержит `audio` |

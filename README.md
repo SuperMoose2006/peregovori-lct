@@ -124,7 +124,7 @@ make — он печатает свою справку и выходит С НУ
 | Роль | Переменная | Дефолт |
 |---|---|---|
 | Реплики оппонента | `NEGO_MODEL_OPPONENT` | `google/gemini-3.5-flash-lite` |
-| Судья каждого хода | `NEGO_MODEL_JUDGE` | `google/gemini-3.5-flash-lite` |
+| Судья каждого хода | `NEGO_MODEL_JUDGE` | `google/gemini-2.5-flash-lite` |
 | Зрение | `NEGO_MODEL_VISION` | `google/gemini-3.1-flash-lite` |
 | Разбор, генерация сценария | `NEGO_MODEL_REASONING` | `google/gemini-3.5-flash-lite` |
 | Распознавание речи | `NEGO_MODEL_ASR` | `google/gemini-3.7-flash` |
