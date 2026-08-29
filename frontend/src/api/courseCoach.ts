@@ -14,7 +14,12 @@ export interface CoachNote {
   techniques: string[];
 }
 
-export async function courseCoach(exerciseId: string, text: string, lang: string): Promise<CoachNote | null> {
+export async function courseCoach(exerciseId: string, text: string, lang: string,
+  /** Что решил движок. Тренер его НЕ пересматривает — он его объясняет:
+   *  без этого он оценивал реплику как реплику, пока предикат валил её как
+   *  ответ на задание, и экран показывал «Не то» рядом с «отличный размен». */
+  ok: boolean,
+): Promise<CoachNote | null> {
   // В офлайн-сборке (VITE_MOCK=1) бэкенда нет по определению — тот же флаг
   // подменяет и транспорт партии. Запрос всё равно завершался бы ничем, но
   // сначала стучался в пустоту и писал ошибку в консоль на каждом упражнении.
@@ -28,7 +33,7 @@ export async function courseCoach(exerciseId: string, text: string, lang: string
     const res = await fetch("/api/course/coach", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ exerciseId, text, lang }),
+      body: JSON.stringify({ exerciseId, text, lang, ok }),
       signal: ctrl.signal,
     });
     if (!res.ok) return null;

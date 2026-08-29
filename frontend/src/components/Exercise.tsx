@@ -100,7 +100,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
     // Свободный ответ вне экзамена: просим у бэкенда одну подсказку по смыслу.
     // Ответа может не быть — тогда ничего и не появится.
     if (ex.type === "freeform" && !exam) {
-      courseCoach(ex.id, text, lang).then((c) => { if (c?.note) setCoach(c.note); });
+      courseCoach(ex.id, text, lang, v.ok).then((c) => { if (c?.note) setCoach(c.note); });
     }
   };
 

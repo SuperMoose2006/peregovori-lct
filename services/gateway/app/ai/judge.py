@@ -119,10 +119,40 @@ def _sys(lang: str) -> str:
 
 
 def _user(context: str, player_text: str, lang: str, interests: Optional[list] = None,
-          secondary: Optional[list] = None) -> str:
+          secondary: Optional[list] = None, task: Optional[dict] = None) -> str:
     head = "Контекст переговоров" if lang == "ru" else "Negotiation context"
     line = "Реплика игрока" if lang == "ru" else "Player's line"
     parts = [f"{head}: {context}"]
+    # УПРАЖНЕНИЕ КУРСА — ЭТО ДРУГОЙ ВОПРОС, ЧЕМ «ХОРОША ЛИ РЕПЛИКА».
+    #
+    # На экране разбора упражнения сходились три сигнала: красная плашка «Не то»
+    # с причинами от предиката, слово тренера «отличный размен» и подпись
+    # «зачтено движком». Тренер честно оценивал реплику КАК РЕПЛИКУ, а предикат
+    # честно валил её как ответ НА ЭТО ЗАДАНИЕ — два ответа на разные вопросы,
+    # сложенные в один экран.
+    #
+    # Поэтому здесь тренер узнаёт, что от игрока требовалось и чем всё
+    # кончилось. Вердикт он не пересматривает: та же схема, что у разборщика
+    # партии, который получает грейд как данность и объясняет его.
+    if task:
+        if lang == "ru":
+            parts.append("ЭТО НЕ ХОД В ПАРТИИ, А УПРАЖНЕНИЕ КУРСА.")
+            parts.append(f"Задание: {task['prompt']}")
+            if task.get("require"):
+                parts.append("Требовалось применить: " + ", ".join(task["require"]))
+            parts.append("Зачёт УЖЕ ВЫНЕСЕН движком: "
+                         + ("ЗАЧТЕНО" if task["ok"] else "НЕ ЗАЧТЕНО")
+                         + ". Не пересматривай его и не спорь с ним — объясни "
+                           "одной фразой, чего не хватило или что вышло удачно.")
+        else:
+            parts.append("THIS IS A COURSE EXERCISE, NOT A LIVE TURN.")
+            parts.append(f"Task: {task['prompt']}")
+            if task.get("require"):
+                parts.append("Required techniques: " + ", ".join(task["require"]))
+            parts.append("The verdict is ALREADY decided by the engine: "
+                         + ("PASSED" if task["ok"] else "NOT PASSED")
+                         + ". Do not revisit or argue with it — explain in one "
+                           "sentence what was missing or what worked.")
     if interests:
         lbl = "Скрытые интересы второй стороны (0-based)" if lang == "ru" else "Other side's hidden interests (0-based)"
         parts.append(lbl + ": " + "; ".join(f"[{i}] {t}" for i, t in enumerate(interests)))
@@ -161,7 +191,8 @@ def _clean_techniques(items, lang: str) -> list[str]:
 
 def build_prompts(context: str, player_text: str, lang: str = "ru",
                   interests: Optional[list] = None,
-                  secondary: Optional[list] = None) -> tuple[str, str]:
+                  secondary: Optional[list] = None,
+                  task: Optional[dict] = None) -> tuple[str, str]:
     """The judge's (system, user) pair.
 
     Public so the async realtime path (app/orchestrator/judge.py) can send the
@@ -169,7 +200,7 @@ def build_prompts(context: str, player_text: str, lang: str = "ru",
     below were paid for by a live bake-off (docs/model-bakeoff.md); rewriting
     them for the new transport would throw that away.
     """
-    return _sys(lang), _user(context, player_text, lang, interests, secondary)
+    return _sys(lang), _user(context, player_text, lang, interests, secondary, task)
 
 
 def parse_judgement(raw: str, lang: str = "ru", interests: Optional[list] = None,

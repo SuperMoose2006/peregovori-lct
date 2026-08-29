@@ -387,7 +387,15 @@ async def course_coach(body: CourseCoachMsg) -> dict:
     secondary = ([(s.id, s.label[lang]) for s in sc.secondary_issues]
                  if sc is not None and sc.secondary_issues else None)
 
-    judgement = await judge_turn(context, text, lang, interests, secondary)
+    # Что от игрока требовалось — берём из САМОГО БАНКА, а не с клиента: клиент
+    # присылает только свой вердикт, и подменить требования он не может.
+    check = item.get("check") or {}
+    require = list(check.get("require_moves") or [])
+    task = None
+    if body.ok is not None:
+        task = {"prompt": item["prompt"][lang], "ok": bool(body.ok), "require": require}
+
+    judgement = await judge_turn(context, text, lang, interests, secondary, task)
     if not judgement:
         return {"note": None, "techniques": []}
     return {"note": judgement.get("note") or None,

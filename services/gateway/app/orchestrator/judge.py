@@ -53,12 +53,13 @@ JUDGE_BUDGET_S = float(os.getenv("NEGO_JUDGE_BUDGET_S", "6.0"))
 
 async def judge_turn(context: str, player_text: str, lang: str = "ru",
                      interests: Optional[list] = None,
-                     secondary: Optional[list] = None) -> Optional[dict]:
+                     secondary: Optional[list] = None,
+                     task: Optional[dict] = None) -> Optional[dict]:
     """Оценить реплику по смыслу. None → движок берёт keyword-балл."""
     if not (player_text or "").strip() or not judge_enabled():
         return None
 
-    system, user = build_prompts(context, player_text, lang, interests, secondary)
+    system, user = build_prompts(context, player_text, lang, interests, secondary, task)
     deadline = time.perf_counter() + JUDGE_BUDGET_S
 
     for attempt in (1, 2):
