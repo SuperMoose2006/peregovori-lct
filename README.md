@@ -11,6 +11,7 @@
 [demo.md](docs/demo.md) — показ за три минуты ·
 [course.md](docs/course.md) — курс приёмов ·
 [modalities.md](docs/modalities.md) — слои и почему они не входят в оценку ·
+[positioning.md](docs/positioning.md) — где мы стоим на рынке и почему судья не модель ·
 [latency.md](docs/latency.md) — что измерено и чем ·
 [hosting.md](docs/hosting.md) — как это выставлено наружу
 
