@@ -60,6 +60,13 @@ class GameState:
     leverage: float = 0        # grows as you cite criteria/BATNA well
     offer_opp: float = 0       # opponent's current number on the table
     offer_player: Optional[float] = None
+    #: Рамка стола — якорь, к которому возвращает откат. Совпадает с
+    #: `opponent_open`, пока ПЕРВОЕ число не назвал игрок: обоснованный первый
+    #: якорь сдвигает не только текущую цифру, но и точку отсчёта, иначе
+    #: хамством на третьем ходу рамку можно было бы отыграть назад целиком —
+    #: и «кто первый назвал, тот задал систему координат» перестало бы быть
+    #: правдой ровно там, где курс это обещает.
+    frame_open: float = 0
     interests_found: list[int] = field(default_factory=list)
     tradeoffs_used: list[int] = field(default_factory=list)
     terms_conceded: list[str] = field(default_factory=list)  # ids of secondary issues traded
@@ -82,6 +89,10 @@ class Metrics:
     #: доля партии, потраченная на повторы. Техника считает её в минус.
     repeat_sum: float = 0
     repeat_n: int = 0
+    #: Игрок назвал обоснованную цифру ПЕРВЫМ — до того, как оппонент положил
+    #: свою на стол. Приём «якорение» до сих пор не стоил в счёте ничего: чип
+    #: под композером зажигался, а техника его не замечала.
+    opening_anchor: bool = False
 
 
 @dataclass
@@ -150,6 +161,7 @@ def create_session(scenario_id: str, lang: str = "ru") -> Session:
             leverage=sc.player_batna.strength * 0.4,
             offer_opp=sc.opponent_open,
             offer_player=None,
+            frame_open=sc.opponent_open,
             interests_found=[],
             tradeoffs_used=[],
             deal=None,
@@ -287,12 +299,68 @@ def _retract(sess: Session, fraction: float) -> None:
     Цена уходит НАЗАД, к его стартовому якорю, на долю пройденного пути. Этого у
     движка не было вовсе: нагрубить стоило только шкал, а цифра на столе всё
     равно продолжала ползти к игроку. Наказание, которого не видно в цифре, —
-    не наказание. Якорь ограничивает откат сам собой: дальше открытия не уедет.
+    не наказание. Рамка ограничивает откат сама собой: дальше неё не уедет — а
+    рамку мог сдвинуть первый якорь игрока (см. `_anchor_frame`), поэтому здесь
+    стоит `frame_open`, а не `opponent_open`: иначе одна грубость возвращала бы
+    стол к цифре, которую оппонент так и не произнёс.
+    """
+    s = sess.state
+    dist = s.frame_open - s.offer_opp  # знаковое; ПРОЧЬ от игрока
+    s.offer_opp = _round2(s.offer_opp + dist * fraction)
+
+
+#: Доля расстояния до якоря игрока, на которую сдвигается рамка стола. Якорь
+#: ТЯНЕТ рамку, а не назначает её: 0.25 — это «первый номер слышен», а не
+#: «первый номер выигрывает».
+FIRST_WORD_PULL = 0.25
+#: Потолок сдвига — доля размаха «открытие ↔ дно». Без него экстремальный якорь
+#: («по рынку это 700») тянул бы сильнее обоснованного (1080) ровно потому, что
+#: наглее, и урок «цифра стоит на критерии» превращался бы в «называй меньше».
+#: С потолком 0.20 оба сдвигают рамку на один и тот же максимум.
+FIRST_WORD_CAP = 0.20
+#: Порог качества довода, на котором критерий засчитывается СОБЫТИЕМ. Голое
+#: слово «рынок» без цифры и без «потому что» ниже него и цену не двигает.
+CRITERIA_EVENT_MIN = 35
+
+
+def _anchor_frame(sess: Session, anchor: float) -> bool:
+    """Первое названное число задаёт рамку: позиция оппонента едет к игроку.
+
+    Курс учит этому прямым текстом (блок «Якорь», урок 2: «кто называет цифру
+    первым, тот делает свою систему координат общей»), а за столом приём был
+    неисполним — приветствие оппонента само открывало торг его ценой, и игроку
+    оставалось только защищаться. Теперь оппонент здоровается без цифры, а
+    первое слово чего-то стоит.
+
+    Три ограничения, и каждое закрывает свой способ превратить урок в эксплойт:
+    сдвиг идёт ТОЛЬКО в сторону игрока (якорь против себя не наказывает второй
+    раз), он ограничен долей размаха (наглость не выигрывает у обоснованности),
+    и он никогда не переходит дно оппонента — инвариант 1 старше любой рамки.
+
+    Возвращает True, если рамка действительно сдвинулась: приём засчитывается
+    по факту сдвига, а не по факту произнесения.
     """
     sc = by_id(sess.scenario_id)
     s = sess.state
-    dist = sc.opponent_open - s.offer_opp  # знаковое; ПРОЧЬ от игрока
-    s.offer_opp = _round2(s.offer_opp + dist * fraction)
+    floor = sc.opponent_reservation
+    span = abs(sc.opponent_open - floor)
+    gap = anchor - s.offer_opp  # знаковое: + или − в сторону игрока
+    toward_player = (gap < 0) if sess.lower_better else (gap > 0)
+    if span <= 0 or not toward_player:
+        return False
+    shift = min(abs(gap) * FIRST_WORD_PULL, span * FIRST_WORD_CAP)
+    moved = s.offer_opp + math.copysign(shift, gap)
+    # Округляем ПРОТИВ движения, как и уступку: оппонент двигается на
+    # «человеческий» шаг и ни копейкой больше, а дно от этого только дальше.
+    step = price_step(sc)
+    units = moved / step
+    snapped = (math.ceil(units) if floor < s.offer_opp else math.floor(units)) * step
+    snapped = max(snapped, floor) if floor < s.offer_opp else min(snapped, floor)
+    if abs(snapped - s.offer_opp) < 1e-9:
+        return False
+    s.offer_opp = _round2(snapped)
+    s.frame_open = s.offer_opp
+    return True
 
 
 def _tokens(cur_norm: str) -> frozenset:
@@ -635,7 +703,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         # Критерий засчитан событием только с опорой: голое слово «рынок» без
         # цифры и без «потому что» — это не критерий, а его имитация.
         # `arg_quality` уже несёт эту проверку (см. techniques.substance).
-        if analysis.arg_quality >= 35:
+        if analysis.arg_quality >= CRITERIA_EVENT_MIN:
             events.append("criteria")
         reaction = "persuaded"
 
@@ -722,6 +790,26 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
             # Показанное игроку число обязано совпасть с тем, по которому
             # движок считал: иначе разбор цитирует «70 000», а сделка идёт от 70.
             analysis.number = priced
+
+    # --- Право первого слова: обоснованный якорь двигает РАМКУ. ----------------
+    # Условия ровно те, которым учит упражнение `an-07`/`an-10`: цифра, приём
+    # «якорение», критерий — и всё это ДО того, как оппонент положил на стол
+    # свою цифру. Голая цифра («Наша цена 86.») рамку не двигает: без критерия
+    # событие `criteria` не наступает, и урок с движком говорят одно и то же.
+    #
+    # ПОЧЕМУ ИМЕННО `anchor`, А НЕ ЛЮБОЕ ПЕРВОЕ ЧИСЛО. «Первый названный номер»
+    # звучит шире, и шире было проверено: с условием `anchor or offer` партия
+    # «чередование» из `games.json` (две сильные строки по кругу, первая — с
+    # критерием и цифрой) поднималась с 28 до 30 и обгоняла базовую игру — то
+    # есть анти-гейминговая лестница переворачивалась. Приём считается по
+    # чипу, который игрок видит под композером: «Наша цена…», «Мы предлагаем…»
+    # — это ЗАЯВЛЕНИЕ ПОЗИЦИИ, а цифра внутри довода — довод. Ровно этого же
+    # требует предикат упражнения (`require_moves: anchor + objective_criteria`).
+    if (not sess.ledger and sess.turn <= 1 and priced is not None
+            and has("anchor") and criteria
+            and analysis.arg_quality >= CRITERIA_EVENT_MIN
+            and _anchor_frame(sess, priced)):
+        m.opening_anchor = True
 
     # --- Compute concession from productive pressure. --------------------------
     # Гибкость больше НЕ порождает движение сама по себе: она лишь превращает
@@ -1599,6 +1687,10 @@ def score_session(sess: Session) -> dict:
     technique = 0
     technique += min(24, spin_count * 8)
     technique += 16 if m.objective_criteria > 0 else 0
+    # Первое слово: обоснованный якорь, поставленный ДО цифры оппонента. Приём
+    # был в словаре и на чипе под композером, а в счёте не стоил ничего —
+    # то есть курс учил тому, чего оценка не видит.
+    technique += 6 if m.opening_anchor else 0
     technique += 14 if m.interest_probes > 0 else 0
     technique += 12 if len(s.interests_found) >= len(sc.hidden_interests[lang]) else len(s.interests_found) * 4
     technique += 12 if len(s.tradeoffs_used) > 0 else 0

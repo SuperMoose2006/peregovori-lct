@@ -33,6 +33,9 @@ GAMES = json.loads(FIXTURE.read_text(encoding="utf-8"))
 LADDER = GAMES["ladder"]
 #: {scenario_id: {"ru": [...], "en": [...]}} — принципиальная партия на стол.
 PRINCIPLED = {k: v for k, v in GAMES["principled"].items() if k != "note"}
+#: Две партии, отличающиеся ТОЛЬКО первой репликой: якорь с критерием против
+#: той же цифры голой. Право первого слова — см. tests/test_first_word.py.
+FIRST_WORD = GAMES["first_word"]
 LANGS = ("ru", "en")
 
 
@@ -89,6 +92,26 @@ def test_spam_scores_below_a_basic_game() -> None:
     assert scores["spam"] < scores["basic"], scores
     assert scores["alternating"] < scores["basic"], scores
     assert scores["passive"] < scores["basic"], scores
+
+
+def test_the_first_word_is_worth_more_than_the_same_number_bare() -> None:
+    """Партии расходятся одной репликой — и обязаны разойтись счётом.
+
+    Обе закрываются на 1080, поэтому экономика у них одинаковая: разница целиком
+    в технике и в рамке стола. Если она исчезнет, урок «якорь стоит на критерии»
+    снова станет словами.
+    """
+    played = {}
+    for game in FIRST_WORD["games"]:
+        sess, debrief = play(FIRST_WORD["scenario"], game["lines"], FIRST_WORD["lang"])
+        played[game["id"]] = (debrief, sess)
+    grounded, bare = played["grounded"], played["bare"]
+    assert grounded[0]["overall"] > bare[0]["overall"], (
+        grounded[0]["overall"], bare[0]["overall"])
+    assert grounded[0]["technique"] > bare[0]["technique"]
+    assert grounded[0]["economic"] == bare[0]["economic"], "разойтись должна техника, не цифра"
+    assert grounded[1].metrics.opening_anchor and not bare[1].metrics.opening_anchor
+    assert grounded[1].state.offer_opp < bare[1].state.offer_opp, "рамка не сдвинулась"
 
 
 def test_exemplary_game_earns_an_a() -> None:

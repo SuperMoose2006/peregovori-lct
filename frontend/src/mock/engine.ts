@@ -112,6 +112,9 @@ export interface Metrics {
    *  доля партии, потраченная на повторы. Техника считает её в минус. */
   repeatSum: number;
   repeatN: number;
+  /** Игрок назвал обоснованную цифру ПЕРВЫМ — до того, как оппонент положил
+   *  свою на стол. Зеркало backend Metrics.opening_anchor. */
+  openingAnchor: boolean;
 }
 export interface Session {
   sc: ScenarioDef;
@@ -130,6 +133,9 @@ export interface Session {
   leverage: number;
   offerOpp: number;
   offerPlayer: number | null;
+  /** Рамка стола — якорь, к которому возвращает откат. Совпадает с `sc.open`,
+   *  пока ПЕРВОЕ число не назвал игрок. Зеркало backend GameState.frame_open. */
+  frameOpen: number;
   interests: number[];
   tradeoffs: number[];
   // ids of secondary issues the player has traded (logrolling "package"), in the
@@ -179,10 +185,11 @@ export function newSession(sc: ScenarioDef, lang: Lang): Session {
     sc, lang, lowerBetter: sc.dir === "low", difficulty: sc.diff, turn: 0, maxTurns: 12,
     // Seed leverage from BATNA strength (× 0.4) exactly like the backend engine.
     trust: 40, tension: 25, info: 0, leverage: sc.batnaStrength * 0.4,
-    offerOpp: sc.open, offerPlayer: null, interests: [], tradeoffs: [], termsConceded: [], deal: null, status: "active",
+    offerOpp: sc.open, offerPlayer: null, frameOpen: sc.open,
+    interests: [], tradeoffs: [], termsConceded: [], deal: null, status: "active",
     met: {
       argSum: 0, argN: 0, threats: 0, hostiles: 0, empathy: 0, crit: 0,
-      spin: new Set(), probes: 0, repeatSum: 0, repeatN: 0,
+      spin: new Set(), probes: 0, repeatSum: 0, repeatN: 0, openingAnchor: false,
     },
     lastPlayerNorm: "",
     moveHistory: [],
@@ -361,10 +368,42 @@ function concede(s: Session, f: number): void {
   s.offerOpp = Math.round(snapped * 100) / 100;
 }
 // Обратный ход: оппонент снимает часть уже данной уступки, цена уходит назад к
-// его стартовому якорю. Наказание, которого не видно в цифре, — не наказание.
-// Зеркало engine.py::_retract.
+// РАМКЕ стола. Наказание, которого не видно в цифре, — не наказание. Рамку мог
+// сдвинуть первый якорь игрока (см. anchorFrame), поэтому здесь frameOpen, а не
+// sc.open: иначе одна грубость возвращала бы стол к цифре, которую оппонент так
+// и не произнёс. Зеркало engine.py::_retract.
 function retract(s: Session, f: number): void {
-  s.offerOpp = Math.round((s.offerOpp + (s.sc.open - s.offerOpp) * f) * 100) / 100;
+  s.offerOpp = Math.round((s.offerOpp + (s.frameOpen - s.offerOpp) * f) * 100) / 100;
+}
+
+/** Доля расстояния до якоря игрока, на которую сдвигается рамка стола, и
+ *  потолок сдвига в долях размаха «открытие ↔ дно». Потолок нужен затем, чтобы
+ *  наглый якорь не тянул сильнее обоснованного: иначе урок «цифра стоит на
+ *  критерии» превращался бы в «называй меньше». Зеркало engine.py. */
+const FIRST_WORD_PULL = 0.25;
+const FIRST_WORD_CAP = 0.2;
+/** Порог качества довода, на котором критерий засчитывается СОБЫТИЕМ. */
+const CRITERIA_EVENT_MIN = 35;
+
+/** Первое названное число задаёт рамку: позиция оппонента едет к игроку.
+ *  Сдвиг идёт ТОЛЬКО в сторону игрока, ограничен долей размаха и никогда не
+ *  переходит дно (инвариант 1). Зеркало engine.py::_anchor_frame. */
+function anchorFrame(s: Session, anchor: number): boolean {
+  const floor = s.sc.floor;
+  const span = Math.abs(s.sc.open - floor);
+  const gap = anchor - s.offerOpp;
+  const towardPlayer = s.lowerBetter ? gap < 0 : gap > 0;
+  if (span <= 0 || !towardPlayer) return false;
+  const shift = Math.min(Math.abs(gap) * FIRST_WORD_PULL, span * FIRST_WORD_CAP);
+  const moved = s.offerOpp + Math.sign(gap) * shift;
+  const step = priceStep(s.sc);
+  const units = moved / step;
+  let snapped = (floor < s.offerOpp ? Math.ceil(units) : Math.floor(units)) * step;
+  snapped = floor < s.offerOpp ? Math.max(snapped, floor) : Math.min(snapped, floor);
+  if (Math.abs(snapped - s.offerOpp) < 1e-9) return false;
+  s.offerOpp = Math.round(snapped * 100) / 100;
+  s.frameOpen = s.offerOpp;
+  return true;
 }
 function acceptable(s: Session, n: number): boolean {
   return s.lowerBetter ? n >= s.sc.floor - 0.001 : n <= s.sc.floor + 0.001;
@@ -460,7 +499,7 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     if (style === "analytical") s.leverage = clamp(s.leverage + 6);
     // Критерий засчитан событием только с опорой: голое слово «рынок» без цифры
     // и без «потому что» — это не критерий, а его имитация.
-    if (a.arg >= 35) events.push("criteria");
+    if (a.arg >= CRITERIA_EVENT_MIN) events.push("criteria");
     reaction = "persuaded";
   }
   if (H("batna")) {
@@ -517,6 +556,17 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
       // Показанное число обязано совпасть с тем, по которому считал движок.
       a.number = priced;
     }
+  }
+  // Право первого слова: обоснованный якорь двигает РАМКУ. Условия ровно те,
+  // которым учит упражнение курса `an-07`/`an-10`: цифра, приём «якорение»,
+  // критерий — и всё это ДО того, как оппонент положил на стол свою цифру.
+  // Зеркало engine.py.
+  if (
+    s.ledger.length === 0 && s.turn <= 1 && priced !== null &&
+    H("anchor") && H("objective_criteria") && a.arg >= CRITERIA_EVENT_MIN &&
+    anchorFrame(s, priced)
+  ) {
+    m.openingAnchor = true;
   }
   // Гибкость больше НЕ порождает движение сама по себе: она лишь превращает
   // заработанное событие в рубли.
@@ -993,8 +1043,8 @@ export function renderLine(s: Session, reaction: string, closed: boolean): strin
 export function greetingText(s: Session): string {
   const sc = s.sc;
   return s.lang === "ru"
-    ? `Здравствуйте. Я ${sc.cp.nm.ru}. Наше стартовое предложение — ${s.offerOpp}${sc.unit.ru}. С чего начнём?`
-    : `Hello. I'm ${sc.cp.nm.en}. Our opening position is ${s.offerOpp}${sc.unit.en}. Where shall we start?`;
+    ? `Здравствуйте. Я ${sc.cp.nm.ru}. Свою цифру я назову, но начать предлагаю вам — с чего начнём?`
+    : `Hello. I'm ${sc.cp.nm.en}. I'll name my figure, but I'd rather you start — where shall we begin?`;
 }
 
 // ---------- state view (protocol) ----------
@@ -1048,6 +1098,9 @@ export function scoreSession(s: Session): Debrief {
   let technique = 0;
   technique += Math.min(24, spinC * 8);
   technique += m.crit > 0 ? 16 : 0;
+  // Первое слово: обоснованный якорь, поставленный ДО цифры оппонента. Приём
+  // был в словаре и на чипе под композером, а в счёте не стоил ничего.
+  technique += m.openingAnchor ? 6 : 0;
   technique += m.probes > 0 ? 14 : 0;
   technique += s.interests.length >= sc.interests[lang].length ? 12 : s.interests.length * 4;
   technique += s.tradeoffs.length > 0 ? 12 : 0;

@@ -93,8 +93,12 @@ export const LEX: Record<string, string[]> = {
     "then we would", "in exchange for",
   ],
   anchor: [
-    "наша цена", "мы предлагаем", "исходная", "стартуем с", "позиция такова", "we propose",
-    "our price is", "starting point", "our position is", "we are asking",
+    "наша цена", "моя цена", "мы предлагаем", "я предлагаю", "наше предложение",
+    "мое предложение", "исходная", "стартуем с", "начнем с цены", "позиция такова",
+    "готов заплатить", "готовы заплатить", "готов предложить", "готовы предложить",
+    "we propose", "i propose", "our price is", "my price is", "our offer is", "my offer is",
+    "starting point", "our position is", "my position is", "we are asking", "i am asking",
+    "we are offering", "i am offering",
   ],
   rationale: [
     "потому что", "так как", "поскольку", "причина в том", "это позволит", "за счет", "because",

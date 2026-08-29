@@ -123,6 +123,12 @@ export function previewChips(raw: string): PreviewChip[] {
   add(x.includes("?"), "spin", "❓");
   add(has(x, LEX.rationale), "criteria", "↳ arg");
   add(has(x, LEX.objectiveCriteria), "criteria", "📊");
+  // Якорь — единственный приём, который стоит ПОКАЗАТЬ ещё до отправки: он
+  // ценен ровно первым ходом (движок считает по нему право первого слова), а
+  // узнать об этом постфактум значит узнать поздно. Класс `.tag.anchor` в
+  // styles.css уже есть — чип не заявляет ничего нового, только то, что
+  // словарь и так засчитал.
+  add(has(x, LEX.anchor), "anchor", "⚓");
   add(has(x, LEX.batna), "batna", "🛡");
   add(has(x, LEX.acknowledge) || has(x, LEX.interestsProbe), "empathy", "🤝");
   add(has(x, LEX.tradeoff), "tradeoff", "🔄");

@@ -426,11 +426,27 @@ BLOCKS: list[Block] = [
                 "Голая цифра — это заявка на упрямство, и она приглашает такую же в ответ. Цифра, "
                 "выведенная из внешнего источника, делает вашу систему координат общей.\n\n"
                 "В движке разница видна: голый контр-якорь даёт качество аргумента 26, тот же якорь "
-                "с критерием — реакцию «принимает довод» и рычаг +16.",
+                "с критерием — реакцию «принимает довод» и рычаг +16.\n\n"
+                "И у первого слова есть цена. Оппонент за столом здоровается, но своей цифры не "
+                "называет — он предлагает начать вам. Обоснованный якорь, поставленный ДО его "
+                "числа, двигает не только текущую цену, но и саму рамку: у Сергея это 1200 → 1170 "
+                "ещё до всякой уступки, и весь дальнейший торг считается уже от 1170. Голая цифра "
+                "рамку не двигает — двигает цифра, стоящая на критерии.\n\n"
+                "Сдвиг ограничен пятой частью размаха, и это осознанно: «мы предлагаем 700» тянет "
+                "рамку ровно настолько же, насколько обоснованные 1080. Наглость не выигрывает у "
+                "обоснованности, а первое слово тратится один раз за партию.",
                 "A bare number is a bid for stubbornness, and it invites the same in return. A number "
                 "derived from an outside source makes your frame the shared one.\n\n"
                 "The engine shows the gap: a bare counter-anchor scores argument quality 26; the same "
-                "anchor with a criterion yields “persuaded by data” and leverage +16.",
+                "anchor with a criterion yields “persuaded by data” and leverage +16.\n\n"
+                "And the first word costs them something. Your counterpart opens with a greeting but "
+                "no figure — they invite you to start. A grounded anchor placed BEFORE their number "
+                "moves not just the current price but the frame itself: with Sergey that is 1200 → "
+                "1170 before any concession, and every later move is counted from 1170. A bare number "
+                "does not move the frame; a number standing on a criterion does.\n\n"
+                "The shift is capped at a fifth of the range, deliberately: “we propose 700” drags the "
+                "frame exactly as far as a grounded 1080 does. Nerve does not beat grounding, and the "
+                "first word is spent once per game.",
             )),
             Lesson(3, T("Защита: не контр-цифра", "Defence is not a counter-number"), T(
                 "Ответить своей крайней цифрой — значит согласиться играть в перетягивание каната, "

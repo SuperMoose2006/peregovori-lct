@@ -83,6 +83,65 @@ for (const sid of Object.keys(PRINCIPLED)) {
   });
 }
 
+// ---- Право первого слова -----------------------------------------------------
+// Две партии, отличающиеся ТОЛЬКО первой репликой: якорь с критерием против той
+// же цифры голой. Сдвиг рамки живёт в applyMove, а не в классификаторе, — то
+// есть ровно там, где два ядра расходятся молча, оставив чипы синхронными.
+const FIRST_WORD = GAMES.first_word;
+
+for (const gid of FIRST_WORD.order as string[]) {
+  test(`инвариант 8: первое слово — партия «${gid}» считается так же, как на сервере`, () => {
+    const game = FIRST_WORD.games.find((g: { id: string }) => g.id === gid);
+    checkAgainstBackend(gid, FIRST_WORD.scenario, game.lines, SCORES.first_word[gid]);
+  });
+}
+
+test("первое слово: обоснованный якорь стоит дороже той же цифры голой", () => {
+  const played: Record<string, { overall: number; technique: number; offerOpp: number }> = {};
+  for (const gid of FIRST_WORD.order as string[]) {
+    const game = FIRST_WORD.games.find((g: { id: string }) => g.id === gid);
+    const { s, debrief } = play(FIRST_WORD.scenario, game.lines, FIRST_WORD.lang as Lang);
+    played[gid] = { overall: debrief.overall, technique: debrief.technique, offerOpp: s.offerOpp };
+  }
+  assert.ok(
+    played.grounded.overall > played.bare.overall,
+    `якорь с критерием (${played.grounded.overall}) не выше голой цифры (${played.bare.overall})`,
+  );
+  assert.ok(played.grounded.technique > played.bare.technique, "приём не виден в технике");
+  // Рамка: обоснованный якорь оставляет цену оппонента ближе к игроку.
+  assert.ok(
+    played.grounded.offerOpp < played.bare.offerOpp,
+    `рамка не сдвинулась: ${played.grounded.offerOpp} против ${played.bare.offerOpp}`,
+  );
+});
+
+test("первое слово тратится один раз и не проводит оппонента за дно", () => {
+  const line = "Мы предлагаем 1080: по трём объявлениям на такую же модель с этим пробегом медиана рынка именно такая.";
+  const sc = SCENARIO_MAP.used_car;
+
+  const first = newSession(sc, "ru");
+  first.turn += 1;
+  applyMove(first, analyze(line), line);
+  assert.equal(first.met.openingAnchor, true, "приём не засчитан на первом ходу");
+
+  const later = newSession(sc, "ru");
+  const hi = "Здравствуйте, рад встрече.";
+  later.turn += 1;
+  applyMove(later, analyze(hi), hi);
+  later.turn += 1;
+  applyMove(later, analyze(line), line);
+  assert.equal(later.met.openingAnchor, false, "право первого слова потрачено дважды");
+  assert.ok(first.offerOpp < later.offerOpp, `${first.offerOpp} против ${later.offerOpp}`);
+
+  // Инвариант 1 старше любой рамки: якорь за дном её туда не уводит.
+  const wild = "Мы предлагаем 700: по рыночным данным медиана независимых оценок именно такая, потому что это отраслевой стандарт.";
+  const s = newSession(sc, "ru");
+  s.turn += 1;
+  applyMove(s, analyze(wild), wild);
+  assert.ok(s.offerOpp >= sc.floor - 1e-9, `цена ${s.offerOpp} ниже дна ${sc.floor}`);
+  assert.equal(s.frameOpen, first.frameOpen, "наглый якорь тянет рамку дальше обоснованного");
+});
+
 test("лестница качества: спам обязан быть ниже базовой игры", () => {
   const scores: Record<string, number> = {};
   for (const gid of LADDER.order as string[]) {

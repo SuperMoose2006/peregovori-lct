@@ -292,13 +292,24 @@ def _transcript(sess: "engine.Session", lang: str, max_turns: int = 6) -> str:
 # ---- fixed lines ------------------------------------------------------------
 
 def greeting_line(sess: "engine.Session", lang: str) -> str:
+    """Приветствие БЕЗ цифры — первое слово остаётся за игроком.
+
+    Раньше здесь стояло «Наше стартовое предложение — 1200k ₽»: оппонент
+    открывал торг своей ценой на всех девяти столах, и приём, которому учит
+    блок «Якорь» (урок 2 — поставить свой первый номер), за столом был
+    неисполним ни разу. Инвариант 9 требует обратного: чему учит упражнение,
+    то обязано работать в игре.
+
+    Позиция оппонента никуда не делась — она стоит на рельсе `DealTracker` как
+    и стояла (это условие стола, как цель и красная линия игрока), и оппонент
+    называет её в первой же своей реплике. Изменилось одно: кто произносит
+    число первым.
+    """
     sc = engine.by_id(sess.scenario_id)
     name = sc.counterpart.name[lang]
-    unit = sc.headline.unit[lang]
-    offer = sess.state.offer_opp
     if lang == "ru":
-        return f"Здравствуйте. Я {name}. Наше стартовое предложение — {offer}{unit}. С чего начнём?"
-    return f"Hello. I'm {name}. Our opening position is {offer}{unit}. Where shall we start?"
+        return f"Здравствуйте. Я {name}. Свою цифру я назову, но начать предлагаю вам — с чего начнём?"
+    return f"Hello. I'm {name}. I'll name my figure, but I'd rather you start — where shall we begin?"
 
 
 def reputation_intro(reputation: float, lang: str) -> str:
