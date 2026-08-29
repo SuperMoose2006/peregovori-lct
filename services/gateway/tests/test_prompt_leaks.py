@@ -131,3 +131,81 @@ def test_a_revealed_interest_is_allowed_in_the_prompt(lang: str) -> None:
     system, _ = build_prompts(facts)
     assert sc.hidden_interests[lang][0] in system, (
         "выведенный интерес не дошёл до оппонента — он забыл, что сам рассказал")
+
+
+@pytest.mark.parametrize("lang", LANGS)
+@pytest.mark.parametrize("sc", SCENARIOS, ids=lambda s: s.id)
+def test_the_hint_never_spoils_what_the_player_must_discover(sc, lang: str) -> None:
+    """Подсказка не выдаёт того, ради чего игра и затевалась.
+
+    Кнопка подсказки — самая соблазнительная дыра в продукте: если через неё
+    можно ВЫПРОСИТЬ скрытый интерес, то вскрывать его вопросами больше незачем,
+    и упражнение превращается в нажатие кнопки.
+
+    Здесь проверяется только ТЕКСТ интересов — предложениями, а не числами.
+    Числа в этом промпте сторожить бессмысленно: он показывает шкалы, и доверие
+    62 на столе `rent` совпадает с красной линией оппонента 62. Совпадение
+    неустранимо, поэтому числа сторожит следующий тест — по составу словаря,
+    то есть по тому, как утечка на самом деле и появилась бы.
+    """
+    from app.ai import coach
+
+    sess = engine.create_session(sc.id, lang)
+    all_interests = sc.hidden_interests[lang]
+
+    for text in MOVES[lang]:
+        if sess.state.status != "active":
+            break
+        sess.turn += 1
+        engine.apply_move(sess, analyze(text), text)
+
+        system, user = coach.build_prompts(views.coach_facts(sess, lang), lang)
+        checked = system + "\n" + user.replace(views._transcript(sess, lang), "")
+
+        revealed = {all_interests[i] for i in sess.state.interests_found
+                    if 0 <= i < len(all_interests)}
+        for i, interest in enumerate(all_interests):
+            if interest in revealed:
+                continue
+            assert interest not in checked, (
+                f"{sc.id}/{lang}, ход {sess.turn}: подсказка выдаёт невыведенный "
+                f"интерес №{i} «{interest[:40]}…» — его можно выпросить кнопкой")
+
+
+#: Что коуч и оппонент имеют право знать. Список закрытый НАМЕРЕННО: утечка в
+#: этот слой появляется не опечаткой в тексте, а строкой «добавлю сюда ещё одно
+#: поле, пригодится». Новый ключ обязан пройти через правку этого теста — то
+#: есть через вопрос «а не выдаёт ли он то, что игрок должен добыть сам».
+COACH_KEYS = {"lang", "role", "persona_name", "persona_desc", "offer_opp", "unit",
+              "trust", "tension", "info", "revealed_interests", "transcript"}
+OPPONENT_KEYS = {"lang", "persona_name", "persona_desc", "style", "offer_opp", "unit",
+                 "mood", "status", "revealed_interests", "transcript", "player_text"}
+
+#: Ключи, которых в этих словарях не должно быть НИКОГДА, как бы они ни
+#: назывались. Красная линия, цель и полный список интересов — это ответы.
+FORBIDDEN = ("reservation", "floor", "target", "batna", "hidden", "zopa", "secret")
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_the_facts_dicts_carry_no_answers(lang: str) -> None:
+    sc = SCENARIOS[0]
+    sess = engine.create_session(sc.id, lang)
+    sess.turn += 1
+    result = engine.apply_move(sess, analyze(MOVES[lang][1]), MOVES[lang][1])
+
+    coach_keys = set(views.coach_facts(sess, lang))
+    assert coach_keys == COACH_KEYS, (
+        "состав фактов подсказки изменился — проверьте, не попал ли туда ответ:\n"
+        f"  появилось: {sorted(coach_keys - COACH_KEYS)}\n"
+        f"  исчезло:   {sorted(COACH_KEYS - coach_keys)}")
+
+    opp_keys = set(views.build_facts(sess, result))
+    assert opp_keys == OPPONENT_KEYS, (
+        "состав фактов оппонента изменился — проверьте, не попал ли туда ответ:\n"
+        f"  появилось: {sorted(opp_keys - OPPONENT_KEYS)}\n"
+        f"  исчезло:   {sorted(OPPONENT_KEYS - opp_keys)}")
+
+    for keys, who in ((coach_keys, "подсказка"), (opp_keys, "оппонент")):
+        for key in keys:
+            assert not any(bad in key.lower() for bad in FORBIDDEN), (
+                f"{who}: ключ «{key}» звучит как ответ, а не как факт")
