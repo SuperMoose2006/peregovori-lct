@@ -267,9 +267,10 @@ def daily(lang: str = "ru", day: str = "") -> dict:
     }
 
 
-#: Предел на кадр калибровки, знаков base64. 320-пиксельный JPEG качества 0.6
-#: весит около 15 КБ; полмегабайта — это уже не наш кадр, а чей-то файл.
-MAX_FRAME_B64 = 700_000
+#: Предел на кадр, знаков base64. Общий с сокетом: и калибровка, и `input.append`
+#: принимают кадры с улицы, и уезжают они в одну и ту же платную модель, — держать
+#: два разных числа значит однажды закрыть одну дверь и забыть про вторую.
+from app.realtime.session import MAX_FRAME_B64
 
 
 @app.post("/api/vision/check")
@@ -443,12 +444,22 @@ async def realtime(websocket: WebSocket) -> None:
 # после переезда backend/ → services/gateway/ путь стал на уровень глубже.
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 _DIST = os.path.join(_REPO_ROOT, "frontend", "dist")
+_DIST_REAL = os.path.realpath(_DIST)
 if os.path.isdir(_DIST):
     app.mount("/assets", StaticFiles(directory=os.path.join(_DIST, "assets")), name="assets")
 
     @app.get("/{full_path:path}")
     def spa(full_path: str):  # SPA fallback for client-side routes
-        candidate = os.path.join(_DIST, full_path)
-        if full_path and os.path.isfile(candidate):
+        # ПУТЬ ОБЯЗАН ОСТАТЬСЯ ВНУТРИ dist. `full_path` приходит с улицы, и
+        # `os.path.join(_DIST, "../../services/gateway/.env")` — это настоящий
+        # файл: гейтвей раздавал наружу ключ OpenRouter (и `/etc/passwd` тем же
+        # запросом). Замок на HTTP спрашивает пароль, но пароль на показе знают
+        # все, кому его назвали, а ключ в .env — не их.
+        #
+        # Проверяем ПОСЛЕ realpath, а не отсечением «..» в строке: символьная
+        # ссылка внутри dist ведёт наружу без единой точки в пути.
+        candidate = os.path.realpath(os.path.join(_DIST, full_path))
+        inside = candidate == _DIST_REAL or candidate.startswith(_DIST_REAL + os.sep)
+        if full_path and inside and os.path.isfile(candidate):
             return FileResponse(candidate)
         return FileResponse(os.path.join(_DIST, "index.html"))

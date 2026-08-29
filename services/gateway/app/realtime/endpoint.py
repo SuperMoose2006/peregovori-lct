@@ -21,11 +21,13 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import logging
 import os
 from typing import Optional
 
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
+from pydantic import ValidationError
 
 from app import engine, views
 from app.avatar.base import AvatarProvider
@@ -43,10 +45,101 @@ from app.providers.tts.base import Voice
 from app.providers.tts.base import TTSProvider
 from app.providers.tts.edge import EdgeTTS
 from app.providers.tts.openai_speech import OpenAISpeechTTS
-from app.realtime.events import SessionInit, error, session_closed
-from app.realtime.session import (Layers, RealtimeSession, keep_for_resume,
+from app.realtime.events import InputAppend, SessionInit, error, session_closed
+from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
+                                  RealtimeSession, keep_for_resume,
                                   restore_from_resume)
 from app.session import store
+
+_log = logging.getLogger(__name__)
+
+#: Сколько ходов ждёт очереди, пока считается текущий. Один: игрок ходит по
+#: очереди с оппонентом, а всё, что сверх, — либо дрожащий палец, либо тот, кто
+#: решил проверить, сколько платных ходов примет сокет за секунду.
+_MAX_QUEUED_TURNS = 1
+
+#: Короче этого «своя сделка» не генерируется. Не строгость ради строгости:
+#: описание уезжает в самую дорогую роль (`reasoning`), и из пустой строки она
+#: вернёт либо ничего, либо выдумку — оплаченную в обоих случаях.
+_MIN_SITUATION_CHARS = 10
+
+
+def _why(exc: ValidationError) -> str:
+    """Чем именно плох `payload`: поле и причина, без значений и без ссылок.
+
+    Полный `str(ValidationError)` пересказывает клиенту наши типы, повторяет
+    присланное значение и приписывает ссылку на errors.pydantic.dev с версией.
+    Клиенту нужно одно: какое поле он заполнил не так.
+    """
+    parts = [".".join(str(x) for x in e["loc"]) + ": " + e["msg"] for e in exc.errors()[:3]]
+    return "; ".join(parts) or "invalid payload"
+
+
+class _Work:
+    """Фоновая работа сокета: ход и подсказка.
+
+    ПОЧЕМУ ЗАДАЧАМИ. Шапка этого файла обещает: «читатель никогда не
+    блокируется на ИИ, поэтому `response.cancel` доходит мгновенно». Обещание
+    было неверным для текстового пути — `await on_player_turn(...)` держал
+    читателя весь стрим модели, и кнопка перебивания разбиралась уже ПОСЛЕ
+    `response.done` (замер: cancel отправлен на 1.73 с, обработан на 2.11 с).
+    Заодно оборванный сокет замечался только после того, как ход дозвонил в
+    платные модели до конца.
+
+    Замок здесь не для скорости, а для движка: `on_player_turn` двигает
+    `engine.turn`, и два хода внахлёст (голосовой пайплайн + `input.commit`)
+    посчитали бы один ход дважды.
+    """
+
+    def __init__(self) -> None:
+        self._lock = asyncio.Lock()
+        self._turns: set[asyncio.Task] = set()
+        self._hint: Optional[asyncio.Task] = None
+
+    def start_turn(self, orchestrator: "NegotiationOrchestrator",
+                   session: "RealtimeSession", text: str) -> bool:
+        if len(self._turns) > _MAX_QUEUED_TURNS:
+            return False
+        task = asyncio.create_task(self._turn(orchestrator, session, text))
+        self._turns.add(task)
+        task.add_done_callback(self._turns.discard)
+        return True
+
+    async def _turn(self, orchestrator: "NegotiationOrchestrator",
+                    session: "RealtimeSession", text: str) -> None:
+        async with self._lock:
+            try:
+                await orchestrator.on_player_turn(text)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                # Ход не состоялся — сказать об этом обязаны: молчащий сокет
+                # выглядит как «оппонент думает», и человек ждёт вечно.
+                _log.exception("realtime: ход упал")
+                session.bus.publish(error("turn_failed", "turn failed"))
+
+    def start_hint(self, session: "RealtimeSession") -> None:
+        if self._hint is not None and not self._hint.done():
+            return
+        self._hint = asyncio.create_task(self._safe_hint(session))
+
+    @staticmethod
+    async def _safe_hint(session: "RealtimeSession") -> None:
+        try:
+            await _send_hint(session)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _log.exception("realtime: подсказка упала")
+
+    async def aclose(self) -> None:
+        """Сокет ушёл — платить за его ход больше не за что."""
+        tasks = [t for t in (*self._turns, self._hint) if t is not None]
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await task
 
 
 async def realtime_ws(websocket: WebSocket) -> None:
@@ -65,99 +158,176 @@ async def realtime_ws(websocket: WebSocket) -> None:
     voice: Optional[VoicePipeline] = None
     vision: Optional[VisionSampler] = None
     writer: Optional[asyncio.Task] = None
+    work = _Work()
 
     try:
         while True:
-            message = await websocket.receive_json()
+            try:
+                message = await websocket.receive_json()
+            except WebSocketDisconnect:
+                raise
+            except Exception:
+                # Не-JSON, пустой кадр, бинарный кадр. Раньше это уходило в
+                # общий `except` внизу — то есть ОДНО кривое сообщение уносило
+                # партию целиком. Сокет смотрит в интернет; мусор в нём —
+                # норма, а не исключительная ситуация.
+                await websocket.send_json(error("bad_json", "message is not valid JSON"))
+                continue
+            if not isinstance(message, dict):
+                # `null`, массив, число, строка: у всех есть `.get`… только не
+                # у них. Проверяем форму, а не ловим AttributeError.
+                await websocket.send_json(error("bad_message",
+                                                "message must be a JSON object"))
+                continue
             kind = message.get("type")
 
-            # ---- session.init ---------------------------------------------
-            if kind == "session.init":
-                if session is not None:
-                    await websocket.send_json(error("already_initialized",
-                                                    "session already initialized"))
+            try:
+                # ---- session.init ---------------------------------------------
+                if kind == "session.init":
+                    if session is not None:
+                        await websocket.send_json(error("already_initialized",
+                                                        "session already initialized"))
+                        continue
+                    raw = message.get("payload") or {}
+                    if not isinstance(raw, dict):
+                        await websocket.send_json(error("bad_payload",
+                                                        "payload must be an object"))
+                        continue
+                    try:
+                        payload = SessionInit(**raw)
+                    except ValidationError as exc:
+                        await websocket.send_json(error("bad_payload", _why(exc)))
+                        continue
+                    payload.mode = mode  # URL — истина, а не поле в теле
+                    session, problem = await _build_session(payload)
+                    if session is None:
+                        await websocket.send_json(error("init_failed", problem or "init failed"))
+                        continue
+
+                    orchestrator, voice, vision = _wire(session)
+                    writer = asyncio.create_task(_pump(websocket, session))
+                    await websocket.send_json(_created_payload(session, voice))
                     continue
-                payload = SessionInit(**(message.get("payload") or {}))
-                payload.mode = mode  # URL — истина, а не поле в теле
-                session, problem = await _build_session(payload)
-                if session is None:
-                    await websocket.send_json(error("init_failed", problem or "init failed"))
+
+                if session is None or orchestrator is None:
+                    await websocket.send_json(error("not_initialized",
+                                                    "send session.init first"))
                     continue
 
-                orchestrator, voice, vision = _wire(session)
-                writer = asyncio.create_task(_pump(websocket, session))
-                await websocket.send_json(_created_payload(session, voice))
+                # ---- input.append ---------------------------------------------
+                if kind == "input.append":
+                    raw = message.get("input") or {}
+                    if not isinstance(raw, dict):
+                        await websocket.send_json(error("bad_input",
+                                                        "input must be an object"))
+                        continue
+                    try:
+                        # Схема `InputAppend` была объявлена в events.py и не
+                        # вызывалась ниоткуда: разбор шёл по `.get()`, поэтому
+                        # `video_frames: "строка"` доезжал до модели зрения
+                        # посимвольно, а `text: 12345` ронял сессию на срезе.
+                        data = InputAppend(**raw)
+                    except ValidationError as exc:
+                        await websocket.send_json(error("bad_input", _why(exc)))
+                        continue
+
+                    if data.text:
+                        session.append_input(text=data.text)
+                    frames = data.video_frames or []
+                    if frames and any(len(f) > MAX_FRAME_B64 for f in frames):
+                        # Кадр целиком уезжает в платную модель. Молча урезать
+                        # нельзя: клиент решит, что его видели.
+                        await websocket.send_json(error("frame_too_large",
+                                                        f"frame exceeds {MAX_FRAME_B64} base64 chars"))
+                        frames = [f for f in frames if len(f) <= MAX_FRAME_B64]
+                    if frames:
+                        session.append_input(frames=frames)
+                        if vision is not None:
+                            # «Кадр изменился» считает браузер: у него кадр уже в
+                            # canvas, а по сжатому JPEG честной разницы не получить.
+                            # Номер хода снимается ЗДЕСЬ, а не там, где вернётся
+                            # модель: взгляд длится секунду, за которую человек
+                            # успевает отправить ход, и наблюдение уехало бы в
+                            # ленту с чужим номером.
+                            vision.offer(frames, change=data.frame_change,
+                                         turn=session.turn_id)
+                    if data.audio and voice is not None:
+                        try:
+                            blob = base64.b64decode(data.audio, validate=True)
+                        except Exception:
+                            await websocket.send_json(error("bad_audio",
+                                                            "audio must be base64 PCM16"))
+                            continue
+                        if len(blob) > MAX_AUDIO_BYTES:
+                            await websocket.send_json(error("audio_too_large",
+                                                            f"audio chunk exceeds {MAX_AUDIO_BYTES} bytes"))
+                            continue
+                        # Нечётный хвост — не повод ронять партию: PCM16 идёт
+                        # парами байт, лишний байт просто не звук.
+                        pcm = np.frombuffer(blob[:len(blob) - len(blob) % 2], dtype=np.int16)
+                        voice.feed(pcm)
+                    if data.force_listen:
+                        await orchestrator.interrupt(reason="force_listen")
+                    continue
+
+                # ---- input.commit ---------------------------------------------
+                if kind == "input.commit":
+                    text, _frames = session.take_input()
+                    if not text and voice is not None:
+                        # Голосовой режим: клиент нажал «готово», не дожидаясь
+                        # детектора конца хода. Уважаем — человек решил сам.
+                        await voice.force_commit()
+                    elif text:
+                        if not work.start_turn(orchestrator, session, text):
+                            await websocket.send_json(error("busy", "turn already in flight"))
+                    continue
+
+                # ---- response.cancel (перебивание с клиента) -------------------
+                if kind == "response.cancel":
+                    await orchestrator.interrupt(reason="client_cancel")
+                    continue
+
+                # ---- coach.request (кнопка 💡) ---------------------------------
+                if kind == "coach.request":
+                    # Задачей, а не `await`: подсказку считает платная модель, и
+                    # читатель, вставший на ней, не примет ни перебивания, ни
+                    # хода. Вторая просьба, пока первая в пути, — не вторая
+                    # подсказка, а второй счёт от провайдера.
+                    work.start_hint(session)
+                    continue
+
+                # ---- session.close ---------------------------------------------
+                if kind == "session.close":
+                    await orchestrator.interrupt(reason="session_close")
+                    # Человек сам сказал, что закончил — ждать возвращения незачем.
+                    store.drop(session.session_id)
+                    reason = message.get("reason")
+                    await websocket.send_json(session_closed(
+                        session.session_id,
+                        str(reason)[:64] if isinstance(reason, str) else "user_stop"))
+                    break
+
+                await websocket.send_json(error("unknown_event", f"unknown message: {str(kind)[:64]}"))
+            except WebSocketDisconnect:
+                raise
+            except Exception:
+                # Сообщение уронило обработчик — партия при этом цела. Наружу
+                # идёт код, а не `str(exc)`: питоновский текст исключения
+                # рассказывает клиенту про наши типы и поля, а починить по нему
+                # всё равно нечего. Подробность — в лог, он наш.
+                _log.exception("realtime: %s уронил обработчик", kind)
+                with contextlib.suppress(Exception):
+                    await websocket.send_json(error("server_error", "internal error"))
                 continue
-
-            if session is None or orchestrator is None:
-                await websocket.send_json(error("not_initialized",
-                                                "send session.init first"))
-                continue
-
-            # ---- input.append ---------------------------------------------
-            if kind == "input.append":
-                data = message.get("input") or {}
-                text = data.get("text")
-                if text:
-                    session.append_input(text=text)
-                frames = data.get("video_frames")
-                if frames:
-                    session.append_input(frames=frames)
-                    if vision is not None:
-                        # «Кадр изменился» считает браузер: у него кадр уже в
-                        # canvas, а по сжатому JPEG честной разницы не получить.
-                        # Номер хода снимается ЗДЕСЬ, а не там, где вернётся
-                        # модель: взгляд длится секунду, за которую человек
-                        # успевает отправить ход, и наблюдение уехало бы в
-                        # ленту с чужим номером.
-                        vision.offer(frames, change=data.get("frame_change"),
-                                     turn=session.turn_id)
-                audio_b64 = data.get("audio")
-                if audio_b64 and voice is not None:
-                    pcm = np.frombuffer(base64.b64decode(audio_b64), dtype=np.int16)
-                    voice.feed(pcm)
-                if data.get("force_listen"):
-                    await orchestrator.interrupt(reason="force_listen")
-                continue
-
-            # ---- input.commit ---------------------------------------------
-            if kind == "input.commit":
-                text, _frames = session.take_input()
-                if not text and voice is not None:
-                    # Голосовой режим: клиент нажал «готово», не дожидаясь
-                    # детектора конца хода. Уважаем — человек решил сам.
-                    await voice.force_commit()
-                elif text:
-                    await orchestrator.on_player_turn(text)
-                continue
-
-            # ---- response.cancel (перебивание с клиента) -------------------
-            if kind == "response.cancel":
-                await orchestrator.interrupt(reason="client_cancel")
-                continue
-
-            # ---- coach.request (кнопка 💡) ---------------------------------
-            if kind == "coach.request":
-                await _send_hint(session)
-                continue
-
-            # ---- session.close ---------------------------------------------
-            if kind == "session.close":
-                await orchestrator.interrupt(reason="session_close")
-                # Человек сам сказал, что закончил — ждать возвращения незачем.
-                store.drop(session.session_id)
-                await websocket.send_json(session_closed(session.session_id,
-                                                         message.get("reason", "user_stop")))
-                break
-
-            await websocket.send_json(error("unknown_event", f"unknown message: {kind}"))
 
     except WebSocketDisconnect:
         pass
-    except Exception as exc:  # сокет не должен падать от кривого сообщения
+    except Exception:  # сокет не должен падать от кривого сообщения
+        _log.exception("realtime: сессия оборвалась исключением")
         with contextlib.suppress(Exception):
-            await websocket.send_json(error("server_error", str(exc)))
+            await websocket.send_json(error("server_error", "internal error"))
     finally:
+        await work.aclose()
         if orchestrator is not None:
             with contextlib.suppress(Exception):
                 await orchestrator.interrupt(reason="disconnect")
@@ -221,7 +391,16 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
 
     if payload.gameMode == "custom":
         from app.ai.scenario_gen import generate_scenario
-        generated = await generate_scenario(payload.situation or "", payload.lang)
+        situation = (payload.situation or "").strip()
+        if len(situation) < _MIN_SITUATION_CHARS:
+            # Спрашиваем ДО модели. Генерация сценария — самый дорогой вызов в
+            # продукте (роль `reasoning`, 1400 токенов, бюджет секунд), и пустое
+            # описание не даст из него ничего, кроме счёта: `{"gameMode":"custom"}`
+            # без ситуации — это оплаченный нами запрос ни о чём.
+            return None, ("Опишите ситуацию: с кем и о чём переговоры."
+                          if payload.lang == "ru" else
+                          "Describe the situation: with whom and about what.")
+        generated = await generate_scenario(situation, payload.lang)
         if generated is None:
             return None, ("Не удалось сгенерировать сценарий. Попробуйте переформулировать ситуацию."
                           if payload.lang == "ru" else
