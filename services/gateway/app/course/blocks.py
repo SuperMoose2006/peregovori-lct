@@ -1,12 +1,22 @@
 """blocks.py — учебные блоки курса «Диалог».
 
-ЧТО ЭТО. Десять блоков по одному навыку каждый, в порядке, где следующий
+ЧТО ЭТО. Одиннадцать блоков по одному навыку каждый, в порядке, где следующий
 опирается на предыдущий: интерес → вопрос → эмоция → легитимность → сила →
-числа → создание ценности → защита → закрытие → стиль. Внутри блока —
-короткие уроки (текст) и
-упражнения (`bank.py`), в конце — экзамен блока. Экзамена как отдельного модуля
-нет: выборка детерминирована от (блок, попытка) и живёт в `lib/course.ts::drawExam`,
-потому что экзамен обязан считаться офлайн, как и всё остальное в курсе.
+числа → создание ценности → защита → закрытие → стиль → подготовка. Внутри
+блока — короткие уроки (текст) и упражнения (`bank.py`), в конце — экзамен
+блока. Экзамена как отдельного модуля нет: выборка детерминирована от
+(блок, попытка) и живёт в `lib/course.ts::drawExam`, потому что экзамен обязан
+считаться офлайн, как и всё остальное в курсе.
+
+ПОЧЕМУ «ПОДГОТОВКА» СТОИТ ПОСЛЕДНЕЙ, А НЕ ПЕРВОЙ. По методу она первая: BATNA
+считают до разговора, цель и красную линию назначают до, гипотезы об интересах
+выписывают до. Но лист подготовки СОСТОИТ из понятий всех десяти блоков —
+красная линия и альтернатива (блок 5), темы интересов (1), критерий под первую
+цифру (4 и 6), вторичные фишки (7). Поставленный первым, он был бы словарём
+терминов, которых человек ещё не видел за столом; поставленный последним, он
+собирает их в одну страницу ровно там, где она нужна: следом идёт экзамен
+мастера — три партии подряд без единой подсказки, и лист подготовки —
+единственное, что туда можно принести с собой.
 
 ПОЧЕМУ ТЕКСТ ЖИВЁТ ЗДЕСЬ, А НЕ ВО ФРОНТЕНДЕ. Ровно по той же причине, что и
 сценарии: курс обязан ссылаться на НАСТОЯЩИЕ константы движка. Урок,
@@ -722,6 +732,150 @@ BLOCKS: list[Block] = [
                 "The block's rule in one line: power is there so that you do NOT haggle — you ask what "
                 "he is coming for and pay with what is cheap for you. An architect track costs the "
                 "company a signature under a development plan; for him it is the whole reason he came.",
+            )),
+        ],
+    ),
+    Block(
+        id="preparation",
+        icon="\U0001f4cb",
+        title=T("Подготовка к столу", "Preparing for the Table"),
+        skill=T(
+            "Приходить с целью, красной линией, альтернативой и готовым разменом — "
+            "а не искать их в разговоре.",
+            "Arrive with a target, a red line, an alternative and a ready trade — "
+            "instead of hunting for them mid-conversation.",
+        ),
+        scenario_id="salary",
+        lessons=[
+            Lesson(1, T("Лист подготовки: четыре строки", "The prep sheet: four lines"), T(
+                "Подготовка — это не «настроиться». Это четыре строки, написанные до того, как вы "
+                "сели: цель, красная линия, ваша альтернатива и темы, в которых лежат чужие "
+                "интересы. У стола этого блока все четыре уже есть: цель 230k, красная линия 195k, "
+                "второй оффер на 210k и три темы на чипах.\n\n"
+                "Красная линия — не «ещё приемлемо». Это НОЛЬ. Экономика партии считается как доля "
+                "пути от красной линии до цели: (сделка − 195) / (230 − 195) × 100. Сделка ровно на "
+                "красной линии даёт 0 очков экономики, на цели — 100, и между ними лежат 35 тысяч, "
+                "внутри которых идёт весь разговор: каждая тысяча стоит около трёх очков.\n\n"
+                "Отсюда правило, которое нарушают чаще прочих: красная линия назначается ДО стола и "
+                "за столом не двигается. Если её можно подвинуть в разговоре — это была не красная "
+                "линия, а настроение.",
+                "Preparation is not “getting in the right frame of mind”. It is four lines written "
+                "before you sit down: your target, your red line, your alternative, and the topics "
+                "the other side's interests sit in. At this block's table all four are already "
+                "given: target 230k, red line 195k, a second offer at 210k, and three topics on the "
+                "chips.\n\n"
+                "A red line is not “still acceptable”. It is ZERO. The economic score is the share "
+                "of the distance from your red line to your target: (deal − 195) / (230 − 195) × "
+                "100. A deal exactly on the red line scores 0 on economics, one on target scores "
+                "100, and between them lie 35 thousand inside which the whole conversation happens: "
+                "each thousand is worth about three points.\n\n"
+                "Hence the rule broken more often than any other: a red line is set BEFORE the table "
+                "and does not move at it. If it can be moved mid-conversation, it was never a red "
+                "line — it was a mood.",
+            )),
+            Lesson(2, T("BATNA работает до стола", "Your BATNA works before the table"), T(
+                "У альтернативы есть сила — число от 0 до 100, и вслух оно не произносится. Оно "
+                "превращается в стартовый рычаг: 0.4 × сила. Здесь сила 60, и партия начинается с "
+                "рычагом 24 — до вашей первой реплики.\n\n"
+                "За столом альтернатива стоит одинаково на любом столе. Названная без опоры — рычаг "
+                "+10 и напряжение +14. С опорой, то есть вместе с объективным критерием или доводом "
+                "качеством выше 55, — рычаг +18 и напряжение всего +4, и это её собственные числа: "
+                "критерий добавляет свои +16 сверху, а с аналитиком +22. Сила альтернативы ни "
+                "одного из них не меняет — она уже отработала, до разговора.\n\n"
+                "Практический вывод: усиливают BATNA заранее — вторым оффером, вторым поставщиком, "
+                "запасным планом, — а за столом её достаточно один раз НАЗВАТЬ, и лучше сразу с "
+                "опорой. Реакция на неё всегда одна и та же — «под давлением», даже если вы были "
+                "предельно вежливы.",
+                "An alternative has a strength — a number from 0 to 100 that is never said out loud. "
+                "It turns into your starting leverage: 0.4 × strength. Here the strength is 60, so "
+                "the round opens with 24 points of leverage, before your first line.\n\n"
+                "At the table an alternative costs the same everywhere. Named with nothing behind "
+                "it: leverage +10 and tension +14. Named with backing — an objective criterion, or "
+                "an argument scoring above 55 — leverage +18 and tension only +4, and those are the "
+                "alternative's own numbers: the criterion adds its own +16 on top, +22 with an "
+                "analytical counterpart. The strength of the alternative changes none of them — "
+                "it has already done its work, before the conversation.\n\n"
+                "The practical consequence: you strengthen a BATNA in advance — a second offer, a "
+                "second supplier, a fallback plan — and at the table you only need to NAME it once, "
+                "preferably with backing. The reaction is always the same, “pressured”, however "
+                "politely you put it.",
+            )),
+            Lesson(3, T("Гипотезы пишутся до стола", "Hypotheses are written beforehand"), T(
+                "Интересы скрыты, а ТЕМЫ — нет. Три темы этого стола видны ещё до первой реплики: "
+                "«Бюджет отдела», «Сроки найма», «Согласование с финансами». Тема не выдаёт секрет, "
+                "но говорит, где копать.\n\n"
+                "Подготовка — по одной письменной гипотезе на тему: «бюджет отдела — вероятно, вилку "
+                "уже согласовали, и перерасход придётся объяснять»; «сроки найма — вероятно, позиция "
+                "горит». Гипотеза не диагноз: за столом она проверяется вопросом и либо "
+                "подтверждается, либо заменяется.\n\n"
+                "Почему это надо написать заранее: вопрос вскрывает интерес, только если попал в "
+                "слова ТЕМЫ. Попал — Информация +24 и «приоткрывается». Не попал — переспрос и +5. "
+                "Придумывать формулировку в живом разговоре, когда напротив сидит человек, — самый "
+                "дорогой способ получить эти пять очков.",
+                "Interests are hidden; TOPICS are not. This table's three topics are visible before "
+                "the first line: “Team budget”, “Hiring timeline”, “Finance approval”. A topic gives "
+                "away no secret, but it tells you where to dig.\n\n"
+                "Preparation means one written hypothesis per topic: “team budget — the band has "
+                "probably been signed off already, and an overrun will have to be explained”; "
+                "“hiring timeline — the role is probably urgent”. A hypothesis is not a diagnosis: "
+                "at the table you test it with a question, and it is either confirmed or replaced.\n\n"
+                "Why write them down in advance: a question uncovers an interest only when it lands "
+                "on the words of a TOPIC. Landing pays Information +24 and “opened up”. Missing gets "
+                "you a query back and +5. Composing the wording live, with a person sitting across "
+                "from you, is the most expensive way to earn those five points.",
+            )),
+            Lesson(4, T("Кто называет цифру первым", "Who names a number first"), T(
+                "Оппонент здоровается, но цифры не называет: первое слово ваше, и решение, взять его "
+                "или отдать, принимается до стола.\n\n"
+                "Берут его так: цифра и критерий, на котором она стоит, в одной первой реплике. "
+                "Тогда движок засчитывает право первого слова — рамка стола едет к вам ещё до всякой "
+                "уступки. Здесь первый ход «230, потому что медиана независимых обзоров» двигает "
+                "позицию работодателя со 180 сразу на 205, тогда как та же реплика вторым ходом "
+                "даёт 200. Пять тысяч — это и есть цена первого слова, и платится она один раз; "
+                "сверху приём стоит +6 к шкале «Приёмы».\n\n"
+                "Условие ровно одно, и готовится оно заранее: качество довода не ниже 35. Голая "
+                "цифра рамку не двигает вовсе. Значит вопрос подготовки звучит не «называть ли "
+                "первым», а «есть ли у меня критерий, на который эту цифру поставить». Критерия "
+                "нет — отдайте первое слово: это дешевле, чем якорь, который никуда не тянет.",
+                "The counterpart greets you without naming a figure: the first word is yours, and "
+                "whether to take it or hand it over is decided before the table.\n\n"
+                "You take it like this: the number and the criterion it stands on, in one opening "
+                "line. The engine then counts the first word — the frame of the table moves your way "
+                "before any concession. Here an opening “230, because that is the median of the "
+                "independent surveys” moves the employer's position from 180 straight to 205, while "
+                "the same line played second gets 200. Five thousand is the price of the first word, "
+                "and it is paid once; on top of that the move is worth +6 on the Technique meter.\n\n"
+                "There is exactly one condition, and it is prepared in advance: argument quality of "
+                "at least 35. A bare number moves the frame not at all. So the question to settle "
+                "beforehand is not “should I open?” but “do I have a criterion to stand the number "
+                "on?”. If you do not, hand the first word over — that is cheaper than an anchor that "
+                "pulls nothing.",
+            )),
+            Lesson(5, T("Размен готовят заранее", "A trade is prepared in advance"), T(
+                "Последняя строка листа — размен. У каждого стола две вторичные фишки, и у каждой "
+                "два числа: сколько она стоит ВАМ и сколько она стоит ИМ. Здесь пересмотр по KPI "
+                "через полгода стоит вам 0.25 и ценится в 0.75; подписной бонус вместо оклада — "
+                "0.45 и 0.55.\n\n"
+                "Разницу считает движок, а не автор урока. В «Приёмы» фишка приносит 10 × ценность − "
+                "6 × стоимость: 6.0 у пересмотра против 2.8 у бонуса. Цену она двигает на "
+                "0.10 + 0.30 × ценность: 0.325 против 0.265. Доверие поднимает на 3 + 4 × ценность: "
+                "6 против 5.2.\n\n"
+                "Поэтому лист заканчивается порядком: сначала то, где разрыв «дёшево мне / дорого "
+                "им» шире. И фишку надо НАЗВАТЬ вслух — «пересмотр по KPI», а не «пойдём "
+                "навстречу»: движок платит за названное условие, а безымянная доброжелательность "
+                "остаётся уступкой, за которую не платят ничего.",
+                "The last line of the sheet is the trade. Every table has two secondary chips, and "
+                "each carries two numbers: what it costs YOU and what it is worth to THEM. Here a "
+                "six-month KPI review costs you 0.25 and is worth 0.75; a signing bonus instead of "
+                "base costs 0.45 and is worth 0.55.\n\n"
+                "The difference is computed by the engine, not by the author of the lesson. On "
+                "Technique a chip pays 10 × value − 6 × cost: 6.0 for the review against 2.8 for the "
+                "bonus. It moves the price by 0.10 + 0.30 × value: 0.325 against 0.265. It lifts "
+                "trust by 3 + 4 × value: 6 against 5.2.\n\n"
+                "So the sheet ends with an order: the widest cheap-to-me / dear-to-them gap goes "
+                "first. And the chip has to be NAMED out loud — “a KPI review”, not “we can be "
+                "flexible”: the engine pays for a named term, while nameless goodwill stays a "
+                "concession, and a concession buys nothing.",
             )),
         ],
     ),

@@ -19,7 +19,7 @@ import type { Lang } from "../src/types";
 const LANGS: Lang[] = ["ru", "en"];
 
 test("каждый блок курса имеет уроки и как минимум пять упражнений", () => {
-  assert.equal(COURSE_BLOCKS.length, 10);
+  assert.equal(COURSE_BLOCKS.length, 11);
   for (const b of COURSE_BLOCKS) {
     assert.ok(b.lessons.length >= 4, b.id);
     assert.ok(exercisesOf(b.id).length >= 5, b.id);

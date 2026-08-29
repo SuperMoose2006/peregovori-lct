@@ -1806,6 +1806,249 @@ BANK: list[dict] = [
             "declined to "
             "take, not by what you took."),
     },
+    # ---------------- 11. preparation -------------------------------------
+    {
+        "id": "pr-01", "block": "preparation", "lesson": 1, "type": "numeric",
+        "difficulty": 1, "xp": 10, "scenario_id": "salary", "derive": "room",
+        "prompt": T("В брифинге написаны две цифры: цель 230k и красная линия 195k. Сколько тысяч лежит между ними?",
+                    "The briefing gives two figures: target 230k, red line 195k. How many thousand lie between them?"),
+        "answer": {"value": 35, "tolerance": 0}, "unit": T("k ₽/мес", "k/mo"),
+        "explain": T(
+            "Эти 35 тысяч и есть вся шкала экономики: она считается как "
+            "(сделка − 195) / (230 − 195) × 100. Сделка ровно на красной линии даёт 0 очков, на "
+            "цели — 100, каждая тысяча внутри стоит около трёх. Красная линия — это ноль, а не "
+            "«ещё приемлемо».",
+            "Those 35 thousand are the entire economic scale: it is computed as "
+            "(deal − 195) / (230 − 195) × 100. A deal exactly on the red line scores 0, one on "
+            "target scores 100, and each thousand in between is worth about three points. A red "
+            "line is zero, not “still acceptable”."),
+    },
+    {
+        "id": "pr-02", "block": "preparation", "lesson": 1, "type": "spot_error",
+        "difficulty": 2, "xp": 10, "scenario_id": "salary",
+        "prompt": T("Что здесь не так?", "What is wrong here?"),
+        "bad_line": T("195 меня устроит, давайте на этом и сойдёмся.",
+                      "195 works for me, let us settle there."),
+        "options": [
+            {"key": "hostile", **T("Реплика груба", "The line is rude")},
+            {"key": "red_line_as_target", **T(
+                "Красная линия названа как цель: 195 — это ноль экономики, точка выхода из-за стола, а не исход, на котором сходятся",
+                "The red line is offered as a target: 195 is zero on economics — the point where you walk, not the point where you settle")},
+            {"key": "threat", **T("Это ультиматум", "It is an ultimatum")},
+            {"key": "repeat_same_line", **T("Это дословный повтор предыдущей реплики",
+                                            "It is a word-for-word repeat of the previous line")},
+        ],
+        "answer": 1, "fault_key": "red_line_as_target",
+        "explain": T(
+            "Движок видит здесь заявление: реакция нейтральная, ни одна шкала не двигается — то "
+            "есть ход не стоит ничего ещё до того, как счёт увидит цифру. А цифра даст 0 очков "
+            "экономики из ста: (195 − 195) / (230 − 195) = 0. Красную линию назначают до стола "
+            "ровно для того, чтобы за столом её не предлагать.",
+            "The engine sees a statement: the reaction is neutral and not one meter moves — the turn "
+            "costs nothing before the score even looks at the number. And the number scores 0 out of "
+            "100 on economics: (195 − 195) / (230 − 195) = 0. A red line is set before the table "
+            "precisely so that it is never offered at it."),
+    },
+    {
+        "id": "pr-03", "block": "preparation", "lesson": 2, "type": "numeric",
+        "difficulty": 2, "xp": 10, "scenario_id": "salary", "derive": "batna_leverage",
+        "prompt": T("Сила вашей альтернативы на этом столе — 60 из 100, и стартовый рычаг движок считает как 0.4 × сила. С каким рычагом вы садитесь за стол, не сказав ещё ни слова?",
+                    "Your alternative here has strength 60 out of 100, and the engine sets starting leverage at 0.4 × strength. What leverage do you sit down with, before saying a word?"),
+        "answer": {"value": 24, "tolerance": 0}, "unit": T("очков рычага", "leverage points"),
+        "explain": T(
+            "Это единственное место, где сила альтернативы вообще участвует в счёте. За столом её "
+            "произнесение стоит одинаково на любом столе: +10 рычага и +14 напряжения без опоры, "
+            "+18 и +4 с опорой. Усиливают BATNA заранее — за столом её только называют.",
+            "That is the one place where the strength of an alternative enters the score at all. "
+            "Saying it out loud costs the same at every table: +10 leverage and +14 tension "
+            "unbacked, +18 and +4 backed. You strengthen a BATNA in advance; at the table you only "
+            "name it."),
+    },
+    {
+        "id": "pr-04", "block": "preparation", "lesson": 2, "type": "meters",
+        "difficulty": 3, "xp": 15, "scenario_id": "salary",
+        "state": {"trust": 45, "tension": 30, "info": 20, "leverage": 30, "turn": 4},
+        "player_line": T(
+            "У меня есть альтернативное предложение на 210k, но ваш проект интереснее — давайте искать решение здесь.",
+            "I have an alternative offer at 210k, but your project interests me more — let us find a solution here."),
+        "ask": "largest_delta", "answer": "tension",
+        "prompt": T("Вы назвали второй оффер спокойно, без всякой угрозы. Какая шкала сдвинется сильнее всего?",
+                    "You have named your second offer calmly, with no threat at all. Which meter moves the most?"),
+        "explain": T(
+            "Рычаг +10, напряжение +14 — и это ВЕЖЛИВАЯ подача. Реакция всё равно «под давлением»: "
+            "альтернатива читается как давление независимо от тона. Ценность вашей BATNA вы уже "
+            "получили до стола, стартовым рычагом; за столом она в первую очередь стоит "
+            "напряжения. Поставьте под неё объективный критерий — станет +18 рычага и +4 "
+            "напряжения, и тогда сильнее всего сдвинется именно рычаг.",
+            "Leverage +10, tension +14 — and that is the POLITE version. The reaction is “pressured” "
+            "anyway: an alternative reads as pressure whatever the tone. The value of your BATNA was "
+            "already collected before the table, as starting leverage; at the table it mostly costs "
+            "tension. Put an objective criterion under it and it becomes +18 leverage and +4 "
+            "tension — and then leverage is what moves most."),
+    },
+    {
+        "id": "pr-05", "block": "preparation", "lesson": 3, "type": "choice",
+        "difficulty": 2, "xp": 15, "scenario_id": "salary",
+        "prompt": T("До стола вы написали гипотезу по теме «Сроки найма»: позиция, скорее всего, горит. Каким ходом вы её проверите?",
+                    "Before the table you wrote a hypothesis for the topic “Hiring timeline”: the role is probably urgent. Which move tests it?"),
+        "options": [
+            T("Я готов выйти через месяц.", "I can start in a month."),
+            T("Как быстро вам нужно закрыть позицию и почему именно этот срок?",
+              "Why are you in a hurry to close the role — what is driving that timeline?"),
+            T("Мне важно, чтобы решение по офферу не затягивали.",
+              "I would like the decision on the offer not to drag on."),
+            T("Моя позиция такова: 230k.", "My position is 230k."),
+        ],
+        "answer": 1, "expect_moves": ["interests_probe"],
+        "explain": T(
+            "Вопрос попал в слова темы «сроки найма» — гипотеза подтвердилась: Информация +24, "
+            "доверие +4, напряжение −3, реакция «приоткрывается». Три остальные реплики — два "
+            "заявления и цифра: Информация не двигается ни на очко. Гипотезу проверяют вопросом, "
+            "а не сообщением о себе.",
+            "The question landed on the words of the “hiring timeline” topic, and the hypothesis was "
+            "confirmed: Information +24, trust +4, tension −3, the reaction “opened up”. The other "
+            "three lines are two statements and a number: Information does not move by a single "
+            "point. A hypothesis is tested with a question, not with news about yourself."),
+    },
+    {
+        "id": "pr-06", "block": "preparation", "lesson": 3, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "salary",
+        "prompt": T("Проверьте вторую гипотезу — по теме «Согласование с финансами». Один вопрос, без цифр.",
+                    "Test the second hypothesis — the topic “Finance approval”. One question, no numbers."),
+        "check": {"require_moves": ["interests_probe"],
+                  "forbid_moves": ["offer", "anchor", "threat", "hostile"],
+                  "min_arg": 30, "min_words": 8},
+        "reference": T(
+            "Что для вас важнее всего, когда вы обосновываете вилку перед финансами?",
+            "What matters most to you when you justify the salary band to finance?"),
+        "explain": T(
+            "Два условия, и оба готовятся заранее. Формулировка «что для вас важнее всего» — голое "
+            "«почему?» движок засчитает обычным открытым вопросом. И слова ТЕМЫ: попали в "
+            "«обосновать вилку перед финансами» — Информация +24; не попали — переспрос и 5. "
+            "Запрет на цифру не декоративен: названное число делает ход офертой, и вместо ответа "
+            "про интерес начинается торг.",
+            "Two conditions, both prepared in advance. The wording — “what matters most to you”; a "
+            "bare “why?” classifies as a plain open question. And the words of the TOPIC: land on "
+            "“justify the band to finance” and Information rises 24; miss, and you get a query back "
+            "and 5. The ban on numbers is not decorative: a figure turns the turn into an offer, and "
+            "instead of an answer about an interest you get haggling."),
+    },
+    {
+        "id": "pr-07", "block": "preparation", "lesson": 4, "type": "choice",
+        "difficulty": 3, "xp": 15, "scenario_id": "salary",
+        "prompt": T("Он поздоровался, но цифры не назвал. Первое слово ваше. Как им распорядиться?",
+                    "He has greeted you without naming a figure. The first word is yours. How do you use it?"),
+        "options": [
+            T("Моя позиция такова: 230k.", "My position is 230k."),
+            T("Моя позиция такова: оклад 230k, потому что медиана независимых обзоров зарплат для этой роли именно такая.",
+              "My position is a base of 230k, because independent salary surveys put the median for this role exactly there."),
+            T("Я стою больше, чем мне предлагают.", "I am worth more than what is on the table."),
+            T("Давайте вы назовёте цифру первым.", "Let us have you name a figure first."),
+        ],
+        "answer": 1, "expect_moves": ["objective_criteria"],
+        "explain": T(
+            "Право первого слова засчитывается, только когда в первой реплике есть все три части "
+            "разом: цифра, приём «якорение» и критерий качеством не ниже 35. Тогда позиция "
+            "работодателя едет со 180 сразу на 205 — против 200 у той же реплики вторым ходом; "
+            "пять тысяч и есть цена первого слова, плюс +6 к шкале «Приёмы». Голая цифра (первый "
+            "вариант) рамку не двигает вовсе: без критерия события «критерий» не наступает. "
+            "Последний вариант отдаёт первое слово — так и надо делать, но только если критерия у "
+            "вас нет.",
+            "The first word counts only when the opening line carries all three parts at once: a "
+            "number, the anchoring move, and a criterion scoring at least 35. Then the employer's "
+            "position moves from 180 straight to 205 — against 200 for the same line played second; "
+            "those five thousand are the price of the first word, plus +6 on the Technique meter. A "
+            "bare number (the first option) moves the frame not at all: with no criterion the "
+            "“criterion” event never fires. The last option hands the first word over — which is the "
+            "right play, but only when you have no criterion."),
+    },
+    {
+        "id": "pr-08", "block": "preparation", "lesson": 4, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "salary",
+        "prompt": T("Произнесите свой первый ход: цифра и критерий, на котором она стоит.",
+                    "Say your opening line: the number and the criterion it stands on."),
+        "check": {"require_moves": ["anchor", "objective_criteria"],
+                  "forbid_moves": ["threat", "hostile", "concession"],
+                  "require_number": True, "min_arg": 44, "min_words": 12},
+        "reference": T(
+            "Моя позиция такова: оклад 230k, потому что медиана независимых обзоров зарплат для этой роли именно такая.",
+            "My position is a base of 230k, because independent salary surveys put the median for this role exactly there."),
+        "explain": T(
+            "Предикат требует ровно те три части, по которым движок считает право первого слова, и "
+            "число среди них не для красоты: «по рынку это заметно больше» тоже читается как "
+            "критерий, но качество довода падает ниже порога 35 — рычаг вырастет, а рамка не "
+            "сдвинется. Критерий — единственная часть, которую нельзя придумать за столом: "
+            "обзор зарплат читают до него.",
+            "The predicate asks for exactly the three parts the engine counts the first word by, and "
+            "the number is not there for looks: “the market pays noticeably more” also reads as a "
+            "criterion, but the argument quality falls below the threshold of 35 — leverage grows "
+            "and the frame does not move. The criterion is the one part you cannot invent at the "
+            "table: you read the salary survey before it."),
+    },
+    {
+        "id": "pr-09", "block": "preparation", "lesson": 5, "type": "numeric",
+        "difficulty": 3, "xp": 15, "scenario_id": "salary", "derive": "best_chip_package",
+        "prompt": T("Пересмотр по KPI стоит вам 0.25 и ценится оппонентом в 0.75. Вклад фишки в шкалу «Приёмы» движок считает как 10 × ценность − 6 × стоимость. Сколько очков даст эта фишка?",
+                    "A KPI review costs you 0.25 and is worth 0.75 to the other side. The engine scores a chip's contribution to Technique as 10 × value − 6 × cost. How many points does this chip pay?"),
+        "answer": {"value": 6, "tolerance": 0}, "unit": T("очков техники", "technique points"),
+        "explain": T(
+            "10 × 0.75 − 6 × 0.25 = 6.0. Подписной бонус на том же столе даёт 2.8 "
+            "(10 × 0.55 − 6 × 0.45). Та же разница видна и в цене — уступка растёт на 0.325 против "
+            "0.265, — и в доверии: +6 против +5.2. Порядок размена выбирается до стола: сначала "
+            "то, где разрыв «дёшево мне / дорого им» шире.",
+            "10 × 0.75 − 6 × 0.25 = 6.0. The signing bonus at the same table pays 2.8 "
+            "(10 × 0.55 − 6 × 0.45). The same gap shows up in the price — the concession grows by "
+            "0.325 against 0.265 — and in trust: +6 against +5.2. The order of trades is chosen "
+            "before the table: the widest cheap-to-me / dear-to-them gap goes first."),
+    },
+    {
+        "id": "pr-10", "block": "preparation", "lesson": 5, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "salary",
+        "prompt": T("Разменяйте подготовленную фишку: назовите её и свяжите с движением по окладу.",
+                    "Trade the chip you prepared: name it, and link it to movement on the base."),
+        "check": {"require_moves": ["tradeoff"],
+                  "forbid_moves": ["concession", "accept", "threat", "hostile"],
+                  "require_secondary": "kpi_review", "min_words": 8},
+        "reference": T(
+            "Если мы привяжем это к пересмотру по KPI через полгода, сможете выйти на 230?",
+            "If we tie this to a KPI review in six months, can you move to 230?"),
+        "explain": T(
+            "Предикат требует НАЗВАННУЮ фишку, а не «разменяем что-нибудь»: движок платит за "
+            "конкретное условие. Названный пересмотр по KPI даёт доверие +6 сверх +6 за сам "
+            "размен, добавляет 0.325 к уступке и 6.0 к технике. «Пойдём навстречу» той же длины — "
+            "это уступка: цена не двигается вовсе, потому что цена ходит только за событием.",
+            "The predicate asks for a NAMED chip, not for “let us trade something”: the engine pays "
+            "for a concrete term. A named KPI review gives trust +6 on top of the +6 for the trade "
+            "itself, adds 0.325 to the concession and 6.0 to Technique. “We can be flexible”, at the "
+            "same length, is a concession: the price does not move at all, because price only moves "
+            "behind an event."),
+    },
+    {
+        "id": "pr-11", "block": "preparation", "lesson": 5, "type": "drill",
+        "difficulty": 3, "xp": 40, "scenario_id": "salary", "max_turns": 6,
+        "prompt": T("Капстоун. Сыграйте партию по своему листу: возьмите цель — 230k — за 6 ходов, проверив все три гипотезы (три интереса) и собрав пакет: доверие ≥ 70 при напряжении ≤ 30.",
+                    "Capstone. Play the round by your own sheet: take the target — 230k — within 6 turns, testing all three hypotheses (three interests) and building the package: trust ≥ 70 at tension ≤ 30."),
+        "goal": T("Оклад ≥ 230k · три интереса · доверие ≥ 70 · напряжение ≤ 30",
+                  "Base ≥ 230k · three interests · trust ≥ 70 · tension ≤ 30"),
+        "pass": [
+            {"field": "status", "op": "==", "value": "agreement"},
+            {"field": "deal", "op": ">=", "value": 230},
+            {"field": "interests_found", "op": ">=", "value": 3},
+            {"field": "trust", "op": ">=", "value": 70},
+            {"field": "tension", "op": "<=", "value": 30},
+        ],
+        "explain": T(
+            "Здесь проверяется лист целиком, строка за строкой. Цель — это 230, а не «сколько "
+            "дадут»: на 230 экономика равна ста. Три гипотезы — три вопроса, каждый в слова своей "
+            "темы. Пакет — названная фишка, чей след виден в доверии: +3 + 4 × ценность за "
+            "названное условие. И ни одно из условий не берётся давлением: выше 55 напряжения "
+            "движок режет любую уступку до 60 %.",
+            "This checks the whole sheet, line by line. The target is 230, not “whatever they "
+            "offer”: at 230 economics is already 100. Three hypotheses means three questions, each "
+            "landing on the words of its own topic. The package is a named chip, and its trace shows "
+            "up in trust: +3 + 4 × value for a named term. And none of the conditions can be taken "
+            "by pressure: above 55 tension the engine cuts every concession to 60 %."),
+    },
 ]
 
 BY_ID: dict[str, dict] = {x["id"]: x for x in BANK}

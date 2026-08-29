@@ -25,6 +25,7 @@ import {
   type Profile,
   type ScenarioRecord,
 } from "../src/lib/progress";
+import { COURSE_BLOCKS } from "../src/data/course.blocks.generated";
 import type { Debrief } from "../src/types";
 
 // A debrief factory: neutral defaults, override the fields a test cares about.
@@ -614,12 +615,23 @@ test("экзамен: провал даёт долю XP, сдача — бону
 });
 
 test("значки курса выдаются по числу СДАННЫХ блоков", () => {
+  // Блоки берутся из КАТАЛОГА, а не выписываются буквами: пороги значков
+  // считаются от COURSE_BLOCKS.length, и список «a…j» молча превращал
+  // «курс пройден» в «десять блоков из одиннадцати» ровно в тот день, когда
+  // блок добавили.
   let p = emptyProfile();
-  for (const id of ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]) {
-    p = { ...p, course: { ...p.course, [id]: { ...emptyBlockProgress(), passed: true } } };
+  for (const b of COURSE_BLOCKS) {
+    p = { ...p, course: { ...p.course, [b.id]: { ...emptyBlockProgress(), passed: true } } };
   }
   const earned = courseAchievements(p);
   assert.ok(earned.includes("course_half") && earned.includes("course_done"));
+
+  // И половина — это половина: на одном блоке меньше половины значка нет.
+  let half = emptyProfile();
+  for (const b of COURSE_BLOCKS.slice(0, Math.ceil(COURSE_BLOCKS.length / 2) - 1)) {
+    half = { ...half, course: { ...half.course, [b.id]: { ...emptyBlockProgress(), passed: true } } };
+  }
+  assert.ok(!courseAchievements(half).includes("course_half"));
 });
 
 test("доля блока считается по урокам, упражнениям и экзамену", () => {
