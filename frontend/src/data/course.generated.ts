@@ -364,6 +364,41 @@ export const COURSE_BANK: Exercise[] = [
     }
   },
   {
+    "id": "fo-11",
+    "block": "foundations",
+    "lesson": 5,
+    "type": "freeform",
+    "difficulty": 3,
+    "xp": 20,
+    "scenario_id": "rent",
+    "prompt": {
+      "ru": "Доверие 18, Наталья только что переспросила. Поднимите доверие: назовите её положение её же словами — без цены и без уступки.",
+      "en": "Trust is 18 and Natalia has just asked back. Raise trust: put her position into her own words — no price, no concession."
+    },
+    "check": {
+      "require_moves": [
+        "acknowledge"
+      ],
+      "forbid_moves": [
+        "threat",
+        "hostile",
+        "offer",
+        "anchor",
+        "concession"
+      ],
+      "min_arg": 38,
+      "min_words": 12
+    },
+    "reference": {
+      "ru": "Понимаю вас, Наталья: пустая квартира — это реальные потери, и осторожность после прошлых жильцов совершенно естественна.",
+      "en": "I understand you, Natalia: an empty flat is real lost income, and after your last tenants that caution is completely natural."
+    },
+    "explain": {
+      "ru": "Узнать этот ход мало — под порогом доверия его надо ПРОИЗВЕСТИ, и здесь видно, из чего он состоит. Отражение положения даёт доверие +8 (18 → 26) и снимает 10 напряжения, реакция «теплеет»; порог 30 нужно ПЕРЕЙТИ, поэтому дверь откроет следующая такая же реплика. Предикат запрещает цену и уступку не для строгости: «понимаю, давайте 60» — это оффер, а не доверие, и цена от него не поедет — движок двигает её только за событием (вскрытый интерес, критерий, размен).",
+      "en": "Recognising the move is not enough — below the gate you have to PRODUCE it, and here you see what it is made of. Reflecting her position adds trust +8 (18 → 26) and takes 10 off tension, reaction “warmed”; the gate of 30 has to be CROSSED, so one more line like this opens the door. The predicate forbids a price and a concession for a reason: “I understand, let us say 60” is an offer, not trust, and it moves no price — the engine moves it only for an event (an interest uncovered, a criterion, a trade)."
+    }
+  },
+  {
     "id": "fo-10",
     "block": "foundations",
     "lesson": 1,
@@ -645,6 +680,41 @@ export const COURSE_BANK: Exercise[] = [
     }
   },
   {
+    "id": "sp-10",
+    "block": "spin-ladder",
+    "lesson": 4,
+    "type": "freeform",
+    "difficulty": 3,
+    "xp": 20,
+    "scenario_id": "supplier",
+    "prompt": {
+      "ru": "Ирина признала, что простои дорого обходятся. Задайте вопрос ступени N: пусть ценность решения назовёт она сама — и назовите тему, загрузку.",
+      "en": "Irina has admitted the idle time is costly. Ask a need-payoff question: let her put the value on the fix herself — and name the topic, her utilization."
+    },
+    "check": {
+      "require_moves": [
+        "spin_needpayoff"
+      ],
+      "forbid_moves": [
+        "threat",
+        "hostile",
+        "offer",
+        "anchor",
+        "concession"
+      ],
+      "min_arg": 42,
+      "min_words": 12
+    },
+    "reference": {
+      "ru": "Насколько важно было бы для вас закрыть загрузку производства на год вперёд и убрать простои?",
+      "en": "How valuable would it be for you to lock in factory utilization for a full year and remove the idle weeks?"
+    },
+    "explain": {
+      "ru": "Опознать ступень N в списке — не то же самое, что её задать. Заданная, она платит как ступень I: Информация +22 против +14 у ситуации и проблемы, реакция «приоткрывается», интерес вскрыт. И платит только по теме: «насколько важно было бы?» без слова про загрузку — это переспрос и +5. Поэтому предикат требует не только ступень, но и двенадцать слов с качеством довода 42: голый оборот их не набирает.",
+      "en": "Spotting the N rung in a list is not the same as asking it. Asked, it pays like the I rung: Information +22 against +14 for situation and problem, reaction “opened up”, the interest is out. And it pays only on topic: “how valuable would it be?” with no word about utilization comes back as a query and gives 5. Hence the predicate asks for more than the rung — twelve words at argument quality 42, which the bare phrase never reaches."
+    }
+  },
+  {
     "id": "sp-08",
     "block": "spin-ladder",
     "lesson": 1,
@@ -665,6 +735,7 @@ export const COURSE_BANK: Exercise[] = [
         "hostile",
         "offer"
       ],
+      "min_arg": 40,
       "min_words": 5
     },
     "reference": {
@@ -758,6 +829,42 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "Признать давление — не признать вину: доверие +8, напряжение −10, реакция «теплеет». Информация при этом растёт всего на 5 — вопрос «в этом статусе» не назвал ни одной темы его интересов, и Алексей переспросит. Назовите тему («выглядеть виноватым перед руководством») — и та же реплика даст +24; это следующее упражнение. Четвёртый вариант — грубость: доверие −22, напряжение +26.",
       "en": "Acknowledging the pressure is not admitting fault: trust +8, tension −10, reaction “warmed”. Information rises by just 5 — “that status update” names none of his interests, so Alexey asks back. Name the topic (“looking at fault to leadership”) and the same line gives +24; that is the next exercise. Option four is rudeness: trust −22, tension +26."
+    }
+  },
+  {
+    "id": "al-10",
+    "block": "active-listening",
+    "lesson": 1,
+    "type": "freeform",
+    "difficulty": 2,
+    "xp": 15,
+    "scenario_id": "conflict",
+    "prompt": {
+      "ru": "Алексей обвиняет вас в срыве сроков. Назовите его положение своими словами — не признавая вины и ничего не уступая.",
+      "en": "Alexey accuses you of missing the deadline. Put his position into your own words — without admitting fault and without conceding anything."
+    },
+    "check": {
+      "require_moves": [
+        "acknowledge"
+      ],
+      "forbid_moves": [
+        "concession",
+        "accept",
+        "offer",
+        "anchor",
+        "threat",
+        "hostile"
+      ],
+      "min_arg": 38,
+      "min_words": 12
+    },
+    "reference": {
+      "ru": "Алексей, я вас слышу: на вас давит руководство, и объясняться перед директором придётся вам. Давайте разберём, что здесь можно сделать.",
+      "en": "Alexey, I hear you: leadership is pressing you, and it is you who has to face the director. Let us look at what we can do about it."
+    },
+    "explain": {
+      "ru": "Назвать чувство — не признать вину: движок видит активное слушание и больше ничего. Доверие +8, напряжение −10, реакция «теплеет», и ни одна цифра на столе не сдвинулась. Ровно за этим предикат запрещает уступку и согласие: «понимаю, мы виноваты, готовы уступить» несёт то же самое активное слушание — и добавляет уступку, за которую движок не платит ничего, потому что цена ходит только за событием.",
+      "en": "Naming the feeling is not admitting fault: the engine sees active listening and nothing else. Trust +8, tension −10, reaction “warmed”, and not a single number on the table moved. That is exactly why the predicate forbids a concession and an agreement: “I understand, it is our fault, we can come down” carries the very same active listening — plus a concession the engine pays nothing for, because the price moves only for an event."
     }
   },
   {
@@ -1713,14 +1820,14 @@ export const COURSE_BANK: Exercise[] = [
   {
     "id": "an-03",
     "block": "anchoring",
-    "lesson": 2,
+    "lesson": 3,
     "type": "freeform",
     "difficulty": 3,
     "xp": 20,
     "scenario_id": "used_car",
     "prompt": {
-      "ru": "Поставьте встречный якорь 1080 и подкрепите его критерием.",
-      "en": "Set a counter-anchor at 1080 and back it with a criterion."
+      "ru": "Сергей назвал 1200. Поставьте встречный якорь 1080 и подкрепите его критерием.",
+      "en": "Sergey has named 1200. Set a counter-anchor at 1080 and back it with a criterion."
     },
     "check": {
       "require_moves": [
@@ -1873,6 +1980,41 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "Якорь без обоснования — просто цифра, и защищаться от него учат в следующем уроке. Якорь с критерием движок читает КАК критерий: рычаг +16 и реакция «убеждён». Первый вариант — цифра без единого основания, да ещё ультиматумом: доверие −14 и напряжение +30, потому что Сергей жёсткий и его стиль добавляет к ультиматуму ещё +8.",
       "en": "An anchor with no grounding is just a number, and the next lesson teaches how to defuse one. An anchor with a criterion is read by the engine AS a criterion: leverage +16 and the reaction “persuaded”. Option one is a bare number with an ultimatum on top: trust −14 and tension +30, because Sergey is a tough type and his style adds 8 more to an ultimatum."
+    }
+  },
+  {
+    "id": "an-10",
+    "block": "anchoring",
+    "lesson": 2,
+    "type": "freeform",
+    "difficulty": 3,
+    "xp": 20,
+    "scenario_id": "used_car",
+    "prompt": {
+      "ru": "Вы говорите первым. Поставьте свой якорь: цифра плюс критерий, на котором она стоит.",
+      "en": "You speak first. Set your own anchor: a number plus the criterion it stands on."
+    },
+    "check": {
+      "require_moves": [
+        "anchor",
+        "objective_criteria"
+      ],
+      "forbid_moves": [
+        "threat",
+        "hostile",
+        "concession"
+      ],
+      "require_number": true,
+      "min_arg": 44,
+      "min_words": 12
+    },
+    "reference": {
+      "ru": "Мы предлагаем 1080: по трём объявлениям на такую же модель с этим пробегом медиана рынка именно такая.",
+      "en": "We propose 1080: comparable listings for the same model at this mileage put the market median exactly there."
+    },
+    "explain": {
+      "ru": "Якорь с критерием движок читает КАК критерий: рычаг +16, доверие +3, реакция «убеждён данными» — и Сергей в тот же ход сдвинул свою цифру с 1200 до 1150. Предикат требует все три части, и число среди них не для красоты: «по рынку это дороговато» тоже читается как критерий, но качество довода падает до 20 — ниже порога 35, на котором засчитывается событие «критерий». Рычаг вырастет, а цена не сдвинется вовсе.",
+      "en": "An anchor with a criterion is read by the engine AS a criterion: leverage +16, trust +3, reaction “persuaded” — and Sergey moved his own figure from 1200 to 1150 on the same turn. The predicate wants all three parts, and the number is not decoration: “the market says that is steep” also reads as a criterion, but argument quality drops to 20 — below the 35 at which the “criterion” event counts. Leverage rises and the price does not move at all."
     }
   },
   {
@@ -2328,6 +2470,45 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "Это гарвардское «джиу-джитсу»: не отвечать на атаку атакой, а переводить её в вопрос критерия. Реакция «убеждён данными», рычаг +16, напряжение не растёт. Ультиматум в ответ дал бы +30 к напряжению.",
       "en": "This is Harvard negotiation jujitsu: do not answer an attack with an attack, redirect it into a question of criteria. Reaction “persuaded”, leverage +16, no rise in tension. A counter-ultimatum would have cost +30 tension."
+    }
+  },
+  {
+    "id": "pd-08",
+    "block": "pressure-defense",
+    "lesson": 1,
+    "type": "freeform",
+    "difficulty": 3,
+    "xp": 20,
+    "scenario_id": "sla_renewal",
+    "prompt": {
+      "ru": "Виктор объявил 99.5% потолком и закрыл тему. Ответьте, не споря с ультиматумом: назовите то, что за ним стоит, и спросите про это.",
+      "en": "Viktor has declared 99.5% the ceiling and closed the subject. Answer without arguing with the ultimatum: name what sits behind it and ask about that."
+    },
+    "check": {
+      "require_moves": [
+        "acknowledge"
+      ],
+      "require_any": [
+        "interests_probe",
+        "spin_problem"
+      ],
+      "forbid_moves": [
+        "threat",
+        "hostile",
+        "concession",
+        "accept",
+        "offer"
+      ],
+      "min_arg": 44,
+      "min_words": 12
+    },
+    "reference": {
+      "ru": "Понимаю: штрафы, которые не вытянет ваша команда эксплуатации, — это реальный риск. Что для вас важнее в этом пункте — размер штрафов или свобода вашей эксплуатации?",
+      "en": "I understand the penalties your operations team cannot sustain are a real risk. What matters more to you here — the size of the penalties, or the room your ops team has to run it?"
+    },
+    "explain": {
+      "ru": "Первый из трёх ответов на ультиматум — произнесённый, а не опознанный. Реплика не спорит с потолком: активное слушание снимает 10 напряжения, вопрос по теме штрафов вскрывает интерес — Информация +24, доверие +12, напряжение −13, реакция «приоткрывается». Предикат запрещает цифру, согласие и уступку: ответить на ультиматум цифрой значит принять его рамку, а согласиться — оплатить его.",
+      "en": "The first of the three answers to an ultimatum — spoken, not recognised. The line does not argue with the ceiling: active listening takes 10 off tension, and a question on the penalties topic opens the interest — Information +24, trust +12, tension −13, reaction “opened up”. The predicate forbids a number, an agreement and a concession: answering an ultimatum with a number accepts its frame, and agreeing pays for it."
     }
   },
   {
@@ -2799,6 +2980,41 @@ export const COURSE_BANK: Exercise[] = [
     "explain": {
       "ru": "С аналитиком критерий идёт РАНЬШЕ размена и тем более раньше давления: рычаг +22 вместо +16 и реакция «принимает довод». Ощущение несправедливости для него не аргумент, а «посередине» — уступка без повода: движок не начислит за неё ничего.",
       "en": "With an analyst the criterion comes BEFORE the trade, and long before any pressure: leverage +22 instead of +16 and the reaction “persuaded”. A sense of unfairness is not an argument to him, and “let us split it” is a concession with no reason — the engine grants nothing for it."
+    }
+  },
+  {
+    "id": "st-09",
+    "block": "styles",
+    "lesson": 3,
+    "type": "freeform",
+    "difficulty": 3,
+    "xp": 20,
+    "scenario_id": "investor",
+    "prompt": {
+      "ru": "Марина — аналитик и просит обосновать долю. Откройте разговор так, как открывают с аналитиком: сначала критерий с цифрой, без размена и без давления.",
+      "en": "Marina is an analyst and wants the share justified. Open the way you open with an analyst: the criterion with a number first, no trade and no pressure."
+    },
+    "check": {
+      "require_moves": [
+        "objective_criteria"
+      ],
+      "forbid_moves": [
+        "threat",
+        "hostile",
+        "concession",
+        "tradeoff"
+      ],
+      "require_number": true,
+      "min_arg": 44,
+      "min_words": 12
+    },
+    "reference": {
+      "ru": "По медиане раундов этой стадии доля инвестора — 20%, и вот три независимых обзора рынка, на которых это стоит.",
+      "en": "By the median round at this stage the investor's share is 20%, and here are three independent market surveys it rests on."
+    },
+    "explain": {
+      "ru": "Подстройка — это порядок, а не маска, и произносится она вот так. С аналитиком критерий стоит дороже: рычаг +22 вместо обычных +16 — стиль добавляет шесть, — реакция «принимает довод», и доля в тот же ход поехала с 30% до 26.5%. Размен предикат запрещает не потому, что он плох: надбавку стиля даёт именно критерий, и разменивать имеет смысл после того, как ваша цифра стала законной.",
+      "en": "Adapting is an order of moves, not a mask — and this is how it sounds. With an analyst a criterion is worth more: leverage +22 instead of the usual +16, six of it from the style, reaction “persuaded”, and the share moved from 30% to 26.5% on the same turn. The predicate forbids a trade not because trading is bad: the style bonus goes to the criterion, and trading makes sense once your number is legitimate."
     }
   },
   {

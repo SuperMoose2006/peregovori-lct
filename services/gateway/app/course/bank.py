@@ -26,6 +26,22 @@
 тестом `test_capstone_is_actually_winnable`: непроходимый капстоун — дефект
 капстоуна, а не теста.
 
+ЗА `choice` ИДЁТ `freeform` НА ТОМ ЖЕ МАТЕРИАЛЕ. Узнать хороший вопрос среди
+четырёх и ЗАДАТЬ его живому человеку — разные умения, а тренажёр ценен вторым.
+Поэтому в уроке, где есть узнавание, обязано быть и производство — в том же
+уроке и на том же столе. Не везде: там, где варианты не реплики игрока (суждение
+о движке, реплики оппонента для узнавания стиля), пара была бы симметрией ради
+симметрии. Такие уроки названы поимённо в `CHOICE_WITHOUT_A_SECOND_BEAT`
+(tests/test_course_bank.py), и новый `choice` без пары валит сборку, пока причина
+не названа.
+
+ПРЕДИКАТ `freeform` ПОЛЬЗУЕТСЯ ВСЕМ НАБОРОМ, А НЕ ОДНИМ `require_moves`. Слабый
+предикат зачтёт реплику с правильными словами и без содержания: «насколько
+важно?» — формально ступень N, а в игре переспрос и +5 вместо +22. Запрет
+(`forbid_moves`), порог длины (`min_words`) и хотя бы одна проверка веса
+(`min_arg` / `require_number` / `require_secondary`) обязательны у каждого —
+это проверяется тестом.
+
 `explain` показывается ПОСЛЕ ответа всегда — и когда верно, и когда нет.
 """
 
@@ -223,6 +239,31 @@ BANK: list[dict] = [
             "adds 8 and takes 10 off tension — and only then the very same question."),
     },
     {
+        "id": "fo-11", "block": "foundations", "lesson": 5, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "rent",
+        "prompt": T("Доверие 18, Наталья только что переспросила. Поднимите доверие: назовите её положение её же словами — без цены и без уступки.",
+                    "Trust is 18 and Natalia has just asked back. Raise trust: put her position into her own words — no price, no concession."),
+        "check": {"require_moves": ["acknowledge"],
+                  "forbid_moves": ["threat", "hostile", "offer", "anchor", "concession"],
+                  "min_arg": 38, "min_words": 12},
+        "reference": T(
+            "Понимаю вас, Наталья: пустая квартира — это реальные потери, и осторожность после прошлых жильцов совершенно естественна.",
+            "I understand you, Natalia: an empty flat is real lost income, and after your last tenants that caution is completely natural."),
+        "explain": T(
+            "Узнать этот ход мало — под порогом доверия его надо ПРОИЗВЕСТИ, и здесь видно, из чего "
+            "он состоит. Отражение положения даёт доверие +8 (18 → 26) и снимает 10 напряжения, "
+            "реакция «теплеет»; порог 30 нужно ПЕРЕЙТИ, поэтому дверь откроет следующая такая же "
+            "реплика. Предикат запрещает цену и уступку не для строгости: «понимаю, давайте 60» — это "
+            "оффер, а не доверие, и цена от него не поедет — движок двигает её только за событием "
+            "(вскрытый интерес, критерий, размен).",
+            "Recognising the move is not enough — below the gate you have to PRODUCE it, and here you "
+            "see what it is made of. Reflecting her position adds trust +8 (18 → 26) and takes 10 off "
+            "tension, reaction “warmed”; the gate of 30 has to be CROSSED, so one more line like this "
+            "opens the door. The predicate forbids a price and a concession for a reason: “I "
+            "understand, let us say 60” is an offer, not trust, and it moves no price — the engine "
+            "moves it only for an event (an interest uncovered, a criterion, a trade)."),
+    },
+    {
         "id": "fo-10", "block": "foundations", "lesson": 1, "type": "reaction",
         "difficulty": 1, "xp": 10, "scenario_id": "rent", "seed_turn": 2,
         "player_line": T("Мне это дорого, скиньте 10 тысяч.",
@@ -376,12 +417,39 @@ BANK: list[dict] = [
             "people say themselves they do not argue with later — that is the trick of the fourth rung."),
     },
     {
+        "id": "sp-10", "block": "spin-ladder", "lesson": 4, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "supplier",
+        "prompt": T("Ирина признала, что простои дорого обходятся. Задайте вопрос ступени N: пусть ценность решения назовёт она сама — и назовите тему, загрузку.",
+                    "Irina has admitted the idle time is costly. Ask a need-payoff question: let her put the value on the fix herself — and name the topic, her utilization."),
+        "check": {"require_moves": ["spin_needpayoff"],
+                  "forbid_moves": ["threat", "hostile", "offer", "anchor", "concession"],
+                  "min_arg": 42, "min_words": 12},
+        "reference": T(
+            "Насколько важно было бы для вас закрыть загрузку производства на год вперёд и убрать простои?",
+            "How valuable would it be for you to lock in factory utilization for a full year and remove the idle weeks?"),
+        "explain": T(
+            "Опознать ступень N в списке — не то же самое, что её задать. Заданная, она платит как "
+            "ступень I: Информация +22 против +14 у ситуации и проблемы, реакция «приоткрывается», "
+            "интерес вскрыт. И платит только по теме: «насколько важно было бы?» без слова про "
+            "загрузку — это переспрос и +5. Поэтому предикат требует не только ступень, но и "
+            "двенадцать слов с качеством довода 42: голый оборот их не набирает.",
+            "Spotting the N rung in a list is not the same as asking it. Asked, it pays like the I "
+            "rung: Information +22 against +14 for situation and problem, reaction “opened up”, the "
+            "interest is out. And it pays only on topic: “how valuable would it be?” with no word "
+            "about utilization comes back as a query and gives 5. Hence the predicate asks for more "
+            "than the rung — twelve words at argument quality 42, which the bare phrase never reaches."),
+    },
+    {
         "id": "sp-08", "block": "spin-ladder", "lesson": 1, "type": "freeform",
         "difficulty": 1, "xp": 10, "scenario_id": "supplier",
         "prompt": T("Разговор только начался. Задайте вопрос ступени S — про то, как всё устроено сейчас.",
                     "The conversation has just started. Ask a stage-S question — about how things work today."),
+        # `min_arg` здесь не для строгости: ступень S сама по себе даёт 34, и
+        # «как у вас сейчас?» проходила бы за четыре слова. Сорок требует
+        # развёрнутого вопроса — того самого, который в игре и называет тему.
         "check": {"require_moves": ["spin_situation"],
-                  "forbid_moves": ["threat", "hostile", "offer"], "min_words": 5},
+                  "forbid_moves": ["threat", "hostile", "offer"],
+                  "min_arg": 40, "min_words": 5},
         "reference": T("Расскажите, как сейчас устроена загрузка производства: как планируете отгрузки и как часто отгружаете?",
                        "Tell me how factory utilization works today: how do you plan shipments, and how often do you ship?"),
         "explain": T(
@@ -438,6 +506,29 @@ BANK: list[dict] = [
             "interests, so Alexey asks back. Name the topic (“looking at fault to leadership”) and "
             "the same line gives +24; that is the next exercise. Option four is rudeness: trust −22, "
             "tension +26."),
+    },
+    {
+        "id": "al-10", "block": "active-listening", "lesson": 1, "type": "freeform",
+        "difficulty": 2, "xp": 15, "scenario_id": "conflict",
+        "prompt": T("Алексей обвиняет вас в срыве сроков. Назовите его положение своими словами — не признавая вины и ничего не уступая.",
+                    "Alexey accuses you of missing the deadline. Put his position into your own words — without admitting fault and without conceding anything."),
+        "check": {"require_moves": ["acknowledge"],
+                  "forbid_moves": ["concession", "accept", "offer", "anchor", "threat", "hostile"],
+                  "min_arg": 38, "min_words": 12},
+        "reference": T(
+            "Алексей, я вас слышу: на вас давит руководство, и объясняться перед директором придётся вам. Давайте разберём, что здесь можно сделать.",
+            "Alexey, I hear you: leadership is pressing you, and it is you who has to face the director. Let us look at what we can do about it."),
+        "explain": T(
+            "Назвать чувство — не признать вину: движок видит активное слушание и больше ничего. "
+            "Доверие +8, напряжение −10, реакция «теплеет», и ни одна цифра на столе не сдвинулась. "
+            "Ровно за этим предикат запрещает уступку и согласие: «понимаю, мы виноваты, готовы "
+            "уступить» несёт то же самое активное слушание — и добавляет уступку, за которую движок "
+            "не платит ничего, потому что цена ходит только за событием.",
+            "Naming the feeling is not admitting fault: the engine sees active listening and nothing "
+            "else. Trust +8, tension −10, reaction “warmed”, and not a single number on the table "
+            "moved. That is exactly why the predicate forbids a concession and an agreement: “I "
+            "understand, it is our fault, we can come down” carries the very same active listening — "
+            "plus a concession the engine pays nothing for, because the price moves only for an event."),
     },
     {
         "id": "al-02", "block": "active-listening", "lesson": 2, "type": "freeform",
@@ -944,10 +1035,10 @@ BANK: list[dict] = [
             "yields “persuaded” and leverage +16. Option three offends. Option four leaves you anchored."),
     },
     {
-        "id": "an-03", "block": "anchoring", "lesson": 2, "type": "freeform",
+        "id": "an-03", "block": "anchoring", "lesson": 3, "type": "freeform",
         "difficulty": 3, "xp": 20, "scenario_id": "used_car",
-        "prompt": T("Поставьте встречный якорь 1080 и подкрепите его критерием.",
-                    "Set a counter-anchor at 1080 and back it with a criterion."),
+        "prompt": T("Сергей назвал 1200. Поставьте встречный якорь 1080 и подкрепите его критерием.",
+                    "Sergey has named 1200. Set a counter-anchor at 1080 and back it with a criterion."),
         "check": {"require_moves": ["objective_criteria"], "forbid_moves": ["threat", "hostile"],
                   "require_number": True, "min_arg": 40, "min_words": 8},
         "reference": T(
@@ -1031,6 +1122,30 @@ BANK: list[dict] = [
             "one. An anchor with a criterion is read by the engine AS a criterion: leverage +16 and the "
             "reaction “persuaded”. Option one is a bare number with an ultimatum on top: trust −14 and "
             "tension +30, because Sergey is a tough type and his style adds 8 more to an ultimatum."),
+    },
+    {
+        "id": "an-10", "block": "anchoring", "lesson": 2, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "used_car",
+        "prompt": T("Вы говорите первым. Поставьте свой якорь: цифра плюс критерий, на котором она стоит.",
+                    "You speak first. Set your own anchor: a number plus the criterion it stands on."),
+        "check": {"require_moves": ["anchor", "objective_criteria"],
+                  "forbid_moves": ["threat", "hostile", "concession"],
+                  "require_number": True, "min_arg": 44, "min_words": 12},
+        "reference": T(
+            "Мы предлагаем 1080: по трём объявлениям на такую же модель с этим пробегом медиана рынка именно такая.",
+            "We propose 1080: comparable listings for the same model at this mileage put the market median exactly there."),
+        "explain": T(
+            "Якорь с критерием движок читает КАК критерий: рычаг +16, доверие +3, реакция «убеждён "
+            "данными» — и Сергей в тот же ход сдвинул свою цифру с 1200 до 1150. Предикат требует все "
+            "три части, и число среди них не для красоты: «по рынку это дороговато» тоже читается как "
+            "критерий, но качество довода падает до 20 — ниже порога 35, на котором засчитывается "
+            "событие «критерий». Рычаг вырастет, а цена не сдвинется вовсе.",
+            "An anchor with a criterion is read by the engine AS a criterion: leverage +16, trust +3, "
+            "reaction “persuaded” — and Sergey moved his own figure from 1200 to 1150 on the same "
+            "turn. The predicate wants all three parts, and the number is not decoration: “the market "
+            "says that is steep” also reads as a criterion, but argument quality drops to 20 — below "
+            "the 35 at which the “criterion” event counts. Leverage rises and the price does not move "
+            "at all."),
     },
     {
         "id": "an-08", "block": "anchoring", "lesson": 4, "type": "drill",
@@ -1277,6 +1392,30 @@ BANK: list[dict] = [
             "This is Harvard negotiation jujitsu: do not answer an attack with an attack, redirect it "
             "into a question of criteria. Reaction “persuaded”, leverage +16, no rise in tension. A "
             "counter-ultimatum would have cost +30 tension."),
+    },
+    {
+        "id": "pd-08", "block": "pressure-defense", "lesson": 1, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "sla_renewal",
+        "prompt": T("Виктор объявил 99.5% потолком и закрыл тему. Ответьте, не споря с ультиматумом: назовите то, что за ним стоит, и спросите про это.",
+                    "Viktor has declared 99.5% the ceiling and closed the subject. Answer without arguing with the ultimatum: name what sits behind it and ask about that."),
+        "check": {"require_moves": ["acknowledge"],
+                  "require_any": ["interests_probe", "spin_problem"],
+                  "forbid_moves": ["threat", "hostile", "concession", "accept", "offer"],
+                  "min_arg": 44, "min_words": 12},
+        "reference": T(
+            "Понимаю: штрафы, которые не вытянет ваша команда эксплуатации, — это реальный риск. Что для вас важнее в этом пункте — размер штрафов или свобода вашей эксплуатации?",
+            "I understand the penalties your operations team cannot sustain are a real risk. What matters more to you here — the size of the penalties, or the room your ops team has to run it?"),
+        "explain": T(
+            "Первый из трёх ответов на ультиматум — произнесённый, а не опознанный. Реплика не спорит "
+            "с потолком: активное слушание снимает 10 напряжения, вопрос по теме штрафов вскрывает "
+            "интерес — Информация +24, доверие +12, напряжение −13, реакция «приоткрывается». "
+            "Предикат запрещает цифру, согласие и уступку: ответить на ультиматум цифрой значит "
+            "принять его рамку, а согласиться — оплатить его.",
+            "The first of the three answers to an ultimatum — spoken, not recognised. The line does "
+            "not argue with the ceiling: active listening takes 10 off tension, and a question on the "
+            "penalties topic opens the interest — Information +24, trust +12, tension −13, reaction "
+            "“opened up”. The predicate forbids a number, an agreement and a concession: answering an "
+            "ultimatum with a number accepts its frame, and agreeing pays for it."),
     },
     {
         "id": "pd-03", "block": "pressure-defense", "lesson": 3, "type": "numeric",
@@ -1548,6 +1687,29 @@ BANK: list[dict] = [
             "leverage +22 instead of +16 and the reaction “persuaded”. A sense of unfairness is not an "
             "argument to him, and “let us split it” is a concession with no reason — the engine grants "
             "nothing for it."),
+    },
+    {
+        "id": "st-09", "block": "styles", "lesson": 3, "type": "freeform",
+        "difficulty": 3, "xp": 20, "scenario_id": "investor",
+        "prompt": T("Марина — аналитик и просит обосновать долю. Откройте разговор так, как открывают с аналитиком: сначала критерий с цифрой, без размена и без давления.",
+                    "Marina is an analyst and wants the share justified. Open the way you open with an analyst: the criterion with a number first, no trade and no pressure."),
+        "check": {"require_moves": ["objective_criteria"],
+                  "forbid_moves": ["threat", "hostile", "concession", "tradeoff"],
+                  "require_number": True, "min_arg": 44, "min_words": 12},
+        "reference": T(
+            "По медиане раундов этой стадии доля инвестора — 20%, и вот три независимых обзора рынка, на которых это стоит.",
+            "By the median round at this stage the investor's share is 20%, and here are three independent market surveys it rests on."),
+        "explain": T(
+            "Подстройка — это порядок, а не маска, и произносится она вот так. С аналитиком критерий "
+            "стоит дороже: рычаг +22 вместо обычных +16 — стиль добавляет шесть, — реакция «принимает "
+            "довод», и доля в тот же ход поехала с 30% до 26.5%. Размен предикат запрещает не потому, "
+            "что он плох: надбавку стиля даёт именно критерий, и разменивать имеет смысл после того, "
+            "как ваша цифра стала законной.",
+            "Adapting is an order of moves, not a mask — and this is how it sounds. With an analyst a "
+            "criterion is worth more: leverage +22 instead of the usual +16, six of it from the style, "
+            "reaction “persuaded”, and the share moved from 30% to 26.5% on the same turn. The "
+            "predicate forbids a trade not because trading is bad: the style bonus goes to the "
+            "criterion, and trading makes sense once your number is legitimate."),
     },
     {
         "id": "st-05", "block": "styles", "lesson": 4, "type": "numeric",

@@ -235,6 +235,17 @@
    "spin": null
   },
   {
+   "text": "Alexey, I hear you: leadership is pressing you, and it is you who has to face the director. Let us look at what we can do about it.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 38,
+   "words": 28,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Alexey, I hear you: leadership is pressing you. What matters most to you in that status update?",
    "moves": [
     "interests_probe",
@@ -266,6 +277,18 @@
    "arg": 20,
    "words": 7,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "By the median round at this stage the investor's share is 20%, and here are three independent market surveys it rests on.",
+   "moves": [
+    "objective_criteria",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 52,
+   "words": 23,
+   "number": 20.0,
    "spin": null
   },
   {
@@ -474,6 +497,17 @@
    "spin": null
   },
   {
+   "text": "How valuable would it be for you to lock in factory utilization for a full year and remove the idle weeks?",
+   "moves": [
+    "spin_needpayoff"
+   ],
+   "primary": "spin_needpayoff",
+   "arg": 42,
+   "words": 21,
+   "number": null,
+   "spin": "need-payoff"
+  },
+  {
    "text": "How valuable would it be to lock the whole year's utilization now?",
    "moves": [
     "spin_needpayoff"
@@ -586,6 +620,18 @@
    "spin": null
   },
   {
+   "text": "I understand the penalties your operations team cannot sustain are a real risk. What matters more to you here — the size of the penalties, or the room your ops team has to run it?",
+   "moves": [
+    "interests_probe",
+    "acknowledge"
+   ],
+   "primary": "interests_probe",
+   "arg": 50,
+   "words": 34,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "I understand this is not easy for you. Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?",
    "moves": [
     "interests_probe",
@@ -630,6 +676,17 @@
    "arg": 44,
    "words": 16,
    "number": 99.9,
+   "spin": null
+  },
+  {
+   "text": "I understand you, Natalia: an empty flat is real lost income, and after your last tenants that caution is completely natural.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 38,
+   "words": 21,
+   "number": null,
    "spin": null
   },
   {
@@ -1367,6 +1424,19 @@
    "spin": null
   },
   {
+   "text": "We propose 1080: comparable listings for the same model at this mileage put the market median exactly there.",
+   "moves": [
+    "objective_criteria",
+    "anchor",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 52,
+   "words": 18,
+   "number": 1080.0,
+   "spin": null
+  },
+  {
    "text": "We propose 60, that is our price.",
    "moves": [
     "anchor",
@@ -1531,6 +1601,17 @@
    "primary": "statement",
    "arg": 5,
    "words": 2,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Алексей, я вас слышу: на вас давит руководство, и объясняться перед директором придётся вам. Давайте разберём, что здесь можно сделать.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 38,
+   "words": 20,
    "number": null,
    "spin": null
   },
@@ -2005,6 +2086,19 @@
    "spin": null
   },
   {
+   "text": "Мы предлагаем 1080: по трём объявлениям на такую же модель с этим пробегом медиана рынка именно такая.",
+   "moves": [
+    "objective_criteria",
+    "anchor",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 52,
+   "words": 17,
+   "number": 1080.0,
+   "spin": null
+  },
+  {
    "text": "Мы предлагаем 60, это наша цена.",
    "moves": [
     "anchor",
@@ -2027,6 +2121,17 @@
    "words": 5,
    "number": 88.0,
    "spin": null
+  },
+  {
+   "text": "Насколько важно было бы для вас закрыть загрузку производства на год вперёд и убрать простои?",
+   "moves": [
+    "spin_needpayoff"
+   ],
+   "primary": "spin_needpayoff",
+   "arg": 42,
+   "words": 15,
+   "number": null,
+   "spin": "need-payoff"
   },
   {
    "text": "Насколько важно было бы закрыть загрузку на год вперёд?",
@@ -2232,6 +2337,18 @@
    "spin": null
   },
   {
+   "text": "По медиане раундов этой стадии доля инвестора — 20%, и вот три независимых обзора рынка, на которых это стоит.",
+   "moves": [
+    "objective_criteria",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 52,
+   "words": 18,
+   "number": 20.0,
+   "spin": null
+  },
+  {
    "text": "По объявлениям на такую же модель с этим пробегом рыночная цена 1080 — давайте отталкиваться от неё.",
    "moves": [
     "objective_criteria",
@@ -2301,6 +2418,17 @@
    "spin": null
   },
   {
+   "text": "Понимаю вас, Наталья: пустая квартира — это реальные потери, и осторожность после прошлых жильцов совершенно естественна.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 38,
+   "words": 15,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Понимаю, что вам важно не брать штрафы. Что именно делает 99.9% невозможным для вашей эксплуатации?",
    "moves": [
     "acknowledge",
@@ -2355,6 +2483,18 @@
    "primary": "acknowledge",
    "arg": 30,
    "words": 10,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Понимаю: штрафы, которые не вытянет ваша команда эксплуатации, — это реальный риск. Что для вас важнее в этом пункте — размер штрафов или свобода вашей эксплуатации?",
+   "moves": [
+    "interests_probe",
+    "acknowledge"
+   ],
+   "primary": "interests_probe",
+   "arg": 50,
+   "words": 24,
    "number": null,
    "spin": null
   },

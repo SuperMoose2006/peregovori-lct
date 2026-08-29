@@ -182,6 +182,65 @@ def test_every_choice_without_expect_moves_is_named() -> None:
     assert not stale, f"исключение осталось от удалённого упражнения: {stale}"
 
 
+#: Уроки, где за `choice` СОЗНАТЕЛЬНО не идёт `freeform`. Каждый — с причиной:
+#: либо второй такт уже стоит рядом в блоке на том же материале, либо
+#: производить нечего — варианты не реплики игрока, а суждение о движке.
+CHOICE_WITHOUT_A_SECOND_BEAT = {
+    ("foundations", 1): "тот же вопрос производится в уроке 3 (fo-04) — тот же стол, "
+                        "тот же приём, та же эталонная реплика; копия ничему не учит",
+    ("objective-criteria", 1): "критерий производится в уроке 2 (oc-02) на том же столе "
+                               "и с более строгим предикатом (require_number)",
+    ("batna-zopa", 2): "варианты — арифметика красной линии, а не реплика за столом: "
+                       "произносить нечего",
+    ("logrolling", 2): "варианты — ценность фишек; НАЗВАННУЮ фишку игрок произносит "
+                       "в lr-07 и lr-08 (require_secondary)",
+    ("closing", 2): "варианты — предсказание, где закроется сделка; реплики в задании нет",
+    ("styles", 1): "варианты — реплики ОППОНЕНТА: узнать стиль и есть навык урока",
+}
+
+
+def test_every_choice_lesson_has_a_freeform_second_beat() -> None:
+    """Узнал приём — произведи его. Узнавание без производства не переносится.
+
+    Половина банка — узнавание («выбери верный из четырёх»), и это самый дешёвый
+    режим: узнать хороший вопрос среди четырёх и ЗАДАТЬ его живому человеку —
+    разные умения, а тренажёр переговоров ценен вторым. Поэтому за `choice`
+    обязан идти `freeform` НА ТОМ ЖЕ материале — в том же уроке.
+
+    Не везде: там, где узнавание самоценно (опознать стиль собеседника) или где
+    произносить нечего (варианты — суждение о движке), второй такт был бы парой
+    ради симметрии. Такие уроки перечислены поимённо с причиной; новый `choice`
+    без пары валит сборку, пока причина не названа.
+    """
+    lessons = {(x["block"], x["lesson"]) for x in BANK if x["type"] == "choice"}
+    produced = {(x["block"], x["lesson"]) for x in BANK if x["type"] == "freeform"}
+    orphan = sorted(lessons - produced - set(CHOICE_WITHOUT_A_SECOND_BEAT))
+    assert not orphan, (
+        "узнавание без производства — добавьте freeform в тот же урок или "
+        f"назовите причину в CHOICE_WITHOUT_A_SECOND_BEAT: {orphan}")
+    stale = sorted(k for k in CHOICE_WITHOUT_A_SECOND_BEAT if k not in lessons)
+    assert not stale, f"исключение указывает на урок без choice: {stale}"
+
+
+@pytest.mark.parametrize("item", FREEFORM, ids=_ids(FREEFORM))
+def test_freeform_predicate_uses_more_than_one_guard(item: dict) -> None:
+    """`require_moves` в одиночку зачтёт реплику с нужными словами и без содержания.
+
+    Предикат ловит ФОРМУ хода — это признано вслух в docs/course.md. Ровно
+    поэтому он обязан пользоваться всем, что у него есть: запретом на приёмы,
+    которые ломают урок, порогом длины и хотя бы одной проверкой ВЕСА реплики
+    (качество довода, число, названная вторичная фишка). «Насколько важно?» —
+    формально ступень N, а в игре переспрос и +5 к Информации.
+    """
+    spec = item.get("check", {})
+    assert spec.get("require_moves") or spec.get("require_any"), item["id"]
+    assert spec.get("forbid_moves"), f"{item['id']}: нет запретов"
+    assert spec.get("min_words", 0) >= 5, f"{item['id']}: нет порога длины"
+    weight = ("min_arg", "require_number", "require_secondary")
+    assert any(spec.get(k) for k in weight), (
+        f"{item['id']}: предикат смотрит только на форму — добавьте одну из {weight}")
+
+
 @pytest.mark.parametrize("item", FREEFORM, ids=_ids(FREEFORM))
 @pytest.mark.parametrize("lang", LANGS)
 def test_reference_answer_passes_its_own_check(item: dict, lang: str) -> None:

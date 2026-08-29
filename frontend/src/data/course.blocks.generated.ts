@@ -626,14 +626,14 @@ export const COURSE_BLOCKS: CourseBlock[] = [
 /** Число упражнений в блоке. Считает генератор — банк для этого
  *  грузить не нужно. */
 export const COURSE_BLOCK_SIZES: Record<string, number> = {
-  "foundations": 10,
-  "spin-ladder": 9,
-  "active-listening": 9,
+  "foundations": 11,
+  "spin-ladder": 10,
+  "active-listening": 10,
   "objective-criteria": 8,
   "batna-zopa": 10,
-  "anchoring": 9,
+  "anchoring": 10,
   "logrolling": 9,
-  "pressure-defense": 7,
+  "pressure-defense": 8,
   "closing": 5,
-  "styles": 8
+  "styles": 9
 };
