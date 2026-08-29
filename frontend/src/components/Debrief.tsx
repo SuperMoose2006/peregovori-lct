@@ -420,6 +420,54 @@ export function Debrief({
             </div>
           ) : null}
 
+          {/* «С той стороны стола» — сразу ПОД занавесом, и это не вкусовщина.
+              Занавес показывает, ЧТО она прятала; колонка объясняет, почему
+              оно осталось спрятанным — ход за ходом, её словами. Порознь эти
+              две карточки читаются как список и как упрёк; подряд — как урок.
+
+              Текст реплик приходит с готовым разбором и собран движком (на
+              сервере views.her_side, офлайн — mock/engine.ts::herSide). Здесь
+              не сочиняется ни одного слова: ИИ до этой карточки не дотягивается
+              вовсе, поэтому она одинаково полна с сетью и без неё.
+
+              Экзамена это не касается: там сопровождение выключено до конца, и
+              объяснение хода — такое же сопровождение, как слово наставника. */}
+          {at(1) && !exam && d.her_side && d.her_side.turns.length > 0 ? (
+            <div className="herside">
+              <h2>🪑 {t.herSide.title}</h2>
+              <div className="hs-lead">
+                {/* Тихон отвечает за память, и поза `chart` — «указывает на
+                    цифру» — нарисована ровно под колонку, где у каждой реплики
+                    стоят числа движка. */}
+                <MascotImg dir="tikhon" state="chart" alt={t.herSide.mascotAlt} size={44} />
+                <p>{t.herSide.lead.replace("{name}", d.her_side.name)}</p>
+              </div>
+              <ol className="hs-tape">
+                {d.her_side.turns.map((p) => (
+                  <li key={p.turn} className={`hs-${p.tone}`}>
+                    <span className="hs-when">{t.herSide.turn} {p.turn}</span>
+                    <blockquote className="hs-quote">
+                      <b>{t.herSide.you}:</b> «{p.quote}»
+                    </blockquote>
+                    <p className="hs-said"><b>{d.her_side!.name}:</b> {p.said}</p>
+                    {p.meters.length ? (
+                      <span className="hs-meters">
+                        {p.meters.map((m, j) => (
+                          <i key={j}>{m}</i>
+                        ))}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+              <div className="hs-missed">
+                <h3>{t.herSide.missedTitle}</h3>
+                <p>{d.her_side.missed}</p>
+                {d.her_side.ask ? <p className="hs-ask">{d.her_side.ask}</p> : null}
+              </div>
+            </div>
+          ) : null}
+
           {/* Numbers live in the details drawer: they are reference, not the
               lesson, and they were the densest block on the old single page. */}
           {at(2) && (!paged || detailsOpen) ? (

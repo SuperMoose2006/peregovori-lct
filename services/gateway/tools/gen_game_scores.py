@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app import engine  # noqa: E402
+from app import engine, views  # noqa: E402
 from app.engine import analyze  # noqa: E402
 from app.engine.format import format_deal  # noqa: E402
 
@@ -54,6 +54,11 @@ def _play(scenario_id: str, lines: list[str], lang: str) -> dict:
         "offer_opp": sess.state.offer_opp,
         "deal": sess.state.deal,
         "turn": sess.turn,
+        # «С той стороны стола» — целиком, до символа. Колонка собирается двумя
+        # независимыми реализациями (views.her_side и mock/engine.ts::herSide);
+        # разъехаться они могли бы молча, оставив числа синхронными, — а
+        # расходится там ровно то, ради чего колонка и заведена: объяснение.
+        "her_side": views.her_side(sess),
     }
 
 

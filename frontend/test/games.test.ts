@@ -60,6 +60,14 @@ function checkAgainstBackend(name: string, scenarioId: string, lines: string[], 
   assert.equal(s.offerOpp, want.offer_opp, `${name}: цена на столе`);
   assert.equal(s.deal, want.deal, `${name}: цифра сделки`);
   assert.equal(s.turn, want.turn, `${name}: длина партии`);
+  // «С той стороны стола» — до символа. Колонка объясняет партию, и объяснение
+  // расходится молча: числа-то у обоих ядер сойдутся. Сверяется целиком —
+  // имя персоны, реплики оппонента, чипы шкал, занавес и вопрос-ключ.
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(debrief.her_side)),
+    want.her_side,
+    `${name}: колонка «с той стороны стола» разошлась с сервером`,
+  );
 }
 
 for (const gid of LADDER.order as string[]) {

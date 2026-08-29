@@ -129,6 +129,26 @@ export interface VisionNote {
   expressive: boolean | null;
 }
 
+// «С той стороны стола»: один ход партии, рассказанный ОТ ЛИЦА ОППОНЕНТА.
+// Зеркало backend protocol.py::HerSideTurn. Строится детерминированно из хроники
+// движка — и на сервере, и в офлайн-ядре; ИИ здесь не участвует нигде.
+export interface HerSideTurn {
+  turn: number;
+  quote: string;    // реплика игрока, как он её написал (обрезана)
+  said: string;     // что происходило у НЕЁ — от первого лица, её словами
+  meters: string[]; // «Доверие +8», «Цена 100 → 98»
+  tone: string;     // good | bad | flat — только для оформления
+}
+
+// Колонка целиком. `missed` НЕ дублирует занавес разбора (там список интересов),
+// а связывает его с ходами: объясняет, почему невскрытые остались закрытыми.
+export interface HerSide {
+  name: string;         // имя персоны ЭТОГО стола
+  turns: HerSideTurn[];
+  missed: string;
+  ask: string;          // реплика, которая открыла бы закрытое («» — открывать нечего)
+}
+
 export interface Debrief {
   overall: number;
   grade: string; // A|B|C|D|F
@@ -163,6 +183,9 @@ export interface Debrief {
   // (принцип 2: слоя нет — так и сказано). Офлайн и без ключа камера не
   // работает вовсе, и поле не приходит никогда.
   observations?: VisionNote[];
+  // Ход за ходом глазами оппонента. Отсутствует у партии без единого хода и у
+  // разборов, пришедших не от движка, — карточка тогда не рисуется вовсе.
+  her_side?: HerSide | null;
 }
 
 // "А что если…" — the deterministic what-if replay. Because the engine is a pure

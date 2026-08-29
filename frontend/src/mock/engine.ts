@@ -3,7 +3,7 @@
 // (types.ts): Analysis, Deltas, StateView, Debrief. This lets the MockServer
 // behave like the real backend so the full UI works with no server running.
 import type { Lang } from "../types";
-import type { Analysis, Deltas, Debrief, StateView, Status, Tag, WhatIfBranch } from "../types";
+import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, StateView, Status, Tag, WhatIfBranch } from "../types";
 import { LEX, cnt, has, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import type { CounterpartStyle, ScenarioDef } from "../data/scenarios";
@@ -146,6 +146,32 @@ export interface Session {
   // Памяти на одну прошлую реплику не хватало — чередование A,B,A,B обходило
   // проверку целиком. Зеркало backend Session.move_history.
   moveHistory: { tokens: Set<string>; moves: Set<string> }[];
+  /** Хроника хода ГЛАЗАМИ ОППОНЕНТА — по записи на каждый applyMove с тем, что
+   *  движок уже посчитал. НОВЫХ СИГНАЛОВ ЗДЕСЬ НЕТ: только те, что уже
+   *  поучаствовали в ходе, и в scoreSession ничего из этого не заходит
+   *  (инвариант 6). Зеркало backend Session.ledger. */
+  ledger: LedgerEntry[];
+}
+
+/** Одна запись хроники. Голые факты движка; прозу по ним собирает herSide().
+ *  Зеркало записи, которую кладёт engine.py::apply_move. */
+export interface LedgerEntry {
+  turn: number;
+  text: string;
+  reaction: string;
+  moves: string[];
+  deltas: Deltas;
+  events: string[];
+  rollback: number;
+  repeat: number;
+  /** Индекс интереса, вскрытого ЭТИМ ходом, или null. */
+  revealed: number | null;
+  /** Вопрос задан, но доверия не хватило до порога вскрытия. */
+  gated: boolean;
+  offerBefore: number;
+  offerAfter: number;
+  closed: boolean;
+  status: Status;
 }
 
 export function newSession(sc: ScenarioDef, lang: Lang): Session {
@@ -160,6 +186,7 @@ export function newSession(sc: ScenarioDef, lang: Lang): Session {
     },
     lastPlayerNorm: "",
     moveHistory: [],
+    ledger: [],
   };
 }
 
@@ -384,6 +411,10 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   const events: string[] = [];
   // Обратный ход: доля уже данной уступки, которую оппонент снимает.
   let rollback = 0;
+  // Для хроники (s.ledger): КАКОЙ интерес вскрыт этим ходом и был ли вопрос
+  // закрыт порогом доверия. Обе величины движок и так вычисляет ниже.
+  let revealedIdx: number | null = null;
+  let probeGated = false;
   // Повтор не слушают — его вставляют. Отражение чужих слов работает один раз.
   if (H("acknowledge") && !repeated) { s.trust = clamp(s.trust + 8); s.tension = clamp(s.tension - 10); m.empathy++; reaction = "warmed"; }
   if ((a.spin || H("interests_probe")) && !repeated) {
@@ -392,9 +423,10 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     // Honest reveal: вскрывается только тот интерес, в который вопрос попал по
     // теме. Reveal gated on trust, like info.
     let revealed = false;
+    probeGated = s.trust <= revealTrustGate(s);
     if (s.trust > revealTrustGate(s)) {
       const idx = revealIndexOffline(sc, curNorm, s.lang, s.interests);
-      if (idx !== null) { s.interests.push(idx); revealed = true; }
+      if (idx !== null) { s.interests.push(idx); revealed = true; revealedIdx = idx; }
     }
     // Общий вопрос, не попавший ни в один живой интерес, приносит крохи: `info`
     // это доля ВСКРЫТОГО, а не число заданных вопросов.
@@ -560,6 +592,26 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     info: s.info - b.info,
     leverage: s.leverage - b.leverage,
   };
+  // Хроника хода для разбора «с той стороны стола». Пишется ПОСЛЕ всего —
+  // включая срыв, который старше рукопожатия, — поэтому запись отражает
+  // окончательное решение движка. Номер хода считается по самой хронике, а не
+  // по s.turn: счётчик крутит вызывающая сторона. Зеркало engine.py.
+  s.ledger.push({
+    turn: s.ledger.length + 1,
+    text: rawText,
+    reaction,
+    moves: [...a.moves].sort(),
+    deltas,
+    events: [...events],
+    rollback,
+    repeat: Math.round(repeat * 100) / 100,
+    revealed: revealedIdx,
+    gated: probeGated,
+    offerBefore: Math.round(b.offerOpp * 100) / 100,
+    offerAfter: Math.round(s.offerOpp * 100) / 100,
+    closed,
+    status: s.status,
+  });
   return { reaction, deltas, closed };
 }
 
@@ -1056,7 +1108,529 @@ export function scoreSession(s: Session): Debrief {
     interests: sc.interests[lang].map((text, i) => ({ text, found: s.interests.includes(i) })),
     spin_stages: spinC, objective_criteria: m.crit, empathy: m.empathy,
     threats: m.threats, tradeoffs: s.tradeoffs.length, avg_arg: Math.round(avgArg), tips,
+    // «С той стороны стола». На сервере колонку приклеивает адаптер
+    // (views.debrief_view); здесь адаптера нет — MockServer отдаёт то, что
+    // вернул scoreSession, — поэтому она собирается прямо тут.
+    her_side: herSide(s),
   };
+}
+
+// ---------- «С той стороны стола» (зеркало views.py::her_side) ----------
+//
+// Разбор глазами оппонента: ход за ходом, что происходило У НЕЁ. ЧИСТАЯ ФУНКЦИЯ
+// ОТ СОСТОЯНИЯ ДВИЖКА — собирается из хроники `Session.ledger`, которую пишет
+// applyMove, и потому одинаково полна с сетью и без неё (инвариант 5). Ни один
+// сигнал отсюда не заходит в scoreSession (инвариант 6): это послесловие.
+//
+// ТЕКСТ СВЕРЯЕТСЯ С СЕРВЕРОМ ПОСИМВОЛЬНО: строки ниже — те же, что в
+// services/gateway/app/views.py, а games.test.ts прогоняет эталонные партии и
+// требует совпадения колонки целиком (инвариант 8). Менять — в двух местах.
+//
+// ФОРМУЛИРОВКИ БЕЗРОДОВЫЕ. Половина персон мужчины, половина женщины, а поля
+// пола у ScenarioDef нет вовсе — прошедшее время первого лица («я убрала»)
+// развалило бы либо половину столов, либо паритет. Настоящее время работает
+// везде и звучит живее.
+const HER_QUOTE_MAX = 140;
+
+/** Значение — либо одна реплика, либо список вариантов: список стоит там, где
+ *  случай выпадает в партии несколько раз подряд. Зеркало views.py::_HER. */
+type HerLine = Record<Lang, string>;
+type HerBank = Record<string, Record<string, HerLine | HerLine[]>>;
+const HER: HerBank = {
+  "walked_out": {
+    "base": {
+      "ru": "Всё, разговор окончен. Я встаю из-за стола.",
+      "en": "That's it, we're done. I'm getting up from the table."
+    },
+    "relationship": {
+      "ru": "Мне жаль, но так дальше нельзя. Я ухожу.",
+      "en": "I'm sorry, but this can't go on. I'm leaving."
+    },
+    "tough": {
+      "ru": "Хватит. Мы закончили.",
+      "en": "Enough. We're finished here."
+    },
+    "analytical": {
+      "ru": "Дальше считать нечего. Я закрываю папку.",
+      "en": "There's nothing left to compute. I'm closing the file."
+    }
+  },
+  "closed": {
+    "base": {
+      "ru": "По рукам. На этой цифре я подписываю — торговаться больше не о чем.",
+      "en": "Deal. I'll sign at that number — there's nothing left to haggle over."
+    },
+    "relationship": {
+      "ru": "По рукам, и мне правда приятно, чем это кончилось. Работаем.",
+      "en": "Deal — and I'm genuinely glad this is how it ended. Let's work."
+    },
+    "tough": {
+      "ru": "Ладно. По рукам, пока я не передумал. Дальше — по документам.",
+      "en": "Fine. Deal, before I change my mind. Paperwork next."
+    },
+    "analytical": {
+      "ru": "Сходится. На этой цифре подписываю — расчёт закрыт.",
+      "en": "It checks out. I'll sign at that number — the math is closed."
+    }
+  },
+  "hostile": {
+    "base": {
+      "ru": "Это уже не про сделку, а про меня лично. В таком тоне я не работаю — и то, что уже уступил, возвращаю назад.",
+      "en": "That stopped being about the deal and became about me. I don't work in that tone — and the concession goes back."
+    },
+    "relationship": {
+      "ru": "Мне просто обидно. Я двигаюсь вам навстречу, а в ответ слышу вот это — уступку возвращаю назад.",
+      "en": "That simply hurts. I keep moving toward you and get this in return — so my concession goes back."
+    },
+    "tough": {
+      "ru": "Хамить мне не надо, тут вы соперника не найдёте. Раз так — моё предложение снова прежнее.",
+      "en": "Don't take that tone with me, you won't win that game. Fine — my offer is back where it started."
+    },
+    "analytical": {
+      "ru": "К цифрам это отношения не имеет. Возвращаю предложение к исходному — считать будем заново.",
+      "en": "None of that touches the numbers. I'm resetting my offer — we'll count again."
+    }
+  },
+  "threat_again": {
+    "base": {
+      "ru": "Второй ультиматум подряд — это уже не нервы, а способ разговаривать. Половину уступки я забираю обратно.",
+      "en": "A second ultimatum in a row isn't nerves any more, it's a method. Half of my concession goes back."
+    },
+    "tough": {
+      "ru": "Давите второй раз — значит, аргументы кончились. Уступку снимаю.",
+      "en": "Pressing twice means the arguments ran out. The concession is off."
+    }
+  },
+  "threat_backed": {
+    "base": {
+      "ru": "Альтернатива у вас и правда есть, и вы её обосновали. Приятного мало, но считаться приходится.",
+      "en": "You do have an alternative, and you backed it up. I don't enjoy it, but I have to reckon with it."
+    },
+    "analytical": {
+      "ru": "Альтернатива названа и подкреплена. Это довод, а не давление, — принимаю к расчёту.",
+      "en": "The alternative is named and supported. That's an argument, not pressure — I'll factor it in."
+    }
+  },
+  "threat_bare": {
+    "base": {
+      "ru": "Это прозвучало как угроза без опоры. Напряжение выросло, а двигаться под таким разговором я не стану.",
+      "en": "That landed as a threat with nothing behind it. Tension is up, and I won't move under that."
+    },
+    "relationship": {
+      "ru": "Зачем так? Мы же разговаривали по-человечески. Под ультиматум я не подвинусь.",
+      "en": "Why like that? We were talking like people. I won't move under an ultimatum."
+    },
+    "tough": {
+      "ru": "Угрозы? Я в этом деле давно. Ничего, кроме напряжения, вы этим не добились.",
+      "en": "Threats? I've been at this a long time. All you got was tension."
+    }
+  },
+  "batna_backed": {
+    "base": {
+      "ru": "Альтернатива названа и подкреплена — это довод, а не пугалка. Приходится считаться.",
+      "en": "The alternative is named and backed — that's an argument, not a scare. I have to reckon with it."
+    },
+    "analytical": {
+      "ru": "Альтернатива с цифрами. Такое я кладу в расчёт, а не в спор.",
+      "en": "An alternative with numbers. That goes into my model, not into an argument."
+    }
+  },
+  "batna_bare": {
+    "base": {
+      "ru": "Вы намекаете, что есть кому позвонить кроме меня. Ни цифр, ни условий за этим нет — давит, но не убеждает.",
+      "en": "You're hinting there's someone else you could call. No numbers, no terms behind it — that pushes, but it doesn't persuade."
+    },
+    "relationship": {
+      "ru": "Значит, вы уже смотрите на сторону. Мне это неприятно слышать, и ближе мы от этого не стали.",
+      "en": "So you're already looking elsewhere. I don't enjoy hearing that, and it didn't bring us closer."
+    },
+    "tough": {
+      "ru": "Альтернатива? Попробуйте. Пока это просто слова.",
+      "en": "An alternative? Go ahead and try. So far those are just words."
+    }
+  },
+  "bare_offer": {
+    "base": {
+      "ru": "Число вы назвали, а чем оно обосновано — нет. Позицию я слышу, повода двигаться не вижу.",
+      "en": "You named a number but not what backs it. I hear the position; I don't hear a reason to move."
+    },
+    "analytical": {
+      "ru": "Цифра без модели за ней. Мне не с чем её сопоставить.",
+      "en": "A figure with no model behind it. I have nothing to compare it against."
+    },
+    "tough": {
+      "ru": "Просто цифра. И что дальше?",
+      "en": "Just a number. And then what?"
+    }
+  },
+  "repeat": {
+    "base": {
+      "ru": "Вы это уже говорили. Второй раз то же самое не работает — и ответ у меня тот же.",
+      "en": "You've said this already. The same line twice doesn't work — and my answer is the same."
+    }
+  },
+  "not_yet": {
+    "base": {
+      "ru": "Вы предлагаете ударить по рукам, но повода сойтись именно на этой цифре я не вижу. Пока нет.",
+      "en": "You're offering to shake hands, but I see no reason to settle at that number. Not yet."
+    },
+    "analytical": {
+      "ru": "Цифра названа, обоснование — нет. Сойтись на ней я не могу.",
+      "en": "The number is named, the rationale isn't. I can't settle there."
+    }
+  },
+  "revealed": {
+    "base": [
+      {
+        "ru": "Вы попали в тему: {topic}. Раз спрашиваете по делу — рассказываю то, что обычно держу при себе.",
+        "en": "You hit the topic: {topic}. Since you're asking properly, I tell you what I usually keep to myself."
+      },
+      {
+        "ru": "И снова по адресу: {topic}. Хорошо, об этом я тоже расскажу.",
+        "en": "On target again: {topic}. All right, I'll tell you about that too."
+      },
+      {
+        "ru": "Тема: {topic}. Вы разговорили меня окончательно — держать это при себе больше нет смысла.",
+        "en": "Topic: {topic}. You've got me talking for good — there's no point holding this back."
+      }
+    ],
+    "relationship": [
+      {
+        "ru": "Вы попали в тему: {topic}. Спрашиваете по-доброму — и я открываюсь, хотя обычно этого не делаю.",
+        "en": "You hit the topic: {topic}. You ask kindly — so I open up, which I don't usually do."
+      },
+      {
+        "ru": "Опять в точку: {topic}. С вами почему-то легко говорить о своём.",
+        "en": "On the nose again: {topic}. Somehow it's easy to talk about my own things with you."
+      },
+      {
+        "ru": "И это тоже — {topic}. Ну вот, теперь вы знаете обо мне почти всё.",
+        "en": "That as well — {topic}. There, now you know almost everything about me."
+      }
+    ],
+    "tough": [
+      {
+        "ru": "Ладно, тема угадана: {topic}. Скажу коротко и по делу, раз спросили.",
+        "en": "Fine, you guessed the topic: {topic}. I'll say it short, since you asked."
+      },
+      {
+        "ru": "Снова угадали: {topic}. Ладно, слушайте.",
+        "en": "Guessed right again: {topic}. All right, listen."
+      },
+      {
+        "ru": "{topic}. Всё, больше вытягивать из меня нечего.",
+        "en": "{topic}. That's it, there's nothing left to pull out of me."
+      }
+    ],
+    "analytical": [
+      {
+        "ru": "Вопрос по существу, тема: {topic}. Отвечаю фактом, а не общими словами.",
+        "en": "A substantive question, topic: {topic}. I answer with a fact, not generalities."
+      },
+      {
+        "ru": "Второй точный вопрос подряд, тема: {topic}. Отвечаю так же прямо.",
+        "en": "A second precise question, topic: {topic}. I answer just as directly."
+      },
+      {
+        "ru": "Тема: {topic}. Картина у вас теперь полная — работайте с ней.",
+        "en": "Topic: {topic}. You have the full picture now — work with it."
+      }
+    ]
+  },
+  "revealed_plain": {
+    "base": [
+      {
+        "ru": "Вопрос попал в цель. Рассказываю то, что обычно держу при себе.",
+        "en": "The question landed. I tell you what I usually keep to myself."
+      },
+      {
+        "ru": "И снова в цель. Хорошо, об этом я тоже расскажу.",
+        "en": "On target again. All right, I'll tell you about that too."
+      },
+      {
+        "ru": "Вы разговорили меня окончательно — держать это при себе больше нет смысла.",
+        "en": "You've got me talking for good — there's no point holding this back."
+      }
+    ],
+    "relationship": [
+      {
+        "ru": "Спрашиваете по-доброму — и я открываюсь, хотя обычно этого не делаю.",
+        "en": "You ask kindly — so I open up, which I don't usually do."
+      },
+      {
+        "ru": "Опять в точку. С вами почему-то легко говорить о своём.",
+        "en": "On the nose again. Somehow it's easy to talk about my own things with you."
+      },
+      {
+        "ru": "И это тоже. Ну вот, теперь вы знаете обо мне почти всё.",
+        "en": "That as well. There, now you know almost everything about me."
+      }
+    ],
+    "tough": [
+      {
+        "ru": "Попали. Скажу коротко, раз спросили.",
+        "en": "You landed it. Short version, since you asked."
+      },
+      {
+        "ru": "Снова попали. Ладно, слушайте.",
+        "en": "Landed it again. All right, listen."
+      },
+      {
+        "ru": "Всё, больше вытягивать из меня нечего.",
+        "en": "That's it, there's nothing left to pull out of me."
+      }
+    ],
+    "analytical": [
+      {
+        "ru": "Вопрос по существу. Отвечаю фактом, а не общими словами.",
+        "en": "A substantive question. I answer with a fact, not generalities."
+      },
+      {
+        "ru": "Второй точный вопрос подряд. Отвечаю так же прямо.",
+        "en": "A second precise question. I answer just as directly."
+      },
+      {
+        "ru": "Картина у вас теперь полная — работайте с ней.",
+        "en": "You have the full picture now — work with it."
+      }
+    ]
+  },
+  "gated": {
+    "base": {
+      "ru": "Вопрос личный, а доверия между нами ещё нет. Отвечаю вежливо и ни о чём.",
+      "en": "A personal question, and there's no trust between us yet. I answer politely and say nothing."
+    },
+    "tough": {
+      "ru": "С чего бы мне это вам рассказывать? Мы даже не разговаривали толком.",
+      "en": "Why would I tell you that? We've barely talked."
+    }
+  },
+  "probe_vague": {
+    "base": {
+      "ru": "Вопрос вежливый, но не про меня. Я не понимаю, о чём именно вы спрашиваете, и отвечаю общим.",
+      "en": "A polite question, but not about me. I don't know what exactly you're asking, so I answer in generalities."
+    },
+    "analytical": {
+      "ru": "Вопрос без предмета. Непонятно, какую величину вы хотите узнать, — отвечаю общим.",
+      "en": "A question with no subject. It's unclear what quantity you're after — so I stay general."
+    }
+  },
+  "term": {
+    "base": {
+      "ru": "Вот это разговор: {term} — ровно то, что мне нужно. За это можно и подвинуться по цене.",
+      "en": "Now we're talking: {term} is exactly what I need. For that I can move on price."
+    },
+    "tough": {
+      "ru": "{term} — вот это по делу. Ладно, за это подвинусь.",
+      "en": "{term} — that's the real thing. Fine, I'll move for it."
+    },
+    "analytical": {
+      "ru": "{term} меняет расчёт в мою сторону. Значит, по цене есть куда идти.",
+      "en": "{term} changes the math in my favour. So there is room on price."
+    }
+  },
+  "tradeoff": {
+    "base": {
+      "ru": "Вы предлагаете обмен, а не просто скидку. Это уже разговор о деле — часть пути я пройду.",
+      "en": "You're proposing a trade, not just a discount. That's a real conversation — I'll come part of the way."
+    }
+  },
+  "criteria": {
+    "base": {
+      "ru": "Цифра, на которую можно опереться. Спорить с рынком мне нечем — двигаюсь.",
+      "en": "A number I can lean on. I have nothing to argue against the market with — so I move."
+    },
+    "analytical": {
+      "ru": "Наконец цифра и источник. С этим я работать умею — пересчитываю.",
+      "en": "Finally a number with a source. That I can work with — recalculating."
+    }
+  },
+  "criteria_hollow": {
+    "base": {
+      "ru": "Вы сослались на рынок, но ни цифры, ни источника не назвали. Это слово, а не критерий, — цену оно не двигает.",
+      "en": "You invoked the market but named neither a number nor a source. That's a word, not a criterion — it moves nothing."
+    }
+  },
+  "warmed": {
+    "base": {
+      "ru": "Вы повторили мои же слова — значит, слушали. Напряжение спадает.",
+      "en": "You said my own words back to me — so you were listening. The tension eases."
+    },
+    "relationship": {
+      "ru": "Вот так со мной и надо. Меня услышали, и разговаривать сразу легче.",
+      "en": "That's how you talk to me. I feel heard, and it's easier already."
+    }
+  },
+  "quiet": {
+    "base": {
+      "ru": "Ничего нового. Повода двигать цену вы мне не дали.",
+      "en": "Nothing new. You gave me no reason to move my price."
+    }
+  }
+};
+
+const HER_METER_LABELS: Record<string, Record<Lang, string>> = {
+  "trust": {
+    "ru": "Доверие",
+    "en": "Trust"
+  },
+  "tension": {
+    "ru": "Напряжение",
+    "en": "Tension"
+  },
+  "info": {
+    "ru": "Информация",
+    "en": "Info"
+  },
+  "leverage": {
+    "ru": "Рычаг",
+    "en": "Leverage"
+  }
+};
+const HER_PRICE_LABEL: Record<Lang, string> = {
+  "ru": "Цена",
+  "en": "Price"
+};
+const HER_STILL_CLOSED: Record<Lang, string> = {
+  "ru": " А тема «{topic}» так и осталась закрытой.",
+  "en": " And the topic “{topic}” stayed closed."
+};
+const HER_MISSED: Record<Lang, string> = {
+  "ru": "Закрытыми остались темы: {list}. Что за ними стояло, вы узнали не за столом, а из разбора.",
+  "en": "The topics that stayed closed: {list}. What sat behind them you learned from the debrief, not from me at the table."
+};
+const HER_MISSED_NONE: Record<Lang, string> = {
+  "ru": "Секретов у меня для вас не осталось — вы спросили обо всём.",
+  "en": "I have no secrets left for you — you asked about everything."
+};
+const HER_ASK: Record<Lang, string> = {
+  "ru": "Одна реплика открыла бы это: «Что для вас важно в этой теме — {topic}?»",
+  "en": "One line would have opened it: \"What matters to you here — {topic}?\""
+};
+const HER_ASK_NO_TOPIC: Record<Lang, string> = {
+  "ru": "Одна реплика открыла бы это: спросить, что за этим стоит и почему именно это.",
+  "en": "One line would have opened it: ask what sits behind that, and why exactly that."
+};
+
+/** Реплика оппонента по случаю. `pick` выбирает вариант ДЕТЕРМИНИРОВАННО, по
+ *  состоянию партии, а не случайно. Зеркало views.py::_her_voice. */
+function herVoice(kind: string, style: CounterpartStyle, lang: Lang, pick = 0): string {
+  const bank = HER[kind];
+  const entry = bank[style] ?? bank.base;
+  return Array.isArray(entry) ? entry[pick % entry.length][lang] : entry[lang];
+}
+
+/** Голые числа движка рядом с репликой: колонка объясняет, а доказывает шкала. */
+function herMeters(e: LedgerEntry, lang: Lang): string[] {
+  const out: string[] = [];
+  for (const key of ["trust", "tension", "info", "leverage"] as const) {
+    const v = Math.round(e.deltas[key]);
+    if (v) out.push(`${HER_METER_LABELS[key][lang]} ${v > 0 ? "+" : "−"}${Math.abs(v)}`);
+  }
+  if (e.offerBefore !== e.offerAfter) {
+    out.push(`${HER_PRICE_LABEL[lang]} ${formatNumber(e.offerBefore, lang)} → ${formatNumber(e.offerAfter, lang)}`);
+  }
+  return out;
+}
+
+/** Один ход глазами оппонента: [что она говорит, тон].
+ *
+ *  Порядок веток — это ПРИОРИТЕТ, и он тот же, что у самого движка: конец партии
+ *  старше хода, откат старше уступки, грубость старше приёма. Ровно поэтому
+ *  колонка не может разойтись с цифрами рядом с ней. Зеркало views.py. */
+function herTurn(e: LedgerEntry, style: CounterpartStyle, lang: Lang, interests: string[],
+                 topics: string[], issueLabels: Record<string, string>,
+                 openTopic: string, opened: number): [string, string] {
+  const mv = new Set(e.moves);
+  // `opened` — сколько интересов она открыла ДО этого хода: первое признание
+  // звучит не так, как третье.
+  const say = (kind: string) => herVoice(kind, style, lang, opened);
+
+  if (e.reaction === "walked_out" || e.status === "breakdown") return [say("walked_out"), "bad"];
+  if (e.closed && e.status === "agreement") return [say("closed"), "good"];
+  if (mv.has("hostile")) return [say("hostile"), "bad"];
+  if (mv.has("threat")) {
+    if (e.rollback > 0) return [say("threat_again"), "bad"];
+    return e.events.includes("batna") ? [say("threat_backed"), "flat"] : [say("threat_bare"), "bad"];
+  }
+  if (mv.has("batna")) {
+    // Событие `batna` возникает только у ОБОСНОВАННОЙ альтернативы — ровно то же
+    // различие, что двигает или не двигает цену внутри хода.
+    return e.events.includes("batna") ? [say("batna_backed"), "flat"] : [say("batna_bare"), "bad"];
+  }
+  if (e.repeat >= REPEAT_HARD) return [say("repeat"), "flat"];
+  if (e.reaction === "not_yet") return [say("not_yet"), "bad"];
+
+  const idx = e.revealed;
+  if (idx !== null && idx >= 0 && idx < interests.length) {
+    if (idx < topics.length && topics[idx]) return [say("revealed").replace("{topic}", topics[idx]), "good"];
+    // У сгенерированного стола («своя сделка») тем нет, и выдумывать их некому —
+    // реплика просто обходится без названия темы.
+    return [say("revealed_plain"), "good"];
+  }
+
+  const traded = e.events
+    .filter((x) => x.startsWith("term:") && issueLabels[x.slice(5)])
+    .map((x) => issueLabels[x.slice(5)]);
+  if (traded.length) return [say("term").replace("{term}", traded.join(", ")), "good"];
+  if (mv.has("tradeoff")) return [say("tradeoff"), "good"];
+
+  const tail = openTopic ? HER_STILL_CLOSED[lang].replace("{topic}", openTopic) : "";
+  if (e.gated) return [say("gated") + tail, "bad"];
+  if (e.reaction === "probe_vague") return [say("probe_vague") + tail, "flat"];
+
+  if (mv.has("objective_criteria")) {
+    return e.events.includes("criteria") ? [say("criteria"), "good"] : [say("criteria_hollow"), "flat"];
+  }
+  if (mv.has("acknowledge")) return [say("warmed"), "good"];
+  if (mv.has("offer") || mv.has("anchor") || mv.has("concession")) return [say("bare_offer"), "flat"];
+  return [say("quiet"), "flat"];
+}
+
+/** Колонка «с той стороны стола» целиком. `null` — партия не сделала ни хода:
+ *  пустая колонка была бы четвёртым состоянием «выглядит настоящим, а внутри
+ *  пусто» (принцип 2). Зеркало views.py::her_side. */
+export function herSide(s: Session): HerSide | null {
+  if (!s.ledger.length) return null;
+  const sc = s.sc, lang = s.lang, style = sc.cp.style;
+  const interests = sc.interests[lang];
+  const topics = sc.interestTopics[lang] ?? [];
+  const issueLabels: Record<string, string> = {};
+  for (const iss of sc.secondaryIssues ?? []) issueLabels[iss.id] = iss.label[lang];
+
+  // Тема, ещё закрытая НА ТОТ МОМЕНТ, а не в конце партии: упрёк «вы не спросили
+  // про оплату» на ходу, где про оплату уже спросили, был бы неправдой.
+  const found = new Set<number>();
+  const turns: HerSideTurn[] = [];
+  for (const e of s.ledger) {
+    const rest: number[] = [];
+    for (let i = 0; i < interests.length; i++) if (!found.has(i)) rest.push(i);
+    const openTopic = rest.length && rest[0] < topics.length ? topics[rest[0]] : "";
+    const [said, tone] = herTurn(e, style, lang, interests, topics, issueLabels, openTopic, found.size);
+    if (e.revealed !== null) found.add(e.revealed);
+    turns.push({
+      turn: e.turn,
+      quote: e.text.slice(0, HER_QUOTE_MAX),
+      said,
+      meters: herMeters(e, lang),
+      tone,
+    });
+  }
+
+  const unfound: number[] = [];
+  for (let i = 0; i < interests.length; i++) if (!s.interests.includes(i)) unfound.push(i);
+  let missed: string;
+  let ask = "";
+  if (unfound.length) {
+    const labels = unfound.filter((i) => i < topics.length).map((i) => topics[i]);
+    missed = HER_MISSED[lang].replace("{list}",
+      (labels.length ? labels : unfound.map((i) => interests[i])).join(", "));
+    const topic = unfound[0] < topics.length ? topics[unfound[0]] : "";
+    ask = topic ? HER_ASK[lang].replace("{topic}", topic) : HER_ASK_NO_TOPIC[lang];
+  } else {
+    missed = HER_MISSED_NONE[lang];
+  }
+  return { name: sc.cp.nm[lang].split(",")[0].trim(), turns, missed, ask };
 }
 
 // ---------- "А что если…" replay (offline mirror of backend _whatif_branch) ----------

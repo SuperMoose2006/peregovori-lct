@@ -107,6 +107,16 @@ class Session:
     # чередование A,B,A,B обходило проверку целиком, потому что «предыдущая»
     # всегда была другой. См. _repeat_strength.
     move_history: list = field(default_factory=list)
+    #: Хроника хода ГЛАЗАМИ ОППОНЕНТА: по записи на каждый `apply_move` с тем,
+    #: что движок уже посчитал (реакция, дельты, события, откат, вскрытый
+    #: интерес, закрытый порогом доверия вопрос). НОВЫХ СИГНАЛОВ ЗДЕСЬ НЕТ —
+    #: только те, что уже поучаствовали в ходе; в `score_session` ничего из
+    #: этого не заходит и зайти не может (инвариант 6). Нужна затем, что
+    #: `MoveResult` живёт один ход, а разбор объясняет партию целиком, и
+    #: `sess.log` до неё не дотягивается: оркестратор кладёт туда текст и
+    #: дельты, а «почему цена поехала назад» знает только `apply_move`.
+    #: Прозу по этой хронике собирает views.her_side — здесь голые факты.
+    ledger: list = field(default_factory=list)
 
 
 @dataclass
@@ -536,6 +546,11 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     events: list[str] = []
     # Обратный ход: доля уже данной уступки, которую оппонент снимает.
     rollback = 0.0
+    # Для хроники (sess.ledger): КАКОЙ интерес вскрыт этим ходом и был ли
+    # вопрос закрыт порогом доверия. Обе величины движок и так вычисляет ниже —
+    # здесь они просто не теряются к концу функции.
+    revealed_idx: Optional[int] = None
+    probe_gated = False
 
     # --- Empathy / active listening: always cools tension, builds trust. -------
     # Повтор не слушают — его вставляют. Отражение чужих слов работает один
@@ -552,11 +567,13 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     if (analysis.spin or has("interests_probe") or judge_interest is not None) and not repeated:
         total = len(sc.hidden_interests[sess.lang])
         revealed = False
+        probe_gated = s.trust <= reveal_trust_gate(sess)
         if s.trust > reveal_trust_gate(sess):
             if judge_interest is not None and 0 <= judge_interest < total and judge_interest not in s.interests_found:
                 # Reveal the interest the question ACTUALLY targeted (semantic).
                 s.interests_found.append(judge_interest)
                 revealed = True
+                revealed_idx = judge_interest
             else:
                 # СУДЬЯ ТОЛЬКО ДОБАВЛЯЕТ, НО НЕ ОТНИМАЕТ. Раньше здесь стояло
                 # `elif judge is None`, и при живом судье попадание по теме не
@@ -577,6 +594,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
                 if idx is not None:
                     s.interests_found.append(idx)
                     revealed = True
+                    revealed_idx = idx
         gain_base = 22 if analysis.spin in ("implication", "need-payoff") else 14
         gain = gain_base + (10 if has("interests_probe") else 0)
         # Общий вопрос, не попавший ни в один живой интерес, приносит крохи —
@@ -823,6 +841,28 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         "leverage": s.leverage - before["leverage"],
         "offer_opp": _round2(s.offer_opp - before["offer_opp"]),
     }
+
+    # Хроника хода для разбора «с той стороны стола». Пишется ПОСЛЕ всего —
+    # включая срыв, который старше рукопожатия, — поэтому запись отражает
+    # окончательное решение движка, а не промежуточное.
+    sess.ledger.append({
+        # Номер хода считается по самой хронике, а не по `sess.turn`: счётчик
+        # крутит вызывающая сторона, и в тестах/переигровке его не крутит никто.
+        "turn": len(sess.ledger) + 1,
+        "text": raw_text,
+        "reaction": reaction,
+        "moves": sorted(analysis.moves),
+        "deltas": dict(deltas),
+        "events": list(events),
+        "rollback": rollback,
+        "repeat": _round2(repeat),
+        "revealed": revealed_idx,
+        "gated": probe_gated,
+        "offer_before": _round2(before["offer_opp"]),
+        "offer_after": _round2(s.offer_opp),
+        "closed": closed,
+        "status": s.status,
+    })
 
     return MoveResult(
         reaction=reaction,

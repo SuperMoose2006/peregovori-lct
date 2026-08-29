@@ -137,6 +137,31 @@ class RevealedInterest(BaseModel):
     found: bool
 
 
+class HerSideTurn(BaseModel):
+    """Один ход партии, рассказанный ОТ ЛИЦА ОППОНЕНТА.
+
+    Разбор до сих пор говорил, ЧТО случилось. Здесь — почему: та же хроника
+    движка, но с той стороны стола. Всё поле собрано детерминированно из
+    `engine.Session.ledger`; ИИ тут не участвует ни на одном шаге, поэтому
+    колонка целиком есть и офлайн (инвариант 5).
+    """
+    turn: int
+    quote: str            # реплика игрока, как он её написал (обрезана)
+    said: str             # что происходило у НЕЁ — от первого лица, её словами
+    meters: list[str] = Field(default_factory=list)  # «Доверие +8», «Цена 100 → 98»
+    tone: str             # good | bad | flat — только для оформления
+
+
+class HerSide(BaseModel):
+    """Колонка «с той стороны стола» целиком: кто говорит, ход за ходом, и чего
+    игрок так и не узнал. `missed` НЕ дублирует занавес разбора (там — список
+    интересов), а связывает его с ходами: объясняет, почему они не открылись."""
+    name: str                                    # имя персоны ЭТОГО стола
+    turns: list[HerSideTurn] = Field(default_factory=list)
+    missed: str                                  # «Чего вы так и не узнали: …»
+    ask: str = ""                                # реплика, которая открыла бы это
+
+
 class Debrief(BaseModel):
     overall: int
     grade: str  # A|B|C|D|F
@@ -163,6 +188,9 @@ class Debrief(BaseModel):
     ai_verdict: Optional[str] = None
     ai_strength: Optional[str] = None
     ai_growth: Optional[str] = None
+    # «С той стороны стола» — ход за ходом глазами оппонента. Детерминированно,
+    # из хроники движка; ключа нет только там, где партия не сделала ни хода.
+    her_side: Optional[HerSide] = None
 
 
 # ---- client -> server -------------------------------------------------------
