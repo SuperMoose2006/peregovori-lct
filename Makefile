@@ -1,4 +1,4 @@
-.PHONY: install gateway frontend avatar test test-py test-js e2e preflight preflight-live preflight-stand dev
+.PHONY: install gateway frontend avatar test test-py test-js e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers dev
 
 PY  := services/gateway/.venv/bin/python
 PIP := services/gateway/.venv/bin/pip
@@ -34,6 +34,20 @@ preflight-live:                ## то же плюс один НАСТОЯЩИЙ
 
 preflight-stand:               ## то же плюс проверка свежести публичного стенда
 	cd services/gateway && .venv/bin/python tools/preflight.py --stand $(ARGS)
+
+# ГОЛОС И ЗРЕНИЕ — ОТДЕЛЬНЫМИ ЦЕЛЯМИ, а не флагом к `preflight`, по двум
+# причинам сразу. Первая — та же, что у `--live`: флаг съедает сам make.
+# Вторая — деньги: голос стоит четырёх обращений к моделям (распознавание,
+# судья, реплика, синтез), зрение — одного. Обычный `make preflight` обязан
+# оставаться бесплатным и работать без сети.
+preflight-voice:               ## то же плюс НАСТОЯЩИЙ голосовой ход: микрофон → движок → звук
+	cd services/gateway && .venv/bin/python tools/preflight.py --voice $(ARGS)
+
+preflight-vision:              ## то же плюс НАСТОЯЩИЙ кадр в модель зрения
+	cd services/gateway && .venv/bin/python tools/preflight.py --vision $(ARGS)
+
+preflight-layers:              ## голос и зрение одним прогоном
+	cd services/gateway && .venv/bin/python tools/preflight.py --voice --vision $(ARGS)
 
 e2e:                           ## браузерная проверка (нужен поднятый gateway)
 	cd frontend && node e2e/smoke.mjs --out /tmp/dialog-e2e
