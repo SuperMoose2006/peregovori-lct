@@ -66,6 +66,7 @@ def render() -> str:
     games = json.loads(GAMES.read_text(encoding="utf-8"))
     principled = {k: v for k, v in games["principled"].items() if k != "note"}
     ladder = games["ladder"]
+    first_word = games["first_word"]
 
     def lines_of(game: dict, lang: str) -> list[str]:
         lines = game["lines"]
@@ -94,6 +95,13 @@ def render() -> str:
         # совпадение ДВУХ РЕАЛИЗАЦИЙ движка, а не двух языков. Английскую
         # половину проверяет бэкенд (test_reference_games.py) на обоих языках.
         "principled": {sid: _play(sid, g["ru"], "ru") for sid, g in sorted(principled.items())},
+        # Право первого слова: две партии, отличающиеся ТОЛЬКО первой репликой.
+        # Сдвиг рамки живёт в apply_move и в его браузерном зеркале — то есть
+        # ровно там, где две реализации расходятся молча.
+        "first_word": {
+            g["id"]: _play(first_word["scenario"], g["lines"], first_word["lang"])
+            for g in first_word["games"]
+        },
     }
     return json.dumps(out, ensure_ascii=False, indent=1) + "\n"
 

@@ -375,6 +375,10 @@ def _tokens(cur_norm: str) -> frozenset:
     return frozenset(out)
 
 
+#: Порог потолка техники — по ДЕТЕРМИНИРОВАННОЙ части техники (без балла
+#: судьи). Зеркало: frontend/src/mock/engine.ts::TECHNIQUE_FLOOR.
+TECHNIQUE_FLOOR = 39
+
 #: Порог «это та же реплика»: жёсткий штраф (как за дословный повтор).
 REPEAT_HARD = 0.85
 #: Порог «это перепев»: мягкий штраф, растущий со сходством.
@@ -1695,7 +1699,11 @@ def score_session(sess: Session) -> dict:
     technique += 12 if len(s.interests_found) >= len(sc.hidden_interests[lang]) else len(s.interests_found) * 4
     technique += 12 if len(s.tradeoffs_used) > 0 else 0
     technique += 8 if m.empathy > 0 else 0
-    technique += _js_round((avg_arg / 100) * 14)
+    # Балл судьи держим ОТДЕЛЬНЫМ слагаемым: он входит в число (техника —
+    # это и качество аргумента тоже), но не имеет права решать БУКВУ.
+    # Почему — у потолка техники ниже.
+    judge_term = _js_round((avg_arg / 100) * 14)
+    technique += judge_term
     technique -= m.hostiles * 12
     technique -= max(0, m.threats - 1) * 6
     # Доля партии, ушедшая на повторы. Ход, который уже был, — не приём:
@@ -1714,6 +1722,9 @@ def score_session(sess: Session) -> dict:
             if iss.id in s.terms_conceded:
                 package += 10 * iss.opp_value - 6 * iss.player_cost
         technique += clamp(package, -10, 16)
+    # То, что движок посчитал САМ: приёмы, вскрытые интересы, размены,
+    # штрафы, пакет — всё, кроме балла судьи. На это смотрит потолок.
+    technique_method = clamp(_js_round(technique - judge_term))
     technique = clamp(_js_round(technique))
 
     overall = clamp(_js_round(0.4 * economic + 0.25 * relationship + 0.35 * technique))
@@ -1726,10 +1737,32 @@ def score_session(sess: Session) -> dict:
         "F"
     )
 
-    # Technique floor: A/B must be EARNED with method, not bought with a good
-    # number. Landing a great price while ignoring interests/criteria/trade-offs
-    # (technique < 45) caps the grade at C — the Harvard thesis, not haggling.
-    if technique < 45 and grade in ("A", "B"):
+    # Потолок техники: A/B надо ЗАРАБОТАТЬ методом, а не купить хорошей цифрой.
+    # Сделка, взятая ценой при брошенных интересах, критериях и разменах,
+    # опускается до C — гарвардский тезис, а не торг.
+    #
+    # СМОТРИТ НА ДЕТЕРМИНИРОВАННУЮ ЧАСТЬ, и это не оптимизация. Раньше здесь
+    # стояло `technique < 45`, то есть букву решало число, в которое входит
+    # балл судьи, — а он воспроизводим с точностью ±5 на ход
+    # (docs/judge-reproducibility.md). Замер 36 прогонов партии `good`: техника
+    # 44 или 45, `overall` 74 ВО ВСЕХ прогонах, грейд B×31 / C×5. Человек видел
+    # одно и то же число и разную букву. Тот же переворот воспроизведён офлайн
+    # на 17 партиях из 1353 — это 43% всех переворотов, вызванных дрожью судьи,
+    # и ровно та их половина, которую нечем объяснить игроку.
+    #
+    # Переставить сам порог нельзя: судейское слагаемое пробегает 0..14, так что
+    # ЛЮБОЙ порог T лежит внутри развёртки ровно у 15 значений метода — сколько
+    # ни двигай, экспозиция та же, меняются только пострадавшие. Убрать
+    # округление — тоже мимо: точка перехода уезжает с avg 53.57 на 57.14, обе
+    # внутри наблюдённого разброса 50…60. Работает только одно: убрать
+    # недетерминированный вход из СРАВНЕНИЯ, оставив его в счёте.
+    #
+    # Порог 39, а не 45, потому что бар остался прежним: судейское слагаемое на
+    # партиях уровня A/B равно 5.71 в среднем и 6 по медиане (замер по 233
+    # партиям), 45 − 6 = 39. Тот же ответ даёт пропорция: 45 из 106 очков полной
+    # техники — это 39 из 92 очков метода. Цена перехода замерена: 4 буквы из
+    # 233, ни одной из 18 эталонных партий.
+    if technique_method < TECHNIQUE_FLOOR and grade in ("A", "B"):
         grade = "C"
 
     tips: list[str] = []

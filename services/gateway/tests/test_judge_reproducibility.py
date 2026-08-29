@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import asyncio
+import itertools
 import json
 from pathlib import Path
 
@@ -196,3 +197,116 @@ def test_the_rounding_step_of_the_argument_term_is_7_14_points(avg, expected_ste
     """
     from app.engine.engine import _js_round
     assert _js_round((avg / 100) * 14) == expected_step
+
+
+# ------------------------------------------------ буква не зависит от судьи
+
+#: Подмножество принципиальной партии на столе `supplier`: критерий с цифрой,
+#: размен и закрытие пакетом — БЕЗ единого вопроса об интересах. Ровно тот
+#: случай, ради которого потолок техники и заведён: хорошая цена при тонком
+#: методе. Здесь же он офлайн воспроизводит живой замер: `overall` 77 во всех
+#: прогонах, техника 44 или 45, а грейд до правки ходил между B и C.
+_THIN_METHOD = (3, 4, 5)
+
+
+def _principled_supplier_lines() -> list[str]:
+    data = json.loads(_FIXTURE.read_text(encoding="utf-8"))
+    return data["principled"]["supplier"]["ru"]
+
+
+def _grid5(x: float) -> int:
+    """Модель отвечает не по всей шкале, а по сетке кратных пяти (§1 замера)."""
+    return max(0, min(100, int(round(x / 5.0)) * 5))
+
+
+def _play_supplier(lines: list[str], scores: list[int]) -> dict:
+    sess = engine.create_session("supplier", "ru")
+    for i, text in enumerate(lines):
+        if sess.state.status != "active":
+            break
+        sess.turn += 1
+        engine.apply_move(sess, analyze(text), text, judge={"arg_score": scores[i]})
+    return engine.score_session(sess)
+
+
+def test_a_wobbling_judge_cannot_flip_the_letter_at_a_frozen_number():
+    """Замер офлайн: одно и то же число 77 обязано давать одну и ту же букву.
+
+    Живой прогон (36 партий, docs/judge-reproducibility.md §4) дал `overall` 74
+    во ВСЕХ прогонах и грейд B×31 / C×5. Здесь тот же переворот воспроизведён
+    без сети: три реплики, дрожь ±5 на ход по сетке кратных пяти, техника 44
+    или 45 — то есть ровно по разные стороны потолка.
+
+    До правки потолок сравнивал с 45 ЧИСЛО, в которое входит балл судьи, и
+    буква доставалась игроку броском монеты. Теперь потолок смотрит на
+    детерминированную часть техники, и буква одна на все прогоны — какая
+    именно, тест не утверждает: балансу позволено меняться, случайности нет.
+    """
+    lines = [_principled_supplier_lines()[i] for i in _THIN_METHOD]
+    grid = [_grid5(analyze(t).arg_quality) for t in lines]
+    seen: dict[int, set[str]] = {}
+    techniques: set[int] = set()
+    for deltas in itertools.product((-5, 0, 5), repeat=len(lines)):
+        d = _play_supplier(lines, [max(0, min(100, g + x))
+                                   for g, x in zip(grid, deltas)])
+        seen.setdefault(d["overall"], set()).add(d["grade"])
+        techniques.add(d["technique"])
+    assert len(techniques) > 1, (
+        "дрожь судьи перестала доезжать до техники — партия больше не стоит "
+        "на уступе, и тест мерит не то, что задумано")
+    for overall, grades in sorted(seen.items()):
+        assert len(grades) == 1, (
+            f"при overall={overall} грейд поплыл: {sorted(grades)} — "
+            "недетерминированный вход снова решает букву")
+
+
+def test_the_ceiling_reads_only_what_the_engine_counted_itself():
+    """Свойство, а не частный случай: балл судьи не двигает потолок.
+
+    Прогоняем ту же партию по ВСЕЙ шкале судьи, 0…100 одним значением на все
+    ходы. Техника при этом проходит сквозь старый порог 45 (38 → 52), а
+    `overall` — сквозь границу B (67 → 80). До правки буква шла за числом
+    судьи: C ниже 50 очков и B от 50. Метода в партии как не было, так и нет —
+    ни одного вопроса об интересах, — поэтому буква обязана быть одна на всю
+    шкалу.
+    """
+    lines = [_principled_supplier_lines()[i] for i in _THIN_METHOD]
+    grades: set[str] = set()
+    techniques: set[int] = set()
+    for score in range(0, 101, 5):
+        d = _play_supplier(lines, [score] * len(lines))
+        grades.add(d["grade"])
+        techniques.add(d["technique"])
+    assert min(techniques) < 45 <= max(techniques), (
+        "партия перестала проходить сквозь старый порог — тест мерит не то, "
+        f"что задумано (техника {min(techniques)}…{max(techniques)})")
+    assert grades == {"C"}, (
+        f"буква пошла за баллом судьи: {sorted(grades)} на шкале 0…100")
+
+
+def test_the_ceiling_still_refuses_a_price_bought_without_method():
+    """Ради чего потолок существует. Цена без метода — не A/B, и точка."""
+    sess = engine.create_session("supplier", "ru")
+    for msg in ["Наша цена 88.", "Давайте 86.", "Ок, 86, договорились."]:
+        if sess.state.status != "active":
+            break
+        sess.turn += 1
+        engine.apply_move(sess, analyze(msg), msg, judge={"arg_score": 100})
+    d = engine.score_session(sess)
+    assert d["grade"] not in ("A", "B"), (
+        f"цена без метода получила {d['grade']} при технике {d['technique']}")
+
+
+def test_the_ceiling_threshold_is_mirrored_in_the_offline_core():
+    """Инвариант 8: порог живёт в ДВУХ движках и обязан совпадать.
+
+    Разъехаться они могут молча — браузер считает ту же партию сам, и
+    расхождение всплывёт грейдом, а не ошибкой.
+    """
+    from app.engine.engine import TECHNIQUE_FLOOR
+    mirror = (Path(__file__).resolve().parents[3]
+              / "frontend" / "src" / "mock" / "engine.ts").read_text(encoding="utf-8")
+    assert f"export const TECHNIQUE_FLOOR = {TECHNIQUE_FLOOR};" in mirror, (
+        f"офлайн-ядро не знает порога {TECHNIQUE_FLOOR}")
+    assert "techniqueMethod < TECHNIQUE_FLOOR" in mirror, (
+        "офлайн-ядро сравнивает с потолком не детерминированную часть техники")

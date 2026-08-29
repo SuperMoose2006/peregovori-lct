@@ -250,6 +250,10 @@ function tokensOf(curNorm: string): Set<string> {
   return out;
 }
 
+/** Порог потолка техники — по ДЕТЕРМИНИРОВАННОЙ части техники (без балла
+ *  судьи). Зеркало: engine/engine.py::TECHNIQUE_FLOOR. */
+export const TECHNIQUE_FLOOR = 39;
+
 /** Порог «это та же реплика»: жёсткий штраф (как за дословный повтор). */
 export const REPEAT_HARD = 0.85;
 /** Порог «это перепев»: мягкий штраф, растущий со сходством. */
@@ -1105,7 +1109,10 @@ export function scoreSession(s: Session): Debrief {
   technique += s.interests.length >= sc.interests[lang].length ? 12 : s.interests.length * 4;
   technique += s.tradeoffs.length > 0 ? 12 : 0;
   technique += m.empathy > 0 ? 8 : 0;
-  technique += Math.round((avgArg / 100) * 14);
+  // Балл судьи отдельным слагаемым: он входит в число, но не решает БУКВУ —
+  // см. потолок техники ниже. Зеркало backend score_session.
+  const judgeTerm = Math.round((avgArg / 100) * 14);
+  technique += judgeTerm;
   technique -= m.hostiles * 12;
   technique -= Math.max(0, m.threats - 1) * 6;
   // Доля партии, ушедшая на повторы. Ход, который уже был, — не приём: без
@@ -1123,13 +1130,17 @@ export function scoreSession(s: Session): Debrief {
     }
     technique += clamp(pkg, -10, 16);
   }
+  // То, что движок посчитал САМ: всё, кроме балла судьи. На это смотрит потолок.
+  const techniqueMethod = clamp(Math.round(technique - judgeTerm));
   technique = clamp(Math.round(technique));
   const overall = clamp(Math.round(0.4 * economic + 0.25 * relationship + 0.35 * technique));
   let grade = overall >= 85 ? "A" : overall >= 70 ? "B" : overall >= 55 ? "C" : overall >= 40 ? "D" : "F";
-  // Technique floor (mirrors backend): A/B must be EARNED with method, not bought
-  // with a good number. Landing a great price while ignoring interests/criteria/
-  // trade-offs (technique < 45) caps the grade at C — the Harvard thesis.
-  if (technique < 45 && (grade === "A" || grade === "B")) grade = "C";
+  // Потолок техники (зеркало backend): A/B надо ЗАРАБОТАТЬ методом, а не купить
+  // хорошей цифрой. Смотрит на ДЕТЕРМИНИРОВАННУЮ часть техники: раньше здесь
+  // стояло `technique < 45`, и букву решало число, в которое входит балл судьи
+  // (±5 на ход, docs/judge-reproducibility.md) — одна и та же партия давала
+  // `overall` 74 и грейд то B, то C. Обоснование порога 39 — в engine.py.
+  if (techniqueMethod < TECHNIQUE_FLOOR && (grade === "A" || grade === "B")) grade = "C";
   const tips: string[] = [];
   const T = (ru: string, en: string) => tips.push(lang === "ru" ? ru : en);
   if (spinC < 2)
