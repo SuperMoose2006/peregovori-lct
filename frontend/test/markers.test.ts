@@ -54,3 +54,31 @@ test("no bare TODO/FIXME — the convention replaces them", () => {
   }
   assert.deepEqual(offenders, [], `use STUB()/MOCK()/CONTRACT() instead:\n${offenders.join("\n")}`);
 });
+
+
+test("ссылка на пометку ведёт к настоящей пометке, а не в пустоту", () => {
+  // Проверка появилась после живого случая: `MOCK(probe)` в офлайн-ядре обещал
+  // «станет настоящим, когда ниже по файлу появится CONTRACT(probe)», и на него
+  // же ссылался комментарий в `types.ts`. Самого `CONTRACT(probe):` не
+  // существовало НИГДЕ — читателя дважды отправляли искать то, чего нет.
+  //
+  // Тест выше этого не ловил и не мог: тегом считается запись С ДВОЕТОЧИЕМ,
+  // а ссылка пишется без него. То есть обещание «чем оно станет» указывало на
+  // несуществующее — ровно четвёртое состояние, против которого заведена вся
+  // конвенция.
+  const DEF = /\b(STUB|MOCK|CONTRACT)\(([a-z0-9-]+)\)\s*:/g;
+  const REF = /\b(STUB|MOCK|CONTRACT)\(([a-z0-9-]+)\)(?!\s*:)/g;
+
+  const defined = new Set<string>();
+  const referenced = new Map<string, string>();
+  for (const file of walk(SRC)) {
+    const text = readFileSync(file, "utf8");
+    for (const m of text.matchAll(DEF)) defined.add(`${m[1]}(${m[2]})`);
+    for (const m of text.matchAll(REF)) {
+      referenced.set(`${m[1]}(${m[2]})`, `${file.replace(SRC, "src")}`);
+    }
+  }
+  const dangling = [...referenced].filter(([tag]) => !defined.has(tag))
+    .map(([tag, where]) => `${where}: ссылается на ${tag}, а такой пометки нет`);
+  assert.deepEqual(dangling, [], dangling.join("\n"));
+});

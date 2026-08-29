@@ -312,7 +312,19 @@ export type ServerMsg =
   // when a live AI coach produced one — the deterministic hint has none.
   // Which part of the turn the server is on. Presentational only — a turn must
   // render correctly if this never arrives (offline/mock, or judge disabled).
-  // The "read her face" question. Mock-only for now — see CONTRACT(probe).
+  // Вопрос слоя «Читай лицо».
+  //
+  // CONTRACT(probe): вопрос считается в БРАУЗЕРЕ, в схемах протокола его нет.
+  //   Форма продумана и вот она: сервер шлёт `probe` теми же полями, что
+  //   объявлены ниже, сразу после `turn.analysis`; `answer` — индекс верного
+  //   варианта, и он равен реакции движка, которую сервер и так знает.
+  //   Настоящим станет: имя `probe` заведено в `realtime/events.py`
+  //   (`SERVER_EVENTS`), сервер шлёт событие, а `lib/probe.ts::nextProbe`
+  //   остаётся только у офлайн-ядра.
+  //   ПОЧЕМУ ЕЩЁ НЕ: правильный ответ обязан быть одинаков в браузере и на
+  //   сервере (инвариант 8), поэтому решение живёт в ОДНОЙ функции, которую
+  //   зовут оба пути. Перенос на сервер обязан сохранить это свойство, иначе
+  //   офлайн-игра начнёт спрашивать не то, что спросил бы сервер.
   | { type: "probe"; turn: number; options: string[]; answer: number }
   | { type: "phase"; phase: "judging" | "replying" }
   | { type: "hint"; text: string; line?: string }
