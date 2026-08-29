@@ -553,6 +553,18 @@
    "spin": null
   },
   {
+   "text": "How are you?",
+   "moves": [
+    "rapport",
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 5,
+   "words": 3,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "How is order planning set up today?",
    "moves": [
     "open_question"
@@ -562,6 +574,17 @@
    "words": 7,
    "number": null,
    "spin": null
+  },
+  {
+   "text": "How much food do you need?",
+   "moves": [
+    "spin_situation"
+   ],
+   "primary": "spin_situation",
+   "arg": 34,
+   "words": 6,
+   "number": null,
+   "spin": "situation"
   },
   {
    "text": "How valuable would it be for you to lock in factory utilization for a full year and remove the idle weeks?",
@@ -1710,6 +1733,17 @@
    "spin": "problem"
   },
   {
+   "text": "What do you need?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 32,
+   "words": 4,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "What does that cost you when factory utilization drops for a month?",
    "moves": [
     "spin_implication"
@@ -1991,6 +2025,18 @@
    "spin": null
   },
   {
+   "text": "Готов уступить до 120.",
+   "moves": [
+    "concession",
+    "offer"
+   ],
+   "primary": "concession",
+   "arg": 26,
+   "words": 4,
+   "number": 120.0,
+   "spin": null
+  },
+  {
    "text": "Давайте вы назовёте цифру первым.",
    "moves": [
     "statement"
@@ -2056,6 +2102,17 @@
    "arg": 34,
    "words": 13,
    "number": 212.0,
+   "spin": null
+  },
+  {
+   "text": "Думаю, это должна быть либо вода, либо дрова.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
    "spin": null
   },
   {
@@ -2186,6 +2243,18 @@
    "primary": "interests_probe",
    "arg": 32,
    "words": 11,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Как дела?",
+   "moves": [
+    "rapport",
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 5,
+   "words": 2,
    "number": null,
    "spin": null
   },
@@ -2347,6 +2416,17 @@
    "spin": null
   },
   {
+   "text": "Мне требуются вода и еда.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Мне это дорого, скиньте 10 тысяч.",
    "moves": [
     "statement"
@@ -2366,6 +2446,40 @@
    "arg": 26,
    "words": 6,
    "number": 480.0,
+   "spin": null
+  },
+  {
+   "text": "Могу предложить 8500.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 8500.0,
+   "spin": null
+  },
+  {
+   "text": "Могу уступить до 1700.",
+   "moves": [
+    "concession",
+    "offer"
+   ],
+   "primary": "concession",
+   "arg": 26,
+   "words": 4,
+   "number": 1700.0,
+   "spin": null
+  },
+  {
+   "text": "Может, как-то иначе договоримся?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 4,
+   "number": null,
    "spin": null
   },
   {
@@ -2640,6 +2754,18 @@
    "arg": 20,
    "words": 4,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "Отдашь за 25?",
+   "moves": [
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 25.0,
    "spin": null
   },
   {
@@ -2966,6 +3092,17 @@
    "spin": "problem"
   },
   {
+   "text": "С меня 5900.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 5900.0,
+   "spin": null
+  },
+  {
    "text": "Сделка",
    "moves": [
     "accept"
@@ -3021,6 +3158,17 @@
    "spin": null
   },
   {
+   "text": "Скину до 500.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 500.0,
+   "spin": null
+  },
+  {
    "text": "Сколько вы теряете, если загрузка производства падает на месяц?",
    "moves": [
     "spin_implication"
@@ -3041,6 +3189,17 @@
    "words": 7,
    "number": null,
    "spin": "implication"
+  },
+  {
+   "text": "Сколько еды нужно?",
+   "moves": [
+    "spin_situation"
+   ],
+   "primary": "spin_situation",
+   "arg": 19,
+   "words": 3,
+   "number": null,
+   "spin": "situation"
   },
   {
    "text": "Слишком низкий якорь",
@@ -3273,6 +3432,17 @@
    "primary": "interests_probe",
    "arg": 32,
    "words": 11,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Что тебе нужно?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 17,
+   "words": 3,
    "number": null,
    "spin": null
   },
