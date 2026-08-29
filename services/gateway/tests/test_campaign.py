@@ -1,11 +1,17 @@
 """Tests for campaign mode: catalog endpoint + reputation carry."""
 
+import json
 import os
+from pathlib import Path
 os.environ.setdefault("NEGO_AI", "off")
 
 from fastapi.testclient import TestClient
 from app.main import app
 from app import engine, views
+from app.engine.techniques import analyze
+
+FIXTURE = (Path(__file__).resolve().parents[3]
+           / "frontend" / "test" / "fixtures" / "games.json")
 
 client = TestClient(app)
 
@@ -117,3 +123,65 @@ def test_the_two_campaigns_do_not_reuse_the_same_table():
     for i, a in enumerate(used):
         for b in used[i + 1:]:
             assert not (a & b), f"кампании делят столы: {a & b}"
+
+
+# ---------------------------------------------------------------------------
+# Каждая написанная концовка обязана быть достижимой
+# ---------------------------------------------------------------------------
+
+def test_every_epilogue_band_is_reachable():
+    """Четыре финала — четыре разных текста. Ни один не имеет права пустовать.
+
+    ПОЧЕМУ ЭТО НЕ ОЧЕВИДНО. Репутация копится как `overall − 50` за акт, а
+    `overall` распределён не равномерно: в этом продукте шестнадцать эталонных
+    партий дают либо F (14…29), либо B/A (73…92), и середины среди них нет
+    вовсе. Естественно было предположить, что и финалов на деле два —
+    «триумф» и «испорченные отношения», — а две средние полосы написаны зря.
+
+    ПРОВЕРЕНО ПЕРЕБОРОМ, и предположение оказалось ложным: двадцать тысяч
+    кампаний, где каждый акт берётся из ВСЕХ подмножеств принципиальной линии
+    этого стола, распределились как 29/28/25/13 процентов у «Восхождения» и
+    36/28/22/11 у «Своего дела». Полосы населены.
+
+    Здесь закреплено более слабое, зато точное и дешёвое утверждение: диапазон
+    достижимой репутации накрывает КАЖДЫЙ порог. Перебор двадцати тысяч партий
+    в наборе тестов держать незачем — он проверяет то же самое, но за минуты.
+    Правка баланса, отрезавшая финал, свалит эту проверку.
+    """
+    from app.engine.campaigns import CAMPAIGNS, _EPILOGUE_BANDS, epilogue_key
+
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    principled = {k: v for k, v in fixture["principled"].items() if k != "note"}
+
+    for camp in CAMPAIGNS:
+        lo = hi = 0.0
+        for stage in camp.stages:
+            lines = principled[stage.scenario_id]["ru"]
+            # Худший акт — молчание: партия срывается по лимиту ходов.
+            worst = _overall(stage.scenario_id, ["Ага."] * 12)
+            best = _overall(stage.scenario_id, lines)
+            assert best > worst, f"{camp.id}/{stage.scenario_id}: игра ничего не меняет"
+            lo += worst - 50
+            hi += best - 50
+
+        lo, hi = max(-100.0, lo), min(100.0, hi)
+        for threshold, key in _EPILOGUE_BANDS:
+            assert lo <= threshold <= hi or key == epilogue_key(lo), (
+                f"{camp.id}: финал «{key}» недостижим — репутация ходит "
+                f"в диапазоне {lo:.0f}…{hi:.0f}, а порог {threshold}")
+        # И крайние точки обязаны давать РАЗНЫЕ финалы, иначе диапазон
+        # формально накрывает пороги, а игрок всегда читает один текст.
+        assert epilogue_key(lo) != epilogue_key(hi), (
+            f"{camp.id}: и лучшая, и худшая кампания кончаются одинаково")
+
+
+def _overall(scenario_id: str, lines: list[str]) -> int:
+    sess = engine.create_session(scenario_id, "ru")
+    for text in lines:
+        if sess.state.status != "active":
+            break
+        sess.turn += 1
+        engine.apply_move(sess, analyze(text), text)
+        if sess.state.status == "active" and sess.turn >= sess.max_turns:
+            sess.state.status = "breakdown"
+    return engine.score_session(sess)["overall"]
