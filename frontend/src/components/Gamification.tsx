@@ -3,7 +3,7 @@
 // (see lib/progress.ts): a rank + XP bar and a daily-goal ring for the home
 // hero, a skill-mastery screen, a debrief XP count-up, and achievement toasts.
 // Understated-premium, theme-aware, reduced-motion-safe, good on a 390px phone.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import type { Lang } from "../types";
 import type { Strings } from "../i18n";
@@ -125,9 +125,13 @@ function DailyRing({ progress, met }: { progress: number; met: boolean }) {
 
 // ---- Skill-mastery screen (director's #4) ----------------------------------
 export function SkillsProfile({
-  t, lang, profile, onHome,
+  t, lang, profile, onHome, growth,
 }: {
   t: Strings; lang: Lang; profile: Profile; onHome: () => void;
+  /** Карточка роста во времени (components/Growth.tsx). Приходит СЛОТОМ, а не
+   *  импортом: она едет отложенным куском, и этот файл лежит на критическом
+   *  пути — статический импорт вернул бы её на первую отрисовку. */
+  growth?: ReactNode;
 }) {
   const r = rankForXp(profile.xp);
   const views = skillViews(profile);
@@ -166,6 +170,10 @@ export function SkillsProfile({
               </div>
             </div>
           )}
+
+          {/* Рост во времени. Только когда партии есть: «сыграно 0 из 6» рядом с
+              приглашением сыграть первую — это одно и то же сообщение дважды. */}
+          {hasGames ? growth : null}
 
           {/* Zero-state: with no games there's nothing honest to score, so we skip
               the (all "—") bars entirely and let the friendly invite above stand. */}

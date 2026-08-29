@@ -133,6 +133,13 @@ export interface Strings {
   deltaRepeat: string;
   connecting: string;
   usingMock: string;
+  // Сервер ОТВЕТИЛ, но ключа модели у него нет (`capabilities.cloud_ai === false`):
+  // реплики оппонента приходят из шаблонов движка. Это НЕ то же, что `usingMock`
+  // («сервера нет вовсе»), и молчать об этом нельзя — иначе получается четвёртое
+  // состояние: выглядит как живая партия, а внутри шаблоны. Второй строкой —
+  // почему пугаться нечего: счёт и грейд считает движок, они те же.
+  noAiChip: string;
+  noAiWhy: string;
   // gentle composer note as the input nears the length cap — "{n}" = chars left
   composerLimit: string;
   // mid-game connection health (reconnect banner / lost-connection panel)
@@ -680,6 +687,29 @@ export interface Strings {
     skillNames: Record<SkillId, string>;
     skillHints: Record<SkillId, string>;
   };
+  // Рост во времени: история партий и вывод о тенденции (lib/growth.ts).
+  // Отдельно от `gam`, потому что отвечает на другой вопрос: `gam` — «сколько у
+  // меня сейчас», здесь — «стало ли лучше, чем было».
+  growth: {
+    title: string; // заголовок карточки
+    sub: string; // одна строка о том, откуда числа
+    lowTitle: string; // мало данных — заголовок
+    lowBody: string; // «сыграно {played} из {need}» + почему не рисуем линию
+    windowNote: string; // «последние {n} {form} · {from} — {to}»
+    overallLabel: string; // подпись графика
+    dirUp: string; // вердикт: растёт
+    dirDown: string; // вердикт: просел
+    dirFlat: string; // вердикт: без изменений
+    thenNow: string; // «{before} → {after}»
+    noise: string; // «разница {delta} не выходит за разброс {threshold}»
+    grew: string; // «разница {delta} при разбросе {threshold}»
+    movedUp: string; // «Сильнее всего вырос»
+    movedDown: string; // «Просел»
+    noMoves: string; // ни один навык не вышел за разброс
+    chartAria: string; // описание графика для скринридера
+    notScored: string; // история в оценку не входит
+    skillsHead: string; // подзаголовок над шестью строками навыков
+  };
   // Screen-reader labels for non-textual UI (meters/rings/scales/log). Templates
   // use {name}-style tokens substituted at render.
   a11y: {
@@ -832,6 +862,8 @@ export const I18N: Record<Lang, Strings> = {
     deltaRepeat: "повтор — на эти слова уже ответили",
     connecting: "Соединение…",
     usingMock: "демо-режим (без сервера)",
+    noAiChip: "реплики по шаблону",
+    noAiWhy: "У сервера нет ключа модели, поэтому реплики оппонента берутся из шаблонов движка. Счёт, движение цены и грейд считаются как обычно.",
     composerLimit: "Осталось {n} {form}",
     conn: {
       reconnecting: "Соединение потеряно — переподключаемся…",
@@ -1429,6 +1461,26 @@ export const I18N: Record<Lang, Strings> = {
         tension: "Держите доверие и не даёте напряжению расти",
       },
     },
+    growth: {
+      title: "Как вы растёте",
+      sub: "Каждая точка — законченная партия: тот самый счёт, из которого движок вывел букву.",
+      lowTitle: "Данных пока мало",
+      lowBody: "Сыграно {played} из {need}. О тенденции говорим с шести партий: по двум точкам линию нарисовать можно всегда, а показывала бы она уверенность, которой нет.",
+      windowNote: "Последние {n} {form} · {from} — {to}",
+      overallLabel: "Общий счёт партии",
+      dirUp: "растёт",
+      dirDown: "просел",
+      dirFlat: "без изменений",
+      thenNow: "{before} → {after}",
+      noise: "разница {delta} не выходит за разброс ±{threshold} — это шум",
+      grew: "разница {delta} при разбросе ±{threshold}",
+      movedUp: "Сильнее всего вырос",
+      movedDown: "Просел",
+      noMoves: "Ни один навык пока не вышел за собственный разброс. Это не «плохо» — это «слишком рано называть».",
+      chartAria: "График общего счёта по {n} партиям: сначала {before}, в последних — {after}.",
+      notScored: "История ничего не добавляет к оценке — грейд каждой партии уже поставлен движком.",
+      skillsHead: "По навыкам",
+    },
     a11y: {
       nav: "Разделы",
       stats: "Ваш прогресс",
@@ -1583,6 +1635,8 @@ export const I18N: Record<Lang, Strings> = {
     deltaRepeat: "repeat — they already answered this",
     connecting: "Connecting…",
     usingMock: "demo mode (no server)",
+    noAiChip: "scripted replies",
+    noAiWhy: "The server has no model key, so the counterpart replies from engine templates. Scoring, price movement and the grade are unchanged.",
     composerLimit: "{n} {form} left",
     conn: {
       reconnecting: "Connection lost — reconnecting…",
@@ -2168,6 +2222,26 @@ export const I18N: Record<Lang, Strings> = {
         tradeoff: "Create value by trading concessions",
         tension: "Keep trust up and tension from rising",
       },
+    },
+    growth: {
+      title: "How you are growing",
+      sub: "Every dot is one finished negotiation — the very score the engine turned into a grade.",
+      lowTitle: "Not enough data yet",
+      lowBody: "{played} of {need} played. A trend needs six games: a line through two points can always be drawn, and it would show a confidence that isn't there.",
+      windowNote: "Last {n} {form} · {from} — {to}",
+      overallLabel: "Overall score per game",
+      dirUp: "rising",
+      dirDown: "slipping",
+      dirFlat: "unchanged",
+      thenNow: "{before} → {after}",
+      noise: "a {delta} gap stays inside the ±{threshold} spread — that's noise",
+      grew: "a {delta} gap against a ±{threshold} spread",
+      movedUp: "Grew the most",
+      movedDown: "Slipped",
+      noMoves: "No skill has yet moved beyond its own spread. That isn’t “bad” — it’s “too early to call”.",
+      chartAria: "Overall score across {n} games: {before} at the start, {after} in the latest ones.",
+      notScored: "History adds nothing to your score — every grade was already set by the engine.",
+      skillsHead: "By skill",
     },
     a11y: {
       nav: "Sections",
