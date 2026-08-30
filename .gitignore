@@ -20,5 +20,6 @@ services/avatar/avatars/
 frontend/dist-mock
 # Сборка с ВНЕШНИМ адресом бэкенда — та же статика, другой origin.
 # Артефакт проверки разделения, в историю ему не место, как и остальным.
-frontend/dist-split/
+frontend/dist-split
+frontend/dist-badge/
 services/gateway/certs/
