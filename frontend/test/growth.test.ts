@@ -164,7 +164,19 @@ test("балл судьи в график не течёт", () => {
   } as unknown as Debrief;
   const p = pointFrom("supplier", d);
   assert.deepEqual(p.skills, skills({ tension: 40 }), "в сигналы просочилось что-то, кроме полей разбора");
-  assert.equal(JSON.stringify(p).includes("84"), false, "судейский балл попал в точку истории");
+
+  // ПРОВЕРЯЕМ ПОЛЯ, А НЕ ПОДСТРОКУ. Здесь стояло
+  // `JSON.stringify(p).includes("84") === false` — и это мигало по часам:
+  // точка несёт временную метку, и миллисекунды вроде «.184» роняли тест
+  // случайно, раз в несколько прогонов. Проверка, которая падает от
+  // времени суток, не доказывает ничего про утечку балла — она только учит
+  // не верить красному.
+  const numeric = Object.entries(p).filter(([, v]) => typeof v === "number");
+  assert.deepEqual(numeric.filter(([, v]) => v === 84), [],
+    `судейский балл попал в точку истории: ${JSON.stringify(numeric)}`);
+  for (const [key, value] of Object.entries(p.skills)) {
+    assert.notEqual(value, 84, `навык ${key} принял судейский балл`);
+  }
 });
 
 // ============================================================================
