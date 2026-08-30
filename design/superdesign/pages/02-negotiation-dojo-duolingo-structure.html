@@ -1,0 +1,297 @@
+<!DOCTYPE html><html lang="ru" data-skin="dojo"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1440, initial-scale=1.0">
+  <meta name="view-transition" content="same-origin">
+  <script src="../vendor/tailwind.js"></script>
+  
+  <style>
+    
+
+    :root {
+      --ground: #f3eee3;
+      --panel: #fbf8f1;
+      --panel-2: #efe8d9;
+      --ink: #241e16;
+      --ink-dim: #6b6152;
+      --ink-faint: #7d7359;
+      --line: #e0d7c5;
+      --line-2: #cfc4ad;
+      --brass: #b07c2e;
+      --brass-dark: #8a5f21;
+      --trust: #2e9e6e;
+      --tension: #d2564b;
+      --info: #3f72d8;
+      --leverage: #7c68c8;
+      --serif: "Crimson Pro", "Iowan Old Style", Palatino, Georgia, serif;
+      --sans: system-ui, -apple-system, sans-serif;
+      --r: 16px;
+      --shadow: 0 10px 40px rgba(60, 45, 20, 0.08);
+    }
+
+    @view-transition { navigation: auto; }
+
+    * { box-sizing: border-box; }
+    body { background: var(--ground); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; margin: 0; overflow: hidden; }
+    .serif { font-family: var(--serif); }
+    
+    .sidebar { width: 256px; border-right: 2px solid var(--line); height: 100vh; position: fixed; left: 0; top: 0; background: var(--panel); z-index: 50; }
+    .nav-item { display: flex; align-items: center; gap: 16px; padding: 12px 16px; margin: 4px 16px; border-radius: 12px; font-weight: 700; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.8px; font-size: 14px; transition: all 0.2s; cursor: pointer; border: 2px solid transparent; }
+    .nav-item:hover { background: var(--panel-2); }
+    .nav-item.active { background: #efe8d9; border-color: var(--line-2); color: var(--brass); }
+    .nav-item iconify-icon { font-size: 24px; }
+
+    .top-strip { height: 64px; position: fixed; top: 0; left: 256px; right: 0; background: var(--panel); border-bottom: 2px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; z-index: 40; }
+    
+    .main-content { margin-left: 256px; margin-right: 340px; padding: 100px 40px 40px 40px; height: 100vh; overflow-y: auto; }
+    .right-rail { width: 340px; position: fixed; right: 0; top: 64px; bottom: 0; padding: 40px 24px; overflow-y: auto; }
+
+    .dojo-btn-primary {
+      position: relative;
+      background: var(--brass);
+      color: white;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 3px 0 var(--brass-dark);
+      transition: all 0.1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+    }
+    .dojo-btn-primary:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 var(--brass-dark);
+    }
+
+    .card-dojo { background: var(--panel); border: 2px solid var(--line); border-radius: var(--r); padding: 24px; transition: all 0.2s; box-shadow: var(--shadow); }
+    .card-dojo:hover { border-color: var(--line-2); transform: translateY(-2px); }
+
+    .meter-round { height: 14px; background: var(--line-2); border-radius: 99px; overflow: hidden; }
+    .meter-round-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
+    .seg-pill { display: inline-flex; background: var(--panel-2); border-radius: 99px; padding: 4px; border: 1px solid var(--line); }
+    .seg-pill-btn { padding: 4px 12px; font-size: 12px; font-weight: 700; border-radius: 99px; color: var(--ink-dim); transition: 0.2s; }
+    .seg-pill-btn.on { background: white; color: var(--brass); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+    .stat-chip { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen" id="app-root">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" data-sd-id="sidebar">
+      <div class="p-8 pb-10">
+        <span class="serif text-[32px] font-bold">Диалог<span class="text-[#b07c2e]">.</span></span>
+      </div>
+      <nav class="flex flex-col gap-1">
+        <a href="#" class="nav-item active" id="nav-practice">
+          <iconify-icon icon="lucide:target"></iconify-icon>
+          <span>Тренировка</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-campaign">
+          <iconify-icon icon="lucide:trophy"></iconify-icon>
+          <span>Кампания</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-progress">
+          <iconify-icon icon="lucide:bar-chart-3"></iconify-icon>
+          <span>Прогресс</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-exam">
+          <iconify-icon icon="lucide:graduation-cap"></iconify-icon>
+          <span>Экзамен</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-profile">
+          <iconify-icon icon="lucide:user"></iconify-icon>
+          <span>Профиль</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Top Strip -->
+    <header class="top-strip" data-sd-id="top-strip">
+      <div class="flex gap-8">
+        <div class="stat-chip">
+          <iconify-icon icon="lucide:flame" class="text-orange-500 text-xl"></iconify-icon>
+          <span class="serif">4</span>
+        </div>
+        <div class="stat-chip">
+          <iconify-icon icon="lucide:gem" class="text-blue-500 text-xl"></iconify-icon>
+          <span class="serif">1,240 XP</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="seg-pill">
+          <button class="seg-pill-btn on" id="top-lang-ru">RU</button>
+          <button class="seg-pill-btn" id="top-lang-en">EN</button>
+        </div>
+        <button class="w-10 h-10 flex items-center justify-center text-xl text-[#6b6152]" id="top-theme-toggle">
+          <iconify-icon icon="lucide:moon"></iconify-icon>
+        </button>
+        <button class="w-10 h-10 flex items-center justify-center text-xl text-[#6b6152]" id="top-sound-toggle">
+          <iconify-icon icon="lucide:volume-2"></iconify-icon>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Mode Selector -->
+      <div class="mb-10">
+        <div class="flex gap-2 p-1.5 bg-[#efe8d9] rounded-2xl w-fit">
+          <button class="px-6 py-2.5 bg-white shadow-sm rounded-xl font-bold text-sm text-[#b07c2e]" id="mode-single">ПРАКТИКА</button>
+          <button class="px-6 py-2.5 text-[#6b6152] font-bold text-sm hover:text-[#241e16]" id="mode-career">КАРЬЕРА</button>
+          <button class="px-6 py-2.5 text-[#6b6152] font-bold text-sm hover:text-[#241e16]" id="mode-custom">СВОЯ СДЕЛКА</button>
+          <button class="px-6 py-2.5 text-[#6b6152] font-bold text-sm hover:text-[#241e16]" id="mode-exam-pill">ЭКЗАМЕН</button>
+        </div>
+      </div>
+
+      <!-- Scenarios Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <!-- Card Template 1 -->
+        <div class="card-dojo flex flex-col gap-6">
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 bg-[#efe8d9] rounded-2xl flex items-center justify-center text-3xl">📦</div>
+            <div class="flex gap-1.5 mt-2">
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#cfc4ad]"></span>
+            </div>
+          </div>
+          <div>
+            <h3 class="serif text-2xl font-bold mb-2">Контракт с поставщиком</h3>
+            <p class="text-sm text-[#6b6152] leading-relaxed">Снизьте цену на сырьё на 15%, сохранив приоритетную отгрузку в сезон пикового спроса.</p>
+          </div>
+          <button class="dojo-btn-primary w-full" id="start-scenario-1">Начать</button>
+        </div>
+
+        <!-- Card Template 2 -->
+        <div class="card-dojo flex flex-col gap-6">
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 bg-[#efe8d9] rounded-2xl flex items-center justify-center text-3xl">💰</div>
+            <div class="flex gap-1.5 mt-2">
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#cfc4ad]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#cfc4ad]"></span>
+            </div>
+          </div>
+          <div>
+            <h3 class="serif text-2xl font-bold mb-2">Повышение зарплаты</h3>
+            <p class="text-sm text-[#6b6152] leading-relaxed">У вас есть контроффер. Договоритесь о пересмотре грейда, не сжигая мосты с текущим руководителем.</p>
+          </div>
+          <button class="dojo-btn-primary w-full" id="start-scenario-2">Начать</button>
+        </div>
+
+        <!-- Card Template 3 -->
+        <div class="card-dojo flex flex-col gap-6">
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 bg-[#efe8d9] rounded-2xl flex items-center justify-center text-3xl">🚧</div>
+            <div class="flex gap-1.5 mt-2">
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+            </div>
+          </div>
+          <div>
+            <h3 class="serif text-2xl font-bold mb-2">Конфликт отделов</h3>
+            <p class="text-sm text-[#6b6152] leading-relaxed">Разрешите спор о ресурсах между IT и Маркетингом в условиях сжатых сроков квартального отчёта.</p>
+          </div>
+          <button class="dojo-btn-primary w-full" id="start-scenario-3">Начать</button>
+        </div>
+
+        <!-- Card Template 4 -->
+        <div class="card-dojo flex flex-col gap-6">
+          <div class="flex items-start justify-between">
+            <div class="w-14 h-14 bg-[#efe8d9] rounded-2xl flex items-center justify-center text-3xl">📈</div>
+            <div class="flex gap-1.5 mt-2">
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+              <span class="w-2 h-2 rounded-full bg-[#b07c2e]"></span>
+            </div>
+          </div>
+          <div>
+            <h3 class="serif text-2xl font-bold mb-2">Раунд инвестора</h3>
+            <p class="text-sm text-[#6b6152] leading-relaxed">Защитите оценку стартапа при входе венчурного фонда с агрессивными условиями по доле.</p>
+          </div>
+          <button class="dojo-btn-primary w-full" id="start-scenario-4">Начать</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Rail Widgets -->
+    <aside class="right-rail">
+      <div class="flex flex-col gap-6">
+        
+        <!-- XP Card -->
+        <div class="card-dojo bg-white">
+          <h4 class="serif text-lg font-bold mb-4">Ваш ранг</h4>
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 rounded-full border-4 border-[#b07c2e] flex items-center justify-center">
+              <span class="serif font-bold text-lg">1</span>
+            </div>
+            <div>
+              <div class="text-sm font-bold uppercase tracking-wider text-[#b07c2e]">Новичок</div>
+              <div class="text-xs text-[#7d7359]">До «Адепта» 150 XP</div>
+            </div>
+          </div>
+          <div class="meter-round">
+            <div class="meter-round-fill bg-[#b07c2e]" style="width: 25%"></div>
+          </div>
+        </div>
+
+        <!-- Daily Goal -->
+        <div class="card-dojo bg-white">
+          <h4 class="serif text-lg font-bold mb-4">Цель дня</h4>
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex gap-2">
+              <div class="w-8 h-8 rounded-full bg-[#b07c2e] text-white flex items-center justify-center font-bold text-xs">1</div>
+              <div class="w-8 h-8 rounded-full border border-[#cfc4ad] text-[#7d7359] flex items-center justify-center font-bold text-xs">2</div>
+              <div class="w-8 h-8 rounded-full border border-[#cfc4ad] text-[#7d7359] flex items-center justify-center font-bold text-xs">3</div>
+            </div>
+            <span class="serif font-bold text-xl">0/3</span>
+          </div>
+          <p class="text-xs text-[#6b6152]">Пройдите 3 сценария сегодня, чтобы сохранить серию огня 🔥</p>
+        </div>
+
+        <!-- Method Widget -->
+        <div class="card-dojo bg-white">
+          <h4 class="serif text-lg font-bold mb-4">Метод Додзё</h4>
+          <div class="flex flex-col gap-4">
+            <div class="flex gap-3">
+              <iconify-icon icon="lucide:info" class="text-[#3f72d8] text-lg mt-0.5"></iconify-icon>
+              <div>
+                <div class="text-xs font-bold uppercase">SPIN</div>
+                <p class="text-[11px] text-[#6b6152]">Вскрывайте интересы за позициями.</p>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <iconify-icon icon="lucide:scale" class="text-[#b07c2e] text-lg mt-0.5"></iconify-icon>
+              <div>
+                <div class="text-xs font-bold uppercase">ГАРВАРД</div>
+                <p class="text-[11px] text-[#6b6152]">Объективные критерии — ваша база.</p>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <iconify-icon icon="lucide:anchor" class="text-[#7c68c8] text-lg mt-0.5"></iconify-icon>
+              <div>
+                <div class="text-xs font-bold uppercase">BATNA</div>
+                <p class="text-[11px] text-[#6b6152]">Альтернатива как источник силы.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+</body></html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html><html lang="ru"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диалог — Разбор</title>
+    <script src="../vendor/tailwind.js"></script>
+    
+    
+    
+    
+    <style>
+        :root {
+            --ground: #ffffff;
+            --panel: #ffffff;
+            --panel-2: #f7f7f7;
+            --ink: #3c3c3c;
+            --ink-dim: #777;
+            --ink-faint: #afafaf;
+            --line: #e5e5e5;
+            --line-2: #d8d8d8;
+            --brass: #3f8f00; /* Darker green for WCAG compliance */
+            --brass-soft: #58cc02;
+            --edge: #2f6b00;
+            --danger: #ff4b4b;
+            --info: #1cb0f6;
+            --leverage: #ce82ff;
+            --amber: #ffb800;
+            --r: 16px;
+        }
+
+        body {
+            font-family: 'Nunito', system-ui, sans-serif;
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .btn-3d-primary {
+            background-color: var(--brass);
+            box-shadow: 0 4px 0 var(--edge);
+            transition: all 0.1s ease;
+            transform: translateY(0);
+        }
+
+        .btn-3d-primary:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 var(--edge);
+        }
+
+        .btn-3d-secondary {
+            background-color: white;
+            border: 2px solid var(--line);
+            box-shadow: 0 4px 0 var(--line);
+            transition: all 0.1s ease;
+        }
+
+        .btn-3d-secondary:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 var(--line);
+        }
+
+        .score-bar {
+            height: 16px;
+            border-radius: 99px;
+            background: var(--line);
+            overflow: hidden;
+        }
+
+        .observation-badge {
+            font-size: 10px;
+            letter-spacing: 0.05em;
+            font-weight: 800;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: var(--panel-2);
+            color: var(--ink-dim);
+        }
+
+        .grade-ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(var(--brass-soft) 86%, var(--line) 0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .grade-ring::after {
+            content: '';
+            position: absolute;
+            width: 96px;
+            height: 96px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .grade-text {
+            position: relative;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen bg-white flex" data-sd-id="1">
+        <!-- PERSISTENT LEFT SIDEBAR -->
+        <aside class="w-64 border-r-2 border-[#e5e5e5] flex flex-col p-6 sticky top-0 h-screen shrink-0" data-sd-id="2">
+            <div class="mb-10 text-3xl font-black" data-sd-id="3">
+                Диалог<span class="text-[#58cc02]" data-sd-id="4">.</span>
+            </div>
+            
+            <nav class="space-y-2 flex-1" data-sd-id="5">
+                <a id="nav-train" href="#" class="flex items-center gap-4 p-3 rounded-2xl bg-[#ddf4ff] border-2 border-[#84d8ff] text-[#1899d6] font-extrabold transition-colors" data-sd-id="6">
+                    <iconify-icon icon="lucide:target" class="text-2xl"></iconify-icon>
+                    <span data-sd-id="7">ТРЕНИРОВКА</span>
+                </a>
+                <a id="nav-campaign" href="#" class="flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-100 font-extrabold text-[#777] transition-colors" data-sd-id="8">
+                    <iconify-icon icon="lucide:map" class="text-2xl"></iconify-icon>
+                    <span data-sd-id="9">КАМПАНИЯ</span>
+                </a>
+                <a id="nav-deal" href="#" class="flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-100 font-extrabold text-[#777] transition-colors" data-sd-id="10">
+                    <iconify-icon icon="lucide:handshake" class="text-2xl"></iconify-icon>
+                    <span data-sd-id="11">СВОЯ СДЕЛКА</span>
+                </a>
+                <a id="nav-exam" href="#" class="flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-100 font-extrabold text-[#777] transition-colors" data-sd-id="12">
+                    <iconify-icon icon="lucide:graduation-cap" class="text-2xl"></iconify-icon>
+                    <span data-sd-id="13">ЭКЗАМЕН</span>
+                </a>
+                <a id="nav-progress" href="#" class="flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-100 font-extrabold text-[#777] transition-colors" data-sd-id="14">
+                    <iconify-icon icon="lucide:trending-up" class="text-2xl"></iconify-icon>
+                    <span data-sd-id="15">ПРОГРЕСС</span>
+                </a>
+                <a id="nav-profile" href="#" class="flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-100 font-extrabold text-[#777] transition-colors" data-sd-id="16">
+                    <iconify-icon icon="lucide:user" class="text-2xl"></iconify-icon>
+                    <span data-sd-id="17">ПРОФИЛЬ</span>
+                </a>
+            </nav>
+
+            
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col" data-sd-id="23">
+            <!-- TOP STATS STRIP -->
+            <header class="h-16 border-b-2 border-[#e5e5e5] flex items-center justify-between px-10 sticky top-0 bg-white z-20" data-sd-id="24">
+                <div class="flex items-center gap-8" data-sd-id="25">
+                    <div class="flex items-center gap-2" data-sd-id="26">
+                        <iconify-icon icon="lucide:flame" class="text-orange-500 text-2xl"></iconify-icon>
+                        <span class="font-black text-orange-500" data-sd-id="27">3</span>
+                    </div>
+                    <div class="flex items-center gap-2" data-sd-id="28">
+                        <iconify-icon icon="lucide:gem" class="text-[#1cb0f6] text-2xl"></iconify-icon>
+                        <span class="font-black text-[#1cb0f6]" data-sd-id="29">240 XP</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4" data-sd-id="30">
+                    <button id="toggle-mic" class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-gray-200 text-gray-400 hover:border-gray-400" data-sd-id="31">
+                        <iconify-icon icon="lucide:mic-off" class="text-xl"></iconify-icon>
+                    </button>
+                    <button id="toggle-cam" class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-gray-200 text-gray-400 hover:border-gray-400 relative" data-sd-id="32">
+                        <iconify-icon icon="lucide:video" class="text-xl"></iconify-icon>
+                        <span class="absolute top-1 right-1 w-2.5 h-2.5 bg-gray-300 rounded-full border-2 border-white" data-sd-id="33"></span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- DEBRIEF COLUMN -->
+            <div class="max-w-3xl mx-auto w-full py-12 px-6 space-y-8" data-sd-id="34">
+                
+                <!-- ZONE 1: THE GRADE -->
+                <section class="flex flex-col gap-10" data-sd-id="35">
+                    <div class="flex items-center gap-8" data-sd-id="36">
+                        <div class="grade-ring" data-sd-id="37">
+                            <div class="grade-text flex flex-col items-center" data-sd-id="38">
+                                <span class="text-5xl font-black text-[#3c3c3c]" data-sd-id="39">B</span>
+                                <span class="text-sm font-bold text-[#afafaf]" data-sd-id="40">86/100</span>
+                            </div>
+                        </div>
+                        <div data-sd-id="41">
+                            <h1 class="text-4xl font-black mb-2" data-sd-id="42">Разбор переговоров</h1>
+                            <div class="flex items-center gap-4" data-sd-id="43">
+                                <p class="text-[#777] font-bold" data-sd-id="44">Соглашение достигнуто · 86,27 ₽</p>
+                                <span class="bg-[#d7ffb8] text-[#3f8f00] px-3 py-1 rounded-full text-xs font-black" data-sd-id="45">+42 XP</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4" data-sd-id="46">
+                        <div class="flex flex-col gap-2" data-sd-id="47">
+                            <div class="flex justify-between font-black text-sm" data-sd-id="48">
+                                <span data-sd-id="49">Экономика сделки</span>
+                                <span data-sd-id="50">82</span>
+                            </div>
+                            <div class="score-bar" data-sd-id="51">
+                                <div class="h-full bg-[#58cc02] w-[82%]" data-sd-id="52"></div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2" data-sd-id="53">
+                            <div class="flex justify-between font-black text-sm" data-sd-id="54">
+                                <span data-sd-id="55">Отношения</span>
+                                <span data-sd-id="56">71</span>
+                            </div>
+                            <div class="score-bar" data-sd-id="57">
+                                <div class="h-full bg-[#58cc02] w-[71%]" data-sd-id="58"></div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2" data-sd-id="59">
+                            <div class="flex justify-between font-black text-sm" data-sd-id="60">
+                                <span data-sd-id="61">Техника переговоров</span>
+                                <span data-sd-id="62">64</span>
+                            </div>
+                            <div class="score-bar" data-sd-id="63">
+                                <div class="h-full bg-[#ce82ff] w-[64%]" data-sd-id="64"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ZONE 2: THE EXPLANATION (LAYER CARDS) -->
+                <section class="space-y-6" data-sd-id="65">
+                    
+                    <!-- Interests Card -->
+                    <div class="bg-white border-2 border-[#e5e5e5] rounded-[16px] p-6" data-sd-id="66">
+                        <div class="flex justify-between items-start gap-4 mb-6" data-sd-id="head-1">
+                            <h3 class="font-black text-lg flex items-center gap-2" data-sd-id="68">
+                                <iconify-icon icon="lucide:search" class="text-[#1cb0f6]"></iconify-icon>
+                                ЧТО НА САМОМ ДЕЛЕ БЫЛО ВАЖНО ДЛЯ ВТОРОЙ СТОРОНЫ
+                            </h3>
+                        </div>
+                        <div class="space-y-3" data-sd-id="69">
+                            <div class="flex justify-between items-center p-3 rounded-xl bg-[#f7f7f7] border border-[#e5e5e5] opacity-70" data-sd-id="70">
+                                <span class="font-bold text-[#777]" data-sd-id="71">Стабильная загрузка</span>
+                                <span class="text-xs font-black text-[#3f8f00] flex items-center gap-1" data-sd-id="72">
+                                    <iconify-icon icon="lucide:check"></iconify-icon> ВЫ ЭТО ВСКРЫЛИ
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 rounded-xl bg-[#f7f7f7] border border-[#e5e5e5] opacity-70" data-sd-id="73">
+                                <span class="font-bold text-[#777]" data-sd-id="74">Предоплата / денежный поток</span>
+                                <span class="text-xs font-black text-[#3f8f00] flex items-center gap-1" data-sd-id="75">
+                                    <iconify-icon icon="lucide:check"></iconify-icon> ВЫ ЭТО ВСКРЫЛИ
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 rounded-xl bg-white border-2 border-[#ffb800]" data-sd-id="76">
+                                <span class="font-black text-[#3c3c3c]" data-sd-id="77">Долгосрочный контракт</span>
+                                <span class="text-xs font-black text-[#ffb800] flex items-center gap-1" data-sd-id="78">
+                                    <iconify-icon icon="lucide:help-circle"></iconify-icon> ВЫ НЕ СПРОСИЛИ
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Face Reading Card -->
+                    <div class="bg-white border-2 border-[#e5e5e5] rounded-[16px] p-6" data-sd-id="79">
+                        <div class="flex justify-between items-start gap-4 mb-4" data-sd-id="head-2">
+                            <h3 class="font-black text-lg flex items-center gap-2" data-sd-id="81">
+                            <iconify-icon icon="lucide:smile" class="text-[#ce82ff]"></iconify-icon>
+                                КАК ВЫ ЧИТАЛИ ЕЁ
+                            </h3>
+                            <span class="observation-badge uppercase shrink-0" data-sd-id="80">НАБЛЮДЕНИЕ · НЕ ВЛИЯЕТ НА ОЦЕНКУ</span>
+                        </div>
+                        <div class="flex items-center gap-6 mb-4" data-sd-id="82">
+                            <div class="text-4xl font-black text-[#3c3c3c]" data-sd-id="83">2 / 3</div>
+                            <div class="flex gap-2" data-sd-id="84">
+                                <span class="w-3 h-3 rounded-full bg-[#58cc02]" data-sd-id="85"></span>
+                                <span class="w-3 h-3 rounded-full bg-[#58cc02]" data-sd-id="86"></span>
+                                <span class="w-3 h-3 rounded-full bg-[#ff4b4b]" data-sd-id="87"></span>
+                            </div>
+                        </div>
+                        <p class="font-bold text-[#777]" data-sd-id="88">Ошиблись на ходу 4: приняли закрытие за потепление.</p>
+                    </div>
+
+                    <!-- Camera Behavior Card -->
+                    <div class="bg-white border-2 border-[#e5e5e5] rounded-[16px] p-6" data-sd-id="89">
+                        <div class="flex justify-between items-start gap-4 mb-6" data-sd-id="head-3">
+                            <h3 class="font-black text-lg flex items-center gap-2" data-sd-id="91">
+                            <iconify-icon icon="lucide:camera" class="text-[#ff4b4b]"></iconify-icon>
+                                КАК ВЫ ДЕРЖАЛИСЬ
+                            </h3>
+                            <span class="observation-badge uppercase shrink-0" data-sd-id="90">НАБЛЮДЕНИЕ · НЕ ВЛИЯЕТ НА ОЦЕНКУ</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-[80px_1fr] gap-y-4 items-center mb-6" data-sd-id="92">
+                            <span class="text-xs font-black text-[#afafaf]" data-sd-id="93">ВЗГЛЯД</span>
+                            <div class="flex gap-2 h-8 items-end" data-sd-id="94">
+                                <div class="flex-1 bg-gray-100 rounded-sm h-3" data-sd-id="95"></div>
+                                <div class="flex-1 bg-gray-100 rounded-sm h-2" data-sd-id="96"></div>
+                                <div class="flex-1 bg-gray-100 rounded-sm h-3" data-sd-id="97"></div>
+                                <div class="flex-1 bg-[#ffb800] rounded-sm h-full" data-sd-id="98"></div>
+                                <div class="flex-1 bg-gray-100 rounded-sm h-2" data-sd-id="99"></div>
+                                <div class="flex-1 bg-gray-100 rounded-sm h-3" data-sd-id="100"></div>
+                            </div>
+                            
+                            <span class="text-xs font-black text-[#afafaf]" data-sd-id="101">ПАУЗА</span>
+                            <div class="flex gap-2 text-[10px] font-bold text-[#777] text-center" data-sd-id="102">
+                                <div class="flex-1" data-sd-id="103">2с</div>
+                                <div class="flex-1" data-sd-id="104">4с</div>
+                                <div class="flex-1" data-sd-id="105">3с</div>
+                                <div class="flex-1 font-black text-[#ffb800] text-sm" data-sd-id="106">47с</div>
+                                <div class="flex-1" data-sd-id="107">5с</div>
+                                <div class="flex-1" data-sd-id="108">3с</div>
+                            </div>
+                        </div>
+
+                        <p class="font-bold text-[#777] border-l-4 border-[#ffb800] pl-4 italic" data-sd-id="109">
+                            На реплике «по рынку 86» вы посмотрели вниз и думали 47 секунд.
+                        </p>
+                    </div>
+
+                    <!-- Thinking Time Card -->
+                    <div class="bg-white border-2 border-[#e5e5e5] rounded-[16px] p-6" data-sd-id="110">
+                        <div class="flex justify-between items-start gap-4 mb-4" data-sd-id="head-4">
+                            <h3 class="font-black text-lg flex items-center gap-2" data-sd-id="112">
+                            <iconify-icon icon="lucide:clock" class="text-[#1cb0f6]"></iconify-icon>
+                                ГДЕ ВЫ ДУМАЛИ ДОЛЬШЕ
+                            </h3>
+                            <span class="observation-badge uppercase shrink-0" data-sd-id="111">НАБЛЮДЕНИЕ · НЕ ВЛИЯЕТ НА ОЦЕНКУ</span>
+                        </div>
+                        <div class="flex items-center gap-6" data-sd-id="113">
+                             <p class="font-bold text-[#777] flex-1" data-sd-id="114">Ваше время обдумывания росло к середине разговора.</p>
+                             <div class="flex items-end gap-1 w-32 h-12" data-sd-id="115">
+                                <div class="bg-gray-200 w-full h-[20%]" data-sd-id="116"></div>
+                                <div class="bg-gray-200 w-full h-[40%]" data-sd-id="117"></div>
+                                <div class="bg-gray-200 w-full h-[30%]" data-sd-id="118"></div>
+                                <div class="bg-[#1cb0f6] w-full h-[100%]" data-sd-id="119"></div>
+                                <div class="bg-gray-200 w-full h-[50%]" data-sd-id="120"></div>
+                                <div class="bg-gray-200 w-full h-[45%]" data-sd-id="121"></div>
+                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ZONE 3: UNBADGED RESULTS -->
+                <section class="space-y-6" data-sd-id="122">
+                    <div class="bg-white border-2 border-[#e5e5e5] rounded-[16px] p-6" data-sd-id="123">
+                        <h3 class="font-black text-lg mb-6 flex items-center gap-2" data-sd-id="124">
+                            <iconify-icon icon="lucide:zap" class="text-yellow-500"></iconify-icon>
+                            КЛЮЧЕВЫЕ ХОДЫ
+                        </h3>
+                        <div class="space-y-6" data-sd-id="125">
+                            <div class="border-l-4 border-[#58cc02] pl-6" data-sd-id="126">
+                                <div class="text-xs font-black text-[#afafaf] mb-1" data-sd-id="127">ХОД 1</div>
+                                <p class="italic font-bold mb-2" data-sd-id="128">«Что для вас важнее всего в этой сделке и почему именно это?»</p>
+                                <p class="text-sm text-[#777]" data-sd-id="129"><span class="font-black text-[#3f8f00]" data-sd-id="130">Отлично</span> — вы копаете к интересам за позицией.</p>
+                            </div>
+                            <div class="border-l-4 border-[#58cc02] pl-6" data-sd-id="131">
+                                <div class="text-xs font-black text-[#afafaf] mb-1" data-sd-id="132">ХОД 4</div>
+                                <p class="italic font-bold mb-2" data-sd-id="133">«По рынку аналог идет 86-88; альтернатива у нас по 95, но с риском качества.»</p>
+                                <p class="text-sm text-[#777]" data-sd-id="134"><span class="font-black text-[#3f8f00]" data-sd-id="135">Сильно</span> — объективный критерий убеждает лучше давления.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-[#f7f7f7] border-2 border-[#e5e5e5] rounded-[16px] p-8" data-sd-id="136">
+                        <h3 class="font-black text-lg mb-6 flex items-center gap-2" data-sd-id="137">
+                            <iconify-icon icon="lucide:graduation-cap" class="text-[#3c3c3c]"></iconify-icon>
+                            СЛОВО НАСТАВНИКА
+                        </h3>
+                        <div class="space-y-4 text-lg text-[#3c3c3c]" data-sd-id="138">
+                            <p data-sd-id="139">Вы показали хорошую выдержку, но упустили возможность для более глубокого партнерства. Ваш фокус на цене сработал, но долгосрочный контракт мог бы дать еще 15% выгоды.</p>
+                            <p data-sd-id="140">В следующий раз попробуйте сначала полностью вскрыть все интересы, прежде чем делать первое предложение по цифрам.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 pt-6" data-sd-id="141">
+                        <button id="cta-retry" class="btn-3d-primary flex-1 py-4 rounded-[16px] text-white font-black text-lg" data-sd-id="142">
+                            ПРОЙТИ СНОВА
+                        </button>
+                        <button id="cta-back" class="btn-3d-secondary flex-1 py-4 rounded-[16px] text-[#777] font-black text-lg" data-sd-id="143">
+                            К СЦЕНАРИЯМ
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- FOOTER -->
+            <footer class="mt-auto border-t-2 border-[#e5e5e5] p-6 text-center" data-sd-id="144">
+                <p class="text-[#afafaf] text-sm font-bold" data-sd-id="145">
+                    Диалог · Negotiation Skills Simulator · исход зависит от вашей стратегии
+                </p>
+            </footer>
+        </main>
+    </div>
+
+</body></html>

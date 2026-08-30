@@ -1,0 +1,125 @@
+  /* Полный экран погружения. Оболочка та же, что в текстовой партии:
+     сайдбар 256 · середина · рельс. Меняется только СОДЕРЖИМОЕ середины —
+     вместо ленты и композера там лицо, состояние и стенограмма. Ни одной
+     новой колонки: это и есть проверка, что «можно и без допов» — правда. */
+  .shell{display:grid;grid-template-columns:256px minmax(0,1fr) 300px;
+         min-height:820px;background:var(--ground)}
+  .side{border-right:2px solid var(--line);background:var(--panel);padding:22px 14px}
+  .side .mark{font-weight:900;font-size:24px;letter-spacing:-.4px;padding:0 10px 20px}
+  .side .mark i{color:var(--brass);font-style:normal}
+  .sn{display:flex;flex-direction:column;gap:5px}
+  .sn a{display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:14px;
+        border:2px solid transparent;font-size:13px;font-weight:800;letter-spacing:.06em;
+        text-transform:uppercase;color:var(--dim)}
+  .sn a.on{color:var(--info);border-color:color-mix(in srgb,var(--info) 45%,transparent);
+           background:color-mix(in srgb,var(--info) 10%,var(--panel))}
+  .sn .ic{font-size:19px;line-height:1}
+
+  .mid{display:flex;flex-direction:column;min-width:0}
+  .turnrow{display:flex;align-items:center;gap:14px;padding:10px 16px;
+           border-bottom:2px solid var(--line);background:var(--panel)}
+  .turnrow .t{font-size:12.5px;font-weight:800;color:var(--dim);font-variant-numeric:tabular-nums}
+  .turnbar{flex:1;max-width:340px;height:10px;border-radius:999px;background:var(--panel2);overflow:hidden}
+  .turnbar i{display:block;height:100%;width:25%;background:var(--soft);border-radius:999px}
+
+  .rail{border-left:2px solid var(--line);background:var(--ground);padding:16px 16px;
+        display:flex;flex-direction:column;gap:14px}
+  .rc{background:var(--panel);border:2px solid var(--line);border-radius:var(--r);padding:15px}
+  .rc h3{margin:0 0 11px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+         color:var(--faint);font-weight:800}
+  .price{display:flex;justify-content:space-between;align-items:baseline}
+  .price .now{font-size:23px;font-weight:900;letter-spacing:-.5px}
+  .price .goal{font-size:16px;font-weight:900;color:var(--brass)}
+  .scale{height:10px;border-radius:999px;background:var(--panel2);margin-top:11px;position:relative}
+  .scale i{position:absolute;left:0;top:0;bottom:0;width:58%;background:var(--soft);border-radius:999px}
+  .scale u{position:absolute;left:76%;top:-3px;width:3px;height:16px;background:var(--tension);border-radius:2px}
+  .terms{display:flex;flex-direction:column;gap:9px}
+  .term{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--dim)}
+  .term .box{width:15px;height:15px;border-radius:5px;border:2px solid var(--line2);flex:0 0 auto}
+  .term.done{color:var(--ink);font-weight:700}
+  .term.done .box{background:var(--soft);border-color:var(--soft)}
+  .ints{display:flex;gap:6px;align-items:center}
+  .ints s{width:11px;height:11px;border-radius:999px;background:var(--line2);display:block}
+  .ints s.on{background:var(--soft)}
+<!--SPLIT-->
+<div class="shell">
+
+  <aside class="side">
+    <div class="mark">Диалог<i>.</i></div>
+    <nav class="sn">
+      <a class="on"><span class="ic">🎯</span>Тренировка</a>
+      <a><span class="ic">🏆</span>Кампания</a>
+      <a><span class="ic">🎲</span>Своя сделка</a>
+      <a><span class="ic">🎓</span>Экзамен</a>
+      <a><span class="ic">📊</span>Прогресс</a>
+    </nav>
+  </aside>
+
+  <main class="mid">
+
+    <div class="hud">
+      <div class="hud-m"><b>Дов</b><span class="hud-bar"><i style="width:54%;background:var(--trust)"></i></span><span class="hud-n">54</span></div>
+      <div class="hud-m"><b>Напр</b><span class="hud-bar"><i style="width:15%;background:var(--tension)"></i></span><span class="hud-n">15</span></div>
+      <div class="hud-m"><b>Инфо</b><span class="hud-bar"><i style="width:38%;background:var(--info)"></i></span><span class="hud-n">38</span></div>
+      <div class="hud-m"><b>Рыч</b><span class="hud-bar"><i style="width:21%;background:var(--lev)"></i></span><span class="hud-n">21</span></div>
+    </div>
+
+    <div class="turnrow">
+      <span class="t">Ход 3 из 12</span>
+      <span class="turnbar"><i></i></span>
+    </div>
+
+    <div class="stage" style="flex:1">
+      <div class="portrait" style="width:300px;height:300px"><img src="listening.webp" alt=""></div>
+      <div class="who">
+        <div class="nm">Наталья, собственница</div>
+        <div class="ps">Доброжелательная, ценит порядочность и покой</div>
+      </div>
+      <span class="state live"><span class="dot"></span>слушает вас</span>
+
+      <div class="script">
+        <div class="lbl">Стенограмма</div>
+        <div class="ln"><span class="sp">Наталья</span><span class="tx">Знаете, для меня главное — чтобы жилец был аккуратный и тихий, без хлопот.</span></div>
+        <div class="ln me"><span class="sp">Вы</span><span class="tx">А если мы возьмём мелкий ремонт на себя — вы сможете подвинуться по цене?</span></div>
+        <div class="ln"><span class="sp">Наталья</span><span class="tx">Если и правда возьмёте заботы на себя — давайте на 69 150.</span></div>
+        <div class="ln me"><span class="sp">Вы</span><span class="tx">По району такие квартиры идут от 64 до 67 — давайте опираться на это.</span></div>
+        <div class="ln"><span class="sp">Наталья</span><span class="tx">Цифры я видела. Но у меня после прошлых жильцов ремонт был на два месяца.</span></div>
+      </div>
+    </div>
+
+    <div class="mic">
+      <span class="mic-st"><span class="dot"></span>микрофон активен</span>
+      <span class="bars"><i style="height:5px"></i><i style="height:9px"></i><i style="height:6px"></i><i style="height:4px"></i><i style="height:7px"></i><i style="height:5px"></i></span>
+      <span class="esc">⌨ текстом</span>
+    </div>
+  </main>
+
+  <aside class="rail">
+    <div class="rc">
+      <h3>Их цена</h3>
+      <div class="price"><span class="now">69,15k</span><span class="goal">цель 64k</span></div>
+      <div class="scale"><i></i><u></u></div>
+    </div>
+    <div class="rc">
+      <h3>Условия сделки</h3>
+      <div class="terms">
+        <div class="term done"><span class="box"></span>Мелкий ремонт на нас</div>
+        <div class="term"><span class="box"></span>Договор на 11+ месяцев</div>
+        <div class="term"><span class="box"></span>Депозит за 2 месяца</div>
+      </div>
+    </div>
+    <div class="rc">
+      <h3>Раскрытые интересы</h3>
+      <div class="ints"><s class="on"></s><s class="on"></s><s></s><span style="font-size:12.5px;color:var(--dim);margin-left:5px">2 из 3</span></div>
+    </div>
+    <div class="rc">
+      <h3>Слои</h3>
+      <div class="terms">
+        <div class="term done"><span class="box"></span>🎤 Голосом</div>
+        <div class="term done"><span class="box"></span>🙂 Лицо оппонента</div>
+        <div class="term done"><span class="box"></span>📷 Камера</div>
+      </div>
+      <div style="margin-top:11px"><span class="obs">оценка та же</span></div>
+    </div>
+  </aside>
+</div>

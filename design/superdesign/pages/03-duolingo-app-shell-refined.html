@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ru" data-skin="game">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1440, initial-scale=1.0">
+  <meta name="view-transition" content="same-origin">
+  <script src="../vendor/tailwind.js"></script>
+  
+  <style>
+    
+
+    :root {
+      --ground: #ffffff;
+      --panel: #ffffff;
+      --panel-2: #f7f7f7;
+      --ink: #3c3c3c;
+      --ink-dim: #777777;
+      --ink-faint: #afafaf;
+      --line: #e5e5e5;
+      --line-2: #d8d8d8;
+      --brass: #3f8f00;
+      --brass-soft: #58cc02;
+      --edge: #2f6b00;
+      --trust: #58cc02;
+      --tension: #ff4b4b;
+      --info: #1cb0f6;
+      --leverage: #ce82ff;
+      --sans: 'Nunito', system-ui, -apple-system, sans-serif;
+      --r: 16px;
+    }
+
+    @view-transition {
+      navigation: auto;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: var(--sans);
+    }
+
+    body {
+      background: var(--ground);
+      color: var(--ink);
+      margin: 0;
+    }
+
+    .sidebar {
+      width: 256px;
+      border-right: 2px solid var(--line);
+      position: fixed;
+      height: 100vh;
+      left: 0;
+      top: 0;
+      padding: 24px 16px;
+      z-index: 50;
+    }
+
+    .nav-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: var(--r);
+      font-weight: 800;
+      font-size: 15px;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .nav-row:hover {
+      background: var(--panel-2);
+    }
+
+    .nav-row.active {
+      background: #ddf4ff;
+      border-color: #84d8ff;
+      color: #1899d6;
+    }
+
+    .nav-row.active iconify-icon {
+      color: #1899d6;
+    }
+
+    .stats-strip {
+      height: 60px;
+      border-bottom: 2px solid var(--line);
+      display: flex;
+      align-items: center;
+      padding: 0 40px;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 40;
+      margin-left: 256px;
+    }
+
+    .main-content {
+      margin-left: 256px;
+      margin-right: 340px;
+      padding: 32px 40px;
+    }
+
+    .right-rail {
+      width: 340px;
+      position: fixed;
+      height: 100vh;
+      right: 0;
+      top: 60px;
+      padding: 32px 24px;
+      overflow-y: auto;
+    }
+
+    .widget-card {
+      border: 2px solid var(--line);
+      border-radius: var(--r);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .widget-title {
+      font-weight: 800;
+      font-size: 18px;
+      text-transform: uppercase;
+      color: var(--ink-dim);
+      margin-bottom: 16px;
+    }
+
+    .btn-3d {
+      position: relative;
+      background: var(--brass);
+      border: none;
+      border-bottom: 4px solid var(--edge);
+      border-radius: var(--r);
+      padding: 10px 20px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .btn-3d:active {
+      transform: translateY(3px);
+      border-bottom-width: 1px;
+    }
+
+    .scenario-card {
+      border: 2px solid var(--line);
+      border-radius: var(--r);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .scenario-card:hover {
+      background: var(--panel-2);
+    }
+
+    .avatar-mini {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .diff-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--line-2);
+    }
+
+    .diff-dot.on {
+      background: var(--brass-soft);
+    }
+
+    .progress-bar {
+      height: 12px;
+      background: var(--line);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--brass-soft);
+      width: 25%;
+      border-radius: 99px;
+    }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex flex-col">
+    <div class="flex flex-1 min-h-[calc(100vh-100px)]">
+      <!-- LEFT SIDEBAR -->
+      <nav class="sidebar" id="main-sidebar">
+        <div class="mb-10 px-4">
+          <span class="text-[32px] font-[900] text-[#3c3c3c] tracking-tight">Диалог<span class="text-[#58cc02]">.</span></span>
+        </div>
+        
+        <a href="#" id="nav-training-link" class="nav-row active">
+          <iconify-icon icon="lucide:target" class="text-2xl"></iconify-icon>
+          <span>Тренировка</span>
+        </a>
+        <a href="#" id="nav-campaign-link" class="nav-row">
+          <iconify-icon icon="lucide:trophy" class="text-2xl"></iconify-icon>
+          <span>Кампания</span>
+        </a>
+        <a href="#" id="nav-custom-link" class="nav-row">
+          <iconify-icon icon="lucide:dice-5" class="text-2xl"></iconify-icon>
+          <span>Своя сделка</span>
+        </a>
+        <a href="#" id="nav-exams-link" class="nav-row">
+          <iconify-icon icon="lucide:graduation-cap" class="text-2xl"></iconify-icon>
+          <span>Экзамен</span>
+        </a>
+        <a href="#" id="nav-progress-link" class="nav-row">
+          <iconify-icon icon="lucide:bar-chart-3" class="text-2xl"></iconify-icon>
+          <span>Прогресс</span>
+        </a>
+        <a href="#" id="nav-profile-link" class="nav-row">
+          <iconify-icon icon="lucide:user" class="text-2xl"></iconify-icon>
+          <span>Профиль</span>
+        </a>
+      </nav>
+
+      <div class="flex-1 flex flex-col">
+        <!-- TOP STRIP -->
+        <header class="stats-strip justify-between">
+          <div class="flex gap-8 items-center">
+            <div class="flex items-center gap-2 font-extrabold text-[#ff9600]" title="Серия">
+              <span class="text-xl">🔥</span>
+              <span>0 серия</span>
+            </div>
+            <div class="flex items-center gap-2 font-extrabold text-[#1cb0f6]" title="XP">
+              <span class="text-xl">💎</span>
+              <span>0 XP</span>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <div class="flex rounded-full border-2 border-[#e5e5e5] overflow-hidden h-[36px]">
+              <button id="lang-ru-btn" class="px-3 py-1 bg-[#e5e5e5] text-xs font-bold">RU</button>
+              <button id="lang-en-btn" class="px-3 py-1 text-xs font-bold">EN</button>
+            </div>
+            <button id="theme-toggle-btn" class="w-[36px] h-[36px] flex items-center justify-center rounded-full border-2 border-[#e5e5e5] text-lg text-gray-400"><iconify-icon icon="lucide:contrast"></iconify-icon></button>
+            <button id="sound-toggle-btn" class="w-[36px] h-[36px] flex items-center justify-center rounded-full border-2 border-[#e5e5e5] text-lg text-gray-400"><iconify-icon icon="lucide:volume-2"></iconify-icon></button>
+          </div>
+        </header>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+          <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-[900] uppercase text-[#3c3c3c] tracking-tight">Выберите оппонента</h1>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4">
+            <!-- Scenario Card 1 -->
+            <div class="scenario-card" id="card-supplier">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="avatar-mini bg-[#e1f5fe]">📦</div>
+                <h3 class="text-base font-extrabold leading-tight">Контракт с поставщиком</h3>
+              </div>
+              <p class="text-sm text-[#777] mb-3 line-clamp-2 h-10">Менеджер по закупкам: снизить цену, не потеряв поставщика.</p>
+              <div class="flex items-center justify-between w-full mb-4">
+                <div class="flex gap-1">
+                  <span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot"></span><span class="diff-dot"></span>
+                </div>
+                <span class="text-[9px] font-bold text-[#afafaf] uppercase tracking-wider">ещё не играли</span>
+              </div>
+              <button class="btn-3d" id="start-supplier">НАЧАТЬ</button>
+            </div>
+
+            <!-- Scenario Card 2 -->
+            <div class="scenario-card" id="card-salary">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="avatar-mini bg-[#fff3e0]">💰</div>
+                <h3 class="text-base font-extrabold leading-tight">Переговоры о зарплате</h3>
+              </div>
+              <p class="text-sm text-[#777] mb-3 line-clamp-2 h-10">У вас есть оффер: повысить компенсацию, не отпугнув HR.</p>
+              <div class="flex items-center justify-between w-full mb-4">
+                <div class="flex gap-1">
+                  <span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot"></span><span class="diff-dot"></span><span class="diff-dot"></span>
+                </div>
+                <span class="text-[9px] font-bold text-[#afafaf] uppercase tracking-wider">ещё не играли</span>
+              </div>
+              <button class="btn-3d" id="start-salary">НАЧАТЬ</button>
+            </div>
+
+            <!-- Scenario Card 3 -->
+            <div class="scenario-card" id="card-conflict">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="avatar-mini bg-[#f3e5f5]">🚧</div>
+                <h3 class="text-base font-extrabold leading-tight">Конфликт между отделами</h3>
+              </div>
+              <p class="text-sm text-[#777] mb-3 line-clamp-2 h-10">Тимлид: смежный отдел сорвал сроки. Договоритесь.</p>
+              <div class="flex items-center justify-between w-full mb-4">
+                <div class="flex gap-1">
+                  <span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot"></span>
+                </div>
+                <span class="text-[9px] font-bold text-[#afafaf] uppercase tracking-wider">ещё не играли</span>
+              </div>
+              <button class="btn-3d" id="start-conflict">НАЧАТЬ</button>
+            </div>
+
+            <!-- Scenario Card 4 -->
+            <div class="scenario-card" id="card-investor">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="avatar-mini bg-[#e8f5e9]">📈</div>
+                <h3 class="text-base font-extrabold leading-tight">Раунд с инвестором</h3>
+              </div>
+              <p class="text-sm text-[#777] mb-3 line-clamp-2 h-10">Фаундер: инвестор хочет большую долю. Защитите проект.</p>
+              <div class="flex items-center justify-between w-full mb-4">
+                <div class="flex gap-1">
+                  <span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span>
+                </div>
+                <span class="text-[9px] font-bold text-[#afafaf] uppercase tracking-wider">ещё не играли</span>
+              </div>
+              <button class="btn-3d" id="start-investor">НАЧАТЬ</button>
+            </div>
+
+            <!-- Scenario Card 5 -->
+            <div class="scenario-card" id="card-rent">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="avatar-mini bg-[#fffde7]">🏠</div>
+                <h3 class="text-base font-extrabold leading-tight">Аренда квартиры</h3>
+              </div>
+              <p class="text-sm text-[#777] mb-3 line-clamp-2 h-10">Арендатор: снизить плату, не потеряв сделку.</p>
+              <div class="flex items-center justify-between w-full mb-4">
+                <div class="flex gap-1">
+                  <span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot"></span><span class="diff-dot"></span><span class="diff-dot"></span>
+                </div>
+                <span class="text-[9px] font-bold text-[#afafaf] uppercase tracking-wider">ещё не играли</span>
+              </div>
+              <button class="btn-3d" id="start-rent">НАЧАТЬ</button>
+            </div>
+
+            <!-- Scenario Card 6 -->
+            <div class="scenario-card" id="card-car">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="avatar-mini bg-[#fbe9e7]">🚗</div>
+                <h3 class="text-base font-extrabold leading-tight">Покупка авто с рук</h3>
+              </div>
+              <p class="text-sm text-[#777] mb-3 line-clamp-2 h-10">Покупатель: торгуетесь с частником за цену.</p>
+              <div class="flex items-center justify-between w-full mb-4">
+                <div class="flex gap-1">
+                  <span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot"></span><span class="diff-dot"></span>
+                </div>
+                <span class="text-[9px] font-bold text-[#afafaf] uppercase tracking-wider">ещё не играли</span>
+              </div>
+              <button class="btn-3d" id="start-car">НАЧАТЬ</button>
+            </div>
+
+            <!-- Scenario Card 7 -->
+            <div class="scenario-card" id="card-freelancer">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="avatar-mini bg-[#ede7f6]">💻</div>
+                <h3 class="text-base font-extrabold leading-tight">Ставка фрилансера</h3>
+              </div>
+              <p class="text-sm text-[#777] mb-3 line-clamp-2 h-10">Разработчик: поднять дневную ставку для стартапа.</p>
+              <div class="flex items-center justify-between w-full mb-4">
+                <div class="flex gap-1">
+                  <span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot"></span><span class="diff-dot"></span>
+                </div>
+                <span class="text-[9px] font-bold text-[#afafaf] uppercase tracking-wider">ещё не играли</span>
+              </div>
+              <button class="btn-3d" id="start-freelancer">НАЧАТЬ</button>
+            </div>
+
+            <!-- Scenario Card 8 -->
+            <div class="scenario-card" id="card-sla">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="avatar-mini bg-[#e0f2f1]">☁️</div>
+                <h3 class="text-base font-extrabold leading-tight">Продление SLA</h3>
+              </div>
+              <p class="text-sm text-[#777] mb-3 line-clamp-2 h-10">ИТ-директор: выбить лучший аптайм у вендора.</p>
+              <div class="flex items-center justify-between w-full mb-4">
+                <div class="flex gap-1">
+                  <span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot on"></span><span class="diff-dot"></span>
+                </div>
+                <span class="text-[9px] font-bold text-[#afafaf] uppercase tracking-wider">ещё не играли</span>
+              </div>
+              <button class="btn-3d" id="start-sla">НАЧАТЬ</button>
+            </div>
+          </div>
+        </main>
+
+        <!-- RIGHT RAIL -->
+        <aside class="right-rail">
+          <div class="widget-card">
+            <h2 class="widget-title">ЦЕЛЬ ДНЯ</h2>
+            <div class="flex justify-between items-center mb-2 font-bold">
+              <span class="text-sm">0/1</span>
+              <div class="flex gap-1">
+                <span class="w-6 h-6 rounded-full bg-[#58cc02] text-white text-[10px] flex items-center justify-center">1</span>
+                <span class="w-6 h-6 rounded-full border-2 border-[#e5e5e5] text-[10px] flex items-center justify-center">2</span>
+                <span class="w-6 h-6 rounded-full border-2 border-[#e5e5e5] text-[10px] flex items-center justify-center">3</span>
+              </div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
+
+          <div class="widget-card">
+            <h2 class="widget-title">ВАШ РАНГ</h2>
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 bg-[#ffcc00] rounded-lg flex items-center justify-center text-2xl">🛡️</div>
+              <div>
+                <div class="font-extrabold text-[#3c3c3c]">Новичок</div>
+                <div class="text-xs font-bold text-[#afafaf]">150 XP до «Переговорщик»</div>
+              </div>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="widget-card">
+            <h2 class="widget-title">МЕТОД</h2>
+            <ul class="space-y-4">
+              <li class="flex items-start gap-3">
+                <span class="w-2 h-2 mt-1.5 rounded-full bg-[#58cc02] flex-shrink-0"></span>
+                <div class="text-sm">
+                  <span class="font-extrabold block">Позиции ≠ интересы</span>
+                  <span class="text-xs text-[#777]">Вскрывайте интересы вопросами</span>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="w-2 h-2 mt-1.5 rounded-full bg-[#1cb0f6] flex-shrink-0"></span>
+                <div class="text-sm">
+                  <span class="font-extrabold block">Объективные критерии</span>
+                  <span class="text-xs text-[#777]">Рыночные данные вместо давления</span>
+                </div>
+              </li>
+              <li class="flex items-start gap-3">
+                <span class="w-2 h-2 mt-1.5 rounded-full bg-[#ce82ff] flex-shrink-0"></span>
+                <div class="text-sm">
+                  <span class="font-extrabold block">BATNA как рычаг</span>
+                  <span class="text-xs text-[#777]">Запасной вариант — ваша сила</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="w-full border-t-2 border-[#e5e5e5] py-10 px-10 bg-white">
+      <div class="flex justify-between items-center text-sm font-bold text-[#777] uppercase tracking-wide">
+        <div id="footer-left-branding">Диалог · Negotiation Skills Simulator</div>
+        <div id="footer-right-tagline">исход зависит от вашей стратегии</div>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

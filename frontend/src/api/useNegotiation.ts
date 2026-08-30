@@ -50,7 +50,7 @@ export interface NegotiationState {
   // Слой, который не поднялся, и почему. Ключ появляется ТОЛЬКО когда слой
   // просили и он не встал: интерфейс обязан либо показать живой слой, либо
   // сказать «недоступно» словами. Третьего — включённого переключателя над
-  // мёртвым устройством — в продукте не бывает (ARCHITECTURE.md, принцип 2).
+  // мёртвым устройством — в продукте не бывает (CLAUDE.md, принцип 2).
   layerFail: { voice?: string; camera?: string };
   // Live WS health (mock is always "online"). Drives the mid-game reconnect banner.
   conn: ConnStatus;

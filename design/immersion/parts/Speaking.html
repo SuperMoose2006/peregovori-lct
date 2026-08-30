@@ -1,0 +1,47 @@
+  /* Кадр одного состояния: та же середина экрана, что в Main, взятая крупно.
+     Показываем именно её, потому что при переходах меняется ТОЛЬКО она —
+     сайдбар, HUD и рельс остаются на месте, и это тоже часть решения. */
+  body{background:#eef0ef}
+  .card{height:100%;display:flex;flex-direction:column}
+  .cap{display:flex;align-items:baseline;gap:10px;padding:13px 18px 11px}
+  .cap b{font-size:15px;font-weight:900;letter-spacing:-.2px;color:#26302c}
+  .cap i{font-style:normal;font-size:12px;color:#6c7a74;font-weight:700}
+  .frame{flex:1;margin:0 14px 14px;background:var(--panel);border:2px solid var(--line2);
+         border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+  .stage{flex:1;padding:20px 20px 12px;gap:12px}
+  .script{max-height:none}
+  .heard{width:100%;border:2px dashed var(--line2);border-radius:13px;padding:11px 13px;
+         font-size:14px;color:var(--dim);background:var(--panel2)}
+  .heard b{color:var(--ink);font-weight:800}
+  .heard .tail{color:var(--faint)}
+  /* Кольцо «вас слышно». Именно box-shadow, а не псевдоэлемент с
+     отрицательным inset: у портрета overflow:hidden, и он срезал бы контур. */
+  .ring{box-shadow:0 0 0 4px color-mix(in srgb,var(--soft) 55%,transparent)}
+<!--SPLIT-->
+<div class="card">
+  <div class="cap"><b>2 · Вы говорите</b><i>расшифровка идёт живьём, ходом ещё не стала</i></div>
+  <div class="frame">
+      <div class="hud">
+        <div class="hud-m"><b>Дов</b><span class="hud-bar"><i style="width:54%;background:var(--trust)"></i></span><span class="hud-n">54</span></div>
+        <div class="hud-m"><b>Напр</b><span class="hud-bar"><i style="width:15%;background:var(--tension)"></i></span><span class="hud-n">15</span></div>
+        <div class="hud-m"><b>Инфо</b><span class="hud-bar"><i style="width:38%;background:var(--info)"></i></span><span class="hud-n">38</span></div>
+        <div class="hud-m"><b>Рыч</b><span class="hud-bar"><i style="width:21%;background:var(--lev)"></i></span><span class="hud-n">21</span></div>
+      </div>
+    <div class="stage">
+      <div class="portrait ring" style="width:180px;height:180px"><img src="listening.webp" alt=""></div>
+      <span class="state live"><span class="dot"></span>вы говорите</span>
+      <div class="heard">
+        <b>А что если разделить платёж на два транша</b><span class="tail"> и первый…</span>
+      </div>
+      <div class="script">
+        <div class="lbl">Стенограмма</div>
+        <div class="ln"><span class="sp">Наталья</span><span class="tx">Если и правда возьмёте заботы на себя — давайте на 69 150.</span></div>
+      </div>
+    </div>
+    <div class="mic">
+      <span class="mic-st"><span class="dot"></span>слышу вас</span>
+      <span class="bars"><i style="height:14px"></i><i style="height:19px"></i><i style="height:11px"></i><i style="height:17px"></i><i style="height:8px"></i><i style="height:15px"></i></span>
+      <span class="esc">⌨ текстом</span>
+    </div>
+  </div>
+</div>

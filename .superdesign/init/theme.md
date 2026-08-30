@@ -1,0 +1,1993 @@
+# theme.md — design tokens
+
+## Part 1 — compact token summary
+
+**No Tailwind, no theme provider, no token package.** Everything is CSS custom
+properties declared at `:root` in `frontend/src/styles.css` and consumed by semantic
+class names. This is why the app can be reskinned wholesale without touching a single
+component.
+
+### Two independent axes
+
+| Attribute | Values | Meaning |
+|---|---|---|
+| `data-theme` | absent (system) · `light` · `dark` | brightness |
+| `data-skin` | absent (`dojo`) · `game` | visual identity |
+
+They compose: each skin defines a light and a dark variant. A guard test
+(`frontend/test/tokens.test.ts`) fails the build if any `var(--x)` is used without
+being declared — one such slip once made a whole button invisible.
+
+### Skin "dojo" (default) — "lamplit table", serif on parchment
+
+| Token | Light | Dark |
+|---|---|---|
+| `--ground` | `#f3eee3` | `#14110d` |
+| `--panel` | `#fbf8f1` | `#1d1913` |
+| `--panel-2` | `#efe8d9` | `#262019` |
+| `--ink` | `#241e16` | `#ece4d5` |
+| `--ink-dim` | `#6b6152` | `#a99e8a` |
+| `--ink-faint` | `#7d7359` | `#7a6f5c` |
+| `--line` | `#e0d7c5` | `#2e2820` |
+| `--line-2` | `#cfc4ad` | `#40382c` |
+| `--brass` (primary) | `#b07c2e` | `#d4a24e` |
+| `--brass-soft` | `#c0883c` | `#c0883c` |
+| `--trust` | `#2e9e6e` | `#46c08a` |
+| `--tension` | `#d2564b` | `#e0665a` |
+| `--info` | `#3f72d8` | `#6c97ec` |
+| `--leverage` | `#7c68c8` | `#9987da` |
+| `--shadow` | `0 10px 40px rgba(60,45,20,.12)` | `0 12px 44px rgba(0,0,0,.5)` |
+| `--r` (radius) | `12px` | — |
+
+Type: `--serif: "Iowan Old Style", Palatino, Georgia, serif` (headlines, quotes, numbers)
+· `--sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` (body).
+
+### Skin "game" (`data-skin="game"`) — Duolingo-style
+
+| Token | Light | Dark |
+|---|---|---|
+| `--ground` | `#ffffff` | `#131f24` |
+| `--panel` | `#ffffff` | `#1b2b32` |
+| `--panel-2` | `#f7f7f7` | `#22353d` |
+| `--ink` | `#3c3c3c` | `#f1f7fb` |
+| `--ink-dim` | `#777777` | `#a3b3bc` |
+| `--ink-faint` | `#afafaf` | `#7b8c96` |
+| `--line` | `#e5e5e5` | `#2c444d` |
+| `--line-2` | `#d8d8d8` | `#37525c` |
+| `--brass` (primary) | `#3f8f00` | `#58cc02` |
+| `--brass-soft` | `#58cc02` | `#7ee32b` |
+| `--trust` | `#58cc02` | `#58cc02` |
+| `--tension` | `#ff4b4b` | `#ff5b5b` |
+| `--info` | `#1cb0f6` | `#1cb0f6` |
+| `--leverage` | `#ce82ff` | `#ce82ff` |
+| `--edge` (button 3D lip) | `#2f6b00` | `#3f8f00` |
+| `--shadow` | `0 4px 0 var(--line-2)` (a solid lip, not a blur) | same |
+| `--r` (radius) | `16px` | — |
+
+Type: one rounded sans for BOTH `--serif` and `--sans` (the serif is retired — it is
+what makes the default skin read as a document). Nunito is named in the stack as a
+progressive enhancement but **no webfont is linked**: a demo on venue wifi must not
+wait on `fonts.gstatic.com` to paint.
+
+**Contrast note.** Duolingo's own `#58cc02` under white text is ~2.2:1 — a WCAG failure.
+So the game skin's `--brass` is the darker `#3f8f00` (~4.2:1 on white) and the bright
+green lives in `--brass-soft`, where nothing is written on top of it.
+
+### Key semantic classes (the real "component library")
+
+`.wrap` page column (1120px; 1360px ≥1440px) · `.top` header · `.foot` footer ·
+`.card` scenario card · `.panel` generic surface · `.primary` primary button ·
+`.quit` secondary button · `.seg` segmented control · `.table` game grid (rail + chat) ·
+`.side` rail · `.chat` chat card · `.log` scrolling transcript · `.msg.opp` / `.msg.me`
+bubbles · `.bub` bubble body · `.tags`/`.tag` technique chips · `.coachline` coach row ·
+`.jc-chip` judge-cam chip · `.opening` turn-0 table-setting card · `.outcome` closing
+strip · `.meters`/`.track`/`.fill` meters · `.dealtracker` price scale · `.debrief`
+report · `.ring` grade ring · `.sb`/`.sbt`/`.sbf` score bars · `.reveal` hidden-interest
+reveal · `.mentor` AI mentor's word · `.tpoints` turning points · `.master` master line ·
+`.whatif` counterfactual replay.
+
+### Breakpoints
+
+`≥1440px` wide desktop/projector (only breakpoint that scales UP) ·
+`≤860px` collapse game to one column · `≤640px` phone.
+
+---
+
+## Part 2 — raw source
+
+### `frontend/src/styles.css`
+
+```css
+/* styles.css — "lamplit table" visual identity. Ported from
+   legacy-node/public/demo.html and extended for the React app. Theme-aware
+   (light/dark via prefers-color-scheme + [data-theme]) and responsive. */
+
+:root {
+  --ground: #f3eee3; --panel: #fbf8f1; --panel-2: #efe8d9;
+  --ink: #241e16; --ink-dim: #6b6152; --ink-faint: #7d7359;
+  --line: #e0d7c5; --line-2: #cfc4ad;
+  --brass: #b07c2e; --brass-soft: #c0883c;
+  --trust: #2e9e6e; --tension: #d2564b; --info: #3f72d8; --leverage: #7c68c8;
+  --shadow: 0 10px 40px rgba(60, 45, 20, 0.12);
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #14110d; --panel: #1d1913; --panel-2: #262019;
+    --ink: #ece4d5; --ink-dim: #a99e8a; --ink-faint: #7a6f5c;
+    --line: #2e2820; --line-2: #40382c;
+    --brass: #d4a24e; --brass-soft: #c0883c;
+    --trust: #46c08a; --tension: #e0665a; --info: #6c97ec; --leverage: #9987da;
+    --shadow: 0 12px 44px rgba(0, 0, 0, 0.5);
+  }
+}
+:root[data-theme="light"] {
+  --ground: #f3eee3; --panel: #fbf8f1; --panel-2: #efe8d9;
+  --ink: #241e16; --ink-dim: #6b6152; --ink-faint: #7d7359;
+  --line: #e0d7c5; --line-2: #cfc4ad;
+  --brass: #b07c2e; --trust: #2e9e6e; --tension: #d2564b; --info: #3f72d8; --leverage: #7c68c8;
+  --shadow: 0 10px 40px rgba(60, 45, 20, 0.12);
+}
+:root[data-theme="dark"] {
+  --ground: #14110d; --panel: #1d1913; --panel-2: #262019;
+  --ink: #ece4d5; --ink-dim: #a99e8a; --ink-faint: #7a6f5c;
+  --line: #2e2820; --line-2: #40382c;
+  --brass: #d4a24e; --trust: #46c08a; --tension: #e0665a; --info: #6c97ec; --leverage: #9987da;
+  --shadow: 0 12px 44px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   SKIN: "Игра" (data-skin="game") — the Duolingo-style look.
+   ------------------------------------------------------------
+   A parallel axis to data-theme, not a replacement: the default "додзё" skin
+   (lamplit serif, brass on parchment) stays, and this one can be switched on to
+   compare. It works because every surface in this file already routes through
+   the tokens above — so a skin is mostly a token override plus a few shape
+   rules, and no component needs to know which skin is live.
+
+   What actually makes it read as Duolingo, in order of importance:
+     1. shape — fat 16px radii, 2px borders, no soft shadows;
+     2. weight — one rounded sans everywhere (the serif is retired), heavier text;
+     3. the 3D button — a 4px darker bottom edge that compresses on press;
+     4. colour — white ground, one saturated green for "go", the meter colours
+        turned up to full saturation.
+
+   Contrast note: Duolingo's own #58cc02 with white text is ~2.2:1, which fails
+   WCAG outright. `--brass` here is therefore the darker #3f8f00 (~4.2:1 on
+   white), and the bright green lives in `--brass-soft` where nothing sits on
+   top of it. The look survives; the legibility does too.
+   ============================================================ */
+:root[data-skin="game"] {
+  --ground: #ffffff; --panel: #ffffff; --panel-2: #f7f7f7;
+  --ink: #3c3c3c; --ink-dim: #777777; --ink-faint: #afafaf;
+  --line: #e5e5e5; --line-2: #d8d8d8;
+  --brass: #3f8f00; --brass-soft: #58cc02;
+  --trust: #58cc02; --tension: #ff4b4b; --info: #1cb0f6; --leverage: #ce82ff;
+  --shadow: 0 4px 0 var(--line-2);
+  /* One family for everything: the serif is what makes the default skin read as
+     a document, so a skin that keeps it would not read as a game. Nunito is
+     named as a progressive enhancement only — NO webfont is linked, because a
+     demo on venue wifi must not wait on fonts.gstatic.com to paint. Machines
+     that have it get the rounded face; everything else gets system-ui, and the
+     skin still reads as a game on shape and weight alone. */
+  --serif: "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sans: "Nunito", "Varela Round", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 16px;
+  /* The button's bottom edge. A skin-local token so the default skin, which has
+     no such edge, is not forced to define one. */
+  --edge: #2f6b00;
+}
+/* Dark variant. `:not([data-theme="light"])` alone would match whenever no
+   explicit theme is set — i.e. it would force the dark skin on system-light
+   users. It has to sit INSIDE the media query, with a second, unconditional
+   block below for the explicit toggle. */
+@media (prefers-color-scheme: dark) {
+  :root[data-skin="game"]:not([data-theme="light"]) {
+    --ground: #131f24; --panel: #1b2b32; --panel-2: #22353d;
+    --ink: #f1f7fb; --ink-dim: #a3b3bc; --ink-faint: #7b8c96;
+    --line: #2c444d; --line-2: #37525c;
+    --brass: #58cc02; --brass-soft: #7ee32b;
+    --trust: #58cc02; --tension: #ff5b5b; --info: #1cb0f6; --leverage: #ce82ff;
+    --shadow: 0 4px 0 var(--line-2);
+    --edge: #3f8f00;
+  }
+}
+:root[data-skin="game"][data-theme="dark"] {
+  --ground: #131f24; --panel: #1b2b32; --panel-2: #22353d;
+  --ink: #f1f7fb; --ink-dim: #a3b3bc; --ink-faint: #7b8c96;
+  --line: #2c444d; --line-2: #37525c;
+  --brass: #58cc02; --brass-soft: #7ee32b;
+  --trust: #58cc02; --tension: #ff5b5b; --info: #1cb0f6; --leverage: #ce82ff;
+  --shadow: 0 4px 0 var(--line-2);
+  --edge: #3f8f00;
+}
+:root[data-skin="game"][data-theme="light"] {
+  --ground: #ffffff; --panel: #ffffff; --panel-2: #f7f7f7;
+  --ink: #3c3c3c; --ink-dim: #777777; --ink-faint: #afafaf;
+  --line: #e5e5e5; --line-2: #d8d8d8;
+  --brass: #3f8f00; --brass-soft: #58cc02;
+  --trust: #58cc02; --tension: #ff4b4b; --info: #1cb0f6; --leverage: #ce82ff;
+  --edge: #2f6b00;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased;
+  /* no sideways scroll at any width; the notch-safe insets live on the edges */
+  overflow-x: hidden;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+@supports (padding: max(0px)) {
+  .wrap { padding-left: max(22px, env(safe-area-inset-left)); padding-right: max(22px, env(safe-area-inset-right)); }
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+h1, h2, h3, .serif { font-family: var(--serif); }
+::selection { background: var(--brass); color: var(--ground); }
+
+/* ---------- Top bar ---------- */
+.top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; max-width: 1120px; margin: 0 auto;
+  padding-top: max(18px, env(safe-area-inset-top));
+  padding-left: max(22px, env(safe-area-inset-left));
+  padding-right: max(22px, env(safe-area-inset-right));
+}
+.brand { display: flex; align-items: baseline; gap: 12px; }
+.brand .mark { font-family: var(--serif); font-size: 26px; font-weight: 700; letter-spacing: 0.2px; }
+.brand .mark .dot { color: var(--brass); }
+.brand .sub { font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-faint); }
+.controls { display: flex; gap: 8px; }
+.seg { display: flex; border: 1px solid var(--line-2); border-radius: 9px; overflow: hidden; }
+.seg button { padding: 6px 12px; font-size: 12.5px; font-weight: 600; color: var(--ink-dim); }
+.seg button.on { background: var(--brass); color: #fff; }
+:root[data-theme="dark"] .seg button.on { color: #1a1509; }
+
+/* ---------- Hero ---------- */
+.hero { padding: 40px 0 26px; }
+.eyebrow { font-size: 12.5px; letter-spacing: 3px; text-transform: uppercase; color: var(--brass); margin-bottom: 18px; }
+.hero h1 { font-size: clamp(34px, 5.5vw, 58px); line-height: 1.04; margin: 0; text-wrap: balance; font-weight: 700; letter-spacing: -0.5px; }
+.hero h1 em { font-style: italic; color: var(--brass); }
+.hero p.lead { max-width: 60ch; margin: 22px 0 0; font-size: 18px; color: var(--ink-dim); }
+.rule { height: 1px; background: linear-gradient(90deg, var(--line-2), transparent); margin: 30px 0; }
+.principles { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13.5px; color: var(--ink-dim); }
+.principles b { color: var(--ink); font-weight: 600; }
+
+/* Mobile-only hero CTA. Desktop shows the opponent picker inline just below the
+   hero, so the jump-to-picker button is redundant there and stays hidden. */
+.hero-cta { display: none; }
+:root[data-theme="dark"] .hero-cta { color: #1a1509; }
+
+/* ---------- "Why this teaches" (director's #8) ----------
+   Proof-of-method for a cold visitor. Same type scale + brass voice as the hero,
+   generous spacing, so it reads as part of the page, not a bolted-on marketing
+   block. Panels stack at ≤640px (auto-fit grid). */
+.teach { padding: 30px 0 6px; }
+.teach-head { font-size: 12.5px; letter-spacing: 3px; text-transform: uppercase; color: var(--brass); margin-bottom: 12px; }
+.teach-title {
+  font-family: var(--serif); font-size: clamp(22px, 3vw, 30px); line-height: 1.1;
+  margin: 0; font-weight: 700; letter-spacing: -0.3px; text-wrap: balance; max-width: 24ch;
+}
+
+/* Price-dot micro-animation: their-offer dot easing toward the target tick. */
+.teach-demo { margin: 26px 0 30px; max-width: 460px; }
+.td-track { position: relative; height: 2px; background: var(--line-2); border-radius: 2px; margin: 26px 0 26px; }
+.td-target { position: absolute; right: 8%; top: 50%; width: 3px; height: 15px; background: var(--brass); border-radius: 2px; transform: translateY(-50%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brass) 25%, transparent); }
+.td-target-lbl { position: absolute; right: 8%; top: -20px; transform: translateX(50%);
+  font-size: 11px; letter-spacing: 0.5px; color: var(--brass); white-space: nowrap; }
+.td-dot { position: absolute; top: 50%; left: 6%; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--info); transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--info) 55%, transparent);
+  animation: td-slide 5s ease-in-out infinite; }
+.td-dot-lbl { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; letter-spacing: 0.5px; color: var(--info); white-space: nowrap; }
+@keyframes td-slide {
+  0% { left: 6%; opacity: 0; }
+  10% { opacity: 1; }
+  55%, 80% { left: 84%; opacity: 1; }
+  93%, 100% { left: 84%; opacity: 0; }
+}
+.teach-demo-cap { font-size: 13px; color: var(--ink-dim); }
+
+.teach-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 14px; }
+.tp-panel {
+  background: var(--panel); border: 1px solid var(--line); border-top: 2.5px solid var(--brass);
+  border-radius: var(--r); padding: 18px 20px; display: flex; flex-direction: column; gap: 7px;
+  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+}
+.tp-panel:hover { transform: translateY(-2px); border-color: var(--brass); box-shadow: var(--shadow); }
+.tp-tag { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
+.tp-name { font-family: var(--serif); font-size: 18px; font-weight: 600; line-height: 1.15; }
+.tp-idea { margin: 0; font-size: 13.5px; color: var(--ink-dim); line-height: 1.5; }
+.tp-example {
+  margin: 4px 0 0; font-size: 13px; color: var(--ink); line-height: 1.55;
+  padding: 11px 13px; border-left: 2.5px solid var(--brass); border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--brass) 7%, transparent);
+}
+.teach-framing {
+  max-width: 68ch; margin: 26px 0 6px; font-size: 15px; line-height: 1.6; color: var(--ink-dim);
+  border-top: 1px solid var(--line); padding-top: 22px;
+}
+
+/* Reduced-motion: park the dot mid-track (the global rule kills the keyframe, so
+   set an explicit resting position that still reads as "price moved"). */
+@media (prefers-reduced-motion: reduce) {
+  .td-dot { left: 52%; opacity: 1; }
+}
+
+/* ---------- Mode picker ---------- */
+.section-head { font-size: 12.5px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-faint); margin: 34px 0 16px; }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.mode {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 16px 18px; text-align: left; display: flex; flex-direction: column; gap: 6px;
+  position: relative; transition: border-color 0.18s, transform 0.18s;
+}
+.mode.sel { border-color: var(--brass); box-shadow: var(--shadow); }
+.mode:not(.disabled):hover { transform: translateY(-2px); border-color: var(--brass); }
+.mode .mt { font-family: var(--serif); font-size: 17px; font-weight: 600; }
+.mode .md { font-size: 12.5px; color: var(--ink-dim); }
+.mode.disabled { opacity: 0.62; cursor: not-allowed; }
+.soon {
+  position: absolute; top: 12px; right: 12px; font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--ink-faint); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 8px;
+}
+
+/* ---------- Scenario picker ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 20px; cursor: pointer; transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+  display: flex; flex-direction: column; gap: 9px; text-align: left; position: relative;
+}
+.card:hover { transform: translateY(-3px); border-color: var(--brass); box-shadow: var(--shadow); }
+.card .ic { position: relative; width: 46px; height: 46px; }
+.card .ic .av-svg { width: 100%; height: 100%; display: block; border-radius: 11px; }
+.card .ic-badge { position: absolute; right: -5px; bottom: -5px; font-size: 15px; line-height: 1;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 2px 3px; }
+.card .ct { font-family: var(--serif); font-size: 19px; font-weight: 600; }
+.card .cr { font-size: 13px; color: var(--ink-dim); flex: 1; }
+.card .cf { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+.diff { display: flex; gap: 4px; }
+.diff i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+.diff i.on { background: var(--brass); }
+.go { font-size: 12.5px; font-weight: 700; color: var(--brass); }
+
+/* ---------- Custom deal (Своя сделка) ---------- */
+.custom { display: flex; flex-direction: column; gap: 12px; max-width: 720px; }
+.cust-ta {
+  width: 100%; resize: vertical; min-height: 132px;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r);
+  padding: 15px 16px; color: var(--ink); font-size: 15px; line-height: 1.55; font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cust-ta:focus { outline: none; border-color: var(--brass); box-shadow: var(--shadow); }
+.cust-ta::placeholder { color: var(--ink-faint); }
+.cust-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cust-hint { font-size: 12px; color: var(--ink-faint); }
+.cust-go { flex: 0 0 auto; min-width: 220px; }
+.cust-err {
+  display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--tension);
+  background: color-mix(in srgb, var(--tension) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tension) 32%, transparent);
+  border-radius: 10px; padding: 11px 14px;
+}
+.cust-err b { color: var(--tension); font-family: var(--serif); font-size: 14px; }
+.cust-err span { color: var(--ink-dim); }
+
+/* ---------- Generating (lamplit loading) ---------- */
+.gen {
+  max-width: 560px; margin: 8vh auto 0; text-align: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--shadow); padding: 44px 34px 40px;
+}
+.gen-lamp { font-size: 46px; filter: drop-shadow(0 0 24px color-mix(in srgb, var(--brass) 55%, transparent)); animation: lampglow 2.4s ease-in-out infinite; }
+@keyframes lampglow { 0%, 100% { opacity: 0.72; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+.gen-dots { display: flex; justify-content: center; gap: 7px; margin: 18px 0 22px; }
+.gen-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--brass); animation: gendot 1.1s ease-in-out infinite; }
+.gen-dots i:nth-child(2) { animation-delay: 0.16s; }
+.gen-dots i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes gendot { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+.gen-title { font-size: 24px; margin: 0; }
+.gen-sub { font-size: 14.5px; color: var(--ink-dim); margin: 12px auto 0; max-width: 42ch; }
+
+/* ---------- Table (game) ---------- */
+/* Screens enter with a gentle upward settle — NOT an opacity ramp from 0. A
+   fade-from-transparent on the very first paint (the home hero) reads as a stuck
+   "still loading" state on slower phones; a short slide never does. Reduced-motion
+   disables it entirely (see the media query at the end of the file). */
+.screen { animation: fade 0.34s ease both; }
+@keyframes fade { from { transform: translateY(7px); } to { transform: translateY(0); } }
+
+/* `align-items: stretch` (the default) is deliberate: the sidebar is the taller
+   column, so with `start` the chat card ended at its 540px minimum and left a
+   large empty rectangle under it on any desktop viewport. The chat now fills the
+   row. `.side` keeps `align-self: start` so its `position: sticky` still has
+   somewhere to travel. */
+/* `align-items: stretch` (the default) is deliberate: the sidebar is the taller
+   column, so with `start` the chat card ended at its minimum and left a large
+   empty rectangle under it on any desktop viewport.
+
+   `height`, NOT `min-height`: a floor let the grid grow with the transcript, so
+   from about turn 4 the PAGE scrolled instead of the log — and the meters, the
+   deal tracker and the composer (the whole argument that this is a simulator and
+   not a chatbot) left the screen exactly when the negotiation got interesting.
+   A fixed row height plus `min-height: 0` on the children hands the overflow back
+   to `.log`, which is the only thing that should scroll. */
+.table { display: grid; grid-template-columns: 320px 1fr; gap: 20px; padding: 20px 0 40px;
+  height: calc(100vh - 190px); min-height: 520px; }
+.table > * { min-height: 0; }
+.side { display: flex; flex-direction: column; gap: 14px; align-self: stretch;
+  /* At 1280×800 the rail is taller than the row; it gets its own scroll rather
+     than pushing the page. Sticky is pointless once the row is bounded. */
+  max-height: 100%; overflow-y: auto; scrollbar-width: thin; }
+
+.opp { display: flex; gap: 13px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; }
+.opp .face { width: 52px; height: 52px; display: grid; place-items: center; background: var(--panel-2); border-radius: 11px; overflow: hidden; flex: 0 0 auto; }
+.opp .face .av-svg { width: 100%; height: 100%; display: block; }
+/* Expression re-mounts (keyed by mood) → a soft fade as trust/tension shift.
+   The global reduced-motion rule above disables this automatically. */
+.av-exp { animation: av-exp-in 0.34s ease; transform-origin: 32px 38px; }
+@keyframes av-exp-in { from { opacity: 0.2; } to { opacity: 1; } }
+.opp .nm { font-family: var(--serif); font-weight: 600; font-size: 16px; }
+.opp .ps { font-size: 12px; color: var(--ink-dim); }
+
+.offers { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 13px; }
+.ob { text-align: center; }
+.ob .l { font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-faint); }
+.ob .v { font-family: var(--serif); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ob .v.tg { color: var(--brass); }
+.ar { color: var(--ink-faint); }
+
+/* counterpart face reacts to live mood — a soft swap when it changes */
+.opp .face { transition: transform 0.2s ease; animation: faceswap 0.35s ease; }
+@keyframes faceswap { from { transform: scale(0.82); opacity: 0.4; } to { transform: scale(1); opacity: 1; } }
+
+/* ---------- Deal tracker (price scale + sparkline) ---------- */
+.dealtracker { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 15px 13px; display: flex; flex-direction: column; gap: 11px; }
+.dt-head { display: flex; justify-content: space-between; align-items: flex-start; }
+.dt-head .ob { text-align: left; }
+.dt-head .ob:last-child { text-align: right; }
+
+/* Marker labels are absolutely positioned at their own x on a single row, so
+   two marks landing near each other overlapped into unreadable mush — seen live
+   when the player's offer settled next to "старт". The fixed marks keep the top
+   row; the only label that MOVES ("ваша цена") gets a row to itself below, where
+   nothing can drift into it. Hence 62px rather than 48px. */
+.dt-scale { position: relative; height: 62px; margin: 0 3px; }
+.dt-axis { position: absolute; left: 0; right: 0; top: 21px; height: 4px; border-radius: 3px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--brass) 40%, var(--line-2)), var(--line-2)); }
+.dt-good { position: absolute; top: 17px; height: 12px; border-radius: 4px;
+  background: color-mix(in srgb, var(--trust) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--trust) 32%, transparent); }
+.dt-mark { position: absolute; top: 0; height: 62px; transform: translateX(-50%); pointer-events: none; }
+.dt-mark.theirs, .dt-mark.yours { transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+.dt-mark .tick { display: block; width: 2px; height: 20px; margin: 13px auto 0; border-radius: 2px; }
+.dt-mark .dot { display: block; width: 14px; height: 14px; border-radius: 50%; margin: 16px auto 0;
+  border: 2px solid var(--panel); position: relative; z-index: 2; }
+.dt-mark .lbl { position: absolute; top: 34px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; letter-spacing: 0.3px; white-space: nowrap; color: var(--ink-faint); }
+.dt-mark.target .tick { background: var(--brass); box-shadow: 0 0 0 1px color-mix(in srgb, var(--brass) 25%, transparent); }
+.dt-mark.redline .tick { background: var(--tension); }
+.dt-mark.opening .tick { height: 14px; margin-top: 16px; background: var(--ink-faint); opacity: 0.55; }
+.dt-mark.opening .lbl { opacity: 0.7; }
+.dt-mark.theirs .lbl, .dt-mark.yours .lbl { top: 47px; }
+.dt-mark.theirs .dot { background: var(--info); box-shadow: 0 0 10px color-mix(in srgb, var(--info) 55%, transparent); }
+.dt-mark.yours .dot { width: 11px; height: 11px; margin-top: 17px; background: var(--brass-soft); }
+/* one-shot "settle" pop replayed via keyed remount when an offer moves */
+.dt-mark .settle { position: absolute; top: 16px; left: 50%; width: 14px; height: 14px; margin-left: -7px;
+  border-radius: 50%; z-index: 1; pointer-events: none; animation: settle 0.6s ease-out; }
+.dt-mark.theirs .settle { box-shadow: 0 0 0 2px color-mix(in srgb, var(--info) 60%, transparent); }
+.dt-mark.yours .settle { top: 17px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 55%, transparent); }
+@keyframes settle { from { opacity: 0.9; transform: scale(0.7); } to { opacity: 0; transform: scale(2.1); } }
+
+.dt-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 10px; color: var(--ink-dim); }
+.dt-legend .lg { display: inline-flex; align-items: center; gap: 5px; }
+.dt-legend .lg::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--line-2); }
+.dt-legend .lg.tg::before { background: var(--brass); }
+.dt-legend .lg.rl::before { background: var(--tension); }
+.dt-legend .lg.th::before { border-radius: 50%; background: var(--info); }
+.dt-legend .lg.yo::before { border-radius: 50%; background: var(--brass-soft); }
+
+.dt-spark { display: flex; flex-direction: column; gap: 3px; color: var(--info); }
+.dt-spark-l { font-size: 9.5px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); }
+.dt-spark svg { display: block; overflow: visible; }
+
+.meters { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+.m { border-radius: 6px; outline: none; cursor: help; }
+.m:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 55%, transparent); }
+.m .mh { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-dim); margin-bottom: 5px; }
+.m .mh b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.track { position: relative; height: 7px; background: var(--panel-2); border-radius: 5px; overflow: visible; }
+.track .fill { overflow: hidden; }
+/* one-shot glow on the meter that moved most this turn (keyed on turn) */
+.pulse-glow { position: absolute; inset: -2px; border-radius: 6px; pointer-events: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 50%, transparent); animation: meterpulse 0.9s ease-out; }
+@keyframes meterpulse { from { opacity: 0.85; transform: scale(1); } to { opacity: 0; transform: scale(1.03); } }
+.fill { height: 100%; width: 40%; border-radius: 5px; transition: width 0.55s cubic-bezier(0.4, 0, 0.2, 1); }
+.fill.trust { background: var(--trust); }
+.fill.tension { background: var(--tension); }
+.fill.info { background: var(--info); }
+.fill.leverage { background: var(--leverage); }
+
+.interests-line { display: flex; gap: 5px; align-items: center; font-size: 11.5px; color: var(--ink-dim); }
+.pips { display: flex; gap: 4px; }
+.pips i { width: 8px; height: 8px; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--line-2); }
+.pips i.on { background: var(--trust); border-color: var(--trust); }
+
+/* Deal-terms panel — the visible logrolling "package". Compact; sits under the
+   deal tracker. A traded issue flips to brass with a check; untraded stays muted.
+   Theme-aware via tokens; the traded transition is covered by the global
+   reduced-motion reset. */
+.dealterms { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 13px; display: flex; flex-direction: column; gap: 8px; }
+.dtm-head { font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-faint); }
+.dtm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dtm-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-dim); transition: color 0.3s; }
+.dtm-mark { flex-shrink: 0; width: 16px; text-align: center; color: var(--line-2); font-size: 12px; }
+.dtm-label { flex: 1; line-height: 1.35; }
+.dtm-state { flex-shrink: 0; font-size: 10px; letter-spacing: 0.3px; text-transform: uppercase; color: var(--ink-faint); }
+.dtm-row.traded { color: var(--ink); }
+.dtm-row.traded .dtm-mark { color: var(--brass); }
+.dtm-row.traded .dtm-label { font-weight: 600; }
+.dtm-row.traded .dtm-state { color: var(--brass); font-weight: 700; }
+.dtm-explain { margin: 2px 0 0; font-size: 11px; line-height: 1.45; color: var(--ink-faint); }
+
+.brief { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--brass); border-radius: 10px; padding: 12px 13px; font-size: 12.5px; color: var(--ink-dim); }
+.batna { font-size: 12px; color: var(--ink-dim); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+.batna b { color: var(--leverage); display: block; margin-bottom: 3px; letter-spacing: 0.3px; }
+.quit { border: 1px solid var(--line-2); border-radius: 10px; padding: 9px; font-size: 13px; color: var(--ink-dim); transition: 0.15s; }
+.quit:hover { border-color: var(--brass); color: var(--ink); }
+
+/* Briefing + BATNA group. On desktop it's a transparent pass-through: the toggle
+   is hidden and the body always shows (brief + batna stack like plain siblings).
+   On phones (see the ≤640 block) it collapses behind the toggle to keep the
+   game strip short. */
+.side-more { display: flex; flex-direction: column; gap: 14px; }
+.side-more-body { display: flex; flex-direction: column; gap: 14px; }
+.side-more-toggle { display: none; }
+
+/* chat */
+.chat { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-height: 480px; height: 100%; overflow: hidden; }
+.chat .ch { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+.turn { font-size: 12.5px; color: var(--ink-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
+.conn { font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 8px; margin-left: 8px; }
+.conn.mock { color: var(--brass-soft); border-color: color-mix(in srgb, var(--brass) 40%, transparent); }
+.hintb { font-size: 12.5px; color: var(--ink-dim); border: 1px solid var(--line-2); border-radius: 8px; padding: 6px 11px; transition: 0.15s; }
+.hintb:hover { border-color: var(--brass); color: var(--ink); }
+.log { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; gap: 13px; }
+/* Grow the conversation UP from the composer, the way every chat does. Without
+   this, turn 0 is one greeting pinned to the top of a tall empty card. An auto
+   top margin on the first bubble eats the free space and collapses to 0 the
+   moment the log overflows — unlike `justify-content: flex-end`, which clips
+   the scrolled-past top in several browsers. */
+.log > :first-child { margin-top: auto; }
+/* ...but when the opening card is filling that space there is nothing to push
+   down, and bottom-aligning would shove the card and greeting off the top. */
+.log.has-opening > :first-child { margin-top: 0; }
+.msg { max-width: 84%; display: flex; flex-direction: column; gap: 5px; animation: pop 0.3s ease; }
+@keyframes pop { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
+.msg.opp { align-self: flex-start; }
+.msg.me { align-self: flex-end; align-items: flex-end; }
+.bub { padding: 11px 14px; border-radius: 13px; font-size: 14.5px; }
+.msg.opp .bub { background: var(--panel-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.msg.me .bub { background: var(--brass); color: #fff; border-bottom-right-radius: 4px; }
+:root[data-theme="dark"] .msg.me .bub { color: #1a1509; }
+.caret { display: inline-block; width: 7px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+/* Opponent "typing…" indicator — an opponent-styled bubble with pulsing dots,
+   shown while a reply is pending. reduced-motion (global block) freezes the dots. */
+.hintbub.pending { opacity: 0.85; }
+.hintbub.pending .typing-dots i { background: var(--brass); }
+.typing-msg .bub.typing { display: inline-flex; align-items: center; gap: 9px; }
+/* The judge's pass is NOT the counterpart speaking, so its bubble sheds the
+   opponent's styling and takes the judge's own colour (the same --info the
+   "graded by meaning" badge uses), tying the wait to the verdict it produces. */
+.typing-msg.judging .bub.typing {
+  background: color-mix(in srgb, var(--info) 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--info) 32%, var(--line));
+  border-bottom-left-radius: 13px;
+}
+.typing-msg.judging .typing-dots i { background: var(--info); }
+.typing-msg.judging .typing-label { color: var(--info); font-weight: 600; }
+.typing-dots { display: inline-flex; gap: 4px; }
+.typing-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--brass); opacity: 0.35; animation: typedot 1.2s ease-in-out infinite; }
+.typing-dots i:nth-child(2) { animation-delay: 0.18s; }
+.typing-dots i:nth-child(3) { animation-delay: 0.36s; }
+@keyframes typedot { 0%, 100% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-3px); } }
+.typing-label { font-size: 12px; color: var(--ink-faint); font-style: italic; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.tag { font-size: 10.5px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-dim); }
+.tag.spin { border-color: color-mix(in srgb, var(--info) 45%, transparent); color: var(--info); }
+.tag.criteria, .tag.anchor, .tag.offer { border-color: color-mix(in srgb, var(--brass) 55%, transparent); color: var(--brass); }
+.tag.batna { border-color: color-mix(in srgb, var(--leverage) 45%, transparent); color: var(--leverage); }
+.tag.empathy, .tag.interests, .tag.tradeoff, .tag.rapport, .tag.accept, .tag.concession { border-color: color-mix(in srgb, var(--trust) 45%, transparent); color: var(--trust); }
+.tag.threat, .tag.hostile { border-color: color-mix(in srgb, var(--tension) 50%, transparent); color: var(--tension); }
+.arg { font-size: 10.5px; color: var(--ink-faint); }
+.arg b { color: var(--ink-dim); }
+.deltas { display: inline-flex; gap: 6px; }
+/* direct-child only: each chip wraps an aria-hidden inner span with the visible
+   text, which must not pick up the chip's box/padding. */
+.deltas > span { font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 5px; font-variant-numeric: tabular-nums; animation: flash 0.6s ease; }
+@keyframes flash { from { transform: scale(1.35); } to { transform: scale(1); } }
+.up { background: color-mix(in srgb, var(--trust) 18%, transparent); color: var(--trust); }
+.dn { background: color-mix(in srgb, var(--tension) 18%, transparent); color: var(--tension); }
+.hintbub { align-self: center; max-width: 90%; font-size: 13px; color: var(--brass); background: color-mix(in srgb, var(--brass) 10%, transparent); border: 1px solid color-mix(in srgb, var(--brass) 30%, transparent); border-radius: 11px; padding: 9px 14px; }
+.hintline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 7px; }
+.hintline-q { flex: 1 1 180px; font-style: italic; color: var(--ink); opacity: .92; }
+.hintline-use { flex: 0 0 auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 8px; cursor: pointer; color: #fff; background: var(--brass); border: 1px solid var(--brass); }
+.hintline-use:hover { filter: brightness(1.08); }
+.hintline-use:active { transform: translateY(1px); }
+.sys { align-self: center; font-size: 12px; color: var(--tension); }
+
+.compose { border-top: 1px solid var(--line); padding: 12px 14px; background: var(--panel); }
+.live { min-height: 0; display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
+.crow { display: flex; gap: 9px; align-items: flex-end; }
+textarea { flex: 1; resize: none; background: var(--ground); border: 1px solid var(--line-2); border-radius: 11px; padding: 11px 13px; color: var(--ink); font-size: 14.5px; font-family: inherit; }
+textarea:focus { outline: none; border-color: var(--brass); }
+.send { width: 44px; height: 44px; border-radius: 11px; background: var(--brass); color: #fff; font-size: 17px; flex-shrink: 0; transition: 0.15s; }
+:root[data-theme="dark"] .send { color: #1a1509; }
+.send:hover { filter: brightness(1.08); }
+.send:disabled { opacity: 0.5; cursor: default; }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.quick button { font-size: 11.5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-dim); transition: 0.15s; }
+.quick button:hover { border-color: var(--brass); color: var(--ink); }
+
+/* first-turn coach bubble — the opening nudge above the composer, dismissible */
+.firstcoach {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 0 14px 10px; padding: 10px 12px;
+  font-size: 13px; color: var(--ink-dim); line-height: 1.5;
+  background: color-mix(in srgb, var(--brass) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--brass) 30%, var(--line));
+  border-left: 2.5px solid var(--brass); border-radius: 10px;
+  animation: pop 0.3s ease;
+}
+.firstcoach-x {
+  flex-shrink: 0; font-size: 17px; line-height: 1; color: var(--ink-faint);
+  padding: 0 3px; border-radius: 6px; transition: 0.15s;
+}
+.firstcoach-x:hover { color: var(--ink); background: var(--panel-2); }
+
+/* debrief */
+.debrief { max-width: 720px; margin: 0 auto; padding: 34px 0 50px; }
+.debrief:not(.cert) {
+  max-width: 780px; margin: 26px auto 40px; padding: 30px 30px 34px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--ground); box-shadow: var(--shadow);
+}
+.gh { display: flex; align-items: center; gap: 26px; margin-bottom: 30px; }
+.ring { width: 128px; height: 128px; border-radius: 50%; display: grid; place-items: center; position: relative; flex-shrink: 0; background: conic-gradient(var(--gc, var(--brass)) calc(var(--p, 0) * 1%), var(--panel-2) 0); }
+.ring::after { content: ""; position: absolute; inset: 11px; background: var(--ground); border-radius: 50%; }
+.ring .gl { position: relative; z-index: 1; font-family: var(--serif); font-size: 44px; font-weight: 700; color: var(--gc, var(--brass)); line-height: 1; }
+.ring .gs { position: relative; z-index: 1; font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.gh h2 { margin: 0; font-size: 26px; }
+.gh .oc { margin-top: 7px; color: var(--ink-dim); font-size: 15px; }
+.gh .oc b { color: var(--ink); }
+
+/* exam mode: the debrief is presented as a certificate */
+.debrief.cert { border: 1px solid var(--line); border-radius: var(--r); background:
+  linear-gradient(180deg, color-mix(in srgb, var(--brass) 7%, var(--panel)) 0%, var(--panel) 30%);
+  padding: 30px 30px 40px; box-shadow: var(--shadow); }
+.debrief.cert .gh { border-bottom: 1px solid var(--line); padding-bottom: 24px; }
+.cert-eyebrow { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--brass); font-weight: 700; margin-bottom: 8px; }
+.debrief.cert .gh h2 { font-family: var(--serif); font-size: 30px; }
+.cert-scenario { margin-top: 7px; font-size: 14px; color: var(--ink-dim); }
+.cert-scenario b { color: var(--ink); font-family: var(--serif); }
+.sb { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+.sbi .sbh { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; }
+.sbi .sbh b { font-variant-numeric: tabular-nums; }
+.sbt { height: 9px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+.sbf { height: 100%; width: 0; border-radius: 5px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 22px; }
+.st { background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 13px; text-align: center; }
+.st .n { font-family: var(--serif); font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.st .l { font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+/* deal-terms recap — the visible logrolling result: which secondary issues were
+   traded (brass chips) or a gentle note that trading was missed. */
+.dbterms { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--panel);
+  border: 1px solid var(--line); border-left: 3px solid var(--brass); border-radius: var(--r);
+  padding: 13px 16px; margin-bottom: 20px; }
+.dbterms.none { border-left-color: var(--line-2); }
+.dbt-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+.dbterms.none .dbt-label { color: var(--ink-faint); }
+.dbt-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.dbt-chip { font-size: 12.5px; font-weight: 600; color: var(--ink); background: color-mix(in srgb, var(--brass) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brass) 38%, transparent); border-radius: 999px; padding: 3px 11px; }
+.dbt-miss { font-size: 13px; color: var(--ink-dim); }
+/* turning points — the "replay the tape" section: the player's own lines quoted back */
+.tpoints { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--tension); border-radius: var(--r); padding: 20px; margin-bottom: 20px; }
+.tpoints h3 { margin: 0 0 15px; font-size: 17px; }
+.tpoints ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.tpoints li { border-left: 2.5px solid var(--brass); padding: 2px 0 2px 14px; }
+.tp-turn { display: inline-block; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--brass); font-weight: 700; margin-bottom: 6px; }
+.tp-quote { margin: 0 0 7px; font-family: var(--serif); font-style: italic; font-size: 15px;
+  color: var(--ink-dim); line-height: 1.5; }
+.tp-what { font-size: 13.5px; color: var(--ink); line-height: 1.5; }
+.tp-coach { margin-top: 6px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+.tp-coach::before { content: "— "; color: var(--brass); }
+.coach { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--info); border-radius: var(--r); padding: 20px; margin-bottom: 22px; }
+.coach h3 { margin: 0 0 13px; font-size: 17px; }
+.coach ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.coach li { display: flex; gap: 9px; font-size: 13.5px; color: var(--ink-dim); }
+.coach li::before { content: "—"; color: var(--brass); flex-shrink: 0; }
+/* ---------- "А что если…" what-if replay ---------- */
+.whatif { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 20px; margin-bottom: 20px;
+  border-left: 3px solid var(--brass); box-shadow: var(--shadow); }
+.whatif h3 { margin: 0 0 6px; font-size: 17px; }
+.wi-intro { margin: 0 0 14px; font-size: 13px; color: var(--ink-dim); line-height: 1.5; max-width: 56ch; }
+.wi-orig { margin: 0 0 16px; padding: 8px 0 8px 13px; border-left: 2.5px solid var(--tension);
+  font-family: var(--serif); font-style: italic; font-size: 14.5px; color: var(--ink-dim); line-height: 1.5; }
+.wi-altlabel { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--brass); font-weight: 700; margin-bottom: 9px; }
+.wi-presets { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.wi-preset { text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line-2);
+  background: var(--panel); color: var(--ink-dim); font-size: 13px; line-height: 1.4; transition: 0.14s; }
+.wi-preset:hover { border-color: color-mix(in srgb, var(--brass) 45%, transparent); }
+.wi-preset.on { border-color: var(--brass); color: var(--ink);
+  background: color-mix(in srgb, var(--brass) 10%, transparent); }
+.wi-input { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--line-2); background: var(--panel); color: var(--ink); font-size: 13px; margin-bottom: 12px; }
+.wi-input:focus { outline: none; border-color: var(--brass); }
+.wi-reveal { width: 100%; padding: 12px; border-radius: 11px; background: var(--brass); color: #fff;
+  font-weight: 700; font-size: 14px; transition: 0.15s; }
+:root[data-theme="dark"] .wi-reveal { color: #1a1509; }
+.wi-reveal:hover:not(:disabled) { filter: brightness(1.08); }
+.wi-reveal:disabled { opacity: 0.55; cursor: default; }
+.wi-reveal.ghost { margin-top: 14px; background: transparent; border: 1px solid var(--line-2);
+  color: var(--ink-dim); font-weight: 600; }
+:root[data-theme="dark"] .wi-reveal.ghost { color: var(--ink-dim); }
+.wi-reveal.ghost:hover { border-color: var(--brass); color: var(--ink); filter: none; }
+.wi-fail { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-faint); }
+
+.wi-banner { display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.02em; margin-bottom: 12px;
+  background: color-mix(in srgb, var(--ink-faint) 14%, transparent); color: var(--ink-dim); }
+.wi-banner.good { background: color-mix(in srgb, var(--trust) 16%, transparent); color: var(--trust); }
+.wi-summary { font-size: 13px; color: var(--ink); line-height: 1.55; margin-bottom: 16px; }
+
+.wi-cols { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 560px) { .wi-cols { grid-template-columns: 1fr 1fr; } }
+.wi-col { border: 1px solid var(--line-2); border-radius: 12px; padding: 14px; background: var(--panel); }
+.wi-col.alt { border-color: color-mix(in srgb, var(--trust) 40%, transparent);
+  background: color-mix(in srgb, var(--trust) 6%, transparent); }
+.wi-collabel { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700;
+  color: var(--ink-faint); margin-bottom: 12px; }
+.wi-col.alt .wi-collabel { color: var(--trust); }
+.wi-meters { display: flex; flex-direction: column; gap: 9px; margin-bottom: 13px; }
+.wi-meter { display: grid; grid-template-columns: 74px 34px 1fr; align-items: center; gap: 8px; }
+.wi-mlabel { font-size: 12px; color: var(--ink-dim); }
+.wi-mval { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.wi-mval.good { color: var(--trust); }
+.wi-mval.bad { color: var(--tension); }
+.wi-mval.neutral { color: var(--ink-faint); }
+.wi-mtrack { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--ink-faint) 16%, transparent);
+  overflow: hidden; }
+.wi-mfill { display: block; height: 100%; border-radius: 3px; transition: width 0.7s cubic-bezier(0.22,1,0.36,1); }
+.wi-mfill.good { background: var(--trust); }
+.wi-mfill.bad { background: var(--tension); }
+.wi-mfill.neutral { background: var(--ink-faint); }
+.wi-offer { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  padding: 8px 0; border-top: 1px solid var(--line-2); font-size: 12.5px; color: var(--ink-dim); }
+.wi-offer b { font-family: var(--serif); font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.wi-oline { font-family: var(--serif); font-style: italic; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+.wi-olabel { display: block; font-family: var(--sans, inherit); font-style: normal; font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
+
+.dacts { display: flex; gap: 11px; }
+.primary { flex: 1; padding: 13px; border-radius: 11px; background: var(--brass); color: #fff; font-weight: 700; font-size: 15px; transition: 0.15s; }
+:root[data-theme="dark"] .primary { color: #1a1509; }
+.primary:hover { filter: brightness(1.08); }
+.dacts .quit { flex: 1; }
+
+/* ---------- Campaign ("Восхождение") arc ---------- */
+.camp { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 22px; box-shadow: var(--shadow); }
+.camp-head { display: flex; align-items: flex-start; gap: 15px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.camp-ic { font-size: 34px; flex-shrink: 0; filter: drop-shadow(0 0 16px color-mix(in srgb, var(--brass) 40%, transparent)); }
+.camp-ic.big { font-size: 52px; }
+.camp-heading { flex: 1; }
+.camp-title { font-family: var(--serif); font-size: 24px; margin: 0; }
+.camp-tag { font-size: 13.5px; color: var(--ink-dim); margin: 6px 0 0; max-width: 54ch; }
+.camp-rep { flex-shrink: 0; text-align: right; border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 12px; }
+.camp-rep-l { display: block; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-faint); }
+.camp-rep b { font-family: var(--serif); font-size: 20px; font-variant-numeric: tabular-nums; }
+.camp-rep.pos b { color: var(--trust); }
+.camp-rep.neg b { color: var(--tension); }
+
+/* The vertical story arc: each act is a node + body, joined by a connector. */
+.arc { list-style: none; margin: 20px 0 0; padding: 0; }
+.act { position: relative; display: flex; gap: 15px; padding: 0 0 22px; }
+.act:last-child { padding-bottom: 0; }
+/* connector line running through the node column */
+.act::before { content: ""; position: absolute; left: 20px; top: 42px; bottom: -2px; width: 2px; background: var(--line); }
+.act:last-child::before { display: none; }
+.act-node { position: relative; z-index: 1; width: 42px; height: 42px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: var(--panel-2); border: 2px solid var(--line-2); font-family: var(--serif); font-weight: 700; }
+.act-node .grade { font-size: 20px; line-height: 1; }
+.act-node .num { font-size: 17px; color: var(--ink-faint); }
+.act-node .lock { font-size: 15px; filter: grayscale(1); opacity: 0.6; }
+.act.done .act-node { border-color: color-mix(in srgb, var(--brass) 55%, transparent); background: color-mix(in srgb, var(--brass) 10%, var(--panel)); }
+.act.current .act-node { border-color: var(--brass); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brass) 16%, transparent); }
+.act.locked { opacity: 0.55; }
+.act-body { flex: 1; padding-top: 2px; }
+.act-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--brass); font-weight: 700; }
+.act-title { font-family: var(--serif); font-size: 18px; font-weight: 600; margin-top: 3px; display: flex; align-items: center; gap: 8px; }
+.act-ic { font-size: 18px; }
+.act-meta { display: flex; align-items: center; gap: 12px; margin-top: 7px; font-size: 12px; color: var(--ink-dim); }
+.act-of { color: var(--ink-faint); }
+.act-badge { margin-left: auto; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 9px; color: var(--ink-faint); }
+.act-badge.current { color: var(--brass); border-color: color-mix(in srgb, var(--brass) 45%, transparent); }
+.act-badge.done { color: var(--trust); border-color: color-mix(in srgb, var(--trust) 40%, transparent); }
+.act-intro { font-size: 13px; color: var(--ink-dim); margin: 9px 0 0; padding: 10px 12px; background: var(--panel-2); border-left: 3px solid var(--brass); border-radius: 8px; max-width: 60ch; }
+.camp-cta { width: 100%; margin-top: 22px; }
+
+/* Campaign summit summary reuses the .debrief.cert shell */
+.camp-done-head { text-align: center; padding-bottom: 26px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+.camp-done-head h2 { font-family: var(--serif); font-size: 30px; margin: 4px 0 0; }
+.camp-done-head .verdict { font-size: 22px; font-style: italic; margin-top: 10px; }
+.camp-avg { margin-top: 10px; font-size: 14px; color: var(--ink-dim); }
+.camp-avg b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.arc.final { margin-top: 22px; margin-bottom: 22px; }
+
+.foot { border-top: 1px solid var(--line); padding: 18px 22px; max-width: 1120px; margin: 40px auto 0; display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink-faint); padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+
+/* ---------- Wide desktop / projector (>=1440px) ----------
+   The whole stylesheet had breakpoints going DOWN and none going up, so a
+   1920px hackathon projector rendered a 1120px column of 10.5px chips adrift in
+   empty ground. This is the only rule that scales the app UP: a wider shell, a
+   wider rail, and — the point of it — a counterpart portrait large enough that
+   her expression changing with your tension meter is visible from the back row.
+   Type in the rail moves off footnote sizes at the same time. */
+@media (min-width: 1440px) {
+  .wrap, .top, .foot { max-width: 1360px; }
+  .table { grid-template-columns: 372px 1fr; gap: 24px; }
+
+  .opp { padding: 18px; gap: 16px; }
+  .opp .face { width: 92px; height: 92px; border-radius: 16px; }
+  .opp .nm { font-size: 19px; }
+  .opp .ps { font-size: 13px; }
+
+  /* The rail's explanatory chrome: 9-11.5px is unreadable past the third row. */
+  .ob .l, .dt-legend, .dt-mark .lbl { font-size: 11.5px; }
+  .dtm-explain, .interests-line { font-size: 12.5px; }
+  .tag, .arg, .deltas, .jc-chip, .sc-chip { font-size: 12px; }
+
+  .bub { font-size: 15.5px; }
+  .log { padding: 22px 20px; gap: 15px; }
+}
+
+/* ---------- Tablet: collapse the two-column game to one column ---------- */
+@media (max-width: 860px) {
+  /* Stacked: nothing to fill and nothing to bound — the page scrolls as a page,
+     so every desktop height rule has to be undone, not just softened. */
+  .table { grid-template-columns: 1fr; height: auto; min-height: 0; }
+  .chat { height: auto; }
+  .side { max-height: none; overflow: visible; }
+  .gh { flex-direction: column; text-align: center; }
+}
+
+/* ============================================================
+   Phones (≤640px) — native-app feel: a compact top strip, a
+   chat that owns the screen, and a thumb-friendly composer.
+   The desktop layout above is untouched.
+   ============================================================ */
+@media (max-width: 640px) {
+  .wrap { padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+
+  /* Top bar: keep the brand + toggles on one comfortable row. */
+  .top { padding: 12px 14px; padding-top: max(12px, env(safe-area-inset-top)); gap: 10px; }
+  .brand { gap: 8px; flex-wrap: wrap; align-items: center; }
+  .brand .mark { font-size: 22px; }
+  .brand .sub { display: none; }               /* the tagline is decorative — reclaim the width */
+  .controls { gap: 8px; flex-shrink: 0; }
+  .seg button { padding: 9px 13px; font-size: 13px; min-height: 40px; }
+
+  /* Hero: tighter, still the "lamplit" serif voice. Reordered for thumbs — the
+     rank strip and a single clear CTA lead above the fold; the long lead paragraph
+     and principle pills drop below so the player can act without scrolling. */
+  .hero { padding: 20px 0 12px; display: flex; flex-direction: column; }
+  .hero .eyebrow { order: 1; margin-bottom: 12px; }
+  .hero h1 { order: 2; }
+  .hero .herostats { order: 3; }
+  .hero .hero-cta { order: 4; }
+  .hero p.lead { order: 5; font-size: 16px; margin-top: 18px; }
+  .hero .rule { order: 6; }
+  .hero .principles { order: 7; }
+  .rule { margin: 20px 0; }
+  .section-head { margin: 24px 0 12px; }
+
+  /* "Why this teaches": tighter rhythm, panels already single-column via auto-fit. */
+  .teach { padding: 18px 0 4px; }
+  .teach-demo { margin: 22px 0 24px; }
+  .teach-framing { font-size: 14.5px; margin-top: 22px; }
+
+  .hero-cta {
+    display: block; width: 100%; margin-top: 14px; min-height: 50px; padding: 14px;
+    border-radius: 12px; background: var(--brass); color: #fff;
+    font-weight: 700; font-size: 16px; box-shadow: var(--shadow); transition: filter 0.15s;
+  }
+  .hero-cta:active { filter: brightness(0.94); }
+
+  /* Home: single-column cards + modes, big tap targets. */
+  .modes { grid-template-columns: 1fr; gap: 10px; }
+  .mode { padding: 15px 16px; min-height: 64px; }
+  .cards { grid-template-columns: 1fr; gap: 12px; }
+  .card { padding: 17px; }
+  .card .cr { min-height: 0; }
+
+  /* Custom deal: full-width action. */
+  .custom { max-width: none; }
+  .cust-actions { flex-direction: column-reverse; align-items: stretch; gap: 10px; }
+  .cust-go { min-width: 0; width: 100%; padding: 14px; }
+  .cust-hint { text-align: center; }
+
+  /* ---- Game: compact strip on top, chat below ---- */
+  .table { gap: 12px; padding: 12px 0 24px; }
+  .side { gap: 10px; }
+  .opp { padding: 12px; gap: 11px; }
+  .opp .face { font-size: 28px; width: 44px; height: 44px; }
+  .opp .nm { font-size: 15px; }
+
+  .dealtracker { padding: 12px 13px 11px; gap: 9px; }
+
+  /* Meters become a slim 2×2 grid instead of a tall stack. */
+  .meters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; padding: 13px; }
+  .m .mh { margin-bottom: 4px; }
+  .m { padding: 4px; min-height: 44px; }        /* comfortable tap/focus target for the tooltip */
+
+  /* Briefing + BATNA collapse behind a tappable header. */
+  .side-more { gap: 0; }
+  .side-more-toggle {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    min-height: 46px; padding: 11px 14px; font-size: 13.5px; font-weight: 600; color: var(--ink-dim);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  }
+  .side-more-toggle .chev { transition: transform 0.2s ease; color: var(--brass); }
+  .side-more.open .side-more-toggle .chev { transform: rotate(180deg); }
+  .side-more-body { display: none; padding-top: 10px; gap: 10px; }
+  .side-more.open .side-more-body { display: flex; }
+
+  .quit { min-height: 46px; }
+
+  /* Chat: the star of the phone screen. Header stays put, the log fills the
+     space and scrolls internally, the composer is easy to reach at the end. */
+  /* The log scrolls internally; the composer sits at the card's end and the
+     browser scrolls it above the keyboard on focus. A bounded log keeps the
+     latest reply and the composer close together. */
+  .chat { min-height: 0; }
+  .chat .ch { padding: 11px 14px; }
+  .log { max-height: 48vh; padding: 15px 13px; gap: 11px; }
+  .msg { max-width: 90%; }
+  .bub { font-size: 15px; }                     /* readable body text on a phone */
+
+  /* Composer: thumb zone. 16px input dodges iOS focus-zoom; send ≥44px. */
+  .compose {
+    padding: 10px 12px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  textarea { font-size: 16px; padding: 12px 13px; }
+  .send { width: 48px; height: 48px; font-size: 18px; }
+  /* Quick-chips: wrap, and scroll sideways if they still overflow. */
+  .quick { flex-wrap: nowrap; overflow-x: auto; margin-top: 8px; padding-bottom: 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .quick::-webkit-scrollbar { display: none; }
+  .quick button { flex-shrink: 0; padding: 9px 13px; font-size: 12.5px; min-height: 40px; }
+  .live { margin-bottom: 6px; }
+
+  /* Debrief: single column, smaller ring, reflowed stats. */
+  .debrief { padding: 22px 0 40px; }
+  .debrief.cert { padding: 20px 16px 30px; }
+  /* On a phone the report IS the screen — an inset frame just steals width. */
+  .debrief:not(.cert) { padding: 20px 15px 30px; margin: 14px auto 28px; }
+  .gh { flex-direction: column; text-align: center; gap: 16px; margin-bottom: 22px; }
+  .ring { width: 108px; height: 108px; }
+  .ring .gl { font-size: 38px; }
+  .gh h2 { font-size: 22px; }
+  .gh .oc { justify-content: center; }
+  .pb { justify-content: center; }
+  .sb { padding: 16px; gap: 13px; margin-bottom: 16px; }
+  .stats { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .st { padding: 11px; }
+  .tpoints, .coach { padding: 16px; margin-bottom: 16px; }
+  .dbterms { padding: 13px 14px; margin-bottom: 16px; }
+  .dacts { flex-direction: column; gap: 9px; }
+  .primary, .dacts .quit { width: 100%; padding: 15px; min-height: 48px; }
+
+  /* Campaign arc: tighter nodes so the story reads on a narrow column. */
+  .camp { padding: 16px; }
+  .camp-head { flex-wrap: wrap; gap: 12px; }
+  .camp-title { font-size: 21px; }
+  .camp-rep { margin-left: auto; }
+  .act { gap: 12px; }
+  .act::before { left: 17px; }
+  .act-node { width: 36px; height: 36px; }
+  .act-meta { flex-wrap: wrap; gap: 8px 10px; }
+  .act-badge { margin-left: 0; }
+  .camp-done-head h2 { font-size: 24px; }
+
+  .foot { flex-direction: column; gap: 4px; text-align: center; align-items: center; margin-top: 28px; }
+}
+
+/* Very small phones: give the meter grid room to breathe as a single column. */
+@media (max-width: 360px) {
+  .meters { grid-template-columns: 1fr; }
+  .brand .mark { font-size: 20px; }
+}
+
+/* Coarse-pointer (touch) devices: hover lifts/underlines have no place; make sure
+   nothing depends on hover to be usable, and keep press feedback instead. */
+@media (hover: none) {
+  .card:hover, .mode:not(.disabled):hover { transform: none; }
+  .card:active { transform: scale(0.99); border-color: var(--brass); }
+  .mode:not(.disabled):active { border-color: var(--brass); }
+  .send:active { filter: brightness(0.94); }
+}
+/* ---------- Retention: streak chip, card best-grade, debrief record ---------- */
+.streak {
+  display: inline-block; margin-left: 12px; padding: 2px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--brass) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brass) 45%, transparent);
+  color: var(--brass); font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  vertical-align: middle; text-transform: none;
+}
+.card .cf-l { display: flex; align-items: center; gap: 10px; }
+.card .best {
+  font-family: var(--serif); font-size: 12.5px; font-weight: 700;
+  padding: 1px 8px; border-radius: 999px; font-variant-numeric: tabular-nums;
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.card .best.empty {
+  color: var(--ink-faint); border-color: var(--line-2); background: none;
+  font-family: var(--sans); font-weight: 600;
+}
+
+/* Debrief personal-record line */
+.pb {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 10px;
+  font-size: 13px; color: var(--ink-dim);
+}
+.pb .pb-l b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.pb-new {
+  color: var(--brass); font-weight: 800; font-size: 12px; letter-spacing: 0.4px;
+  padding: 2px 9px; border-radius: 999px;
+  background: color-mix(in srgb, var(--brass) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brass) 45%, transparent);
+  animation: recordpop 0.5s ease;
+}
+@keyframes recordpop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ---------- Coach line (judge's per-turn nudge) ---------- */
+.coachline {
+  align-self: stretch; max-width: 84%; position: relative;
+  margin: -2px 0 2px; padding: 7px 30px 7px 12px;
+  font-size: 12.5px; color: var(--ink-dim); line-height: 1.5;
+  background: color-mix(in srgb, var(--brass) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--brass) 30%, var(--line));
+  border-left: 2.5px solid var(--brass); border-radius: 8px;
+  animation: pop 0.3s ease;
+}
+.coachline-b { color: var(--brass); font-weight: 700; }
+/* Row 1: the judge's verdict on the move. Chips get their own line at a legible
+   size — they are the product's clearest claim ("we score meaning, not
+   keywords") and were previously buried mid-sentence at 10.5px. */
+.cl-verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cl-verdict .jc-chip { font-size: 11.5px; padding: 3px 9px; }
+.cl-verdict .judge-badge { margin-left: 2px; }
+/* Row 2: the coaching sentence, only rendered when there IS one. */
+.cl-note { margin-top: 6px; }
+.cl-verdict + .cl-note { padding-top: 6px; border-top: 1px dashed color-mix(in srgb, var(--brass) 22%, transparent); }
+.coachline-x {
+  position: absolute; top: 4px; right: 6px; font-size: 15px; line-height: 1;
+  color: var(--ink-faint); padding: 2px 5px; border-radius: 6px;
+}
+.coachline-x:hover { color: var(--ink); background: var(--panel-2); }
+
+/* ---------- Interest-reveal delight ---------- */
+.interests-line.flash {
+  animation: interestflash 0.9s ease-out;
+  border-radius: 6px;
+}
+@keyframes interestflash {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--trust) 70%, transparent); background: color-mix(in srgb, var(--trust) 22%, transparent); }
+  100% { box-shadow: 0 0 0 8px transparent; background: transparent; }
+}
+.toast {
+  position: fixed; left: 50%; top: 74px; transform: translateX(-50%); z-index: 60;
+  padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;
+  color: var(--trust); background: var(--panel);
+  border: 1px solid color-mix(in srgb, var(--trust) 45%, var(--line));
+  box-shadow: var(--shadow); animation: toastin 0.32s ease;
+  max-width: min(92vw, 340px); text-align: center;
+  pointer-events: none; /* purely celebratory — never intercept taps on what's beneath */
+}
+@keyframes toastin { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* Mobile (screenshot 51 fix): the header isn't sticky, so a top:74px toast could
+   land on the meters/interests line it's celebrating. Pin it just below the
+   header band and above the side panel so it never covers that row at 390px. */
+@media (max-width: 640px) {
+  .toast { top: calc(52px + env(safe-area-inset-top)); }
+}
+
+/* ============================================================
+   Gamification — rank/XP, daily goal, skill profile, badges,
+   XP award, achievement toasts. Understated-premium, brass/serif.
+   ============================================================ */
+
+/* ---- Home hero stats: rank + XP bar · daily goal · streak ---- */
+.herostats { display: flex; align-items: stretch; gap: 12px; margin: 26px 0 4px; flex-wrap: wrap; }
+.hs-rank {
+  flex: 1 1 300px; min-width: 260px; text-align: left;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 13px 16px; display: flex; flex-direction: column; gap: 6px;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+.hs-rank:hover { border-color: var(--brass); box-shadow: var(--shadow); transform: translateY(-2px); }
+.hs-rank-top { display: flex; justify-content: space-between; align-items: baseline; }
+.hs-rank-kicker { font-size: 10.5px; letter-spacing: 2px; text-transform: uppercase; color: var(--brass); }
+.hs-xp { font-size: 12px; font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.hs-rank-name { font-family: var(--serif); font-size: 21px; font-weight: 700; line-height: 1; }
+.hs-bar { height: 7px; background: var(--panel-2); border-radius: 5px; overflow: hidden; margin-top: 2px; }
+.hs-bar-fill {
+  height: 100%; border-radius: 5px; min-width: 3px;
+  background: linear-gradient(90deg, var(--brass-soft), var(--brass));
+  transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hs-next { font-size: 11.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+
+.hs-aside { display: flex; align-items: stretch; gap: 12px; }
+.hs-goal {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 16px; min-width: 96px;
+}
+.hs-goal.done { border-color: color-mix(in srgb, var(--brass) 45%, var(--line)); }
+.hs-goal-l { font-size: 10px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); text-align: center; }
+.hs-goal.done .hs-goal-l { color: var(--brass); }
+.hs-ring { position: relative; width: 36px; height: 36px; display: grid; place-items: center; }
+.hs-ring svg { position: absolute; inset: 0; }
+.hs-ring-track { stroke: var(--line-2); }
+.hs-ring-fill { stroke: var(--brass); transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.hs-ring-emoji { font-size: 15px; line-height: 1; }
+.hs-goal:not(.done) .hs-ring-emoji { color: var(--ink-faint); opacity: 0.7; }
+
+.hs-streak {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line));
+  border-radius: var(--r); padding: 10px 15px; min-width: 62px;
+}
+.hs-flame { font-size: 20px; line-height: 1; }
+.hs-streak b { font-family: var(--serif); font-size: 17px; color: var(--brass); font-variant-numeric: tabular-nums; }
+/* Held streak-freezes — a quiet buffer chip under the flame (Duolingo's calmer). */
+.hs-freeze {
+  font-size: 9.5px; letter-spacing: 0.3px; color: var(--info);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+
+/* Daily-goal: progress count + the 1/2/3 target selector on the ring tile. */
+.hs-goal-n { font-size: 12px; font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.hs-goal.done .hs-goal-n { color: var(--brass); }
+.hs-goalset { display: flex; gap: 3px; margin-top: 2px; }
+.hs-goalset button {
+  width: 20px; height: 20px; border-radius: 6px; font-size: 11px; font-weight: 700;
+  color: var(--ink-faint); border: 1px solid var(--line-2); background: transparent;
+  font-variant-numeric: tabular-nums; transition: 0.14s; line-height: 1;
+}
+.hs-goalset button:hover { border-color: var(--brass); color: var(--ink-dim); }
+.hs-goalset button.on { background: var(--brass); color: #fff; border-color: var(--brass); }
+:root[data-theme="dark"] .hs-goalset button.on { color: #1a1509; }
+
+/* ---- Skill-mastery screen ---- */
+.skills { max-width: 720px; margin: 0 auto; padding: 26px 0 50px; }
+.skills-back {
+  font-size: 13px; color: var(--ink-dim); border: 1px solid var(--line-2);
+  border-radius: 9px; padding: 8px 13px; margin-bottom: 18px; transition: 0.15s;
+}
+.skills-back:hover { border-color: var(--brass); color: var(--ink); }
+.skills-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.skills-head h2 { font-family: var(--serif); font-size: 27px; margin: 0; }
+.skills-rank { font-size: 13.5px; color: var(--ink-dim); }
+.skills-rank b { color: var(--brass); font-family: var(--serif); }
+.skills-sub { font-size: 14px; color: var(--ink-dim); margin: 8px 0 0; max-width: 56ch; }
+.skills-read {
+  font-size: 13.5px; color: var(--ink-dim); margin: 16px 0 22px; padding: 11px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--brass); border-radius: 10px;
+}
+.skills-read b { color: var(--ink); }
+.sr-up { color: var(--trust); font-weight: 700; }
+.sr-dn { color: var(--brass); font-weight: 700; }
+.skills-empty {
+  font-size: 14px; color: var(--ink-dim); margin: 16px 0 22px; padding: 16px;
+  background: var(--panel); border: 1px dashed var(--line-2); border-radius: 10px; text-align: center;
+}
+.skillbars { display: flex; flex-direction: column; gap: 16px; }
+.skb-h { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; margin-bottom: 6px; }
+.skb-n { font-family: var(--serif); font-weight: 600; }
+.skb-h b { font-variant-numeric: tabular-nums; font-size: 15px; }
+.skb-t { height: 9px; background: var(--panel-2); border-radius: 5px; overflow: hidden; }
+.skb-f { height: 100%; width: 0; border-radius: 5px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+.skb-hint { font-size: 12px; color: var(--ink-faint); margin-top: 5px; }
+.skb-games { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+.badges-title { font-family: var(--serif); font-size: 19px; margin: 34px 0 15px; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.badge {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 15px 14px;
+  display: flex; flex-direction: column; gap: 5px; opacity: 0.55; filter: grayscale(0.7);
+  transition: opacity 0.2s, filter 0.2s, border-color 0.2s;
+}
+.badge.on {
+  opacity: 1; filter: none; border-color: color-mix(in srgb, var(--brass) 45%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 7%, var(--panel)), var(--panel));
+}
+.badge-ic { font-size: 26px; line-height: 1; }
+.badge-nm { font-family: var(--serif); font-size: 14.5px; font-weight: 700; }
+.badge-ds { font-size: 11.5px; color: var(--ink-dim); line-height: 1.4; }
+
+/* ---- Debrief XP award ---- */
+.xpaward {
+  margin-top: 14px; padding: 12px 16px; display: inline-flex; flex-direction: column; gap: 2px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 12%, var(--panel)), var(--panel));
+  border: 1px solid color-mix(in srgb, var(--brass) 40%, var(--line)); border-radius: 12px;
+  animation: xppop 0.5s ease;
+}
+@keyframes xppop { from { transform: scale(0.82); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.xpa-main { display: flex; align-items: baseline; gap: 5px; }
+.xpa-plus { font-family: var(--serif); font-size: 30px; font-weight: 800; color: var(--brass); font-variant-numeric: tabular-nums; line-height: 1; }
+.xpa-unit { font-family: var(--serif); font-size: 15px; font-weight: 700; color: var(--brass-soft); }
+.xpa-cap { font-size: 11px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); }
+.xpa-level {
+  margin-top: 6px; font-size: 12.5px; font-weight: 700; color: var(--trust);
+  display: flex; align-items: center; gap: 5px; animation: recordpop 0.6s ease 0.4s both;
+}
+.xpa-level b { color: var(--ink); font-family: var(--serif); }
+.xpa-spark { color: var(--brass); }
+/* Freeze-saved note: quiet, informative, cool-toned (distinct from the brass fanfare). */
+.xpa-freeze { margin-top: 6px; font-size: 12px; color: var(--info); line-height: 1.4; max-width: 34ch; }
+/* Honest, muted (not alarming) note that a weak run didn't count toward the streak. */
+.xpa-streak-skip { margin-top: 6px; font-size: 12px; color: var(--ink-dim); line-height: 1.4; max-width: 36ch; }
+
+/* Collapsed negotiation: a sober award, no brass splash or pop. The reduced XP is
+   still shown honestly, but nothing here reads as a celebration. */
+.xpaward.failed {
+  background: var(--panel-2); border-color: var(--line-2); animation: none;
+}
+.xpaward.failed .xpa-plus { color: var(--ink-dim); }
+.xpaward.failed .xpa-unit { color: var(--ink-faint); }
+.xpaward.failed .xpa-cap { color: var(--tension); }
+
+/* Skill bar before 2 games exist: an invitation, not a punishing "0". */
+.skb-lowdata { color: var(--ink-faint); font-style: italic; }
+
+/* ---- Milestone celebration (near-full-screen overlay, once each) ----
+   Understated-premium: a calm brass-lit card over a dimmed scrim, not confetti.
+   Sits above the achievement toasts (z-50). Reduced-motion drops the fade/pop
+   via the global rule at the file's end but the card still shows statically. */
+.milestone-scrim {
+  position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+  backdrop-filter: blur(3px); animation: mscrim 0.32s ease both;
+}
+@keyframes mscrim { from { opacity: 0; } to { opacity: 1; } }
+.milestone-card {
+  width: 100%; max-width: 380px; text-align: center;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 12%, var(--panel)), var(--panel));
+  border: 1px solid color-mix(in srgb, var(--brass) 45%, var(--line));
+  border-radius: 20px; box-shadow: var(--shadow);
+  padding: 34px 26px 26px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  animation: mcard 0.5s cubic-bezier(0.22, 1.2, 0.36, 1) both;
+}
+@keyframes mcard { from { opacity: 0; transform: scale(0.86); } to { opacity: 1; transform: scale(1); } }
+.milestone-kicker { font-size: 11px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--brass); }
+.milestone-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 4px 0; }
+.milestone-ic {
+  font-size: 44px; line-height: 1;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--brass) 55%, transparent));
+}
+.milestone-title, .milestone-rank { font-family: var(--serif); font-weight: 800; color: var(--ink); }
+.milestone-title { font-size: 24px; }
+.milestone-rank { font-size: 28px; color: var(--brass); }
+.milestone-count { font-size: 14px; color: var(--ink-dim); margin-top: 2px; }
+.milestone-count b {
+  font-family: var(--serif); font-size: 30px; color: var(--brass);
+  font-variant-numeric: tabular-nums; margin-right: 3px;
+}
+.milestone-detail { font-size: 13.5px; color: var(--ink-dim); line-height: 1.5; margin: 2px 0 4px; max-width: 30ch; }
+.milestone-go {
+  margin-top: 8px; min-width: 160px; min-height: 44px; padding: 11px 22px;
+  font-size: 14px; font-weight: 700; color: #fff; background: var(--brass);
+  border: 1px solid var(--brass); border-radius: 12px; transition: 0.15s;
+}
+:root[data-theme="dark"] .milestone-go { color: #1a1509; }
+.milestone-go:hover { filter: brightness(1.06); transform: translateY(-1px); }
+
+/* ---- Achievement toasts (fixed, stacked) ---- */
+/* Anchored bottom-right so a badge never lands on top of the debrief's grade ring
+   or "Разбор переговоров" title (they live at the top of the report). On phones it
+   spans the bottom. The reveal is also time-sequenced in JS (ring → XP → badge). */
+.ach-toasts {
+  position: fixed; right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom)); z-index: 50;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none;
+  max-width: calc(100vw - 36px);
+}
+.ach-toast {
+  display: flex; align-items: center; gap: 11px; padding: 10px 16px 10px 12px;
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 45%, var(--line));
+  border-radius: 999px; box-shadow: var(--shadow); animation: toastup 0.36s ease both;
+}
+@keyframes toastup { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.ach-ic { font-size: 22px; line-height: 1; }
+.ach-txt { display: flex; flex-direction: column; line-height: 1.25; }
+.ach-txt b { font-size: 10px; letter-spacing: 0.6px; text-transform: uppercase; color: var(--brass); }
+.ach-txt span { font-family: var(--serif); font-size: 14px; font-weight: 600; color: var(--ink); }
+
+@media (max-width: 640px) {
+  .herostats { gap: 10px; margin: 18px 0 2px; }
+  .hs-rank { flex-basis: 100%; min-width: 0; padding: 12px 14px; }
+  .hs-aside { width: 100%; gap: 10px; }
+  .hs-goal { flex: 1; min-width: 0; padding: 9px 10px; }
+  .hs-streak { flex: 0 0 auto; }
+  .skills { padding: 20px 0 40px; }
+  .skills-head h2 { font-size: 23px; }
+  .badges { grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* Phones: span the bottom edge, above the composer/safe area. */
+  .ach-toasts {
+    left: max(14px, env(safe-area-inset-left)); right: max(14px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom)); align-items: stretch; max-width: none;
+  }
+  .ach-toast { justify-content: center; }
+  .ach-txt span { font-size: 13px; }
+}
+@media (max-width: 360px) {
+  .badges { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Guided first-negotiation onboarding (coach-marks). A dimmed
+   backdrop with a spotlight "hole" over the live element that
+   matters right now, plus a small tooltip anchored to it (or a
+   centered welcome card). Theme-aware; reduced-motion is handled
+   by the global rule at the end of this file.
+   ============================================================ */
+.onb-anchor { display: block; }         /* transparent measurement wrapper — no layout impact */
+/* ...but an author `display` beats the UA stylesheet's rule for [hidden], so the
+   composer stayed on screen under the closing outcome strip without this. */
+.onb-anchor[hidden] { display: none; }
+
+.onb { position: fixed; inset: 0; z-index: 60; }
+
+/* Welcome beat (no target): a soft full-screen scrim behind a centered card. */
+.onb-scrim { position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--ground) 60%, transparent); }
+
+/* Spotlight hole: a transparent box over the target whose vast box-shadow paints
+   the dim everywhere else, ringed in brass so the eye lands on the element. */
+.onb-hole {
+  position: absolute; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 0 0 9999px color-mix(in srgb, var(--ground) 60%, transparent),
+    0 0 0 2px var(--brass), 0 0 22px 4px color-mix(in srgb, var(--brass) 45%, transparent);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+  animation: onbfade 0.3s ease;
+}
+
+.onb-tip {
+  position: absolute; z-index: 1; max-width: min(320px, calc(100vw - 24px));
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line));
+  border-radius: 14px; padding: 16px 16px 12px; box-shadow: var(--shadow);
+  animation: onbtip 0.28s ease;
+}
+.onb-tip.centered { width: min(360px, calc(100vw - 32px)); animation: onbfade 0.28s ease; }
+@keyframes onbtip { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes onbfade { from { opacity: 0; } to { opacity: 1; } }
+
+.onb-arrow {
+  position: absolute; width: 12px; height: 12px; left: 50%; margin-left: -6px; transform: rotate(45deg);
+  background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line));
+}
+.onb-tip.a-up .onb-arrow { top: -7px; border-right: none; border-bottom: none; }
+.onb-tip.a-down .onb-arrow { bottom: -7px; border-left: none; border-top: none; }
+
+.onb-title { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
+.onb-body { font-size: 13.5px; line-height: 1.52; color: var(--ink-dim); }
+
+.onb-action {
+  display: block; width: 100%; margin-top: 13px; padding: 11px 12px; border-radius: 10px;
+  background: var(--brass); color: #fff; font-weight: 700; font-size: 13.5px; text-align: center; transition: filter 0.15s;
+}
+:root[data-theme="dark"] .onb-action { color: #1a1509; }
+.onb-action:hover { filter: brightness(1.06); }
+
+.onb-foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.onb-dots { display: inline-flex; gap: 5px; }
+.onb-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-2); }
+.onb-dots i.on { background: var(--brass); }
+.onb-btns { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.onb-skip { font-size: 12.5px; color: var(--ink-faint); padding: 7px 10px; border-radius: 8px; transition: 0.15s; }
+.onb-skip:hover { color: var(--ink-dim); background: var(--panel-2); }
+.onb-next {
+  font-size: 13px; font-weight: 700; color: var(--brass); padding: 8px 12px; border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--brass) 40%, var(--line)); transition: 0.15s;
+}
+.onb-next:hover { background: color-mix(in srgb, var(--brass) 10%, var(--panel)); }
+
+@media (max-width: 640px) {
+  .onb-tip { padding: 15px 15px 12px; }
+  .onb-action { min-height: 46px; }
+  .onb-skip, .onb-next { min-height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+  /* JS count-ups/toasts already short-circuit via matchMedia; this covers the rest. */
+  html { scroll-behavior: auto !important; }
+}
+
+/* ---------- Accessibility ---------- */
+/* Present to assistive tech, visually hidden (screen-reader-only). */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+/* Visible keyboard focus on every interactive control. :focus-visible keeps mouse
+   clicks quiet; placed last so it wins specificity ties against earlier
+   `outline: none` rules (textarea, .cust-ta, .wi-input). */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.cust-ta:focus-visible,
+.wi-input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+/* Route-change focus lands on a screen heading so SR/keyboard users start at the
+   top of the new screen; suppress the visual ring there (it's an announcement
+   target, not an operable control). */
+[data-screen-heading] { scroll-margin-top: 12px; }
+[data-screen-heading]:focus { outline: none; }
+
+/* ============================================================
+   Resilience seams — composer length note, mid-game reconnect
+   banner + lost-connection panel, custom-generation failure card.
+   Calm and on-brand: no scary modals, always an obvious next step.
+   ============================================================ */
+
+/* Gentle "N characters left" note as the composer nears its cap. */
+.compose-note {
+  margin-top: 6px; font-size: 12px; color: var(--ink-faint); text-align: right;
+}
+
+/* Non-blocking reconnect banner: a quiet brass pill pinned near the top while a
+   dropped socket is being retried. The game stays visible + readable beneath it. */
+.conn-banner {
+  position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top));
+  transform: translateX(-50%); z-index: 70;
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  color: var(--brass); background: var(--panel);
+  border: 1px solid color-mix(in srgb, var(--brass) 42%, var(--line));
+  box-shadow: var(--shadow); max-width: min(92vw, 380px);
+}
+.conn-spin {
+  width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto;
+  border: 2px solid color-mix(in srgb, var(--brass) 30%, transparent);
+  border-top-color: var(--brass); animation: connspin 0.7s linear infinite;
+}
+@keyframes connspin { to { transform: rotate(360deg); } }
+
+/* Retries exhausted: a small, calm card (not a full-screen scrim) with a clear
+   restart / home choice. Pinned top-center so the game stays visible behind it. */
+.conn-lost {
+  position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top));
+  transform: translateX(-50%); z-index: 71;
+  width: min(94vw, 460px);
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 18px; border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid color-mix(in srgb, var(--tension) 34%, var(--line));
+  box-shadow: var(--shadow);
+}
+.conn-lost-body { display: flex; flex-direction: column; gap: 4px; }
+.conn-lost-body b { font-family: var(--serif); font-size: 15px; color: var(--ink); }
+.conn-lost-body span { font-size: 13.5px; color: var(--ink-dim); line-height: 1.45; }
+.conn-lost-actions { display: flex; gap: 10px; }
+.conn-lost-actions .primary { flex: 1; padding: 11px; font-size: 14px; }
+.conn-lost-actions .ghost, .genfail-actions .ghost {
+  flex: 0 0 auto; padding: 11px 16px; border-radius: 11px; font-size: 14px;
+  background: transparent; border: 1px solid var(--line-2); color: var(--ink-dim);
+  transition: 0.15s;
+}
+.conn-lost-actions .ghost:hover, .genfail-actions .ghost:hover {
+  border-color: var(--brass); color: var(--ink);
+}
+
+/* Custom-generation failure card — reuses the .gen lamp card, swaps the lamp for
+   a calm warning and stacks retry + "pick a ready-made scenario". */
+.genfail-mark { font-size: 40px; }
+.genfail-msg {
+  margin: 14px auto 0; max-width: 46ch; font-size: 14.5px; color: var(--ink);
+  background: color-mix(in srgb, var(--tension) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tension) 26%, transparent);
+  border-radius: 10px; padding: 10px 14px; line-height: 1.45;
+}
+.genfail-actions {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 22px;
+}
+.genfail-actions .primary { flex: 0 0 auto; min-width: 200px; padding: 12px 20px; }
+
+@media (max-width: 480px) {
+  .conn-lost-actions { flex-direction: column; }
+  .conn-lost-actions .ghost { width: 100%; }
+  .genfail-actions .primary, .genfail-actions .ghost { width: 100%; }
+}
+
+/* ---------- Semantic-judge badge (the #1 differentiator, made visible) ----------
+   Rides on the per-turn coach line ONLY when the live judge scored the move. */
+.judge-badge {
+  display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
+  margin-left: 7px; padding: 1px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap;
+  color: var(--info); cursor: help;
+  background: color-mix(in srgb, var(--info) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--info) 34%, var(--line));
+}
+
+/* ---------- Turn-1 suggested-reply chip ----------
+   One inviting opener above the composer; pre-fills (never sends), then yields. */
+.suggest { margin: 0 0 8px; }
+.suggest-chip {
+  display: inline-flex; align-items: center; max-width: 100%;
+  padding: 8px 13px; border-radius: 999px; text-align: left; line-height: 1.35;
+  font-size: 12.5px; font-weight: 600; color: var(--brass);
+  background: color-mix(in srgb, var(--brass) 9%, var(--panel));
+  border: 1px dashed color-mix(in srgb, var(--brass) 45%, var(--line-2));
+  transition: 0.15s; animation: pop 0.3s ease;
+}
+.suggest-chip:hover {
+  color: var(--ink); border-style: solid; border-color: var(--brass);
+  background: color-mix(in srgb, var(--brass) 14%, var(--panel));
+}
+
+/* ---------- Exam-mode name field (pre-exam) ---------- */
+.exam-name {
+  display: flex; flex-direction: column; gap: 7px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--brass); border-radius: var(--r);
+  padding: 13px 15px; margin-bottom: 18px;
+}
+.exam-name label { font-size: 12.5px; font-weight: 700; color: var(--brass); }
+.exam-name input {
+  width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 9px;
+  border: 1px solid var(--line-2); background: var(--ground); color: var(--ink);
+  font-family: var(--serif); font-size: 15px;
+}
+.exam-name input:focus { outline: none; border-color: var(--brass); box-shadow: var(--shadow); }
+
+/* ---------- Named printable certificate (passing exam) ---------- */
+.cert-award {
+  margin-top: 12px; padding-top: 12px; display: flex; flex-direction: column; gap: 4px;
+  border-top: 1px dashed color-mix(in srgb, var(--brass) 40%, var(--line));
+}
+.cert-award-line { display: flex; align-items: baseline; gap: 8px; }
+.cert-award-lab {
+  font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-faint); min-width: 62px;
+}
+.cert-name { font-family: var(--serif); font-size: 21px; color: var(--ink); line-height: 1.15; }
+.cert-date { font-family: var(--serif); font-size: 14px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.cert-certifies {
+  margin: 0 0 20px; font-family: var(--serif); font-style: italic;
+  font-size: 13.5px; color: var(--ink-dim); line-height: 1.5;
+  padding-left: 14px; border-left: 2.5px solid var(--brass);
+}
+.cert-print {
+  align-self: flex-start; margin-top: 14px; padding: 9px 16px; border-radius: 10px;
+  font-size: 13px; font-weight: 700; color: #fff; background: var(--brass);
+  transition: 0.15s;
+}
+:root[data-theme="dark"] .cert-print { color: #1a1509; }
+.cert-print:hover { filter: brightness(1.08); }
+
+/* ---------- Hoisted what-if teaser (top of the debrief) ---------- */
+.wi-teaser {
+  font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 800;
+  color: var(--brass); margin-bottom: 8px;
+}
+
+/* ---------- Judge-cam chips (item 1) ----------
+   Ride the coach line ONLY when the live judge scored the turn — the jury watches
+   the AI reward real method (lit chips) and catch keyword-gaming (struck chip). */
+.judgecam { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: 6px; vertical-align: middle; }
+.jc-chip {
+  font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  line-height: 1.5;
+}
+.jc-chip.on {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 12%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--info) 36%, var(--line));
+}
+.jc-chip.reject {
+  color: var(--ink-faint); text-decoration: line-through;
+  background: var(--panel-2); border: 1px solid var(--line-2);
+}
+
+/* ---------- Rubric scorecard chips (item 2) ----------
+   A compact, always-offline read of the latest turn under the meters — pure
+   presentation of the deterministic engine's analysis/deltas/flags. */
+.scorecard { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.sc-chip {
+  font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  white-space: nowrap; border: 1px solid var(--line-2); font-variant-numeric: tabular-nums;
+}
+.sc-chip.good {
+  color: var(--trust);
+  background: color-mix(in srgb, var(--trust) 12%, var(--panel));
+  border-color: color-mix(in srgb, var(--trust) 38%, var(--line));
+}
+.sc-chip.warn {
+  color: var(--tension);
+  background: color-mix(in srgb, var(--tension) 12%, var(--panel));
+  border-color: color-mix(in srgb, var(--tension) 40%, var(--line));
+}
+
+/* ---------- Technique-floor note (item 4) ----------
+   One honest line when a great price is capped by thin method (price ≠ grade). */
+.tfloor {
+  display: flex; gap: 9px; align-items: flex-start;
+  margin: 0 0 20px; padding: 12px 15px; border-radius: var(--r);
+  font-size: 13px; line-height: 1.5; color: var(--ink-dim);
+  background: color-mix(in srgb, var(--brass) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--brass) 30%, var(--line));
+  border-left: 3px solid var(--brass);
+}
+.tfloor-i { color: var(--brass); font-size: 15px; line-height: 1.4; flex: none; }
+
+/* ---------- "Что сказал бы мастер" (item 3) ----------
+   The screenshot moment: the player's weakest line beside a principled master
+   reformulation. Selection is an engine fact; the master line is a template. */
+.master {
+  background: var(--panel); border: 1px solid var(--line);
+  border-top: 3px solid var(--brass); border-radius: var(--r);
+  padding: 20px; margin-bottom: 20px;
+}
+.master h3 { margin: 0 0 15px; font-size: 17px; color: var(--brass); }
+.ms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.ms-cell { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ms-lab {
+  font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+  font-weight: 700; color: var(--ink-faint);
+}
+.ms-cell.mstr .ms-lab { color: var(--brass); }
+.ms-q {
+  margin: 0; font-family: var(--serif); font-style: italic; font-size: 15px;
+  line-height: 1.45; color: var(--ink-dim); padding-left: 12px;
+  border-left: 2.5px solid var(--line-2);
+}
+.ms-line {
+  color: var(--ink); border-left-color: var(--brass);
+  background: color-mix(in srgb, var(--brass) 8%, transparent);
+  padding: 9px 12px; border-radius: 0 8px 8px 0;
+}
+.ms-why { margin-top: 14px; font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+.ms-why b { color: var(--brass); font-weight: 700; }
+
+/* ---------- Opening beat: the table-setting card ----------
+   Fills the empty log at turn 0. Deliberately NOT a chat bubble: it is the game
+   addressing the player, not a character speaking, so it takes the panel's own
+   surface and a brass edge rather than the opponent's bubble styling. */
+.opening {
+  align-self: stretch; background: var(--panel-2);
+  border: 1px solid var(--line); border-left: 3px solid var(--brass);
+  border-radius: var(--r); padding: 16px 18px; margin-bottom: 4px;
+}
+.opening h3 {
+  margin: 0 0 9px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--brass);
+}
+.op-scene { margin: 0; font-family: var(--serif); font-size: 16px; line-height: 1.5; color: var(--ink); }
+.op-hint { margin: 9px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+.op-lines { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
+.op-line {
+  display: flex; align-items: baseline; gap: 10px; width: 100%; text-align: left;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: 0.14s;
+  background: var(--panel); border: 1px solid var(--line-2); color: var(--ink-dim);
+}
+.op-line:hover { border-color: var(--brass); color: var(--ink); }
+.op-tag {
+  flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--brass);
+  white-space: nowrap;
+}
+.op-text { font-size: 13.5px; line-height: 1.45; min-width: 0; }
+
+@media (max-width: 640px) {
+  .opening { padding: 13px 14px; }
+  .op-scene { font-size: 15px; }
+  .op-line { flex-direction: column; gap: 4px; }
+}
+
+/* ---------- Closing beat: the outcome strip ----------
+   Sits where the composer was the moment the table closes. It is the only place
+   in the game that marks an ending, so it gets a full-width band and the largest
+   type in the chat card rather than another quiet chip. */
+.outcome {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; padding: 16px 18px; border-top: 1px solid var(--line);
+  animation: pop 0.4s ease both;
+}
+.outcome.agreement { background: color-mix(in srgb, var(--trust) 10%, var(--panel)); }
+.outcome.breakdown { background: color-mix(in srgb, var(--tension) 9%, var(--panel)); }
+.oc-stamp { display: flex; align-items: baseline; gap: 11px; flex-wrap: wrap; min-width: 0; }
+.oc-mark { font-size: 26px; line-height: 1; }
+.oc-title { font-family: var(--serif); font-size: 20px; font-weight: 700; }
+.outcome.agreement .oc-title { color: var(--trust); }
+.outcome.breakdown .oc-title { color: var(--tension); }
+.oc-price {
+  font-family: var(--serif); font-size: 20px; font-weight: 700;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.oc-go { padding: 11px 20px; border-radius: 11px; font-size: 14px; font-weight: 600; }
+.oc-go:disabled { opacity: 0.55; cursor: default; }
+
+@media (max-width: 640px) {
+  .outcome { padding: 13px 14px; gap: 11px; }
+  .oc-title, .oc-price { font-size: 17px; }
+  .oc-go { width: 100%; }
+}
+
+/* ---------- Hidden-interest reveal (deterministic, offline too) ----------
+   The one card on the debrief that lifts a curtain instead of grading. Missed
+   interests are the lesson, so they are the LOUD state (brass, full contrast);
+   found ones recede into a calm green tick. Inverting that would reward the
+   player for what they already know and hide what they need to learn. */
+.reveal {
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--brass); border-radius: var(--r);
+  padding: 18px 20px; margin-bottom: 20px;
+}
+.reveal h3 { margin: 0 0 14px; font-size: 16px; color: var(--brass); }
+.reveal ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.reveal li {
+  display: grid; grid-template-columns: 22px 1fr auto; align-items: baseline;
+  gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--ground);
+}
+.rv-mark { font-weight: 700; font-size: 14px; text-align: center; }
+.rv-found .rv-mark { color: var(--trust); }
+.rv-missed .rv-mark { color: var(--brass); }
+.rv-text { font-size: 14px; line-height: 1.45; min-width: 0; }
+.rv-found .rv-text { color: var(--ink-dim); }
+.rv-missed .rv-text { color: var(--ink); font-weight: 500; }
+.rv-badge {
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  font-weight: 700; white-space: nowrap;
+}
+.rv-found .rv-badge { color: var(--trust); }
+.rv-missed .rv-badge { color: var(--brass); }
+.rv-note { margin: 13px 0 0; font-size: 13px; line-height: 1.5; }
+.rv-note.good { color: var(--trust); }
+.rv-note.bad { color: var(--tension); }
+
+@media (max-width: 640px) {
+  .reveal li { grid-template-columns: 20px 1fr; }
+  .rv-badge { grid-column: 2; }
+}
+
+/* ---------- Mentor's closing word (live AI only) ----------
+   Deliberately warmer than the surrounding scorecards: this is the one block on
+   the debrief that speaks TO the player rather than measuring them, so it leads
+   with a tinted panel instead of the neutral --panel every other card uses.
+   Never rendered offline — the engine's tips carry the debrief on their own. */
+.mentor {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--brass) 9%, var(--panel)) 0%, var(--panel) 62%);
+  border: 1px solid color-mix(in srgb, var(--brass) 32%, var(--line));
+  border-radius: var(--r); padding: 20px; margin-bottom: 20px;
+}
+.mentor h3 { margin: 0 0 12px; font-size: 17px; color: var(--brass); }
+.mn-verdict {
+  margin: 0; font-family: var(--serif); font-size: 16px; line-height: 1.55;
+  color: var(--ink);
+}
+.mn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+.mn-cell {
+  min-width: 0; padding: 12px 14px; border-radius: 10px;
+  background: var(--ground); border-left: 3px solid var(--line-2);
+}
+.mn-cell.good { border-left-color: var(--trust); }
+.mn-cell.grow { border-left-color: var(--info); }
+.mn-lab {
+  display: block; margin-bottom: 6px; font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; font-weight: 700; color: var(--ink-faint);
+}
+.mn-cell.good .mn-lab { color: var(--trust); }
+.mn-cell.grow .mn-lab { color: var(--info); }
+.mn-cell p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-dim); }
+
+@media (max-width: 640px) {
+  .mn-grid { grid-template-columns: 1fr; gap: 10px; }
+  .mn-verdict { font-size: 15px; }
+}
+
+/* ---------- What-if mobile collapse (item 6) ----------
+   Desktop: the toggle is hidden and the card is always open above the bars.
+   Mobile (≤640px): the card starts collapsed behind a teaser + CTA so the score
+   bars stay directly under the grade ring; tapping expands it in place. */
+.whatif-mtoggle { display: none; }
+
+@media (max-width: 640px) {
+  .whatif-mtoggle {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%; box-sizing: border-box; padding: 14px 16px; margin-bottom: 16px;
+    border-radius: var(--r); text-align: left;
+    background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--brass);
+  }
+  .whatif-mtoggle .wi-teaser { margin: 0; }
+  .wmt-cta { font-size: 12px; font-weight: 700; color: var(--brass); white-space: nowrap; flex: none; }
+  .whatif-wrap.open .whatif-mtoggle { display: none; }
+  .whatif-wrap:not(.open) .whatif { display: none; }
+  .ms-grid { grid-template-columns: 1fr; gap: 12px; }
+  .master { padding: 16px; margin-bottom: 16px; }
+}
+
+/* ---------- Print: isolate the certificate ----------
+   Force a light palette, strip app chrome and interactive/long panels, and box
+   the certificate in a brass border so it reads as a credible printed award. */
+@media print {
+  :root {
+    --ground: #fff; --panel: #fff; --panel-2: #f4efe4;
+    --ink: #241e16; --ink-dim: #5d5344; --ink-faint: #7d7359;
+    --line: #d8cdb8; --line-2: #cfc4ad;
+    --brass: #9c6c22; --brass-soft: #b07c2e;
+    --shadow: none;
+  }
+  .top, .foot, .dacts, .cert-print,
+  .whatif, .whatif-mtoggle, .tpoints, .coach, .dbterms, .master, .tfloor,
+  .pb, .xpaward,
+  .conn-banner, .conn-lost, .toast,
+  .ach-toasts, .milestone-scrim { display: none !important; }
+  body { background: #fff !important; }
+  .screen { padding: 0 !important; }
+  .wrap { max-width: 100% !important; padding: 0 !important; }
+  /* `:not(.cert)` is here only to out-specify the screen frame added above —
+     print gets the brass certificate border, never the on-screen card. */
+  .debrief, .debrief.cert, .debrief:not(.cert) {
+    max-width: 100%; margin: 0; padding: 40px 44px;
+    border: 2.5px solid var(--brass); border-radius: 6px; background: #fff;
+    box-shadow: none;
+  }
+}
+
+/* ---------- SKIN "game": shape rules ----------
+   Everything above is tokens; these are the handful of places where the look
+   needs different GEOMETRY, not different colour. Kept together and scoped to
+   the skin so the default one is provably untouched. */
+
+/* Borders carry the structure instead of shadows — 2px, flat, no blur. */
+:root[data-skin="game"] .card,
+:root[data-skin="game"] .panel,
+:root[data-skin="game"] .chat,
+:root[data-skin="game"] .opp,
+:root[data-skin="game"] .offers,
+:root[data-skin="game"] .dealtracker,
+:root[data-skin="game"] .meters,
+:root[data-skin="game"] .camp,
+:root[data-skin="game"] .reveal,
+:root[data-skin="game"] .mentor,
+:root[data-skin="game"] .tpoints,
+:root[data-skin="game"] .coach,
+:root[data-skin="game"] .master,
+:root[data-skin="game"] .opening,
+:root[data-skin="game"] .debrief:not(.cert) { border-width: 2px; box-shadow: none; }
+
+/* The 3D button: a solid darker edge that the press visibly compresses. This
+   single detail does more for the "it's a game" read than any colour change. */
+:root[data-skin="game"] .primary,
+:root[data-skin="game"] .send,
+:root[data-skin="game"] .oc-go,
+:root[data-skin="game"] .hintline-use,
+:root[data-skin="game"] .milestone-go {
+  border-bottom: 4px solid var(--edge);
+  border-radius: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+  transition: transform 0.06s, filter 0.15s;
+}
+:root[data-skin="game"] .primary:active,
+:root[data-skin="game"] .oc-go:active,
+:root[data-skin="game"] .send:active,
+:root[data-skin="game"] .hintline-use:active,
+:root[data-skin="game"] .milestone-go:active {
+  transform: translateY(3px);
+  border-bottom-width: 1px;
+}
+/* Secondary buttons get the same physical edge in neutral grey, so the pair
+   reads as one system rather than one styled button beside a plain one. */
+:root[data-skin="game"] .quit,
+:root[data-skin="game"] .op-line,
+:root[data-skin="game"] .wi-preset {
+  border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 14px;
+  transition: transform 0.06s;
+}
+:root[data-skin="game"] .quit:active,
+:root[data-skin="game"] .op-line:active,
+:root[data-skin="game"] .wi-preset:active { transform: translateY(3px); border-bottom-width: 2px; }
+
+/* Chat bubbles: rounder, and the player's own line keeps white-on-green. */
+:root[data-skin="game"] .bub { border-radius: 18px; font-weight: 600; }
+:root[data-skin="game"] .msg.opp .bub { border-width: 2px; border-bottom-left-radius: 6px; }
+:root[data-skin="game"] .msg.me .bub { border-bottom-right-radius: 6px; }
+
+/* Meters become the thick rounded bars Duolingo uses for lesson progress. */
+:root[data-skin="game"] .track { height: 14px; border-radius: 999px; }
+:root[data-skin="game"] .sbt { height: 16px; border-radius: 999px; }
+:root[data-skin="game"] .fill,
+:root[data-skin="game"] .sbf { border-radius: 999px; }
+/* `.sb` and `.meters` are cards too, and the 2px rule above already caught
+   `.meters`; the score-bar panel needs it by its own name. */
+:root[data-skin="game"] .sb { border-width: 2px; box-shadow: none; }
+
+/* No serif anywhere — including the places that ask for it by name. */
+:root[data-skin="game"] .hero h1,
+:root[data-skin="game"] .ring .gl,
+:root[data-skin="game"] .op-scene,
+:root[data-skin="game"] .oc-title,
+:root[data-skin="game"] .mn-verdict,
+:root[data-skin="game"] .ms-q { font-family: var(--sans); font-weight: 800; font-style: normal; }
+
+/* Segmented controls read as chunky pills. */
+:root[data-skin="game"] .seg { border-radius: 999px; border-width: 2px; }
+:root[data-skin="game"] .seg button { font-weight: 800; }
+:root[data-skin="game"] .seg button.on { border-radius: 999px; }
+
+/* Scenario cards lift instead of casting — a shadowless system needs a
+   different hover cue than "add a shadow". */
+:root[data-skin="game"] .card:hover { transform: translateY(-4px); box-shadow: none; border-color: var(--brass-soft); }
+
+```
+
+### `frontend/src/lib/format.ts`
+
+```ts
+// format.ts — locale-aware presentation helpers (pure, unit-tested).
+//
+// Deal numbers must read natively per locale: RU wants a comma decimal and a
+// space thousands separator ("1 060", "85,93"), EN a dot ("1,060", "85.93").
+// The scenario `unit` string already carries its own spacing (" ₽", "k", "%",
+// " дн"), so we only localize the NUMBER and append the unit verbatim — never
+// inventing spacing the unit didn't ask for.
+import type { Lang } from "../types";
+
+const LOCALE: Record<Lang, string> = { ru: "ru-RU", en: "en-US" };
+
+// A bare number, localized. Up to 2 fraction digits, trailing zeros trimmed by
+// Intl, locale grouping + decimal separator.
+export function formatNumber(value: number, lang: Lang): string {
+  return new Intl.NumberFormat(LOCALE[lang], { maximumFractionDigits: 2 }).format(value);
+}
+
+// A deal number with its scenario unit suffix (e.g. 85.93 + " ₽" → "85,93 ₽" in
+// RU, "85.93 ₽" in EN). The unit owns its own leading space, so we don't add one.
+export function formatDeal(value: number, unit: string, lang: Lang): string {
+  return formatNumber(value, lang) + unit;
+}
+
+// ---------------------------------------------------------------------------
+// Teaching placeholder rotation. For a new player's first few turns the composer
+// placeholder nudges a concrete technique ("ask WHY", "cite market data", "offer
+// a trade") instead of the generic "your line…". After that it settles to `base`
+// so it stops nagging an experienced player. Pure: turn index in, string out.
+// ---------------------------------------------------------------------------
+export function teachingPlaceholder(turn: number, base: string, nudges: string[]): string {
+  if (turn < 0 || nudges.length === 0) return base;
+  return turn < nudges.length ? nudges[turn] : base;
+}
+
+```

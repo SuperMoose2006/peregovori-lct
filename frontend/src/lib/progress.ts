@@ -597,7 +597,7 @@ export interface Rank {
   name: { ru: string; en: string };
 }
 
-// Новичок → Переговорщик → Профи → Мастер → Гроссмейстер (ARCHITECTURE.md).
+// Новичок → Переговорщик → Профи → Мастер → Гроссмейстер (CLAUDE.md).
 export const RANKS: Rank[] = [
   { id: "novice", min: 0, name: { ru: "Новичок", en: "Novice" } },
   { id: "negotiator", min: 150, name: { ru: "Переговорщик", en: "Negotiator" } },

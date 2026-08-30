@@ -389,7 +389,7 @@ test("styles.growth.css не использует ни одного необъя
   assert.deepEqual(missing, [], `необъявленные токены: ${missing.join(", ")}`);
 
   // Текста поверх ЯРКОГО зелёного здесь быть не может: `--brass-soft` и `--trust`
-  // заливают полосы, где ничего не написано (ARCHITECTURE.md, раздел про контраст).
+  // заливают полосы, где ничего не написано (CLAUDE.md, раздел про контраст).
   assert.equal(/color:\s*var\(--(brass-soft|trust)\)/.test(own), false,
                "яркий зелёный ушёл в цвет текста");
 

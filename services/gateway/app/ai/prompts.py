@@ -5,7 +5,7 @@ game-state facts it must NOT contradict (current offer, mood, deal status) so th
 flavor text can never drift from what the deterministic engine already decided.
 The model only rephrases in character; it never invents numbers or outcomes.
 
-`facts` schema (see ARCHITECTURE.md / negotiation-platform-design §5):
+`facts` schema (see CLAUDE.md / negotiation-platform-design §5):
     lang         "ru" | "en"
     persona_name str            counterpart's name
     persona_desc str            one-line persona description

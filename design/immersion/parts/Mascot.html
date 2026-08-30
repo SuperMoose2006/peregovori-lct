@@ -1,0 +1,162 @@
+  /* Маскоты: ворон Карл (тренер) и слон Тихон (память).
+     Главное решение — Карл НЕ новая колонка и не всплывашка. Он живёт внизу
+     рельса, прилипнув к низу экрана, и говорит в пузырь над собой. Рельс уже
+     есть, места под него не отнимается ни у стола, ни у стенограммы. */
+  body{background:#eef0ef}
+  .doc{padding:24px 26px;display:flex;flex-direction:column;gap:15px}
+  .h{font-size:21px;font-weight:900;letter-spacing:-.4px;color:#26302c;margin:0}
+  .lede{font-size:13.5px;line-height:1.6;color:#46524d;margin:0;max-width:1000px}
+  .lede b{color:#26302c}
+
+  .row{display:grid;grid-template-columns:300px minmax(0,1fr);gap:18px;align-items:start}
+
+  /* — рельс с Карлом внизу — */
+  .rail{background:var(--ground);border:2px solid var(--line2);border-radius:var(--r);
+        padding:13px;display:flex;flex-direction:column;gap:11px;min-height:430px}
+  .rc{background:var(--panel);border:2px solid var(--line);border-radius:13px;padding:12px 13px}
+  .rc h5{margin:0 0 8px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+         color:var(--faint);font-weight:800}
+  .rc .big{font-size:19px;font-weight:900;letter-spacing:-.4px}
+  .rc .sm{font-size:11.5px;color:var(--dim)}
+  .spacer{flex:1}
+
+  .coach{display:flex;flex-direction:column;gap:8px}
+  .bub{position:relative;background:var(--panel);border:2px solid var(--line);
+       border-radius:14px;padding:11px 13px;font-size:12.5px;line-height:1.5}
+  .bub b{font-weight:800}
+  .bub::after{content:"";position:absolute;left:26px;bottom:-9px;width:13px;height:13px;
+              background:var(--panel);border-right:2px solid var(--line);
+              border-bottom:2px solid var(--line);transform:rotate(45deg)}
+  .bub.lit{border-color:color-mix(in srgb,var(--soft) 55%,transparent);
+           background:color-mix(in srgb,var(--soft) 8%,var(--panel))}
+  .bub.lit::after{background:color-mix(in srgb,var(--soft) 8%,var(--panel));
+                  border-color:color-mix(in srgb,var(--soft) 55%,transparent)}
+  .karlrow{display:flex;align-items:flex-end;gap:9px}
+  .karlrow img{width:84px;height:84px;object-fit:contain;flex:0 0 auto}
+  .karlrow .nm{font-size:11.5px;font-weight:900;color:var(--dim);padding-bottom:9px}
+
+  /* — таблица состояний — */
+  .states{background:var(--panel);border:2px solid var(--line);border-radius:13px;padding:14px 16px}
+  .states h4{margin:0 0 11px;font-size:14.5px;font-weight:900;letter-spacing:-.1px}
+  .sg{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+  .sc{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
+  .sc img{width:62px;height:62px;object-fit:contain}
+  .sc .k{font-size:11px;font-weight:900}
+  .sc .w{font-size:10.5px;color:var(--dim);line-height:1.35}
+
+  .pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+  .box{background:var(--panel);border:2px solid var(--line);border-radius:13px;padding:14px 16px}
+  .box h4{margin:0 0 7px;font-size:14px;font-weight:900;letter-spacing:-.1px}
+  .box p{margin:0 0 7px;font-size:12.5px;line-height:1.55;color:var(--dim)}
+  .box p:last-child{margin:0}
+  .box p b{color:var(--ink)}
+  .box.stop{border-color:color-mix(in srgb,var(--tension) 40%,transparent);
+            background:color-mix(in srgb,var(--tension) 5%,var(--panel))}
+  .box.stop h4{color:var(--tension)}
+
+  /* — телефон и Тихон — */
+  .mob{display:flex;gap:10px;align-items:flex-start;background:var(--panel);
+       border:2px solid var(--line);border-radius:13px;padding:12px 13px}
+  .mob img{width:34px;height:34px;object-fit:contain;flex:0 0 auto}
+  .mob .t{font-size:12.5px;line-height:1.5}
+  .mob .t b{font-weight:800}
+
+  .tik{display:flex;gap:13px;align-items:center;background:var(--panel);
+       border:2px solid var(--line);border-radius:13px;padding:14px 16px}
+  .tik img{width:76px;height:76px;object-fit:contain;flex:0 0 auto}
+  .tik .bd{min-width:0}
+  .tik .bd h4{margin:0 0 4px;font-size:14px;font-weight:900}
+  .tik .bd p{margin:0;font-size:12.5px;line-height:1.5;color:var(--dim)}
+  .tik .bd p b{color:var(--ink)}
+<!--SPLIT-->
+<div class="doc">
+  <h2 class="h">Маскоты: ворон Карл — тренер, слон Тихон — память</h2>
+  <p class="lede">
+    Ворон, а не сова: сова была бы мудрой и доброй, а нам нужен тот, кто <b>заметит,
+    что вы уступили после первого «нет»</b>. Умный, наблюдательный, чуть язвительный —
+    характер, который в переговорах уместен. Слон отвечает за другое: он единственный,
+    кто помнит ваши прошлые партии, и это ассоциация, которую не надо объяснять.
+  </p>
+
+  <div class="row">
+    <div class="rail">
+      <div class="rc"><h5>Их цена</h5><div class="big">69,15k</div><div class="sm">цель 64k</div></div>
+      <div class="rc"><h5>Раскрытые интересы</h5><div class="sm">2 из 3</div></div>
+      <div class="spacer"></div>
+      <div class="coach">
+        <div class="bub lit">Хороший размен. Но <b>добавьте конкретики</b> — назовите,
+          во сколько ей обойдётся ремонт.</div>
+        <div class="karlrow">
+          <img src="karl-point.png" alt="">
+          <span class="nm">Карл</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="states">
+        <h4>Состояние Карла — это событие партии, а не настроение</h4>
+        <div class="sg">
+          <div class="sc"><img src="karl-idle.png" alt=""><span class="k">наблюдает</span><span class="w">ход идёт, сказать нечего</span></div>
+          <div class="sc"><img src="karl-think.png" alt=""><span class="k">читает</span><span class="w">судья оценивает реплику</span></div>
+          <div class="sc"><img src="karl-cheer.png" alt=""><span class="k">одобряет</span><span class="w">приём сработал, шкалы вверх</span></div>
+          <div class="sc"><img src="karl-concern.png" alt=""><span class="k">насторожен</span><span class="w">напряжение выросло</span></div>
+          <div class="sc"><img src="karl-point.png" alt=""><span class="k">подсказывает</span><span class="w">нажали 💡</span></div>
+          <div class="sc"><img src="karl-celebrate.png" alt=""><span class="k">празднует</span><span class="w">сделка закрыта на A или B</span></div>
+        </div>
+      </div>
+
+      <div class="pair">
+        <div class="box">
+          <h4>Он ничего не добавляет — он даёт голос тому, что уже есть</h4>
+          <p>Строка тренера в ленте существует и сейчас. Карл её <b>не дублирует</b>:
+            текст тот же самый, просто теперь у него есть лицо и постоянное место.</p>
+          <p>И состояние он берёт из движка — <b>из реакции и дельт шкал</b>, а не из
+            собственных догадок. Одобряет, когда доверие выросло; настораживается,
+            когда выросло напряжение.</p>
+        </div>
+
+        <div class="box stop">
+          <h4>Чего Карл не делает</h4>
+          <p>Не прыгает, не машет и не издаёт звуков без причины. Не подсказывает,
+            пока не спросили. <b>Не оценивает вас</b> — только ход, который вы
+            только что сделали.</p>
+          <p>Маскот, который комментирует каждую секунду, превращается в помеху за
+            одну партию. Молчащий по умолчанию — за десять становится своим.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pair" style="margin-top:0">
+    <div>
+      <div class="box" style="margin-bottom:12px">
+        <h4>На телефоне рельса нет — Карл идёт в ленту</h4>
+        <p>Фигура в полный рост съела бы половину экрана. Поэтому он становится
+          <b>значком 34px рядом со своей репликой</b> — там же, где строка тренера сейчас.</p>
+      </div>
+      <div class="mob">
+        <img src="karl-idle.png" alt="">
+        <span class="t"><b>Карл:</b> Отличный SPIN-вопрос — вы попали в ценность
+          собственницы. Теперь не забудьте про цифры.</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="box" style="margin-bottom:12px">
+        <h4>Тихон появляется там, где нужна память</h4>
+        <p>В разборе и в прогрессе. Его работа — <b>связать эту партию с прошлыми</b>:
+          повторяющаяся ошибка видна только через несколько партий, и заметить её
+          может только тот, кто их помнит.</p>
+      </div>
+      <div class="tik">
+        <img src="tikhon-remember.png" alt="">
+        <div class="bd">
+          <h4>Тихон помнит</h4>
+          <p>Вы <b>третий раз подряд</b> двигаете цену до того, как оппонент
+            возразил. В прошлый раз это стоило вам 4 тысячи.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,105 @@
+  /* Где садятся негрейдовые блоки — и одна карточка, у которой плашки быть
+     не должно. Это не оформление: по плашке читается граница «что оценено /
+     что просто замечено», и лишняя плашка врёт ровно так же, как её нехватка. */
+  body{background:#eef0ef}
+  .doc{padding:26px 28px;display:flex;flex-direction:column;gap:16px}
+  .h{font-size:22px;font-weight:900;letter-spacing:-.4px;color:#26302c;margin:0}
+  .lede{font-size:14px;line-height:1.6;color:#46524d;margin:0;max-width:920px}
+  .lede b{color:#26302c}
+  .zone{border:2px dashed var(--line2);border-radius:var(--r);padding:13px;
+        display:flex;flex-direction:column;gap:10px;background:rgba(255,255,255,.5)}
+  .zone > .zh{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+              font-weight:800;color:var(--faint)}
+  .zone.graded{border-color:color-mix(in srgb,var(--brass) 45%,transparent)}
+  .zone.graded > .zh{color:var(--brass)}
+  .card2{background:var(--panel);border:2px solid var(--line);border-radius:13px;padding:13px 15px;
+         display:flex;align-items:flex-start;gap:12px}
+  .card2 .ic{font-size:19px;line-height:1.2;flex:0 0 auto}
+  .card2 .bd{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px}
+  .card2 h4{margin:0;font-size:14.5px;font-weight:900;letter-spacing:-.1px}
+  .card2 p{margin:0;font-size:12.5px;line-height:1.5;color:var(--dim)}
+  .card2.hi{border-color:color-mix(in srgb,var(--brass) 50%,transparent);
+            background:color-mix(in srgb,var(--brass) 6%,var(--panel))}
+  .warn{display:flex;gap:9px;font-size:12.5px;line-height:1.5;color:#46524d;
+        border-left:3px solid var(--tension);padding-left:11px}
+  .warn b{color:#26302c}
+  .ring{display:flex;align-items:center;gap:14px}
+  .ring .o{width:56px;height:56px;border-radius:999px;border:6px solid var(--soft);
+           display:grid;place-items:center;font-weight:900;font-size:19px;flex:0 0 auto}
+  .ring .sc{display:flex;gap:16px;font-size:12.5px;color:var(--dim)}
+  .ring .sc b{display:block;font-size:15px;color:var(--ink);font-weight:900}
+<!--SPLIT-->
+<div class="doc">
+  <h2 class="h">Разбор: куда садятся сигналы погружения</h2>
+  <p class="lede">
+    Раскладка уже задана в <b>docs/modalities-ux.md §5</b>: слои дают по одной карточке,
+    и все они идут <b>ниже шкал оценки</b>, в зоне объяснения. Полное погружение добавляет
+    к ним голос. Проверять тут надо не расположение, а <b>плашки</b>.
+  </p>
+
+  <div class="zone graded">
+    <div class="zh">Зона оценки · сюда слои не лезут</div>
+    <div class="card2">
+      <span class="ic">🏅</span>
+      <div class="bd">
+        <div class="ring">
+          <span class="o">B</span>
+          <span class="sc">
+            <span>экономика<b>71</b></span>
+            <span>отношения<b>84</b></span>
+            <span>техника<b>62</b></span>
+          </span>
+        </div>
+        <p>0.4 · экономика + 0.25 · отношения + 0.35 · техника. Считает движок, и только он.</p>
+      </div>
+    </div>
+    <div class="card2 hi">
+      <span class="ic">🔎</span>
+      <div class="bd">
+        <h4>Скрытые интересы — 2 из 3</h4>
+        <p>Здесь плашки «наблюдение» <b>нет и быть не должно</b>: <code>interests_found</code>
+           входит в оценку техники напрямую. Поставить её сюда «для единообразия» —
+           значит соврать в обратную сторону.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="zone">
+    <div class="zh">Зона объяснения · всё помечено одинаково</div>
+
+    <div class="card2">
+      <span class="ic">🎤</span>
+      <div class="bd">
+        <h4>Как вы звучали <span class="obs">наблюдение · не влияет на оценку</span></h4>
+        <p>Перебили дважды — оба раза по делу, на цифре. Самая длинная пауза
+           перед ответом про депозит: 6 секунд.</p>
+      </div>
+    </div>
+
+    <div class="card2">
+      <span class="ic">📷</span>
+      <div class="bd">
+        <h4>Присутствие <span class="obs">наблюдение · не влияет на оценку</span></h4>
+        <p>Отошли от камеры на ходу 4, вернулись через 40 секунд. Дважды смотрели
+           в бумаги, называя цифру.</p>
+      </div>
+    </div>
+
+    <div class="card2">
+      <span class="ic">🎭</span>
+      <div class="bd">
+        <h4>Как вы её читали <span class="obs">наблюдение · не влияет на оценку</span></h4>
+        <p>Прочитано 2 из 3. На ходу 5 приняли «закрылась» за «под давлением» —
+           напряжение выросло на 12, а не упало.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="warn">
+    <b>Чего здесь нет намеренно.</b>
+    Ни «уверенности», ни «убедительности голоса», ни любых оценок личности по кадру и тембру.
+    Камера отвечает на вопрос «кто в кадре и куда смотрит», а не «какой вы переговорщик» —
+    иначе грейд с камерой перестанет быть сравнимым с грейдом без неё, и сертификат
+    экзамена не будет значить ничего.
+  </div>
+</div>

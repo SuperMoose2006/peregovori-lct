@@ -12,14 +12,14 @@
 
 * ссылки на документы и снимки существуют;
 * объём курса, набор слоёв, число столов и кампаний совпадают с банком и движком;
-* деревья пакетов в README и ARCHITECTURE.md называют все пакеты;
+* деревья пакетов в README и CLAUDE.md называют все пакеты;
 * ловушка `npx tsc --noEmit` описана, пока она есть, и не описана, когда исчезнет;
 * КОМАНДА В ДОКУМЕНТЕ ЗАПУСКАЕТСЯ — `make preflight --live` четыре месяца стоял
   в правилах и выходил с нулём, ничего не делая;
 * список событий протокола совпадает с закрытыми кортежами `realtime/events.py`;
 * ни один документ не обещает сокета, которого гейтвей не открывает;
 * словарь реакций движка назван целиком (их одиннадцать, а доклад писал «девять»);
-* оба списка инвариантов — в ARCHITECTURE.md и в докладе — это ОДИН список;
+* оба списка инвариантов — в CLAUDE.md и в докладе — это ОДИН список;
 * режимы, где семантического судьи нет, названы списком, а не литерой;
 * число миллисекунд подтверждено либо замером, либо константой конвейера;
 * МОДЕЛЬ В ТАБЛИЦЕ — та, что подставит `providers/routing.py` (судью сняли
@@ -67,7 +67,7 @@ def _prose() -> list[str]:
     попадал бы под них ровно до первого забытого имени — а забывают внести
     именно тот файл, который только что написали и ещё ни разу не сверяли.
     """
-    return ["README.md", "ARCHITECTURE.md",
+    return ["README.md", "CLAUDE.md",
             *(f"docs/{p.name}" for p in sorted((ROOT / "docs").glob("*.md")))]
 
 
@@ -109,9 +109,9 @@ def test_the_layer_invariant_has_a_written_source():
     text = doc.read_text(encoding="utf-8")
     assert "score_session" in text
     assert "фиксирует слои выключенными" in text
-    #: То же правило и в правилах репозитория: читатель ARCHITECTURE.md не обязан
+    #: То же правило и в правилах репозитория: читатель CLAUDE.md не обязан
     #: открывать docs/, чтобы узнать, что слоёв на зачёте не бывает.
-    assert "фиксирует слои выключенными" in (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "фиксирует слои выключенными" in (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
 
 
 # --------------------------------------------------------------- числа курса
@@ -184,18 +184,18 @@ def test_documented_table_and_campaign_counts_are_real():
 
 
 def test_maps_of_the_repo_list_every_backend_package():
-    """Оба дерева — в README и в ARCHITECTURE.md — обязаны называть все пакеты.
+    """Оба дерева — в README и в CLAUDE.md — обязаны называть все пакеты.
 
     `course/` не был перечислен ни в одном ни дня с момента появления — а это
     девять блоков, банк упражнений и половина продукта. Дерево, которому можно
     не верить, хуже отсутствующего: читатель считает его картой и не идёт
-    смотреть сам. ARCHITECTURE.md здесь важнее README: по нему ориентируется тот, кто
+    смотреть сам. CLAUDE.md здесь важнее README: по нему ориентируется тот, кто
     правит код.
     """
     app = ROOT / "services" / "gateway" / "app"
     packages = {d.name for d in app.iterdir()
                 if d.is_dir() and (d / "__init__.py").exists() and d.name != "vendor"}
-    for name in ("README.md", "ARCHITECTURE.md"):
+    for name in ("README.md", "CLAUDE.md"):
         text = (ROOT / name).read_text(encoding="utf-8")
         missing = sorted(pkg for pkg in packages if f"{pkg}/" not in text)
         assert not missing, f"{name} не называет пакеты: {missing}"
@@ -215,7 +215,7 @@ def test_the_typecheck_trap_is_written_down():
     отвечает «чисто» на код, который не собирается. На эту команду тянет руку у
     каждого, кто работал с другими репозиториями, а ошибка тихая.
 
-    Тест сторожит две вещи сразу: что предупреждение не выпало из ARCHITECTURE.md, и
+    Тест сторожит две вещи сразу: что предупреждение не выпало из CLAUDE.md, и
     что причина никуда не делась (появится в корневом конфиге настоящий список
     файлов — предупреждение станет ложью, и его надо будет убрать).
     """
@@ -223,11 +223,11 @@ def test_the_typecheck_trap_is_written_down():
 
     config = json.loads((ROOT / "frontend" / "tsconfig.json").read_text(encoding="utf-8"))
     trap_still_there = config.get("files") == [] and config.get("references")
-    doc = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    doc = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
     warned = "npx tsc --noEmit" in doc and "npm run typecheck" in doc
 
     if trap_still_there:
-        assert warned, "ловушка на месте, а предупреждения в ARCHITECTURE.md нет"
+        assert warned, "ловушка на месте, а предупреждения в CLAUDE.md нет"
     else:
         assert not warned, "ловушки больше нет — предупреждение стало ложью, уберите его"
 
@@ -257,7 +257,7 @@ def test_docs_do_not_reference_missing_screenshots():
 #: дороже отсутствующей ровно тем, чем сломанный прибор дороже отсутствующего:
 #: по ней идут и получают ответ, которому верят.
 #:
-#: Живой случай, ради которого это написано: в ARCHITECTURE.md четыре месяца стояло
+#: Живой случай, ради которого это написано: в CLAUDE.md четыре месяца стояло
 #: `make preflight --live`. Цель `preflight` аргументов не принимала, поэтому
 #: `--live` перехватывал сам `make`, печатал свою справку и выходил С НУЛЁМ —
 #: команда выглядела успешной и не делала НИЧЕГО. Ни один тест на это не
@@ -282,7 +282,7 @@ def _doc_code_regions(text: str) -> str:
     исправном, обходится дороже пропущенной находки: по нему идут чинить то,
     что работает, и в итоге перестают читать.
 
-    Исходный дефект жил ровно в блоке ``` в разделе «Команды» ARCHITECTURE.md.
+    Исходный дефект жил ровно в блоке ``` в разделе «Команды» CLAUDE.md.
     """
     return "\n".join(re.findall(r"^```[a-z]*\n(.*?)^```", text, re.MULTILINE | re.DOTALL))
 
@@ -290,7 +290,7 @@ def _doc_code_regions(text: str) -> str:
 def test_make_commands_promised_by_docs_actually_run():
     targets = _makefile_targets()
     wrong: list[str] = []
-    for name in ("ARCHITECTURE.md", "README.md", *(f"docs/{p.name}" for p in (ROOT / "docs").glob("*.md"))):
+    for name in ("CLAUDE.md", "README.md", *(f"docs/{p.name}" for p in (ROOT / "docs").glob("*.md"))):
         path = ROOT / name
         if not path.exists():
             continue
@@ -315,7 +315,7 @@ def test_make_commands_promised_by_docs_actually_run():
 # ------------------------------------------------------------------ протокол
 
 def test_documented_protocol_events_are_the_real_ones():
-    """Раздел «Протокол» в ARCHITECTURE.md — карта, по которой пишут клиентов.
+    """Раздел «Протокол» в CLAUDE.md — карта, по которой пишут клиентов.
 
     Событие, забытое в разделе, — возможность, о которой никто не узнает;
     событие, оставшееся после удаления, — обещание, которого сервер не
@@ -326,7 +326,7 @@ def test_documented_protocol_events_are_the_real_ones():
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from app.realtime.events import CLIENT_EVENTS, SERVER_EVENTS
 
-    doc = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    doc = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
     section = doc.split("## 🔌 Протокол")[1].split("\n---")[0]
     #: Раздел пишет пары одним именем: `judge.started|completed`. Сокращение
     #: механическое и однозначное, поэтому разворачивается здесь, а не
@@ -335,7 +335,7 @@ def test_documented_protocol_events_are_the_real_ones():
     section = re.sub(r"([a-z][a-z_.]*)\.([a-z_]+)\|([a-z_]+)", r"\1.\2 \1.\3", section)
 
     missing = [e for e in (*CLIENT_EVENTS, *SERVER_EVENTS) if e not in section]
-    assert not missing, f"ARCHITECTURE.md не называет события протокола: {missing}"
+    assert not missing, f"CLAUDE.md не называет события протокола: {missing}"
 
     #: `session.init` и прочие пишутся в тексте как `имя.событие`; ищем всё,
     #: что выглядит событием, и требуем, чтобы сервер его знал.
@@ -344,7 +344,7 @@ def test_documented_protocol_events_are_the_real_ones():
     #: Не события: поля и файлы, названные в том же разделе.
     not_events = {"realtime.events", "response.output", "input.audio"}
     ghosts = sorted(named - real - not_events)
-    assert not ghosts, f"ARCHITECTURE.md обещает события, которых сервер не шлёт: {ghosts}"
+    assert not ghosts, f"CLAUDE.md обещает события, которых сервер не шлёт: {ghosts}"
 
 
 def test_no_doc_advertises_a_websocket_route_the_gateway_does_not_serve():
@@ -359,7 +359,7 @@ def test_no_doc_advertises_a_websocket_route_the_gateway_does_not_serve():
     assert served, "в main.py не нашлось ни одного websocket-маршрута — тест ослеп"
 
     wrong: list[str] = []
-    for path in [ROOT / "README.md", ROOT / "ARCHITECTURE.md", *(ROOT / "docs").glob("*.md")]:
+    for path in [ROOT / "README.md", ROOT / "CLAUDE.md", *(ROOT / "docs").glob("*.md")]:
         for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             for route in re.findall(r"\bWS (/[A-Za-z0-9_/]+)", line):
                 if route not in served:
@@ -398,15 +398,15 @@ def test_documented_reactions_are_the_engine_reactions():
 # --------------------------------------------------------------- инварианты
 
 def test_both_documents_carry_the_same_invariants():
-    """Список инвариантов в ARCHITECTURE.md и в докладе — один список, не два.
+    """Список инвариантов в CLAUDE.md и в докладе — один список, не два.
 
-    В докладе их было восемь, в ARCHITECTURE.md девять: правило «правильный ответ в
+    В докладе их было восемь, в CLAUDE.md девять: правило «правильный ответ в
     упражнении обязан быть правильным в игре» жило только в одном из двух
     файлов. Инвариант, который знает половина читателей, — это инвариант,
     который нарушат вторые.
 
     Сверяются НОМЕРА и ЯКОРЯ, а не текст: формулировки в докладе длиннее
-    намеренно, он объясняет, а ARCHITECTURE.md предписывает.
+    намеренно, он объясняет, а CLAUDE.md предписывает.
     """
     #: Что обязано быть в каждом пункте обоих списков. Меняется инвариант —
     #: правится и якорь: заметить это здесь дешевле, чем в двух документах.
@@ -424,22 +424,22 @@ def test_both_documents_carry_the_same_invariants():
                 out[int(m.group(1))] = m.group(2)
         return out
 
-    claude = numbered((ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    claude = numbered((ROOT / "CLAUDE.md").read_text(encoding="utf-8")
                       .split("## 🧩 Инварианты")[1].split("\n---")[0])
     product = numbered((ROOT / "docs" / "product.md").read_text(encoding="utf-8")
                        .split("### Инварианты")[1].split("###")[0])
 
-    assert set(claude) == set(anchors), f"ARCHITECTURE.md: инвариантов {sorted(claude)}"
+    assert set(claude) == set(anchors), f"CLAUDE.md: инвариантов {sorted(claude)}"
     assert set(product) == set(claude), (
         "списки инвариантов разошлись — "
-        f"в ARCHITECTURE.md {sorted(claude)}, в docs/product.md {sorted(product)}")
+        f"в CLAUDE.md {sorted(claude)}, в docs/product.md {sorted(product)}")
 
     for n, words in anchors.items():
         for word in words:
             if word == "оос":            # «один и тот же ход» — фраза, не слово
                 assert "тот же ход" in claude[n] and "тот же ход" in product[n], n
                 continue
-            assert word in claude[n], f"ARCHITECTURE.md, инвариант {n}: нет «{word}»"
+            assert word in claude[n], f"CLAUDE.md, инвариант {n}: нет «{word}»"
             assert word in product[n], f"docs/product.md, инвариант {n}: нет «{word}»"
 
 
@@ -511,7 +511,7 @@ _MS = re.compile(r"(?<![\d.,])(\d{3,4}) мс")
 
 
 def test_millisecond_figures_in_the_rules_come_from_a_measurement():
-    """Число задержки, переписанное в ARCHITECTURE.md руками, гниёт молча.
+    """Число задержки, переписанное в CLAUDE.md руками, гниёт молча.
 
     Живой случай: в разделе про голос стояло «первые слова на экране за 1.3 с
     от начала реплики». Веха с таким именем в latency.md есть, и она равна
@@ -531,7 +531,7 @@ def test_millisecond_figures_in_the_rules_come_from_a_measurement():
     known = set(re.findall(r"(?<![\d.,])(\d{3,4})\b", sources))
 
     orphans: list[str] = []
-    for name in ("ARCHITECTURE.md", "README.md", "docs/product.md"):
+    for name in ("CLAUDE.md", "README.md", "docs/product.md"):
         text = (ROOT / name).read_text(encoding="utf-8")
         for line_no, line in enumerate(text.splitlines(), 1):
             for value in _MS.findall(line):
@@ -821,7 +821,7 @@ _ENV_READERS = ("services/gateway/app", "services/gateway/tools", "adapters")
 #:
 #: ПОЧЕМУ НЕ «ИСКАТЬ ТОЛЬКО В БЛОКАХ ```». Так устроен сосед про `make`, и там
 #: это верно: про сломанную команду в прозе пишут именно её имя. С переменными
-#: наоборот — ARCHITECTURE.md перечисляет `NEGO_JUDGE`, `NEGO_TURN_DETECT`,
+#: наоборот — CLAUDE.md перечисляет `NEGO_JUDGE`, `NEGO_TURN_DETECT`,
 #: `NEGO_HTTP_PASSWORD` строкой прозы, и прибор, читающий только блоки, не
 #: увидел бы ни одной из них. Дешевле держать поимённый список мёртвых.
 _ENV_ALLOWED_ABSENT: dict[str, str] = {
@@ -904,11 +904,11 @@ def test_every_public_make_target_is_documented_somewhere():
     документах, и это ровно тот дефект, что случился с живыми проверками слоёв:
     `preflight-voice`, `preflight-vision` и `preflight-layers` появились именно
     затем, чтобы голос и зрение можно было проверить ОДНОЙ КОМАНДОЙ, и раздел
-    «Команды» в ARCHITECTURE.md о них не узнал — они жили только в сценарии показа.
+    «Команды» в CLAUDE.md о них не узнал — они жили только в сценарии показа.
     Возможность, которую надо найти чтением Makefile, — это возможность,
     которой не пользуются.
 
-    ПОЧЕМУ СПРАШИВАЕТСЯ ИМЕННО ARCHITECTURE.md, А НЕ «ХОТЬ ОДИН ДОКУМЕНТ». Первая
+    ПОЧЕМУ СПРАШИВАЕТСЯ ИМЕННО CLAUDE.md, А НЕ «ХОТЬ ОДИН ДОКУМЕНТ». Первая
     редакция требовала упоминания где угодно — и была довольна, потому что
     demo.md все три цели называл. То есть прибор молчал ровно про тот дефект,
     ради которого заводился. Раздел «Команды» в правилах — единственное место,
@@ -922,14 +922,14 @@ def test_every_public_make_target_is_documented_somewhere():
     public = set(_PUBLIC_TARGET.findall(makefile))
     assert public, "в Makefile не нашлось ни одной цели с `## описанием` — тест ослеп"
 
-    rules = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "## ▶️ Команды" in rules, "в ARCHITECTURE.md пропал раздел «Команды»"
+    rules = (ROOT / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "## ▶️ Команды" in rules, "в CLAUDE.md пропал раздел «Команды»"
     section = rules.split("## ▶️ Команды")[1].split("\n---")[0]
     listed = set(re.findall(r"\bmake\s+([a-z][a-z0-9_-]*)", _doc_code_regions(section)))
 
     missing = sorted(public - listed)
     assert not missing, (
-        "раздел «Команды» в ARCHITECTURE.md объявляет себя списком команд, а этих "
+        "раздел «Команды» в CLAUDE.md объявляет себя списком команд, а этих "
         f"целей Makefile'а в нём нет: {missing}")
 
     #: Обратная сторона: цель, выпавшая из Makefile, но оставшаяся в списке,
@@ -1018,7 +1018,7 @@ _DOC_TOKEN_CLAIM = re.compile(r"`--([a-z0-9-]+)`[^.\n]{0,80}?`(#[0-9a-fA-F]{3,8}
 def test_colour_values_quoted_in_the_rules_are_the_values_in_the_stylesheet():
     """Опечатка в одном разряде цвета не видна глазом и меняет вывод о доступности.
 
-    В ARCHITECTURE.md стояло «`--brass` это тёмный `#3f8f00`». В `styles.css` токен
+    В CLAUDE.md стояло «`--brass` это тёмный `#3f8f00`». В `styles.css` токен
     равен `#387f00`. Разница в одном разряде, на глаз цвета неразличимы — а
     контраст под белым 4.09:1 против 5.0:1, то есть по одну сторону границы AA
     для обычного текста и по другую. Правило репозитория объясняет выбор цвета
@@ -1236,7 +1236,7 @@ def test_every_invariant_is_backed_by_a_test_file_that_exists():
     """Первый принцип продукта кончается словами «проверяется тестом, а не
     декларируется». К списку инвариантов это относится в первую очередь.
 
-    Список из девяти правил — самая цитируемая часть ARCHITECTURE.md и единственная,
+    Список из девяти правил — самая цитируемая часть CLAUDE.md и единственная,
     которую правят, добавляя возможности. Десятый инвариант, дописанный без
     теста, выглядел бы в документе ровно так же убедительно, как девять
     работающих, — и был бы обещанием, за которым ничего не стоит. Ровно так
@@ -1252,7 +1252,7 @@ def test_every_invariant_is_backed_by_a_test_file_that_exists():
     Сосед `..._carry_the_same_invariants` следит, чтобы список был ОДИН в двух
     документах. Здесь — чтобы за каждым его пунктом стоял прогон.
     """
-    section = (ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8") \
+    section = (ROOT / "CLAUDE.md").read_text(encoding="utf-8") \
         .split("## 🧩 Инварианты")[1].split("\n---")[0]
     #: `\d+`, а не `\d`: с одной цифрой десятый инвариант («10. …») прибору
     #: НЕВИДИМ — проверено, дописанный десятым пункт проходил молча, то есть
@@ -1260,7 +1260,7 @@ def test_every_invariant_is_backed_by_a_test_file_that_exists():
     numbered = {int(m.group(1)) for m in re.finditer(r"^(\d+)\. ", section, re.MULTILINE)}
 
     assert numbered == set(_INVARIANT_TESTS), (
-        "список инвариантов в ARCHITECTURE.md разошёлся с таблицей «инвариант → тест»: "
+        "список инвариантов в CLAUDE.md разошёлся с таблицей «инвариант → тест»: "
         f"{sorted(numbered ^ set(_INVARIANT_TESTS))}. Инвариант без прогона — "
         "декларация; допишите тест и назовите его здесь")
 
@@ -1393,7 +1393,7 @@ def _python_sources():
 
 
 def test_the_marker_convention_holds_on_the_python_side_too():
-    """ARCHITECTURE.md объявляет конвенцию пометок правилом РЕПОЗИТОРИЯ, а проверял
+    """CLAUDE.md объявляет конвенцию пометок правилом РЕПОЗИТОРИЯ, а проверял
     её только фронтенд.
 
     `frontend/test/markers.test.ts` обходит `frontend/src` и ничего больше.

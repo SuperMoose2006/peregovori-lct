@@ -580,7 +580,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     """The reactive core. Given the analyzed utterance, update meters, possibly
     move the opponent's offer, and choose a reply.
 
-    Optional `judge` (semantic AI judgement, ARCHITECTURE.md option C) refines three
+    Optional `judge` (semantic AI judgement, CLAUDE.md option C) refines three
     things while the engine keeps owning all state/scoring: it overrides the
     keyword arg-quality with a meaning-based score, reveals the interest the
     question ACTUALLY targeted instead of the next one in list order, and VETOES

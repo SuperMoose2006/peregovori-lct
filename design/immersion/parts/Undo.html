@@ -1,0 +1,54 @@
+  /* Кадр одного состояния: та же середина экрана, что в Main, взятая крупно.
+     Показываем именно её, потому что при переходах меняется ТОЛЬКО она —
+     сайдбар, HUD и рельс остаются на месте, и это тоже часть решения. */
+  body{background:#eef0ef}
+  .card{height:100%;display:flex;flex-direction:column}
+  .cap{display:flex;align-items:baseline;gap:10px;padding:13px 18px 11px}
+  .cap b{font-size:15px;font-weight:900;letter-spacing:-.2px;color:#26302c}
+  .cap i{font-style:normal;font-size:12px;color:#6c7a74;font-weight:700}
+  .frame{flex:1;margin:0 14px 14px;background:var(--panel);border:2px solid var(--line2);
+         border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+  .stage{flex:1;padding:20px 20px 12px;gap:12px}
+  .script{max-height:none}
+  .undo{width:100%;border:2px solid color-mix(in srgb,var(--soft) 55%,transparent);
+        border-radius:13px;background:color-mix(in srgb,var(--soft) 8%,var(--panel));
+        padding:11px 13px;display:flex;flex-direction:column;gap:9px}
+  .undo .top{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;color:var(--brass)}
+  .undo .txt{font-size:13.5px;color:var(--ink);font-weight:600}
+  .undo .btn{margin-left:auto;font-size:12px;font-weight:800;color:var(--ink);
+             border:2px solid var(--line2);border-radius:10px;padding:5px 12px;background:var(--panel)}
+  .undo .bar{height:5px;border-radius:999px;background:color-mix(in srgb,var(--soft) 22%,transparent);overflow:hidden}
+  .undo .bar i{display:block;height:100%;width:64%;border-radius:999px;background:var(--soft)}
+  .dchip{font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 8px;
+         border:2px solid var(--line);color:var(--dim)}
+  .dchip.up{color:var(--trust);border-color:color-mix(in srgb,var(--trust) 45%,transparent)}
+  .dchip.dn{color:var(--tension);border-color:color-mix(in srgb,var(--tension) 45%,transparent)}
+<!--SPLIT-->
+<div class="card">
+  <div class="cap"><b>6 · Окно отмены</b><i>детектор решил, что мысль закончена, — и сказал об этом</i></div>
+  <div class="frame">
+      <div class="hud">
+        <div class="hud-m"><b>Дов</b><span class="hud-bar"><i style="width:54%;background:var(--trust)"></i></span><span class="hud-n">54</span></div>
+        <div class="hud-m"><b>Напр</b><span class="hud-bar"><i style="width:15%;background:var(--tension)"></i></span><span class="hud-n">15</span></div>
+        <div class="hud-m"><b>Инфо</b><span class="hud-bar"><i style="width:38%;background:var(--info)"></i></span><span class="hud-n">38</span></div>
+        <div class="hud-m"><b>Рыч</b><span class="hud-bar"><i style="width:21%;background:var(--lev)"></i></span><span class="hud-n">21</span></div>
+      </div>
+    <div class="stage">
+      <div class="portrait" style="width:150px;height:150px"><img src="thinking.webp" alt=""></div>
+      <div class="undo">
+        <div class="top"><span class="dot"></span>Ход засчитан<span class="btn">↩ вернуть · 3 с</span></div>
+        <div class="txt">«Секунду, депозит за два месяца я не потяну»</div>
+        <div class="bar"><i></i></div>
+      </div>
+      <div class="script">
+        <div class="lbl">Что засчитал движок</div>
+        <div class="ln"><span class="sp">Приём</span><span class="tx">Обоснованный отказ&nbsp; <span class="dchip up">Дов +3</span> <span class="dchip dn">Напр +4</span></span></div>
+      </div>
+    </div>
+    <div class="mic">
+      <span class="mic-st"><span class="dot"></span>микрофон активен</span>
+      <span class="bars flat"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="esc">⌨ текстом</span>
+    </div>
+  </div>
+</div>

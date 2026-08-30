@@ -579,7 +579,7 @@ def test_cancelled_tail_never_reaches_the_socket(monkeypatch):
     "/../../services/gateway/.env",
     "/..%2f..%2fservices%2fgateway%2f.env",
     "/../../../../etc/passwd",
-    "/../../ARCHITECTURE.md",
+    "/../../CLAUDE.md",
 ])
 def test_spa_fallback_never_serves_files_outside_dist(path):
     """Раздача SPA отдавала наружу ЛЮБОЙ файл на диске — включая `.env` с ключом.
