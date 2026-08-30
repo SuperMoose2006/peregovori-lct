@@ -7,7 +7,7 @@
 Хакатон ЛЦТ (Лидеры цифровой трансформации, Москва).
 
 **Документы:** [product.md](docs/product.md) — продукт и логика целиком ·
-[CLAUDE.md](CLAUDE.md) — правила работы в репозитории ·
+[ARCHITECTURE.md](ARCHITECTURE.md) — правила работы в репозитории ·
 [demo.md](docs/demo.md) — показ за три минуты ·
 [course.md](docs/course.md) — курс приёмов ·
 [modalities.md](docs/modalities.md) — слои и почему они не входят в оценку ·

@@ -1,4 +1,4 @@
-"""judge.py — semantic argumentation judge (the "ИИ-судья", CLAUDE.md option C).
+"""judge.py — semantic argumentation judge (the "ИИ-судья", ARCHITECTURE.md option C).
 
 The deterministic engine scores technique from keyword lexicons, which is
 transparent and reproducible but shallow and gameable (spam the right words →

@@ -254,7 +254,7 @@ async def _play(url: str, *, turns: int, think: float, scenario: str,
                 hold: Optional[asyncio.Event] = None) -> _Result:
     """Сыграть партию по настоящему протоколу и рассказать, что дошло.
 
-    Порядок ровно тот, что в CLAUDE.md: `queue_done` → `session.init` →
+    Порядок ровно тот, что в ARCHITECTURE.md: `queue_done` → `session.init` →
     `session.created` → `input.append` → `input.commit` → `engine.state`.
     """
     res = _Result()

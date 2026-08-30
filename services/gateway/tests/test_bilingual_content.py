@@ -165,4 +165,4 @@ def test_both_halves_of_a_table_are_the_same_size(scenario):
             f"по-английски {len(value['en'])}")
     assert len(scenario.hidden_interests["ru"]) == 3, (
         f"{scenario.id}: скрытых интересов "
-        f"{len(scenario.hidden_interests['ru'])}, планка CLAUDE.md требует три")
+        f"{len(scenario.hidden_interests['ru'])}, планка ARCHITECTURE.md требует три")

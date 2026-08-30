@@ -1,7 +1,7 @@
 # «Диалог» — продукт целиком
 
 Что это, из чего состоит, как устроено внутри и почему именно так.
-Правила работы в репозитории — [CLAUDE.md](../CLAUDE.md), показ —
+Правила работы в репозитории — [ARCHITECTURE.md](../ARCHITECTURE.md), показ —
 [demo.md](demo.md), курс — [course.md](course.md), замеры —
 [latency.md](latency.md), провенанс кода — [upstream-code-map.md](upstream-code-map.md).
 

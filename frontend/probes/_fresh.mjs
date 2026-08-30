@@ -30,7 +30,7 @@ export const hostOf = (fallback = "https://127.0.0.1:8443") =>
 
 export const HOST = hostOf();
 
-// Пароль НЕ живёт в репозитории (CLAUDE.md: секреты — в services/gateway/.env).
+// Пароль НЕ живёт в репозитории (ARCHITECTURE.md: секреты — в services/gateway/.env).
 // Приборы берут его оттуда же, откуда его берёт сам гейтвей. Локальные запросы
 // замок не проверяет, поэтому лишний заголовок ничему не мешает.
 export const PASS = (() => {
