@@ -1,4 +1,7 @@
-.PHONY: install gateway frontend avatar test test-py test-js e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers dev
+# `.PHONY` перечисляет только СУЩЕСТВУЮЩИЕ цели. Здесь стояли `avatar` и
+# `dev`, для которых правил нет: `make dev` выходил С НУЛЁМ, не сделав
+# ничего, — тот же тихий обман, что и `make preflight --live`.
+.PHONY: install gateway frontend test test-py test-js e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers
 
 PY  := services/gateway/.venv/bin/python
 PIP := services/gateway/.venv/bin/pip
@@ -11,7 +14,7 @@ install:                       ## install gateway + frontend deps
 gateway:                       ## realtime gateway on :8010
 	cd services/gateway && .venv/bin/uvicorn app.main:app --reload --port 8010
 
-frontend:                      ## Vite dev server on :5173 (proxies /ws and /v1 to :8010)
+frontend:                      ## Vite dev server on :5173 (proxies /api and /v1/realtime to :8010)
 	cd frontend && npm run dev
 
 test: test-py test-js          ## everything
