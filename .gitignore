@@ -17,5 +17,8 @@ frontend/dist/
 # avatar service model weights
 services/avatar/models/
 services/avatar/avatars/
-frontend/dist-mock/
+frontend/dist-mock
+# Сборка с ВНЕШНИМ адресом бэкенда — та же статика, другой origin.
+# Артефакт проверки разделения, в историю ему не место, как и остальным.
+frontend/dist-split/
 services/gateway/certs/

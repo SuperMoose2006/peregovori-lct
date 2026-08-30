@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -120,8 +121,14 @@ async def _gate(request, call_next):
         ok = False
         if header.startswith("Basic "):
             try:
-                _, _, given = _b64.b64decode(header[6:]).decode().partition(":")
-                ok = _hmac.compare_digest(given, _HTTP_PASSWORD)
+                # СРАВНИВАЕМ БАЙТЫ, А НЕ СТРОКИ. `compare_digest` на строках
+                # отказывается работать с не-ASCII (TypeError), и отказ здесь
+                # ловился общим `except` — то есть пароль с русской буквой в
+                # `.env` не пускал НИКОГО, отвечая всем честным на вид 401.
+                # Заодно исчезает вопрос, что делать с телом, которое вообще не
+                # разбирается как UTF-8: до `.decode()` дело не доходит.
+                _, _, given = _b64.b64decode(header[6:]).partition(b":")
+                ok = _hmac.compare_digest(given, _HTTP_PASSWORD.encode("utf-8"))
             except Exception:
                 ok = False
         if not ok:
@@ -169,6 +176,119 @@ def _ws_ticket() -> str:
     return hashlib.sha256(("dlg|" + _HTTP_PASSWORD).encode()).hexdigest()[:32]
 
 
+# ------------------------------------------------- билет для сокета с ЧУЖОГО origin
+#
+# ПОЧЕМУ КУКИ МАЛО. Кука `dlg_ok` ставится с `samesite="lax"` и работает ровно
+# до тех пор, пока страница и шлюз — один origin. Разведённое развёртывание
+# (фронтенд статикой на одном сервере, шлюз на другом) этого условия не
+# выполняет: браузер не приложит куку шлюза к сокету, открытому со страницы
+# другого домена, — ни при каком CORS. То есть комментарий выше («браузер не
+# шлёт Authorization на рукопожатии, зато шлёт куки того же origin») остаётся
+# верным только в первой половине: заголовка нет по-прежнему, а куки больше
+# нет тоже. Остаётся единственное место, куда браузер пустит наш секрет на
+# рукопожатии, — АДРЕС сокета.
+#
+# Поэтому: страница, уже назвавшая пароль по HTTP, берёт на `/api/auth/ticket`
+# короткоживущий билет и предъявляет его в `?ticket=`. Кука никуда не делась и
+# проверяется первой — совмещённое развёртывание работает без единой настройки.
+#
+# ЧТО МЕШАЕТ ПЕРЕИСПОЛЬЗОВАТЬ БИЛЕТ ЧУЖОМУ — честный ответ: только его срок.
+# Это ключ на предъявителя, как и `resume`-идентификатор партии. Привязать его
+# к адресу нельзя (в метро адрес меняется, и переподключение — главный сценарий
+# продукта), к браузеру — нечем: второго секрета у страницы нет. Одноразовым он
+# тоже не сделан осознанно: это потребовало бы общей памяти на процесс, а шлюз
+# обязан подниматься в нескольких экземплярах и переживать перезапуск, при
+# котором живые партии возвращаются через `resume`. Значит защита ровно одна и
+# названа числом: билет живёт две минуты — этого хватает открыть сокет сразу
+# после проверки пароля и не хватает, чтобы утёкшая строка пригодилась завтра.
+# Вторая половина защиты — билет НЕ ПОПАДАЕТ В ЛОГ (см. `_TicketScrubber`):
+# адрес сокета uvicorn печатает целиком, и без чистки секрет лежал бы в журнале
+# открытым текстом ровно там, где его никто не ищет.
+_TICKET_TTL_S = 120
+
+
+def _ticket_sig(exp: int) -> str:
+    """Подпись срока ключом, производным от пароля.
+
+    Срок ВНУТРИ подписи, а не рядом с ней: иначе предъявитель просто переписал
+    бы `exp` на год вперёд, и «короткоживущий» билет стал бы вечным.
+    """
+    import hashlib
+    import hmac as _hmac
+    return _hmac.new(("dlg-ticket|" + _HTTP_PASSWORD).encode(),
+                     str(exp).encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def mint_ws_ticket() -> str:
+    """Билет: срок и подпись. Секрета в нём нет — только производная от него."""
+    import time
+    exp = int(time.time()) + _TICKET_TTL_S
+    return f"{exp}.{_ticket_sig(exp)}"
+
+
+def _ticket_valid(raw: str) -> bool:
+    import hmac as _hmac
+    import time
+    exp_s, _, sig = (raw or "").partition(".")
+    if not sig or not exp_s.isdigit():
+        return False
+    exp = int(exp_s)
+    if exp < time.time():
+        return False
+    return _hmac.compare_digest(sig.encode("utf-8", "surrogateescape"),
+                                _ticket_sig(exp).encode())
+
+
+class _TicketScrubber(logging.Filter):
+    """Билет не должен оставаться в журнале.
+
+    uvicorn печатает адрес сокета целиком (`"WebSocket /v1/realtime?ticket=…"`,
+    логгер `uvicorn.error`), а журнал живёт дольше двух минут жизни билета и
+    читается людьми, которым пароль не называли. Фильтр правит и `msg`, и
+    `args`: строка собирается форматированием уже после нас.
+    """
+    _RE = re.compile(r"(ticket=)[^&\s\"'\]]+")
+
+    def _clean(self, value):
+        return self._RE.sub(r"\1<скрыт>", value) if isinstance(value, str) else value
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.msg = self._clean(record.msg)
+        if isinstance(record.args, dict):
+            record.args = {k: self._clean(v) for k, v in record.args.items()}
+        elif isinstance(record.args, tuple):
+            record.args = tuple(self._clean(a) for a in record.args)
+        return True
+
+
+#: Ставится на логгеры, которые печатают адрес запроса. Фильтр логгера
+#: срабатывает там, где запись РОЖДАЕТСЯ, поэтому имена перечислены явно, а не
+#: навешаны на корень: до корня запись доезжает уже мимо его фильтров.
+for _name in ("uvicorn", "uvicorn.error", "uvicorn.access", "websockets",
+              "websockets.server"):
+    _logger = logging.getLogger(_name)
+    # По имени класса, а не isinstance: перезагрузка модуля (так его проверяют
+    # тесты) заводит НОВЫЙ класс, и фильтры копились бы на том же логгере.
+    if not any(type(f).__name__ == "_TicketScrubber" for f in _logger.filters):
+        _logger.addFilter(_TicketScrubber())
+
+
+@app.get("/api/auth/ticket")
+def ws_ticket_handle() -> dict:
+    """Билет на один сокет для страницы с ЧУЖОГО origin.
+
+    Ручка стоит ЗА замком: до неё запрос доходит, только если middleware выше
+    уже сверил пароль (или адрес локальный). Своего пароля она не спрашивает и
+    не знает.
+
+    Замка нет — билета нет, и это говорится прямо: слой, которого нет, отвечает
+    «не требуется», а не выдуманной строкой, которую сокет всё равно не спросит.
+    """
+    if not _HTTP_PASSWORD:
+        return {"required": False, "ticket": None, "expires_in": 0}
+    return {"required": True, "ticket": mint_ws_ticket(), "expires_in": _TICKET_TTL_S}
+
+
 def ws_allowed(websocket: "WebSocket") -> bool:
     """Пускать ли соединение. Локальные — всегда: через них ходит OpenTalking."""
     if not _HTTP_PASSWORD:
@@ -177,26 +297,45 @@ def ws_allowed(websocket: "WebSocket") -> bool:
     if host in _LOCAL_HOSTS:
         return True
     import hmac as _hmac
-    return _hmac.compare_digest(websocket.cookies.get("dlg_ok", ""), _ws_ticket())
+    # Байты, а не строки: значение куки приходит с улицы, и `compare_digest`
+    # на не-ASCII строке роняет рукопожатие TypeError'ом вместо честного отказа.
+    cookie = websocket.cookies.get("dlg_ok", "").encode("utf-8", "surrogateescape")
+    if _hmac.compare_digest(cookie, _ws_ticket().encode()):
+        return True     # один origin: кука доехала, как и раньше
+    return _ticket_valid(websocket.query_params.get("ticket", ""))
 
 
 # CORS РАЗНЫЙ ДЛЯ СТЕНДА И ДЛЯ РАЗРАБОТКИ, и это не перестраховка.
 #
 # `allow_origins=["*"]` заводили ради vite на другом порту — и он же уезжал на
-# стенд, смотрящий в интернет. Куки там `samesite=lax`, а `allow_credentials` не
-# включён, поэтому браузер чужого сайта аутентифицированный запрос и так не
-# отправит; но разрешение «любому origin читать наши ответы» на стенде не нужно
-# НИКОМУ, а объяснять, почему оно безопасно, придётся каждому, кто посмотрит.
+# стенд, смотрящий в интернет. Куки там `samesite=lax`, а `allow_credentials` в
+# этих двух режимах не включён, поэтому браузер чужого сайта аутентифицированный
+# запрос и так не отправит; но разрешение «любому origin читать наши ответы» на
+# стенде не нужно НИКОМУ, а объяснять, почему оно безопасно, придётся каждому,
+# кто посмотрит.
 #
 # Пароль задан → стенд: пускаем только свои origin. Пароль пуст → разработка:
-# как было.
+# как было. `NEGO_ALLOWED_ORIGINS` перекрывает оба случая — см. ниже.
 _DEV_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173",
                 "http://localhost:5199", "http://127.0.0.1:5199",
                 "http://localhost:8010", "http://127.0.0.1:8010"]
 
+#: Origin'ы фронтенда при РАЗВЕДЁННОМ развёртывании: статика на своём сервере,
+#: шлюз на своём. Пусто — поведение ровно прежнее (совмещённое развёртывание не
+#: требует ни одной настройки), непусто — отвечаем этим адресам поимённо.
+#:
+#: `allow_credentials=True` идёт в паре с ИМЕНАМИ и только с ними: браузер
+#: отвергает учётные данные при `Access-Control-Allow-Origin: *`, поэтому
+#: «звёздочка плюс учётные данные» — это не «пошире», а неработающая
+#: конфигурация. А учётные данные здесь нужны по-настоящему: страница с чужого
+#: домена берёт билет для сокета за паролем.
+_ALLOWED_ORIGINS = [o.strip().rstrip("/") for o in
+                    os.getenv("NEGO_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_DEV_ORIGINS if _HTTP_PASSWORD else ["*"],
+    allow_origins=_ALLOWED_ORIGINS or (_DEV_ORIGINS if _HTTP_PASSWORD else ["*"]),
+    allow_credentials=bool(_ALLOWED_ORIGINS),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -565,11 +704,25 @@ async def realtime(websocket: WebSocket) -> None:
 # Корень монорепо: app/ → services/gateway/ → services/ → LCT/.
 # Считаем от файла, а не от cwd: uvicorn запускают из разных мест, а
 # после переезда backend/ → services/gateway/ путь стал на уровень глубже.
+#
+# РАЗДАЧА СТАТИКИ — НЕ ОБЯЗАННОСТЬ ШЛЮЗА. Каталога сборки может не быть вовсе:
+# бэкенд разворачивают отдельным артефактом, а фронтенд лежит статикой на
+# другом сервере (docs/hosting.md). Тогда шлюз поднимается ровно так же и
+# обслуживает API — а на `/` отвечает честным «здесь только API», а не
+# пятисоткой и не выдуманной страницей. `NEGO_FRONTEND_DIST` позволяет назвать
+# каталог сборки явно: в раздельном артефакте `frontend/` рядом нет, а положить
+# статику куда-то ещё — законный способ развернуть всё одним процессом.
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-_DIST = os.path.join(_REPO_ROOT, "frontend", "dist")
+_DIST = os.path.abspath(os.getenv("NEGO_FRONTEND_DIST", "").strip()
+                        or os.path.join(_REPO_ROOT, "frontend", "dist"))
 _DIST_REAL = os.path.realpath(_DIST)
-if os.path.isdir(_DIST):
-    app.mount("/assets", StaticFiles(directory=os.path.join(_DIST, "assets")), name="assets")
+SERVES_SPA = os.path.isdir(_DIST)
+if SERVES_SPA:
+    _ASSETS = os.path.join(_DIST, "assets")
+    if os.path.isdir(_ASSETS):
+        # Каталог проверяется, а не предполагается: StaticFiles на отсутствующем
+        # падает ПРИ ИМПОРТЕ, то есть недособранный фронтенд уносил бы и API.
+        app.mount("/assets", StaticFiles(directory=_ASSETS), name="assets")
 
     @app.get("/{full_path:path}")
     def spa(full_path: str):  # SPA fallback for client-side routes
@@ -597,3 +750,27 @@ if os.path.isdir(_DIST):
         except (ValueError, OSError):
             pass
         return FileResponse(os.path.join(_DIST, "index.html"))
+
+
+else:
+
+    @app.get("/")
+    def api_only() -> dict:
+        """Что отвечает шлюз, развёрнутый БЕЗ фронтенда.
+
+        Не 404 и не 500: и то, и другое читается как «сервер сломан», а он
+        здоров — просто раздача статики живёт на другом сервере. Ответ называет
+        себя и говорит, куда идти дальше; проба живости остаётся там же, где
+        была, и `make preflight` от разделения не меняется.
+
+        Остальные пути в этом режиме отвечают обычной 404 FastAPI: SPA-фолбэка
+        нет, потому что нет и SPA — четвёртого состояния «выглядит настоящим, а
+        внутри пусто» не существует (принцип 2).
+        """
+        return {
+            "ok": True,
+            "service": "dialog-gateway",
+            "spa": False,          # раздача статики — не на этом сервере
+            "health": "/api/health",
+            "realtime": "/v1/realtime",
+        }
