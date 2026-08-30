@@ -217,10 +217,20 @@ async def main() -> None:
     out_root = Path(args.out) if args.out else (
         Path(__file__).resolve().parents[3] / "frontend" / "public" / "avatars")
 
+    # ЗЕРКАЛЬНЫЕ СТОЛЫ ЖИВУТ ОТДЕЛЬНЫМ СПИСКОМ, и генератор о них не знал.
+    #
+    # Их вынесли из общей библиотеки намеренно: её длина входит в арифметику
+    # «стола дня», и десятая запись сдвинула бы расписание всем. Но у персон
+    # зеркал такие же лица и такие же состояния, поэтому здесь оба списка — одно
+    # и то же. Без этого новые столы молча показывали рисованный портрет вместо
+    # набора состояний: не ложь, но и не то, что обещает `presence`.
+    from app.engine.scenarios import MIRRORS
+
+    known = list(engine.SCENARIOS) + list(MIRRORS)
     if args.all:
-        scenarios = list(engine.SCENARIOS)
+        scenarios = known
     elif args.persona:
-        scenarios = [s for s in engine.SCENARIOS if s.id in set(args.persona)]
+        scenarios = [s for s in known if s.id in set(args.persona)]
     else:
         parser.error("укажите --persona <id> или --all")
 
