@@ -165,6 +165,63 @@
    ]
   }
  },
+ "other_side": {
+  "note": "Принципиальная партия на КАЖДЫЙ зеркальный стол — режим «Обратная сторона стола», где игрок садится за вторую сторону того же стола. Раздел отдельный от principled по двум причинам. Первая: `principled` — библиотека из девяти столов, и её длину читает прибор разброса судьи (tools/judge_spread.py, «principled.all»); зеркала туда не входят, потому что мерить недетерминированность судьи надо на том, что идёт в зачёт. Вторая: доказывают они РАЗНОЕ. У principled это инвариант 2 на девяти столах; здесь — что смена стороны стола НЕ ТРЕБУЕТ второго движка: тот же рецепт (три вопроса по теме, критерий с цифрой, размен, закрытие пакетом) даёт A на записи, у которой перевёрнуто направление шкалы и поменяны местами дно игрока и дно оппонента.",
+  "supplier_mirror": {
+   "ru": [
+    "Здравствуйте! Почему для вас так важен бюджет закупки на этот год?",
+    "Понимаю вас. А почему для вас так важен риск единственного поставщика?",
+    "Что для вас важнее — тянуть дальше или запуск линии в срок?",
+    "По рыночным данным медиана независимых прайсов 90 рублей за штуку, потому что это отраслевой стандарт.",
+    "Если мы дадим первую отгрузку через две недели и платёж двумя кварталами, сможете подняться до 90?",
+    "Фиксируем пакет: первая отгрузка через две недели, платёж двумя кварталами — и цена 90. Договорились?"
+   ],
+   "en": [
+    "Hello! Why is this year's procurement budget so important to you?",
+    "I hear you. Why are you so focused on the risk of a single source?",
+    "What matters to you more — waiting longer, or the start date when the line stops?",
+    "Independent market data puts the median at 90 per unit, because that is the industry standard.",
+    "If we give you the first batch in two weeks and split the payment over two quarters, can you move to 90 per unit?",
+    "Let us fix the package: first shipment in two weeks, payment split over two quarters — and a price of 90. Do we have a deal?"
+   ]
+  },
+  "investor_mirror": {
+   "ru": [
+    "Здравствуйте! Почему для вас так важны сроки закрытия раунда?",
+    "Понимаю вас. А почему для вас так важна команда и её опционы?",
+    "Что для вас важнее — другие инвесторы с местом в совете или быстрые деньги?",
+    "По рыночным данным медиана на этой стадии 22 процента, потому что это отраслевой стандарт.",
+    "Если мы дадим закрытие сделки за три недели и опционный пул сверх раунда, сможете подняться до 22?",
+    "Фиксируем пакет: закрытие за три недели, опционный пул сверх раунда — и доля 22. Договорились?"
+   ],
+   "en": [
+    "Hello! Why is the runway before closing so important to you?",
+    "I hear you. Why are you so focused on the team and its option pool?",
+    "What matters to you more — the other fund with a board seat, or closing fast?",
+    "Market data puts the median at this stage at 22 percent, because that is the industry standard.",
+    "If we give you a closing in three weeks and put the option pool on top of the round, can you move to 22 percent?",
+    "Let us fix the package: closing in three weeks, option pool on top of the round — and a stake of 22 percent. Do we have a deal?"
+   ]
+  },
+  "freelance_mirror": {
+   "ru": [
+    "Здравствуйте! Почему для вас так важна оплата и её сроки?",
+    "Понимаю вас. А почему для вас так важно портфолио и публичный кейс?",
+    "Что для вас важнее — взять ещё нагрузку или удержать загрузку по второму проекту?",
+    "По рыночным данным медиана независимых прайсов 16 тысяч рублей в день, потому что это отраслевой стандарт.",
+    "Если мы дадим оплату раз в неделю и публичный кейс с вашим именем, сможете спуститься до 16?",
+    "Фиксируем пакет: оплата раз в неделю, публичный кейс с вашим именем — и ставка 16. Договорились?"
+   ],
+   "en": [
+    "Hello! Why is payment, and how fast it arrives, so important to you?",
+    "I hear you. Why are you so focused on a portfolio case study?",
+    "What matters to you more — taking on more, or the workload of your second project?",
+    "Market data puts the median for such rates at 16k a day, because that is the industry standard.",
+    "If we give you weekly payment and a public case study with your name, can you move to 16k a day?",
+    "Let us fix the package: weekly payment, a public case study with your name — and a rate of 16k a day. Do we have a deal?"
+   ]
+  }
+ },
  "ladder": {
   "note": "Семь партий на одном столе, от худшей к лучшей, НА ОБОИХ ЯЗЫКАХ. Тест утверждает ПОРЯДОК overall, а не сами числа: баланс двигать можно, переставлять качество местами — нельзя. До правки спам-повтор давал 98, а образцовая партия 99: тренажёр не отличал мастерство от спама. Английские реплики — не перевод русских, а тот же ЗАМЫСЕЛ, написанный по-английски: пустая партия пуста, спам набит теми же ключевыми словами английского лексикона, торг называет только цифры. Порядок доказывается прогоном движка на КАЖДОМ языке — иначе анти-игровая лестница держится на русском и ничего не говорит про английский экзамен. `mirror` — половина, по которой браузерное зеркало сверяет числа (инвариант 8 про две РЕАЛИЗАЦИИ движка, а не про два языка). ПОРЯДКА МАЛО, НУЖЕН ЗАПАС: соседние ступени когда-то стояли в одном балле друг от друга (спам 27, чередование 28, базовая 29), и живой судья переставлял их местами — то есть лестница доказывала не порядок качества, а что три разные партии играют примерно одинаково. Поэтому у лестницы есть `tiers` — ступени качества, — и запас между соседними ступенями проверяется числом (`tier_margin`). Внутри ступени партии равноправны: они адресованы разным защитам, а не разным уровням игры.",
   "scenario": "supplier",

@@ -114,6 +114,19 @@ export interface ScenarioView {
   // Tradeable secondary issues for cross-issue value creation (logrolling).
   // Only some scenarios (supplier, salary) have them; others send [].
   secondary_issues?: SecondaryIssueView[];
+  // Зеркальный стол: id того стола, за который эта запись сажает игрока с ДРУГОЙ
+  // стороны. Пусто у всех девяти столов библиотеки.
+  mirror_of?: string;
+  // Что игрок ЗАЩИЩАЕТ, сидя здесь. Приезжает ДО первого хода: это не секрет
+  // оппонента, а собственная карта игрока — он и есть та сторона.
+  defending?: DefendedInterest[];
+}
+
+// Одна из трёх причин, по которым игрок за ЗЕРКАЛЬНЫМ столом упирается.
+// Зеркало backend protocol.py::DefendedInterest.
+export interface DefendedInterest {
+  topic: string;
+  text: string;
 }
 
 // A move that swung the negotiation, quoted from the player's own words —
@@ -163,6 +176,21 @@ export interface HerSide {
   ask: string;          // реплика, которая открыла бы закрытое («» — открывать нечего)
 }
 
+// Итог режима «Обратная сторона стола» — то, ради чего в него садятся.
+// Зеркало backend protocol.py::OtherSide. Собирается ДЕТЕРМИНИРОВАННО из
+// сценария и хроники движка (и на сервере, и офлайн); в оценку отсюда не
+// заходит ничего (инвариант 6).
+export interface OtherSide {
+  seat: string;        // кем игрок был за этим столом — персона оригинала
+  origin_id: string;
+  origin_title: string;
+  defended: DefendedInterest[];
+  blind: string;       // почему этих причин никто напротив не увидел
+  asked: number;
+  total: number;
+  windows: string[];   // ходы, на которых вопрос по закрытой теме сработал бы
+}
+
 export interface Debrief {
   overall: number;
   grade: string; // A|B|C|D|F
@@ -206,6 +234,9 @@ export interface Debrief {
   // Ход за ходом глазами оппонента. Отсутствует у партии без единого хода и у
   // разборов, пришедших не от движка, — карточка тогда не рисуется вовсе.
   her_side?: HerSide | null;
+  // Карточка зеркального стола. Ключа НЕТ на обычном столе — режима, которого
+  // не было, на экране не бывает (принцип 2).
+  other_side?: OtherSide | null;
 }
 
 // "А что если…" — the deterministic what-if replay. Because the engine is a pure

@@ -21,9 +21,13 @@ import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Ga
 import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
 import { Karl } from "./components/Mascot";
 import { ReadingCard } from "./components/ReadingCard";
+import { OtherSideCard } from "./components/OtherSideCard";
 import { LazyScreen } from "./components/LazyScreen";
 import { openingOf, type TrailPoint } from "./lib/rematch";
 import { SCENARIO_MAP, SCENARIOS } from "./data/scenarios";
+// Только ИМЕНА зеркальных столов: сами записи едут отложенным файлом изнутри
+// карточки режима, а здесь нужен один вопрос — «стол из каталога?».
+import { isMirrorTable } from "./lib/mirrorIds";
 // CampaignComplete НЕ отложен: `ScenarioPicker` тянет этот же модуль статически
 // ради карты кампании на домашнем экране, и отдельным файлом он бы не стал —
 // была бы граница загрузки, за которой всегда уже всё загружено.
@@ -324,7 +328,8 @@ export default function App() {
     const scenarioId = nego.scenario?.id ?? currentScenario ?? "";
     const opening = openingRef.current;
     const grade = (["A", "B", "C", "D", "F"] as Grade[]).find((g) => g === d.grade);
-    if (mode !== "practice" || !SCENARIO_MAP[scenarioId] || !opening || !grade) return;
+    const known = !!SCENARIO_MAP[scenarioId] || isMirrorTable(scenarioId);
+    if (mode !== "practice" || !known || !opening || !grade) return;
     const moves = nego.log.filter((e) => e.kind === "me").map((e) => e.text);
     if (moves.length === 0) return;
     recordedRun.current = d;
@@ -556,6 +561,21 @@ export default function App() {
       launch(scenarioId, mode);
     },
     [mode, launch],
+  );
+
+  /** «Обратная сторона стола» — обычная партия по правилам, и запускается она
+   *  обычной практикой: те же слои, тот же судья, тот же `score_session`.
+   *  Отличается только ЗАПИСЬ стола, за которую садится игрок, — поэтому режима
+   *  на проводе для неё не заводится, и грейд остаётся сравнимым. */
+  const startOtherSide = useCallback(
+    (scenarioId: string) => {
+      nego.clearError();
+      setMode("practice");
+      dispatchGen("reset");
+      setCurrentScenario(scenarioId);
+      launch(scenarioId, "practice");
+    },
+    [nego, launch],
   );
 
   /** Стол дня всегда обычная партия, чем бы ни был занят переключатель режима. */
@@ -965,6 +985,12 @@ export default function App() {
                     меню слева, а здесь — рядом с курсом. Экран режима грузится
                     отдельным файлом изнутри карточки. */}
                 <ReadingCard t={t} lang={lang} />
+                {/* Тот же стол со ВТОРОЙ стороны. Стоит рядом с чтением стола,
+                    потому что оба отвечают на вопрос «чем заняться сегодня»,
+                    и различаются ровно тем, что написано на карточках: чтение
+                    в грейд не входит, а это — партия, и грейд ей ставит тот же
+                    движок. Записи зеркальных столов едут изнутри карточки. */}
+                <OtherSideCard t={t} lang={lang} onPlay={startOtherSide} />
                 <MethodCard t={t} />
             </aside>
             </div>

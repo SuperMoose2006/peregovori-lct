@@ -60,7 +60,7 @@ from app.course.bank import BANK  # noqa: E402
 from app.course.blocks import BLOCKS  # noqa: E402
 from app.engine import campaigns as campaigns_mod, daily, engine, format as fmt  # noqa: E402
 from app.engine.campaigns import CAMPAIGNS  # noqa: E402
-from app.engine.scenarios import SCENARIOS  # noqa: E402
+from app.engine.scenarios import SCENARIOS, MIRRORS  # noqa: E402
 from app.engine.techniques import LEX, analyze  # noqa: E402
 from app.perception import turn_detect, vision  # noqa: E402
 
@@ -117,6 +117,12 @@ def _principled() -> dict[str, dict[str, list[str]]]:
     return {k: v for k, v in GAMES["principled"].items() if k != "note"}
 
 
+def _other_side() -> dict[str, dict[str, list[str]]]:
+    """Зеркальные столы. Раздел отдельный от `principled`, а инвариант 4 — тот
+    же: половина, которой нет, одинаково дорога и там и там."""
+    return {k: v for k, v in GAMES.get("other_side", {}).items() if k != "note"}
+
+
 def section_langs(section: dict) -> tuple[str, ...]:
     """Языки, на которых раздел фикстуры существует.
 
@@ -167,11 +173,12 @@ def _mirror_lang(section: dict) -> str:
 
 def calibrate() -> tuple[bool, list[str]]:
     bad: list[str] = []
-    for sid, want in sorted(SCORES["principled"].items()):
-        _, got = play(sid, _principled()[sid]["ru"], "ru")
-        for f in _CALIBRATION_FIELDS:
-            if got[f] != want[f]:
-                bad.append(f"principled/{sid}.{f}: прибор {got[f]!r}, эталон {want[f]!r}")
+    for section, source in (("principled", _principled), ("other_side", _other_side)):
+        for sid, want in sorted(SCORES.get(section, {}).items()):
+            _, got = play(sid, source()[sid]["ru"], "ru")
+            for f in _CALIBRATION_FIELDS:
+                if got[f] != want[f]:
+                    bad.append(f"{section}/{sid}.{f}: прибор {got[f]!r}, эталон {want[f]!r}")
     for key in ("ladder", "first_word"):
         section = GAMES[key]
         lang = _mirror_lang(section)
@@ -231,7 +238,10 @@ def check_forms(rep: Report) -> None:
     print("\n═══ 1. ПУСТО: есть ли обе половины ═══\n")
     total = 0
     blobs: list[tuple[str, object]] = [
-        ("scenarios.py", _plain(SCENARIOS)),
+        # Библиотека и зеркала вместе: у зеркального стола свой список
+        # (см. scenarios.MIRRORS), и половина, которой нет, там стоит
+        # ровно столько же.
+        ("scenarios.py", _plain(list(SCENARIOS) + list(MIRRORS))),
         ("campaigns.py", _plain(CAMPAIGNS)),
         ("course/bank.py", _plain(BANK)),
         ("course/blocks.py", _plain(BLOCKS)),
@@ -266,6 +276,8 @@ def check_fixture_material(rep: Report) -> None:
     sections: list[tuple[str, list[dict], tuple[str, ...]]] = [
         ("principled",
          [{"id": sid, "lines": g} for sid, g in sorted(_principled().items())], LANGS),
+        ("other_side",
+         [{"id": sid, "lines": g} for sid, g in sorted(_other_side().items())], LANGS),
     ]
     for key in ("ladder", "first_word"):
         sections.append((key, GAMES[key]["games"], section_langs(GAMES[key])))
@@ -341,6 +353,8 @@ def check_same_game(rep: Report, strict: bool) -> None:
     sections: list[tuple[str, str | None, list[dict], tuple[str, ...]]] = [
         ("principled", None,
          [{"id": sid, "lines": g} for sid, g in sorted(_principled().items())], LANGS),
+        ("other_side", None,
+         [{"id": sid, "lines": g} for sid, g in sorted(_other_side().items())], LANGS),
     ]
     for key in ("ladder", "first_word"):
         sections.append((key, GAMES[key]["scenario"], GAMES[key]["games"],
@@ -548,7 +562,8 @@ def main() -> int:
     if not args.json:
         print("\n═══ КАЛИБРОВКА ПРИБОРА ═══\n")
     ok, bad = calibrate()
-    n_games = len(SCORES["principled"]) + len(SCORES["ladder"]) + len(SCORES["first_word"])
+    n_games = (len(SCORES["principled"]) + len(SCORES.get("other_side", {}))
+               + len(SCORES["ladder"]) + len(SCORES["first_word"]))
     if ok:
         if not args.json:
             print(f"  ✓ {n_games} эталонных партий воспроизведены балл в балл "

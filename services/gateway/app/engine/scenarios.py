@@ -100,6 +100,18 @@ class Scenario:
     # ярлыка (engine._topic_stems). Что написано на чипе — то и работает, и
     # разъехаться эти две вещи не могут по построению.
     interest_topics: dict[str, list[str]] = field(default_factory=dict)
+    # ЗЕРКАЛЬНЫЙ СТОЛ: id того стола, ЗА КОТОРЫЙ этот сажает игрока с другой
+    # стороны. Пусто у всех девяти столов библиотеки — они и есть «эта» сторона.
+    #
+    # Движок это поле НЕ ЧИТАЕТ и читать не может: он и так симметричен, потому
+    # что вся асимметрия «кто игрок» лежит в шестнадцати полях записи, а не в
+    # коде (`tests/test_other_side.py::test_the_engine_never_reads_mirror_of`).
+    # Поле нужно РАЗБОРУ: три интереса, которые игрок за зеркальным столом
+    # ЗАЩИЩАЛ, — это ровно `hidden_interests` того стола, откуда он пришёл.
+    # Не отдельный текст рядом, который разъедется с оригиналом при первой
+    # правке, а тот же самый — иначе карточка «что вы защищали» обещала бы
+    # секреты, которых за оригинальным столом нет.
+    mirror_of: str = ""
 
 
 SCENARIOS: list[Scenario] = [
@@ -1006,6 +1018,323 @@ SCENARIOS: list[Scenario] = [
 ]
 
 
+# -----------------------------------------------------------------------------
+# ЗЕРКАЛЬНЫЕ СТОЛЫ — «Обратная сторона стола»
+# -----------------------------------------------------------------------------
+#
+# ЗАЧЕМ. Гарвардский метод стоит на том, что за позицией собеседника лежат
+# интересы, и увидеть их — работа. Быстрее всего этому учит не объяснение, а
+# пересадка: получить свою красную линию, свои скрытые интересы и своё давление
+# и обнаружить, что человек напротив не упрямится, а защищает то, чего ты не
+# видишь.
+#
+# ПОЧЕМУ ЭТО ДАННЫЕ, А НЕ ВТОРОЙ ДВИЖОК. `apply_move` и `score_session` читают
+# из сценария РОВНО ТРИНАДЦАТЬ полей, и ни одно из них не знает, кем работает
+# игрок: четыре числа, направление и единица шкалы, интересы, темы, ключевые
+# слова, вторичные фишки, размены, стиль персоны, сложность, сила BATNA. Вся
+# асимметрия «кто здесь игрок» живёт в записи, и список полей заперт тестом
+# (`tests/test_other_side.py`). Значит смена стороны — это НОВАЯ ЗАПИСЬ, а
+# машина остаётся та же, до последней константы: тот же грейд по той же
+# формуле, тот же порог доверия, тот же откат за хамство, тот же потолок
+# техники. Оценка зеркального стола сравнима с оценкой обычного не по
+# договорённости, а потому что считает её тот же `score_session`.
+#
+# ПОЧЕМУ ОНИ НЕ В `SCENARIOS`. Библиотека — это девять столов, и её длина
+# входит в арифметику «стола дня» (`daily.py`: 9 столов и 4 условия взаимно
+# просты, поэтому пара повторяется через 36 дней, а не через 9). Десятый стол в
+# списке сдвинул бы расписание всем и сломал бы взаимную простоту. Зеркала —
+# отдельный режим, а не пополнение библиотеки, поэтому у них свой список, а
+# `by_id` смотрит в оба.
+#
+# ЧЕТЫРЕ ЧИСЛА КАЖДОГО ЗЕРКАЛА ВЗЯТЫ ИЗ ОРИГИНАЛА, А НЕ ПРИДУМАНЫ:
+#
+#     дно игрока      ←  дно оппонента оригинала   (её красная линия и была ею)
+#     дно оппонента   ←  красная линия игрока      (дальше он не пойдёт)
+#
+# Придуманы только два: с чего вторая сторона начинает торг (в оригинале её
+# первое число называет сам игрок, поэтому в записи его нет) и куда игрок
+# метит. Цель ставится ДОСТИЖИМОЙ — за дно оппонента она не заходит, — чтобы
+# `best_available` совпал с целью и экономика считалась ровно так же, как на
+# семи столах из девяти (`tests/test_unreachable_target.py`).
+#
+# ЛИЦА. Набора состояний (`frontend/public/avatars/<стол>/`) у новых персон
+# нет: он генерируется платной моделью и коммитится. `OpponentFace` молча
+# уходит на рисованный портрет — так же, как на «своей сделке». Пустого
+# прямоугольника не бывает, и ничего несуществующего экран не обещает.
+
+MIRRORS: list[Scenario] = [
+    Scenario(
+        id="supplier_mirror",
+        mirror_of="supplier",
+        icon="🏭",
+        difficulty=3,
+        title={"ru": "Поставщик: другая сторона", "en": "Supplier: the other side"},
+        role={
+            "ru": "Вы — глава продаж поставщика. Тот же контракт, что и в «Контракте с поставщиком», только цену теперь защищаете вы.",
+            "en": "You are the supplier's head of sales. The same contract as in Supplier Contract — except now the price is yours to defend.",
+        },
+        counterpart=Counterpart(
+            name={"ru": "Родион, менеджер по закупкам", "en": "Rodion, Procurement Manager"},
+            persona={
+                "ru": "Сухой, считает по таблице, каждую уступку защищает перед финансами.",
+                "en": "Dry, works from a spreadsheet, defends every concession to finance.",
+            },
+            female=False,
+            style="analytical",
+        ),
+        headline=Headline(unit={"ru": "₽/шт", "en": "/unit"}, dir="higher_is_better"),
+        opponent_open=76,
+        opponent_reservation=92,
+        player_target=90,
+        player_reservation=84,
+        player_batna=Batna(
+            strength=45,
+            note={
+                "ru": "Есть второй заказчик, но объём вдвое меньше и цех недозагружен.",
+                "en": "A second buyer exists, but at half the volume — the plant stays idle.",
+            },
+        ),
+        hidden_interests={
+            "ru": [
+                "Годовой бюджет уже урезан, перерасход защищать у финансового директора",
+                "Единственный поставщик — риск, за который его уже наказывали",
+                "Линия встаёт через шесть недель, если контракт не подписан",
+            ],
+            "en": [
+                "The annual budget is already cut; any overrun goes to the CFO",
+                "A single source is a risk he has been punished for before",
+                "The line stops in six weeks unless the contract is signed",
+            ],
+        },
+        interest_topics={
+            "ru": ["Бюджет", "Риск поставки", "Сроки запуска"],
+            "en": ["Budget", "Supply risk", "Start date"],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["бюджет", "смет", "перерасход", "лимит", "утвержденн сумм", "экономи", "финансов"],
+                ["риск", "единственн", "второй поставщик", "запасной поставщик", "надежност", "подстрахов", "сорв поставк"],
+                ["срок", "запуск", "график", "успет", "линия вста", "шесть недель", "остановк"],
+            ],
+            "en": [
+                ["budget", "overrun", "cfo", "finance", "spend limit", "approved amount", "cost centre"],
+                ["risk", "single source", "second supplier", "backup supplier", "supply failure", "reliability", "dual source"],
+                ["deadline", "start date", "schedule", "when do you need", "in time", "line stops", "six weeks"],
+            ],
+        },
+        tradeoffs={
+            "ru": ["Первая отгрузка через две недели", "Платёж двумя кварталами", "Фиксированная цена на год"],
+            "en": ["First shipment in two weeks", "Payment split over two quarters", "Price fixed for a year"],
+        },
+        secondary_issues=[
+            SecondaryIssue(
+                id="fast_start",
+                label={"ru": "Первая отгрузка через две недели", "en": "First shipment in two weeks"},
+                keywords={
+                    "ru": ["две недел", "быстр отгруз", "отгрузим сраз", "первая партия", "срочн отгруз", "успеем к"],
+                    "en": ["two weeks", "fast shipment", "ship immediately", "first batch", "rush the first"],
+                },
+                opp_value=0.85,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="split_payment",
+                label={"ru": "Платёж двумя кварталами", "en": "Payment split over two quarters"},
+                keywords={
+                    "ru": ["двумя кварталами", "разобьем платеж", "части платеж", "рассрочк", "оплата частями", "следующ квартал"],
+                    "en": ["two quarters", "split the payment", "in instalments", "instalment", "next quarter"],
+                },
+                opp_value=0.6,
+                player_cost=0.45,
+            ),
+        ],
+        briefing={
+            "ru": "Цель: цена ≥ 90 ₽/шт. Красная линия: 84 — ниже вы работаете в минус. У закупщика три скрытых интереса, и ни один из них не про цену. Спросите — и он подвинется сам.",
+            "en": "Goal: price ≥ 90/unit. Red line: 84 — below that you work at a loss. The buyer has three hidden interests, and none of them is the price. Ask, and he moves on his own.",
+        },
+    ),
+    Scenario(
+        id="investor_mirror",
+        mirror_of="investor",
+        icon="🏦",
+        difficulty=5,
+        title={"ru": "Инвестор: другая сторона", "en": "Investor: the other side"},
+        role={
+            "ru": "Вы — партнёр фонда. Тот же раунд, что и в «Раунде с инвестором», только долю теперь защищаете вы.",
+            "en": "You are the fund partner. The same round as in Investor Round — except now the stake is yours to defend.",
+        },
+        counterpart=Counterpart(
+            name={"ru": "Кирилл, основатель", "en": "Kirill, founder"},
+            persona={
+                "ru": "Резкий, держится за контроль, на давление отвечает давлением.",
+                "en": "Blunt, clings to control, answers pressure with pressure.",
+            },
+            female=False,
+            style="tough",
+        ),
+        headline=Headline(unit={"ru": "% доли", "en": "% equity"}, dir="higher_is_better"),
+        opponent_open=12,
+        opponent_reservation=24,
+        player_target=22,
+        player_reservation=18,
+        player_batna=Batna(
+            strength=65,
+            note={
+                "ru": "В воронке ещё две команды на этот же чек, но обе слабее по рынку.",
+                "en": "Two other teams are in the pipeline for the same cheque, both weaker on market.",
+            },
+        ),
+        hidden_interests={
+            "ru": [
+                "Денег в компании на четыре месяца, раунд нужен до этого",
+                "Ключевой инженер уйдёт, если размоется его опцион",
+                "Второй фонд уже прислал терм-шит, но требует место в совете",
+            ],
+            "en": [
+                "The company has four months of cash; the round must close before that",
+                "The lead engineer walks if his option package is diluted",
+                "A second fund has already sent a term sheet, but wants a board seat",
+            ],
+        },
+        interest_topics={
+            "ru": ["Сроки закрытия", "Команда и опционы", "Другие инвесторы"],
+            "en": ["Closing timeline", "Team and options", "Other investors"],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["срок", "закрыт", "хватит денег", "деньги на счет", "рануэй", "кассов разрыв", "четыре месяца"],
+                ["команд", "опцион", "инженер", "ключев", "размыт", "удержан", "мотиваци"],
+                ["другой фонд", "другие инвестор", "терм-шит", "термшит", "альтернативн", "место в совете", "конкурирующ"],
+            ],
+            "en": [
+                ["runway", "how long", "cash left", "when do you need to close", "four months", "burn rate"],
+                ["team", "option", "engineer", "key hire", "dilution", "retain", "esop"],
+                ["other fund", "other investor", "term sheet", "termsheet", "competing offer", "board seat", "alternative offer"],
+            ],
+        },
+        tradeoffs={
+            "ru": ["Закрытие за три недели", "Опционный пул сверх раунда", "Отказ от места в совете"],
+            "en": ["Closing in three weeks", "Option pool on top of the round", "No board seat"],
+        },
+        secondary_issues=[
+            SecondaryIssue(
+                id="fast_close",
+                label={"ru": "Закрытие сделки за три недели", "en": "Closing in three weeks"},
+                keywords={
+                    "ru": ["три недел", "быстр закр", "закроем сраз", "деньги на следующ недел", "ускор закрыт", "без длинн проверк"],
+                    "en": ["three weeks", "close fast", "wire next week", "speed up closing", "skip the long diligence"],
+                },
+                opp_value=0.85,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="option_pool",
+                label={"ru": "Опционный пул сверх раунда", "en": "Option pool on top of the round"},
+                keywords={
+                    "ru": ["опционный пул", "пул сверх", "опцион для команд", "пул за наш счет", "не размывая команд"],
+                    "en": ["option pool", "pool on top", "pre-money pool", "options for the team", "we take the dilution"],
+                },
+                opp_value=0.6,
+                player_cost=0.45,
+            ),
+        ],
+        briefing={
+            "ru": "Цель: доля ≥ 22 %. Красная линия: 18 — ниже фонд не заходит в такой риск. Основатель торгуется жёстко, но не потому, что жадный: у него три причины, и ни одна не названа вслух.",
+            "en": "Goal: stake ≥ 22%. Red line: 18 — below that the fund will not take this risk. The founder bargains hard, and not out of greed: he has three reasons, none of them said out loud.",
+        },
+    ),
+    Scenario(
+        id="freelance_mirror",
+        mirror_of="freelance_rate",
+        icon="🧑‍💻",
+        difficulty=3,
+        title={"ru": "Ставка фрилансера: другая сторона", "en": "Freelance rate: the other side"},
+        role={
+            "ru": "Вы — основатель стартапа и платите за разработку. Тот же проект, что и в «Ставке фрилансера», только бюджет теперь защищаете вы.",
+            "en": "You are the startup founder paying for the work. The same project as in Freelance Rate — except now the budget is yours to defend.",
+        },
+        counterpart=Counterpart(
+            name={"ru": "Егор, независимый разработчик", "en": "Egor, independent developer"},
+            persona={
+                "ru": "Мягкий, дорожит отношениями, обиду держит молча.",
+                "en": "Soft-spoken, values the relationship, holds a grudge quietly.",
+            },
+            female=False,
+            style="relationship",
+        ),
+        headline=Headline(unit={"ru": "k ₽/день", "en": "k/day"}, dir="lower_is_better"),
+        opponent_open=24,
+        opponent_reservation=14,
+        player_target=16,
+        player_reservation=20,
+        player_batna=Batna(
+            strength=50,
+            note={
+                "ru": "Есть команда на аутсорсе дешевле, но без опыта в вашем домене.",
+                "en": "A cheaper outsourcing team is available, but with no domain experience.",
+            },
+        ),
+        hidden_interests={
+            "ru": [
+                "Прошлый заказчик задержал оплату на три месяца",
+                "Нужен публичный кейс в портфолио, а не безымянная подработка",
+                "Параллельно идёт второй проект, и сроки могут наложиться",
+            ],
+            "en": [
+                "His previous client paid three months late",
+                "He needs a public case for his portfolio, not anonymous piecework",
+                "A second project is running in parallel and the schedules may collide",
+            ],
+        },
+        interest_topics={
+            "ru": ["Оплата", "Портфолио", "Загрузка"],
+            "en": ["Payment", "Portfolio", "Workload"],
+        },
+        hidden_interest_keywords={
+            "ru": [
+                ["оплат", "платеж", "задержк", "постоплат", "предоплат", "вовремя", "счет закрыт"],
+                ["портфоли", "кейс", "публичн", "рекомендац", "витрин", "имя автора", "покаж работ"],
+                ["загруз", "занят", "параллельн", "второй проект", "график работ", "совмещ", "нагрузк"],
+            ],
+            "en": [
+                ["payment", "paid late", "invoice", "when do you get paid", "net 60", "upfront", "on time"],
+                ["portfolio", "case study", "public", "reference", "credit", "showcase", "name on it"],
+                ["workload", "busy", "parallel", "second project", "schedule", "how many hours", "overlap"],
+            ],
+        },
+        tradeoffs={
+            "ru": ["Оплата раз в неделю", "Публичный кейс с вашим именем", "Гибкий график без ночных релизов"],
+            "en": ["Weekly payment", "A public case study with your name", "Flexible schedule, no night releases"],
+        },
+        secondary_issues=[
+            SecondaryIssue(
+                id="weekly_pay",
+                label={"ru": "Оплата раз в неделю", "en": "Weekly payment"},
+                keywords={
+                    "ru": ["раз в недел", "еженедельн", "недельн оплат", "плат каждую недел", "без постоплат", "деньги сраз"],
+                    "en": ["weekly", "every week", "pay each week", "no net-60", "pay upfront"],
+                },
+                opp_value=0.85,
+                player_cost=0.2,
+            ),
+            SecondaryIssue(
+                id="public_case",
+                label={"ru": "Публичный кейс с вашим именем", "en": "A public case study with your name"},
+                keywords={
+                    "ru": ["публичн", "кейс с вашим имен", "напишем кейс", "в портфолио", "укажем автор"],
+                    "en": ["case study", "public case", "you can write it up", "credit you", "in your portfolio"],
+                },
+                opp_value=0.6,
+                player_cost=0.35,
+            ),
+        ],
+        briefing={
+            "ru": "Цель: ставка ≤ 16 k ₽/день. Красная линия: 20 — выше проект не окупается. Разработчик держит цену не из принципа: у него три причины, и о них он молчит.",
+            "en": "Goal: rate ≤ 16k/day. Red line: 20 — above that the project stops paying off. The developer holds his price for reasons, not out of stubbornness: he has three, and he keeps quiet about them.",
+        },
+    ),
+]
+
 # Runtime registry for generated ("custom") scenarios. These are ephemeral,
 # session-scoped, and never mutate the static SCENARIOS catalog.
 _RUNTIME: dict[str, Scenario] = {}
@@ -1016,7 +1345,12 @@ def register_runtime_scenario(scenario: Scenario) -> None:
 
 
 def by_id(scenario_id: str) -> Scenario | None:
+    # Зеркала ищутся ВТОРЫМИ и живут в своём списке: длина `SCENARIOS` входит в
+    # арифметику «стола дня», и десятая запись там сдвинула бы расписание всем.
     for s in SCENARIOS:
+        if s.id == scenario_id:
+            return s
+    for s in MIRRORS:
         if s.id == scenario_id:
             return s
     return _RUNTIME.get(scenario_id)

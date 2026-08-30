@@ -10,6 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { SCENARIO_MAP } from "../src/data/scenarios";
+import { MIRROR_MAP } from "../src/data/mirrors";
 import { analyze, applyMove, newSession, resistance, revealTrustGate, scoreSession } from "../src/mock/engine";
 import { formatDeal } from "../src/lib/format";
 import type { Lang } from "../src/types";
@@ -43,7 +44,7 @@ function linesOf(game: { lines: Lines }, lang: Lang = MIRROR): string[] {
 
 // Ровно тот же цикл, что у MockServer.handleTurn и у backend-хелпера play().
 function play(scenarioId: string, lines: string[], lang: Lang = "ru") {
-  const s = newSession(SCENARIO_MAP[scenarioId], lang);
+  const s = newSession(SCENARIO_MAP[scenarioId] ?? MIRROR_MAP[scenarioId], lang);
   for (const text of lines) {
     if (s.status !== "active") break;
     s.turn += 1;
@@ -77,6 +78,30 @@ function checkAgainstBackend(name: string, scenarioId: string, lines: string[], 
     want.her_side,
     `${name}: колонка «с той стороны стола» разошлась с сервером`,
   );
+  // Карточка зеркального стола — тоже до символа, и по той же причине: она
+  // ОБЪЯСНЯЕТ партию, а объяснение расходится молча — числа-то сойдутся. Ключ
+  // есть только у зеркал (у обычных партий его нет и быть не должно).
+  if ("other_side" in want) {
+    const got = JSON.parse(JSON.stringify(debrief.other_side)) as Record<string, unknown>;
+    const exp = want.other_side as Record<string, unknown>;
+    // ТЕКСТ самих интересов намеренно НЕ сверяется — ровно по той же причине,
+    // что и `deal_text` выше: браузерная библиотека столов держит их короче
+    // («Стабильная загрузка» против «Стабильная загрузка производства»), это
+    // решение вёрстки карточек, а не движка, и оно старше этого режима.
+    // Сверяется всё, что решает СМЫСЛ карточки: кем сидел игрок, откуда
+    // зеркало, темы защищаемого, счёт вскрытого и — целиком — «окна», ради
+    // которых карточка и заведена.
+    const strip = (o: Record<string, unknown>) => ({
+      ...o,
+      defended: (o.defended as { topic: string }[]).map((d) => d.topic),
+    });
+    assert.deepEqual(strip(got), strip(exp),
+      `${name}: карточка «обратной стороны» разошлась с сервером`);
+    assert.equal((got.defended as unknown[]).length, (exp.defended as unknown[]).length);
+  } else {
+    assert.equal(debrief.other_side ?? null, null,
+      `${name}: обычный стол не имеет права рисовать карточку зеркала`);
+  }
 }
 
 for (const gid of LADDER.order as string[]) {
@@ -89,6 +114,21 @@ for (const gid of LADDER.order as string[]) {
 for (const sid of Object.keys(PRINCIPLED)) {
   test(`инвариант 8: принципиальная партия на «${sid}» считается так же, как на сервере`, () => {
     checkAgainstBackend(sid, sid, PRINCIPLED[sid], SCORES.principled[sid]);
+  });
+}
+
+// Зеркальные столы («Обратная сторона стола»). Инвариант 8 нужен им НЕ МЕНЬШЕ, а
+// больше: у зеркала перевёрнуто направление шкалы, а знак решает, кто выиграл,
+// — разошедшиеся движки дали бы здесь ровно противоположный вердикт.
+const OTHER_SIDE: Record<string, string[]> = Object.fromEntries(
+  Object.entries(GAMES.other_side)
+    .filter(([k]) => k !== "note")
+    .map(([k, v]) => [k, (v as { ru: string[] }).ru]),
+) as Record<string, string[]>;
+
+for (const sid of Object.keys(OTHER_SIDE)) {
+  test(`инвариант 8: зеркальный стол «${sid}» считается так же, как на сервере`, () => {
+    checkAgainstBackend(sid, sid, OTHER_SIDE[sid], SCORES.other_side[sid]);
   });
 }
 

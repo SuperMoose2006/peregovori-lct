@@ -3,10 +3,13 @@
 // (types.ts): Analysis, Deltas, StateView, Debrief. This lets the MockServer
 // behave like the real backend so the full UI works with no server running.
 import type { Lang } from "../types";
-import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, StateView, Status, Tag, WhatIfBranch } from "../types";
-import { LEX, cnt, has, hasUnnegated, isShortClose, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
+import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, WhatIfBranch } from "../types";
+import { LEX, cnt, has, hasUnnegated, isClose, isShortClose, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import type { CounterpartStyle, ScenarioDef } from "../data/scenarios";
+// Зеркальный стол сажает игрока в кресло персоны ОРИГИНАЛЬНОГО стола, и три
+// вещи, которые он там защищает, берутся оттуда целиком (см. otherSide ниже).
+import { SCENARIO_MAP, defendedInterests } from "../data/scenarios";
 
 const clamp = (v: number, lo = 0, hi = 100): number => Math.max(lo, Math.min(hi, v));
 
@@ -46,7 +49,7 @@ export function analyze(raw: string): RawAnalysis {
   if (has(t, LEX.hostile)) { moves.add("hostile"); addT("hostile", "Грубость"); }
   if (has(t, LEX.concession)) { moves.add("concession"); addT("concession", "Уступка"); }
   if (has(t, LEX.anchor)) { moves.add("anchor"); addT("anchor", "Якорь"); }
-  if (has(t, LEX.accept) || isShortClose(t)) { moves.add("accept"); addT("accept", "Закрытие"); }
+  if (isClose(t) || isShortClose(t)) { moves.add("accept"); addT("accept", "Закрытие"); }
   if (has(t, LEX.rapport)) { moves.add("rapport"); addT("rapport", "Контакт"); }
   // Число становится офертой только при намерении назвать цену — зеркало
   // techniques.py::offer_number. Порядок важен: приёмы уже собраны выше.
@@ -181,6 +184,12 @@ export interface LedgerEntry {
   revealed: number | null;
   /** Вопрос задан, но доверия не хватило до порога вскрытия. */
   gated: boolean;
+  /** Доверие ДО хода и порог вскрытия стола. Обе величины движок уже считает
+   *  внутри хода; разбору «обратной стороны» они нужны, чтобы сказать «на этом
+   *  ходу вопрос сработал бы» про конкретный ход, а не общим советом.
+   *  Зеркало engine.py::apply_move (trust_before / trust_gate). */
+  trustBefore: number;
+  trustGate: number;
   offerBefore: number;
   offerAfter: number;
   closed: boolean;
@@ -684,6 +693,8 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     repeat: Math.round(repeat * 100) / 100,
     revealed: revealedIdx,
     gated: probeGated,
+    trustBefore: Math.round(b.trust * 100) / 100,
+    trustGate: Math.round(revealTrustGate(s) * 100) / 100,
     offerBefore: Math.round(b.offerOpp * 100) / 100,
     offerAfter: Math.round(s.offerOpp * 100) / 100,
     closed,
@@ -1213,6 +1224,100 @@ export function scoreSession(s: Session): Debrief {
     // (views.debrief_view); здесь адаптера нет — MockServer отдаёт то, что
     // вернул scoreSession, — поэтому она собирается прямо тут.
     her_side: herSide(s),
+    // Карточка зеркального стола — там же и по той же причине. На обычном
+    // столе ключа нет вовсе (принцип 2).
+    other_side: otherSide(s),
+  };
+}
+
+// ---------- «Обратная сторона стола» (зеркало views.py::other_side) ----------
+//
+// ЧТО ЭТО. Итог режима, в котором игрок садится за ВТОРУЮ сторону того же стола.
+// Три вещи, которые он там защищал, — это `interests` оригинального стола, те
+// самые, что в обычной партии от него прячут. Ничего нового не пишется:
+// карточка ЦИТИРУЕТ оригинал и потому не может с ним разъехаться.
+//
+// ПОЧЕМУ «ЧЕЛОВЕК НАПРОТИВ НЕ УВИДЕЛ» — НЕ ЗАМЕР, А ФАКТ МАШИНЫ. Вскрытие
+// интересов живёт в applyMove и работает в ОДНУ сторону: механики, которой
+// оппонент вскрывает интересы игрока, у движка нет. Считать по стенограмме
+// «спросил ли он» значило бы мерить текст модели — величину недетерминированную,
+// а офлайн ещё и всегда одинаковую. Поэтому здесь утверждение об устройстве, а
+// не измерение партии.
+//
+// НАСТОЯЩИЙ ЗАМЕР ЗДЕСЬ — «окна»: ходы, на которых доверие стояло ВЫШЕ порога
+// вскрытия, то есть вопрос по ещё закрытой теме сработал бы. Числа из хроники.
+//
+// ТЕКСТ СВЕРЯЕТСЯ С СЕРВЕРОМ ПОСИМВОЛЬНО (`app/views.py`), как и «с той стороны
+// стола»: games.test.ts прогоняет эталонные партии зеркал и требует совпадения
+// карточки целиком (инвариант 8). Менять — в двух местах.
+
+const OS_BLIND: Record<Lang, string> = {
+  ru: "Ни одну из этих трёх причин человек напротив не увидел — и увидеть не мог: "
+    + "вскрывать интересы умеет только тот, кто спрашивает, а спрашивали здесь вы. "
+    + "Ровно это уносит со стола оппонент каждой вашей обычной партии.",
+  en: "The person across the table saw none of these three reasons — and could not: "
+    + "only the side that asks uncovers interests, and here that side was you. "
+    + "This is exactly what your opponent carries away from every ordinary game.",
+};
+const OS_MIRROR_ALL: Record<Lang, string> = {
+  ru: "А напротив вы вскрыли все три из трёх. Здесь вы сделали ровно то, чего ждали от себя с той стороны.",
+  en: "Across the table you uncovered all three of three. Here you did exactly what you would have wanted from the other side.",
+};
+const OS_MIRROR_SOME: Record<Lang, string> = {
+  ru: "А напротив вы вскрыли {n} из {total}. Столько же причин осталось при нём — как ваши три остались при вас.",
+  en: "Across the table you uncovered {n} of {total}. That many reasons stayed with him — the way your three stayed with you.",
+};
+const OS_WINDOW: Record<Lang, string> = {
+  ru: "Ход {turn}: доверие {trust} при пороге {gate} — вопрос про «{topic}» открыл бы это прямо там.",
+  en: "Turn {turn}: trust {trust} against a gate of {gate} — a question about “{topic}” would have opened it right there.",
+};
+const OS_WINDOW_NEVER: Record<Lang, string> = {
+  ru: "«{topic}» не открылась бы ни на одном ходу: доверие так и не поднялось выше порога {gate}. "
+    + "Такой стол сначала греют, а спрашивают потом.",
+  en: "“{topic}” could not have opened on any turn: trust never rose above the gate of {gate}. "
+    + "A table like this is warmed first and questioned second.",
+};
+
+/** Карточка зеркального стола. `null` на обычном столе и до первого хода. */
+export function otherSide(s: Session): OtherSide | null {
+  const sc = s.sc;
+  if (!sc.mirrorOf) return null;
+  const origin = SCENARIO_MAP[sc.mirrorOf];
+  if (!origin || !s.ledger.length) return null;
+  const lang = s.lang;
+  const total = sc.interests[lang].length;
+  const topics = sc.interestTopics[lang] ?? [];
+  const gate = Math.round(s.ledger[0].trustGate);
+  // Окно — самый РАННИЙ ход, на котором вопрос сработал бы: упрёк «можно было
+  // спросить» стоит чего-то, только если назван момент.
+  const openTurn = s.ledger.find((e) => e.trustBefore > e.trustGate) ?? null;
+
+  const windows: string[] = [];
+  for (let i = 0; i < total; i++) {
+    if (s.interests.includes(i)) continue;
+    const topic = i < topics.length ? topics[i] : sc.interests[lang][i];
+    windows.push(openTurn === null
+      ? OS_WINDOW_NEVER[lang].replace("{topic}", topic).replace("{gate}", String(gate))
+      : OS_WINDOW[lang]
+        .replace("{turn}", String(openTurn.turn))
+        .replace("{trust}", String(Math.round(openTurn.trustBefore)))
+        .replace("{gate}", String(Math.round(openTurn.trustGate)))
+        .replace("{topic}", topic));
+  }
+
+  const asked = s.interests.length;
+  const mirror = asked >= total
+    ? OS_MIRROR_ALL[lang]
+    : OS_MIRROR_SOME[lang].replace("{n}", String(asked)).replace("{total}", String(total));
+  return {
+    seat: origin.cp.nm[lang],
+    origin_id: origin.id,
+    origin_title: origin.title[lang],
+    defended: defendedInterests(sc, lang),
+    blind: OS_BLIND[lang] + " " + mirror,
+    asked,
+    total,
+    windows,
   };
 }
 

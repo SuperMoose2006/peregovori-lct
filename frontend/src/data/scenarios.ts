@@ -3,7 +3,7 @@
 // The rich ScenarioDef carries engine-only fields (open/floor/dir/interests/
 // tradeoffs/style/secondaryIssues/hiddenInterestKeywords/batnaStrength);
 // toScenarioView() projects the public, protocol-facing subset (types.ts ScenarioView).
-import type { Lang, ScenarioView } from "../types";
+import type { DefendedInterest, Lang, ScenarioView } from "../types";
 
 export type CounterpartStyle = "relationship" | "analytical" | "tough";
 type L = Record<Lang, string>;
@@ -25,6 +25,11 @@ export interface SecondaryIssueDef {
 
 export interface ScenarioDef {
   id: string;
+  /** Зеркальный стол: id того стола, за который эта запись сажает игрока с
+   *  ДРУГОЙ стороны (зеркало backend Scenario.mirror_of). Пусто у библиотеки.
+   *  Движок это поле не читает — вся асимметрия «кто игрок» и так лежит в
+   *  числах записи; нужно оно разбору режима «Обратная сторона стола». */
+  mirrorOf?: string;
   icon: string;
   face: string;
   diff: number;
@@ -701,7 +706,21 @@ export function toScenarioView(def: ScenarioDef, lang: Lang): ScenarioView {
       id: iss.id,
       label: iss.label[lang],
     })),
+    mirror_of: def.mirrorOf ?? "",
+    defending: defendedInterests(def, lang),
   };
+}
+
+/** Три причины, которые игрок ЗАЩИЩАЕТ за этим столом (зеркало
+ *  views.py::defended_interests). Пусто у обычного стола: там прячет оппонент.
+ *  За зеркальным это интересы персоны ОРИГИНАЛЬНОГО стола, взятые оттуда
+ *  целиком, — отдельный текст рядом разъехался бы с оригиналом при первой
+ *  правке, и карточка обещала бы секреты, которых за тем столом нет. */
+export function defendedInterests(def: ScenarioDef, lang: Lang): DefendedInterest[] {
+  const origin = def.mirrorOf ? SCENARIO_MAP[def.mirrorOf] : undefined;
+  if (!origin) return [];
+  const topics = origin.interestTopics[lang] ?? [];
+  return origin.interests[lang].map((text, i) => ({ topic: topics[i] ?? "", text }));
 }
 
 // Catalog rows for the ScenarioPicker cards (a real backend would serve this over REST).

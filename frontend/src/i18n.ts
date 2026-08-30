@@ -337,6 +337,29 @@ export interface Strings {
   // Режим «Чтение стола»: человек смотрит ЧУЖУЮ партию по ходам и отвечает, как
   // ответит вторая сторона. Ярлыков реакций здесь НЕТ намеренно — они живут в
   // `probe.reactions`, и вторая копия того же словаря разошлась бы с первой.
+  /** Режим «Обратная сторона стола»: тот же стол, вторая сторона. */
+  otherSide: {
+    title: string;
+    cardLead: string;
+    cardCta: string;
+    /* Плашка честности наоборот: этот режим В ГРЕЙД ВХОДИТ, и сказать об этом
+       надо так же громко, как «Чтение стола» говорит обратное. */
+    scored: string;
+    sheetLead: string;
+    youBecome: string;
+    origin: string;
+    defendTitle: string;
+    defendLead: string;
+    play: string;
+    /* Разбор */
+    debriefTitle: string;
+    seat: string;
+    blindTitle: string;
+    windowsTitle: string;
+    windowsNone: string;
+    mascotAlt: string;
+    close: string;
+  };
   reading: {
     title: string;
     cardLead: string;
@@ -1082,6 +1105,25 @@ export const I18N: Record<Lang, Strings> = {
       },
       debriefHead: "Как вы читали оппонента",
       observation: "наблюдение · не влияет на оценку",
+    },
+    otherSide: {
+      title: "Обратная сторона стола",
+      cardLead: "Тот же стол, только вы садитесь за вторую сторону: своя красная линия, свои скрытые интересы, своё давление. Быстрее всего понимаешь, что человек напротив не упрямится, когда упрямишься сам — и знаешь почему.",
+      cardCta: "Сесть напротив",
+      scored: "партия · грейд считает тот же движок",
+      sheetLead: "Три стола из библиотеки, которые можно сыграть с другой стороны. Оценка та же: та же формула, те же слои выключены, тот же потолок техники.",
+      youBecome: "Вы играете за: {name}",
+      origin: "Тот же стол с этой стороны: «{title}»",
+      defendTitle: "Что вы защищаете",
+      defendLead: "Три причины, по которым вы будете держать цену. Человек напротив их не видит — как не видели вы, когда сидели там.",
+      play: "За стол →",
+      debriefTitle: "Обратная сторона стола",
+      seat: "За этим столом вы были — {seat}.",
+      blindTitle: "Чего не видел человек напротив",
+      windowsTitle: "Где вопрос вскрыл бы это",
+      windowsNone: "Вы вскрыли всё, что напротив вас прятали. Спрашивать было больше не о чем.",
+      mascotAlt: "Наставник разбирает партию с обратной стороны стола",
+      close: "Закрыть выбор стола",
     },
     reading: {
       title: "Чтение стола",
@@ -1850,6 +1892,25 @@ export const I18N: Record<Lang, Strings> = {
       },
       debriefHead: "How well you read them",
       observation: "observation · does not affect the grade",
+    },
+    otherSide: {
+      title: "The other side of the table",
+      cardLead: "The same table, but you take the other chair: your own red line, your own hidden interests, your own pressure. Nothing teaches you that the other side is not being stubborn like being stubborn yourself — and knowing why.",
+      cardCta: "Take the other chair",
+      scored: "a real round · graded by the same engine",
+      sheetLead: "Three tables from the library you can play from the other side. The grade is the same: same formula, same layers off, same technique ceiling.",
+      youBecome: "You play as: {name}",
+      origin: "The same table from this side: “{title}”",
+      defendTitle: "What you are defending",
+      defendLead: "Three reasons you will hold your price. The person across the table cannot see them — just as you could not, when you sat there.",
+      play: "Take a seat →",
+      debriefTitle: "The other side of the table",
+      seat: "At this table you were {seat}.",
+      blindTitle: "What the person across the table never saw",
+      windowsTitle: "Where a question would have opened it",
+      windowsNone: "You uncovered everything they were hiding. There was nothing left to ask.",
+      mascotAlt: "The mentor goes over the round from the other side of the table",
+      close: "Close the table picker",
     },
     reading: {
       title: "Reading the table",

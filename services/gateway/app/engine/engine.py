@@ -991,6 +991,14 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
         "repeat": _round2(repeat),
         "revealed": revealed_idx,
         "gated": probe_gated,
+        # Доверие ДО хода и порог вскрытия этого стола. Обе величины движок уже
+        # считает внутри хода (`reveal_trust_gate`, `before`), и обе теряются к
+        # возврату из функции. Разбору «обратной стороны» они нужны затем, что
+        # «спросить надо было раньше» — утверждение о КОНКРЕТНОМ ходе: на каком
+        # именно доверие стояло выше порога, то есть вопрос по теме сработал бы.
+        # Без чисел это был бы общий совет, а не разбор партии.
+        "trust_before": _round2(before["trust"]),
+        "trust_gate": _round2(reveal_trust_gate(sess)),
         "offer_before": _round2(before["offer_opp"]),
         "offer_after": _round2(s.offer_opp),
         "closed": closed,

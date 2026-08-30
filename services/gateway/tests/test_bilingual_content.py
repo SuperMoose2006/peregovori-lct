@@ -34,7 +34,7 @@ import pytest
 
 from app import views
 from app.engine.engine import LINES
-from app.engine.scenarios import SCENARIOS
+from app.engine.scenarios import SCENARIOS, MIRRORS
 
 CYR = re.compile(r"[А-Яа-яЁё]")
 LETTER = re.compile(r"[A-Za-zА-Яа-яЁё]")
@@ -99,9 +99,16 @@ def _pairs(obj, path: str, out: list, lang: str | None = None) -> None:
         out.append((path, lang, obj))
 
 
+#: Библиотека и ЗЕРКАЛА вместе. Зеркальный стол — такой же пользовательский
+#: текст, только живёт в своём списке (`scenarios.MIRRORS`, см. режим «Обратная
+#: сторона стола»), и обход по одной `SCENARIOS` прошёл бы мимо него молча —
+#: ровно та дыра, ради которой этот файл и написан.
+ALL_TABLES = list(SCENARIOS) + list(MIRRORS)
+
+
 def _all_strings() -> list[tuple[str, str, str]]:
     out: list[tuple[str, str, str]] = []
-    for scenario in SCENARIOS:
+    for scenario in ALL_TABLES:
         _pairs(scenario, scenario.id, out)
     for code in ("ru", "en"):
         _pairs(LINES[code], f"engine.LINES.{code}", out, code)
@@ -146,7 +153,7 @@ def test_the_russian_half_has_no_forgotten_english():
                      + "\n  ".join(bad))
 
 
-@pytest.mark.parametrize("scenario", SCENARIOS, ids=[s.id for s in SCENARIOS])
+@pytest.mark.parametrize("scenario", ALL_TABLES, ids=[s.id for s in ALL_TABLES])
 def test_both_halves_of_a_table_are_the_same_size(scenario):
     """Пропущенный перевод в СПИСКЕ языковая проверка не поймает: список просто
     короче. Три скрытых интереса по-русски и два по-английски — это не текст на

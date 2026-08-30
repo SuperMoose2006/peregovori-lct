@@ -15,7 +15,7 @@ from app.engine.engine import REPEAT_HARD, _js_round
 from app.engine.format import format_number
 from app.protocol import (
     Analysis, Tag, Flags, Deltas, StateView, ScenarioView, SecondaryIssueView, Debrief,
-    CampaignView, CampaignStageView,
+    CampaignView, CampaignStageView, DefendedInterest, OtherSide,
 )
 
 
@@ -64,6 +64,8 @@ def scenario_view(sc: "engine.Scenario", lang: str) -> ScenarioView:
             SecondaryIssueView(id=iss.id, label=iss.label[lang])
             for iss in getattr(sc, "secondary_issues", [])
         ],
+        mirror_of=sc.mirror_of,
+        defending=defended_interests(sc, lang),
     )
 
 
@@ -100,6 +102,11 @@ def debrief_view(sess: "engine.Session") -> Debrief:
     her = her_side(sess)
     if her is not None:
         d["her_side"] = her
+    # Карточка зеркального стола — там же и по той же причине: движок считает
+    # партию, адаптер её рассказывает. На обычном столе ключа нет вовсе.
+    other = other_side(sess)
+    if other is not None:
+        d["other_side"] = other
     return Debrief(**d)
 
 
@@ -789,3 +796,129 @@ def her_side(sess: "engine.Session") -> dict | None:
         missed, ask = _MISSED_NONE[lang], ""
     return {"name": _short_name(sc.counterpart.name[lang]), "turns": turns,
             "missed": missed, "ask": ask}
+
+
+# ---- «Обратная сторона стола» -----------------------------------------------
+#
+# ЧТО ЭТОТ РАЗДЕЛ СОБИРАЕТ. Зеркальный стол сажает игрока в кресло персоны
+# оригинального стола: за `supplier_mirror` он и есть Ирина. Значит три вещи,
+# которые он там защищал, — это ровно `hidden_interests` стола `supplier`, те
+# самые, что в обычной партии от него прячут. Ничего нового не пишется: карточка
+# ЦИТИРУЕТ оригинал, поэтому разъехаться с ним не может.
+#
+# ПОЧЕМУ «ЧЕЛОВЕК НАПРОТИВ НЕ УВИДЕЛ» — НЕ ЗАМЕР, А ФАКТ МАШИНЫ. У движка нет
+# механики, которой оппонент вскрывает интересы ИГРОКА: вскрытие живёт в
+# `apply_move` и работает в одну сторону. Считать по стенограмме «спросил ли
+# он» значило бы мерить текст модели, то есть недетерминированную величину, и
+# в офлайне ответ был бы всегда один и тот же. Поэтому здесь стоит утверждение
+# об устройстве, а не измерение партии, — и оно правдиво (принцип 2).
+#
+# ЧТО ЗДЕСЬ НАСТОЯЩИЙ ЗАМЕР — «окна»: ходы, на которых доверие стояло ВЫШЕ
+# порога вскрытия, то есть вопрос по ещё закрытой теме сработал бы. Числа берутся
+# из хроники (`trust_before` / `trust_gate`), которую движок пишет по ходу.
+#
+# В `score_session` отсюда не заходит ничего (инвариант 6).
+
+_SEAT = {
+    "ru": "За этим столом вы были — {seat}. Тот же стол с другой стороны: «{title}».",
+    "en": "At this table you were {seat}. The same table from the other side: “{title}”.",
+}
+_BLIND = {
+    "ru": "Ни одну из этих трёх причин человек напротив не увидел — и увидеть не мог: "
+          "вскрывать интересы умеет только тот, кто спрашивает, а спрашивали здесь вы. "
+          "Ровно это уносит со стола оппонент каждой вашей обычной партии.",
+    "en": "The person across the table saw none of these three reasons — and could not: "
+          "only the side that asks uncovers interests, and here that side was you. "
+          "This is exactly what your opponent carries away from every ordinary game.",
+}
+_MIRROR_ALL = {
+    "ru": "А напротив вы вскрыли все три из трёх. Здесь вы сделали ровно то, чего ждали от себя с той стороны.",
+    "en": "Across the table you uncovered all three of three. Here you did exactly what you would have wanted from the other side.",
+}
+_MIRROR_SOME = {
+    "ru": "А напротив вы вскрыли {n} из {total}. Столько же причин осталось при нём — как ваши три остались при вас.",
+    "en": "Across the table you uncovered {n} of {total}. That many reasons stayed with him — the way your three stayed with you.",
+}
+_WINDOW = {
+    "ru": "Ход {turn}: доверие {trust} при пороге {gate} — вопрос про «{topic}» открыл бы это прямо там.",
+    "en": "Turn {turn}: trust {trust} against a gate of {gate} — a question about “{topic}” would have opened it right there.",
+}
+_WINDOW_NEVER = {
+    "ru": "«{topic}» не открылась бы ни на одном ходу: доверие так и не поднялось выше порога {gate}. "
+          "Такой стол сначала греют, а спрашивают потом.",
+    "en": "“{topic}” could not have opened on any turn: trust never rose above the gate of {gate}. "
+          "A table like this is warmed first and questioned second.",
+}
+
+
+def defended_interests(sc: "engine.Scenario", lang: str) -> list[DefendedInterest]:
+    """Три причины, которые игрок ЗАЩИЩАЕТ за этим столом.
+
+    Пусто у обычного стола: там игрок ничего не прячет, прячет оппонент.
+    За зеркальным — это интересы персоны оригинального стола, взятые оттуда
+    целиком."""
+    origin = engine.by_id(sc.mirror_of) if sc.mirror_of else None
+    if origin is None:
+        return []
+    texts = origin.hidden_interests[lang]
+    topics = (origin.interest_topics.get(lang) if origin.interest_topics else None) or []
+    return [
+        DefendedInterest(topic=topics[i] if i < len(topics) else "", text=text)
+        for i, text in enumerate(texts)
+    ]
+
+
+def other_side(sess: "engine.Session") -> dict | None:
+    """Карточка зеркального стола. None на обычном столе и до первого хода."""
+    sc = engine.by_id(sess.scenario_id)
+    if sc is None or not sc.mirror_of:
+        return None
+    origin = engine.by_id(sc.mirror_of)
+    if origin is None:
+        return None
+    ledger = list(getattr(sess, "ledger", None) or [])
+    if not ledger:
+        return None
+    lang = sess.lang if sess.lang in ("ru", "en") else "ru"
+
+    defended = defended_interests(sc, lang)
+    total = len(sc.hidden_interests[lang])
+    found = set(sess.state.interests_found)
+    topics = (sc.interest_topics.get(lang) if sc.interest_topics else None) or []
+
+    # Окно — самый РАННИЙ ход, на котором вопрос сработал бы. Ранний, а не любой:
+    # упрёк «можно было спросить» стоит чего-то, только если назван момент.
+    gate = _js_round(ledger[0].get("trust_gate", 0))
+    open_turn = None
+    for entry in ledger:
+        if entry.get("trust_before", 0) > entry.get("trust_gate", 0):
+            open_turn = entry
+            break
+
+    windows: list[str] = []
+    for i in range(total):
+        if i in found:
+            continue
+        topic = topics[i] if i < len(topics) else sc.hidden_interests[lang][i]
+        if open_turn is None:
+            windows.append(_WINDOW_NEVER[lang].format(topic=topic, gate=gate))
+        else:
+            windows.append(_WINDOW[lang].format(
+                turn=open_turn.get("turn"),
+                trust=_js_round(open_turn.get("trust_before", 0)),
+                gate=_js_round(open_turn.get("trust_gate", 0)),
+                topic=topic))
+
+    asked = len(found)
+    mirror = (_MIRROR_ALL[lang] if asked >= total
+              else _MIRROR_SOME[lang].format(n=asked, total=total))
+    return {
+        "seat": origin.counterpart.name[lang],
+        "origin_id": origin.id,
+        "origin_title": origin.title[lang],
+        "defended": [d.model_dump() for d in defended],
+        "blind": _BLIND[lang] + " " + mirror,
+        "asked": asked,
+        "total": total,
+        "windows": windows,
+    }
