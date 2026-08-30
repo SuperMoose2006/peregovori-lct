@@ -21,6 +21,10 @@
 //   • Добавлено переподключение с восстановлением партии — у оригинала сессия
 //     живёт в GPU-воркере и переподключиться к ней нельзя, а у нас состояние
 //     игры лежит в движке и переживает обрыв сокета.
+//   • Адрес сокета больше не собирается здесь из `location.host`: его выдаёт
+//     `api/backend.ts` — единственное место, знающее, где живёт бэкенд. У них
+//     фронтенд и сервер неразделимы по построению, у нас статику можно выложить
+//     отдельно, и второе место с адресом разошлось бы с первым.
 //
 // ПОЧЕМУ ЛОГ ПРОТОКОЛА ОСТАЛСЯ. Он у них есть, и он оказался незаменим при
 // отладке перебивания: без ленты событий «звук идёт после отмены» отлаживается
@@ -30,6 +34,7 @@
 // пишется числами здесь: раньше она существовала дважды и разошлась — тесты
 // проверяли три попытки с базой 500 мс, работали четыре с базой 400.
 import { canReconnect, reconnectDelay } from "../../lib/net";
+import { socketTicket, wsUrl } from "../../api/backend";
 
 export type ServerEvent = Record<string, unknown> & { type: string };
 
@@ -58,7 +63,11 @@ export interface SessionInitPayload {
 
 export interface RealtimeSessionOptions {
   mode?: "text" | "voice";
-  url?: string;
+  /** Адрес сокета. СТРОКА ИЛИ ФУНКЦИЯ, и это не удобство: на разнесённом
+   *  развёртывании в адрес входит короткоживущий билет, а переподключение
+   *  случается когда угодно позже. Строка, вычисленная в конструкторе, к тому
+   *  моменту протухла бы — и обрыв в середине партии стал бы отказом. */
+  url?: string | (() => string | Promise<string>);
   onEvent: (event: ServerEvent) => void;
   onStatus?: (status: ConnectionStatus) => void;
   onProtocol?: (entry: ProtocolEntry) => void;
@@ -89,7 +98,7 @@ const NO_RETURN_CLOSE_CODES = new Set([4401, 4409, 4429]);
 export class RealtimeSession {
   private ws: WebSocket | null = null;
   private readonly mode: "text" | "voice";
-  private readonly url: string;
+  private readonly resolveUrl: () => string | Promise<string>;
   private readonly onEvent: (event: ServerEvent) => void;
   private readonly onStatus?: (status: ConnectionStatus) => void;
   private readonly onProtocol?: (entry: ProtocolEntry) => void;
@@ -105,7 +114,10 @@ export class RealtimeSession {
 
   constructor(options: RealtimeSessionOptions) {
     this.mode = options.mode ?? "text";
-    this.url = options.url ?? defaultUrl(this.mode);
+    const url = options.url;
+    this.resolveUrl = typeof url === "function" ? url
+      : url ? () => url
+      : () => defaultUrl(this.mode);
     this.onEvent = options.onEvent;
     this.onStatus = options.onStatus;
     this.onProtocol = options.onProtocol;
@@ -201,9 +213,12 @@ export class RealtimeSession {
     if (!quiet) this.record("client", String(message.type), "");
   }
 
-  private open(): Promise<WebSocket> {
+  private async open(): Promise<WebSocket> {
+    // Адрес разрешается ПЕРЕД каждым открытием, а не один раз в конструкторе:
+    // билет на сокет короткоживущий, а сюда приходят и по переподключению.
+    const url = await this.resolveUrl();
     return new Promise((resolve, reject) => {
-      const socket = new WebSocket(this.url);
+      const socket = new WebSocket(url);
       this.ws = socket;
       const timer = setTimeout(() => reject(new Error("timeout")), OPEN_TIMEOUT_MS);
       socket.onopen = () => {
@@ -324,9 +339,20 @@ export class RealtimeSession {
   }
 }
 
-function defaultUrl(mode: string): string {
-  const proto = location.protocol === "https:" ? "wss" : "ws";
-  return `${proto}://${location.host}/v1/realtime?mode=${mode}`;
+/**
+ * Адрес нашей ручки. Хост и схему даёт `api/backend.ts`, здесь остаётся путь.
+ *
+ * Билет приезжает параметром адреса, потому что заголовок при рукопожатии
+ * сокета браузер слать не умеет, а кука `dlg_ok` (samesite=lax) на чужой домен
+ * не поедет. На своём origin `socketTicket()` возвращает `null` без единого
+ * запроса — строка получается ровно та же, что была.
+ */
+async function defaultUrl(mode: string): Promise<string> {
+  const ticket = await socketTicket();
+  const query = ticket
+    ? `mode=${mode}&ticket=${encodeURIComponent(ticket)}`
+    : `mode=${mode}`;
+  return wsUrl(`/v1/realtime?${query}`);
 }
 
 function summarize(message: ServerEvent): string {

@@ -5,6 +5,7 @@
 // the backend call fails) we synthesize the same deterministic branches locally
 // via the mock engine. Either way the caller gets a WhatIfResponse or null — and
 // null simply hides the card, never a broken one.
+import { apiFetch } from "./backend";
 import type { TransportKind } from "./transport";
 import type { WhatIfRequest, WhatIfResponse } from "../types";
 import { SCENARIO_MAP } from "../data/scenarios";
@@ -18,7 +19,7 @@ export async function whatIfRemote(req: WhatIfRequest): Promise<WhatIfResponse |
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch("/api/whatif", {
+    const res = await apiFetch("/api/whatif", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(req),

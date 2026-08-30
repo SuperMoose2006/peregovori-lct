@@ -29,6 +29,7 @@
 // Не доехало и это — падаем в `status("lost")` с честной панелью, а не в
 // молчаливый спиннер.
 
+import { apiFetch } from "./backend";
 import type { ClientMsg } from "../types";
 import type { ConnStatus, ServerMsgHandler, Transport, TransportKind } from "../api/transport";
 import type { RealtimeTransportOptions } from "../realtime/transport";
@@ -137,7 +138,10 @@ export function createTransport(
   const probe = new AbortController();
   const timer = setTimeout(() => probe.abort(), OPEN_TIMEOUT_MS);
 
-  fetch("/api/health", { signal: probe.signal })
+  // Адрес — через `api/backend.ts`: на разнесённом развёртывании это уже не
+  // «тот же origin», а вписанный на сборке. Промах пробы значит ровно то же,
+  // что и раньше: сервера нет — играем офлайн-ядром.
+  apiFetch("/api/health", { signal: probe.signal })
     .then((r) => {
       clearTimeout(timer);
       if (!r.ok) throw new Error("health failed");

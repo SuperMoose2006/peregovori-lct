@@ -75,8 +75,12 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Довести клиента до `session.created` на свежем сокете. */
 async function handshake(deliverCreated = true): Promise<FakeSocket> {
-  const socket = FakeSocket.instances[FakeSocket.instances.length - 1];
+  // ЖДЁМ ПЕРЕД ТЕМ, КАК БРАТЬ СОКЕТ. Адрес разрешается асинхронно (на
+  // разнесённом развёртывании в него входит билет, api/backend.ts), поэтому
+  // `new WebSocket` случается на такт позже вызова `start()`, а не внутри него.
+  // Взятый раньше — это `undefined`, то есть падение подделки, а не находка.
   await wait(0);
+  const socket = FakeSocket.instances[FakeSocket.instances.length - 1];
   socket.deliver({ type: "session.queue_done" });
   if (deliverCreated) {
     socket.deliver({

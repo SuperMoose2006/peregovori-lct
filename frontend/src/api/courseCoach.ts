@@ -7,6 +7,8 @@
 // Тишина — нормальный ответ. Судья выключен (`NEGO_JUDGE=0`), ключа нет, сеть
 // легла, бэкенда вообще нет (офлайн-мок) → null, и карточка тренера просто не
 // появляется. Курс обязан быть полностью проходим без единого запроса.
+import { apiFetch } from "./backend";
+
 const TIMEOUT_MS = 7000;
 
 export interface CoachNote {
@@ -30,7 +32,7 @@ export async function courseCoach(exerciseId: string, text: string, lang: string
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch("/api/course/coach", {
+    const res = await apiFetch("/api/course/coach", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ exerciseId, text, lang, ok }),

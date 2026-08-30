@@ -2,6 +2,7 @@
 // transport's WS-or-mock fallback: try GET /api/campaigns, and if the backend is
 // unreachable (or VITE_MOCK=1 forces it) synthesize the same campaigns locally so
 // the "Кампания" mode works fully offline.
+import { apiFetch } from "./backend";
 import type { CampaignView, Lang } from "../types";
 import { synthCampaigns } from "../data/campaigns";
 
@@ -16,7 +17,7 @@ export async function getCampaigns(lang: Lang): Promise<CampaignView[]> {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
-    const res = await fetch(`/api/campaigns?lang=${lang}`, { signal: ctrl.signal });
+    const res = await apiFetch(`/api/campaigns?lang=${lang}`, { signal: ctrl.signal });
     clearTimeout(timer);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as { campaigns?: CampaignView[] };
