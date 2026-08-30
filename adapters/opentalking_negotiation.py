@@ -305,6 +305,15 @@ async def audio_speech(request: Request) -> Any:
         "response_format": "mp3",
     }
     key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not key:
+        # БЕЗ КЛЮЧА — ЧЕСТНЫЙ ОТКАЗ, А НЕ СРЫВ. Пустой ключ давал заголовок
+        # «Bearer » без значения, и клиент падал необработанной ошибкой
+        # протокола: сосед получал пятисотку со стеком вместо внятного «синтез
+        # недоступен». Правило продукта — без ключа честно сказать «недоступно»
+        # и остаться играбельным, а не сломаться на полпути.
+        return JSONResponse(
+            {"error": {"message": "синтез недоступен: OPENAI_API_KEY не задан",
+                       "code": 503}}, status_code=503)
     async with httpx.AsyncClient(timeout=httpx.Timeout(120.0)) as client:
         r = await client.post(f"{OPENROUTER}/audio/speech", json=payload,
                               headers={"Authorization": f"Bearer {key}"})
