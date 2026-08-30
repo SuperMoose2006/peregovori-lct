@@ -209,6 +209,195 @@ export const MIRRORS: ScenarioDef[] = [
       en: "Goal ≤16k/day. Red line 20 — above that the project stops paying off. The developer holds his price for reasons, not out of stubbornness: there are three, and he keeps quiet.",
     },
   },
+  {
+    id: "salary_mirror", mirrorOf: "salary", icon: "🏢", face: "🧑‍🎓", diff: 4, dir: "low",
+    title: { ru: "Зарплата: другая сторона", en: "Salary: the other side" },
+    role: {
+      ru: "Вы — нанимающий директор. Тот же оффер, только вилку теперь защищаете вы.",
+      en: "You are the hiring director. The same offer — but now the band is yours to defend.",
+    },
+    cp: {
+      nm: { ru: "Алина, финалистка", en: "Alina, the finalist" },
+      ps: { ru: "Считает вслух: медианы рынка, платёж по кредиту, проценты будущих пересмотров.", en: "Counts out loud: market medians, a loan payment, the arithmetic of future raises." },
+      style: "analytical",
+    },
+    unit: { ru: "k", en: "k" }, open: 265, floor: 195, target: 205, resv: 240, batnaStrength: 55,
+    batna: { ru: "Второй финалист просит 215, но выйдет через полтора месяца.", en: "The runner-up asks 215, but starts only in six weeks." },
+    interests: {
+      ru: ["Кредит держится на окладе", "Второй оффер на 210 до пятницы", "Оклад задаёт грейд"],
+      en: ["A loan riding on the base pay", "A second offer at 210, due Friday", "Base pay sets the grade"],
+    },
+    hiddenInterestKeywords: {
+      ru: [
+        ["обязательств", "кредит", "ипотек", "ежемесячн платеж", "что эта сумма закрыв", "фиксирован расход", "почему именно эта цифр"],
+        ["второй оффер", "другой оффер", "другие предложен", "срок решен", "до какого числ", "когда нужен ответ", "конкурирующ предложен"],
+        ["структур выплат", "бонус", "премия", "грейд", "будущ пересмотр", "процент от оклад", "именно оклад"],
+      ],
+      en: [
+        ["commitment", "loan", "mortgage", "monthly payment", "what does the number cover", "fixed costs", "why that exact number"],
+        ["second offer", "another offer", "other offers", "decision deadline", "when do you need an answer", "by what date", "competing offer"],
+        ["pay structure", "bonus", "grade", "future raise", "raises", "percentage of base", "the base matter"],
+      ],
+    },
+    interestTopics: {
+      ru: ["Обязательства", "Сроки решения", "Структура выплат"],
+      en: ["Commitments", "Decision deadline", "Pay structure"],
+    },
+    tradeoffs: {
+      ru: ["оффер на подпись сегодня", "пересмотр через полгода по KPI", "оплату обучения и конференций"],
+      en: ["a signed offer today", "a six-month review tied to KPIs", "a learning and conference budget"],
+    },
+    secondaryIssues: [
+      {
+        id: "offer_today",
+        label: { ru: "Оффер на подпись сегодня", en: "A signed offer today" },
+        keywords: {
+          ru: ["оффер сегодня", "подпис сегодня", "оффер на подпис", "решим сегодня", "не будем тянуть", "ответ сегодня"],
+          en: ["offer today", "sign today", "signed offer", "decide today", "no waiting", "answer today"],
+        },
+        oppValue: 0.85, playerCost: 0.2,
+      },
+      {
+        id: "review_in_six",
+        label: { ru: "Пересмотр через полгода по KPI", en: "A six-month review tied to KPIs" },
+        keywords: {
+          ru: ["пересмотр через полгода", "через полгода", "через 6 месяц", "по kpi", "пересмотр по показател", "ревью через"],
+          en: ["six-month review", "review in six", "6-month review", "kpi review", "revisit in six months", "review tied"],
+        },
+        oppValue: 0.6, playerCost: 0.45,
+      },
+    ],
+    brief: {
+      ru: "Цель: оклад ≤205 k ₽/мес. Красная линия: 240 — выше вилки отдела нет. Алина держит цифру не из жадности: у неё три причины, и вслух не названа ни одна.",
+      en: "Goal ≤205k/mo. Red line 240 — the band ends there. Alina holds her number for reasons, not out of greed: there are three, and none is said out loud.",
+    },
+  },
+  {
+    id: "conflict_mirror", mirrorOf: "conflict", icon: "⏱️", face: "😟", diff: 4, dir: "high",
+    title: { ru: "Конфликт: другая сторона", en: "Conflict: the other side" },
+    role: {
+      ru: "Вы — тимлид отдела, который сорвал сроки. Тот же спор, только сдвиг теперь выторговываете вы.",
+      en: "You lead the team that missed the deadline. The same dispute — but now the slip is yours to win.",
+    },
+    cp: {
+      nm: { ru: "Оксана, тимлид платформы", en: "Oksana, Platform Team Lead" },
+      ps: { ru: "Собранная и жёсткая, говорит датами, извинения слушать не готова.", en: "Composed and hard, speaks in dates, has no patience for apologies." },
+      style: "tough",
+    },
+    unit: { ru: " дн", en: "d" }, open: 2, floor: 12, target: 10, resv: 6, batnaStrength: 30,
+    batna: { ru: "Можно выкатить как есть — но за инцидент отвечать вашей команде.", en: "You could ship as is — but the incident lands on your team." },
+    interests: {
+      ru: ["Дата демо обещана заказчику", "После даты закрывается окно тестирования", "Её люди третий месяц на переработках"],
+      en: ["The demo date was promised to the client", "The testing window shuts after that date", "Her people are three months into overtime"],
+    },
+    hiddenInterestKeywords: {
+      ru: [
+        ["заказчик", "клиент", "демо назначен", "кому обещ", "кому назвали дат", "внешн обязательств", "презентац"],
+        ["окно тестир", "релизн окно", "заморозк", "регресс", "что будет после дат", "следующ релиз", "поезд релиз"],
+        ["ваши люди", "ваша команда", "переработ", "выгоран", "отпуск", "сколько человек", "чего это стоит команде"],
+      ],
+      en: [
+        ["client", "customer", "demo is booked", "who did you promise", "who has the date", "external commitment", "presentation"],
+        ["testing window", "release window", "code freeze", "regression", "what happens after that date", "next release", "release train"],
+        ["your people", "your team", "overtime", "burnout", "time off", "how many people", "what it costs the team"],
+      ],
+    },
+    interestTopics: {
+      ru: ["Обещание клиенту", "Релизное окно", "Её команда"],
+      en: ["The client promise", "Release window", "Her team"],
+    },
+    tradeoffs: {
+      ru: ["демо-сборку к исходной дате", "своего тестировщика на её релиз", "ежедневный статус вместо еженедельного"],
+      en: ["a demo build by the original date", "my tester on her release", "a daily status instead of a weekly one"],
+    },
+    secondaryIssues: [
+      {
+        id: "demo_build",
+        label: { ru: "Демо-сборка к исходной дате", en: "A demo build by the original date" },
+        keywords: {
+          ru: ["демо-сборк", "демо сборк", "демо к дате", "покажем в срок", "сборка к дате", "демо будет вовремя"],
+          en: ["demo build", "demo by the date", "show it on time", "build for the demo", "demo on the original date", "demo ready"],
+        },
+        oppValue: 0.85, playerCost: 0.2,
+      },
+      {
+        id: "tester_loan",
+        label: { ru: "Мой тестировщик на ваш релиз", en: "My tester on your release" },
+        keywords: {
+          ru: ["тестировщик", "дам инженер", "выделю человек на релиз", "помож с тестирован", "наш qa", "поделюсь людьми"],
+          en: ["my tester", "lend an engineer", "give you a person for the release", "help with testing", "our qa", "share people"],
+        },
+        oppValue: 0.6, playerCost: 0.45,
+      },
+    ],
+    brief: {
+      ru: "Цель: сдвиг ≥10 дней. Красная линия: 6 — меньше команда не сделает даже на выходных. Оксана держит дату не из вредности: у неё три причины, и она их не назовёт.",
+      en: "Goal ≥10 days of slip. Red line 6 — below that the team cannot deliver even working weekends. Oksana holds the date for reasons, not out of spite: she has three, and she will not name them.",
+    },
+  },
+  {
+    id: "rent_mirror", mirrorOf: "rent", icon: "🔑", face: "🧑", diff: 2, dir: "high",
+    title: { ru: "Аренда: другая сторона", en: "Rent: the other side" },
+    role: {
+      ru: "Вы — собственница квартиры. Та же квартира, только цену теперь защищаете вы.",
+      en: "You own the flat. The same flat — but now the price is yours to defend.",
+    },
+    cp: {
+      nm: { ru: "Артём, арендатор", en: "Artem, the tenant" },
+      ps: { ru: "Вежливый и осторожный, торгуется мягко, от давления замыкается.", en: "Polite and careful, bargains softly; pressure makes him withdraw." },
+      style: "relationship",
+    },
+    unit: { ru: "k", en: "k" }, open: 55, floor: 70, target: 68, resv: 62, batnaStrength: 40,
+    batna: { ru: "Другая семья готова на 66, но заедет через месяц.", en: "Another family would take it at 66, but only in a month." },
+    interests: {
+      ru: ["Копит на первый взнос", "Работает из дома и платит за коворкинг", "Прошлый арендодатель поднял цену"],
+      en: ["Saving for a down payment", "Works from home, pays for coworking too", "His last landlord raised the price"],
+    },
+    hiddenInterestKeywords: {
+      ru: [
+        ["бюджет", "перв взнос", "копит", "копите", "накопл", "своя квартир", "на что откладыв"],
+        ["из дома", "работа из дом", "коворкинг", "рабоч мест", "днем дома", "удаленк", "кабинет"],
+        ["прошл арендодател", "прошл квартир", "прошл хозя", "почему съехал", "поднял цену", "прошлый опыт аренд", "предыдущ квартир"],
+      ],
+      en: [
+        ["budget", "down payment", "saving", "save up", "your own flat", "putting money aside", "how much do you set aside"],
+        ["from home", "work from home", "coworking", "desk", "home office", "remote", "during the day"],
+        ["previous landlord", "last landlord", "last flat", "why did you move", "raised the price", "previous tenancy", "before this one"],
+      ],
+    },
+    interestTopics: {
+      ru: ["Его бюджет", "Работа из дома", "Прошлый арендодатель"],
+      en: ["His budget", "Home office", "Previous landlord"],
+    },
+    tradeoffs: {
+      ru: ["цену, зафиксированную на весь год", "рабочее место и быстрый интернет", "въезд на неделю раньше без доплаты"],
+      en: ["the price fixed for the whole year", "a desk and fast internet", "moving in a week early at no charge"],
+    },
+    secondaryIssues: [
+      {
+        id: "fixed_year",
+        label: { ru: "Цена зафиксирована на весь год", en: "The price fixed for the whole year" },
+        keywords: {
+          ru: ["зафиксир", "цена не измен", "цену не подним", "фиксирую цен", "без повышен цен", "цена на год"],
+          en: ["price fixed", "fixed for the year", "price will not change", "fix the price", "locked for a year", "no rent increase"],
+        },
+        oppValue: 0.85, playerCost: 0.2,
+      },
+      {
+        id: "home_desk",
+        label: { ru: "Рабочее место и быстрый интернет", en: "A desk and fast internet" },
+        keywords: {
+          ru: ["рабочее мест", "интернет", "поставл стол", "кабинет", "оборудую угол", "место для работы"],
+          en: ["a desk", "fast internet", "put a desk", "home office setup", "wire the internet", "work corner"],
+        },
+        oppValue: 0.6, playerCost: 0.4,
+      },
+    ],
+    brief: {
+      ru: "Цель: ставка ≥68 k ₽/мес. Красная линия: 62 — ниже дешевле держать квартиру пустой. Артём торгуется не за тысячу: причин три, и все три он держит при себе.",
+      en: "Goal ≥68k/mo. Red line 62 — below that the flat is better left empty. Artem is not haggling over a thousand: there are three reasons, and he keeps all three to himself.",
+    },
+  },
 ];
 
 export const MIRROR_MAP: Record<string, ScenarioDef> = Object.fromEntries(

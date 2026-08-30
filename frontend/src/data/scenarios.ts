@@ -137,7 +137,7 @@ export const SCENARIOS: ScenarioDef[] = [
       en: "You have an offer: raise the package without scaring off the employer.",
     },
     cp: {
-      nm: { ru: "Дмитрий, директор", en: "Dmitry, Director" },
+      nm: { ru: "Дмитрий, директор", en: "Dmitry, Hiring Director" },
       ps: { ru: "Прагматичен, уважает рыночные данные.", en: "Pragmatic, respects market data." },
       style: "analytical",
     },
@@ -200,7 +200,7 @@ export const SCENARIOS: ScenarioDef[] = [
       en: "You are a lead: a partner team missed a deadline and blames you. Agree while keeping the relationship.",
     },
     cp: {
-      nm: { ru: "Алексей, смежный отдел", en: "Alexey, Partner Lead" },
+      nm: { ru: "Алексей, руководитель смежного отдела", en: "Alexey, Partner Team Lead" },
       ps: { ru: "Под давлением, раздражён, склонен обвинять.", en: "Under pressure, irritated, prone to blame." },
       style: "tough",
     },

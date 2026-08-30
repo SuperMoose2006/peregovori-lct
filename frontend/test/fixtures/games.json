@@ -220,6 +220,60 @@
     "If we give you weekly payment and a public case study with your name, can you move to 16k a day?",
     "Let us fix the package: weekly payment, a public case study with your name — and a rate of 16k a day. Do we have a deal?"
    ]
+  },
+  "salary_mirror": {
+   "ru": [
+    "Здравствуйте! Почему для вас так важны обязательства, под которые вы считаете эту сумму?",
+    "Понимаю вас. А почему для вас так важны сроки решения?",
+    "Что для вас важнее — структура выплат или цифра сегодня?",
+    "По рыночным данным медиана независимых оценок 205 тысяч рублей в месяц, потому что это отраслевой стандарт.",
+    "Если мы дадим оффер на подпись сегодня и пересмотр через полгода по KPI, сможете спуститься до 205?",
+    "Фиксируем пакет: оффер на подпись сегодня, пересмотр через полгода по KPI — и оклад 205. Договорились?"
+   ],
+   "en": [
+    "Hello! Why are the commitments behind that number so important to you?",
+    "I hear you. Why is your decision deadline so important to you?",
+    "What matters to you more — the pay structure, or the number today?",
+    "Independent market data puts the median at 205k a month, because that is the industry standard.",
+    "If we give you a signed offer today and a six-month review tied to KPIs, can you move to 205?",
+    "Let us fix the package: a signed offer today, a six-month review tied to KPIs — and a base of 205. Do we have a deal?"
+   ]
+  },
+  "conflict_mirror": {
+   "ru": [
+    "Здравствуйте! Почему для вас так важно обещание клиенту по этой дате?",
+    "Понимаю вас. А почему для вас так важно релизное окно после этой даты?",
+    "Что для вас важнее — держать дату любой ценой или ваша команда и её переработки?",
+    "По отраслевым данным на стабилизацию такого объёма уходит 10 дней, потому что это стандартный цикл проверки.",
+    "Если мы дадим демо-сборку к исходной дате и моего тестировщика на ваш релиз, сможете согласиться на 10 дней?",
+    "Фиксируем пакет: демо-сборка к исходной дате, мой тестировщик на ваш релиз — и сдвиг 10 дней. Договорились?"
+   ],
+   "en": [
+    "Hello! Why is the client promise on that date so important to you?",
+    "I hear you. Why is the release window after that date so important to you?",
+    "What matters to you more — holding the date at any cost, or your team and its overtime?",
+    "Industry benchmarks put stabilisation of this size at 10 days, because that is the industry standard.",
+    "If we give you a demo build by the original date and my tester on your release, can you move to 10 days?",
+    "Let us fix the package: a demo build by the original date, my tester on your release — and a slip of 10 days. Do we have a deal?"
+   ]
+  },
+  "rent_mirror": {
+   "ru": [
+    "Здравствуйте! Почему для вас так важен ваш бюджет на жильё?",
+    "Понимаю вас. А почему для вас так важна работа из дома?",
+    "Что для вас важнее — цифра сегодня или уверенность, которой не дал прошлый арендодатель?",
+    "По рыночным данным медиана независимых оценок по таким квартирам 68 тысяч рублей, потому что это отраслевой стандарт.",
+    "Если мы зафиксируем цену на весь год и дадим рабочее место с быстрым интернетом, сможете подняться до 68?",
+    "Фиксируем пакет: цена зафиксирована на год, рабочее место и интернет — и ставка 68. Договорились?"
+   ],
+   "en": [
+    "Hello! Why is your budget for housing so important to you?",
+    "I hear you. Why is working from home so important to you?",
+    "What matters to you more — the number today, or the certainty your previous landlord never gave you?",
+    "Independent market data puts the median for such flats at 68k, because that is the industry standard.",
+    "If we give you the price fixed for the whole year and a desk with fast internet, can you move to 68?",
+    "Let us fix the package: the price fixed for the whole year, a desk and fast internet — and a rent of 68. Do we have a deal?"
+   ]
   }
  },
  "ladder": {

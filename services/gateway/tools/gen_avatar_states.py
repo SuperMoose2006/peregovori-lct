@@ -43,6 +43,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app import engine  # noqa: E402
 from app.providers.openrouter import chat as orchat  # noqa: E402
 
+
+def _load_dotenv() -> None:
+    """То же, что делает `main.py`, и по той же причине.
+
+    Ключ картиночной модели — секрет, и место ему в `services/gateway/.env`, а
+    не в командной строке: строка запуска остаётся в истории оболочки и в логах
+    задач. Без этой загрузки генератор молча отвечал «ИИ недоступен» тому, у
+    кого ключ лежит на диске, — и лица приходилось генерировать, вынося ключ
+    туда, где ему быть не положено. Уже существующие переменные окружения
+    всегда сильнее файла.
+    """
+    path = Path(__file__).resolve().parents[1] / ".env"
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, val = line.split("=", 1)
+        os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
+
+
+_load_dotenv()
+
 #: Модель для картинок. Дешевле `gemini-3-pro-image` и достаточна для
 #: плоской стилизации; переопределяется переменной.
 IMAGE_MODEL = os.getenv("NEGO_MODEL_IMAGE", "google/gemini-3.1-flash-image")
@@ -75,17 +99,31 @@ STATE_ALIASES: dict[str, str] = {
     "shake_head": "annoyed",
 }
 
+#: Одежда названа НАМЕРЕННО. Весь состав продукта — люди за переговорным
+#: столом, и одиннадцать персон из двенадцати модель одевала в офисное сама. На
+#: двенадцатой не угадала: «composed and hard» дало тимлиду платформы
+#: тактический жилет, и на экране она выпадала из семьи портретов. Гардероб —
+#: часть общего стиля, а не вкус модели, поэтому он записан здесь.
 _STYLE = (
     "flat vector illustration, arcade video-game character portrait, bold clean "
     "outlines, limited flat colour palette, soft shading, friendly readable shapes, "
-    "head and shoulders, centred, plain light background, no text, no watermark, "
-    "square composition"
+    "modern office or business-casual clothing, head and shoulders, centred, plain "
+    "light background, no text, no watermark, square composition"
 )
 
 
 def _persona_brief(scenario) -> str:
+    """Кого рисуем. Пол берётся ИЗ ЗАПИСИ, а не угадывается моделью по имени.
+
+    Тот же дефект, что когда-то был у голоса (`Counterpart.female` и появился
+    ради него): по строке «Oksana, Platform Team Lead» картиночная модель
+    нарисовала мужчину, и тимлид платформы говорил бы женским голосом с
+    мужского портрета. Пол в записи уже есть — значит спрашивать о нём модель
+    незачем.
+    """
     counterpart = scenario.counterpart
-    return (f"{counterpart.name['en']} — {counterpart.persona['en']} "
+    who = "a woman" if counterpart.female else "a man"
+    return (f"{counterpart.name['en']} ({who}) — {counterpart.persona['en']} "
             f"Negotiation style: {counterpart.style}.")
 
 
