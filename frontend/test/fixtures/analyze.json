@@ -1009,6 +1009,17 @@
    "spin": null
   },
   {
+   "text": "Let me know when we have a deal.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Let us escalate to the director and let him decide.",
    "moves": [
     "statement"
@@ -1168,6 +1179,17 @@
    "spin": null
   },
   {
+   "text": "Ok, that works for us.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Quality risk lowers the alternative's real value: paying 92 here beats 95 there.",
    "moves": [
     "batna",
@@ -1242,6 +1264,17 @@
    "primary": "statement",
    "arg": 20,
    "words": 7,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "That works for us.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 4,
    "number": null,
    "spin": null
   },
@@ -1833,6 +1866,17 @@
    "spin": null
   },
   {
+   "text": "if that's ok we have a deal",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "no",
    "moves": [
     "statement"
@@ -1852,6 +1896,30 @@
    "arg": 5,
    "words": 2,
    "number": null,
+   "spin": null
+  },
+  {
+   "text": "А давай за 4400?",
+   "moves": [
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 4,
+   "number": 4400.0,
+   "spin": null
+  },
+  {
+   "text": "А давайте за 4400?",
+   "moves": [
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 4,
+   "number": 4400.0,
    "spin": null
   },
   {
@@ -2001,6 +2069,28 @@
    "words": 7,
    "number": null,
    "spin": "situation"
+  },
+  {
+   "text": "Вы не понимаете, о чём говорите.",
+   "moves": [
+    "hostile"
+   ],
+   "primary": "hostile",
+   "arg": 0,
+   "words": 6,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Вы правы, срок действительно короткий.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 30,
+   "words": 5,
+   "number": null,
+   "spin": null
   },
   {
    "text": "Годится.",
@@ -2188,6 +2278,72 @@
    "spin": null
   },
   {
+   "text": "Если пойдёте на 90, по рукам.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 6,
+   "number": 90.0,
+   "spin": null
+  },
+  {
+   "text": "Жду не дождусь, когда мы ударим по рукам.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Зачем вам такой срок?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 32,
+   "words": 4,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Зачем тебе такой срок?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 32,
+   "words": 4,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Здравствуй, Наталья.",
+   "moves": [
+    "rapport"
+   ],
+   "primary": "rapport",
+   "arg": 5,
+   "words": 2,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Здравствуйте, Наталья.",
+   "moves": [
+    "rapport"
+   ],
+   "primary": "rapport",
+   "arg": 5,
+   "words": 2,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Или 20%, или мы идём в другой фонд.",
    "moves": [
     "offer"
@@ -2247,6 +2403,18 @@
    "spin": null
   },
   {
+   "text": "Как вам 2100?",
+   "moves": [
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 2100.0,
+   "spin": null
+  },
+  {
    "text": "Как дела?",
    "moves": [
     "rapport",
@@ -2278,6 +2446,40 @@
    "primary": "spin_situation",
    "arg": 34,
    "words": 5,
+   "number": null,
+   "spin": "situation"
+  },
+  {
+   "text": "Как тебе 2100?",
+   "moves": [
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 2100.0,
+   "spin": null
+  },
+  {
+   "text": "Как у вас сейчас с поставками?",
+   "moves": [
+    "spin_situation"
+   ],
+   "primary": "spin_situation",
+   "arg": 34,
+   "words": 6,
+   "number": null,
+   "spin": "situation"
+  },
+  {
+   "text": "Как у тебя сейчас с поставками?",
+   "moves": [
+    "spin_situation"
+   ],
+   "primary": "spin_situation",
+   "arg": 34,
+   "words": 6,
    "number": null,
    "spin": "situation"
   },
@@ -2602,6 +2804,17 @@
    "spin": null
   },
   {
+   "text": "Мы так и не договорились.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Насколько важно было бы для вас закрыть загрузку производства на год вперёд и убрать простои?",
    "moves": [
     "spin_needpayoff"
@@ -2642,6 +2855,17 @@
    "primary": "interests_probe",
    "arg": 40,
    "words": 18,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Не вопрос, договорились.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 5,
+   "words": 3,
    "number": null,
    "spin": null
   },
@@ -2769,6 +2993,28 @@
    "spin": null
   },
   {
+   "text": "Отлично, договорились! На сегодня еды хватает.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 6,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Отлично, что договорились!",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 5,
+   "words": 3,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Отраслевой обзор зарплат по этой роли даёт 225k — вот три независимых источника.",
    "moves": [
     "objective_criteria",
@@ -2875,6 +3121,17 @@
    "spin": null
   },
   {
+   "text": "По рукам. Кажется, у нас получится неплохая сделка.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "По рыночным данным справедливая цена — 88 ₽/шт.",
    "moves": [
     "objective_criteria",
@@ -2907,6 +3164,17 @@
    "words": 7,
    "number": null,
    "spin": null
+  },
+  {
+   "text": "Помогло бы тебе, если бы срок был неделя?",
+   "moves": [
+    "spin_needpayoff"
+   ],
+   "primary": "spin_needpayoff",
+   "arg": 34,
+   "words": 8,
+   "number": null,
+   "spin": "need-payoff"
   },
   {
    "text": "Понимаю вас, Наталья: пустая квартира — это реальные потери, и осторожность после прошлых жильцов совершенно естественна.",
@@ -3009,6 +3277,17 @@
    "primary": "open_question",
    "arg": 20,
    "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Рад, что мы так легко обо всём договорились.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
    "number": null,
    "spin": null
   },
@@ -3169,6 +3448,39 @@
    "spin": null
   },
   {
+   "text": "Скинь до 500.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 500.0,
+   "spin": null
+  },
+  {
+   "text": "Скиньте до 500.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 500.0,
+   "spin": null
+  },
+  {
+   "text": "Сколько вы теряете на простое?",
+   "moves": [
+    "spin_implication"
+   ],
+   "primary": "spin_implication",
+   "arg": 34,
+   "words": 5,
+   "number": null,
+   "spin": "implication"
+  },
+  {
    "text": "Сколько вы теряете, если загрузка производства падает на месяц?",
    "moves": [
     "spin_implication"
@@ -3202,6 +3514,17 @@
    "spin": "situation"
   },
   {
+   "text": "Сколько ты теряешь на простое?",
+   "moves": [
+    "spin_implication"
+   ],
+   "primary": "spin_implication",
+   "arg": 34,
+   "words": 5,
+   "number": null,
+   "spin": "implication"
+  },
+  {
    "text": "Слишком низкий якорь",
    "moves": [
     "statement"
@@ -3209,6 +3532,30 @@
    "primary": "statement",
    "arg": 5,
    "words": 3,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Сможете подвинуться по цене?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 20,
+   "words": 4,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Сможешь подвинуться по цене?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 20,
+   "words": 4,
    "number": null,
    "spin": null
   },
@@ -3243,6 +3590,50 @@
    "primary": "statement",
    "arg": 20,
    "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Ты не понимаешь, о чём говоришь.",
+   "moves": [
+    "hostile"
+   ],
+   "primary": "hostile",
+   "arg": 0,
+   "words": 6,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Ты прав, срок действительно короткий.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 30,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Ты правда так думаешь?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 4,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "У вас нет выбора.",
+   "moves": [
+    "threat"
+   ],
+   "primary": "threat",
+   "arg": 8,
+   "words": 4,
    "number": null,
    "spin": null
   },
@@ -3322,6 +3713,17 @@
    "primary": "batna",
    "arg": 28,
    "words": 18,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "У тебя нет выбора.",
+   "moves": [
+    "threat"
+   ],
+   "primary": "threat",
+   "arg": 8,
+   "words": 4,
    "number": null,
    "spin": null
   },
@@ -3414,6 +3816,17 @@
    "spin": null
   },
   {
+   "text": "Хочу, чтобы мы поскорее ударили по рукам.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 7,
+   "number": null,
+   "spin": null
+  },
+  {
    "text": "Чем это грозит вам, когда загрузка производства падает на месяц?",
    "moves": [
     "spin_implication"
@@ -3423,6 +3836,18 @@
    "words": 10,
    "number": null,
    "spin": "implication"
+  },
+  {
+   "text": "Что вас беспокоит в этом?",
+   "moves": [
+    "spin_problem",
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 46,
+   "words": 5,
+   "number": null,
+   "spin": "problem"
   },
   {
    "text": "Что для вас важнее всего, когда вы обосновываете вилку перед финансами?",
@@ -3445,6 +3870,18 @@
    "words": 3,
    "number": null,
    "spin": null
+  },
+  {
+   "text": "Что тебя беспокоит в этом?",
+   "moves": [
+    "spin_problem",
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 46,
+   "words": 5,
+   "number": null,
+   "spin": "problem"
   },
   {
    "text": "Эта сделка нам совсем невыгодна.",
@@ -3604,6 +4041,17 @@
   },
   {
    "text": "Я готов выйти через месяц.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "spin": null
+  },
+  {
+   "text": "Я не принимаю такие условия.",
    "moves": [
     "statement"
    ],

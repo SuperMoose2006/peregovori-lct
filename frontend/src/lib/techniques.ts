@@ -45,11 +45,23 @@ export const norm = (s: string): string =>
  * английское «unfair» не давало ничего — два языка вели себя по-разному на
  * одном предложении. Хвост остаётся открытым намеренно: основы для того и
  * написаны, чтобы ловить словоформы. Зеркало techniques.py::_starts_at_word.
+ *
+ * Закрывается только начало — и, поимённо, хвост у записей `LEX.closedTail`,
+ * где открытый хвост ловит ЧУЖОЕ слово, а удлинить основу нельзя: «ты прав»
+ * совпало бы с «ты правда так думаешь?», а «правда» длиннее «прав», не короче.
  */
+const CLOSED_TAIL = new Set(LEX.closedTail);
+
+const tailOk = (text: string, at: number, word: string): boolean => {
+  if (!CLOSED_TAIL.has(word)) return true;
+  const end = at + word.length;
+  return end >= text.length || !/\p{L}/u.test(text[end]);
+};
+
 export const startsAtWord = (text: string, word: string): boolean => {
   for (let at = text.indexOf(word); at >= 0; at = text.indexOf(word, at + 1)) {
     const before = at === 0 ? " " : text[at - 1];
-    if (!/\p{L}/u.test(before)) return true;
+    if (!/\p{L}/u.test(before) && tailOk(text, at, word)) return true;
   }
   return false;
 };
@@ -77,12 +89,50 @@ export const hasUnnegated = (t: string, arr: string[]): boolean =>
   arr.some((w) => {
     for (let at = t.indexOf(w); at >= 0; at = t.indexOf(w, at + 1)) {
       const before = at === 0 ? " " : t[at - 1];
-      if (/\p{L}/u.test(before)) continue;
+      if (/\p{L}/u.test(before) || !tailOk(t, at, w)) continue;
       const head = t.slice(0, at).split(/\s+/).filter(Boolean);
       if (!head.slice(-NEGATION_WINDOW).some((x) => NEGATORS.has(x))) return true;
     }
     return false;
   });
+
+// Знаки, которыми кончается КЛАУЗА. Зеркало techniques.py::_CLAUSE_BREAKS —
+// дефис не входит намеренно: в «мы-то договорились» он внутри слова.
+const CLAUSE_BREAKS = ".,?!";
+const SUBORDINATORS = new Set(LEX.subordinators);
+
+/** Идиома закрытия — это АКТ закрытия, а не рассказ о нём.
+ *
+ * `accept` ведёт стол к сделке НА ЦЕНЕ ОППОНЕНТА, поэтому ложное закрытие
+ * стоит игроку партии. Перенос чужой разметки переводом (docs/validation.md
+ * § 7.5) намерил шесть таких на 53 русских срабатывания, и все шесть одной
+ * формы: идиома внутри ПРИДАТОЧНОГО предложения — «жду, КОГДА мы ударим по
+ * рукам», «рад, ЧТО мы договорились». Союз ищется по всей клаузе, а не только
+ * в её начале: русский ставит перед «что» запятую всегда, английский не пишет
+ * её вовсе («let me know when we have a deal» — одна клауза, союз четвёртым
+ * словом). Условие «идиома не открывает клаузу» обязательно: без него правило
+ * съело бы «That works for us», где «that» — указательное местоимение. Вторым признаком снимается
+ * отказ («мы так и не договорились»), и отрицание не переходит границу
+ * клаузы — иначе «Не вопрос, договорились» тоже стало бы отказом.
+ *
+ * Зеркало services/gateway/app/engine/techniques.py::_closes_here — менять
+ * синхронно (инвариант 8). */
+export function isClose(t: string): boolean {
+  return LEX.accept.some((w) => {
+    for (let at = t.indexOf(w); at >= 0; at = t.indexOf(w, at + 1)) {
+      const before = at === 0 ? " " : t[at - 1];
+      if (/\p{L}/u.test(before) || !tailOk(t, at, w)) continue;
+      const head = t.slice(0, at);
+      let cut = -1;
+      for (const ch of CLAUSE_BREAKS) cut = Math.max(cut, head.lastIndexOf(ch));
+      const clause = head.slice(cut + 1).split(/\s+/).filter(Boolean);
+      if (!clause.length) return true;
+      if (clause.some((x) => SUBORDINATORS.has(x))) continue;
+      if (!clause.slice(-NEGATION_WINDOW).some((x) => NEGATORS.has(x))) return true;
+    }
+    return false;
+  });
+}
 
 // Длина реплики, при которой формула закрытия читается как закрытие. Зеркало
 // techniques.py::_ACCEPT_SHORT_MAX_WORDS.
