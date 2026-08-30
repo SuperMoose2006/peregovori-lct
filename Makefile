@@ -1,7 +1,7 @@
 # `.PHONY` перечисляет только СУЩЕСТВУЮЩИЕ цели. Здесь стояли `avatar` и
 # `dev`, для которых правил нет: `make dev` выходил С НУЛЁМ, не сделав
 # ничего, — тот же тихий обман, что и `make preflight --live`.
-.PHONY: install gateway frontend test test-py test-js test-commit e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers
+.PHONY: install gateway frontend test test-py test-js test-commit backend-pack e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers
 
 PY  := services/gateway/.venv/bin/python
 PIP := services/gateway/.venv/bin/pip
@@ -29,6 +29,9 @@ test-js:
 # make, печатает свою справку и выходит С НУЛЁМ. Команда выглядит успешной и не
 # делает ничего — а в CLAUDE.md она была записана именно так. Поэтому у живой
 # проверки отдельная цель, а не флаг.
+backend-pack:                  ## собрать артефакт бэкенда для отдельного сервера (ARGS=каталог)
+	services/gateway/tools/pack_backend.sh $(or $(ARGS),/tmp/dialog-backend)
+
 test-commit:                   ## прогнать набор по ЗАПИСАННОМУ дереву, а не по рабочему
 	services/gateway/tools/test_committed.sh
 
