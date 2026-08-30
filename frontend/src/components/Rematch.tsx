@@ -11,7 +11,7 @@
 // вычитает одно из другого. В `score_session` это не входит ничем — сравнение
 // послесловие, а не вторая оценка (инварианты 3 и 6). Экзамена здесь нет
 // вовсе: там сопровождение выключено до конца (App решает это, не панель).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Lang, StateView } from "../types";
 import type { Strings } from "../i18n";
 import type { PastRun, RunOpening } from "../lib/progress";
@@ -98,6 +98,25 @@ export function RematchRail(props: RematchRailProps) {
     return () => document.body.classList.remove("rm-docked");
   }, [open]);
 
+  // ПАНЕЛЬ И ЯЗЫЧОК — ОДНО УПРАВЛЕНИЕ, КОТОРОЕ САМО СЕБЯ СНОСИТ. Открывающая
+  // кнопка исчезает вместе с нажатием (её место занимает панель), закрывающий
+  // крестик — вместе с закрытием. Фокус в обоих случаях падал на BODY: с
+  // клавиатуры следующий Tab начинал документ заново, а диктору не
+  // доставалось ни слова о том, что панель открылась. Ведём фокус туда, где
+  // теперь суть, и возвращаем на язычок при закрытии — как это делает шторка
+  // слоёв (lib/modal.ts). Модалкой панель при этом НЕ становится: стол под ней
+  // работает как работал, и ловушки Tab здесь быть не должно.
+  const railRef = useRef<HTMLElement>(null);
+  const tabRef = useRef<HTMLButtonElement>(null);
+  // Первая отрисовка не «открытие»: панель могла подняться сама по ширине
+  // экрана, и уводить фокус на неё, пока человек ничего не нажимал, нельзя.
+  const wasOpen = useRef(open);
+  useEffect(() => {
+    if (wasOpen.current === open) return;
+    wasOpen.current = open;
+    (open ? railRef.current : tabRef.current)?.focus({ preventScroll: true });
+  }, [open]);
+
   // Последний СЫГРАННЫЙ ход. Сравнивать раньше нечего: до первой реплики обе
   // партии стоят на стартовых условиях.
   const turn = nowTrail.length;
@@ -123,6 +142,7 @@ export function RematchRail(props: RematchRailProps) {
   if (!open) {
     return (
       <button
+        ref={tabRef}
         className="rmrail-tab"
         type="button"
         onClick={() => setOpen(true)}
@@ -135,7 +155,7 @@ export function RematchRail(props: RematchRailProps) {
   }
 
   return (
-    <aside className="rmrail" aria-label={r.title}>
+    <aside className="rmrail" aria-label={r.title} ref={railRef} tabIndex={-1}>
       <div className="rm-head">
         <MascotImg dir="tikhon" state="chart" alt="" size={40} />
         <div className="rm-headtx">

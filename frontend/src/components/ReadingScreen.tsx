@@ -14,7 +14,7 @@
 // довольный ворон над репликой значит «доверие выросло». Пока человек думает,
 // ворон изучает реплику вместе с ним (`study`), и только после раскрытия
 // реагирует на то, что уже видно обоим.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Lang, StateView } from "../types";
 import type { Strings } from "../i18n";
 import { formatDeal } from "../lib/format";
@@ -73,6 +73,16 @@ export function ReadingScreen({ t, lang, onClose }: Props) {
   const [previous, setPrevious] = useState<ReadingRecord | undefined>(
     () => (gameId ? loadReading().games[gameId] : undefined),
   );
+
+  // РАЗБОР ЗАБИРАЕТ ФОКУС. Четыре варианта ответа исчезают тем же нажатием,
+  // которым отвечают, — и фокус падал на BODY: с клавиатуры следующий Tab
+  // начинал обход диалога заново, а диктору не доставалось ни слова о том, что
+  // произошло. Разбор и есть весь смысл остановки, поэтому фокус ведём в него
+  // (он `tabIndex={-1}` и `role="status"`), ровно как вердикт упражнения курса.
+  const revealRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (picked !== null) revealRef.current?.focus({ preventScroll: true });
+  }, [picked]);
 
   const restart = useCallback((id: string | null) => {
     setGameId(id);
@@ -189,6 +199,7 @@ export function ReadingScreen({ t, lang, onClose }: Props) {
               </div>
             ) : (
               <ReadingReveal t={t} turn={turn} name={reading.name} verdict={verdict}
+                             innerRef={revealRef}
                              mine={turn.ask && picked !== null ? turn.ask.options[picked] : null} />
             )}
 
@@ -205,14 +216,20 @@ export function ReadingScreen({ t, lang, onClose }: Props) {
 /** Разбор одного хода. Ни одной собственной оценки: ярлык реакции и объяснение
  *  берутся из того же словаря, что и в слое «Читай лицо», улики — из
  *  классификатора, последствия — из хроники движка. */
-function ReadingReveal({ t, turn, name, verdict, mine }: {
+function ReadingReveal({ t, turn, name, verdict, mine, innerRef }: {
   t: Strings; turn: ReadingTurn; name: string; verdict: ReadingVerdict | null;
   /** Что выбрал человек. Показывается рядом с ответом движка: разбор промаха
    *  без самого промаха заставляет вспоминать, что ты вообще нажал. */
   mine: string | null;
+  /** Куда вести фокус после ответа: сами варианты в этот момент исчезают. */
+  innerRef?: React.Ref<HTMLDivElement>;
 }) {
   return (
-    <div className="rd-reveal">
+    // `role="status"` держит вторую половину обещания: карточка появляется
+    // целиком, и объявляет её перевод фокуса, а не живая область, — но если
+    // фокус почему-то не дойдёт, роль остаётся честным описанием того, что это
+    // такое.
+    <div className="rd-reveal" ref={innerRef} tabIndex={-1} role="status">
       {verdict ? (
         <p className={`rd-verdict rd-v-${verdict}`}>{t.reading[verdict]}</p>
       ) : (

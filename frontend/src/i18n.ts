@@ -718,6 +718,9 @@ export interface Strings {
     sub: string; // одна строка о том, откуда числа
     lowTitle: string; // мало данных — заголовок
     lowBody: string; // «сыграно {played} из {need}» + почему не рисуем линию
+    // Имя полоски «сколько уже есть». Роль `progressbar` без имени диктор
+    // читает как «индикатор, 3» — число без единого слова о том, чего три.
+    lowAria: string; // «Сыграно {played} из {need} партий»
     windowNote: string; // «последние {n} {form} · {from} — {to}»
     overallLabel: string; // подпись графика
     dirUp: string; // вердикт: растёт
@@ -1507,6 +1510,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "Как вы растёте",
       sub: "Каждая точка — законченная партия: тот самый счёт, из которого движок вывел букву.",
       lowTitle: "Данных пока мало",
+      lowAria: "Сыграно {played} из {need} партий",
       lowBody: "Сыграно {played} из {need}. О тенденции говорим с шести партий: по двум точкам линию нарисовать можно всегда, а показывала бы она уверенность, которой нет.",
       windowNote: "Последние {n} {form} · {from} — {to}",
       overallLabel: "Общий счёт партии",
@@ -2288,6 +2292,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "How you are growing",
       sub: "Every dot is one finished negotiation — the very score the engine turned into a grade.",
       lowTitle: "Not enough data yet",
+      lowAria: "{played} of {need} games played",
       lowBody: "{played} of {need} played. A trend needs six games: a line through two points can always be drawn, and it would show a confidence that isn't there.",
       windowNote: "Last {n} {form} · {from} — {to}",
       overallLabel: "Overall score per game",

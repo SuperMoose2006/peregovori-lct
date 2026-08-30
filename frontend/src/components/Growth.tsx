@@ -140,7 +140,9 @@ export function Growth({ t, lang, view }: { t: Strings; lang: Lang; view?: Growt
         <p className="grw-low-b">{sub(t.growth.lowBody, { played: v.played, need: v.need })}</p>
         {/* Полоска «сколько уже есть» — единственное, что здесь можно показать
             честно: это счётчик партий, а не оценка. */}
-        <div className="grw-fill" role="progressbar" aria-valuenow={v.played} aria-valuemin={0} aria-valuemax={v.need}>
+        <div className="grw-fill" role="progressbar"
+             aria-label={sub(t.growth.lowAria, { played: v.played, need: v.need })}
+             aria-valuenow={v.played} aria-valuemin={0} aria-valuemax={v.need}>
           <i style={{ width: `${Math.round((Math.min(v.played, v.need) / v.need) * 100)}%` }} />
         </div>
       </section>

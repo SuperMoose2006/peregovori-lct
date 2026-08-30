@@ -491,6 +491,58 @@ export function Debrief({
             </div>
           ) : null}
 
+          {/* «Обратная сторона стола» — карточка, ради которой режим и заведён.
+              Стоит СРАЗУ ЗА колонкой оппонента, потому что читается как её
+              вторая половина: там — что прятали от вас, здесь — что прятали ВЫ,
+              и почему никто напротив этого не увидел.
+
+              Ключа `other_side` нет на обычном столе, и карточки тогда нет
+              вовсе: режима, которого не было, на экране не бывает (принцип 2).
+              Всё, что здесь написано, посчитано движком — на сервере
+              views.other_side, офлайн mock/engine.ts::otherSide, — и совпадает
+              у двух реализаций до символа (frontend/test/games.test.ts).
+
+              Экзамена это не касается по той же причине, что и колонки выше:
+              там сопровождение выключено до конца. */}
+          {at(1) && !exam && d.other_side ? (
+            <div className="herside otherside">
+              <h2>🪞 {t.otherSide.debriefTitle}</h2>
+              <div className="hs-lead">
+                <MascotImg dir="tikhon" state="chart" alt={t.otherSide.mascotAlt} size={44} />
+                <p>
+                  {t.otherSide.seat.replace("{seat}", d.other_side.seat)}{" "}
+                  {t.otherSide.origin.replace("{title}", d.other_side.origin_title)}
+                </p>
+              </div>
+
+              <h3>{t.otherSide.defendTitle}</h3>
+              <ul className="os-list">
+                {d.other_side.defended.map((i) => (
+                  <li key={i.topic + i.text}>
+                    <b>{i.topic}</b>
+                    <span>{i.text}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hs-missed">
+                <h3>{t.otherSide.blindTitle}</h3>
+                <p>{d.other_side.blind}</p>
+              </div>
+
+              <div className="hs-missed">
+                <h3>{t.otherSide.windowsTitle}</h3>
+                {d.other_side.windows.length ? (
+                  <ul className="os-windows">
+                    {d.other_side.windows.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                ) : (
+                  <p className="hs-ask">{t.otherSide.windowsNone}</p>
+                )}
+              </div>
+            </div>
+          ) : null}
+
           {/* Numbers live in the details drawer: they are reference, not the
               lesson, and they were the densest block on the old single page. */}
           {at(2) && (!paged || detailsOpen) ? (
@@ -822,6 +874,16 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
     raf.current = requestAnimationFrame(() => setGrown(true));
   };
 
+  // ВЕТКА ЗАБИРАЕТ ФОКУС. Кнопка «Показать, что было бы иначе» исчезает вместе
+  // с нажатием — на её месте встаёт расхождение, ради которого всё и делалось,
+  // — и фокус падал на BODY: с клавиатуры обход начинался заново, а диктору не
+  // доставалось ни слова о том, что контрфакт посчитан. Тот же приём, что у
+  // вердикта упражнения и у разбора «Чтения стола».
+  const divergeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (res) divergeRef.current?.focus({ preventScroll: true });
+  }, [res]);
+
   const resetChoice = () => {
     setRes(null);
     setFailed(false);
@@ -856,6 +918,16 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
               </button>
             ))}
           </div>
+          {/* ПЕРЕКЛЮЧАЕТ ВВОД, А НЕ ФОКУС. Здесь стоял `onFocus`, и он делал
+              контрфакт НЕИГРАБЕЛЬНЫМ с клавиатуры: поле лежит в порядке обхода
+              между затравками и кнопкой «Показать», то есть пройти мимо него
+              нельзя. Tab с выбранной затравкой заходил сюда, `setChoice` гасил
+              выбор, `altText` становился пустым — и следующая остановка Tab
+              была уже точкой раздела, потому что кнопка успевала стать
+              `disabled`. Мышью путь работал (по затравке кликают, поля не
+              касаются), клавиатурой — не работал НИКОГДА. Ввод и так
+              переключает выбор в `onChange`; фокус сам по себе выбором не
+              является. */}
           <input
             className="wi-input"
             type="text"
@@ -865,7 +937,6 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
               setCustom(e.target.value);
               setChoice("custom");
             }}
-            onFocus={() => setChoice("custom")}
           />
           <button className="wi-reveal" type="button" onClick={reveal} disabled={loading || !altText}>
             {loading ? w.loading : w.reveal}
@@ -877,6 +948,7 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
           t={t}
           lang={lang}
           res={res}
+          innerRef={divergeRef}
           grown={grown}
           unit={unit}
           lowerBetter={lowerBetter}
@@ -890,7 +962,7 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
 // The revealed side-by-side: original vs alternative branch. Emphasizes the
 // improvement honestly — the banner and summary are derived from the real deltas.
 function Divergence({
-  t, lang, res, grown, unit, lowerBetter, onReset,
+  t, lang, res, grown, unit, lowerBetter, onReset, innerRef,
 }: {
   t: Strings;
   lang: Lang;
@@ -899,6 +971,8 @@ function Divergence({
   unit?: string;
   lowerBetter?: boolean;
   onReset: () => void;
+  /** Куда вести фокус: кнопка, которой сюда пришли, в этот момент исчезает. */
+  innerRef?: React.Ref<HTMLDivElement>;
 }) {
   const w = t.whatIf;
   const { original: o, alternative: a } = res;
@@ -926,7 +1000,7 @@ function Divergence({
   if (priceBetter) bits.push(w.priceFurther);
 
   return (
-    <div className="wi-diverge">
+    <div className="wi-diverge" ref={innerRef} tabIndex={-1} role="status">
       <div className={`wi-banner${better ? " good" : ""}`}>
         {better ? w.betterBanner : w.neutralBanner}
       </div>

@@ -116,10 +116,19 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
     // streamed chunk re-announced the half-built sentence — measured 8
     // announcements for one reply, three of them fragments of the same line —
     // and the authoritative message then announced it once more.
+    //
+    // `tabIndex={0}` — НЕ УКРАШЕНИЕ РОЛИ, А ЕДИНСТВЕННЫЙ СПОСОБ ПРОЛИСТАТЬ
+    // ЛЕНТУ С КЛАВИАТУРЫ. Лента — вложенный скроллер (`overflow-y: auto`), и
+    // прокрутить её стрелками можно, только если она сама может принять фокус.
+    // В обычной партии это спасали крестики карточек тренера, случайно
+    // оказавшиеся внутри; на ЭКЗАМЕНЕ карточек тренера нет вовсе — замер даёт
+    // ноль фокусируемых потомков при 129 px уже уехавшего вверх текста, то
+    // есть свои первые ходы человек без мыши перечитать не мог.
     <div
       className={`log${opening ? " has-opening" : ""}`}
       ref={ref}
       role="log"
+      tabIndex={0}
       aria-label={logLabel}
       aria-live="polite"
       aria-relevant="additions"
@@ -167,55 +176,15 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
         if (e.kind === "probe") {
           // Deliberately inline rather than a modal: the answer is read off the
           // avatar's expression and the meters, and a modal would cover both.
-          const answered = e.picked !== undefined;
-          const right = answered && e.picked === e.answer;
           return (
-            // A radiogroup, not four loose buttons: the options belong to the
-            // question, and `aria-labelledby` is what says so. Focusable via
-            // tabIndex so opening the question can move focus here instead of
-            // dropping it to <body> when the composer is disabled underneath.
-            <div
-              className={`probe${answered ? (right ? " right" : " wrong") : ""}`}
+            <ProbeCard
               key={e.id}
-              ref={(el) => registerProbe?.(e.id, el)}
-              tabIndex={-1}
-              role="radiogroup"
-              aria-labelledby={`pb-q-${e.id}`}
-            >
-              <div className="pb-head">
-                <b id={`pb-q-${e.id}`}>🎭 {probeLabels.ask}</b>
-                {probeTally ? <span className="pb-tally">{probeTally}</span> : null}
-              </div>
-              <div className="pb-opts">
-                {e.options.map((o, i) => {
-                  const mark = !answered ? "" : i === e.answer ? " ok" : i === e.picked ? " bad" : " dim";
-                  return (
-                    <button
-                      key={i}
-                      className={`pb-opt${mark}`}
-                      role="radio"
-                      aria-checked={e.picked === i}
-                      // aria-disabled, not `disabled`: a native disabled button is
-                      // pulled out of the tab order, and blanking focus mid-turn
-                      // teleports a keyboard user to the top of the document.
-                      aria-disabled={answered || undefined}
-                      onClick={() => (answered ? undefined : onProbeAnswer?.(e.id, i))}
-                    >
-                      {probeLabels.reactions[o] ?? o}
-                      {answered && i === e.answer ? <span aria-hidden="true"> ✓</span> : null}
-                      {answered && i === e.picked && i !== e.answer ? <span aria-hidden="true"> ✗</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Marking an answer wrong teaches nothing; the reason does. */}
-              {answered ? (
-                <div className="pb-why" role="status">
-                  <b>{right ? probeLabels.right : probeLabels.wrong}</b>{" "}
-                  {probeLabels.why[e.options[e.answer]] ?? ""}
-                </div>
-              ) : null}
-            </div>
+              entry={e}
+              probeLabels={probeLabels}
+              probeTally={probeTally}
+              registerProbe={registerProbe}
+              onProbeAnswer={onProbeAnswer}
+            />
           );
         }
         if (e.kind === "coach") {
@@ -291,6 +260,106 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
             <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
             <span className="typing-label">{typingLabel}</span>
           </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Вопрос слоя «Читай лицо»: выбрать одну реакцию из четырёх.
+ *
+ *  РОЛЬ ОБЯЗАНА РАБОТАТЬ, А НЕ ТОЛЬКО ОБЪЯВЛЯТЬСЯ. `radiogroup`/`radio` — это
+ *  обещание конкретной клавиатурной модели: у группы ОДНА остановка Tab, а
+ *  внутри ходят стрелки. Здесь было четыре кнопки с ролью `radio`, каждая
+ *  своей остановкой Tab, и стрелки не делали ничего: диктор объявлял
+ *  «переключатель 1 из 4», человек жал стрелку — и не происходило ничего. Это
+ *  та же половинчатая разметка, из-за которой из продукта уже убрали `tablist`
+ *  в разборе и `listbox` в упражнениях курса; здесь роль оставлена, потому что
+ *  она несёт сам вопрос (`aria-labelledby`), — значит написана и модель.
+ *
+ *  Одно отступление от нативного radio названо вслух ниже: стрелка здесь
+ *  перемещает, но не отвечает.
+ *
+ *  После ответа группа остаётся в обходе одной остановкой: варианты помечены
+ *  `aria-disabled`, а не `disabled`, чтобы фокус под курсором не исчез. */
+function ProbeCard({ entry, probeLabels, probeTally, registerProbe, onProbeAnswer }: {
+  entry: Extract<ChatEntry, { kind: "probe" }>;
+  probeLabels: Strings["probe"];
+  probeTally?: string;
+  registerProbe?: (id: number, el: HTMLDivElement | null) => void;
+  onProbeAnswer?: (id: number, choice: number) => void;
+}) {
+  const e = entry;
+  const answered = e.picked !== undefined;
+  const right = answered && e.picked === e.answer;
+  const opts = useRef<(HTMLButtonElement | null)[]>([]);
+  // Единственная остановка Tab внутри группы — вот она. Ровно это и значит
+  // «roving tabindex»: группа в обходе одна, а внутри ходят стрелки.
+  const [cursor, setCursor] = useState(0);
+  const stop = e.picked ?? cursor;
+
+  // СТРЕЛКА ПЕРЕМЕЩАЕТ, А ВЫБИРАЕТ ENTER. Нативный radio выбирает прямо
+  // стрелкой, и для обычной формы это правильно: там передумать можно. Здесь
+  // ответ ОДИН и он уходит в счёт слоя — человек, который просто листает
+  // варианты, отвечал бы первой же стрелкой и узнавал об этом из вердикта.
+  const onKey = (ev: React.KeyboardEvent<HTMLDivElement>) => {
+    const n = e.options.length;
+    const cur = opts.current.findIndex((el) => el === document.activeElement);
+    if (cur < 0) return;
+    let next = cur;
+    if (ev.key === "ArrowRight" || ev.key === "ArrowDown") next = (cur + 1) % n;
+    else if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") next = (cur - 1 + n) % n;
+    else if (ev.key === "Home") next = 0;
+    else if (ev.key === "End") next = n - 1;
+    else return;
+    ev.preventDefault();
+    setCursor(next);
+    opts.current[next]?.focus();
+  };
+
+  return (
+    // Focusable via tabIndex so opening the question can move focus here instead
+    // of dropping it to <body> when the composer is disabled underneath.
+    <div
+      className={`probe${answered ? (right ? " right" : " wrong") : ""}`}
+      ref={(el) => registerProbe?.(e.id, el)}
+      tabIndex={-1}
+      role="radiogroup"
+      aria-labelledby={`pb-q-${e.id}`}
+    >
+      <div className="pb-head">
+        <b id={`pb-q-${e.id}`}>🎭 {probeLabels.ask}</b>
+        {probeTally ? <span className="pb-tally">{probeTally}</span> : null}
+      </div>
+      <div className="pb-opts" onKeyDown={onKey}>
+        {e.options.map((o, i) => {
+          const mark = !answered ? "" : i === e.answer ? " ok" : i === e.picked ? " bad" : " dim";
+          return (
+            <button
+              key={i}
+              ref={(el) => { opts.current[i] = el; }}
+              className={`pb-opt${mark}`}
+              role="radio"
+              aria-checked={e.picked === i}
+              tabIndex={i === stop ? 0 : -1}
+              // aria-disabled, not `disabled`: a native disabled button is
+              // pulled out of the tab order, and blanking focus mid-turn
+              // teleports a keyboard user to the top of the document.
+              aria-disabled={answered || undefined}
+              onClick={() => (answered ? undefined : onProbeAnswer?.(e.id, i))}
+            >
+              {probeLabels.reactions[o] ?? o}
+              {answered && i === e.answer ? <span aria-hidden="true"> ✓</span> : null}
+              {answered && i === e.picked && i !== e.answer ? <span aria-hidden="true"> ✗</span> : null}
+            </button>
+          );
+        })}
+      </div>
+      {/* Marking an answer wrong teaches nothing; the reason does. */}
+      {answered ? (
+        <div className="pb-why" role="status">
+          <b>{right ? probeLabels.right : probeLabels.wrong}</b>{" "}
+          {probeLabels.why[e.options[e.answer]] ?? ""}
         </div>
       ) : null}
     </div>

@@ -153,8 +153,15 @@ export function Avatar({ scenarioId, mood, size, label }: Props) {
       className="av-svg"
       viewBox="0 0 64 64"
       style={dim}
-      role="img"
-      aria-label={label ?? "Counterpart portrait"}
+      // ИМЯ ИЛИ ЧЕСТНОЕ «УКРАШЕНИЕ», ТРЕТЬЕГО НЕТ. Здесь стояло английское
+      // `"Counterpart portrait"` строкой в коде — то есть русский диктор читал
+      // бы «каунтерпарт портрет» (инвариант 4), а тест на одноязычные имена
+      // такую запись не видит: она не литерал, а хвост `??`. Оба вызова имя
+      // передают; когда его нет, портрет — украшение рядом с уже названным
+      // именем, и так он себя и объявляет.
+      role={label ? "img" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
     >
       {/* Lamplit halo behind the head — theme-aware (token-based), ties the
           portrait to the brass identity and reads on light & dark panels. */}

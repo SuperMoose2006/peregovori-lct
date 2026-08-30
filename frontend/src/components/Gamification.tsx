@@ -62,7 +62,13 @@ export function HeroStats({
           <span className="hs-xp">{sub(t.gam.totalXp, { n: profile.xp })}</span>
         </div>
         <div className="hs-rank-name">{rankName}</div>
-        <div className="hs-bar" role="progressbar" aria-valuenow={Math.round(r.progress * 100)}>
+        {/* Полоска УКРАШЕНИЕ, и роли на ней нет. `role="progressbar"` без имени
+            диктор читает как «индикатор, 62» — шестьдесят два чего, неизвестно;
+            имени взяться неоткуда, потому что оно уже сказано словами строкой
+            ниже («до Профи 250 XP»), а сама плитка — кнопка со своим
+            `aria-label`, внутри которой вложенный виджет ничего не добавляет.
+            Так же устроены остальные полоски продукта (.rc-bar, .lesson-bar). */}
+        <div className="hs-bar" aria-hidden="true">
           <div className="hs-bar-fill" style={{ width: `${Math.round(r.progress * 100)}%` }} />
         </div>
         <div className="hs-next">{nextLine}</div>

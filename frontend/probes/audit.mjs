@@ -104,7 +104,7 @@ const add = (sev, where, kind, msg) => findings.push({ sev, where: where + "@" +
 
 // ——— проверки, которые гоняются на каждом состоянии ———
 const PROBE = `(() => {
-  const out = { hscroll: false, overflow: [], small: [], leak: [], dupIds: [], noAlt: 0, mute: [], contrast: [], cyr: [], aria: [], badLabel: [] };
+  const out = { hscroll: false, overflow: [], small: [], leak: [], dupIds: [], noAlt: 0, mute: [], contrast: [], cyr: [], aria: [], badLabel: [], scroll: [], roleName: [] };
   const de = document.documentElement;
   out.hscroll = de.scrollWidth > de.clientWidth + 1;
 
@@ -143,7 +143,10 @@ const PROBE = `(() => {
     if (!clipsX) continue;
     // sr-only обрезан НАМЕРЕННО: это коробка 1×1 для экранного диктора.
     if (el.clientWidth <= 2 || el.clientHeight <= 2) continue;
-    if (/\bsr-only\b/.test(el.className || "")) continue;
+    // Двойное экранирование: PROBE — шаблонный литерал, и одиночное \\b в нём
+    // превращается в букву «b». Разделитель был /bsr-onlyb/ и не совпадал
+    // никогда; спасал только фильтр по размеру 1×1 выше.
+    if (/\\bsr-only\\b/.test(el.className || "")) continue;
     if (el.scrollWidth > el.clientWidth + 1) {
       const t = (el.textContent || "").trim();
       if (t) out.overflow.push(Math.round(el.scrollWidth - el.clientWidth) + "px срезано :: " + (el.className || el.tagName) + " :: " + t.slice(0, 40));
@@ -301,6 +304,67 @@ const PROBE = `(() => {
     if (tabs.some((t) => !t.getAttribute("aria-controls"))) out.aria.push("вкладка без aria-controls");
     if (tabs.filter((t) => t.tabIndex === 0).length > 1)
       out.aria.push("tablist без roving tabindex: каждая вкладка — своя остановка Tab");
+  }
+
+  // ПРОКРУЧИВАЕМАЯ ОБЛАСТЬ, КОТОРУЮ НЕЧЕМ ПРОЛИСТАТЬ С КЛАВИАТУРЫ.
+  //
+  // Вложенный скроллер прокручивается стрелками, только если он сам может
+  // принять фокус (tabindex) или если фокус можно завести внутрь него — на
+  // какое-нибудь управление. Не выполнено ни то, ни другое — часть содержимого
+  // недостижима без мыши, и это не «неудобно», а «нельзя». Так молчала лента
+  // реплик на экзамене: карточек тренера там нет, крестиков внутри нет, ноль
+  // фокусируемых потомков — и свои первые ходы человек перечитать не мог.
+  for (const el of document.querySelectorAll("body *")) {
+    if (!vis(el)) continue;
+    const s = getComputedStyle(el);
+    const scrollsY = (s.overflowY === "auto" || s.overflowY === "scroll") && el.scrollHeight > el.clientHeight + 8;
+    const scrollsX = (s.overflowX === "auto" || s.overflowX === "scroll") && el.scrollWidth > el.clientWidth + 8;
+    if (!scrollsY && !scrollsX) continue;
+    const ti = el.getAttribute("tabindex");
+    if (ti !== null && ti !== "-1") continue;                       // сам берёт фокус
+    // Управление внутри — тоже способ доскроллить: Tab подводит его под кромку.
+    const inner = [...el.querySelectorAll("button, a[href], input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex='-1'])")]
+      .filter((n) => !n.disabled && vis(n));
+    if (inner.length) continue;
+    out.scroll.push(Math.round(Math.max(el.scrollHeight - el.clientHeight, el.scrollWidth - el.clientWidth)) +
+      "px недостижимо: " + (el.className || el.tagName) + " прокручивается, но не принимает фокус и не содержит ни одного управления");
+  }
+
+  // ВИДЖЕТ-РОЛЬ БЕЗ ДОСТУПНОГО ИМЕНИ. Для этих ролей имя обязательно по
+  // спецификации: без него диктор читает «индикатор, 3» — число, о котором
+  // нечего сказать. Текст ВНУТРИ именем не считается: у progressbar и meter
+  // содержимое дикторами не читается вовсе.
+  const NAMED = ["progressbar", "meter", "slider", "radiogroup", "switch", "tablist", "dialog", "img", "log", "group"];
+  for (const el of document.querySelectorAll("[role]")) {
+    const role = (el.getAttribute("role") || "").trim();
+    if (!NAMED.includes(role)) continue;
+    if (!vis(el)) continue;
+    const lb = el.getAttribute("aria-labelledby");
+    const named = (el.getAttribute("aria-label") || "").trim()
+      // ДВОЙНОЕ ЭКРАНИРОВАНИЕ ОБЯЗАТЕЛЬНО: PROBE — это шаблонный литерал, и
+      // одиночное \\s внутри него превращается в букву «s», а не в границу
+      // пробела. Разделитель становился /s+/, «cust-ex-head» распадался на
+      // «cu» и «t-ex-head», и прибор объявлял безымянной группу, у которой имя
+      // есть. Ровно этой ошибкой прибор уже врал 29 раз за прогон.
+      || (lb ? lb.split(/\\s+/).some((id) => document.getElementById(id)) : false)
+      || (role === "img" && (el.getAttribute("alt") || "").trim());
+    if (!named) out.roleName.push('role="' + role + '" без доступного имени :: ' + (el.className || el.tagName).toString().slice(0, 40));
+  }
+
+  // РАДИОГРУППА БЕЗ ROVING TABINDEX. Роль обещает ОДНУ остановку Tab на всю
+  // группу, а ходят внутри стрелки; четыре отдельные остановки и мёртвые
+  // стрелки — ровно та половинчатая разметка, из-за которой из продукта уже
+  // убрали «tablist» в разборе и «listbox» в курсе. Считается то, что видно
+  // отсюда, — число остановок; работу стрелок проверяет уже человек за
+  // клавиатурой, но без одной остановки они бессмысленны в любом случае.
+  for (const rg of document.querySelectorAll("[role=radiogroup]")) {
+    if (!vis(rg)) continue;
+    const radios = [...rg.querySelectorAll("[role=radio]")].filter(vis);
+    if (radios.length < 2) continue;
+    const stops = radios.filter((r) => r.tabIndex === 0);
+    if (stops.length !== 1)
+      out.aria.push("radiogroup без roving tabindex: остановок Tab внутри " + stops.length +
+                    " (обязана быть ровно одна) :: " + (rg.className || rg.tagName).toString().slice(0, 30));
   }
 
   // ИМЯ КНОПКИ — ТОЖЕ ПОЛЬЗОВАТЕЛЬСКИЙ ТЕКСТ. Прибор считал aria-label
@@ -496,31 +560,134 @@ const GEOM = `(() => {
   return out;
 })()`;
 
-// :focus-visible не включается от программного .focus() — только от настоящей
-// клавиатуры. Поэтому жмём Tab и сравниваем вид элемента с его же видом без фокуса.
-async function keyboardFocus(page, where) {
-  const bad = await page.evaluate(async () => {
-    const out = [];
-    const seen = new Set();
-    const els = [...document.querySelectorAll("button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])")]
-      .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
-    return els.length;
-  });
-  const n = Math.min(bad, 30);
-  const problems = [];
-  for (let i = 0; i < n; i++) {
-    await page.keyboard.press("Tab");
-    const r = await page.evaluate(() => {
-      const el = document.activeElement;
-      if (!el || el === document.body) return null;
-      const cs = getComputedStyle(el);
-      const visible = (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0)
-        || /inset|rgb/.test(cs.boxShadow) && cs.boxShadow !== "none";
-      return { visible, id: (el.className || el.tagName) + "::" + (el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 24) };
-    });
-    if (r && !r.visible && !problems.includes(r.id)) problems.push(r.id);
+// ——— КЛАВИАТУРНЫЙ ПРОХОД: ОДИН ОБХОД, ДВА ОТВЕТА ———
+//
+// Первый: ВИДЕН ЛИ ФОКУС. `:focus-visible` не включается от программного
+// `.focus()` — только от настоящей клавиши, поэтому жмём Tab и смотрим на
+// вычисленный стиль элемента под фокусом.
+//
+// Второй, и он важнее: ДОХОДИТ ЛИ TAB ДО КАЖДОГО ДЕЙСТВИЯ. Этого прибор не
+// спрашивал ни разу — и не увидел, как «А что если…», единственное место
+// продукта, где партию переигрывают на своих же словах, оказалось
+// неиграбельным без мыши: поле «впишите свою реплику» стоит в порядке обхода
+// между затравками и кнопкой «Показать» и по `onFocus` гасило выбранную
+// затравку, а кнопка от этого становилась `disabled` — то есть исчезала из
+// обхода ровно в тот момент, когда до неё дошли. Мышью путь работал, потому
+// что мышь поля не касается. Проверка «кнопка имеет имя» такое не ловит:
+// имя у кнопки было.
+//
+// Мерять это можно только НАСТОЯЩИМИ нажатиями Tab: порядок обхода зависит от
+// tabindex, disabled, inert, `display`, порталов и того, что делает сама
+// страница в ответ на фокус. Ни один статический разбор разметки этого не
+// воспроизводит.
+const KB_MARK = `(() => {
+  const OP = 'button, a[href], input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"]), [role=button], [role=radio], [role=switch], [role=option], [role=tab]';
+  const vis = (el) => {
+    const s = getComputedStyle(el);
+    if (s.display === "none" || s.visibility === "hidden" || +s.opacity === 0) return false;
+    if (el.tagName !== "SUMMARY" && el.closest("details:not([open])")) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 1 && r.height > 1;
+  };
+  const out = [];
+  let i = 0;
+  for (const el of document.querySelectorAll(OP)) {
+    // Выключенное управление вне обхода ПО ЗАМЫСЛУ, инертное — тем более.
+    if (el.disabled || el.closest("[inert]")) continue;
+    // И tabindex="-1" — тоже замысел, а не дефект: так помечены цель
+    // перевода фокуса (заголовок экрана, карточка вопроса) и невыбранные
+    // члены радиогруппы с roving tabindex. Требовать, чтобы Tab дошёл до них,
+    // значило бы требовать сломать ровно ту модель, которую мы чинили.
+    if (el.getAttribute("tabindex") === "-1") continue;
+    if (!vis(el)) continue;
+    el.setAttribute("data-kb", String(i));
+    const name = (el.getAttribute("aria-label") || el.textContent || el.getAttribute("title")
+                  || el.getAttribute("placeholder") || "").replace(/\\s+/g, " ").trim();
+    out.push({ i: String(i), sel: (el.className || el.tagName).toString().slice(0, 40), name: name.slice(0, 46) });
+    i++;
   }
-  return problems;
+  return out;
+})()`;
+
+async function keyboardWalk(page) {
+  const all = await page.evaluate(KB_MARK);
+  const noRing = [];
+  const seen = new Set();
+  if (all.length) {
+    await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
+    // Полтора круга с запасом: одного мало (обход мог начаться с середины),
+    // трёх — расточительно.
+    const budget = Math.min(all.length * 2 + 6, 90);
+    let atBody = 0;
+    for (let k = 0; k < budget; k++) {
+      await page.keyboard.press("Tab");
+      const r = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body) return null;
+        const cs = getComputedStyle(el);
+        const visible = (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0)
+          || (cs.boxShadow !== "none" && /inset|rgb/.test(cs.boxShadow));
+        return {
+          visible, kb: el.getAttribute("data-kb"),
+          id: (el.className || el.tagName) + "::" + (el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 24),
+        };
+      });
+      if (!r) { if (++atBody > 2) break; continue; }   // адресная строка браузера — один раз за круг
+      if (!r.visible && !noRing.includes(r.id)) noRing.push(r.id);
+      if (r.kb !== null) seen.add(r.kb);
+      if (seen.size >= all.length) break;
+    }
+  }
+  // ПЕРЕПРОВЕРКА ПЕРЕД ОБВИНЕНИЕМ — И ЕЁ СОБСТВЕННАЯ ЛОВУШКА.
+  //
+  // За время обхода страница живёт: что-то успевает скрыться. Пропавшее
+  // управление — шум, а не находка. Но первая редакция этой перепроверки
+  // отбрасывала ЗАОДНО и то, что стало `disabled`, — и молча съедала ровно тот
+  // дефект, ради которого написана: кнопка «Показать, что было бы иначе»
+  // выключалась В ХОДЕ ОБХОДА, потому что Tab заходил в соседнее поле, а поле
+  // гасило выбранную затравку. К концу обхода кнопка была выключена, и прибор
+  // считал это законным основанием промолчать.
+  //
+  // Поэтому случая два, и второй — отдельная, более громкая находка: ОДИН
+  // ТОЛЬКО TAB НЕ ИМЕЕТ ПРАВА ВЫКЛЮЧАТЬ УПРАВЛЕНИЯ. Обход ничего не нажимает.
+  const check = await page.evaluate((ids) => {
+    const out = { unreached: [], killed: [] };
+    for (const id of ids) {
+      const el = document.querySelector('[data-kb="' + id + '"]');
+      if (!el || el.closest("[inert]")) continue;
+      const s = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      if (s.display === "none" || s.visibility === "hidden" || +s.opacity === 0) continue;
+      if (r.width <= 1 || r.height <= 1) continue;
+      (el.disabled ? out.killed : out.unreached).push(id);
+    }
+    document.querySelectorAll("[data-kb]").forEach((e) => e.removeAttribute("data-kb"));
+    return out;
+  }, all.filter((e) => !seen.has(e.i)).map((e) => e.i));
+  const byId = new Map(all.map((e) => [e.i, e]));
+  const pick = (ids) => ids.map((id) => byId.get(id)).filter(Boolean);
+  return { noRing, unreached: pick(check.unreached), killed: pick(check.killed) };
+}
+
+// ——— ФОКУС ПОСЛЕ НАЖАТИЯ ———
+//
+// Управление, которое исчезает тем же нажатием, которым его нажимают, уносит
+// фокус с собой: браузер роняет его на BODY. Для человека с клавиатурой это
+// значит «следующий Tab начинает документ заново», для диктора — что о
+// случившемся не сказано НИЧЕГО. Так молчало «Чтение стола»: четыре варианта
+// ответа сменялись разбором, ради которого режим и существует, и разбор этот
+// не объявлялся ничем.
+//
+// Проверка НЕ требует, чтобы фокус остался на месте: правильных ответов два —
+// остаться на живом элементе или уехать туда, где теперь суть. Находкой
+// считается только BODY.
+async function focusAfter(page, where, what, act) {
+  const before = await page.evaluate(() => !!document.activeElement && document.activeElement !== document.body);
+  if (!before) return;                       // фокуса не было — терять нечего
+  await act();
+  await page.waitForTimeout(500);
+  const lost = await page.evaluate(() => !document.activeElement || document.activeElement === document.body);
+  if (lost) add("BAD", where, "focus", `после «${what}» фокус упал на BODY: с клавиатуры обход начинается заново, диктору не сказано ничего`);
 }
 
 async function probe(page, where, tag, lang = "ru") {
@@ -534,12 +701,19 @@ async function probe(page, where, tag, lang = "ru") {
   for (const d of r.dupIds.slice(0, 3)) add("WARN", where, "dupid", "повтор id: " + d);
   if (r.noAlt) add("WARN", where, "alt", r.noAlt + " img без атрибута alt");
   for (const a of (r.aria || []).slice(0, 3)) add("BAD", where, "aria", a);
+  for (const sc of (r.scroll || []).slice(0, 3)) add("BAD", where, "kbscroll", "прокрутка только мышью: " + sc);
+  for (const n of (r.roleName || []).slice(0, 4)) add("BAD", where, "name", n);
   for (const l of (r.badLabel || []).slice(0, 3)) add("BAD", where, "i18n", l);
   for (const m of (r.mute || []).slice(0, 3)) add("BAD", where, "a11y", m);
   for (const c of r.contrast.slice(0, 6)) add("WARN", where, "contrast", c);
   for (const u of (r.unnamed || []).slice(0, 5)) add("BAD", where, "name", "кнопка без имени: " + u);
   if (tag === "desk") {
-    for (const f of (await keyboardFocus(page, where)).slice(0, 4)) add("BAD", where, "focus", "фокус не виден при Tab: " + f);
+    const kb = await keyboardWalk(page);
+    for (const f of kb.noRing.slice(0, 4)) add("BAD", where, "focus", "фокус не виден при Tab: " + f);
+    for (const u of kb.unreached.slice(0, 4))
+      add("BAD", where, "kbreach", `до управления не доходит Tab: ${u.sel} :: «${u.name}»`);
+    for (const u of kb.killed.slice(0, 4))
+      add("BAD", where, "kbreach", `управление выключилось во время обхода Tab — дойти до него нельзя: ${u.sel} :: «${u.name}»`);
   }
   for (const h of (r.headings || []).slice(0, 3)) add("WARN", where, "heading", "пропуск уровня " + h);
   for (const u of (r.unlabelled || []).slice(0, 3)) add("BAD", where, "label", "поле без подписи: " + u);
@@ -620,8 +794,13 @@ for (const vp of VPS) {
         // Остановка с вопросом — то состояние, ради которого режим и сделан.
         const opt = page.locator(".rd-opts button").first();
         if (await opt.count()) {
-          await opt.click().catch(() => {});
-          await page.waitForTimeout(800);
+          // ОТВЕЧАЕМ КЛАВИАТУРОЙ, а не мышью, и ровно поэтому проверка что-то
+          // значит: мышиный клик фокуса не ставит, и «фокус упал на BODY»
+          // после него не отличить от «фокуса и не было».
+          await opt.focus().catch(() => {});
+          await focusAfter(page, "reading", "ответ на остановке",
+                           () => page.keyboard.press("Enter"));
+          await page.waitForTimeout(500);
           await probe(page, "reading-answer", vp.tag, vp.lang || "ru");
         } else {
           add("BAD", "reading", "nav", "у остановки нет вариантов ответа — экран показал не то");
@@ -781,7 +960,19 @@ for (const vp of VPS) {
         const opt = page.locator(".ex button:not(:disabled)").first();
         if (await opt.count()) { await opt.click().catch(()=>{}); await page.waitForTimeout(300); }
         const check = page.locator(".ex-go").first();
-        if (await check.count()) { await check.click().catch(()=>{}); await page.waitForTimeout(750); }
+        // «Проверить» исчезает вместе с нажатием: на его месте появляется
+        // вердикт. Тот же класс дефекта, что в «Чтении стола», — меряем так же.
+        // Только по ЖИВОЙ кнопке: `focus()` на выключенной молча не сработает,
+        // и Enter уйдёт в вариант ответа, который остался под фокусом, —
+        // прибор мерил бы собственный промах.
+        if (await check.count() && await check.isEnabled().catch(() => false)) {
+          await check.focus().catch(() => {});
+          await focusAfter(page, "ex-" + (kind || "?"), "Проверить",
+                           () => page.keyboard.press("Enter"));
+          await page.waitForTimeout(400);
+        } else if (await check.count()) {
+          await check.click().catch(() => {}); await page.waitForTimeout(750);
+        }
         const next = page.getByRole("button", { name: RX.next }).first();
         if (!await next.count()) break;
         await next.click().catch(()=>{});
@@ -902,12 +1093,61 @@ for (const vp of VPS) {
   await page.waitForTimeout(1200);
   if (await page.locator(".debrief").count()) {
     await probe(page, "debrief-beat1", vp.tag, vp.lang || "ru");
+    // «А ЧТО ЕСЛИ…» — САМОЕ ДОРОГОЕ ДЕЙСТВИЕ РАЗБОРА, и до сих пор прибор его
+    // не НАЖИМАЛ ни разу: снимался экран с кнопкой, а состояние с посчитанной
+    // веткой не проверялось вовсе. Жмём клавишей: кнопка исчезает вместе с
+    // нажатием (её место занимает расхождение), а это ровно тот случай, где
+    // фокус падает на BODY.
+    const wi = page.locator(".wi-reveal").first();
+    if (await wi.count() && await wi.isEnabled().catch(() => false)) {
+      await wi.focus().catch(() => {});
+      await focusAfter(page, "debrief-whatif", "Показать, что было бы иначе",
+                       () => page.keyboard.press("Enter"));
+      await page.waitForTimeout(1800);
+      if (await page.locator(".wi-diverge").count())
+        await probe(page, "debrief-whatif", vp.tag, vp.lang || "ru");
+    }
     for (let b = 2; b <= 3; b++) {
       const next = page.locator(".beat-go, .beat-dot").nth(b - 1);
       if (!await next.count()) break;
       await next.click().catch(()=>{});
       await page.waitForTimeout(900);
       await probe(page, "debrief-beat" + b, vp.tag, vp.lang || "ru");
+    }
+  }
+
+  // ——— СТОЛ ЭКЗАМЕНА: СОСТОЯНИЕ, КОТОРОГО ОБХОДЧИК НЕ ВИДЕЛ НИ РАЗУ ———
+  //
+  // Экран экзамена прибор открывал, а СТОЛ экзамена — нет, и это не «ещё одна
+  // партия»: там выключено живое сопровождение целиком — чипы приёмов, строка
+  // тренера, подсказки. Разница не косметическая. Именно из-за неё лента
+  // реплик там остаётся БЕЗ ЕДИНОГО фокусируемого потомка: крестики карточек
+  // тренера, которыми в обычной партии её случайно можно было пролистать, в
+  // экзамене не рисуются вовсе. Проверка «прокрутка только мышью» в обычной
+  // партии сработать не может по построению — значит без этого состояния она
+  // молчала бы всегда, а молчание прибора читают как «чисто».
+  //
+  // Идёт ПОСЛЕДНИМ: партия экзамена не бросается на полпути, и портить ею
+  // порядок остальных состояний незачем.
+  {
+    await page.locator('[data-nav="exam"]').first().click().catch(() => {});
+    await page.waitForTimeout(1200);
+    await page.fill(".exam-name input", vp.lang === "en" ? "Jane Doe" : "Иван Петров").catch(() => {});
+    await page.locator(".card").first().click().catch(() => {});
+    const got = await page.waitForSelector(".chat textarea", { timeout: 20000 }).catch(() => null);
+    if (!got) add("BAD", "exam-game", "nav", "с экрана экзамена не открывается стол");
+    else {
+      await page.waitForTimeout(1500);
+      // Несколько ходов, чтобы лента переросла свою коробку: пустую ленту
+      // прокручивать не надо, и проверка на ней ничего не значит.
+      for (let i = 0; i < 4; i++) {
+        try {
+          await page.fill("textarea", LINES[i % LINES.length], { timeout: 3500 });
+          await page.click(".send", { timeout: 5000 });
+        } catch { break; }
+        await page.waitForTimeout(1200);
+      }
+      await probe(page, "exam-game", vp.tag, vp.lang || "ru");
     }
   }
 
