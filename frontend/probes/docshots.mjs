@@ -23,14 +23,23 @@ const OUT = path.join(process.cwd(), "..", "docs", "screenshots");
 
 // Та же сверка, что и у обходчика: снимок чужой сборки хуже отсутствующего,
 // потому что он выглядит свежим.
+//
+// СВЕРЯТЬСЯ НАДО С ТОЙ СБОРКОЙ, КОТОРУЮ И РАЗДАЮТ. Здесь стоял жёсткий `dist`,
+// а адрес по умолчанию — порт ОФЛАЙНОВОЙ сборки (`dist-mock`, рецепт в
+// probes/README.md). Проверка проходила ровно до тех пор, пока на том порту по
+// ошибке стоял сервер с онлайновой сборкой: то есть она была зелёной от чужой
+// поломки и покраснела от починки. Каталог теперь выбирается по адресу и
+// переопределяется тем же способом, что и адрес.
 const bundleOf = (html) => (html.match(/assets\/index-[A-Za-z0-9_.-]+\.js/) || [])[0] || null;
-const want = bundleOf(fs.readFileSync(path.join(process.cwd(), "dist", "index.html"), "utf-8"));
+const DIST = process.env.DOCSHOT_DIST
+  ?? (BASE.includes(":5199") ? "dist-mock" : "dist");
+const want = bundleOf(fs.readFileSync(path.join(process.cwd(), DIST, "index.html"), "utf-8"));
 const got = bundleOf(await (await fetch(BASE)).text());
 if (!want || want !== got) {
   console.error(`ЧУЖАЯ СБОРКА: раздаётся ${got}, на диске ${want}. Съёмка отменена.`);
   process.exit(2);
 }
-console.log("сборка сверена:", want);
+console.log(`сборка сверена: ${want} (${DIST})`);
 
 const browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
