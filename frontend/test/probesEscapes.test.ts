@@ -1,0 +1,83 @@
+// Регулярное выражение внутри ШАБЛОННОЙ СТРОКИ ломается молча.
+//
+// Приборы этого репозитория пишут код, который потом исполняется в браузере, —
+// и держат его в шаблонной строке. Внутри неё `\s` не является escape-
+// последовательностью и превращается в букву «s»; `\b` является и превращается
+// в невидимый символ забоя. Регулярное выражение остаётся синтаксически
+// верным, компилятор молчит, тест зелёный — а проверка не срабатывает НИКОГДА.
+//
+// Ловушка сработала трижды за сутки, в трёх разных приборах:
+//   · `\b` в проверке `color-scheme` — совпадений не было ни разу, зато
+//     сообщение печаталось 29 раз за прогон;
+//   · `\s` в разделителе `aria-labelledby` — рвал имя пополам, и прибор
+//     обвинял безымянной группу, у которой имя есть;
+//   · `\b` в проверке намеренно обрезанной подписи — не срабатывала никогда.
+//
+// Три раза — это уже не случайность, а свойство места. Здесь оно закрыто.
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Убрать содержимое `${...}` вместе со вложенными скобками. */
+function stripInterpolations(s: string): string {
+  let out = "";
+  for (let i = 0; i < s.length; i += 1) {
+    if (s[i] === "$" && s[i + 1] === "{") {
+      let depth = 1;
+      i += 2;
+      while (i < s.length && depth > 0) {
+        if (s[i] === "{") depth += 1;
+        else if (s[i] === "}") depth -= 1;
+        i += 1;
+      }
+      i -= 1;
+      continue;
+    }
+    out += s[i];
+  }
+  return out;
+}
+
+function scripts(dir: string, out: string[] = []): string[] {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) scripts(full, out);
+    else if (/\.mjs$/.test(e.name)) out.push(full);
+  }
+  return out;
+}
+
+/** Буквы, у которых в регулярном выражении есть смысл, а в шаблонной строке —
+ *  нет (или есть, но другой). Именно на них ловушка и срабатывает. */
+const RISKY = "sSdDwWbB";
+
+test("в шаблонных строках приборов нет одиночных escape-последовательностей", () => {
+  const bad: string[] = [];
+  for (const file of [...scripts(join(ROOT, "probes")), ...scripts(join(ROOT, "e2e"))]) {
+    const text = readFileSync(file, "utf8");
+    // Грубо, но достаточно: ищем содержимое шаблонных строк и в нём —
+    // обратную косую ПЕРЕД рискованной буквой, не удвоенную.
+    for (const m of text.matchAll(/`(?:[^`\\]|\\.)*`/gs)) {
+      // ПОДСТАНОВКИ ВЫРЕЗАЮТСЯ. Внутри `${...}` лежит обычный код, и
+      // регулярное выражение там целое: `${x.replace(/[^\w-]/g, "_")}` верен.
+      // Первая редакция этой проверки об этом не знала и обвинила ровно такую
+      // строку — то есть сама попалась в класс, который ловит.
+      const body = stripInterpolations(m[0]);
+      const at = text.slice(0, m.index).split("\n").length;
+      for (const hit of body.matchAll(/(\\+)([a-zA-Z])/g)) {
+        const slashes = hit[1].length;
+        const letter = hit[2];
+        if (!RISKY.includes(letter)) continue;
+        // Удвоенная косая доезжает до регулярного выражения целой — это верно.
+        if (slashes % 2 === 0) continue;
+        bad.push(`${file.replace(ROOT, "frontend")}:${at} — \\${letter} внутри шаблонной строки `
+                 + `станет ${letter === "b" || letter === "B" ? "невидимым символом" : `буквой «${letter}»`}`);
+      }
+    }
+  }
+  assert.deepEqual(bad, [], "регулярное выражение сломается молча:\n" + bad.join("\n"));
+});
