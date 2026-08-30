@@ -11,6 +11,9 @@ export const MIRROR_IDS: readonly string[] = [
   "supplier_mirror",
   "investor_mirror",
   "freelance_mirror",
+  "salary_mirror",
+  "conflict_mirror",
+  "rent_mirror",
 ];
 
 /** Зеркальный ли это стол. */

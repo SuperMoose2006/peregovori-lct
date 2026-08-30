@@ -5,6 +5,10 @@
 import type { ClientMsg, Deltas, Lang, ServerMsg, TurningPoint } from "../types";
 import type { ServerMsgHandler, Transport } from "../api/transport";
 import { SCENARIO_MAP, toScenarioView, type ScenarioDef } from "../data/scenarios";
+// Зеркальные столы лежат в своём файле: их длина не должна входить в
+// арифметику «стола дня», а их вес — в первую отрисовку (data/mirrors.ts).
+// Офлайн-транспорт отложен, поэтому импорт здесь ничего не тянет на главную.
+import { MIRROR_MAP } from "../data/mirrors";
 import { synthCustomScenario } from "./customScenario";
 import {
   analyze, applyMove, greetingText, hintLine, hintText, newSession, renderLine,
@@ -106,7 +110,7 @@ export class MockServer implements Transport {
       def = synthCustomScenario(msg.situation ?? "", lang);
       genDelay = 900;
     } else {
-      def = SCENARIO_MAP[msg.scenarioId];
+      def = SCENARIO_MAP[msg.scenarioId] ?? MIRROR_MAP[msg.scenarioId];
       if (!def) {
         this.emit({ type: "error", message: `Unknown scenario: ${msg.scenarioId}` });
         return;

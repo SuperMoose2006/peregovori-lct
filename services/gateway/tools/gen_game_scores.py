@@ -32,7 +32,7 @@ GAMES = FIXTURES / "games.json"
 TARGET = FIXTURES / "games.scores.json"
 
 
-def _play(scenario_id: str, lines: list[str], lang: str) -> dict:
+def _play(scenario_id: str, lines: list[str], lang: str, card: bool = False) -> dict:
     sess = engine.create_session(scenario_id, lang)
     for text in lines:
         if sess.state.status != "active":
@@ -62,9 +62,30 @@ def _play(scenario_id: str, lines: list[str], lang: str) -> dict:
     }
 
 
+def _played(scenario_id: str, lines: list[str], lang: str) -> dict:
+    """То же, плюс карточка зеркального стола.
+
+    Ключ добавляется ТОЛЬКО зеркалам: у обычных партий его нет и быть не может
+    (`views.other_side` возвращает None), а лишний `null` в каждой записи
+    фикстуры сдвинул бы все восемнадцать эталонных партий ради ничего.
+    """
+    out = _play(scenario_id, lines, lang)
+    sess = engine.create_session(scenario_id, lang)
+    for text in lines:
+        if sess.state.status != "active":
+            break
+        sess.turn += 1
+        engine.apply_move(sess, analyze(text), text)
+        if sess.state.status == "active" and sess.turn >= sess.max_turns:
+            sess.state.status = "breakdown"
+    out["other_side"] = views.other_side(sess)
+    return out
+
+
 def render() -> str:
     games = json.loads(GAMES.read_text(encoding="utf-8"))
     principled = {k: v for k, v in games["principled"].items() if k != "note"}
+    other_side = {k: v for k, v in games["other_side"].items() if k != "note"}
     ladder = games["ladder"]
     first_word = games["first_word"]
 
@@ -108,6 +129,11 @@ def render() -> str:
         # совпадение ДВУХ РЕАЛИЗАЦИЙ движка, а не двух языков. Английскую
         # половину проверяет бэкенд (test_reference_games.py) на обоих языках.
         "principled": {sid: _play(sid, g["ru"], "ru") for sid, g in sorted(principled.items())},
+        # Зеркальные столы («Обратная сторона стола»). Инвариант 8 нужен им не
+        # меньше, а больше: у зеркала перевёрнуто направление шкалы, а знак
+        # решает, кто выиграл, — расхождение двух движков здесь стоило бы
+        # ровно противоположного вердикта.
+        "other_side": {sid: _played(sid, g["ru"], "ru") for sid, g in sorted(other_side.items())},
         # Право первого слова: две партии, отличающиеся ТОЛЬКО первой репликой.
         # Сдвиг рамки живёт в apply_move и в его браузерном зеркале — то есть
         # ровно там, где две реализации расходятся молча.

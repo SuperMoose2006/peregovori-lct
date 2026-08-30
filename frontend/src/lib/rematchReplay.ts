@@ -8,6 +8,10 @@
 // Инвариант 8 в силе: считает то же офлайн-ядро, что и партия без сети
 // (test/parity.test.ts), просто приезжает оно тогда, когда партия началась.
 import { SCENARIO_MAP } from "../data/scenarios";
+// Зеркальные столы лежат отдельно (см. data/mirrors.ts). Переигрывать их
+// надо ровно так же: движок у них тот же, а «а что если» — его чистая
+// функция от (стол, порядок ходов).
+import { MIRROR_MAP } from "../data/mirrors";
 import { analyze, applyMove, newSession, stateView } from "../mock/engine";
 import type { PastRun } from "./progress";
 import type { TrailPoint } from "./rematch";
@@ -23,7 +27,7 @@ import type { TrailPoint } from "./rematch";
  * Это честное «недоступно», а не пустая панель (принцип 2).
  */
 export function replayRun(run: PastRun): TrailPoint[] | null {
-  const def = SCENARIO_MAP[run.scenarioId];
+  const def = SCENARIO_MAP[run.scenarioId] ?? MIRROR_MAP[run.scenarioId];
   if (!def || run.moves.length === 0) return null;
   const s = newSession(def, run.lang);
   // Стартовые условия партии восстанавливаются ЗАМЕРОМ, а не пересчётом их

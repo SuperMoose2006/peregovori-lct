@@ -567,6 +567,27 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 {/* Visible logrolling: the tradeable "package" forming. Renders
                     only for scenarios that carry secondary issues. */}
                 <DealTerms scenario={scenario} state={st} t={t} />
+                {/* СВОЯ карта на зеркальном столе. Три причины, по которым игрок
+                    здесь держит цену, — это не секрет оппонента, а его
+                    собственные интересы: он и есть та сторона, и знать их за
+                    столом он обязан, а не только на входе. Ключ приходит с
+                    сервера пустым на всех обычных столах, и тогда блока нет
+                    вовсе. Занавес над ЧУЖИМИ интересами это не трогает: он
+                    рядом, в панели «Скрытые интересы», и по-прежнему поднимается
+                    только вопросами. */}
+                {scenario.defending && scenario.defending.length > 0 ? (
+                  <div className="brief-mine">
+                    <h4>{t.otherSide.defendTitle}</h4>
+                    <ul className="os-list">
+                      {scenario.defending.map((d) => (
+                        <li key={d.topic + d.text}>
+                          <b>{d.topic}</b>
+                          <span>{d.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 <div className="brief">{scenario.briefing}</div>
               </div>
             </div>
