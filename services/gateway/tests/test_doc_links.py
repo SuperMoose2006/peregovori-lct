@@ -738,23 +738,68 @@ def test_documented_mirror_tables_are_the_real_ones():
     words = _NUMERALS.get(len(MIRRORS), ())
     assert words, f"зеркал стало {len(MIRRORS)} — добавьте числительное в _NUMERALS"
 
-    #: Где режим описан. Документ, который его НЕ упоминает, здесь не судится:
-    #: не каждому документу положено знать про каждый режим.
+    #: Где документ вообще говорит о режиме. Якорь именно такой, а не по корню
+    #: «зеркал»: слово перегружено — в `judge-reproducibility.md` «зеркалами»
+    #: зовутся сверочные фикстуры, и «все пять зеркал» там верно.
+    _CTX = re.compile(r"scenarios\.MIRRORS|зеркальн\w*\s+стол|Обратная сторона стола",
+                      re.IGNORECASE)
+
+    #: ЧИСЛО СЧИТАЕТСЯ ТОЛЬКО РЯДОМ С СЛОВОМ «ЗЕРКАЛО». Две редакции подряд
+    #: пытались ловить его рядом со словом «стол» — и обе оказались негодными.
+    #: «Стол» — центральное слово продукта: в тех же абзацах живут «девять
+    #: столов библиотеки», «четыре стола кампании», «девять столов и четыре
+    #: условия взаимно просты». Прибор либо пропускал находку, либо звал чинить
+    #: исправное, а третьего при таком якоре не выходит.
+    #:
+    #: Поэтому якорь сужен до зеркальной лексики, а ДОКУМЕНТ приведён к форме,
+    #: которую можно проверить: доклад писал «Столов три», теперь — «Зеркальных
+    #: столов шесть». Это не подгонка текста под тест: число без указания, чего
+    #: именно оно считает, читателю ровно так же двусмысленно, как прибору.
+    #: `\w*`, а не список окончаний: родительный МНОЖЕСТВЕННОГО — «зеркал» —
+    #: это голая основа без суффикса, и перечисление окончаний её теряло.
+    #: Проверено: «Зеркал шесть» в README проходило мимо прибора молча.
+    _MIRROR_WORD = r"зеркал\w*"
+    _COUNT = re.compile(
+        rf"(?:(?P<before>[А-Яа-яЁё]+)\s+{_MIRROR_WORD}(?:\s+стол\w*)?"
+        rf"|{_MIRROR_WORD}(?:\s+стол\w*)?\s+(?P<after>[А-Яа-яЁё]+))",
+        re.IGNORECASE)
+
+    #: Сколько символов вокруг упоминания режима считается «про зеркала».
+    _MIRROR_NEAR = 1000
+
+    #: ЗАКОННЫХ ЧИСЕЛ ДВА, и оба осмысленны в одном абзаце: зеркал шесть, а
+    #: библиотечных столов девять — «шесть из девяти» и есть довод режима.
+    legal = {len(MIRRORS), len(SCENARIOS)}
+    numerals = {w: n for n, words in _NUMERALS.items() for w in words}
+
     wrong: list[str] = []
     named = 0
-    _MIRROR_COUNT = re.compile(r"зеркальны[хе]\s+стол(?:ов|а)\s+([А-Яа-яЁё]+)", re.IGNORECASE)
+    anchors = 0
     for name in _prose():
         path = ROOT / name
         if not path.exists():
             continue
-        text = re.sub(r"\s+", " ", path.read_text(encoding="utf-8"))
+        text = path.read_text(encoding="utf-8")
         if "MIRRORS" in text or "Обратная сторона стола" in text:
             named += 1
-        for match in _MIRROR_COUNT.finditer(text):
-            if match.group(1).lower() not in words:
-                wrong.append(f"{name}: «зеркальных столов {match.group(1)}», а их {len(MIRRORS)}")
+        #: ОКНО, А НЕ АБЗАЦ: довод и ссылка на `scenarios.MIRRORS` стоят в
+        #: разных абзацах одного раздела, и считать единицей абзац значит
+        #: верить, что автор не нажмёт Enter.
+        flat = re.sub(r"\s+", " ", text)
+        for anchor in _CTX.finditer(flat):
+            anchors += 1
+            near = flat[max(0, anchor.start() - _MIRROR_NEAR):anchor.end() + _MIRROR_NEAR]
+            for match in _COUNT.finditer(near):
+                word = (match.group("before") or match.group("after") or "").lower()
+                value = numerals.get(word)
+                if value is not None and value not in legal:
+                    wrong.append(
+                        f"{name}: «{match.group(0).strip()}» — это {value}, "
+                        f"а зеркал {len(MIRRORS)} при {len(SCENARIOS)} столах библиотеки")
 
     assert not wrong, "число зеркальных столов в документации неверно:\n  " + "\n  ".join(wrong)
+    assert anchors, ("ни одно место в документах не описывает зеркальные столы — "
+                     "прибор ослеп, поправьте контекстную регулярку")
     assert named, "ни один документ не называет режим «Обратная сторона стола»"
 
 
@@ -1398,3 +1443,73 @@ def test_the_marker_convention_holds_on_the_python_side_too():
     assert found, ("на питоне не нашлось ни одной пометки STUB/MOCK/CONTRACT — "
                    "либо конвенцию перестали применять, либо прибор смотрит "
                    f"не туда ({', '.join(_PY_ROOTS)})")
+
+
+# ------------------------------------------------- лица: сколько их на самом деле
+
+#: «N картинок (M персонажей × K состояний)» — как документ описывает набор лиц.
+_FACES = re.compile(
+    r"(\d+)\s+картин\w+\s*\((\d+)\s+персонаж\w*\s*[×x]\s*(\d+)\s+состояни\w*\)")
+
+
+def test_documented_face_inventory_matches_the_files_on_disk():
+    """Число лиц — то, что легче всего забыть: картинки коммитятся, а строка нет.
+
+    `docs/upstream-code-map.md` писал «72 картинки (8 персонажей × 9 состояний),
+    1.8 МБ». На диске 135 у 15 персонажей: девять столов библиотеки плюс шесть
+    зеркальных, у каждого зеркала своё лицо, потому что за ним сидит вторая
+    сторона. Число отстало на два поколения столов сразу и не могло не отстать:
+    лица добавляются вместе со столом, а строка в провенансе — отдельным
+    движением руки.
+
+    Проверять это ДЕШЕВО и надёжно, в отличие от большинства чисел в том
+    документе: файлы лежат в репозитории, их можно посчитать. Поэтому здесь и
+    сверяются все три множителя сразу — картинки, персонажи и состояния: любой
+    один совпал бы случайно, все три вместе — нет.
+
+    Размер в мегабайтах НЕ сверяется. Он зависит от кодировщика webp и поплывёт
+    от перегенерации одного лица, а красный тест на исправном наборе стоит
+    дороже пропущенной десятой доли мегабайта.
+    """
+    avatars = ROOT / "frontend" / "public" / "avatars"
+    assert avatars.is_dir(), "каталог лиц пропал — сверять нечего"
+
+    personas = sorted(d for d in avatars.iterdir() if d.is_dir())
+    assert personas, "в каталоге лиц нет ни одного персонажа — тест ослеп"
+    per_persona = {d.name: len(list(d.glob("*.webp"))) for d in personas}
+    states = set(per_persona.values())
+    assert len(states) == 1, (
+        "у персонажей разное число лиц — набор неполный, и документ про это "
+        f"не расскажет: {sorted((v, k) for k, v in per_persona.items())}")
+
+    pictures = sum(per_persona.values())
+    faces_each = states.pop()
+
+    #: Лица есть у КАЖДОГО стола, включая зеркальные: у зеркала своя вторая
+    #: сторона. Без этой сверки набор мог бы отстать от библиотеки молча —
+    #: новый стол показывал бы рисованный портрет вместо девяти состояний.
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from app.engine.scenarios import SCENARIOS, MIRRORS
+    tables = {s.id for s in (*SCENARIOS, *MIRRORS)}
+    without = sorted(tables - set(per_persona))
+    assert not without, f"у этих столов нет набора лиц: {without}"
+
+    wrong: list[str] = []
+    checked = 0
+    for name in _prose():
+        path = ROOT / name
+        if not path.exists():
+            continue
+        for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for total, who, each in _FACES.findall(line):
+                checked += 1
+                if (int(total), int(who), int(each)) != (pictures, len(per_persona), faces_each):
+                    wrong.append(
+                        f"{name}:{line_no} — обещает {total} картинок "
+                        f"({who} × {each}), на диске {pictures} "
+                        f"({len(per_persona)} × {faces_each})")
+
+    assert not wrong, "набор лиц в документации разошёлся с диском:\n  " + "\n  ".join(wrong)
+    assert checked, ("ни один документ не описывает набор лиц числом — прибор "
+                     "ослеп, поправьте регулярку или уберите его")
