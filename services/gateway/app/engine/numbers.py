@@ -175,6 +175,16 @@ def spell_to_digits(text: str) -> str:
         value = _fold(group) if has_scale else None
         if value is None:
             out.extend(tokens[i:j])
+        elif (out and _DIGITS_RE.fullmatch(out[-1])
+              and group[0] in _SCALES and _SCALES[group[0]] >= 1000):
+            # «70 тысяч» — множитель ПОСЛЕ цифр. Без этой ветки он приписывался
+            # отдельным числом («70 1000»), и регулярка цены читала «70 100»:
+            # человек называл семьдесят тысяч, а стол слышал семьдесят тысяч сто.
+            # Замечено на живой партии — сделка закрылась на 29 902k за месяц.
+            scale = _SCALES[group[0]]
+            rest = _fold(group[1:]) or 0.0 if len(group) > 1 else 0.0
+            prev = float(out[-1].replace(",", "."))
+            out[-1] = _fmt(prev * scale + rest) + tails[j - 1]
         else:
             out.append(_fmt(value) + tails[j - 1])
         i = j
@@ -184,6 +194,9 @@ def spell_to_digits(text: str) -> str:
 #: Экспортируется для теста паритета: он проверяет, что список слов не разошёлся
 #: с зеркалом в `frontend/src/mock/engine.ts`.
 NUMBER_WORDS = frozenset(_ALL_NUMBER_WORDS)
+
+#: Чистое число без хвостов — им может оказаться предыдущий выведенный токен.
+_DIGITS_RE = re.compile(r"\d+(?:[.,]\d+)?")
 
 #: Примыкающая пунктуация, которую надо отделить от слова перед разбором.
 _TRAIL_RE = re.compile(r"[.,!?%-]+$")

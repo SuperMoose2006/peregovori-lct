@@ -93,6 +93,9 @@ const fmt = (v: number): string => (Number.isInteger(v) ? String(v) : String(v))
  * «три условия» не должно стать «3 условия» и тем самым внезапно превратиться
  * в оффер. Цена всегда произносится с единицей.
  */
+/** Чистое число без хвостов — им может оказаться предыдущий выведенный токен. */
+const DIGITS = /^\d+(?:[.,]\d+)?$/;
+
 export function spellToDigits(text: string): string {
   if (!text) return text;
   // Разделители групп внутри числа схлопываются: «300 000» → «300000». Иначе
@@ -128,8 +131,19 @@ export function spellToDigits(text: string): string {
     }
     const hasScale = group.some((g) => g in SCALES && SCALES[g] >= 1000);
     const value = hasScale ? fold(group) : null;
-    if (value === null) out.push(...tokens.slice(i, j));
-    else out.push(fmt(value) + tails[j - 1]);
+    const prev = out.length ? out[out.length - 1] : "";
+    if (value === null) {
+      out.push(...tokens.slice(i, j));
+    } else if (DIGITS.test(prev) && group[0] in SCALES && SCALES[group[0]] >= 1000) {
+      // «70 тысяч» — множитель ПОСЛЕ цифр. Без этой ветки он приписывался
+      // отдельным числом («70 1000»), и регулярка цены читала «70 100»:
+      // человек называл семьдесят тысяч, а стол слышал семьдесят тысяч сто.
+      const scale = SCALES[group[0]];
+      const rest = group.length > 1 ? fold(group.slice(1)) ?? 0 : 0;
+      out[out.length - 1] = fmt(parseFloat(prev.replace(",", ".")) * scale + rest) + tails[j - 1];
+    } else {
+      out.push(fmt(value) + tails[j - 1]);
+    }
     i = j;
   }
   return out.join(" ");
