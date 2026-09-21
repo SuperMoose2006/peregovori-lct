@@ -235,6 +235,17 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const nego = useNegotiation(lang, { videoRef, canvasRef });
+  // A reload cannot restore this in-memory UI session. Never silently imply it did.
+  const [interruptedRun] = useState(() => {
+    try { return sessionStorage.getItem("dialog.active-run") === "1"; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try {
+      if (nego.state?.status === "active") sessionStorage.setItem("dialog.active-run", "1");
+      else sessionStorage.removeItem("dialog.active-run");
+    } catch { /* Storage restrictions must not prevent practice. */ }
+  }, [nego.state?.status]);
   const t = I18N[lang];
 
   // Apply theme to the document root (drives the CSS variables).
@@ -913,6 +924,7 @@ export default function App() {
           чтение, а ссылке «к содержимому» некуда вести. Здесь он один на всё
           приложение, а колонка стола внутри стала обычным разделом. */}
       <main id="main" className="appmain" tabIndex={-1}>
+        {interruptedRun && screen === "home" && <div className="genfail-msg" role="alert">{t.interruptedRun}</div>}
 
       {screen === "home" && (
         <section className="screen">

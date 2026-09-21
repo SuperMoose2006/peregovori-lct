@@ -41,10 +41,11 @@ import base64
 from typing import Awaitable, Callable, Optional
 
 from app.providers.tts.base import TTSProvider, Voice
-from app.realtime.events import output_delta
+from app.realtime.events import output_delta, error
 
 #: Метка конца фразы во внутренней очереди.
 _EOP = b""
+SYNTHESIS_TIMEOUT_S = 15.0
 
 
 class TTSTaskManager:
@@ -100,13 +101,22 @@ class TTSTaskManager:
         Молчание одной фразы лучше, чем оборванная реплика: движок уже посчитал
         ход, текст на экране есть, и разговор продолжается.
         """
+        received = False
         try:
-            async for chunk in self._provider.stream(text, self._voice):
-                await queue.put(chunk)
+            async with asyncio.timeout(SYNTHESIS_TIMEOUT_S):
+                async for chunk in self._provider.stream(text, self._voice):
+                    if chunk:
+                        received = True
+                        await queue.put(chunk)
+            if not received:
+                raise RuntimeError("empty synthesis")
         except asyncio.CancelledError:
             raise
         except Exception:
-            pass
+            message = ("Не удалось озвучить ответ. Текст доступен — можно продолжать переговоры."
+                       if self._voice.lang == "ru" else
+                       "Speech is unavailable. The reply is available as text; you can continue.")
+            self._publish(error("tts_unavailable", message))
         finally:
             await queue.put(_EOP)
 

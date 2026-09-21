@@ -95,18 +95,21 @@ async def test_provider_gets_exact_pcm_and_failure_never_loses_audio(fails):
 
 
 @pytest.mark.asyncio
-async def test_failed_state_renderer_cannot_break_a_settled_turn():
+@pytest.mark.parametrize("silent", [False, True])
+async def test_failed_state_renderer_cannot_break_a_settled_turn(silent):
+    import asyncio
     from app.avatar.presence import PresenceAvatar
     from app.orchestrator.negotiation import NegotiationOrchestrator
 
     class Broken(PresenceAvatar):
         async def set_state(self, *args, **kwargs):
+            if silent: await asyncio.sleep(60)
             raise RuntimeError('video service failed')
 
     session = RealtimeSession('broken-face', engine.create_session('supplier', 'ru'),
                               layers=Layers(voice=True, avatar=True))
     orchestrator = NegotiationOrchestrator(session, avatar=Broken('supplier', session.bus.publish))
-    await orchestrator.on_player_turn('Добрый день.')
+    await asyncio.wait_for(orchestrator.on_player_turn('Добрый день.'), timeout=1)
     session.bus.close()
     events = [e async for e in session.bus.drain()]
     assert any(e['type'] == 'engine.state' for e in events)
