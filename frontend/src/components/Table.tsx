@@ -62,6 +62,9 @@ interface Props {
   avatarState?: string | null;
   /** Оппонент звучит: честный индикатор речи, а не имитация губ. */
   oppSpeaking?: boolean;
+  getSpeechLevel?: () => number;
+  getVideoFrame?: () => string | null;
+  amplitudeAnimation?: boolean;
   /** Какие слои подняты В ЭТОЙ партии. Выключенные не оставляют следов на экране. */
   layers?: Layers;
   /** Открыть шторку слоёв. Полноэкранный экран подготовки перед партией убран —
@@ -102,7 +105,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, amplitudeAnimation = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -466,6 +469,10 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 state={st}
                 exam={exam}
                 speaking={oppSpeaking}
+                getSpeechLevel={getSpeechLevel}
+                getVideoFrame={getVideoFrame}
+                amplitudeAnimation={amplitudeAnimation}
+                animationLabel={t.a11y.amplitudeAnimation}
                 speakingLabel={t.a11y.speaking}
                 label={scenario.counterpart_name}
               />

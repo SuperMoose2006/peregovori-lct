@@ -84,3 +84,50 @@ test("custom configuration reaches session.init unchanged", async () => {
     transport.close();
   }
 });
+
+test("video wire follows current generation and drops cancelled frames", async () => {
+  const { RealtimeTransport } = await import("../src/realtime/transport");
+  const transport = new RealtimeTransport(() => {}, () => {});
+  try {
+    transport.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice" });
+    await tick();
+    const socket = Socket.latest;
+    socket.deliver({ type: "session.queue_done" });
+    socket.deliver({ type: "session.created", session_id: "video-wire", scenario: { id: "supplier" },
+      state: { status: "active", turn: 1 }, greeting: "Hello", capabilities: {} });
+    await tick();
+    (transport as any).player = { playbackTimeMs: () => 100, beginTurn() {}, stopAll() {},
+      dispose: async () => {} };
+    socket.deliver({ type: "response.output.delta", kind: "text", generation_id: "g", text: "Hi" });
+    socket.deliver({ type: "avatar.frame", generation_id: "old", pts_ms: 100, jpeg: "/9j/2Q==" });
+    assert.equal(transport.videoFrame(), null);
+    socket.deliver({ type: "avatar.frame", generation_id: "g", pts_ms: 100, jpeg: "/9j/2Q==" });
+    assert.equal(transport.videoFrame(), "data:image/jpeg;base64,/9j/2Q==");
+    socket.deliver({ type: "generation.cancelled", generation_id: "g" });
+    assert.equal(transport.videoFrame(), null);
+    socket.deliver({ type: "avatar.frame", generation_id: "g", pts_ms: 100, jpeg: "/9j/2Q==" });
+    assert.equal(transport.videoFrame(), null);
+  } finally { transport.close(); }
+});
+
+test("late audio after response.done returns the speaking indicator to idle", async () => {
+  const { RealtimeTransport } = await import("../src/realtime/transport");
+  const speaking: boolean[] = [];
+  const transport = new RealtimeTransport(() => {}, () => {}, { onOppAudio: on => speaking.push(on) });
+  try {
+    transport.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice" });
+    await tick();
+    const socket = Socket.latest;
+    socket.deliver({ type: "session.queue_done" });
+    socket.deliver({ type: "session.created", session_id: "late-audio", scenario: { id: "supplier" },
+      state: { status: "active", turn: 1 }, greeting: "Hello", capabilities: {} });
+    await tick();
+    (transport as any).player = { isPlaying: false, playChunk() {}, endTurn() {}, stopAll() {}, dispose: async () => {} };
+    socket.deliver({ type: "response.done", text: "Hello" });
+    await new Promise(resolve => setTimeout(resolve, 550));
+    socket.deliver({ type: "response.output.delta", generation_id: "late", kind: "audio", audio: "AAAAAA==" });
+    assert.deepEqual(speaking, [true]);
+    await new Promise(resolve => setTimeout(resolve, 550));
+    assert.deepEqual(speaking, [true, false]);
+  } finally { transport.close(); }
+});

@@ -109,6 +109,8 @@ export interface Negotiation extends NegotiationState {
   reset: () => void;
   /** Уровень микрофона 0..1 для полоски «вас слышно». Ссылка стабильна. */
   getMicLevel: () => number;
+  getSpeechLevel: () => number;
+  getVideoFrame: () => string | null;
   /** Оборвать реплику оппонента кнопкой. Голосом сервер перебивает сам. */
   interrupt: () => void;
 }
@@ -287,9 +289,11 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
   // Стабильные ссылки: LiveBar опрашивает уровень по таймеру, и меняющаяся
   // каждый рендер функция пересоздавала бы таймер шестьдесят раз в секунду.
   const getMicLevel = useCallback(() => transportRef.current?.micLevel?.() ?? 0, []);
+  const getSpeechLevel = useCallback(() => transportRef.current?.speechLevel?.() ?? 0, []);
+  const getVideoFrame = useCallback(() => transportRef.current?.videoFrame?.() ?? null, []);
   const interrupt = useCallback(() => transportRef.current?.interrupt?.(), []);
 
-  return { ...s, start, turn, requestHint, answerProbe, clearError, reset, getMicLevel, interrupt };
+  return { ...s, start, turn, requestHint, answerProbe, clearError, reset, getMicLevel, getSpeechLevel, getVideoFrame, interrupt };
 }
 
 // Pure reducer over the ServerMsg stream.

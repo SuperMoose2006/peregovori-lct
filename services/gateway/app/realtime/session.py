@@ -118,6 +118,7 @@ class RealtimeSession:
     reputation: Optional[float] = None
     layers: Layers = field(default_factory=Layers)
     probe_memory: ProbeMemory = field(default_factory=ProbeMemory)
+    avatar_provider: Any = None         # one provider instance per connection
     #: id наложенного условия «стола дня», если партия сегодняшняя. Нужен
     #: клиенту, чтобы показать условие ЧЕСТНО: подпись «короткий стол» без
     #: применённого условия — ровно то, чего в продукте не бывает.

@@ -27,6 +27,9 @@ hardened · offended · not_yet · probe_vague · walked_out.
 
 from __future__ import annotations
 
+# CONTRACT(avatar-video): общий интерфейс и передача PCM готовы, внешнего адаптера нет.
+# Настоящим станет: выбранный провайдер с проверкой задержки, отмены и закрытия ресурсов.
+
 import abc
 from dataclasses import dataclass, field
 
@@ -65,9 +68,11 @@ class AvatarCapabilities:
 
     #: Есть ли лицо вообще.
     available: bool = False
-    #: Синхронизация губ с речью. True только когда за провайдером настоящая
-    #: модель липсинка на GPU. Никаких «почти».
+    #: Движение рта от действительного звука; качество обязательно в lipsync_mode.
+    #: amplitude — локальное раскрытие рта, не фонемы/фотореализм.
     lipsync: bool = False
+    #: Explicit quality: none, amplitude (local SVG), or provider visemes/video.
+    lipsync_mode: str = "none"
     #: Умеет ли провайдер прерывать себя на полуслове.
     interruptible: bool = False
     #: Транспорт видео: none | images | webrtc.
@@ -79,11 +84,7 @@ class AvatarCapabilities:
 
 
 class AvatarProvider(abc.ABC):
-    """Лицо оппонента. Единственная реализация — `presence`.
-
-    Липсинк делает OpenTalking; наш собственный GPU-провайдер удалён, потому
-    что не работал (см. docs/upstream-patches.md).
-    """
+    """Presence, local amplitude renderer, or an explicitly registered video adapter."""
 
     @abc.abstractmethod
     def capabilities(self) -> AvatarCapabilities:
@@ -95,7 +96,12 @@ class AvatarProvider(abc.ABC):
 
     @abc.abstractmethod
     async def speak(self, pcm: bytes, *, generation_id: str) -> None:
-        """Отдать кусок речи на озвучку/липсинк."""
+        """Принять тот же float32 little-endian PCM 24kHz mono, что слышит клиент.
+
+        Метод только ставит данные в ограниченную очередь провайдера (<50ms).
+        Нельзя повторно озвучивать текст или блокировать TTS. generation_id
+        отделяет отменённую речь; interrupt обязан очистить очередь.
+        """
 
     @abc.abstractmethod
     async def interrupt(self) -> None:
@@ -104,3 +110,7 @@ class AvatarProvider(abc.ABC):
     @abc.abstractmethod
     def describe(self) -> str:
         ...
+
+    async def close(self) -> None:
+        """Release provider tasks/connections on socket close. Override for video."""
+        await self.interrupt()

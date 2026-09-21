@@ -6,24 +6,10 @@
 // сценария, для «своей сделки», при обрезанной сборке — показываем прежний
 // параметрический портрет из `Avatar.tsx`. Пустого прямоугольника не бывает.
 //
-// ЧЕСТНОСТЬ. Липсинка здесь нет и не заявляется. Речь показана не движением
-// губ, а отдельным индикатором — тремя полосками рядом с лицом. Это разница
-// между «мы не умеем синхронизировать губы, и вот честный признак речи» и
-// «мы делаем вид, что умеем». Второго в продукте не бывает по правилу проекта.
-//
-// STUB(avatar-lipsync): синхронизации губ с речью нет.
-//   Настоящим станет: любой провайдер, отдающий видеопоток лица, — сервер
-//   поднимет `capabilities.lipsync`, и этот компонент уступит место
-//   видеоэлементу. Форма готова, провайдер не выбран.
-//
-//   ПРЕЖНЯЯ РЕДАКЦИЯ ЭТОЙ СТРОКИ ОБЕЩАЛА ТО, ЧЕГО НЕТ: она называла провайдер
-//   `livetalking` и файл `services/avatar/README.md`. Код провайдера удалён
-//   (он нёс два незакрытых STUB — согласование WebRTC и подача PCM), каталога
-//   не существует. Пометка «чем оно станет», указывающая на удалённое, — тот
-//   же четвёртый признак, против которого вся конвенция и заведена.
-//
-//   OpenTalking, который крутится рядом на :8210, липсинк делает — но в СВОЁМ
-//   интерфейсе, а не в нашем. К этому компоненту он не подключён ничем.
+// Локальный речевой режим рисует рот SVG по реально проигрываемому PCM.
+// Это амплитудная анимация, не распознавание фонем и не фотореалистичное видео.
+// CONTRACT(avatar-video): приём JPEG по часам PCM реализован, внешний адаптер не выбран.
+//   Настоящим станет: выбранный провайдер и проверенная запись его кадров со звуком.
 import { useEffect, useState } from "react";
 import { Avatar, avatarMood, type Mood } from "./Avatar";
 import type { StateView } from "../types";
@@ -67,6 +53,10 @@ interface Props {
   exam: boolean;
   /** Оппонент сейчас говорит: рисуем честный индикатор речи, а не губы. */
   speaking?: boolean;
+  getSpeechLevel?: () => number;
+  getVideoFrame?: () => string | null;
+  amplitudeAnimation?: boolean;
+  animationLabel?: string;
   /** Размер рисованного запасного портрета. Картинку состояния масштабирует CSS. */
   size?: number;
   label?: string;
@@ -76,40 +66,64 @@ interface Props {
 }
 
 export function OpponentFace({
-  scenarioId, avatarState, state, exam, speaking = false, size = 96, label, speakingLabel,
+  scenarioId, avatarState, state, exam, speaking = false, size = 96, label, speakingLabel, getSpeechLevel, amplitudeAnimation = false, animationLabel, getVideoFrame,
 }: Props) {
   const mood = avatarMood(state, exam);
   // В экзамене шкалы скрыты, и лицо не должно их выдавать: фиксируем нейтральное.
   const resolved = exam ? "listening" : (avatarState ? resolveState(avatarState) : stateFromMood(mood));
-  const [drawn, setDrawn] = useState(true);
-
-  // Смена сценария — новый набор картинок: пробуем снова, даже если прошлый не нашёлся.
-  useEffect(() => setDrawn(true), [scenarioId]);
-
-  if (!drawn) {
-    // Тот же `.face`, что и у картинки: размеры и скругления задаёт он, и
-    // запасной портрет обязан садиться в ту же рамку, а не рядом с ней.
-    return (
-      <div className="face">
-        <Avatar scenarioId={scenarioId} mood={mood} size={size} label={label} />
-      </div>
-    );
-  }
+  const src = `/avatars/${scenarioId}/${resolved}.webp`;
+  const clip = `/avatars/${scenarioId}/${resolved}.webm`;
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [failedClip, setFailedClip] = useState<string | null>(null);
+  const [reducedMotion, setReducedMotion] = useState(true);
+  const [opening, setOpening] = useState(0);
+  const [videoFrame, setVideoFrame] = useState<string | null>(null);
+  const [badVideoFrame, setBadVideoFrame] = useState<string | null>(null);
+  const animated = amplitudeAnimation && !exam && !!getSpeechLevel;
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(preference.matches);
+    update();
+    preference.addEventListener('change', update);
+    return () => preference.removeEventListener('change', update);
+  }, []);
+  useEffect(() => {
+    if (!animated) { setOpening(0); return; }
+    let frame = 0;
+    const tick = () => {
+      setVideoFrame(getVideoFrame?.() ?? null);
+      setOpening(Math.max(0, Math.min(1, getSpeechLevel?.() ?? 0)));
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [animated, getSpeechLevel, getVideoFrame]);
 
   // Размер задаёт CSS (`.opp .face` меняет его по ширине экрана), поэтому
   // инлайновых width/height здесь нет: они перебили бы медиазапросы.
   return (
-    <div className="face">
-      <img
+    <div className="face" data-motion-preference={reducedMotion ? "reduced" : "full"}
+      title={animated && !videoFrame ? animationLabel : undefined} data-renderer={animated ? (videoFrame ? "video" : "amplitude") : "portrait"}>
+      {animated && videoFrame && videoFrame !== badVideoFrame ? (
+        <img className="face__img" src={videoFrame} alt={label ?? ""}
+          onError={() => setBadVideoFrame(videoFrame)} />
+      ) : animated || failedSrc === src ? (
+        <Avatar scenarioId={scenarioId} mood={mood} size={size} label={label}
+          mouthOpening={animated ? opening : 0} />
+      ) : !exam && !reducedMotion && failedClip !== clip ? (
+        <video key={clip} className="face__img" src={clip} poster={src}
+          autoPlay loop muted playsInline preload="metadata" aria-label={label ?? ""}
+          onError={() => setFailedClip(clip)} />
+      ) : <img
         className="face__img"
-        src={`/avatars/${scenarioId}/${resolved}.webp`}
+        src={src}
         alt={label ?? ""}
         // Набора нет — молча уходим на рисованный портрет. Ошибка загрузки
         // картинки не повод показывать человеку сломанный экран.
-        onError={() => setDrawn(false)}
+        onError={() => setFailedSrc(src)}
         draggable={false}
-      />
-      {speaking && (
+      />}
+      {speaking && !animated && (
         <span className="face__voice" aria-label={speakingLabel}>
           <i /><i /><i />
         </span>

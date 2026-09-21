@@ -14,6 +14,9 @@ export interface Transport {
   /** Мгновенный уровень микрофона 0..1. Локальный, поэтому без задержки сети.
    *  Офлайн-ядро микрофона не держит и его не реализует. */
   micLevel?(): number;
+  /** Amplitude of opponent audio on its playback clock; no input audio. */
+  speechLevel?(): number;
+  videoFrame?(): string | null;
   /** Оборвать реплику оппонента вручную (кнопка, а не голос). */
   interrupt?(): void;
 }

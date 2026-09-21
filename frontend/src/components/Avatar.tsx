@@ -140,9 +140,11 @@ interface Props {
   /** px size; defaults to filling its container (100%). */
   size?: number;
   label?: string;
+  /** Audio amplitude 0..1; optional, no phoneme or emotional inference. */
+  mouthOpening?: number;
 }
 
-export function Avatar({ scenarioId, mood, size, label }: Props) {
+export function Avatar({ scenarioId, mood, size, label, mouthOpening = 0 }: Props) {
   const c = AVATAR_CONFIG[scenarioId] ?? DEFAULT_CONFIG;
   const hair = hairPaths(c.style);
   const e = EXPR[mood];
@@ -214,7 +216,10 @@ export function Avatar({ scenarioId, mood, size, label }: Props) {
         <line x1="41.5" y1={e.browOuter} x2="33.5" y2={e.browInner} stroke={c.brow} strokeWidth="1.6" strokeLinecap="round" />
         <ellipse cx="26.5" cy="35" rx="1.5" ry="2" fill="#2b2521" />
         <ellipse cx="37.5" cy="35" rx="1.5" ry="2" fill="#2b2521" />
-        <path d={e.mouth} fill="none" stroke="#7d4536" strokeWidth="1.7" strokeLinecap="round" />
+        {mouthOpening > 0.02 ? (
+          <ellipse data-speech-mouth="true" cx="32" cy="44.5" rx="4.2"
+            ry={0.6 + Math.min(1, mouthOpening) * 3.2} fill="#59352f" />
+        ) : <path d={e.mouth} fill="none" stroke="#7d4536" strokeWidth="1.7" strokeLinecap="round" />}
       </g>
 
       {/* glasses last (over eyes) */}

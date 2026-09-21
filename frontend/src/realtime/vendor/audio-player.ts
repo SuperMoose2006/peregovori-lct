@@ -24,6 +24,8 @@
 // говорить ещё секунду после того, как человек начал.
 
 /** Линейная интерполяция между частотами. Перенос `resampleAudio` из duplex-utils.js. */
+import { SpeechEnvelope } from "../../lib/speechEnvelope";
+
 export function resampleAudio(samples: Float32Array, fromRate: number, toRate: number): Float32Array {
   if (fromRate === toRate) return samples;
   const ratio = fromRate / toRate;
@@ -56,6 +58,9 @@ export interface AudioPlayerOptions {
 }
 
 export class AudioPlayer {
+  private readonly envelope = new SpeechEnvelope();
+  private pcmTimeMs = 0;
+  private clocks: { start: number; end: number; offset: number }[] = [];
   private ctx: AudioContext | null = null;
   private readonly expectedRate: number;
   private readonly delayMs: number;
@@ -93,6 +98,19 @@ export class AudioPlayer {
 
   get isPlaying(): boolean {
     return this.playing;
+  }
+
+  /** Sample only audio scheduled for playback now, never network arrival time. */
+  speechLevel(): number {
+    return this.ctx?.state === "running" ? this.envelope.level(this.ctx.currentTime) : 0;
+  }
+
+  playbackTimeMs(): number | null {
+    if (this.ctx?.state !== 'running') return null;
+    const now = this.ctx.currentTime;
+    while (this.clocks.length && this.clocks[0].end <= now) this.clocks.shift();
+    const clock = this.clocks[0];
+    return clock && clock.start <= now ? clock.offset + (now - clock.start) * 1000 : null;
   }
 
   /** Новая реплика оппонента. Всё, что осталось от прошлой, обрывается. */
@@ -199,11 +217,15 @@ export class AudioPlayer {
     }
 
     source.start(this.nextTime);
+    this.clocks.push({ start: this.nextTime, end: this.nextTime + buffer.duration, offset: this.pcmTimeMs });
+    this.pcmTimeMs += buffer.duration * 1000;
+    this.envelope.add(samples, this.deviceRate, this.nextTime);
     this.nextTime += buffer.duration;
     this.sources.push(source);
     source.onended = () => {
       const i = this.sources.indexOf(source);
       if (i >= 0) this.sources.splice(i, 1);
+      if (this.sources.length === 0 && this.pending.length === 0) this.playing = false;
     };
 
     this.lastAheadMs = (this.nextTime - this.ctx.currentTime) * 1000;
@@ -211,6 +233,9 @@ export class AudioPlayer {
   }
 
   private stopAllSources(): void {
+    this.envelope.clear();
+    this.clocks = [];
+    this.pcmTimeMs = 0;
     if (this.delayTimer) {
       clearTimeout(this.delayTimer);
       this.delayTimer = null;

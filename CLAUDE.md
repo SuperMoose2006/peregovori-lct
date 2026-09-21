@@ -104,7 +104,7 @@ legacy-node/                 первый прототип — эталон по
 - `turn.analysis` · `engine.state` · `probe` · `judge.started|completed` · `turn.coach` · `debrief`
   `probe {turn, options, answer}` — вопрос по окончательной реакции, после
   судьи, применения хода и проверки лимита; в закрытой партии не отправляется.
-- `avatar.state` · `vision.observation` · `vision.tell` · `user.speech.started|stopped` · `user.transcript`
+- `avatar.state` · `avatar.frame` · `vision.observation` · `vision.tell` · `user.speech.started|stopped` · `user.transcript`
 - `generation.cancelled` · `session.closed {reason}` · `error`
 
 Списки закрытые: `CLIENT_EVENTS` / `SERVER_EVENTS` в `realtime/events.py`, и

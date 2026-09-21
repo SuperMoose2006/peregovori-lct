@@ -15,6 +15,7 @@ import type { ConnStatus, ServerMsgHandler, Transport } from "../api/transport";
 import { I18N } from "../i18n";
 import { SERVER_SIDE_REASON } from "../lib/layers";
 import { AudioPlayer } from "./vendor/audio-player";
+import { AvatarFrames } from "../lib/avatarFrames";
 import { MediaProvider, toBase64 } from "./vendor/media-provider";
 import {
   RealtimeSession,
@@ -69,6 +70,8 @@ export interface RealtimeTransportOptions extends RealtimeExtras {
 }
 
 export class RealtimeTransport implements Transport {
+  private readonly faceFrames = new AvatarFrames();
+  private audioGeneration = "";
   private readonly emit: ServerMsgHandler;
   private readonly onConn: (status: ConnStatus) => void;
   private readonly options: RealtimeTransportOptions;
@@ -123,8 +126,12 @@ export class RealtimeTransport implements Transport {
     return this.media?.level() ?? 0;
   }
 
+  speechLevel(): number { return this.player?.speechLevel() ?? 0; }
+  videoFrame(): string | null { return this.faceFrames.at(this.player?.playbackTimeMs() ?? null); }
+
   /** Перебивание с кнопки. Голосовое сервер замечает сам, через VAD. */
   interrupt(): void {
+    this.faceFrames.clear();
     this.player?.stopAll();
     this.session?.cancel();
   }
@@ -372,12 +379,18 @@ export class RealtimeTransport implements Transport {
 
       case "response.output.delta": {
         const kind = String(event.kind ?? "");
+        const generation = String(event.generation_id ?? "");
+        if (generation && generation !== this.audioGeneration) {
+          this.faceFrames.clear();
+          this.audioGeneration = generation;
+        }
         if (kind === "text") {
           this.player?.beginTurn();
           this.emit({ type: "opponent_delta", chunk: String(event.text ?? "") });
         } else if (kind === "audio") {
           this.player?.playChunk(String(event.audio ?? ""));
           this.markOppAudio(true);
+          this.watchDrain(); // TTS may arrive after response.done's quiet timer expired.
         } else if (kind === "transcript") {
           this.options.onTranscript?.(String(event.text ?? ""), Boolean(event.final));
         }
@@ -394,10 +407,22 @@ export class RealtimeTransport implements Transport {
         this.markOppAudio(false);
         // Сервер погасил реплику. Звук, уже стоящий в расписании браузера,
         // остановит только это — вторая половина перебивания живёт здесь.
+        this.faceFrames.clear();
         this.player?.stopAll();
         return;
 
+      case "avatar.frame":
+        if (event.generation_id === this.audioGeneration) this.faceFrames.push(event);
+        return;
+
       case "avatar.state":
+        if (this.session && event.lipsync_mode === "amplitude") {
+          this.faceFrames.clear();
+          this.session.capabilities = { ...this.session.capabilities,
+            avatar: { ...(this.session.capabilities.avatar as object),
+              lipsync: true, lipsync_mode: "amplitude", transport: "local" } };
+          this.options.onCapabilities?.(this.session.capabilities);
+        }
         this.options.onAvatar?.(String(event.state ?? "listening"),
                                 (event.reaction as string) ?? null,
                                 Boolean(event.lipsync));
@@ -418,6 +443,7 @@ export class RealtimeTransport implements Transport {
         this.options.onSpeech?.(true);
         // Человек заговорил — глушим оппонента в браузере, не дожидаясь
         // подтверждения с сервера. Оно придёт, но эти сто миллисекунд слышны.
+        this.faceFrames.clear();
         this.player?.stopAll();
         return;
 

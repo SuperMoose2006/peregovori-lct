@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
-from typing import Callable, Optional
+from typing import Awaitable, Callable, Optional
 
 from app.providers.tts.base import TTSProvider, Voice
 from app.realtime.events import output_delta
@@ -55,6 +55,10 @@ class TTSTaskManager:
         self._provider = provider
         self._publish = publish
         self._voice = voice
+        # A provider queues the same PCM sent to the browser, never resynthesizes.
+        # A failed/slow face cannot block speech or the negotiation.
+        self.on_audio: Optional[Callable[..., Awaitable[None]]] = None
+        self.on_audio_error: Optional[Callable[[], Awaitable[None]]] = None
 
         self._tasks: list[asyncio.Task] = []
         self._queues: list[asyncio.Queue[bytes]] = []
@@ -133,6 +137,19 @@ class TTSTaskManager:
                         turn_id=self._turn_id,
                         audio=base64.b64encode(chunk).decode("ascii"),
                     ))
+                    if self.on_audio:
+                        try:
+                            await asyncio.wait_for(self.on_audio(
+                                chunk, generation_id=self._generation_id), timeout=0.05)
+                        except asyncio.CancelledError:
+                            raise
+                        except Exception:
+                            self.on_audio = None
+                            if self.on_audio_error:
+                                await self.on_audio_error()
+                            self._publish({'type': 'avatar.state', 'state': 'listening',
+                                           'lipsync': True, 'lipsync_mode': 'amplitude',
+                                           'reason': 'provider_failed'})
                 self._next_to_send += 1
         except asyncio.CancelledError:
             raise

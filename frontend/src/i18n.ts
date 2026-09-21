@@ -755,6 +755,7 @@ export interface Strings {
     hud: string;          // aria-label for the always-visible meter strip
     skip: string;         // ссылка «к содержимому» — первая остановка Tab
     speaking: string;     // индикатор речи оппонента рядом с лицом
+    amplitudeAnimation: string;
     send: string;         // главная кнопка композера
     dismiss: string;      // крестик карточки тренера в ленте
     themeDark: string;    // переключатель темы, сейчас включена тёмная
@@ -1551,6 +1552,7 @@ export const I18N: Record<Lang, Strings> = {
       delta: "{label}: {value}",
       skip: "К содержимому",
       speaking: "Оппонент говорит",
+      amplitudeAnimation: "Рот по громкости речи · локальная анимация",
       send: "Отправить реплику",
       dismiss: "Скрыть подсказку тренера",
       themeDark: "Тёмная тема",
@@ -2340,6 +2342,7 @@ export const I18N: Record<Lang, Strings> = {
       delta: "{label}: {value}",
       skip: "Skip to content",
       speaking: "The counterpart is speaking",
+      amplitudeAnimation: "Audio-driven mouth · local animation",
       send: "Send message",
       dismiss: "Dismiss coach note",
       themeDark: "Dark theme",

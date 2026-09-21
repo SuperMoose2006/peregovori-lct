@@ -1087,6 +1087,10 @@ export default function App() {
             cloudAi={typeof nego.capabilities?.cloud_ai === "boolean" ? nego.capabilities.cloud_ai : null}
             avatarState={nego.avatarState}
             oppSpeaking={nego.oppSpeaking}
+            getSpeechLevel={nego.getSpeechLevel}
+            getVideoFrame={nego.getVideoFrame}
+            amplitudeAnimation={["amplitude", "video"].includes(String((nego.capabilities?.avatar as { lipsync_mode?: string } | undefined)?.lipsync_mode))}
+
             layers={activeLayers}
             onOpenLayers={() => setLayersOpen(true)}
             layersOpen={layersOpen}

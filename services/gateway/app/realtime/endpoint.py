@@ -32,7 +32,7 @@ from pydantic import ValidationError
 
 from app import engine, views
 from app.avatar.base import AvatarProvider
-from app.avatar.presence import PresenceAvatar
+from app.avatar.factory import create_avatar
 from app.orchestrator.judge import judge_enabled_for
 from app.orchestrator.negotiation import NegotiationOrchestrator
 from app.orchestrator.tts_manager import TTSTaskManager
@@ -494,6 +494,9 @@ async def realtime_ws(websocket: WebSocket) -> None:
         if orchestrator is not None:
             with contextlib.suppress(Exception):
                 await orchestrator.interrupt(reason="disconnect")
+            if orchestrator.avatar is not None:
+                with contextlib.suppress(Exception):
+                    await asyncio.wait_for(orchestrator.avatar.close(), timeout=1)
         if voice is not None:
             # РАСПОЗНАВАНИЕ ЗАКРЫВАЕТСЯ ВМЕСТЕ С СОКЕТОМ. Этой строки здесь не
             # было, и `RealtimeVoicePipeline` пережидал партию: его сессия к
@@ -780,16 +783,11 @@ def _vision_budget(session: RealtimeSession) -> bool:
 
 
 def _make_avatar(session: RealtimeSession) -> AvatarProvider:
-    """Лицо оппонента. Всегда `presence`: картинка меняется по реакции движка.
-
-    Здесь был второй путь — провайдер `livetalking` на GPU-хосте, включавшийся
-    переменной `NEGO_AVATAR_URL`. Он удалён: липсинк там так и не заработал
-    (два STUB — согласование WebRTC и подача PCM не были подключены), а
-    настоящий липсинк теперь делает OpenTalking семью своими рендерерами.
-    Держать нерабочую вторую ветку рядом с работающей чужой — это обещать
-    возможность, которой нет.
-    """
-    return PresenceAvatar(session.engine_session.scenario_id, session.bus.publish)
+    """Voice uses local amplitude animation; text keeps the portrait provider."""
+    if session.avatar_provider is None:
+        session.avatar_provider = create_avatar(session.engine_session.scenario_id,
+                                                session.bus.publish, voice=session.layers.voice)
+    return session.avatar_provider
 
 
 #: Мужские имена, оканчивающиеся на «а»/«я». Нужны только для СГЕНЕРИРОВАННЫХ
@@ -873,6 +871,7 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         caps = _make_avatar(session).capabilities()
         capabilities["avatar"] = {
             "available": caps.available, "lipsync": caps.lipsync,
+            "lipsync_mode": caps.lipsync_mode,
             "transport": caps.transport, "states": list(caps.states),
             "reason": caps.reason or None,
         }

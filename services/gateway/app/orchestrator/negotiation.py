@@ -70,6 +70,9 @@ class NegotiationOrchestrator:
         self.session = session
         self.tts = tts
         self.avatar = avatar
+        if tts and avatar:
+            tts.on_audio = avatar.speak
+            tts.on_audio_error = self._fallback_avatar
         self._generation_task: Optional[asyncio.Task] = None
         #: Кому сообщать, звучит ли голос оппонента. Ставится извне
         #: (`realtime/endpoint.py`) на голосовой пайплайн — без этого его защита
@@ -79,6 +82,34 @@ class NegotiationOrchestrator:
     def _set_speaking(self, speaking: bool) -> None:
         if self.on_speaking_change:
             self.on_speaking_change(speaking)
+
+    async def _fallback_avatar(self) -> None:
+        """A broken optional face must not discard an already applied move."""
+        from app.avatar.amplitude import AmplitudeAvatar
+        old = self.avatar
+        self.avatar = AmplitudeAvatar(self.session.engine_session.scenario_id, self.session.bus.publish)
+        self.session.avatar_provider = self.avatar
+        if self.tts:
+            self.tts.on_audio = self.avatar.speak
+        await self.avatar.set_state('listening')
+        if old:
+            try:
+                await asyncio.wait_for(old.close(), timeout=0.1)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                pass
+
+    async def _avatar_state(self, state: str, *, reaction: str | None = None) -> None:
+        if not self.avatar:
+            return
+        try:
+            await asyncio.wait_for(self.avatar.set_state(state, reaction=reaction), timeout=0.05)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            await self._fallback_avatar()
+            await self.avatar.set_state(state, reaction=reaction)
 
     # ------------------------------------------------------------------ ход
 
@@ -129,7 +160,7 @@ class NegotiationOrchestrator:
         if judge_enabled_for(sess.game_mode):
             bus.publish({"type": "judge.started", "turn_id": turn_id})
             if self.avatar:
-                await self.avatar.set_state("thinking")
+                await self._avatar_state("thinking")
             try:
                 context, interests = views.judge_context(engine_sess)
                 secondary = views.judge_secondary(engine_sess)
@@ -185,8 +216,7 @@ class NegotiationOrchestrator:
 
         # 5. Лицо оппонента. Эмоцию знает движок — модель об этом не спрашивают.
         if self.avatar:
-            await self.avatar.set_state(state_for_reaction(result.reaction),
-                                        reaction=result.reaction)
+            await self._avatar_state(state_for_reaction(result.reaction), reaction=result.reaction)
 
         # 6. Реплика. Шаблон движка — не запасной план на случай беды, а базовая
         #    линия: без сети игра целиком идёт на нём.
@@ -290,8 +320,6 @@ class NegotiationOrchestrator:
                 if self.tts and say:
                     self.tts.speak(say, generation_id=generation_id, turn_id=turn_id)
                     spoken_any = True
-                if self.avatar and say:
-                    await self.avatar.speak(b"", generation_id=generation_id)
         except asyncio.CancelledError:
             # Перебили. `interrupt()` уже дописал услышанное в историю и погасил
             # поколение на шине — здесь просто выходим.
@@ -359,7 +387,12 @@ class NegotiationOrchestrator:
         if self.tts:
             self.tts.clear()
         if self.avatar:
-            await self.avatar.interrupt()
+            try:
+                await asyncio.wait_for(self.avatar.interrupt(), timeout=0.05)
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                await self._fallback_avatar()
 
         if cancelled:
             sess.bus.publish({"type": "generation.cancelled",

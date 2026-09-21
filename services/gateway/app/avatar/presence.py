@@ -21,9 +21,9 @@
 OpenRouter один раз и кладёт в `frontend/public/avatars/<persona>/<state>.webp`.
 Результат коммитится: на демо не должно быть похода в сеть за лицом.
 
-MOCK(avatar-motion): состояние сейчас статично — картинка меняется, дыхания и
-  микродвижений нет. Настоящим станет: короткие зацикленные клипы на состояние
-  (та же раскладка файлов, `.webm` вместо `.webp`).
+Локальные webm создаются tools/gen_avatar_motion.py: процедурное дыхание и
+малые деформации области бровей. Это не захваченная мимика. Клиент сохраняет
+webp/SVG fallback, reduced-motion и нейтральный экзамен.
 """
 
 from __future__ import annotations
@@ -85,8 +85,9 @@ class PresenceAvatar(AvatarProvider):
         гонять его вторым путём — значит завести второй источник рассинхрона.
         Провайдер лишь переключается в «говорит» на время речи.
         """
-        if self._state != "speaking":
-            await self.set_state("speaking")
+        # The client knows actual playback, including buffering and its end.
+        # A server-side "speaking" here would outlive response.done and stick.
+        return None
 
     async def interrupt(self) -> None:
         await self.set_state("listening")
