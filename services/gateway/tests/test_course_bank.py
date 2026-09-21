@@ -408,8 +408,16 @@ _QUESTION_MOVES = {"interests_probe", "spin_situation", "spin_problem",
 #: валит сборку, пока автор не объяснит, зачем он такой.
 PROBE_THAT_MUST_NOT_REVEAL = {
     "fo-08": "доверие 18 ниже порога вскрытия — на этом и построено задание",
-    "al-01": "вопрос намеренно общий: разбор показывает +5 вместо +24",
 }
+
+
+# Область проверки не должна исчезать вслед за поломанным analyze: иначе
+# регрессия классификации превращает красный тест в skip. Это учебные вопросы,
+# уже проверенные обоими языками, а не список текущих ответов анализатора.
+EXPECTED_QUESTIONS = frozenset({
+    "fo-01", "fo-04", "fo-06", "fo-08", "sp-02", "sp-03", "sp-04", "sp-06",
+    "sp-07", "sp-10", "sp-08", "al-01", "al-02", "pd-08", "st-06", "pr-05", "pr-06",
+})
 
 
 def _own_line(item: dict, lang: str):
@@ -441,6 +449,8 @@ def test_a_correct_question_actually_uncovers_an_interest(item: dict, lang: str)
     if line is None:
         pytest.skip("у пункта нет собственной реплики игрока")
     analysis = analyze(line)
+    if item["id"] in EXPECTED_QUESTIONS:
+        assert set(analysis.moves) & _QUESTION_MOVES, f"{item['id']}/{lang}: вопрос потерял приём"
     if not (set(analysis.moves) & _QUESTION_MOVES):
         pytest.skip("реплика не является вопросом-приёмом")
     if item["id"] in PROBE_THAT_MUST_NOT_REVEAL:

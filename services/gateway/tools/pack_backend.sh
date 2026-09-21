@@ -62,7 +62,10 @@ DEST="$(cd "$DEST" && pwd)"
 
 count=0
 while IFS= read -r -d '' rel; do
-  install -D -m "$(test -x "$ROOT/$rel" && echo 755 || echo 644)" \
+  # GNU install -D и BSD install -D означают разное. Явное создание
+  # родителя сохраняет один рецепт упаковки для Linux и ноутбука с macOS.
+  mkdir -p "$(dirname "$DEST/$rel")"
+  install -m "$(test -x "$ROOT/$rel" && echo 755 || echo 644)" \
     "$ROOT/$rel" "$DEST/$rel"
   count=$((count + 1))
 done < <(git -C "$ROOT" ls-files -z -- "${PATHS[@]}")

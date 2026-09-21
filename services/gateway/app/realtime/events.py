@@ -30,7 +30,7 @@ from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from app.protocol import Mode
+from app.protocol import Mode, ScenarioContext
 
 # ---------------------------------------------------------------------------
 # Клиент → сервер
@@ -75,6 +75,7 @@ SERVER_EVENTS = (
     # число, что ушло в метрики и грейд) и `judged` — считал его судья или
     # словарь.
     "engine.state",
+    "probe",                # вопрос об окончательной реакции движка
     "judge.started",        # честное имя ожидания: судья читает, а не «печатает…»
     "judge.completed",
     "turn.coach",           # пер-ходовой коучинг судьи
@@ -127,6 +128,7 @@ class SessionInit(BaseModel):
     #: переговоры»; отказ называет поле по имени (`bad_payload`), а не режет
     #: молча, иначе человек платил бы за стол, собранный по половине описания.
     situation: Optional[str] = Field(default=None, max_length=1500)
+    context: Optional[ScenarioContext] = None
     reputation: Optional[float] = None     # репутация из прошлых актов кампании
     layers: dict[str, bool] = Field(default_factory=dict)
     #: Вернуться в брошенную партию после обрыва связи. Состояние игры держит

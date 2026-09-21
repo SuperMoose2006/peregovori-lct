@@ -45,6 +45,7 @@ import asyncio
 from typing import Callable, Optional
 
 from app import engine, views
+from app.probe import ProbeMemory, next_probe
 from app.ai.prompts import build_prompts
 from app.avatar.base import AvatarProvider, state_for_reaction
 from app.orchestrator.judge import judge_enabled_for, judge_turn
@@ -167,6 +168,10 @@ class NegotiationOrchestrator:
             "reaction": result.reaction,
             "closed": result.closed,
         })
+        # Вопрос строится только ПОСЛЕ судьи, apply_move и проверки лимита:
+        # ранний анализ ещё не знает ни реакции, ни того, закрылся ли стол.
+        probe = (next_probe(result.reaction, turn_id, result.closed, sess.probe_memory)
+                 if sess.layers.probe else None)
         if judgement:
             bus.publish({
                 "type": "turn.coach",
@@ -199,6 +204,13 @@ class NegotiationOrchestrator:
             self._generation_task = asyncio.create_task(
                 self._stream_opponent(facts, templated, turn_id))
             await self._generation_task
+
+        # Показываем вопрос после реплики, как в офлайне: иначе карточка
+        # встанет между частями ещё печатающегося ответа. Отменённый ответ
+        # сюда не дойдёт и не сдвинет такт вопросов.
+        if probe:
+            sess.probe_memory = ProbeMemory(turn_id, result.reaction)
+            bus.publish({"type": "probe", **probe.model_dump()})
 
         if result.closed:
             await self._send_debrief()

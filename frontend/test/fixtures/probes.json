@@ -1,0 +1,1910 @@
+[
+  {
+    "reaction": "walked_out",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 3,
+      "options": [
+        "offended",
+        "pressured",
+        "hardened",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 2,
+      "options": [
+        "hardened",
+        "offended",
+        "walked_out",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 2,
+      "options": [
+        "offended",
+        "pressured",
+        "walked_out",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 0,
+      "options": [
+        "walked_out",
+        "hardened",
+        "pressured",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 3,
+      "options": [
+        "offended",
+        "pressured",
+        "hardened",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 2,
+      "options": [
+        "hardened",
+        "offended",
+        "walked_out",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 2,
+      "options": [
+        "offended",
+        "pressured",
+        "walked_out",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 0,
+      "options": [
+        "walked_out",
+        "hardened",
+        "pressured",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 3,
+      "options": [
+        "offended",
+        "pressured",
+        "hardened",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 1,
+      "options": [
+        "pressured",
+        "walked_out",
+        "offended",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 2,
+      "options": [
+        "hardened",
+        "offended",
+        "walked_out",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "walked_out",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 3,
+      "options": [
+        "offended",
+        "pressured",
+        "hardened",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 3,
+      "options": [
+        "walked_out",
+        "pressured",
+        "hardened",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 0,
+      "options": [
+        "offended",
+        "walked_out",
+        "hardened",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 2,
+      "options": [
+        "walked_out",
+        "pressured",
+        "offended",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 0,
+      "options": [
+        "offended",
+        "hardened",
+        "pressured",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 3,
+      "options": [
+        "walked_out",
+        "pressured",
+        "hardened",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 0,
+      "options": [
+        "offended",
+        "walked_out",
+        "hardened",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 2,
+      "options": [
+        "walked_out",
+        "pressured",
+        "offended",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 0,
+      "options": [
+        "offended",
+        "hardened",
+        "pressured",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 3,
+      "options": [
+        "walked_out",
+        "pressured",
+        "hardened",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 1,
+      "options": [
+        "walked_out",
+        "offended",
+        "pressured",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 0,
+      "options": [
+        "offended",
+        "walked_out",
+        "hardened",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "offended",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 3,
+      "options": [
+        "hardened",
+        "pressured",
+        "walked_out",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 3,
+      "options": [
+        "offended",
+        "pressured",
+        "walked_out",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 2,
+      "options": [
+        "pressured",
+        "offended",
+        "hardened",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 1,
+      "options": [
+        "walked_out",
+        "hardened",
+        "offended",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 0,
+      "options": [
+        "hardened",
+        "walked_out",
+        "pressured",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 3,
+      "options": [
+        "offended",
+        "pressured",
+        "walked_out",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 2,
+      "options": [
+        "pressured",
+        "offended",
+        "hardened",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 1,
+      "options": [
+        "walked_out",
+        "hardened",
+        "offended",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 0,
+      "options": [
+        "hardened",
+        "walked_out",
+        "pressured",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 3,
+      "options": [
+        "offended",
+        "walked_out",
+        "pressured",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 2,
+      "options": [
+        "offended",
+        "walked_out",
+        "hardened",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 0,
+      "options": [
+        "hardened",
+        "offended",
+        "pressured",
+        "walked_out"
+      ]
+    }
+  },
+  {
+    "reaction": "hardened",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 3,
+      "options": [
+        "pressured",
+        "walked_out",
+        "offended",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 3,
+      "options": [
+        "not_yet",
+        "offended",
+        "hardened",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 0,
+      "options": [
+        "pressured",
+        "hardened",
+        "not_yet",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 2,
+      "options": [
+        "hardened",
+        "offended",
+        "pressured",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 2,
+      "options": [
+        "not_yet",
+        "offended",
+        "pressured",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 3,
+      "options": [
+        "not_yet",
+        "offended",
+        "hardened",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 0,
+      "options": [
+        "pressured",
+        "hardened",
+        "not_yet",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 1,
+      "options": [
+        "hardened",
+        "pressured",
+        "offended",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 0,
+      "options": [
+        "pressured",
+        "not_yet",
+        "offended",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 3,
+      "options": [
+        "not_yet",
+        "offended",
+        "hardened",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 1,
+      "options": [
+        "offended",
+        "pressured",
+        "hardened",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 2,
+      "options": [
+        "not_yet",
+        "hardened",
+        "pressured",
+        "offended"
+      ]
+    }
+  },
+  {
+    "reaction": "pressured",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 3,
+      "options": [
+        "hardened",
+        "offended",
+        "not_yet",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 2,
+      "options": [
+        "neutral",
+        "pressured",
+        "not_yet",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 3,
+      "options": [
+        "pressured",
+        "hardened",
+        "neutral",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 0,
+      "options": [
+        "not_yet",
+        "hardened",
+        "neutral",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 1,
+      "options": [
+        "hardened",
+        "not_yet",
+        "pressured",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 2,
+      "options": [
+        "neutral",
+        "pressured",
+        "not_yet",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 3,
+      "options": [
+        "pressured",
+        "neutral",
+        "hardened",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 0,
+      "options": [
+        "not_yet",
+        "hardened",
+        "neutral",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 1,
+      "options": [
+        "hardened",
+        "not_yet",
+        "pressured",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 2,
+      "options": [
+        "neutral",
+        "pressured",
+        "not_yet",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 0,
+      "options": [
+        "not_yet",
+        "neutral",
+        "pressured",
+        "hardened"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 1,
+      "options": [
+        "pressured",
+        "not_yet",
+        "hardened",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "not_yet",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 2,
+      "options": [
+        "neutral",
+        "hardened",
+        "not_yet",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 2,
+      "options": [
+        "not_yet",
+        "pressured",
+        "neutral",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 2,
+      "options": [
+        "collaborated",
+        "pressured",
+        "neutral",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 3,
+      "options": [
+        "collaborated",
+        "pressured",
+        "not_yet",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 0,
+      "options": [
+        "neutral",
+        "not_yet",
+        "collaborated",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 2,
+      "options": [
+        "not_yet",
+        "pressured",
+        "neutral",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 0,
+      "options": [
+        "neutral",
+        "collaborated",
+        "pressured",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 3,
+      "options": [
+        "collaborated",
+        "pressured",
+        "not_yet",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 0,
+      "options": [
+        "neutral",
+        "not_yet",
+        "collaborated",
+        "pressured"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 1,
+      "options": [
+        "not_yet",
+        "neutral",
+        "pressured",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 3,
+      "options": [
+        "not_yet",
+        "pressured",
+        "collaborated",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 0,
+      "options": [
+        "neutral",
+        "collaborated",
+        "pressured",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "neutral",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 2,
+      "options": [
+        "not_yet",
+        "pressured",
+        "neutral",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 0,
+      "options": [
+        "collaborated",
+        "persuaded",
+        "not_yet",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 2,
+      "options": [
+        "neutral",
+        "not_yet",
+        "collaborated",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 2,
+      "options": [
+        "persuaded",
+        "neutral",
+        "collaborated",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 3,
+      "options": [
+        "neutral",
+        "not_yet",
+        "persuaded",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 0,
+      "options": [
+        "collaborated",
+        "persuaded",
+        "not_yet",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 1,
+      "options": [
+        "not_yet",
+        "collaborated",
+        "neutral",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 2,
+      "options": [
+        "persuaded",
+        "neutral",
+        "collaborated",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 3,
+      "options": [
+        "neutral",
+        "not_yet",
+        "persuaded",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 0,
+      "options": [
+        "collaborated",
+        "persuaded",
+        "not_yet",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 2,
+      "options": [
+        "persuaded",
+        "not_yet",
+        "collaborated",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 3,
+      "options": [
+        "persuaded",
+        "not_yet",
+        "neutral",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "collaborated",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 0,
+      "options": [
+        "collaborated",
+        "neutral",
+        "persuaded",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 2,
+      "options": [
+        "collaborated",
+        "neutral",
+        "persuaded",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 2,
+      "options": [
+        "opened_up",
+        "neutral",
+        "persuaded",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "neutral",
+        "collaborated",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 0,
+      "options": [
+        "persuaded",
+        "collaborated",
+        "opened_up",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 1,
+      "options": [
+        "collaborated",
+        "persuaded",
+        "neutral",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 2,
+      "options": [
+        "opened_up",
+        "neutral",
+        "persuaded",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "neutral",
+        "collaborated",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 0,
+      "options": [
+        "persuaded",
+        "collaborated",
+        "opened_up",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 2,
+      "options": [
+        "collaborated",
+        "neutral",
+        "persuaded",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "neutral",
+        "collaborated",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 2,
+      "options": [
+        "opened_up",
+        "neutral",
+        "persuaded",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "persuaded",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 1,
+      "options": [
+        "collaborated",
+        "persuaded",
+        "neutral",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 1,
+      "options": [
+        "persuaded",
+        "opened_up",
+        "probe_vague",
+        "warmed"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 2,
+      "options": [
+        "warmed",
+        "probe_vague",
+        "opened_up",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 3,
+      "options": [
+        "warmed",
+        "probe_vague",
+        "persuaded",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 0,
+      "options": [
+        "opened_up",
+        "persuaded",
+        "warmed",
+        "probe_vague"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 1,
+      "options": [
+        "persuaded",
+        "opened_up",
+        "probe_vague",
+        "warmed"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 2,
+      "options": [
+        "warmed",
+        "probe_vague",
+        "opened_up",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 3,
+      "options": [
+        "warmed",
+        "probe_vague",
+        "persuaded",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 0,
+      "options": [
+        "opened_up",
+        "warmed",
+        "persuaded",
+        "probe_vague"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 1,
+      "options": [
+        "persuaded",
+        "opened_up",
+        "probe_vague",
+        "warmed"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 3,
+      "options": [
+        "persuaded",
+        "probe_vague",
+        "warmed",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 0,
+      "options": [
+        "opened_up",
+        "warmed",
+        "probe_vague",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "opened_up",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 2,
+      "options": [
+        "persuaded",
+        "probe_vague",
+        "opened_up",
+        "warmed"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 0,
+      "options": [
+        "warmed",
+        "collaborated",
+        "persuaded",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 1,
+      "options": [
+        "opened_up",
+        "warmed",
+        "collaborated",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 0,
+      "options": [
+        "warmed",
+        "persuaded",
+        "opened_up",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "persuaded",
+        "collaborated",
+        "warmed"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 2,
+      "options": [
+        "persuaded",
+        "collaborated",
+        "warmed",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 1,
+      "options": [
+        "opened_up",
+        "warmed",
+        "collaborated",
+        "persuaded"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 0,
+      "options": [
+        "warmed",
+        "persuaded",
+        "opened_up",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "persuaded",
+        "collaborated",
+        "warmed"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 0,
+      "options": [
+        "warmed",
+        "collaborated",
+        "persuaded",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 0,
+      "options": [
+        "warmed",
+        "persuaded",
+        "collaborated",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 3,
+      "options": [
+        "persuaded",
+        "collaborated",
+        "opened_up",
+        "warmed"
+      ]
+    }
+  },
+  {
+    "reaction": "warmed",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 0,
+      "options": [
+        "warmed",
+        "opened_up",
+        "persuaded",
+        "collaborated"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 1,
+    "probe": {
+      "turn": 1,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "neutral",
+        "not_yet",
+        "probe_vague"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 2,
+    "probe": {
+      "turn": 2,
+      "answer": 2,
+      "options": [
+        "not_yet",
+        "opened_up",
+        "probe_vague",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 3,
+    "probe": {
+      "turn": 3,
+      "answer": 1,
+      "options": [
+        "neutral",
+        "probe_vague",
+        "opened_up",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 4,
+    "probe": {
+      "turn": 4,
+      "answer": 0,
+      "options": [
+        "probe_vague",
+        "neutral",
+        "not_yet",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 5,
+    "probe": {
+      "turn": 5,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "neutral",
+        "not_yet",
+        "probe_vague"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 6,
+    "probe": {
+      "turn": 6,
+      "answer": 2,
+      "options": [
+        "not_yet",
+        "opened_up",
+        "probe_vague",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 7,
+    "probe": {
+      "turn": 7,
+      "answer": 1,
+      "options": [
+        "neutral",
+        "probe_vague",
+        "opened_up",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 8,
+    "probe": {
+      "turn": 8,
+      "answer": 0,
+      "options": [
+        "probe_vague",
+        "neutral",
+        "not_yet",
+        "opened_up"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 9,
+    "probe": {
+      "turn": 9,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "neutral",
+        "not_yet",
+        "probe_vague"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 10,
+    "probe": {
+      "turn": 10,
+      "answer": 1,
+      "options": [
+        "neutral",
+        "probe_vague",
+        "opened_up",
+        "not_yet"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 11,
+    "probe": {
+      "turn": 11,
+      "answer": 2,
+      "options": [
+        "not_yet",
+        "opened_up",
+        "probe_vague",
+        "neutral"
+      ]
+    }
+  },
+  {
+    "reaction": "probe_vague",
+    "turn": 12,
+    "probe": {
+      "turn": 12,
+      "answer": 3,
+      "options": [
+        "opened_up",
+        "not_yet",
+        "neutral",
+        "probe_vague"
+      ]
+    }
+  },
+  {
+    "reaction": "unknown",
+    "turn": 1,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 2,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 3,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 4,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 5,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 6,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 7,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 8,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 9,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 10,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 11,
+    "probe": null
+  },
+  {
+    "reaction": "unknown",
+    "turn": 12,
+    "probe": null
+  }
+]

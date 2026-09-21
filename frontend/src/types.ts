@@ -290,6 +290,15 @@ export interface CampaignView {
 }
 
 // client -> server
+export interface ScenarioContext {
+  sector: string;
+  topic: string;
+  opponent_role: string;
+  opponent_goal: string;
+  difficulty: number;
+  style: "relationship" | "tough" | "analytical";
+}
+
 export type ClientMsg =
   // scenarioId is "" for mode "custom"; situation carries the user's free-text;
   // reputation (-100..100) carries a campaign result into the next stage's trust
@@ -297,6 +306,7 @@ export type ClientMsg =
   // Слои включают КАНАЛЫ и никогда не входят в оценку — сервер отвечает на них
   // честным `capabilities`, где выключено то, чего окружение не может дать.
   | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string;
+      context?: ScenarioContext;
       reputation?: number;
       /** ISO-дата «стола дня». Условие дня ляжет, только если стол ТОГО дня и
        *  правда этот — иначе «короткий стол» выпрашивался бы на любом. */
@@ -345,17 +355,8 @@ export type ServerMsg =
   // render correctly if this never arrives (offline/mock, or judge disabled).
   // Вопрос слоя «Читай лицо».
   //
-  // CONTRACT(probe): вопрос считается в БРАУЗЕРЕ, в схемах протокола его нет.
-  //   Форма продумана и вот она: сервер шлёт `probe` теми же полями, что
-  //   объявлены ниже, сразу после `turn.analysis`; `answer` — индекс верного
-  //   варианта, и он равен реакции движка, которую сервер и так знает.
-  //   Настоящим станет: имя `probe` заведено в `realtime/events.py`
-  //   (`SERVER_EVENTS`), сервер шлёт событие, а `lib/probe.ts::nextProbe`
-  //   остаётся только у офлайн-ядра.
-  //   ПОЧЕМУ ЕЩЁ НЕ: правильный ответ обязан быть одинаков в браузере и на
-  //   сервере (инвариант 8), поэтому решение живёт в ОДНОЙ функции, которую
-  //   зовут оба пути. Перенос на сервер обязан сохранить это свойство, иначе
-  //   офлайн-игра начнёт спрашивать не то, что спросил бы сервер.
+  // Сервер строит вопрос по окончательной реакции и присылает после ответа.
+  // Офлайн-ядро использует побитово проверенное зеркало lib/probe.ts.
   | { type: "probe"; turn: number; options: string[]; answer: number }
   | { type: "phase"; phase: "judging" | "replying" }
   | { type: "hint"; text: string; line?: string }

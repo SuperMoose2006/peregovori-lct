@@ -2,7 +2,7 @@
 // Сам ВЫБОР режима живёт в сайдбаре (SideNav) и только там: дублирующий ряд
 // кнопок здесь был, но всегда отключался пропом, то есть не показывался никогда.
 // practice/exam — полка сценариев, campaign — арка, custom — поле ввода.
-import type { CampaignView, Lang, Mode } from "../types";
+import type { CampaignView, Lang, Mode, ScenarioContext } from "../types";
 import type { Strings } from "../i18n";
 import { catalog, SCENARIO_MAP } from "../data/scenarios";
 import { Avatar } from "./Avatar";
@@ -31,6 +31,8 @@ interface Props {
   customError: string | null;
   onSituationChange: (v: string) => void;
   onStartCustom: () => void;
+  customContext?: ScenarioContext;
+  onCustomContextChange?: (context: ScenarioContext) => void;
   // campaign-mode wiring
   campaign: CampaignView | null;
   campaignProgress: CampaignProgress;
@@ -153,7 +155,7 @@ function BestChip({ t, profile, id }: { t: Strings; profile: Profile; id: string
 
 export function ScenarioPicker({
   t, lang, mode, onStart,
-  situation, customError, onSituationChange, onStartCustom,
+  situation, customError, onSituationChange, onStartCustom, customContext, onCustomContextChange,
   campaign, campaignProgress, onBeginStage, profile,
   campaigns = [], campaignProgressOf, onPickCampaign,
   examName, onExamNameChange, onCourseBlock, onWarmup,
@@ -176,6 +178,8 @@ export function ScenarioPicker({
           error={customError}
           onChange={onSituationChange}
           onGenerate={onStartCustom}
+          context={customContext}
+          onContextChange={onCustomContextChange}
         />
       ) : mode === "campaign" ? (
         <>

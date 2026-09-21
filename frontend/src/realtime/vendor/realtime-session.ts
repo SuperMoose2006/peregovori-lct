@@ -35,6 +35,7 @@
 // проверяли три попытки с базой 500 мс, работали четыре с базой 400.
 import { canReconnect, reconnectDelay } from "../../lib/net";
 import { socketTicket, wsUrl } from "../../api/backend";
+import type { ScenarioContext } from "../../types";
 
 export type ServerEvent = Record<string, unknown> & { type: string };
 
@@ -54,6 +55,7 @@ export interface SessionInitPayload {
    *  Зеркало `app/protocol.py::Mode` и `src/types.ts::Mode`. */
   gameMode?: "practice" | "campaign" | "custom" | "exam" | "drill";
   situation?: string | null;
+  context?: ScenarioContext;
   reputation?: number | null;
   layers?: Record<string, boolean>;
   /** ISO-дата «стола дня». Дату шлёт КЛИЕНТ: часовой пояс знает браузер, а

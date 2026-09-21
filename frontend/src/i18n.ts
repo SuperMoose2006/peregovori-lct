@@ -157,6 +157,11 @@ export interface Strings {
   };
   // custom ("Своя сделка") mode
   custom: {
+    context: {
+      head: string; help: string; sector: string; topic: string;
+      opponent_role: string; opponent_goal: string; difficulty: string; style: string;
+      styles: { analytical: string; relationship: string; tough: string };
+    };
     head: string;
     placeholder: string;
     /** Что именно соберёт генератор и сколько это займёт. Замер бейк-оффа для
@@ -900,6 +905,13 @@ export const I18N: Record<Lang, Strings> = {
       takenOver: "Эту партию продолжили в другом окне — здесь она остановлена. Играйте там или перезапустите сценарий.",
     },
     custom: {
+      context: {
+        head: "Для организатора: настройки сценария",
+        help: "Задайте учебный контекст. Сложность и тон применятся к сценарию; без сети используются шаблонные условия торга.",
+        sector: "Сфера", topic: "Тема переговоров", opponent_role: "Роль оппонента",
+        opponent_goal: "Цель оппонента", difficulty: "Сложность", style: "Тон оппонента",
+        styles: { analytical: "Деловой, по фактам", relationship: "Ориентирован на отношения", tough: "Жёсткий" },
+      },
       head: "Опишите вашу ситуацию",
       placeholder:
         "Опишите вашу переговорную ситуацию… Например: «Я фрилансер, клиент просит скидку 20% на проект, а я не готов опускаться ниже своей ставки. Нужно сохранить контракт и не обесценить работу.»",
@@ -1694,6 +1706,13 @@ export const I18N: Record<Lang, Strings> = {
     },
     custom: {
       head: "Describe your situation",
+      context: {
+        head: "For facilitators: scenario settings",
+        help: "Set the learning context. Difficulty and tone apply to the scenario; offline mode uses template bargaining terms.",
+        sector: "Industry", topic: "Negotiation topic", opponent_role: "Counterpart role",
+        opponent_goal: "Counterpart goal", difficulty: "Difficulty", style: "Counterpart tone",
+        styles: { analytical: "Businesslike, fact-based", relationship: "Relationship-focused", tough: "Tough" },
+      },
       placeholder:
         "Describe your negotiation situation… e.g. “I'm a freelancer, a client wants a 20% discount on the project, but I can't go below my rate. I need to keep the contract without devaluing my work.”",
       promise:

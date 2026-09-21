@@ -8,7 +8,7 @@
 // клик (конфликты РАЗНОГО типа — срыв обязательств, доля, цена) и честная
 // строка о том, что соберут и сколько это займёт. Двух секунд ожидания без
 // объяснения хватает, чтобы человек решил, что кнопка не работает.
-import type { Lang } from "../types";
+import type { Lang, ScenarioContext } from "../types";
 import type { Strings } from "../i18n";
 
 interface Props {
@@ -18,9 +18,12 @@ interface Props {
   error: string | null;
   onChange: (v: string) => void;
   onGenerate: () => void;
+  context?: ScenarioContext;
+  onContextChange?: (context: ScenarioContext) => void;
 }
 
-export function CustomSituation({ t, lang, value, error, onChange, onGenerate }: Props) {
+export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
+                                  context, onContextChange }: Props) {
   const canGo = value.trim().length > 0;
   const submit = () => {
     if (canGo) onGenerate();
@@ -40,6 +43,8 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate }:
           className="cust-ta"
           value={value}
           placeholder={t.custom.placeholder}
+          aria-label={t.custom.head}
+          maxLength={1500}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
             // Ctrl/Cmd+Enter to generate, like a chat composer.
@@ -50,6 +55,39 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate }:
           }}
           rows={6}
         />
+
+        {context && onContextChange ? (
+          <details className="cust-context">
+            <summary>{t.custom.context.head}</summary>
+            <p>{t.custom.context.help}</p>
+            <div className="cust-context-grid">
+              {([['sector', 80], ['topic', 120], ['opponent_role', 120], ['opponent_goal', 240]] as const)
+                .map(([field, limit]) => (
+                  <label key={field}>
+                    <span>{t.custom.context[field]}</span>
+                    <input value={context[field]} maxLength={limit}
+                      onChange={(e) => onContextChange({ ...context, [field]: e.target.value })} />
+                  </label>
+                ))}
+              <label>
+                <span>{t.custom.context.difficulty}</span>
+                <select value={context.difficulty}
+                  onChange={(e) => onContextChange({ ...context, difficulty: Number(e.target.value) })}>
+                  {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} / 5</option>)}
+                </select>
+              </label>
+              <label>
+                <span>{t.custom.context.style}</span>
+                <select value={context.style}
+                  onChange={(e) => onContextChange({ ...context, style: e.target.value as ScenarioContext['style'] })}>
+                  {(['analytical', 'relationship', 'tough'] as const).map((style) => (
+                    <option key={style} value={style}>{t.custom.context.styles[style]}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </details>
+        ) : null}
 
         {/* Примеры СРАЗУ под полем: это подсказка ко вводу, а не витрина.
             Кнопка, а не карточка-ссылка: клик меняет содержимое поля выше,

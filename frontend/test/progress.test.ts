@@ -495,25 +495,26 @@ test("dailyGoalView: fills toward the chosen target across the day", () => {
 });
 
 test("applyDebrief: the daily goal fires only on the game that hits the chosen target", () => {
+  // Use local dates: 21:00Z is already tomorrow in Moscow.
   // Target of 2 games/day. First finish: progress 1/2, not yet met.
   let p: Profile = { ...emptyProfile(), dailyGoalTarget: 2 };
-  let g = applyDebrief(p, "a", deb({ overall: 60 }), new Date("2026-05-01T09:00:00Z"));
+  let g = applyDebrief(p, "a", deb({ overall: 60 }), new Date(2026, 4, 1, 9));
   assert.equal(g.dailyTarget, 2);
   assert.equal(g.dailyDone, 1);
   assert.equal(g.dailyGoalMet, false, "one of two — not met yet");
   p = g.profile;
   // Second finish same day: crosses the target → met fires exactly here.
-  g = applyDebrief(p, "b", deb({ overall: 60 }), new Date("2026-05-01T18:00:00Z"));
+  g = applyDebrief(p, "b", deb({ overall: 60 }), new Date(2026, 4, 1, 18));
   assert.equal(g.dailyDone, 2);
   assert.equal(g.dailyGoalMet, true, "the crossing game fires the goal");
   p = g.profile;
   // Third finish same day: already met earlier, does not re-fire.
-  g = applyDebrief(p, "c", deb({ overall: 60 }), new Date("2026-05-01T21:00:00Z"));
+  g = applyDebrief(p, "c", deb({ overall: 60 }), new Date(2026, 4, 1, 21));
   assert.equal(g.dailyDone, 3);
   assert.equal(g.dailyGoalMet, false, "goal already met today — no re-fire");
   // Next day, the count resets and a target-1 profile meets on the first game.
   const one: Profile = { ...emptyProfile(), dailyGoalTarget: 1 };
-  const g2 = applyDebrief(one, "a", deb({ overall: 60 }), new Date("2026-05-02T09:00:00Z"));
+  const g2 = applyDebrief(one, "a", deb({ overall: 60 }), new Date(2026, 4, 2, 9));
   assert.equal(g2.dailyDone, 1);
   assert.equal(g2.dailyGoalMet, true, "target of 1 meets on the first finish");
 });

@@ -101,7 +101,9 @@ legacy-node/                 первый прототип — эталон по
   делитель рвёт поток по запятой, и «Как языковая модель, я не могу вести
   переговоры.» распадается на грязную и чистую половины; поэтому испорченность
   ЗАПОМИНАЕТСЯ и дальше не звучит ничего.
-- `turn.analysis` · `engine.state` · `judge.started|completed` · `turn.coach` · `debrief`
+- `turn.analysis` · `engine.state` · `probe` · `judge.started|completed` · `turn.coach` · `debrief`
+  `probe {turn, options, answer}` — вопрос по окончательной реакции, после
+  судьи, применения хода и проверки лимита; в закрытой партии не отправляется.
 - `avatar.state` · `vision.observation` · `vision.tell` · `user.speech.started|stopped` · `user.transcript`
 - `generation.cancelled` · `session.closed {reason}` · `error`
 

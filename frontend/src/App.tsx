@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "r
 import { createPortal } from "react-dom";
 import type { CampaignView, Debrief as DebriefData, Lang, Mode, ScreenMode, StateView } from "./types";
 import { I18N } from "./i18n";
+import { DEFAULT_SCENARIO_CONTEXT } from "./lib/scenarioContext";
 import { useNegotiation } from "./api/useNegotiation";
 import { getCampaigns } from "./api/campaigns";
 import { ScenarioPicker } from "./components/ScenarioPicker";
@@ -169,6 +170,7 @@ export default function App() {
   const [mode, setMode] = useState<ScreenMode>("practice");
   const [currentScenario, setCurrentScenario] = useState<string | null>(null);
   const [situation, setSituation] = useState("");
+  const [customContext, setCustomContext] = useState({ ...DEFAULT_SCENARIO_CONTEXT });
   // Exam mode: the name printed on the certificate (optional; falls back to a
   // placeholder on the certificate itself). Collected on the exam-mode picker.
   const [examName, setExamName] = useState("");
@@ -702,11 +704,11 @@ export default function App() {
     setGenErr(null);
     setActiveLayers(NO_LAYERS); // своя сделка идёт без слоёв — сравнимость та же
     setActiveDaily(undefined);
-    nego.start("", "custom", situation);
+    nego.start("", "custom", situation, undefined, undefined, undefined, customContext);
     // dispatch drives the screen → "generating" (see the gen-phase effect above).
     dispatchGen("start");
     scrollTop();
-  }, [nego, situation]);
+  }, [nego, situation, customContext]);
 
   // gen_error fallback: abandon the custom generation and jump to the ready-made
   // scenario picker (practice mode) so a failed generation is never a dead end.
@@ -938,6 +940,8 @@ export default function App() {
               customError={nego.error}
               onSituationChange={setSituation}
               onStartCustom={startCustom}
+              customContext={customContext}
+              onCustomContextChange={setCustomContext}
               campaign={campaign}
               campaignProgress={progress}
               onBeginStage={beginStage}

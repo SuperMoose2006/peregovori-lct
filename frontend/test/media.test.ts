@@ -55,7 +55,8 @@ interface Grant {
 function install(grant: Grant) {
   const asked: string[] = [];
   const g = globalThis as Record<string, unknown>;
-  g.navigator = {
+  // Node 22+ exposes navigator as a getter; define the test double explicitly.
+  Object.defineProperty(g, "navigator", { configurable: true, value: {
     mediaDevices: {
       enumerateDevices: async () => grant.devices ?? [],
       getUserMedia: async (c: { video?: unknown; audio?: unknown }) => {
@@ -69,10 +70,12 @@ function install(grant: Grant) {
         return new FakeStream([new FakeTrack(wantsVideo ? "video" : "audio")]) as unknown as MediaStream;
       },
     },
-  };
+  } });
   g.window = { AudioContext: FakeAudioContext, isSecureContext: true };
   g.AudioWorkletNode = FakeWorkletNode;
-  g.URL = { createObjectURL: () => "blob:fake", revokeObjectURL: () => {} };
+  // Keep the constructor: the TS loader also resolves modules through URL.
+  URL.createObjectURL = () => "blob:fake";
+  URL.revokeObjectURL = () => {};
   return asked;
 }
 

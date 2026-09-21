@@ -3668,3 +3668,12 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   .rd-badge { order: 3; }
   .rd-opts { grid-template-columns: 1fr; }
 }
+
+/* Контекст организатора — часть существующей формы, без отдельного кабинета. */
+.cust-context { margin: 16px 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
+.cust-context summary { cursor: pointer; font-weight: 800; }
+.cust-context p { margin: 10px 0; color: var(--ink-dim); }
+.cust-context-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cust-context-grid label { display: grid; gap: 6px; min-width: 0; font-weight: 700; }
+.cust-context-grid input, .cust-context-grid select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--panel); font: inherit; }
+@media (max-width: 600px) { .cust-context-grid { grid-template-columns: 1fr; } }

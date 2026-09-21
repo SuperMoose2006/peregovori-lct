@@ -827,8 +827,8 @@ export const COURSE_BANK: Exercise[] = [
       "interests_probe"
     ],
     "explain": {
-      "ru": "Признать давление — не признать вину: доверие +8, напряжение −10, реакция «теплеет». Информация при этом растёт всего на 5 — вопрос «в этом статусе» не назвал ни одной темы его интересов, и Алексей переспросит. Назовите тему («выглядеть виноватым перед руководством») — и та же реплика даст +24; это следующее упражнение. Четвёртый вариант — грубость: доверие −22, напряжение +26.",
-      "en": "Acknowledging the pressure is not admitting fault: trust +8, tension −10, reaction “warmed”. Information rises by just 5 — “that status update” names none of his interests, so Alexey asks back. Name the topic (“looking at fault to leadership”) and the same line gives +24; that is the next exercise. Option four is rudeness: trust −22, tension +26."
+      "ru": "Признать давление — не признать вину. В этой реплике признание сочетается с вопросом про интерес: упоминание руководства попадает в тему страха выглядеть виноватым. Информация +24, интерес вскрыт; доверие +12, напряжение −13, реакция «раскрывается». Общий вопрос без темы интереса дал бы только +5 информации. В следующем упражнении вы называете этот интерес ещё точнее.",
+      "en": "Acknowledging pressure is not admitting fault. Here acknowledgement comes with an interest question: mentioning leadership targets the fear of looking at fault. Information +24, the interest is uncovered; trust +12, tension −13, reaction “opened up”. A general question without an interest topic would give only +5 information. In the next exercise you name this interest more precisely."
     }
   },
   {

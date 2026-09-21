@@ -21,6 +21,7 @@ import time
 from typing import Optional
 
 from app.engine.scenarios import Scenario, Counterpart, Headline, Batna, register_runtime_scenario
+from app.protocol import ScenarioContext
 
 _STYLES = {"relationship", "tough", "analytical"}
 
@@ -158,7 +159,8 @@ def _dual_list(items: list) -> dict[str, list[str]]:
 GEN_BUDGET_S = 22.0
 
 
-async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2) -> Optional[Scenario]:
+async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
+                            context: ScenarioContext | None = None) -> Optional[Scenario]:
     """Сгенерировать сценарий под свободное описание ситуации.
 
     Роль `reasoning` — та же, что у финального разбора: это происходит ОДИН раз
@@ -171,6 +173,10 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2)
 
     system = _sys_prompt(lang)
     user = (situation or "").strip()[:1500]
+    if context:
+        # Поля ограничены схемой отдельно от описания: длинная ситуация не
+        # должна молча отрезать выбранные организатором настройки.
+        user += "\nScenario settings (use these for the counterpart and context):\n" + context.model_dump_json()
     deadline = time.perf_counter() + GEN_BUDGET_S
     d = None
     for _ in range(max(1, attempts)):
@@ -208,6 +214,19 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2)
         difficulty = max(1, min(5, int(_num(d.get("difficulty"), 3))))
     except Exception:
         difficulty = 3
+
+    # Модель не вправе отменить явные настройки организатора. Меняются
+    # входные данные сценария, не формула оценки и не правила движка.
+    if context:
+        difficulty = context.difficulty
+        style = context.style
+        if context.topic.strip():
+            d["title"] = context.topic.strip()
+        persona = [context.opponent_role.strip(), context.opponent_goal.strip(),
+                   str(d.get("counterpart_persona") or "")]
+        d["counterpart_persona"] = ". ".join(part for part in persona if part)
+        if context.sector.strip():
+            d["briefing"] = context.sector.strip() + ". " + str(d.get("briefing") or "")
 
     scenario = Scenario(
         id=sc_id,

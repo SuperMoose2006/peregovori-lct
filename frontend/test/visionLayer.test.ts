@@ -53,7 +53,8 @@ let asked: string[] = [];
 
 function installMedia() {
   asked = [];
-  g.navigator = {
+  // Node 22+ exposes navigator as a getter; define the test double explicitly.
+  Object.defineProperty(g, "navigator", { configurable: true, value: {
     mediaDevices: {
       enumerateDevices: async () => [{ kind: "videoinput" }],
       getUserMedia: async (c: { video?: unknown }) => {
@@ -61,7 +62,7 @@ function installMedia() {
         return { getTracks: () => [{ stop() {} }] } as unknown as MediaStream;
       },
     },
-  };
+  } });
   g.window = { isSecureContext: true };
 }
 

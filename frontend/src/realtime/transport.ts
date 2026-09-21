@@ -7,17 +7,13 @@
 // экраны продолжают работать в первый же день, — а всё, чего в старом словаре
 // нет (звук, лицо, зрение, лента протокола), выходит отдельными колбэками.
 //
-// ЧТО ИЗ ЭТОГО СЛЕДУЕТ ХОРОШЕГО. Слой `probe` («читай лицо») становится
-// НАСТОЯЩИМ и на живом сервере. Раньше вопрос про реакцию оппонента умел
-// задавать только мок, потому что реакция не доезжала до клиента. Теперь она
-// приходит в `engine.state.reaction`, и `lib/probe.ts` строит вопрос из
-// подлинного ответа движка — офлайн и онлайн одинаково.
+// Вопрос «Читай лицо» приезжает с сервера после окончательной реплики.
+// Онлайн-транспорт не вычисляет ни ответ, ни такт: это состояние сессии.
 
 import type { Analysis, ClientMsg, Deltas, Lang, ScenarioView, StateView } from "../types";
 import type { ConnStatus, ServerMsgHandler, Transport } from "../api/transport";
 import { I18N } from "../i18n";
 import { SERVER_SIDE_REASON } from "../lib/layers";
-import { NO_PROBES, nextProbe, type ProbeMemory } from "../lib/probe";
 import { AudioPlayer } from "./vendor/audio-player";
 import { MediaProvider, toBase64 } from "./vendor/media-provider";
 import {
@@ -87,12 +83,8 @@ export class RealtimeTransport implements Transport {
   private pendingDeltas: Deltas | null = null;
   private pendingState: StateView | null = null;
   private pendingCoach: { text: string; techniques?: string[]; reject?: boolean } | null = null;
-  private lastReaction: string | null = null;
-  private turnCounter = 0;
   private probeEnabled = false;
-  /** Что слой «читай лицо» уже спрашивал. Живёт здесь, а не в `lib/probe.ts`:
-   *  функция там чистая, и состояние партии обязано принадлежать партии. */
-  private probeMemory: ProbeMemory = { ...NO_PROBES };
+  private lastProbeTurn = 0;
   private voiceWanted = false;
   private cameraWanted = false;
   private closed = false;
@@ -156,7 +148,7 @@ export class RealtimeTransport implements Transport {
     this.live = false;
     this.lang = message.lang;
     this.probeEnabled = !!layers.probe;
-    this.probeMemory = { ...NO_PROBES };
+    this.lastProbeTurn = 0;
     this.voiceWanted = !!layers.voice;
     this.cameraWanted = !!layers.camera;
 
@@ -165,6 +157,7 @@ export class RealtimeTransport implements Transport {
       lang: message.lang,
       gameMode: message.mode,
       situation: message.situation ?? null,
+      context: message.context,
       reputation: message.reputation ?? null,
       daily: message.daily ?? null,
       layers,
@@ -330,8 +323,6 @@ export class RealtimeTransport implements Transport {
       case "engine.state": {
         this.pendingState = event.state as StateView;
         this.pendingDeltas = event.deltas as Deltas;
-        this.lastReaction = (event.reaction as string) ?? null;
-        this.turnCounter = Number(event.turn_id ?? this.turnCounter + 1);
         // Авторитетное качество аргумента: судья уже высказался, штраф за
         // повтор уже наложен. Черновик из `turn.analysis` заменяем и здесь,
         // чтобы `opponent` ниже не увёз на экран число, которого движок не
@@ -341,6 +332,20 @@ export class RealtimeTransport implements Transport {
           if (this.pendingAnalysis) this.pendingAnalysis = { ...this.pendingAnalysis, arg_quality: value };
           this.emit({ type: "arg_quality", value, judged: Boolean(event.judged) });
         }
+        return;
+      }
+
+      case "probe": {
+        // Повтор после переподключения не создаёт вторую карточку. Чужой или
+        // повреждённый вопрос не должен показывать заведомо неверный ответ.
+        const { turn, options, answer } = event;
+        if (!this.probeEnabled || !Number.isInteger(turn) || Number(turn) <= this.lastProbeTurn
+            || !Array.isArray(options) || options.length !== 4
+            || options.some((option) => typeof option !== "string")
+            || new Set(options).size !== 4 || !Number.isInteger(answer)
+            || Number(answer) < 0 || Number(answer) >= options.length) return;
+        this.lastProbeTurn = Number(turn);
+        this.emit({ type: "probe", turn: Number(turn), options: options as string[], answer: Number(answer) });
         return;
       }
 
@@ -468,20 +473,6 @@ export class RealtimeTransport implements Transport {
       coach_techniques: this.pendingCoach?.techniques,
       coach_reject: this.pendingCoach?.reject,
     });
-
-    // «Читай лицо»: вопрос строится из НАСТОЯЩЕЙ реакции движка, поэтому он
-    // одинаково честен онлайн и офлайн. Ни одна модель тут не участвует.
-    // Решает `nextProbe` — та же функция, что и в офлайн-ядре: два одинаковых
-    // решения в двух файлах разъезжаются ровно тогда, когда одно из них правят.
-    const closed = this.pendingState.status !== "active";
-    if (this.probeEnabled && this.lastReaction) {
-      const probe = nextProbe(this.lastReaction, this.turnCounter, closed, this.probeMemory);
-      if (probe) {
-        this.probeMemory = { lastTurn: probe.turn, lastReaction: this.lastReaction };
-        this.emit({ type: "probe", turn: probe.turn, options: probe.options as unknown as string[],
-                    answer: probe.answer });
-      }
-    }
 
     this.pendingAnalysis = null;
     this.pendingDeltas = null;

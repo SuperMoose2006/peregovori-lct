@@ -19,7 +19,31 @@ from __future__ import annotations
 from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
+# Формы курса являются частью контракта; реализация отделена от форм партии.
+from app.course.schema import COURSE_EXERCISE, CourseExercise  # noqa: F401
+
 Lang = Literal["ru", "en"]
+
+
+class ProbeView(BaseModel):
+    """Вопрос о реакции завершённого хода, не о черновике анализа."""
+
+    turn: int = Field(ge=1)
+    options: list[str] = Field(min_length=4, max_length=4)
+    answer: int = Field(ge=0, le=3)
+
+
+class ScenarioContext(BaseModel):
+    """Настройки организатора: текст идёт генератору, сложность и тон фиксируются."""
+
+    sector: str = Field(default="", max_length=80)
+    topic: str = Field(default="", max_length=120)
+    opponent_role: str = Field(default="", max_length=120)
+    opponent_goal: str = Field(default="", max_length=240)
+    difficulty: int = Field(default=3, ge=1, le=5, strict=True)
+    style: Literal["relationship", "tough", "analytical"] = "analytical"
+
+
 #: РЕЖИМ НА ПРОВОДЕ — не то же самое, что режим экрана. Он говорит серверу, ЧТО
 #: за партия идёт, а не как её показать: `drill` — капстоун курса, который
 #: экран рисует обычным разбором, а не сертификатом. Пятое значение заведено

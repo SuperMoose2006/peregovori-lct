@@ -596,7 +596,8 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
             return None, ("Опишите ситуацию: с кем и о чём переговоры."
                           if payload.lang == "ru" else
                           "Describe the situation: with whom and about what.")
-        generated = await generate_scenario(situation, payload.lang)
+        generated = (await generate_scenario(situation, payload.lang, context=payload.context)
+                     if payload.context else await generate_scenario(situation, payload.lang))
         if generated is None:
             return None, ("Не удалось сгенерировать сценарий. Попробуйте переформулировать ситуацию."
                           if payload.lang == "ru" else

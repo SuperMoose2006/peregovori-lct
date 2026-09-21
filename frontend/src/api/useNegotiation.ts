@@ -2,7 +2,7 @@
 // Wraps the transport (WS or Mock), reduces the ServerMsg stream into React
 // state (scenario, live meters, chat log, debrief), and exposes clean actions.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Analysis, Deltas, Lang, Mode, ScenarioView, ServerMsg, StateView } from "../types";
+import type { Analysis, Deltas, Lang, Mode, ScenarioContext, ScenarioView, ServerMsg, StateView } from "../types";
 import type { ConnStatus, Transport, TransportKind } from "./transport";
 import { createTransport } from "./ws";
 import { clampInput } from "../lib/net";
@@ -101,7 +101,7 @@ export interface Negotiation extends NegotiationState {
           layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean;
                      pokerface?: boolean },
           /** ISO-дата «стола дня» — только когда партия и правда сегодняшняя. */
-          daily?: string) => void;
+          daily?: string, context?: ScenarioContext) => void;
   turn: (text: string) => void;
   requestHint: () => void;
   answerProbe: (id: number, choice: number) => void;
@@ -231,12 +231,12 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
   const start = useCallback(
     (scenarioId: string, mode: Mode, situation?: string, reputation?: number,
      layers?: { probe?: boolean; voice?: boolean; camera?: boolean; pokerface?: boolean },
-     daily?: string) => {
+     daily?: string, context?: ScenarioContext) => {
       teardown();
       setS({ ...initialState });
       const t = ensureTransport();
       t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation,
-               reputation, layers, daily });
+               reputation, layers, daily, context });
     },
     [ensureTransport, teardown],
   );

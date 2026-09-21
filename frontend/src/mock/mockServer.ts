@@ -107,7 +107,7 @@ export class MockServer implements Transport {
       }
       // No backend to design a scenario, so synthesize one locally from the
       // user's situation text. A longer delay lets the loading screen breathe.
-      def = synthCustomScenario(msg.situation ?? "", lang);
+      def = synthCustomScenario(msg.situation ?? "", lang, msg.context);
       genDelay = 900;
     } else {
       def = SCENARIO_MAP[msg.scenarioId] ?? MIRROR_MAP[msg.scenarioId];
@@ -220,11 +220,8 @@ export class MockServer implements Transport {
       coach: timeout ? undefined : coachLine(raw.primary, s.lang),
     });
 
-    // MOCK(probe): the question is produced client-side because the Python engine
-    //   has no `probe` message yet. It is NOT faked data — the reaction it asks
-    //   about is the same one the engine computed for this turn, so the answer is
-    //   genuinely deterministic and offline.
-    //   Real when: CONTRACT(probe) below lands and the server emits it instead.
+    // Офлайн-зеркало серверного app/probe.py; общая фикстура проверяет
+    // ответ и порядок вариантов. В онлайн-транспорте расчёта нет.
     if (this.layers?.probe) {
       const p = nextProbe(result.reaction, s.turn, result.closed, this.probeMemory);
       if (p) {

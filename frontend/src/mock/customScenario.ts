@@ -4,7 +4,7 @@
 // plausible, GUARANTEED-PLAYABLE scenario from the user's free-text situation so
 // the "Своя сделка" flow demos end-to-end. Keyword heuristics pick a sensible
 // unit/direction; the rest is a solid generic template that echoes the situation.
-import type { Lang } from "../types";
+import type { Lang, ScenarioContext } from "../types";
 import type { ScenarioDef } from "../data/scenarios";
 
 type L = Record<Lang, string>;
@@ -59,11 +59,11 @@ function snippet(situation: string, n = 60): string {
   return s.length <= n ? s : s.slice(0, n).replace(/\s+\S*$/, "") + "…";
 }
 
-export function synthCustomScenario(situation: string, lang: Lang): ScenarioDef {
+export function synthCustomScenario(situation: string, lang: Lang, context?: ScenarioContext): ScenarioDef {
   const raw = (situation || "").trim();
   const text = raw || (lang === "ru" ? "переговоры" : "a negotiation");
-  const kind = pickKind(text);
-  const style = pickStyle(text);
+  const kind = pickKind([context?.sector, context?.topic, text].filter(Boolean).join(" "));
+  const style = context?.style ?? pickStyle(text);
   const snip = snippet(text);
 
   const title: L = {
@@ -93,11 +93,22 @@ export function synthCustomScenario(situation: string, lang: Lang): ScenarioDef 
     en: `Your situation: “${snip}”. Surface the counterpart's hidden interests with questions, anchor on objective criteria and create value by trading.`,
   };
 
+  if (context) {
+    // Те же явные настройки, что у серверного генератора. Числа и скрытые
+    // интересы остаются шаблонными: офлайн не выдаёт себя за модель.
+    for (const locale of ['ru', 'en'] as const) {
+      if (context.topic.trim()) title[locale] = context.topic.trim();
+      cp.ps[locale] = [context.opponent_role.trim(), context.opponent_goal.trim(), cp.ps[locale]]
+        .filter(Boolean).join('. ');
+      if (context.sector.trim()) brief[locale] = context.sector.trim() + '. ' + brief[locale];
+    }
+  }
+
   return {
     id: "custom_mock",
     icon: "🎯",
     face: "🧑‍💼",
-    diff: 3,
+    diff: context?.difficulty ?? 3,
     dir: kind.dir,
     title,
     role,

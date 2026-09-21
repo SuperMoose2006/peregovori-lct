@@ -31,7 +31,7 @@ OK, WARN, BAD = "  ✓", "  ⚠", "  ✗"
 # Публичный стенд: имя из docs/hosting.md, переопределяется NEGO_STAND_URL.
 # Пароль — только из окружения или .env, НИКОГДА из командной строки: строка
 # запуска видна в `ps` любому пользователю коробки и оседает в истории оболочки.
-STAND_DEFAULT = "https://185-154-194-88.nip.io"
+STAND_DEFAULT = "https://dialog.2-26-49-28.nip.io"
 CERT = GATEWAY / "certs" / "le-fullchain.pem"
 CERT_WARN_DAYS, CERT_FAIL_DAYS = 21, 7
 

@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from app.ai.sanitize import sanitize
+from app.probe import ProbeMemory
 from app.realtime.bus import EventBus, new_generation_id
 
 
@@ -116,6 +117,7 @@ class RealtimeSession:
     #: сдвига доверия: с ней оппонент здоровается иначе — «наслышан о вас».
     reputation: Optional[float] = None
     layers: Layers = field(default_factory=Layers)
+    probe_memory: ProbeMemory = field(default_factory=ProbeMemory)
     #: id наложенного условия «стола дня», если партия сегодняшняя. Нужен
     #: клиенту, чтобы показать условие ЧЕСТНО: подпись «короткий стол» без
     #: применённого условия — ровно то, чего в продукте не бывает.
@@ -337,7 +339,7 @@ class RealtimeSession:
 # начала он не знает. Лента с дырой хуже отсутствующей: дыры в ней не видно.
 
 #: session_id → (положено_в, сколько_шла_партия, наблюдения, лента, взгляды).
-_KEPT: dict[str, tuple[float, float, list[str], list[dict], int]] = {}
+_KEPT: dict[str, tuple[float, float, list[str], list[dict], int, ProbeMemory]] = {}
 
 #: Столько же, сколько ждёт брошенную партию `app/session.py`: смысла держать
 #: ленту дольше самой партии нет.
@@ -356,11 +358,12 @@ def keep_for_resume(session: "RealtimeSession") -> None:
     # Взгляды считаются наравне с записями: партия, где камера смотрела и
     # молчала, обязана пережить обрыв так же, как разговорчивая, — иначе после
     # метро разбор скажет «слой не поднялся» про слой, который работал.
-    if not session.observations and not session.vision_notes and not session.vision_looks:
+    if (not session.observations and not session.vision_notes and not session.vision_looks
+            and not session.probe_memory.last_turn):
         return
     _KEPT[session.session_id] = (now, now - session.started_at,
                                  list(session.observations), list(session.vision_notes),
-                                 session.vision_looks)
+                                 session.vision_looks, session.probe_memory)
 
 
 def restore_from_resume(session: "RealtimeSession", session_id: str) -> None:
@@ -373,7 +376,8 @@ def restore_from_resume(session: "RealtimeSession", session_id: str) -> None:
     kept = _KEPT.pop(session_id, None)
     if kept is None:
         return
-    _at, elapsed, observations, notes, looks = kept
+    _at, elapsed, observations, notes, looks, probe_memory = kept
+    session.probe_memory = probe_memory
     session.observations[:0] = observations
     session.vision_notes[:0] = notes
     session.vision_looks += looks

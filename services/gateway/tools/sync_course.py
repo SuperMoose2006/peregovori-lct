@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.course.bank import BANK  # noqa: E402
 from app.course.master import MASTER, PASS_MARK  # noqa: E402
 from app.course.blocks import BLOCKS  # noqa: E402
+from app.protocol import COURSE_EXERCISE  # noqa: E402
 
 DATA = Path(__file__).resolve().parents[3] / "frontend" / "src" / "data"
 
@@ -81,6 +82,10 @@ def render_blocks() -> str:
 
 
 def render_bank() -> str:
+    # Не выгружать браузеру структурно неверное упражнение. Сериализуем
+    # исходные словари: optional-поля не должны превращаться в null/default.
+    for item in [*BANK, *MASTER]:
+        COURSE_EXERCISE.validate_python(item)
     bank = json.dumps(BANK, ensure_ascii=False, indent=2)
     master = json.dumps(MASTER, ensure_ascii=False, indent=2)
     return (f"{BANK_HEADER}{bank};\n\n"
