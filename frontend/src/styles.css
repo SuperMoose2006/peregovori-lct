@@ -3687,3 +3687,6 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .cust-context-grid label { display: grid; gap: 6px; min-width: 0; font-weight: 700; }
 .cust-context-grid input, .cust-context-grid select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--panel); font: inherit; }
 @media (max-width: 600px) { .cust-context-grid { grid-template-columns: 1fr; } }
+
+.wait-status { padding: 12px 16px; border: 1px solid var(--line); border-radius: 10px; margin: 12px 0; }
+.wait-status p { font-size: 12px; color: var(--ink-dim); margin: 6px 0; }

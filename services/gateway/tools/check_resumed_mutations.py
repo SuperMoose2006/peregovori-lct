@@ -15,6 +15,9 @@ PYTEST = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
 HOOK = ["node", "frontend/e2e/hook-lifecycle.mjs"]
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "TSX_TSCONFIG_PATH": "./tsconfig.app.json"}
 checks = [
+    ("wait-frozen", "frontend/src/components/WaitStatus.tsx", 'setElapsed(Math.floor((performance.now() - began) / 1000))', 'setElapsed(0)', ["node", "frontend/e2e/wait-status-passive.mjs"]),
+    ("wait-no-ceiling", "frontend/src/components/WaitStatus.tsx", 'const expired = elapsed >= limit;', 'const expired = false;', ["node", "frontend/e2e/wait-status-passive.mjs"]),
+    ("review-no-ceiling", "services/gateway/app/orchestrator/negotiation.py", 'timeout=DEBRIEF_NOTE_BUDGET_S', 'timeout=3600', PYTEST + ["services/gateway/tests/test_debrief_wait.py"]),
     ("registry-network-trust", "frontend/src/components/ServerCertificate.tsx", '.catch(() => {})', '.catch(() => setVerified(evidence ?? null))', ["node", "frontend/e2e/attestation-passive.mjs"]),
     ("registry-http-trust", "frontend/src/components/ServerCertificate.tsx", 'if (!r.ok) return;', 'if (!r.ok) { setVerified(evidence ?? null); return; }', ["node", "frontend/e2e/attestation-passive.mjs"]),
     ("registry-invalid-trust", "frontend/src/components/ServerCertificate.tsx", 'data.valid === true', 'true', ["node", "frontend/e2e/attestation-passive.mjs"]),

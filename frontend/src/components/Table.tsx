@@ -10,6 +10,7 @@ import type { Strings } from "../i18n";
 import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
 import { teachingPlaceholder, formatDeal } from "../lib/format";
 import { haptic, play } from "../lib/sound";
+import { WaitStatus } from "./WaitStatus";
 import { OpponentFace } from "./OpponentFace";
 import { ScreenHeading } from "./ScreenHeading";
 import { scrollTo } from "../lib/motion";
@@ -704,6 +705,10 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
               registerProbe={registerProbe}
               onProbeAnswer={onProbeAnswer}
             />
+            {!disconnected && ((finished && !debriefReady) || busy) && !debriefReady ? (
+              <WaitStatus key={finished ? "debrief" : `turn-${st?.turn ?? 0}`}
+                stage={finished ? "debrief" : phase ?? "receiving"} lang={lang} onExit={onQuit} />
+            ) : null}
             {finished && onSeeDebrief ? (
               <div className={`outcome ${st!.status}`} role="status" ref={outcomeRef}>
                 <div className="oc-stamp">
