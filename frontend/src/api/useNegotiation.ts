@@ -443,7 +443,9 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
       // должно лежать там, где он читает. `busy` снимаем — партия остановлена,
       // и крутящийся индикатор «оппонент печатает» был бы обещанием ответа,
       // которого не будет.
-      return { ...prev, busy: false, phase: null,
+      // TTS may fail while the text reply is still streaming. Only completion
+      // of that reply may release the next turn in this case.
+      return { ...prev, busy: msg.keepBusy ? prev.busy : false, phase: msg.keepBusy ? prev.phase : null,
                log: [...prev.log, { id: nextId(), kind: "sys", text: msg.text }] };
 
     case "error":

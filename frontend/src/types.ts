@@ -372,5 +372,5 @@ export type ServerMsg =
   // и сокет здесь закрывается по существу, а не рвётся. Через `error` это
   // сказать нельзя — `error` за столом никем не рисуется, и человек остался бы
   // перед замершим экраном без единого слова.
-  | { type: "notice"; text: string }
+  | { type: "notice"; text: string; keepBusy?: boolean }
   | { type: "error"; message: string };

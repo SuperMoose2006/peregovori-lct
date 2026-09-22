@@ -40,7 +40,7 @@ from app.perception.vision import VisionSampler
 from app.perception.realtime_voice import RealtimeVoicePipeline
 from app.perception.voice_pipeline import VoicePipeline
 from app.protocol import reproducible_run
-from app.providers.asr.openrouter import OpenRouterASR
+from app.providers.asr import make_asr, voice_mode, describe_voice
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import describe as describe_models
 from app.providers.tts.base import Voice
@@ -698,14 +698,7 @@ def _wire(session: RealtimeSession) -> tuple[
 
     voice = None
     if session.mode == "voice" and session.layers.voice:
-        # ДВА КОНВЕЙЕРА, ОДНА ПОВЕРХНОСТЬ. Realtime-сессия OpenAI распознаёт по
-        # ходу речи и отдаёт текст через ~0.45 с после того, как человек
-        # замолчал; старый путь копил звук и слал файлом — 3.3 с. Берём
-        # realtime, когда для него есть ключ, и падаем на старый, когда нет:
-        # без сети продукт обязан оставаться играбельным (инвариант 5).
-        # NEGO_VOICE=classic принудительно возвращает старый путь. Нужен не для
-        # красоты: это и аварийный выход, если realtime-сессия начнёт капризничать
-        # на показе, и способ честно сравнить два конвейера на одной записи.
+        # Provider selection is explicit; failure falls back to text only.
         async def guarded_turn(text: str) -> None:
             """Ход из голоса — через ту же калитку, что и напечатанный.
 
@@ -716,21 +709,21 @@ def _wire(session: RealtimeSession) -> tuple[
             await _turn_budget(session)
             await orchestrator.on_player_turn(text)
 
-        want_classic = os.getenv("NEGO_VOICE", "").strip().lower() == "classic"
-        pipeline = None if want_classic else RealtimeVoicePipeline(
+        want_realtime = voice_mode() == "realtime"
+        pipeline = RealtimeVoicePipeline(
             lang=session.lang,
             on_turn=guarded_turn,
             on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
             publish=session.bus.publish,
-        )
-        if pipeline is None or not pipeline.available:
+        ) if want_realtime else None
+        if voice_mode() == "classic":
             pipeline = VoicePipeline(
-                asr=OpenRouterASR(), lang=session.lang,
+                asr=make_asr(), lang=session.lang,
                 on_turn=guarded_turn,
                 on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
                 publish=session.bus.publish,
             )
-        if pipeline.available:
+        if pipeline is not None and pipeline.available:
             voice = pipeline
             # Замыкаем петлю: оркестратор знает, когда оппонент звучит, и
             # пайплайн поднимает планку перебивания на это время.
@@ -864,6 +857,7 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
     capabilities = {
         "voice": bool(session.layers.voice),
         "microphone": voice is not None,
+        "asr": describe_voice(),
         "camera": bool(session.layers.camera) and orchat.available(),
         # Отдельная возможность, а не подпункт камеры: тумблер «покерфейс»
         # может стоять, а слой при этом не подняться (нет ключа — нет модели

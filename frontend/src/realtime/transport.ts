@@ -89,6 +89,7 @@ export class RealtimeTransport implements Transport {
   private probeEnabled = false;
   private lastProbeTurn = 0;
   private voiceWanted = false;
+  private microphoneAllowed = true;
   private cameraWanted = false;
   private closed = false;
   /** Партия уже началась: `session.created` пришёл. До него ошибка —
@@ -218,17 +219,17 @@ export class RealtimeTransport implements Transport {
    * камеры и без неё не существует, поэтому одна причина объясняет оба.
    */
   private honourServerCapabilities(capabilities: Record<string, unknown>): void {
+    this.microphoneAllowed = capabilities.microphone !== false;
+    if (this.voiceWanted && typeof capabilities.asr === "string") {
+      this.emit({ type: "notice", text: (this.lang === "ru" ? "Распознавание: " : "Speech recognition: ") + capabilities.asr });
+    }
     if (this.cameraWanted && capabilities.camera === false) {
       this.cameraWanted = false;
       this.emit({ type: "layer_failed", layer: "camera",
                   reason: SERVER_SIDE_REASON.camera[this.lang] });
     }
     if (this.voiceWanted && capabilities.microphone === false) {
-      // ТОТ ЖЕ ДЕФЕКТ НА ГОЛОСЕ, НО ГАСИТЬ СЛОЙ ЗДЕСЬ НЕЛЬЗЯ. Микрофон
-      // открывается, звук уходит в сокет, а конвейера распознавания на сервере
-      // нет — ход не случается никогда. Слой, однако, двусторонний: оппонента в
-      // это время СЛЫШНО, и выключение забрало бы вместе с неработающим входом
-      // работающий выход. Поэтому голос называется вслух, но остаётся поднятым.
+      // Disable capture separately: the opponent's working TTS stays enabled.
       this.emit({ type: "layer_failed", layer: "voice",
                   reason: SERVER_SIDE_REASON.voice[this.lang] });
     }
@@ -270,8 +271,8 @@ export class RealtimeTransport implements Transport {
     // `start` больше не бросает на отказ устройства: отказ — это ответ
     // пользователя, а не сбой. Он возвращает отчёт по каждому слою, и каждый
     // невставший слой называется на экране поимённо.
-    const report = await this.media.start({ camera: this.cameraWanted, mic: this.voiceWanted });
-    if (this.voiceWanted && report.mic !== "ok")
+    const report = await this.media.start({ camera: this.cameraWanted, mic: this.voiceWanted && this.microphoneAllowed });
+    if (this.voiceWanted && this.microphoneAllowed && report.mic !== "ok")
       this.emit({ type: "layer_failed", layer: "voice", reason: String(report.mic) });
     if (this.cameraWanted && report.camera !== "ok")
       this.emit({ type: "layer_failed", layer: "camera", reason: String(report.camera) });
@@ -499,7 +500,8 @@ export class RealtimeTransport implements Transport {
         //
         // До `session.created` смысл обратный: там ошибка и есть провал
         // запуска, и она обязана дойти до машины состояний генерации сценария.
-        if (this.live) this.emit({ type: "notice", text: message });
+        if (this.live) this.emit({ type: "notice", text: message,
+          keepBusy: (event.error as { code?: string })?.code === "tts_unavailable" });
         else this.emit({ type: "error", message });
         return;
       }

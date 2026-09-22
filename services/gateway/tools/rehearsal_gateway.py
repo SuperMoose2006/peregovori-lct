@@ -33,7 +33,7 @@ class RecordedSpeechASR:
         return Transcript("Что для вас важнее всего в этом контракте?")
 
 
-endpoint.OpenRouterASR = RecordedSpeechASR
+endpoint.make_asr = RecordedSpeechASR
 endpoint.EdgeTTS.available = lambda self: False
 endpoint.OpenAISpeechTTS.available = lambda self: False
 

@@ -3,7 +3,7 @@
 СБОРКА ИЗ ТРЁХ UPSTREAM-РЕАЛИЗАЦИЙ (см. docs/upstream-code-map.md):
   VAD                → TEN (`ten_vad_python`)      — «звук есть / звука нет»
   детектор конца хода → TEN (`ten_turn_detection`) — «мысль закончена?»
-  распознавание       → провайдер (OpenRouter)      — «что именно сказано»
+  распознавание       → провайдер (NEGO_ASR)      — «что именно сказано»
 
 ПОЧЕМУ ТРИ СТУПЕНИ, А НЕ ОДНА. Наивный путь — «замолчал на секунду, значит
 сходил» — ломается на первой же настоящей реплике переговорщика: человек
@@ -193,7 +193,20 @@ class VoicePipeline:
             return
 
         t0 = time.perf_counter()
-        result = await self._asr.transcribe(pcm, SAMPLE_RATE, self._lang)
+        try:
+            result = await self._asr.transcribe(pcm, SAMPLE_RATE, self._lang)
+        except Exception:
+            # Do not commit stale partial text or change the audio recipient.
+            self._cancel_ceiling()
+            self._audio.clear()
+            self._transcript = ""
+            self._publish({"type": "error", "error": {
+                "code": "asr_unavailable",
+                "message": ("Распознавание недоступно. Ход не отправлен. Повторите или введите текст; другой ASR автоматически не подключается."
+                            if self._lang == "ru" else
+                            "Speech recognition unavailable. Turn not sent. Retry or type your message; ASR providers are never switched automatically."),
+            }})
+            return
         self.stats.asr_ms = (time.perf_counter() - t0) * 1000
         text = (result.text or "").strip()
         if not text:
