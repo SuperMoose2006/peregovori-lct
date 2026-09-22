@@ -103,6 +103,7 @@ export function createTransport(
     // Прокси обязан пробрасывать всё, что появилось на выбранном транспорте:
     // иначе полоска уровня и кнопка перебивания молча ничего не делают.
     micLevel: () => inner?.micLevel?.() ?? 0,
+    speechLevel: () => inner?.speechLevel?.() ?? 0,
     interrupt: () => inner?.interrupt?.(),
   };
 
@@ -161,4 +162,3 @@ export function createTransport(
 
   return proxy;
 }
-

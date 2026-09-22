@@ -15,6 +15,7 @@ PYTEST = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
 HOOK = ["node", "frontend/e2e/hook-lifecycle.mjs"]
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "TSX_TSCONFIG_PATH": "./tsconfig.app.json"}
 checks = [
+    ("speech-proxy", "frontend/src/api/ws.ts", 'speechLevel: () => inner?.speechLevel?.() ?? 0', 'speechLevel: () => 0', ["node", "frontend/e2e/transport-level-passive.mjs"]),
     ("tts-premature-turn", "frontend/src/api/useNegotiation.ts", 'busy: msg.keepBusy ? prev.busy : false', 'busy: false', ["node", "--import", "tsx", "--test", "test/asr-selection.test.ts"]),
     ("asr-substitution", "services/gateway/app/providers/asr/__init__.py", 'return ParakeetASR()', 'return OpenRouterASR()', PYTEST + ["services/gateway/tests/test_asr_selection.py", "-k", "local_default"]),
     ("asr-wiring", "services/gateway/app/realtime/endpoint.py", 'asr=make_asr()', 'asr=__import__("app.providers.asr", fromlist=["OpenRouterASR"]).OpenRouterASR()', PYTEST + ["services/gateway/tests/test_asr_selection.py", "-k", "wire_and_health"]),
