@@ -59,6 +59,8 @@ from app.vendor.olv.sentence_divider import SentenceDivider
 #: Сколько ждём слово наставника, прежде чем отдать разбор без него. Разбор
 #: самодостаточен: грейд, шкалы, ключевые ходы и советы посчитал движок.
 DEBRIEF_NOTE_BUDGET_S = 8.0
+# Total wall-clock budget, including a provider that drips tokens indefinitely.
+OPPONENT_STREAM_BUDGET_S = 15.0
 
 
 class NegotiationOrchestrator:
@@ -274,13 +276,14 @@ class NegotiationOrchestrator:
         divider = SentenceDivider(faster_first_response=True)
 
         async def token_stream():
-            async for chunk in orchat.stream(system, user, role="opponent",
-                                             max_tokens=220, temperature=0.8):
-                # Сырые токены — клиенту сразу, чтобы реплика печаталась.
-                sess.spoken_so_far += chunk
-                sess.bus.publish(output_delta("text", generation_id=generation_id,
-                                              turn_id=turn_id, text=chunk))
-                yield chunk
+            async with asyncio.timeout(OPPONENT_STREAM_BUDGET_S):
+                async for chunk in orchat.stream(system, user, role="opponent",
+                                                 max_tokens=220, temperature=0.8):
+                    # Сырые токены — клиенту сразу, чтобы реплика печаталась.
+                    sess.spoken_so_far += chunk
+                    sess.bus.publish(output_delta("text", generation_id=generation_id,
+                                                  turn_id=turn_id, text=chunk))
+                    yield chunk
 
         from app.ai.sanitize import rejected, sanitize, speakable
 
@@ -404,6 +407,13 @@ class NegotiationOrchestrator:
         """Финальный разбор. Считает движок; ИИ только пишет сопроводительное слово."""
         sess = self.session
         deb = views.debrief_view(sess.engine_session).model_dump()
+        if sess.game_mode == "exam":
+            from app.attestation import issue
+            try:
+                deb["attestation"] = await asyncio.to_thread(issue, sess)
+            except Exception:
+                # Registry failures must not lose a completed negotiation.
+                deb["attestation"] = None
         deb["turning_points"] = views.turning_points(sess.engine_session)
 
         if sess.observations:

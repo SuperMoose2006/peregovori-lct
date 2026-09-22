@@ -315,6 +315,26 @@ export class RealtimeTransport implements Transport {
 
   private route(event: ServerEvent): void {
     switch (event.type) {
+      case "session.created":
+        // Reconnect handshake must update the visible state, not only the socket.
+        this.pendingState = null;
+        this.pendingAnalysis = null;
+        this.pendingDeltas = null;
+        this.pendingCoach = null;
+        this.faceFrames.clear();
+        this.player?.stopAll();
+        this.markOppAudio(false);
+        this.options.onCapabilities?.((event.capabilities as Record<string, unknown>) ?? {});
+        this.emit({ type: "greeting", sessionId: String(event.session_id ?? ""),
+          resumed: Boolean(event.resumed),
+          scenario: event.scenario as ScenarioView, state: event.state as StateView,
+          text: String(event.greeting ?? ""),
+          judge_active: Boolean((event.capabilities as Record<string, unknown>)?.judge) });
+        this.emit({ type: "notice", text: this.lang === "ru"
+          ? "Связь восстановлена. Состояние стола получено с сервера; последний ответ мог прерваться."
+          : "Connection restored. The table state was received from the server; the last reply may have been interrupted." });
+        return;
+
       case "turn.analysis":
         // ТЕГИ УХОДЯТ НА ЭКРАН СРАЗУ, А НЕ ЧЕРЕЗ СЕКУНДУ С ЛИШНИМ.
         //

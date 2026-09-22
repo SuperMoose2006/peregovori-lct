@@ -370,6 +370,10 @@ async def realtime_ws(websocket: WebSocket) -> None:
                                    quiesce=_quiesce, lease=lease)
                     _OWNERS[session.session_id] = owner
                     await websocket.send_json(_created_payload(session, voice))
+                    if payload.resume and session.engine_session.state.status != "active":
+                        # A disconnect may have swallowed the final debrief. The
+                        # finished state is authoritative; issuance is idempotent.
+                        await orchestrator._send_debrief()
                     continue
 
                 if session is None or orchestrator is None:
@@ -563,6 +567,9 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     if payload.resume:
         existing = store.claim(payload.resume)
         if existing is not None:
+            # Resume cannot promote a coached practice run into an exam.
+            original_mode = store.context(payload.resume).get("game_mode", "practice")
+            payload = payload.model_copy(update={"gameMode": original_mode})
             # Партия могла остаться ЗА ЖИВЫМ СОКЕТОМ: в метро TCP умирает
             # молча, и сервер узнаёт об обрыве позже человека. Прежний владелец
             # вытесняется — с внятной причиной и отдельным кодом закрытия, — а
@@ -640,7 +647,12 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
             daily_mod = table.modifier.id
 
     session_id = store.new_id()
-    store.put(session_id, engine_session)
+    from app.engine.scenarios import SCENARIOS
+    store.put(session_id, engine_session, context={
+        "game_mode": payload.gameMode,
+        "attestable": payload.gameMode == "exam" and payload.reputation is None
+                      and any(s.id == scenario_id for s in SCENARIOS),
+    })
     return RealtimeSession(
         session_id=session_id,
         engine_session=engine_session,

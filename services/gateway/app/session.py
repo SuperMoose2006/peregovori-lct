@@ -28,6 +28,7 @@ RESUME_TTL_S = 300
 class SessionStore:
     def __init__(self) -> None:
         self._sessions: dict[str, Any] = {}
+        self._contexts: dict[str, dict] = {}
         #: session_id → момент, после которого сессия считается брошенной.
         #: Отсутствие ключа = сессия занята живым сокетом и не истекает.
         self._expiry: dict[str, float] = {}
@@ -45,8 +46,9 @@ class SessionStore:
         """
         return "sess_" + secrets.token_hex(16)
 
-    def put(self, session_id: str, session: Any) -> None:
+    def put(self, session_id: str, session: Any, *, context: dict | None = None) -> None:
         self._sessions[session_id] = session
+        self._contexts[session_id] = dict(context or {})
         self._expiry.pop(session_id, None)
         self._reap()
 
@@ -57,6 +59,7 @@ class SessionStore:
     def drop(self, session_id: str) -> None:
         """Удалить немедленно. Только для явного завершения партии."""
         self._sessions.pop(session_id, None)
+        self._contexts.pop(session_id, None)
         self._expiry.pop(session_id, None)
 
     def release(self, session_id: str) -> None:
@@ -78,7 +81,12 @@ class SessionStore:
         now = time.monotonic()
         for session_id in [sid for sid, deadline in self._expiry.items() if deadline <= now]:
             self._sessions.pop(session_id, None)
+            self._contexts.pop(session_id, None)
             self._expiry.pop(session_id, None)
+
+    def context(self, session_id: str) -> dict:
+        """Server-owned admission facts; never supplied again by resume."""
+        return dict(self._contexts.get(session_id, {}))
 
 
 store = SessionStore()

@@ -1094,6 +1094,7 @@ export default function App() {
             state={nego.state}
             log={nego.log}
             busy={nego.busy}
+            disconnected={nego.conn !== "online"}
             phase={nego.phase}
             judgeActive={nego.judgeActive}
             cloudAi={typeof nego.capabilities?.cloud_ai === "boolean" ? nego.capabilities.cloud_ai : null}

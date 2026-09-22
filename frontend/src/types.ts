@@ -192,6 +192,7 @@ export interface OtherSide {
 }
 
 export interface Debrief {
+  attestation?: import("./components/ServerCertificate").Attestation | null;
   overall: number;
   grade: string; // A|B|C|D|F
   economic: number;
@@ -321,7 +322,7 @@ export type ServerMsg =
   // judge_active: whether the semantic judge (option C) is live this session, so
   // the UI can honestly surface the "graded by meaning" differentiator. Absent /
   // false = the deterministic keyword path (offline, mock) — nothing to claim.
-  | { type: "greeting"; sessionId: string; scenario: ScenarioView; state: StateView; text: string; judge_active?: boolean }
+  | { type: "greeting"; sessionId: string; scenario: ScenarioView; state: StateView; text: string; judge_active?: boolean; resumed?: boolean }
   | { type: "opponent_delta"; chunk: string }
   // coach: optional per-turn coaching from the semantic judge (hidden in exam mode).
   // coach_techniques / coach_reject: present ONLY when the LIVE semantic judge ran

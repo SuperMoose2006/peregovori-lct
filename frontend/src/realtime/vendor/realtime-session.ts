@@ -315,6 +315,7 @@ export class RealtimeSession {
       // после обрыва молча терял всё, что наговорил, — и это было бы хуже,
       // чем не переподключаться вовсе.
       void this.start({ ...this.initPayload, resume: this.sessionId || undefined })
+        .then(created => this.onEvent(created))
         .catch(() => this.handleClose());
     }, delay);
   }

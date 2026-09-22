@@ -32,6 +32,7 @@ interface Props {
   state: StateView | null;
   log: ChatEntry[];
   busy: boolean;
+  disconnected?: boolean;
   // Which half of the wait we're in; null when the server never said (mock,
   // judge disabled). See NegotiationState.phase.
   phase?: "judging" | "replying" | null;
@@ -105,7 +106,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, amplitudeAnimation = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, amplitudeAnimation = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -731,7 +732,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               <Composer
                 hintLabel={t.hint}
                 sendLabel={t.a11y.send}
-                disabled={busy || finished || probeOpen || !st}
+                disabled={disconnected || busy || finished || probeOpen || !st}
                 blocked={probeOpen}
                 placeholder={probeOpen ? t.probe.blocked : placeholder}
                 quickMoves={t.quickMoves}

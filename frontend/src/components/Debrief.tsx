@@ -13,6 +13,7 @@ import { ScreenHeading } from "./ScreenHeading";
 import { XpAward } from "./Gamification";
 import { Karl, MascotImg, Tikhon, type KarlState, type TikhonState } from "./Mascot";
 import { RematchOffer } from "./Rematch";
+import { ServerCertificate } from "./ServerCertificate";
 import type { PastRun } from "../lib/progress";
 
 /** Сколько строк ленты помещается в карточку. Партия на двенадцать ходов
@@ -345,6 +346,7 @@ export function Debrief({
           </div>
 
           {passed ? <div className="cert-certifies">{t.exam.certifies}</div> : null}
+          {exam ? <ServerCertificate evidence={d.attestation} lang={lang} /> : null}
 
           {/* Hoisted to the top (directly under the grade ring): the single
               pivotal-turn replay is the jury's magnet — an inviting teaser + the

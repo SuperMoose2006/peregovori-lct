@@ -93,6 +93,8 @@ def _tts_describe() -> str | None:
 
 
 app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_lifespan)
+from app.attestation import router as attestation_router
+app.include_router(attestation_router)
 
 # --------------------------------------------------------------------- доступ
 #

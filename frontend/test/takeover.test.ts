@@ -125,10 +125,11 @@ test("обычный обрыв по-прежнему возвращается �
   const { RealtimeSession } = await import("../src/realtime/vendor/realtime-session");
   FakeSocket.instances = [];
   const statuses: string[] = [];
+  const resumed: Record<string, unknown>[] = [];
 
   const session = new RealtimeSession({
     mode: "text",
-    onEvent: () => {},
+    onEvent: e => resumed.push(e),
     onStatus: (s) => statuses.push(s),
   });
   const started = session.start({ scenarioId: "supplier", lang: "ru" });
@@ -146,6 +147,10 @@ test("обычный обрыв по-прежнему возвращается �
   second.deliver({ type: "session.queue_done" });
   const init = JSON.parse(second.sent[0]) as { payload: { resume?: string } };
   assert.equal(init.payload.resume, "sess_первая");
+  second.deliver({ type: "session.created", session_id: "sess_первая", state: {turn: 1}, capabilities: {} });
+  await wait(0);
+  assert.deepEqual(resumed.find(e => e.type === "session.created")?.state, {turn: 1});
+  session.stop();
 });
 
 test("отказ по пределу на адрес (4429) тоже не переспрашивают", async () => {

@@ -56,6 +56,28 @@ def _deltas(events: list[dict]) -> list[str]:
             if e["type"] == "response.output.delta" and e.get("kind") == "text"]
 
 
+@pytest.mark.parametrize("drip", [False, True])
+def test_total_stream_deadline_preserves_one_applied_move(monkeypatch, drip):
+    from app.orchestrator import negotiation
+    monkeypatch.setattr(negotiation, "OPPONENT_STREAM_BUDGET_S", 0.03)
+    monkeypatch.setattr(negotiation.orchat, "available", lambda: True)
+    async def stalled(*args, **kwargs):
+        while True:
+            await asyncio.sleep(0.005 if drip else 60)
+            yield "Да, "
+    monkeypatch.setattr(negotiation.orchat, "stream", stalled)
+    session = _session()
+    events = []
+    monkeypatch.setattr(session.bus, "publish", events.append)
+    async def run():
+        await asyncio.wait_for(NegotiationOrchestrator(session).on_player_turn("Что для вас важнее всего?"), 0.5)
+    asyncio.run(run())
+    assert session.engine_session.turn == 1
+    done = [e for e in events if e["type"] == "response.done"]
+    assert len(done) == 1 and done[0]["text"]
+    assert len([e for e in events if e["type"] == "engine.state"]) == 1
+
+
 def _final(events: list[dict]) -> str:
     done = [e for e in events if e["type"] == "response.done"]
     assert done, "авторитетное завершение реплики не пришло"

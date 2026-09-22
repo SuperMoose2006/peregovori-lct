@@ -151,7 +151,16 @@ export interface RealtimeOptions {
 }
 
 export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Negotiation {
-  const [s, setS] = useState<NegotiationState>(initialState);
+  const [s, publishState] = useState<NegotiationState>(initialState);
+  const stateRef = useRef(s);
+  // Actions may arrive twice before React renders. Commit once, outside React's
+  // replayable updater: transport sends and IDs must not be replayed in StrictMode.
+  const setS = useCallback((change: NegotiationState | ((p: NegotiationState) => NegotiationState)) => {
+    const next = typeof change === "function" ? change(stateRef.current) : change;
+    stateRef.current = next;
+    publishState(next);
+  }, []);
+  const transportEpoch = useRef(0);
   const transportRef = useRef<Transport | null>(null);
   const idRef = useRef(0);
   const langRef = useRef(lang);
@@ -163,6 +172,7 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
   const nextId = () => ++idRef.current;
 
   const teardown = useCallback(() => {
+    transportEpoch.current++;
     transportRef.current?.close();
     transportRef.current = null;
   }, []);
@@ -175,11 +185,15 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
 
   const ensureTransport = useCallback((): Transport => {
     if (!transportRef.current) {
+      const epoch = transportEpoch.current;
+      const currentState = (change: (p: NegotiationState) => NegotiationState) => {
+        if (epoch === transportEpoch.current) setS(change);
+      };
       transportRef.current = createTransport(
-        handle,
-        (kind) => setS((p) => ({ ...p, kind })),
+        (msg) => { if (epoch === transportEpoch.current) handle(msg); },
+        (kind) => currentState((p) => ({ ...p, kind })),
         (conn) =>
-          setS((p) => ({
+          currentState((p) => ({
             ...p,
             conn,
             // A drop or a lost connection must never leave the typing indicator
@@ -196,17 +210,17 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
           // собственного проигрывателя (onOppAudio). Складываем оба, иначе в
           // режиме «только голос» перебить оппонента нечем.
           onAvatar: (avatarState) =>
-            setS((p) => ({ ...p, avatarState,
+            currentState((p) => ({ ...p, avatarState,
                            oppSpeaking: avatarState === "speaking" || p.oppAudio })),
           onOppAudio: (speaking) =>
-            setS((p) => ({ ...p, oppAudio: speaking,
+            currentState((p) => ({ ...p, oppAudio: speaking,
                            oppSpeaking: speaking || p.avatarState === "speaking" })),
           onTell: (expressive, total) =>
-            setS((p) => ({ ...p, tells: total, tellNow: expressive,
+            currentState((p) => ({ ...p, tells: total, tellNow: expressive,
                            tellFrames: p.tellFrames + 1 })),
           onObservation: (text) =>
-            setS((p) => ({ ...p, observations: [...p.observations, text] })),
-          onCameraFrame: () => setS((p) => ({ ...p, framesSent: p.framesSent + 1 })),
+            currentState((p) => ({ ...p, observations: [...p.observations, text] })),
+          onCameraFrame: () => currentState((p) => ({ ...p, framesSent: p.framesSent + 1 })),
           // ГОЛОС И КЛАВИАТУРА ОБЯЗАНЫ ДАВАТЬ ОДИН И ТОТ ЖЕ ХОД — включая то, что
           // человек видит. Раньше финальная расшифровка просто гасила живой
           // предпросмотр (`transcript: null`), а сам текст выбрасывался: партия
@@ -215,15 +229,15 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
           // обычной репликой «me» — и получает чипы приёмов и дельты от судьи
           // тем же кодом, что и напечатанная (см. attach ниже по файлу).
           onTranscript: (text, final) =>
-            setS((p) => {
+            currentState((p) => {
               if (!final) return { ...p, transcript: text };
               const said = text.trim();
               if (!said) return { ...p, transcript: null };
-              return { ...p, transcript: null,
+              return { ...p, transcript: null, busy: true, phase: null,
                        log: [...p.log, { id: nextId(), kind: "me", text: said }] };
             }),
-          onSpeech: (userSpeaking) => setS((p) => ({ ...p, userSpeaking })),
-          onCapabilities: (capabilities) => setS((p) => ({ ...p, capabilities })),
+          onSpeech: (userSpeaking) => currentState((p) => ({ ...p, userSpeaking })),
+          onCapabilities: (capabilities) => currentState((p) => ({ ...p, capabilities })),
         },
       );
     }
@@ -249,7 +263,7 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
     const trimmed = clampInput(text.trim());
     if (!trimmed) return;
     setS((prev) => {
-      if (prev.busy || !prev.state || prev.state.status !== "active") return prev;
+      if (prev.conn !== "online" || prev.busy || !prev.state || prev.state.status !== "active") return prev;
       const entry: ChatEntry = { id: nextId(), kind: "me", text: trimmed };
       transportRef.current?.send({ type: "turn", text: trimmed });
       return { ...prev, busy: true, phase: null, log: [...prev.log, entry] };
@@ -270,7 +284,7 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
     setS((prev) => {
       // One outstanding request at a time: repeated taps must not queue up a
       // column of placeholders (or a column of answers when they all land).
-      if (prev.log.some((e) => e.kind === "hint" && e.pending)) return prev;
+      if (prev.conn !== "online" || prev.log.some((e) => e.kind === "hint" && e.pending)) return prev;
       transportRef.current?.send({ type: "hint" });
       const entry: ChatEntry = { id: nextId(), kind: "hint", text: "", pending: true };
       return { ...prev, log: [...prev.log, entry] };
@@ -309,9 +323,14 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
         ...prev,
         scenario: msg.scenario,
         state: msg.state,
+        busy: false,
+        phase: null,
         error: null,
         judgeActive: !!msg.judge_active,
-        log: [{ id: nextId(), kind: "opp", text: msg.text }],
+        log: msg.resumed
+          ? prev.log.filter(e => !(e.kind === "hint" && e.pending))
+              .map(e => e.kind === "opp" && e.streaming ? { ...e, streaming: false } : e)
+          : [{ id: nextId(), kind: "opp", text: msg.text }],
       };
 
     case "opponent_delta": {
