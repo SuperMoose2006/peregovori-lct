@@ -109,7 +109,7 @@ export function OpponentFace({
           onError={() => setBadVideoFrame(videoFrame)} />
       ) : animated || failedSrc === src ? (
         <Avatar scenarioId={scenarioId} mood={mood} size={size} label={label}
-          mouthOpening={animated ? opening : 0} />
+          mouthOpening={animated ? opening : 0} idleMotion={!exam && !reducedMotion} />
       ) : !exam && !reducedMotion && failedClip !== clip ? (
         <video key={clip} className="face__img" src={clip} poster={src}
           autoPlay loop muted playsInline preload="metadata" aria-label={label ?? ""}

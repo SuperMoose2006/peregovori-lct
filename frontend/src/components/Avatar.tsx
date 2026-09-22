@@ -142,9 +142,11 @@ interface Props {
   label?: string;
   /** Audio amplitude 0..1; optional, no phoneme or emotional inference. */
   mouthOpening?: number;
+  /** Decorative blinking; explicitly disabled for exam and reduced motion. */
+  idleMotion?: boolean;
 }
 
-export function Avatar({ scenarioId, mood, size, label, mouthOpening = 0 }: Props) {
+export function Avatar({ scenarioId, mood, size, label, mouthOpening = 0, idleMotion = false }: Props) {
   const c = AVATAR_CONFIG[scenarioId] ?? DEFAULT_CONFIG;
   const hair = hairPaths(c.style);
   const e = EXPR[mood];
@@ -214,8 +216,10 @@ export function Avatar({ scenarioId, mood, size, label, mouthOpening = 0 }: Prop
       <g className="av-exp" key={mood}>
         <line x1="22.5" y1={e.browOuter} x2="30.5" y2={e.browInner} stroke={c.brow} strokeWidth="1.6" strokeLinecap="round" />
         <line x1="41.5" y1={e.browOuter} x2="33.5" y2={e.browInner} stroke={c.brow} strokeWidth="1.6" strokeLinecap="round" />
-        <ellipse cx="26.5" cy="35" rx="1.5" ry="2" fill="#2b2521" />
-        <ellipse cx="37.5" cy="35" rx="1.5" ry="2" fill="#2b2521" />
+        <g className={idleMotion ? "av-eyes av-eyes--blink" : "av-eyes"}>
+          <ellipse cx="26.5" cy="35" rx="1.5" ry="2" fill="#2b2521" />
+          <ellipse cx="37.5" cy="35" rx="1.5" ry="2" fill="#2b2521" />
+        </g>
         {mouthOpening > 0.02 ? (
           <ellipse data-speech-mouth="true" cx="32" cy="44.5" rx="4.2"
             ry={0.6 + Math.min(1, mouthOpening) * 3.2} fill="#59352f" />

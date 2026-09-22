@@ -24,7 +24,7 @@ const player=new AudioPlayer({playbackDelayMs:0});
 let transport;
 const level=()=>transport ? transport.speechLevel() : player.speechLevel();
 function App(){
- const [scenario]=React.useState(kind==='missing'?'missing-persona':'supplier');
+ const [scenario]=React.useState((kind==='missing'||kind==='exam-missing')?'missing-persona':'supplier');
  const [avatarState,setAvatarState]=React.useState('warm');
  window.nextState=()=>setAvatarState('listening');
  React.useEffect(()=>{
@@ -50,10 +50,10 @@ function App(){
  return React.createElement('main',{style:{padding:32}},
   React.createElement('h1',{},'Passive avatar audit'),
   React.createElement('div',{style:{width:280,height:280}},React.createElement(OpponentFace,{
-   scenarioId:scenario,avatarState,state:null,exam:kind==='exam',size:280,
+   scenarioId:scenario,avatarState,state:null,exam:kind==='exam'||kind==='exam-missing',size:280,
    speaking:kind==='missing'||kind==='recover',
    speakingLabel:'Speaking',label:'Counterpart',getSpeechLevel:level,
-   amplitudeAnimation:kind==='voice'||kind==='live',animationLabel:'Local amplitude animation'})));
+   amplitudeAnimation:kind==='voice'||kind==='live'||kind.startsWith('blink'),animationLabel:'Local amplitude animation'})));
 }
 createRoot(document.getElementById('root')).render(React.createElement(App));
 window.endNegotiation=()=>{transport?.interrupt();transport?.send({type:"turn",text:"Согласен на вашу цену. Договорились."})};
@@ -77,9 +77,9 @@ try {
    ...(live?['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream',
     '--use-file-for-fake-audio-capture='+resolve(root,'../tmp/voice-probe.wav')]:[])]});
  const only=process.argv.find(arg=>arg.startsWith('--case='))?.slice(7);
- for(const kind of only?[only]:live?['live']:['voice','motion','missing','recover','exam','reduced']) {
+ for(const kind of only?[only]:live?['live']:['voice','motion','missing','recover','exam','reduced','blink','blink-reduced','exam-missing']) {
   const page=await browser.newPage({viewport:{width:600,height:500},
-    reducedMotion:kind==='reduced'?'reduce':'no-preference'});
+    reducedMotion:(kind==='reduced'||kind==='blink-reduced')?'reduce':'no-preference'});
   page.setDefaultTimeout(10000);
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   if(kind==='recover') await page.route('**/avatars/supplier/warm.*',route=>route.fulfill({status:404,body:''}));
@@ -91,6 +91,27 @@ try {
    await page.waitForFunction(()=>window.audit.closed);
    await page.waitForFunction(()=>!document.querySelector('[data-speech-mouth]'));
    assert.ok(await page.evaluate(()=>window.audit.peak)>.2);
+
+  } else if(kind==='blink'||kind==='blink-reduced'||kind==='exam-missing') {
+   await page.waitForFunction(()=>document.querySelector('.av-eyes'));
+   if(kind==='blink'){
+    await page.waitForFunction(()=>document.querySelector('.av-eyes--blink'));
+    const dimensions=await page.evaluate(()=>{
+     const eyes=document.querySelector('.av-eyes');
+     const animation=eyes.getAnimations().find(a=>a.animationName==='av-blink');
+     if(!animation)return null;
+     animation.pause();animation.currentTime=1000;
+     const open=eyes.getBoundingClientRect().height;
+     animation.currentTime=5684;
+     const closed=eyes.getBoundingClientRect().height;
+     animation.currentTime=5799;
+     return {open,closed,reopened:eyes.getBoundingClientRect().height};
+    });
+    assert.ok(dimensions&&dimensions.open>0&&dimensions.closed<dimensions.open*.2&&dimensions.reopened>dimensions.open*.9,'blink must close and reopen actual eyes');
+   }else{
+    assert.equal(await page.locator('.av-eyes--blink').count(),0,'exam and reduced motion stay static');
+    assert.equal(await page.locator('.av-eyes').evaluate(e=>getComputedStyle(e).animationName),'none');
+   }
   } else if(kind==='motion') {
    await page.waitForFunction(()=>{const v=document.querySelector('video');return v?.readyState>=2&&v.currentTime>0});
   } else if(kind==='missing'||kind==='recover') {

@@ -15,6 +15,9 @@ PYTEST = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
 HOOK = ["node", "frontend/e2e/hook-lifecycle.mjs"]
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "TSX_TSCONFIG_PATH": "./tsconfig.app.json"}
 checks = [
+    ("blink-frozen", "frontend/src/styles.css", '98% { transform: scaleY(0.08); }', '98% { transform: scaleY(1); }', ["node", "frontend/e2e/avatar-passive.mjs", "--case=blink"]),
+    ("blink-exam", "frontend/src/components/OpponentFace.tsx", 'idleMotion={!exam && !reducedMotion}', 'idleMotion={!reducedMotion}', ["node", "frontend/e2e/avatar-passive.mjs", "--case=exam-missing"]),
+    ("blink-reduced", "frontend/src/components/OpponentFace.tsx", 'idleMotion={!exam && !reducedMotion}', 'idleMotion={!exam}', ["node", "frontend/e2e/avatar-passive.mjs", "--case=blink-reduced"]),
     ("video-proxy", "frontend/src/api/ws.ts", 'videoFrame: () => inner?.videoFrame?.() ?? null', 'videoFrame: () => null', ["node", "frontend/e2e/transport-level-passive.mjs"]),
     ("mic-proxy", "frontend/src/api/ws.ts", 'micLevel: () => inner?.micLevel?.() ?? 0', 'micLevel: () => 0', ["node", "frontend/e2e/transport-level-passive.mjs"]),
     ("send-proxy", "frontend/src/api/ws.ts", 'if (inner) inner.send(msg);', 'if (inner) void msg;', ["node", "frontend/e2e/transport-level-passive.mjs"]),

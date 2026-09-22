@@ -443,6 +443,16 @@ h1, h2, h3, .serif { font-family: var(--serif); }
    The global reduced-motion rule above disables this automatically. */
 .av-exp { animation: av-exp-in 0.34s ease; transform-origin: 32px 38px; }
 @keyframes av-exp-in { from { opacity: 0.2; } to { opacity: 1; } }
+/* A brief decorative blink, independent of emotion, scoring and speech. */
+.av-eyes--blink { transform-box: fill-box; transform-origin: center;
+  animation: av-blink 5.8s linear infinite; }
+@keyframes av-blink {
+  0%, 96%, 100% { transform: scaleY(1); }
+  98% { transform: scaleY(0.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .av-eyes--blink { animation: none; }
+}
 .opp .nm { font-family: var(--serif); font-weight: 600; font-size: 16px; }
 .opp .ps { font-size: 12px; color: var(--ink-dim); }
 
