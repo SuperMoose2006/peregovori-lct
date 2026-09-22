@@ -15,6 +15,11 @@ PYTEST = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
 HOOK = ["node", "frontend/e2e/hook-lifecycle.mjs"]
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "TSX_TSCONFIG_PATH": "./tsconfig.app.json"}
 checks = [
+    ("video-proxy", "frontend/src/api/ws.ts", 'videoFrame: () => inner?.videoFrame?.() ?? null', 'videoFrame: () => null', ["node", "frontend/e2e/transport-level-passive.mjs"]),
+    ("mic-proxy", "frontend/src/api/ws.ts", 'micLevel: () => inner?.micLevel?.() ?? 0', 'micLevel: () => 0', ["node", "frontend/e2e/transport-level-passive.mjs"]),
+    ("send-proxy", "frontend/src/api/ws.ts", 'if (inner) inner.send(msg);', 'if (inner) void msg;', ["node", "frontend/e2e/transport-level-passive.mjs"]),
+    ("close-proxy", "frontend/src/api/ws.ts", 'inner?.close();', 'void inner;', ["node", "frontend/e2e/transport-level-passive.mjs"]),
+    ("interrupt-proxy", "frontend/src/api/ws.ts", 'interrupt: () => inner?.interrupt?.()', 'interrupt: () => {}', ["node", "frontend/e2e/transport-level-passive.mjs"]),
     ("speech-proxy", "frontend/src/api/ws.ts", 'speechLevel: () => inner?.speechLevel?.() ?? 0', 'speechLevel: () => 0', ["node", "frontend/e2e/transport-level-passive.mjs"]),
     ("tts-premature-turn", "frontend/src/api/useNegotiation.ts", 'busy: msg.keepBusy ? prev.busy : false', 'busy: false', ["node", "--import", "tsx", "--test", "test/asr-selection.test.ts"]),
     ("asr-substitution", "services/gateway/app/providers/asr/__init__.py", 'return ParakeetASR()', 'return OpenRouterASR()', PYTEST + ["services/gateway/tests/test_asr_selection.py", "-k", "local_default"]),

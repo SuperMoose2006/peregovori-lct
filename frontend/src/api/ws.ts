@@ -91,7 +91,7 @@ export function createTransport(
   const early: ClientMsg[] = [];
 
   // Публичный прокси: копит отправки, пока транспорт не выбран.
-  const proxy: Transport = {
+  const proxy: Required<Transport> = {
     send(msg) {
       if (inner) inner.send(msg);
       else early.push(msg);
@@ -104,6 +104,7 @@ export function createTransport(
     // иначе полоска уровня и кнопка перебивания молча ничего не делают.
     micLevel: () => inner?.micLevel?.() ?? 0,
     speechLevel: () => inner?.speechLevel?.() ?? 0,
+    videoFrame: () => inner?.videoFrame?.() ?? null,
     interrupt: () => inner?.interrupt?.(),
   };
 
