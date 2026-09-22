@@ -15,6 +15,9 @@ PYTEST = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
 HOOK = ["node", "frontend/e2e/hook-lifecycle.mjs"]
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "TSX_TSCONFIG_PATH": "./tsconfig.app.json"}
 checks = [
+    ("registry-network-trust", "frontend/src/components/ServerCertificate.tsx", '.catch(() => {})', '.catch(() => setVerified(evidence ?? null))', ["node", "frontend/e2e/attestation-passive.mjs"]),
+    ("registry-http-trust", "frontend/src/components/ServerCertificate.tsx", 'if (!r.ok) return;', 'if (!r.ok) { setVerified(evidence ?? null); return; }', ["node", "frontend/e2e/attestation-passive.mjs"]),
+    ("registry-invalid-trust", "frontend/src/components/ServerCertificate.tsx", 'data.valid === true', 'true', ["node", "frontend/e2e/attestation-passive.mjs"]),
     ("blink-frozen", "frontend/src/styles.css", '98% { transform: scaleY(0.08); }', '98% { transform: scaleY(1); }', ["node", "frontend/e2e/avatar-passive.mjs", "--case=blink"]),
     ("blink-exam", "frontend/src/components/OpponentFace.tsx", 'idleMotion={!exam && !reducedMotion}', 'idleMotion={!reducedMotion}', ["node", "frontend/e2e/avatar-passive.mjs", "--case=exam-missing"]),
     ("blink-reduced", "frontend/src/components/OpponentFace.tsx", 'idleMotion={!exam && !reducedMotion}', 'idleMotion={!exam}', ["node", "frontend/e2e/avatar-passive.mjs", "--case=blink-reduced"]),
