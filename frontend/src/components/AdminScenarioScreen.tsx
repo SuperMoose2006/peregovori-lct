@@ -8,7 +8,7 @@ import {
 } from "../lib/adminContext";
 import "./AdminScenarioScreen.css";
 import { ScreenHeading } from "./ScreenHeading";
-import { DataIcon } from "./Icon";
+import { DataIcon, Icon } from "./Icon";
 
 const COPY = {
   ru: {
@@ -120,7 +120,7 @@ export function AdminScenarioScreen({ lang, onExit, onLaunch }: AdminScenarioScr
           <dl><dt>{t.counterpart}</dt><dd>{preview.scenario.counterpart_name}</dd><dt>{t.player}</dt><dd>{preview.scenario.role}</dd><dt>{t.conditions}</dt><dd>{preview.scenario.briefing}</dd></dl>
           <div className="admin-effects"><h3>{t.impact}</h3><ul>{preview.effects.map(effect => <li key={effect}>{effect}</li>)}</ul></div>
           <button type="button" className="primary admin-launch" disabled={busy} onClick={() => void prepare(true)}>{busy ? t.waiting : t.launch}</button><p className="admin-hint">{t.launchHint}</p>
-        </> : <div className="admin-empty"><span aria-hidden="true">✦</span><h3>{t.empty}</h3><p>{t.emptyBody}</p></div>}
+        </> : <div className="admin-empty"><span aria-hidden="true"><Icon name="clipboard" /></span><h3>{t.empty}</h3><p>{t.emptyBody}</p></div>}
       </section>
     </div>
     {error && <p role="alert" className="admin-error">{error}</p>}

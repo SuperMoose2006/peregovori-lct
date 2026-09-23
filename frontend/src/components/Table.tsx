@@ -465,7 +465,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
             {/* While a "read her face" question is open the portrait becomes the
                 main object on screen — this is the one beat that justifies the
                 parametric expressions, which otherwise work almost unnoticed. */}
-            <div className={`opp${probeOpen ? " reading" : ""}`}>
+            <div className={`opp-card${probeOpen ? " reading" : ""}`}>
               {probeOpen ? <div className="opp-cue">{t.probe.readFace}</div> : null}
               <OpponentFace
                 scenarioId={scenario.id}

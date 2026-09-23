@@ -99,7 +99,7 @@ export function OpponentFace({
     return () => cancelAnimationFrame(frame);
   }, [animated, getSpeechLevel, getVideoFrame]);
 
-  // Размер задаёт CSS (`.opp .face` меняет его по ширине экрана), поэтому
+  // Размер задаёт CSS (`.opp-card .face` меняет его по ширине экрана), поэтому
   // инлайновых width/height здесь нет: они перебили бы медиазапросы.
   return (
     <div className="face" data-motion-preference={reducedMotion ? "reduced" : "full"}
