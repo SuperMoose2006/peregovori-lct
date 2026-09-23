@@ -296,13 +296,13 @@ def test_make_commands_promised_by_docs_actually_run():
             continue
         region = _doc_code_regions(path.read_text(encoding="utf-8"))
         for match in _MAKE_IN_CODE.finditer(region):
-            target = match.group(1) or match.group(3)
-            tail = (match.group(2) or match.group(4) or "").strip()
+            target = match.group(1)
+            tail = match.group(2).strip()
             # Комментарий после команды — не аргумент.
             tail = tail.split("#", 1)[0].strip()
             if target not in targets:
                 wrong.append(f"{name}: `make {target}` — такой цели в Makefile нет")
-            elif tail and not tail.startswith(("ARGS=", "VAR=")):
+            elif tail and not re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tail):
                 # `make preflight --live`: флаг съедает сам make, печатает свою
                 # справку и выходит с нулём. Аргументы передаются через ARGS=.
                 wrong.append(

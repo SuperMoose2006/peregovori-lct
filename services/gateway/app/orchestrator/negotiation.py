@@ -42,6 +42,7 @@
 from __future__ import annotations
 
 import asyncio
+from functools import wraps
 from typing import Callable, Optional
 
 from app import engine, views
@@ -60,6 +61,15 @@ from app.vendor.olv.sentence_divider import SentenceDivider
 DEBRIEF_NOTE_BUDGET_S = 8.0
 
 
+def _serialized_turn(method):
+    """Любой адаптер входит в один замок: голос не может обогнать текст."""
+    @wraps(method)
+    async def run(self, *args, **kwargs):
+        async with self._turn_lock:
+            return await method(self, *args, **kwargs)
+    return run
+
+
 class NegotiationOrchestrator:
     """Один ход игрока от начала до конца."""
 
@@ -70,6 +80,7 @@ class NegotiationOrchestrator:
         self.tts = tts
         self.avatar = avatar
         self._generation_task: Optional[asyncio.Task] = None
+        self._turn_lock = asyncio.Lock()
         #: Кому сообщать, звучит ли голос оппонента. Ставится извне
         #: (`realtime/endpoint.py`) на голосовой пайплайн — без этого его защита
         #: от самоподслушивания мертва.
@@ -81,6 +92,7 @@ class NegotiationOrchestrator:
 
     # ------------------------------------------------------------------ ход
 
+    @_serialized_turn
     async def on_player_turn(self, text: str) -> None:
         """Игрок сходил. Текст уже нормализован (клавиатура и ASR тут неразличимы).
 
@@ -110,8 +122,9 @@ class NegotiationOrchestrator:
         #    число из этого события показывать игроку нельзя; авторитетное
         #    уходит ниже, в `engine.state`.
         analysis = engine.analyze(text)
-        engine_sess.turn += 1
-        turn_id = engine_sess.turn
+        # Пока судья ждёт сеть, ход ещё не изменяет движок. Отмена сокета
+        # в этот момент не должна съесть попытку без состояния и журнала.
+        turn_id = engine_sess.turn + 1
         bus.publish({
             "type": "turn.analysis",
             "turn_id": turn_id,
@@ -139,6 +152,9 @@ class NegotiationOrchestrator:
                          "semantic": judgement is not None})
 
         # 3. Движок считает ход. ЕДИНСТВЕННОЕ место, где меняется состояние игры.
+        # До записи журнала ниже нет await: счётчик, состояние и запись
+        # применяются вместе, отмена не может вклиниться между ними.
+        engine_sess.turn = turn_id
         result = engine.apply_move(engine_sess, analysis, text, judge=judgement)
 
         timeout = False
@@ -198,7 +214,14 @@ class NegotiationOrchestrator:
                 facts["observations"] = sess.observations[-3:]
             self._generation_task = asyncio.create_task(
                 self._stream_opponent(facts, templated, turn_id))
-            await self._generation_task
+            try:
+                await self._generation_task
+            except asyncio.CancelledError:
+                # Перебивание гасит ответ, но ход уже посчитан. Отмена самого
+                # владельца (disconnect) и отмена только генерации различны:
+                # после второй завершённая партия всё ещё нуждается в разборе.
+                if asyncio.current_task().cancelling():
+                    raise
 
         if result.closed:
             await self._send_debrief()
@@ -355,7 +378,7 @@ class NegotiationOrchestrator:
 
     # ----------------------------------------------------------------- разбор
 
-    async def _send_debrief(self) -> None:
+    async def _send_debrief(self, *, enrich: bool = True) -> None:
         """Финальный разбор. Считает движок; ИИ только пишет сопроводительное слово."""
         sess = self.session
         deb = views.debrief_view(sess.engine_session).model_dump()
@@ -367,7 +390,7 @@ class NegotiationOrchestrator:
             # `score_session` их не видит (они живут в RealtimeSession).
             deb["observations"] = sess.observations
 
-        if orchat.available():
+        if enrich and orchat.available():
             # Слово наставника — украшение поверх готового разбора, поэтому у него
             # есть потолок ожидания. Без него медленная модель задерживала ВЕСЬ
             # разбор: он публикуется одним событием, и человек смотрел в пустоту

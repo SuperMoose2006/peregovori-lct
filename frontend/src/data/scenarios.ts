@@ -67,7 +67,7 @@ export interface ScenarioDef {
 
 export const SCENARIOS: ScenarioDef[] = [
   {
-    id: "supplier", icon: "📦", face: "👩‍💼", diff: 2, dir: "low",
+    id: "supplier", icon: "box", face: "person", diff: 2, dir: "low",
     title: { ru: "Контракт с поставщиком", en: "Supplier Contract" },
     role: {
       ru: "Вы — менеджер по закупкам: снизить цену, не потеряв надёжного поставщика.",
@@ -130,7 +130,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "salary", icon: "💼", face: "🧔‍♂️", diff: 3, dir: "high",
+    id: "salary", icon: "briefcase", face: "person", diff: 3, dir: "high",
     title: { ru: "Переговоры о зарплате", en: "Salary Negotiation" },
     role: {
       ru: "У вас есть оффер: повысить компенсацию, не отпугнув работодателя.",
@@ -193,7 +193,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "conflict", icon: "🤝", face: "😤", diff: 4, dir: "low",
+    id: "conflict", icon: "handshake", face: "angry", diff: 4, dir: "low",
     title: { ru: "Конфликт между отделами", en: "Cross-team Conflict" },
     role: {
       ru: "Вы — тимлид: смежный отдел сорвал сроки и обвиняет вас. Договоритесь, сохранив отношения.",
@@ -266,7 +266,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "investor", icon: "🚀", face: "👩‍💻", diff: 5, dir: "low",
+    id: "investor", icon: "rocket", face: "person", diff: 5, dir: "low",
     title: { ru: "Раунд с инвестором", en: "Investor Term Sheet" },
     role: {
       ru: "Вы — фаундер: инвестор хочет большую долю и жёсткие условия.",
@@ -337,7 +337,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "rent", icon: "🏠", face: "👩", diff: 2, dir: "low",
+    id: "rent", icon: "house", face: "person", diff: 2, dir: "low",
     title: { ru: "Аренда квартиры", en: "Apartment Rent" },
     role: {
       ru: "Вы — арендатор: снизить месячную плату, не потеряв удачную квартиру.",
@@ -408,7 +408,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "used_car", icon: "🚗", face: "🧔", diff: 3, dir: "low",
+    id: "used_car", icon: "car", face: "person", diff: 3, dir: "low",
     title: { ru: "Покупка авто с рук", en: "Buying a Used Car" },
     role: {
       ru: "Вы — покупатель: торгуетесь с частным продавцом, чтобы сбить цену.",
@@ -477,7 +477,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "freelance_rate", icon: "💻", face: "🧑‍💻", diff: 4, dir: "high",
+    id: "freelance_rate", icon: "laptop", face: "person", diff: 4, dir: "high",
     title: { ru: "Ставка фрилансера", en: "Freelance Rate" },
     role: {
       ru: "Вы — независимый разработчик: поднять дневную ставку по проекту для стартапа.",
@@ -546,7 +546,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "sla_renewal", icon: "🛰️", face: "🧑‍💼", diff: 5, dir: "high",
+    id: "sla_renewal", icon: "satellite", face: "person", diff: 5, dir: "high",
     title: { ru: "Продление SLA-контракта", en: "SLA Contract Renewal" },
     role: {
       ru: "Вы — ИТ-директор: продлеваете контракт с облачным вендором и хотите выше гарантию аптайма.",
@@ -615,7 +615,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "candidate_offer", icon: "✍️", face: "👨‍💼", diff: 2, dir: "low",
+    id: "candidate_offer", icon: "pen", face: "person", diff: 2, dir: "low",
     title: { ru: "Оффер сильному кандидату", en: "Making the Offer" },
     role: {
       ru: "Вы нанимаете: бюджет с запасом, второго оффера у него нет. Пусть выйдет — и останется.",

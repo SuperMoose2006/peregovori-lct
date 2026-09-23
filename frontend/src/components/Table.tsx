@@ -4,7 +4,7 @@
 // скроллер, и «выигрываю ли я» уезжало за его край.
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Deltas, Lang, Mode, ScenarioView, StateView } from "../types";
-import type { TransportKind } from "../api/transport";
+import type { ConnStatus, TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
 import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
@@ -22,12 +22,14 @@ import { DealTracker } from "./DealTracker";
 import { DealTerms } from "./DealTerms";
 import { Onboarding, type CoachStep } from "./Onboarding";
 import type { Layers } from "../lib/layers";
+import { Icon } from "./Icon";
 
 interface Props {
   t: Strings;
   lang: Lang;
   mode: Mode;
   kind: TransportKind | null;
+  conn?: ConnStatus;
   scenario: ScenarioView;
   state: StateView | null;
   log: ChatEntry[];
@@ -43,7 +45,7 @@ interface Props {
    *  экране. `null` — сессии ещё нет, утверждать нечего (принцип 2: пока
    *  сервер не ответил, «нет ИИ» такая же неправда, как «ИИ есть»). */
   cloudAi?: boolean | null;
-  onSend: (text: string) => void;
+  onSend: (text: string) => boolean | void;
   onHint: () => void;
   onQuit: () => void;
   // The negotiation's last beat. When the table closes we hold here for a moment
@@ -102,7 +104,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, conn = "online", scenario, state, log, busy, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -191,7 +193,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
             // gets judged like anything they type themselves.
             onClick={() => setPrefill({ text: l.text, nonce: prefillNonce.current++ })}
           >
-            <span className="op-tag">{l.tag}</span>
+            <span className="op-tag"><Icon name={l.icon} /> {l.tag}</span>
             <span className="op-text">{l.text}</span>
           </button>
         ))}
@@ -435,7 +437,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
     <section className="screen">
       {toast ? (
         <div className="toast" role="status">
-          🎯 {t.interestToast}
+          <Icon name="target" /> {t.interestToast}
         </div>
       ) : null}
       <div className="wrap">
@@ -508,7 +510,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 <ul className="ir-chips">
                   {interestSlots.map((slot, i) => (
                     <li key={i} className={slot.text ? "on" : ""}>
-                      <span className="ir-mark" aria-hidden="true">{slot.text ? "🔓" : "🔍"}</span>
+                      <span className="ir-mark" aria-hidden="true"><Icon name={slot.text ? "unlock" : "search"} /></span>
                       <span className="ir-txt">{slot.text ?? slot.topic}</span>
                     </li>
                   ))}
@@ -527,7 +529,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 стоит, — темы между ними стоят ровно потому, что ниже их не
                 видно (см. выше). */}
             <div className="batna">
-              <b>🛡 {t.batna}</b>
+              <b><Icon name="shield" /> {t.batna}</b>
               <span>{scenario.batna}</span>
             </div>
 
@@ -560,7 +562,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                 onClick={() => setMoreOpen((o) => !o)}
                 aria-expanded={moreOpen}
               >
-                <span>📋 {hasTerms ? `${t.moreLabel} · ${t.terms.title}` : t.moreLabel}</span>
+                <span><Icon name="clipboard" /> {hasTerms ? `${t.moreLabel} · ${t.terms.title}` : t.moreLabel}</span>
                 <span className="chev" aria-hidden="true">▾</span>
               </button>
               <div className="side-more-body">
@@ -612,7 +614,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
                     aria-haspopup="dialog"
                     aria-expanded={layersOpen}
                   >
-                    🎛 {t.layers.head}
+                    <Icon name="sliders" /> {t.layers.head}
                   </button>
                 ) : null}
               </div>
@@ -700,7 +702,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               <div className={`outcome ${st!.status}`} role="status" ref={outcomeRef}>
                 <div className="oc-stamp">
                   <span className="oc-mark" aria-hidden="true">
-                    {st!.status === "agreement" ? "🤝" : "🚪"}
+                    <Icon name={st!.status === "agreement" ? "handshake" : "door"} />
                   </span>
                   <span className="oc-title">
                     {st!.status === "agreement" ? t.outcome.agreement : t.outcome.breakdown}
@@ -724,7 +726,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, phase, 
               <Composer
                 hintLabel={t.hint}
                 sendLabel={t.a11y.send}
-                disabled={busy || finished || probeOpen || !st}
+                disabled={conn !== "online" || busy || finished || probeOpen || !st}
                 blocked={probeOpen}
                 placeholder={probeOpen ? t.probe.blocked : placeholder}
                 quickMoves={t.quickMoves}

@@ -1,0 +1,39 @@
+[Unit]
+Description=Dialog ASR (nvidia/parakeet-tdt-0.6b-v3, CPU)
+After=network-online.target
+Wants=network-online.target
+# Гейтвей без этой службы работает: он берёт облачное распознавание. Поэтому
+# зависимости в обратную сторону нет и быть не должно.
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=dialog
+Group=dialog
+WorkingDirectory=/opt/parakeet
+Environment=HF_HOME=/opt/parakeet/hf
+Environment=ASR_THREADS=6
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/parakeet/.venv/bin/uvicorn server:app --host 127.0.0.1 --port 8020 --workers 1 --no-access-log
+Restart=always
+RestartSec=5
+# Модель поднимается ~15 с из кэша и до полутора минут при первой загрузке.
+# Пока она грузится, /health отвечает 503, и гейтвей молча берёт облако.
+TimeoutStartSec=300
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/parakeet/hf
+# Замер: пик при загрузке 5.7 ГБ. Потолок с запасом, но не безграничный —
+# иначе одна модель выселит гейтвей с его партиями.
+MemoryMax=10G
+# Шесть ядер из двенадцати: рядом живёт гейтвей, его партии важнее RTF.
+CPUQuota=600%
+TasksMax=256
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

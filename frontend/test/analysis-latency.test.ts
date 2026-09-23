@@ -17,6 +17,7 @@ import assert from "node:assert/strict";
 
 import { reduce, type ChatEntry, type NegotiationState } from "../src/api/useNegotiation";
 import { MockServer } from "../src/mock/mockServer";
+import { createSessionStore } from "../src/api/sessionStore";
 import type { ServerMsg } from "../src/types";
 
 // --- минимальный браузер (тот же, что в takeover.test.ts) --------------------
@@ -299,4 +300,37 @@ test("без turn.analysis теги всё равно доезжают с реп
   assert.ok(me.analysis, "запасной путь потерян: ход остался вообще без разбора");
   assert.notEqual(me.argSettled, true,
     "число из `opponent` — черновик; помечать его посчитанным нельзя");
+});
+
+test("interrupting a reply settles its committed engine turn and allows the next move", async (t) => {
+  const { RealtimeTransport } = await import("../src/realtime/transport");
+  const store = createSessionStore({ ...EMPTY });
+  const transport = new RealtimeTransport(
+    (m) => store.update((p) => reduce(p, m, store.nextId)),
+    (conn) => store.connection(conn),
+  );
+  t.after(() => transport.close());
+  transport.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice" });
+  await wait(0);
+  const socket = FakeSocket.instances.at(-1)!;
+  socket.deliver({ type: "session.queue_done" });
+  socket.deliver({ type: "session.created", session_id: "interrupted", scenario: { id: "supplier" },
+    state: { ...STATE, turn: 0 }, greeting: "Hello", capabilities: {} });
+  await wait(0);
+  assert.equal(store.turn("My offer", transport), true);
+  for (const { event } of turnEvents().slice(0, -1)) socket.deliver(event);
+  assert.equal(store.getSnapshot().busy, true);
+  socket.deliver({ type: "generation.cancelled", generation_id: "g1", reason: "client_cancel" });
+  assert.equal(store.getSnapshot().state?.turn, 1);
+  assert.equal(store.getSnapshot().busy, false);
+  assert.equal(store.getSnapshot().phase, null);
+  const last = store.getSnapshot().log.at(-1);
+  assert.equal(last?.kind, "opp");
+  assert.equal(last?.text, "Хорошо, ");
+  assert.equal(last?.kind === "opp" && last.streaming, undefined);
+  const length = store.getSnapshot().log.length;
+  socket.deliver({ type: "generation.cancelled", generation_id: "g1" });
+  socket.deliver({ type: "response.done", text: "late obsolete response" });
+  assert.equal(store.getSnapshot().log.length, length, "a repeated completion must not create another move");
+  assert.equal(store.turn("Next offer", transport), true);
 });

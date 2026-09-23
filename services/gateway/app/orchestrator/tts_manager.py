@@ -41,7 +41,7 @@ import base64
 from typing import Callable, Optional
 
 from app.providers.tts.base import TTSProvider, Voice
-from app.realtime.events import output_delta
+from app.realtime.events import error, output_delta
 
 #: Метка конца фразы во внутренней очереди.
 _EOP = b""
@@ -51,13 +51,14 @@ class TTSTaskManager:
     """Очередь фраз на озвучку с параллельным синтезом."""
 
     def __init__(self, provider: TTSProvider, publish: Callable[[dict], None],
-                 voice: Voice) -> None:
+                 voice: Voice, *, fallback: Optional[TTSProvider] = None) -> None:
         self._provider = provider
+        self._fallback = fallback
         self._publish = publish
         self._voice = voice
 
         self._tasks: list[asyncio.Task] = []
-        self._queues: list[asyncio.Queue[bytes]] = []
+        self._queues: list[asyncio.Queue[bytes | dict]] = []
         self._sender: Optional[asyncio.Task] = None
         self._sequence = 0          # сколько фраз принято
         self._next_to_send = 0      # какая фраза сейчас имеет право звучать
@@ -68,7 +69,8 @@ class TTSTaskManager:
 
     def speak(self, text: str, *, generation_id: str, turn_id: int) -> None:
         """Поставить фразу в очередь. Синтез стартует немедленно и параллельно."""
-        if not text.strip() or not self._provider.available():
+        if not text.strip() or not any(p and p.available() for p in
+                                      (self._provider, self._fallback)):
             return
 
         # Смена поколения = новая реплика. Всё, что осталось от прошлой, гасим:
@@ -80,9 +82,10 @@ class TTSTaskManager:
 
         index = self._sequence
         self._sequence += 1
-        queue: asyncio.Queue[bytes] = asyncio.Queue()
+        queue: asyncio.Queue[bytes | dict] = asyncio.Queue()
         self._queues.append(queue)
-        self._tasks.append(asyncio.create_task(self._synth(text, queue)))
+        self._tasks.append(asyncio.create_task(
+            self._synth(text, queue, generation_id, turn_id)))
 
         if self._sender is None or self._sender.done():
             self._sender = asyncio.create_task(self._send_in_order())
@@ -90,19 +93,43 @@ class TTSTaskManager:
 
     # -------------------------------------------------------------- внутри
 
-    async def _synth(self, text: str, queue: asyncio.Queue[bytes]) -> None:
-        """Синтез одной фразы в свою очередь. Ошибка = пустая фраза, не падение.
+    async def _synth(self, text: str, queue: asyncio.Queue[bytes | dict],
+                     generation_id: str, turn_id: int) -> None:
+        """Запасной голос допустим, пока ни один кусок этой фразы не выдан.
 
-        Молчание одной фразы лучше, чем оборванная реплика: движок уже посчитал
-        ход, текст на экране есть, и разговор продолжается.
+        После первого чанка повтор синтеза повторил бы услышанные слова.
+        Тогда сохраняем уже выданный звук и явно сообщаем об обрыве.
+        Ошибка стоит в той же очереди, что звук: порядок фраз сохраняется.
         """
+        emitted = False
         try:
-            async for chunk in self._provider.stream(text, self._voice):
-                await queue.put(chunk)
+            for provider in (self._provider, self._fallback):
+                if provider is None or not provider.available():
+                    continue
+                try:
+                    async for chunk in provider.stream(text, self._voice):
+                        if chunk:
+                            emitted = True
+                            await queue.put(chunk)
+                    if emitted:
+                        return
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    if emitted:
+                        break
+            code = "tts_interrupted" if emitted else "tts_unavailable"
+            messages = {
+                "ru": ("Озвучка прервалась. Продолжение реплики доступно в тексте."
+                       if emitted else "Озвучка недоступна. Реплика доступна в тексте."),
+                "en": ("Audio was interrupted. Read the rest of the reply in the text."
+                       if emitted else "Audio is unavailable. Read the reply in the text."),
+            }
+            event = error(code, messages.get(self._voice.lang, messages["ru"]))
+            event.update(generation_id=generation_id, turn_id=turn_id)
+            await queue.put(event)
         except asyncio.CancelledError:
             raise
-        except Exception:
-            pass
         finally:
             await queue.put(_EOP)
 
@@ -127,6 +154,9 @@ class TTSTaskManager:
                     chunk = await queue.get()
                     if chunk is _EOP or chunk == _EOP:
                         break
+                    if isinstance(chunk, dict):
+                        self._publish(chunk)
+                        continue
                     self._publish(output_delta(
                         "audio",
                         generation_id=self._generation_id,

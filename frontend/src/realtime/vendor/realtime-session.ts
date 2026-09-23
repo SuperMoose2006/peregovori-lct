@@ -33,7 +33,7 @@
 // ЧТО ДОБАВЛЕНО НАМИ. Политика переподключения берётся из lib/net.ts, а не
 // пишется числами здесь: раньше она существовала дважды и разошлась — тесты
 // проверяли три попытки с базой 500 мс, работали четыре с базой 400.
-import { canReconnect, reconnectDelay } from "../../lib/net";
+import { canReconnect, reconnectDelay, GEN_TIMEOUT_MS } from "../../lib/net";
 import { socketTicket, wsUrl } from "../../api/backend";
 
 export type ServerEvent = Record<string, unknown> & { type: string };
@@ -71,11 +71,13 @@ export interface RealtimeSessionOptions {
   onEvent: (event: ServerEvent) => void;
   onStatus?: (status: ConnectionStatus) => void;
   onProtocol?: (entry: ProtocolEntry) => void;
+  onResume?: (created: ServerEvent) => void;
 }
 
 export type ConnectionStatus = "idle" | "connecting" | "online" | "reconnecting" | "lost";
 
 const OPEN_TIMEOUT_MS = 4000;
+export const HANDSHAKE_TIMEOUT_MS = GEN_TIMEOUT_MS + 5000;
 const MAX_LOG = 200;
 
 /**
@@ -102,6 +104,10 @@ export class RealtimeSession {
   private readonly onEvent: (event: ServerEvent) => void;
   private readonly onStatus?: (status: ConnectionStatus) => void;
   private readonly onProtocol?: (entry: ProtocolEntry) => void;
+  private readonly onResume?: (created: ServerEvent) => void;
+  private epoch = 0;
+  private abortPending: (() => void) | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   private log: ProtocolEntry[] = [];
   private started = false;
@@ -121,6 +127,7 @@ export class RealtimeSession {
     this.onEvent = options.onEvent;
     this.onStatus = options.onStatus;
     this.onProtocol = options.onProtocol;
+    this.onResume = options.onResume;
   }
 
   get running(): boolean {
@@ -133,42 +140,49 @@ export class RealtimeSession {
 
   /** Открыть сокет и довести партию до `session.created`. */
   async start(payload: SessionInitPayload): Promise<ServerEvent> {
-    // `resume` в сохранённый payload не кладём: он одноразовый, а следующая
-    // попытка подставит свежий идентификатор сессии.
+    const epoch = ++this.epoch;
+    this.abortPending?.();
+    this.closeSocket();
     this.initPayload = { ...payload, resume: undefined };
     this.closing = false;
-    this.onStatus?.("connecting");
-
-    const socket = await this.open();
-    const created = await this.handshake(socket, payload);
-
+    this.started = false;
+    this.onStatus?.(payload.resume ? "reconnecting" : "connecting");
+    const { socket, created } = await this.openAndInitialize(payload, epoch);
+    if (this.closing || epoch !== this.epoch) throw new Error("Session cancelled");
     this.sessionId = String(created.session_id ?? "");
     this.capabilities = (created.capabilities as Record<string, unknown>) ?? {};
     this.started = true;
     this.attempt = 0;
+    socket.onmessage = (e) => {
+      if (epoch !== this.epoch || this.closing) return;
+      try { this.handle(JSON.parse(e.data as string) as ServerEvent); }
+      catch { this.handleClose(); }
+    };
+    socket.onclose = (event) => {
+      if (epoch === this.epoch) this.handleClose(event);
+    };
     this.onStatus?.("online");
-
-    socket.onmessage = (e) => this.handle(JSON.parse(e.data as string) as ServerEvent);
-    socket.onclose = (event) => this.handleClose(event);
+    if (payload.resume) this.onResume?.(created);
     return created;
   }
 
   // -- отправка ------------------------------------------------------------
 
   /** Текстовый ход: накопить и сразу закрыть — клавиатура не делает пауз. */
-  sendText(text: string): void {
-    this.send({ type: "input.append", input: { text } });
-    this.send({ type: "input.commit" });
+  sendText(text: string): boolean {
+    if (!this.started || this.closing) return false;
+    return this.send({ type: "input.append", input: { text } }) && this.send({ type: "input.commit" });
   }
 
   /** Кусок звука с микрофона. Конец хода определит сервер. */
-  sendAudio(base64: string, frame?: string | null, change?: number): void {
+  sendAudio(base64: string, frame?: string | null, change?: number): boolean {
+    if (!this.started || this.closing) return false;
     const input: Record<string, unknown> = { audio: base64 };
     if (frame) {
       input.video_frames = [frame];
       if (change !== undefined) input.frame_change = change;
     }
-    this.send({ type: "input.append", input }, /* quiet */ true);
+    return this.send({ type: "input.append", input }, /* quiet */ true);
   }
 
   /**
@@ -179,8 +193,9 @@ export class RealtimeSession {
   /** `change` — доля изменившихся пикселей относительно прошлого кадра (0..1).
    *  Считает браузер: кадр уже нарисован в canvas, поэтому это бесплатно, а
    *  сервер по сжатому JPEG честной разницы получить не может. */
-  sendFrame(frame: string, change?: number): void {
-    this.send({ type: "input.append",
+  sendFrame(frame: string, change?: number): boolean {
+    if (!this.started || this.closing) return false;
+    return this.send({ type: "input.append",
                 input: { video_frames: [frame], frame_change: change } },
               /* quiet */ true);
   }
@@ -195,83 +210,93 @@ export class RealtimeSession {
     this.send({ type: "response.cancel" });
   }
 
-  requestHint(): void {
-    this.send({ type: "coach.request" });
+  requestHint(): boolean {
+    if (!this.started || this.closing) return false;
+    return this.send({ type: "coach.request" });
   }
 
   stop(reason = "user_stop"): void {
     this.closing = true;
+    this.epoch += 1;
+    this.abortPending?.();
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     this.send({ type: "session.close", reason });
     this.cleanup();
   }
 
   // -- внутреннее ----------------------------------------------------------
 
-  private send(message: Record<string, unknown>, quiet = false): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    this.ws.send(JSON.stringify(message));
+  private send(message: Record<string, unknown>, quiet = false): boolean {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
+    try { this.ws.send(JSON.stringify(message)); }
+    catch { return false; }
     if (!quiet) this.record("client", String(message.type), "");
+    return true;
   }
 
-  private async open(): Promise<WebSocket> {
-    // Адрес разрешается ПЕРЕД каждым открытием, а не один раз в конструкторе:
-    // билет на сокет короткоживущий, а сюда приходят и по переподключению.
-    const url = await this.resolveUrl();
+  /** One cancellable lifetime covers URL resolution, opening and session init. */
+  private openAndInitialize(payload: SessionInitPayload, epoch: number): Promise<{ socket: WebSocket; created: ServerEvent }> {
     return new Promise((resolve, reject) => {
-      const socket = new WebSocket(url);
-      this.ws = socket;
-      const timer = setTimeout(() => reject(new Error("timeout")), OPEN_TIMEOUT_MS);
-      socket.onopen = () => {
+      let settled = false;
+      let socket: WebSocket | null = null;
+      let initTimer: ReturnType<typeof setTimeout> | undefined;
+      const en = payload.lang === "en";
+      let timer = setTimeout(() => fail(en ? "Connection timed out" : "Время подключения истекло"), OPEN_TIMEOUT_MS);
+      const finish = () => {
+        settled = true;
         clearTimeout(timer);
-        resolve(socket);
+        clearTimeout(initTimer);
+        if (this.abortPending === abort) this.abortPending = null;
       };
-      socket.onerror = () => {
-        clearTimeout(timer);
-        reject(new Error("WebSocket недоступен"));
+      const fail = (message: string) => {
+        if (settled) return;
+        finish();
+        if (socket) {
+          socket.onopen = socket.onmessage = socket.onerror = socket.onclose = null;
+          try { socket.close(); } catch { /* already closed */ }
+          if (this.ws === socket) this.ws = null;
+        }
+        reject(new Error(message));
       };
-      socket.onclose = () => {
-        if (!this.started) {
+      const abort = () => fail(en ? "Session cancelled" : "Запуск партии отменён");
+      this.abortPending = abort;
+      Promise.resolve().then(() => this.resolveUrl()).then((url) => {
+        if (settled || epoch !== this.epoch || this.closing) { abort(); return; }
+        socket = new WebSocket(url);
+        this.ws = socket;
+        let sent = false;
+        const sendInit = () => {
+          if (settled || sent || !socket || socket.readyState !== WebSocket.OPEN) return;
+          sent = true;
+          try { socket.send(JSON.stringify({ type: "session.init", payload })); }
+          catch { fail(en ? "Connection closed" : "Соединение закрыто"); return; }
+          this.record("client", "session.init", String(payload.scenarioId ?? ""));
+        };
+        socket.onopen = () => {
           clearTimeout(timer);
-          reject(new Error("сокет закрылся до готовности"));
-        }
-      };
-    });
-  }
-
-  /**
-   * Очередь → init → created. Порядок из MiniCPM.
-   *
-   * `session.queue_done` шлётся нашим сервером сразу (пула воркеров нет), но
-   * шаг сохранён: он ничего не стоит, а протокол остаётся тем же, если очередь
-   * однажды появится.
-   */
-  private handshake(socket: WebSocket, payload: SessionInitPayload): Promise<ServerEvent> {
-    return new Promise((resolve, reject) => {
-      let sent = false;
-      const sendInit = () => {
-        if (sent) return;
-        sent = true;
-        socket.send(JSON.stringify({ type: "session.init", payload }));
-        this.record("client", "session.init", String(payload.scenarioId ?? ""));
-      };
-
-      socket.onmessage = (e) => {
-        const message = JSON.parse(e.data as string) as ServerEvent;
-        this.record("server", message.type, "");
-        if (message.type === "session.queue_done") {
-          sendInit();
-        } else if (message.type === "session.created") {
-          resolve(message);
-        } else if (message.type === "error") {
-          const body = message.error as { message?: string } | undefined;
-          reject(new Error(body?.message ?? "не удалось начать партию"));
-        } else {
-          this.onEvent(message);
-        }
-      };
-
-      // Страховка: сервер без очереди может не прислать queue_done вовсе.
-      setTimeout(sendInit, 150);
+          timer = setTimeout(() => fail(en ? "The game did not start in time" : "Не удалось вовремя начать партию"), HANDSHAKE_TIMEOUT_MS);
+          initTimer = setTimeout(sendInit, 150);
+        };
+        socket.onerror = () => fail(en ? "WebSocket unavailable" : "WebSocket недоступен");
+        socket.onclose = () => fail(en ? "Connection closed before the game started" : "Соединение закрыто до начала партии");
+        socket.onmessage = (e) => {
+          if (settled) return;
+          try {
+            const message = JSON.parse(e.data as string) as ServerEvent;
+            this.record("server", message.type, "");
+            if (message.type === "session.queue_done") sendInit();
+            else if (message.type === "session.created") {
+              finish();
+              resolve({ socket: socket!, created: message });
+            } else if (message.type === "error") {
+              fail(String((message.error as { message?: string })?.message ?? (en ? "Could not start the game" : "Не удалось начать партию")));
+            } else if (message.type === "session.closed") {
+              fail(en ? "The session was closed" : "Сессия закрыта");
+            } else this.onEvent(message);
+          } catch { fail(en ? "Invalid server response" : "Некорректный ответ сервера"); }
+        };
+      }).catch((error) => fail(String((error as Error).message)));
     });
   }
 
@@ -285,6 +310,7 @@ export class RealtimeSession {
    * а не сокет. Поэтому переподключаемся и продолжаем, а не начинаем заново.
    */
   private handleClose(event?: { code?: number }): void {
+    this.closeSocket();
     this.started = false;
     if (this.closing || !this.initPayload) {
       this.onStatus?.("idle");
@@ -307,27 +333,30 @@ export class RealtimeSession {
     }
     this.onStatus?.("reconnecting");
     const delay = reconnectDelay(this.attempt);
-    setTimeout(() => {
-      if (this.closing || !this.initPayload) return;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    const epoch = this.epoch;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      if (this.closing || epoch !== this.epoch || !this.initPayload) return;
       // Возвращаемся в ТУ ЖЕ партию, а не начинаем новую. Без `resume` человек
       // после обрыва молча терял всё, что наговорил, — и это было бы хуже,
       // чем не переподключаться вовсе.
       void this.start({ ...this.initPayload, resume: this.sessionId || undefined })
-        .catch(() => this.handleClose());
+        .catch(() => { if (!this.closing && this.epoch === epoch + 1) this.handleClose(); });
     }, delay);
+  }
+
+  private closeSocket(): void {
+    const socket = this.ws;
+    this.ws = null;
+    if (!socket) return;
+    socket.onopen = socket.onclose = socket.onerror = socket.onmessage = null;
+    try { socket.close(); } catch { /* already closed */ }
   }
 
   private cleanup(): void {
     this.started = false;
-    if (this.ws) {
-      this.ws.onclose = null;
-      try {
-        this.ws.close();
-      } catch {
-        /* уже закрыт */
-      }
-      this.ws = null;
-    }
+    this.closeSocket();
     this.onStatus?.("idle");
   }
 

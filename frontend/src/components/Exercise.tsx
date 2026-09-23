@@ -23,6 +23,7 @@ import { haptic, play } from "../lib/sound";
 import { courseCoach } from "../api/courseCoach";
 import { plural } from "../lib/format";
 import { Karl } from "./Mascot";
+import { Icon } from "./Icon";
 
 interface Props {
   t: Strings;
@@ -368,7 +369,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
 
       {ex.type === "drill" ? (
         <div className="ex-drill">
-          <p className="ex-goal">🏁 {say(ex.goal, lang)}</p>
+          <p className="ex-goal"><Icon name="flag" /> {say(ex.goal, lang)}</p>
           {/* СРОК, А НЕ ДЛИНА ПАРТИИ. Здесь стояло «настоящая партия на 6
               ходов», и это было четвёртое состояние: бюджет хода капстоуна
               никуда не передаётся (`App.startDrill` открывает обычную партию

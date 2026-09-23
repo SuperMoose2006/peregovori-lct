@@ -95,8 +95,8 @@ export function synthCustomScenario(situation: string, lang: Lang): ScenarioDef 
 
   return {
     id: "custom_mock",
-    icon: "🎯",
-    face: "🧑‍💼",
+    icon: "target",
+    face: "person",
     diff: 3,
     dir: kind.dir,
     title,

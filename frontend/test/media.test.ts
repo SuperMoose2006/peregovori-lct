@@ -10,8 +10,26 @@
 //
 // Поэтому `start()` больше не бросает на отказ устройства. Он возвращает отчёт
 // по каждому слою отдельно, а звать виновника по имени обязан вызывающий.
-import test from "node:test";
+import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
+
+const globalDescriptors = ["navigator", "window", "AudioWorkletNode", "performance"].map(
+  (key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)] as const,
+);
+const urlDescriptors = ["createObjectURL", "revokeObjectURL"].map(
+  (key) => [key, Object.getOwnPropertyDescriptor(URL, key)] as const,
+);
+
+afterEach(() => {
+  for (const [target, descriptors] of [
+    [globalThis, globalDescriptors], [URL, urlDescriptors],
+  ] as const) {
+    for (const [key, descriptor] of descriptors) {
+      if (descriptor) Object.defineProperty(target, key, descriptor);
+      else Reflect.deleteProperty(target, key);
+    }
+  }
+});
 
 // --- минимальный браузер --------------------------------------------------
 // Не jsdom: нужен ровно тот кусок Web Audio, который трогает провайдер, и
@@ -55,7 +73,8 @@ interface Grant {
 function install(grant: Grant) {
   const asked: string[] = [];
   const g = globalThis as Record<string, unknown>;
-  g.navigator = {
+  // В Node 25 navigator — getter-only; после теста возвращаем его descriptor.
+  Object.defineProperty(g, "navigator", { configurable: true, writable: true, value: {
     mediaDevices: {
       enumerateDevices: async () => grant.devices ?? [],
       getUserMedia: async (c: { video?: unknown; audio?: unknown }) => {
@@ -69,10 +88,12 @@ function install(grant: Grant) {
         return new FakeStream([new FakeTrack(wantsVideo ? "video" : "audio")]) as unknown as MediaStream;
       },
     },
-  };
+  } });
   g.window = { AudioContext: FakeAudioContext, isSecureContext: true };
   g.AudioWorkletNode = FakeWorkletNode;
-  g.URL = { createObjectURL: () => "blob:fake", revokeObjectURL: () => {} };
+  // Загрузчик tsx использует new URL при import: сам конструктор нужен настоящий.
+  URL.createObjectURL = () => "blob:fake";
+  URL.revokeObjectURL = () => {};
   return asked;
 }
 
@@ -127,6 +148,41 @@ test("stop() гасит дорожки обоих устройств — ина�
   assert.equal(tracks.length, 2, "оба потока обязаны существовать");
   await p.stop();
   assert.ok(tracks.every((t) => t.stopped), "после stop() ни одна дорожка не осталась живой");
+});
+
+test("выход во время запроса камеры гасит поздний поток и не запрашивает микрофон", async () => {
+  install({ camera: true, mic: true });
+  let grant!: (stream: MediaStream) => void;
+  const requested: boolean[] = [];
+  navigator.mediaDevices.getUserMedia = (constraints) => {
+    requested.push(!!constraints?.video);
+    return new Promise((resolve) => { grant = resolve; });
+  };
+  const { MediaProvider } = await load();
+  const provider = new MediaProvider();
+  const start = provider.start({ camera: true, mic: true });
+  await provider.stop();
+  const track = new FakeTrack("video");
+  grant(new FakeStream([track]) as unknown as MediaStream);
+  await start;
+  assert.equal(track.stopped, true);
+  assert.deepEqual(requested, [true]);
+  assert.equal(provider.running, false);
+});
+
+test("выход во время запроса микрофона не оставляет поздний аудиопоток живым", async () => {
+  install({ camera: false, mic: true });
+  let grant!: (stream: MediaStream) => void;
+  navigator.mediaDevices.getUserMedia = () => new Promise((resolve) => { grant = resolve; });
+  const { MediaProvider } = await load();
+  const provider = new MediaProvider();
+  const start = provider.start({ camera: false, mic: true });
+  await provider.stop();
+  const track = new FakeTrack("audio");
+  grant(new FakeStream([track]) as unknown as MediaStream);
+  await start;
+  assert.equal(track.stopped, true);
+  assert.equal(provider.running, false);
 });
 
 test("узкий запрос отвергнут — камера просится ещё раз, уже без требований", async () => {

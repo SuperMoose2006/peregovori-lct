@@ -15,7 +15,7 @@
 // Поэтому слой, который сервер не поднял, называется поимённо И НЕ ОТКРЫВАЕТСЯ:
 // просить у человека камеру ради кадров, на которые никто не посмотрит, — это
 // разрешение, взятое ни за чем, плюс мегабайты наружу.
-import test from "node:test";
+import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
 
 import type { ServerMsg } from "../src/types";
@@ -45,29 +45,42 @@ class FakeSocket {
 }
 
 const g = globalThis as Record<string, unknown>;
-g.WebSocket = FakeSocket;
-g.location = { protocol: "http:", host: "localhost:5173" };
+const globalDescriptors = ["navigator", "window", "WebSocket", "location"].map(
+  (key) => [key, Object.getOwnPropertyDescriptor(g, key)] as const,
+);
+
+afterEach(() => {
+  for (const [key, descriptor] of globalDescriptors) {
+    if (descriptor) Object.defineProperty(g, key, descriptor);
+    else Reflect.deleteProperty(g, key);
+  }
+});
 
 /** Сколько раз у браузера вообще спросили устройство. */
 let asked: string[] = [];
+let stopped = 0;
 
 function installMedia() {
   asked = [];
-  g.navigator = {
+  stopped = 0;
+  g.WebSocket = FakeSocket;
+  g.location = { protocol: "http:", host: "localhost:5173" };
+  // В Node 25 navigator — getter-only; подделка живёт только до afterEach.
+  Object.defineProperty(g, "navigator", { configurable: true, writable: true, value: {
     mediaDevices: {
       enumerateDevices: async () => [{ kind: "videoinput" }],
       getUserMedia: async (c: { video?: unknown }) => {
         asked.push(c.video ? "camera" : "mic");
-        return { getTracks: () => [{ stop() {} }] } as unknown as MediaStream;
+        return { getTracks: () => [{ stop() { stopped++; } }] } as unknown as MediaStream;
       },
     },
-  };
+  } });
   g.window = { isSecureContext: true };
 }
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function run(capabilities: Record<string, unknown>): Promise<ServerMsg[]> {
+async function run(capabilities: Record<string, unknown>, finish?: Record<string, unknown>): Promise<ServerMsg[]> {
   // Транспорт держит таймеры и поток камеры; без `close()` процесс теста не
   // завершится, и молчаливое зависание выглядело бы как медленный набор.
   const { RealtimeTransport } = await import("../src/realtime/transport");
@@ -87,6 +100,12 @@ async function run(capabilities: Record<string, unknown>): Promise<ServerMsg[]> 
     state: {}, greeting: "Здравствуйте.", capabilities,
   });
   await wait(20);
+  if (finish) {
+    assert.equal(stopped, 0, "camera must stay live while the game is active");
+    socket.deliver(finish);
+    await wait(0);
+    assert.equal(stopped, 1, "finished/closed game must stop capture before navigation");
+  }
   t.close();
   await wait(10);
   return seen;
@@ -115,4 +134,12 @@ test("«покерфейс» отдельной строки не получае
   const seen = await run({ camera: false, pokerface: false });
   const failures = seen.filter((m) => m.type === "layer_failed");
   assert.equal(failures.length, 1, "одна причина обязана объяснять оба тумблера");
+});
+
+test("a completed game releases camera capture while its scorecard is visible", async () => {
+  await run({ camera: true }, { type: "debrief", debrief: { grade: "B" } });
+});
+
+test("session takeover releases camera capture immediately", async () => {
+  await run({ camera: true }, { type: "session.closed", reason: "taken_over" });
 });

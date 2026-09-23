@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import secrets
 import time
+from dataclasses import dataclass
 from typing import Any
 
 #: Сколько сессия ждёт возвращения после обрыва. Пять минут — метро, лифт,
@@ -25,9 +26,21 @@ from typing import Any
 RESUME_TTL_S = 300
 
 
+@dataclass(frozen=True)
+class SessionConfig:
+    """Условия партии принадлежат серверу и не входят в состояние для счёта."""
+    lang: str
+    mode: str
+    game_mode: str
+    layers: tuple[tuple[str, bool], ...]
+    reputation: float | None = None
+    daily: str | None = None
+
+
 class SessionStore:
     def __init__(self) -> None:
         self._sessions: dict[str, Any] = {}
+        self._configs: dict[str, SessionConfig] = {}
         #: session_id → момент, после которого сессия считается брошенной.
         #: Отсутствие ключа = сессия занята живым сокетом и не истекает.
         self._expiry: dict[str, float] = {}
@@ -45,8 +58,12 @@ class SessionStore:
         """
         return "sess_" + secrets.token_hex(16)
 
-    def put(self, session_id: str, session: Any) -> None:
+    def put(self, session_id: str, session: Any, *, config: SessionConfig | None = None) -> None:
         self._sessions[session_id] = session
+        if config is not None:
+            self._configs[session_id] = config
+        else:
+            self._configs.pop(session_id, None)
         self._expiry.pop(session_id, None)
         self._reap()
 
@@ -54,9 +71,20 @@ class SessionStore:
         self._reap()
         return self._sessions.get(session_id)
 
+    def config(self, session_id: str) -> SessionConfig | None:
+        self._reap()
+        return self._configs.get(session_id)
+
+    def active_scenario_ids(self) -> set[str]:
+        """Включая партии, ожидающие resume: их сценарий ещё нельзя удалять."""
+        self._reap()
+        return {sid for session in self._sessions.values()
+                if (sid := getattr(session, "scenario_id", None))}
+
     def drop(self, session_id: str) -> None:
         """Удалить немедленно. Только для явного завершения партии."""
         self._sessions.pop(session_id, None)
+        self._configs.pop(session_id, None)
         self._expiry.pop(session_id, None)
 
     def release(self, session_id: str) -> None:
@@ -78,6 +106,7 @@ class SessionStore:
         now = time.monotonic()
         for session_id in [sid for sid, deadline in self._expiry.items() if deadline <= now]:
             self._sessions.pop(session_id, None)
+            self._configs.pop(session_id, None)
             self._expiry.pop(session_id, None)
 
 

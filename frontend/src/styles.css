@@ -23,7 +23,7 @@
     U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* styles.css — "lamplit table" visual identity. Ported from
+/* styles.css — rounded, playful negotiation workspace. Ported from
    legacy-node/public/demo.html and extended for the React app. Theme-aware
    (light/dark via prefers-color-scheme + [data-theme]) and responsive. */
 
@@ -2140,7 +2140,7 @@ textarea:focus-visible,
   }
   .sn-ic { font-size: 21px; }
   /* Подписан КАЖДЫЙ значок. Раньше подпись была только у текущей вкладки, и
-     остальные оставались голыми эмодзи: по 🎲 и 🎓 невозможно догадаться, что
+     остальные оставались голыми эмодзи: по значкам кости и шапочки невозможно догадаться, что
      это «своя сделка» и «экзамен». Замер решил спор о размере: при семи вкладках
      (52px) подписи влезали только при 7px — нечитаемо; после удаления мёртвого
      пункта «Прогресс» вкладок шесть, по 65px, и 8.5px хватает с запасом. */
@@ -2198,10 +2198,33 @@ textarea:focus-visible,
 .setup-presets.locked .sp-pill { opacity: 0.62; cursor: not-allowed; }
 .setup-layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
 .layer {
-  display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "ic txt sw" "note note note";
+  display: grid; grid-template-columns: auto 1fr auto;
+  grid-template-areas: "ic txt sw" "note note note" "sub sub sub";
   gap: 10px 12px; align-items: start;
+  /* Карточки в ряду тянутся до высоты самой высокой — иначе сетка выглядит
+     рваной. Но РЯДЫ внутри карточки тянуться не должны: без этого лишняя
+     высота доставалась подписи, и «оценка та же» у соседа уезжала к нижнему
+     краю, оторвавшись от своего тумблера. Прижимаем содержимое к верху. */
+  align-content: start;
   background: var(--panel); border: 2px solid var(--line); border-radius: var(--r); padding: 15px;
 }
+/* Подвыбор внутри карточки: отступ и линия говорят «это часть камеры», а не
+   пятый равноправный слой. Тумблер намеренно НЕ уменьшен — мишень меньше
+   24x24 провалила бы WCAG 2.5.8 на телефоне, а подчинённость читается и так. */
+.ly-sub {
+  grid-area: sub; display: grid; grid-template-columns: auto 1fr auto;
+  grid-template-areas: "ic txt sw" "note note note";
+  gap: 7px 10px; align-items: start;
+  padding: 12px 0 0 14px; border-top: 1px solid var(--line);
+}
+/* ДВА РАЗНЫХ ПРИГЛУШЕНИЯ, И РАЗНИЦА СОДЕРЖАТЕЛЬНАЯ. `na` — слоя здесь не
+   будет, чинить нечего; `idle` — всё исправно, просто выключена камера выше.
+   Второе не красится тревожным цветом: красный обещает поломку, а это подсказка
+   на один клик. */
+.ly-sub.na { opacity: 0.62; }
+.ly-sub.idle { opacity: 0.74; }
+.ly-sub .ly-ic { font-size: 18px; }
+.ly-sub .ly-txt b { font-size: 13px; }
 .layer.on { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 7%, var(--panel)); }
 /* Unavailable is dimmed AND reasoned; merely-off is neither. */
 .layer.na { opacity: 0.55; }
@@ -3668,3 +3691,148 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   .rd-badge { order: 3; }
   .rd-opts { grid-template-columns: 1fr; }
 }
+
+/* ---------- Practice workspace ----------
+   A quiet canvas separates interactive cards from navigation. Green remains
+   the single action colour; all surfaces follow the same light/dark tokens. */
+:root { --canvas: color-mix(in srgb, var(--panel-2) 68%, var(--ground)); }
+:root .app { grid-template-columns: 232px minmax(0, 1fr); }
+.appbody { background: var(--canvas); }
+:root .top { background: var(--panel); min-height: 72px; padding: 14px 28px; border-bottom-width: 1px; }
+:root .wrap { padding-left: 28px; padding-right: 28px; }
+.sidenav { border-right-width: 1px; padding: 28px 16px; }
+.sn-brand { font-size: 30px; margin-bottom: 34px; letter-spacing: -1px; }
+.sn-row { padding: 13px 12px; font-size: 12px; letter-spacing: .015em; min-height: 48px; }
+.sn-row.on { border-color: color-mix(in srgb, var(--brass) 25%, var(--line)); color: var(--brass); background: color-mix(in srgb, var(--brass) 7%, var(--panel)); }
+.hudstats { gap: 12px; }
+.st-c { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; font-variant-numeric: tabular-nums; }
+.controls .seg { background: var(--panel); border-width: 1px; }
+.controls .seg button { min-height: 38px; min-width: 38px; }
+:root .withrail { grid-template-columns: minmax(0, 1fr) 276px; gap: 28px; padding-top: 26px; padding-bottom: 36px; }
+.rail { position: static; gap: 16px; }
+.rc { padding: 21px; border-width: 1px; border-radius: 20px; }
+.rc h3 { font-size: 15px; font-weight: 800; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.rc-bar { height: 7px; }
+.rc-note { font-size: 13px; }
+.rc-go { min-height: 44px; }
+.rc-steps button { min-width: 32px; min-height: 32px; }
+.practice-intro { padding: 4px 0 24px; }
+.practice-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: var(--brass); letter-spacing: .045em; }
+.practice-eyebrow > span { font-size: 18px; }
+.practice-intro h2 { margin: 14px 0 14px; font-size: clamp(27px, 3vw, 43px); line-height: 1.13; letter-spacing: -1.1px; font-weight: 900; text-wrap: balance; }
+.practice-intro h2 > span { color: var(--brass); }
+.practice-intro p { margin: 0; max-width: 61ch; font-size: 15px; line-height: 1.65; color: var(--ink-dim); }
+.practice-promise { display: inline-flex; gap: 7px; margin-top: 15px; font-size: 12px; color: var(--ink-dim); }
+.practice-promise > span { color: var(--brass); font-weight: 900; }
+.route > .section-head { font-size: 11px; font-weight: 800; letter-spacing: .08em; margin-bottom: 10px; }
+.route-card { padding: 22px; border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line)); border-radius: 22px; box-shadow: 0 3px 0 color-mix(in srgb, var(--brass) 18%, var(--line)); background: color-mix(in srgb, var(--brass) 5%, var(--panel)); gap: 16px; }
+.route-card .route-title { font-size: 20px; line-height: 1.3; }
+.route-card .route-why { font-size: 13px; }
+.route-card .route-cta { padding: 13px 18px; font-size: 12px; }
+.catalog-browser { margin-top: 30px; }
+.catalog-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.catalog-heading h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.3px; }
+.catalog-heading > span { font-size: 12px; color: var(--ink-dim); }
+.catalog-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+.catalog-search { display: flex; align-items: center; gap: 10px; padding: 0 14px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 13px; color: var(--ink-faint); min-width: 0; }
+.catalog-search svg { flex: 0 0 auto; }
+.catalog-search input { min-width: 0; width: 100%; border: 0; background: transparent; font: inherit; font-size: 13px; color: var(--ink); min-height: 46px; outline: 0; }
+.catalog-search:focus-within { outline: 2px solid var(--brass); outline-offset: 2px; }
+.catalog-level select { width: 100%; max-width: 210px; min-height: 46px; border: 1px solid var(--line-2); border-radius: 13px; background: var(--panel); padding: 0 12px; color: var(--ink); font: inherit; font-size: 12px; }
+.catalog-topics { display: flex; flex-wrap: wrap; gap: 8px; margin: 13px 0 20px; }
+.catalog-topics button { min-height: 36px; border-radius: 999px; border: 1px solid var(--line); padding: 6px 13px; background: var(--panel); color: var(--ink-dim); font-size: 12px; font-weight: 700; }
+.catalog-topics button.selected { color: var(--on-brass); background: var(--brass); border-color: var(--brass); }
+.catalog-topics button.catalog-reset { margin-left: auto; background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
+:root .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+:root .card { padding: 20px; border-width: 1px; border-radius: 20px; gap: 8px; min-width: 0; }
+:root .card .ic { width: 54px; height: 54px; margin-bottom: 5px; }
+.card-topic { display: block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); font-weight: 800; }
+:root .card .ct { font-size: 18px; line-height: 1.3; font-weight: 800; }
+:root .card .cr { font-size: 13px; line-height: 1.6; }
+:root .card .go { background: var(--panel-2); border: 1px solid var(--line); min-height: 40px; padding: 9px; font-size: 11px; }
+:root .card:hover .go { background: color-mix(in srgb, var(--brass) 7%, var(--panel)); border-color: var(--brass); }
+.catalog-empty { padding: 34px 18px; text-align: center; border: 1px dashed var(--line-2); border-radius: 20px; background: var(--panel); }
+.catalog-empty > span { font-size: 40px; color: var(--brass); }
+.catalog-empty h3 { font-size: 18px; margin: 6px 0; }
+.catalog-empty p { color: var(--ink-dim); font-size: 14px; }
+.exam-intro { padding-bottom: 16px; }
+.exam-intro h2 { font-size: 32px; }
+.export-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 26px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.export-actions button { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 8px 13px; background: var(--panel); border: 1px solid var(--line-2); border-radius: 11px; color: var(--ink); font: inherit; font-size: 12px; font-weight: 700; }
+.export-actions button:hover { border-color: var(--brass); color: var(--brass); }
+.export-status { flex-basis: 100%; color: var(--ink-dim); font-size: 12px; }
+.export-status:empty { display: none; }
+@media (min-width: 1360px) { :root .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { :root .withrail { grid-template-columns: 1fr; } }
+@media (max-width: 860px) {
+  :root .app { grid-template-columns: 1fr; }
+  :root .wrap { padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
+  :root .top { padding: 12px 20px; min-height: 64px; }
+  .sidenav { padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+  .sidenav ul { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scroll-padding-inline: 8px; }
+  .sidenav li { flex: 1 0 70px; }
+  .sn-row { padding: 6px 4px; min-height: 52px; }
+  .sn-lb { font-size: 10px; }
+  :root .withrail { padding-top: 22px; gap: 24px; }
+  .practice-intro h2 { font-size: clamp(28px, 6vw, 38px); }
+  .practice-intro p { font-size: 14px; }
+  .rail { gap: 12px; }
+  .rc-steps button { min-width: 44px; min-height: 44px; }
+  .catalog-topics button { min-height: 44px; }
+  .catalog-search input, .catalog-level select { font-size: 16px; }
+}
+@media (max-width: 600px) {
+  :root .cards { grid-template-columns: 1fr; }
+  :root .card { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 15px; padding: 18px; }
+  :root .card .ic { grid-column: 1; grid-row: 1 / 4; margin-top: 2px; }
+  :root .card .card-topic, :root .card .ct, :root .card .cr { grid-column: 2; }
+  :root .card .cf { grid-column: 1 / -1; }
+  :root .card .go { width: auto; flex: 0 0 115px; margin-top: 5px; }
+  .catalog-toolbar { grid-template-columns: 1fr; }
+  .catalog-level select { max-width: none; }
+  .catalog-topics { gap: 6px; }
+  .catalog-topics button { padding: 6px 11px; }
+  .catalog-topics button.catalog-reset { flex-basis: 100%; margin-left: 0; text-align: left; }
+  .catalog-heading h2 { font-size: 18px; }
+  .route-card { padding: 18px; }
+  .route-card .route-title { font-size: 18px; }
+  .route-txt { flex-basis: 175px; }
+  .route-card .route-cta { flex-basis: 100%; font-size: 13px; }
+  .practice-promise { font-size: 11px; }
+  :root .foot { padding: 18px 20px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { :root .card:hover { transform: none; } }
+@media (max-width: 380px) {
+  :root .top { padding: 10px 12px; gap: 8px; flex-wrap: wrap; }
+  .hudstats { gap: 6px; }
+  .st-c { padding: 5px 6px; gap: 4px; font-size: 12px; white-space: nowrap; }
+  .st-c b { font-size: 15px; }
+  .controls { gap: 4px; }
+  .controls .seg button { padding: 6px 8px; min-width: 34px; }
+}
+@media print { .export-actions, .catalog-toolbar, .catalog-topics { display: none; } }
+
+/* Recovery controls belong below the toolbar. A transformed panel must not
+   carry a fixed pseudo-backdrop: it shades the panel itself, hiding its text. */
+:root .conn-lost { top: 90px; left: calc(50% + 116px); padding: 22px; border-radius: 20px; background: var(--panel); }
+:root .conn-lost::before { content: none; }
+:root .conn-lost--initial { position: relative; top: auto; left: auto; transform: none; align-self: center; width: min(520px, calc(100% - 40px)); margin: 64px 20px 24px; }
+.conn-lost-body :is(b, h1) { margin: 0; font-size: 20px; line-height: 1.3; color: var(--ink); }
+.conn-lost-body span { font-size: 14px; }
+.conn-lost-actions button { min-height: 44px; }
+@media (max-width: 860px) {
+  :root .conn-lost { left: 50%; }
+  :root .conn-lost--initial { left: auto; margin-top: 36px; }
+}
+
+/* ---------- Значки (components/Icon.tsx) ----------
+   Эмодзи рисовал шрифт системы: своя палитра мимо темы, своя ширина, пустой
+   квадрат там, где глифа нет. Значок наследует и цвет, и кегль текста рядом,
+   поэтому отдельной раскраски ни в одной теме не требует. */
+.ico {
+  width: 1em; height: 1em; flex: 0 0 auto;
+  vertical-align: -0.14em;
+}
+/* Значок, стоящий вместо крупного эмодзи (карточки слоёв, шапки экранов),
+   держит прежний кегль — иначе вся вёрстка вокруг съедет. */
+.ly-ic .ico, .cp-ic .ico, .camp-ic .ico, .ach-ic .ico, .badge-ic .ico { width: 1em; height: 1em; }

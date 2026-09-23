@@ -33,6 +33,7 @@ from typing import AsyncIterator
 
 import numpy as np
 
+from app.providers import network_enabled
 from app.providers.tts.base import OUTPUT_SAMPLE_RATE, TTSProvider, Voice
 
 log = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ class OpenAISpeechTTS(TTSProvider):
         self._key = os.getenv("OPENAI_REALTIME_KEY", "").strip()
 
     def available(self) -> bool:
-        return bool(self._key)
+        return bool(self._key) and network_enabled()
 
     def describe(self) -> str:
         return f"openai ({MODEL}, pcm 24 кГц, потоком)"
@@ -81,6 +82,8 @@ class OpenAISpeechTTS(TTSProvider):
 
     async def stream(self, text: str, voice: Voice) -> AsyncIterator[bytes]:
         """Чанки float32 PCM 24 кГц моно."""
+        if not self.available() or not text.strip():
+            return
         import httpx
 
         payload = {

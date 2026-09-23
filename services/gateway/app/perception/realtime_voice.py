@@ -46,6 +46,8 @@ from typing import Awaitable, Callable, Optional
 
 import numpy as np
 
+from app.providers import network_enabled
+
 log = logging.getLogger(__name__)
 
 #: Частота нашего конвейера и частота, которую требует OpenAI. 16 кГц сессия
@@ -141,6 +143,9 @@ class RealtimeVoicePipeline:
         self._reader: Optional[asyncio.Task] = None
         self._sender: Optional[asyncio.Task] = None
         self._quiet: Optional[asyncio.Task] = None
+        self._connector: Optional[asyncio.Task] = None
+        self._barge: Optional[asyncio.Task] = None
+        self._turn_tasks: set[asyncio.Task] = set()
         self._outbox: Optional[asyncio.Queue] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
 
@@ -171,7 +176,7 @@ class RealtimeVoicePipeline:
 
     @property
     def available(self) -> bool:
-        return bool(self._key)
+        return bool(self._key) and network_enabled() and not self._closing
 
     def set_opponent_speaking(self, speaking: bool) -> None:
         self._opponent_speaking = speaking
@@ -191,9 +196,13 @@ class RealtimeVoicePipeline:
     async def close(self) -> None:
         self._closing = True
         self._cancel_quiet()
-        for task in (self._reader, self._sender):
+        tasks = [t for t in (self._reader, self._sender, self._connector,
+                            self._barge, *self._turn_tasks) if t is not None]
+        for task in tasks:
             if task and not task.done():
                 task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
         ws, self._ws = self._ws, None
         if ws is not None:
             try:
@@ -205,10 +214,12 @@ class RealtimeVoicePipeline:
 
     def feed(self, pcm: np.ndarray) -> None:
         """Кусок с микрофона: int16 моно 16 кГц. Вызывается из петли сокета."""
+        if self._closing or not network_enabled():
+            return
         self._loop = self._loop or asyncio.get_running_loop()
         if self._outbox is None:
             self._outbox = asyncio.Queue(maxsize=200)
-            self._loop.create_task(self._ensure_session())
+            self._connector = self._loop.create_task(self._ensure_session())
 
         # ПОТОЛОК СЧИТАЕТ ХОД, А НЕ ОТКРЫТЫЙ МИКРОФОН. Браузер шлёт кадры
         # непрерывно, тишину в том числе (`media-provider.ts` не гасит поток по
@@ -247,7 +258,7 @@ class RealtimeVoicePipeline:
     # ---------------------------------------------------------------- сессия
 
     async def _ensure_session(self) -> None:
-        if self._ws is not None or not self._key:
+        if self._ws is not None or not self.available:
             return
         try:
             import websockets
@@ -380,7 +391,9 @@ class RealtimeVoicePipeline:
             elif self._loop:
                 # Оппонент звучит. Ждём короткое окно: настоящая попытка
                 # вклиниться его переживёт, щелчок или всплеск эха — нет.
-                self._loop.create_task(self._confirm_barge_in())
+                if self._barge is not None and not self._barge.done():
+                    self._barge.cancel()
+                self._barge = self._loop.create_task(self._confirm_barge_in())
             return
 
         if kind.endswith("speech_stopped"):
@@ -522,7 +535,7 @@ class RealtimeVoicePipeline:
 
     async def _commit(self, *, reason: str) -> None:
         text = self._joined()
-        if not text:
+        if not text or self._closing:
             return
         self._parts.clear()
         self._live = ""
@@ -531,4 +544,24 @@ class RealtimeVoicePipeline:
         # относится к нему, а не к следующему: до `speech_started` — в мусор.
         self._spent = True
         self._publish({"type": "user.transcript", "text": text, "final": True})
-        await self._on_turn(text)
+        # Таймер тишины может отмениться новой фразой. Сам уже принятый ход
+        # принадлежит отдельной задаче и переживает эту отмену. При закрытии
+        # конвейера его всё равно погасит close(), поэтому задач-сирот нет.
+        task = asyncio.create_task(self._deliver_turn(text))
+        self._turn_tasks.add(task)
+        task.add_done_callback(self._turn_tasks.discard)
+        await asyncio.shield(task)
+
+    async def _deliver_turn(self, text: str) -> None:
+        try:
+            await self._on_turn(text)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            log.exception("realtime: принятый ход не выполнен")
+            self._publish({"type": "error", "error": {
+                "code": "turn_failed", "type": "server_error",
+                "message": ("Не удалось выполнить ход. Отправьте реплику ещё раз."
+                            if self._lang == "ru" else
+                            "The move could not be completed. Send your line again."),
+            }})

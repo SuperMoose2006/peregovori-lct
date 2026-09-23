@@ -146,6 +146,7 @@ export class MediaProvider {
 
   private micEnabled = true;
   running = false;
+  private stopped = false;
   onChunk: ((chunk: MediaChunk) => void) | null = null;
   /** Кадр без звука — путь для режима «камера без микрофона». */
   onFrame: ((frame: string) => void) | null = null;
@@ -183,6 +184,7 @@ export class MediaProvider {
    * состояние: переключатель включён, а внутри пусто.
    */
   async start(options: { camera?: boolean; mic?: boolean } = {}): Promise<MediaStartReport> {
+    this.stopped = false;
     const wantCamera = options.camera === true;
     const wantMic = options.mic !== false;
     const report: MediaStartReport = {
@@ -204,6 +206,7 @@ export class MediaProvider {
         report.camera = await explainMediaError(error, "videoinput");
       }
     }
+    if (this.stopped) { await this.stop(); return { camera: "off", mic: "off" }; }
 
     if (wantMic) {
       try {
@@ -212,6 +215,7 @@ export class MediaProvider {
         report.mic = await explainMediaError(error, "audioinput");
       }
     }
+    if (this.stopped) { await this.stop(); return { camera: "off", mic: "off" }; }
 
     // Без звукового конвейера кадры не к чему прицепить: они уходят вместе с
     // чанками микрофона. Значит камера, оставшаяся одна — по выбору человека
@@ -238,6 +242,11 @@ export class MediaProvider {
       },
       video: false,
     });
+    if (this.stopped) {
+      this.audioStream.getTracks().forEach((track) => track.stop());
+      this.audioStream = null;
+      return;
+    }
 
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     this.ctx = new Ctor({ sampleRate: CAPTURE_SAMPLE_RATE });
@@ -245,6 +254,7 @@ export class MediaProvider {
     const blob = new Blob([CAPTURE_PROCESSOR_SOURCE], { type: "application/javascript" });
     this.workletUrl = URL.createObjectURL(blob);
     await this.ctx.audioWorklet.addModule(this.workletUrl);
+    if (this.stopped) return;
 
     this.source = this.ctx.createMediaStreamSource(this.audioStream);
     this.capture = new AudioWorkletNode(this.ctx, "capture-processor", {
@@ -293,6 +303,7 @@ export class MediaProvider {
   }
 
   async stop(): Promise<void> {
+    this.stopped = true;
     this.running = false;
     this.capture?.port.postMessage({ command: "stop" });
     this.capture?.disconnect();
@@ -343,11 +354,17 @@ export class MediaProvider {
         video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
       });
     } catch (error) {
+      if (this.stopped) return;
       const name = (error as { name?: string })?.name ?? "";
       // Отказ пользователя переспрашивать нельзя — это был бы второй запрос
       // разрешения там, где человек уже сказал «нет».
       if (name === "NotAllowedError" || name === "SecurityError") throw error;
       this.videoStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true });
+    }
+    if (this.stopped) {
+      this.videoStream.getTracks().forEach((track) => track.stop());
+      this.videoStream = null;
+      return;
     }
     this.bindElements();
     if (this.video) {

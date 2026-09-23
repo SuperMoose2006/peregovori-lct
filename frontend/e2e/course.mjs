@@ -26,6 +26,7 @@
 //
 //   node e2e/course.mjs [--url http://127.0.0.1:8010] [--out /tmp/dialog-e2e]
 import { chromium } from "playwright-core";
+import { browserExecutable } from "./browser.mjs";
 import { readFileSync, mkdirSync } from "node:fs";
 
 const arg = (name, fallback) => {
@@ -34,8 +35,7 @@ const arg = (name, fallback) => {
 };
 const BASE = arg("url", "http://127.0.0.1:8010");
 const OUT = arg("out", "/tmp/dialog-e2e");
-const EXE = process.env.CHROME_PATH
-  || "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome";
+const EXE = browserExecutable();
 mkdirSync(OUT, { recursive: true });
 
 // Ответы берём из сгенерированного банка — как их знает продукт.

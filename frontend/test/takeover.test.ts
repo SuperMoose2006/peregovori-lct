@@ -121,7 +121,7 @@ test("вытеснение (4409) не заставляет клиента во�
   assert.ok(!statuses.includes("reconnecting"), "обещал переподключение, которого не будет");
 });
 
-test("обычный обрыв по-прежнему возвращается в ту же партию", async () => {
+test("обычный обрыв по-прежнему возвращается в ту же партию", async (t) => {
   const { RealtimeSession } = await import("../src/realtime/vendor/realtime-session");
   FakeSocket.instances = [];
   const statuses: string[] = [];
@@ -131,6 +131,7 @@ test("обычный обрыв по-прежнему возвращается �
     onEvent: () => {},
     onStatus: (s) => statuses.push(s),
   });
+  t.after(() => session.stop());
   const started = session.start({ scenarioId: "supplier", lang: "ru" });
   const socket = await handshake();
   await started;

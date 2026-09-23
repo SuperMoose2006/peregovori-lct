@@ -20,7 +20,8 @@ import secrets
 import time
 from typing import Optional
 
-from app.engine.scenarios import Scenario, Counterpart, Headline, Batna, register_runtime_scenario
+from app.engine.scenarios import Scenario, Counterpart, Headline, Batna, register_runtime_scenario, RuntimeRegistryFull
+from app.icons import ICON_NAMES
 
 _STYLES = {"relationship", "tough", "analytical"}
 
@@ -31,7 +32,7 @@ def _sys_prompt(lang: str) -> str:
             "Ты — дизайнер сценариев для тренажёра переговоров. По описанию ситуации от пользователя "
             "создай ОДИН сценарий деловых переговоров. Верни СТРОГО JSON (без markdown, без пояснений) "
             "со следующими полями:\n"
-            '{"title": str, "icon": один эмодзи, "role": "кто игрок и его цель, 1-2 предложения",\n'
+            '{"title": str, "icon": ОДНО ИМЯ из списка ниже, "difficulty": целое число от 1 до 5, "role": "кто игрок и его цель, 1-2 предложения",\n'
             ' "counterpart_name": str, "counterpart_persona": "1 предложение", '
             '"style": "relationship|tough|analytical",\n'
             ' "unit": "суффикс числа, напр. \'₽\', \'%\', \' млн\', \' дн\'", '
@@ -47,12 +48,13 @@ def _sys_prompt(lang: str) -> str:
             "(своя зарплата, цена продажи, бюджет, доля, объём). Проверь себя: кто платит — хочет меньше, "
             "кто получает — больше.\n"
             "opponent_open — стартовая позиция оппонента, самая невыгодная игроку; player_target — цель игрока; "
-            "все четыре числа должны образовывать реалистичную зону торга. Всё на русском."
+            "все четыре числа должны образовывать реалистичную зону торга. Всё на русском.\n"
+            "icon — РОВНО ОДНО слово из списка, без эмодзи: " + ", ".join(sorted(ICON_NAMES)) + "."
         )
     return (
         "You are a scenario designer for a negotiation trainer. From the user's situation, create ONE "
         "business-negotiation scenario. Return STRICT JSON (no markdown, no prose) with these fields:\n"
-        '{"title": str, "icon": one emoji, "role": "who the player is and their goal, 1-2 sentences",\n'
+        '{"title": str, "icon": ONE NAME from the list below, "difficulty": integer from 1 to 5, "role": "who the player is and their goal, 1-2 sentences",\n'
         ' "counterpart_name": str, "counterpart_persona": "1 sentence", '
         '"style": "relationship|tough|analytical",\n'
         ' "unit": "number suffix e.g. \'$\', \'%\', \'k\', \' days\'", '
@@ -67,7 +69,8 @@ def _sys_prompt(lang: str) -> str:
         "(purchase price, rent, delivery time, fee); higher_is_better if a BIGGER one (their own salary, "
         "sale price, budget, equity, volume). Sanity check: whoever pays wants less, whoever receives wants more.\n"
         "opponent_open is the counterpart's opening position, the worst one for the player; player_target is the "
-        "player's goal; all four numbers must form a realistic bargaining zone. All text in English."
+        "player's goal; all four numbers must form a realistic bargaining zone. All text in English.\n"
+        "icon is EXACTLY ONE word from this list, never an emoji: " + ", ".join(sorted(ICON_NAMES)) + "."
     )
 
 
@@ -203,7 +206,11 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2)
         tradeoffs.append({"ru": "уступка по срокам", "en": "a timing concession"}[lang])
 
     sc_id = "custom_" + secrets.token_hex(4)
-    icon = str(d.get("icon") or "🎯")[:4]
+    # Значок — ИМЯ из общего набора, а не символ: интерфейс рисует его своим
+    # SVG, и чужое слово нарисовать нечем. Модель промахнулась — берём нейтральное.
+    icon = str(d.get("icon") or "").strip().lower()
+    if icon not in ICON_NAMES:
+        icon = "target"
     try:
         difficulty = max(1, min(5, int(_num(d.get("difficulty"), 3))))
     except Exception:
@@ -233,5 +240,8 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2)
         tradeoffs=_dual_list(tradeoffs),
         briefing=_dual(d.get("briefing") or ""),
     )
-    register_runtime_scenario(scenario)
+    try:
+        register_runtime_scenario(scenario)
+    except RuntimeRegistryFull:
+        return None
     return scenario

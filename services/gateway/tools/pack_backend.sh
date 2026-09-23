@@ -27,8 +27,8 @@
 #                                   (`make test`), до сборки артефакта.
 #   .env, .venv, certs/             секреты и локальное окружение. Гарантия не
 #                                   в аккуратности: список берётся из
-#                                   `git ls-files`, а всё перечисленное лежит
-#                                   вне истории.
+#                                   `git ls-files --cached --others --exclude-standard`,
+#                                   а всё перечисленное исключено .gitignore.
 #
 # Приборы `preflight.py`, `bench_latency.py` и генераторы читают `frontend/` —
 # в артефакте они лежат, но работают только в монорепозитории. Здоровье
@@ -53,6 +53,7 @@ PATHS=(
   services/gateway/app
   services/gateway/tools
   services/gateway/requirements.txt
+  services/gateway/requirements.lock
   services/gateway/.env.example
   adapters
 )
@@ -62,10 +63,11 @@ DEST="$(cd "$DEST" && pwd)"
 
 count=0
 while IFS= read -r -d '' rel; do
-  install -D -m "$(test -x "$ROOT/$rel" && echo 755 || echo 644)" \
+  mkdir -p "$(dirname "$DEST/$rel")"
+  install -m "$(test -x "$ROOT/$rel" && echo 755 || echo 644)" \
     "$ROOT/$rel" "$DEST/$rel"
   count=$((count + 1))
-done < <(git -C "$ROOT" ls-files -z -- "${PATHS[@]}")
+done < <(git -C "$ROOT" ls-files --cached --others --exclude-standard -z -- "${PATHS[@]}")
 
 # Секрет, уехавший в артефакт, — это тот же ключ из .env, только теперь ещё и на
 # втором сервере. Проверяем РЕЗУЛЬТАТ, а не намерение.
@@ -82,7 +84,9 @@ fi
 
 head_sha="$(git -C "$ROOT" rev-parse --short HEAD)"
 dirty=""
-git -C "$ROOT" diff --quiet -- "${PATHS[@]}" || dirty=" + НЕЗАКОММИЧЕННЫЕ правки рабочего дерева"
+if [ -n "$(git -C "$ROOT" status --porcelain -- "${PATHS[@]}")" ]; then
+  dirty=" + НЕЗАКОММИЧЕННЫЕ правки рабочего дерева"
+fi
 
 cat <<TXT
 артефакт бэкенда: $DEST
@@ -91,7 +95,7 @@ cat <<TXT
 
 дальше на целевой машине:
   python3 -m venv $DEST/services/gateway/.venv
-  $DEST/services/gateway/.venv/bin/pip install -r $DEST/services/gateway/requirements.txt
+  $DEST/services/gateway/.venv/bin/pip install -r $DEST/services/gateway/requirements.txt -c $DEST/services/gateway/requirements.lock
   cp $DEST/services/gateway/.env.example $DEST/services/gateway/.env   # и вписать ключи
   cd $DEST/services/gateway && set -a && . ./.env && set +a && \\
     PYTHONPATH=$DEST ./.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8010

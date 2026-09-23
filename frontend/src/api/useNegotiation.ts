@@ -1,11 +1,11 @@
 // useNegotiation.ts — the single hook the UI uses to run a negotiation.
 // Wraps the transport (WS or Mock), reduces the ServerMsg stream into React
 // state (scenario, live meters, chat log, debrief), and exposes clean actions.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import type { Analysis, Deltas, Lang, Mode, ScenarioView, ServerMsg, StateView } from "../types";
 import type { ConnStatus, Transport, TransportKind } from "./transport";
 import { createTransport } from "./ws";
-import { clampInput } from "../lib/net";
+import { createSessionStore } from "./sessionStore";
 
 export type ChatEntry =
   | { id: number; kind: "opp"; text: string; streaming?: boolean }
@@ -16,7 +16,7 @@ export type ChatEntry =
   // ли это число семантический судья (иначе словарь движка).
   | { id: number; kind: "me"; text: string; analysis?: Analysis; deltas?: Deltas;
       argSettled?: boolean; judged?: boolean }
-  // `pending` marks the placeholder shown the instant 💡 is pressed. With a
+  // `pending` marks the placeholder shown the instant the hint button is pressed. With a
   // live AI coach the answer takes seconds, and without a placeholder the
   // press produced no visible change at all.
   | { id: number; kind: "hint"; text: string; line?: string; pending?: boolean }
@@ -102,7 +102,7 @@ export interface Negotiation extends NegotiationState {
                      pokerface?: boolean },
           /** ISO-дата «стола дня» — только когда партия и правда сегодняшняя. */
           daily?: string) => void;
-  turn: (text: string) => void;
+  turn: (text: string) => boolean;
   requestHint: () => void;
   answerProbe: (id: number, choice: number) => void;
   clearError: () => void;
@@ -113,7 +113,7 @@ export interface Negotiation extends NegotiationState {
   interrupt: () => void;
 }
 
-const initialState: NegotiationState = {
+export const initialState: NegotiationState = {
   kind: null,
   scenario: null,
   state: null,
@@ -149,42 +149,40 @@ export interface RealtimeOptions {
 }
 
 export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Negotiation {
-  const [s, setS] = useState<NegotiationState>(initialState);
+  const storeRef = useRef<ReturnType<typeof createSessionStore> | null>(null);
+  if (!storeRef.current) storeRef.current = createSessionStore(initialState);
+  const store = storeRef.current;
+  const s = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const epochRef = useRef(0);
   const transportRef = useRef<Transport | null>(null);
-  const idRef = useRef(0);
   const langRef = useRef(lang);
   langRef.current = lang;
   // Через ref, а не через зависимость эффекта: смена микрофона не должна
   // пересоздавать транспорт посреди партии.
   const realtimeRef = useRef(realtime);
   realtimeRef.current = realtime;
-  const nextId = () => ++idRef.current;
+  const nextId = store.nextId;
 
   const teardown = useCallback(() => {
+    epochRef.current += 1; // Late callbacks from the previous session cannot touch its successor.
     transportRef.current?.close();
     transportRef.current = null;
   }, []);
 
   useEffect(() => () => teardown(), [teardown]);
 
-  const handle = useCallback((msg: ServerMsg) => {
-    setS((prev) => reduce(prev, msg, nextId));
-  }, []);
-
   const ensureTransport = useCallback((): Transport => {
     if (!transportRef.current) {
+      const epoch = epochRef.current;
+      const update = (change: (p: NegotiationState) => NegotiationState) => {
+        if (epoch === epochRef.current) store.update(change);
+      };
       transportRef.current = createTransport(
-        handle,
-        (kind) => setS((p) => ({ ...p, kind })),
-        (conn) =>
-          setS((p) => ({
-            ...p,
-            conn,
-            // A drop or a lost connection must never leave the typing indicator
-            // spinning — clear busy so the reconnect banner owns the messaging.
-            busy: conn === "online" ? p.busy : false,
-          })),
+        (msg) => update((prev) => reduce(prev, msg, nextId)),
+        (kind) => update((p) => ({ ...p, kind })),
+        (conn) => { if (epoch === epochRef.current) store.connection(conn); },
         {
+          onResume: (state) => update((p) => ({ ...p, state, busy: false, phase: null })),
           // Голос и камера сюда не передаются: их выбирают на экране
           // подготовки, и они приезжают в сообщении `start` (см. transport.ts).
           videoEl: realtimeRef.current.videoRef ?? null,
@@ -194,17 +192,17 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
           // собственного проигрывателя (onOppAudio). Складываем оба, иначе в
           // режиме «только голос» перебить оппонента нечем.
           onAvatar: (avatarState) =>
-            setS((p) => ({ ...p, avatarState,
+            update((p) => ({ ...p, avatarState,
                            oppSpeaking: avatarState === "speaking" || p.oppAudio })),
           onOppAudio: (speaking) =>
-            setS((p) => ({ ...p, oppAudio: speaking,
+            update((p) => ({ ...p, oppAudio: speaking,
                            oppSpeaking: speaking || p.avatarState === "speaking" })),
           onTell: (expressive, total) =>
-            setS((p) => ({ ...p, tells: total, tellNow: expressive,
+            update((p) => ({ ...p, tells: total, tellNow: expressive,
                            tellFrames: p.tellFrames + 1 })),
           onObservation: (text) =>
-            setS((p) => ({ ...p, observations: [...p.observations, text] })),
-          onCameraFrame: () => setS((p) => ({ ...p, framesSent: p.framesSent + 1 })),
+            update((p) => ({ ...p, observations: [...p.observations, text] })),
+          onCameraFrame: () => update((p) => ({ ...p, framesSent: p.framesSent + 1 })),
           // ГОЛОС И КЛАВИАТУРА ОБЯЗАНЫ ДАВАТЬ ОДИН И ТОТ ЖЕ ХОД — включая то, что
           // человек видит. Раньше финальная расшифровка просто гасила живой
           // предпросмотр (`transcript: null`), а сам текст выбрасывался: партия
@@ -213,76 +211,56 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
           // обычной репликой «me» — и получает чипы приёмов и дельты от судьи
           // тем же кодом, что и напечатанная (см. attach ниже по файлу).
           onTranscript: (text, final) =>
-            setS((p) => {
+            update((p) => {
               if (!final) return { ...p, transcript: text };
               const said = text.trim();
               if (!said) return { ...p, transcript: null };
               return { ...p, transcript: null,
                        log: [...p.log, { id: nextId(), kind: "me", text: said }] };
             }),
-          onSpeech: (userSpeaking) => setS((p) => ({ ...p, userSpeaking })),
-          onCapabilities: (capabilities) => setS((p) => ({ ...p, capabilities })),
+          onSpeech: (userSpeaking) => update((p) => ({ ...p, userSpeaking })),
+          onCapabilities: (capabilities) => update((p) => ({ ...p, capabilities })),
         },
       );
     }
     return transportRef.current;
-  }, [handle]);
+  }, [store, nextId]);
 
   const start = useCallback(
     (scenarioId: string, mode: Mode, situation?: string, reputation?: number,
      layers?: { probe?: boolean; voice?: boolean; camera?: boolean; pokerface?: boolean },
      daily?: string) => {
       teardown();
-      setS({ ...initialState });
+      store.update(() => ({ ...initialState }));
       const t = ensureTransport();
       t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation,
                reputation, layers, daily });
     },
-    [ensureTransport, teardown],
+    [ensureTransport, teardown, store],
   );
 
-  const turn = useCallback((text: string) => {
-    // Trim guards empty/whitespace sends; clampInput is a backstop against an
-    // over-long payload even if the composer's own cap were bypassed.
-    const trimmed = clampInput(text.trim());
-    if (!trimmed) return;
-    setS((prev) => {
-      if (prev.busy || !prev.state || prev.state.status !== "active") return prev;
-      const entry: ChatEntry = { id: nextId(), kind: "me", text: trimmed };
-      transportRef.current?.send({ type: "turn", text: trimmed });
-      return { ...prev, busy: true, phase: null, log: [...prev.log, entry] };
-    });
-  }, []);
+  const turn = useCallback((text: string) => store.turn(text, transportRef.current), [store]);
 
   /** Resolve a probe in place. The answer came with the question, so this needs
    *  no round-trip and stays correct offline. */
   const answerProbe = useCallback((id: number, choice: number) => {
-    setS((prev) => ({
+    store.update((prev) => ({
       ...prev,
       log: prev.log.map((e) =>
         e.kind === "probe" && e.id === id && e.picked === undefined ? { ...e, picked: choice } : e),
     }));
   }, []);
 
-  const requestHint = useCallback(() => {
-    setS((prev) => {
-      // One outstanding request at a time: repeated taps must not queue up a
-      // column of placeholders (or a column of answers when they all land).
-      if (prev.log.some((e) => e.kind === "hint" && e.pending)) return prev;
-      transportRef.current?.send({ type: "hint" });
-      const entry: ChatEntry = { id: nextId(), kind: "hint", text: "", pending: true };
-      return { ...prev, log: [...prev.log, entry] };
-    });
-  }, []);
+  const requestHint = useCallback(() => { store.hint(transportRef.current); }, [store]);
 
   const clearError = useCallback(() => {
-    setS((p) => (p.error ? { ...p, error: null } : p));
+    store.update((p) => (p.error ? { ...p, error: null } : p));
   }, []);
 
   const reset = useCallback(() => {
     teardown();
-    setS({ ...initialState });
-  }, [teardown]);
+    store.update(() => ({ ...initialState }));
+  }, [teardown, store]);
 
   // Стабильные ссылки: LiveBar опрашивает уровень по таймеру, и меняющаяся
   // каждый рендер функция пересоздавала бы таймер шестьдесят раз в секунду.
@@ -387,10 +365,13 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
     }
 
     case "debrief":
+      // A finished game is immutable. Resume may resend its final scorecard;
+      // keep one canonical object per start/reset so recording effects run once.
+      if (prev.debrief) return prev;
       // Разбор кладётся ЦЕЛИКОМ, включая ленту наблюдений камеры
       // (`observations` с ходами и временем): она посчитана там же, где шла
       // партия, и переживает обрыв связи, в отличие от накопленной здесь.
-      return { ...prev, debrief: msg.debrief, busy: false };
+      return { ...prev, debrief: msg.debrief, busy: false, phase: null };
 
     case "phase":
       return { ...prev, phase: msg.phase };

@@ -68,17 +68,31 @@ def _voice_describe() -> str:
     ложным: health называл gemini, а слушал gpt-4o-mini-transcribe. Слой,
     который «выглядит настоящим, а внутри другой», — ровно то состояние,
     которого в продукте не бывает; на демо должно быть видно, кто слушает.
+
+    ТА ЖЕ ОШИБКА ПОВТОРИЛАСЬ С ЛОКАЛЬНОЙ МОДЕЛЬЮ, и поэтому здесь теперь
+    спрашивается ФАБРИКА, а не переменная окружения. `NEGO_VOICE=classic`
+    отвечает на вопрос «каким конвейером», но не на вопрос «чем распознаём»: у
+    классического пути провайдера два, и выбирает он их по ответу локальной
+    службы. Пересказывать этот выбор строкой значит однажды разойтись с ним —
+    что и случилось: health говорил «gemini» на стенде, где слушает parakeet.
     """
     import os
 
+    from app.providers import network_enabled
+    if not network_enabled():
+        return "unavailable (NEGO_AI=off)"
+
     from app.perception.realtime_voice import MODEL as RT_MODEL, VAD_SILENCE_MS
-    from app.providers.routing import model_for
+    from app.providers.asr import make_asr
+
+    def _classic() -> str:
+        return f"classic (ASR {make_asr().describe()}, VAD свой)"
 
     if os.getenv("NEGO_VOICE", "").strip().lower() == "classic":
-        return f"classic (ASR {model_for('asr')} файлом, VAD свой)"
+        return _classic()
     if os.getenv("OPENAI_REALTIME_KEY", "").strip():
         return f"openai-realtime ({RT_MODEL}, VAD {VAD_SILENCE_MS} мс, потоком)"
-    return f"classic (ASR {model_for('asr')} файлом, VAD свой) — ключа realtime нет"
+    return f"{_classic()} — ключа realtime нет"
 
 
 def _tts_describe() -> str | None:
@@ -93,6 +107,9 @@ def _tts_describe() -> str | None:
 
 
 app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_lifespan)
+
+from app.admin_context import router as admin_context_router
+app.include_router(admin_context_router)
 
 # --------------------------------------------------------------------- доступ
 #
@@ -694,8 +711,17 @@ async def realtime(websocket: WebSocket) -> None:
     if not ws_allowed(websocket):
         await websocket.close(code=4401)   # 4401: «назовите пароль на странице»
         return
-    from app.realtime.endpoint import realtime_ws
-    await realtime_ws(websocket)
+    from app.realtime import admission
+    socket_lease = admission.acquire()
+    if socket_lease is None:
+        # Refuse the handshake before accepting even an uninitialized socket.
+        await websocket.close(code=4429, reason="server_capacity")
+        return
+    try:
+        from app.realtime.endpoint import realtime_ws
+        await realtime_ws(websocket)
+    finally:
+        socket_lease.release()
 
 
 # ---- Production: serve the built SPA (single-process deploy) -----------------

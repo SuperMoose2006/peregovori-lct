@@ -73,10 +73,18 @@ test("капстоун уходит в партию зачётным режим�
 
   // Повторное подключение обязано вернуть ТУ ЖЕ партию, а не «похожую»:
   // капстоун, переподключённый тренировкой, снова получил бы судью.
-  const retry = app.match(/const retry = useCallback\(([\s\S]*?)\n  \);/);
+  const launch = app.match(/const launch = useCallback\(([\s\S]*?)\n  \);/);
+  assert.ok(launch, "launch в App.tsx не найден — тест устарел вместе с кодом");
+  assert.match(launch[1], /activeRunRef\.current\s*=\s*\{\s*scenarioId,\s*mode:\s*m,\s*options:\s*opts\s*\}/,
+    "запуск не сохраняет исходные сценарий, зачётный режим и параметры партии");
+  assert.match(launch[1], /nego\.start\(scenarioId,\s*m,/,
+    "запуск не передаёт сохранённый режим на провод");
+  const retry = app.match(/const retry = useCallback\(\(\) => \{([\s\S]*?)\n  \}, \[/);
   assert.ok(retry, "retry в App.tsx не найден — тест устарел вместе с кодом");
-  assert.match(retry[1], /drill \? "drill"/,
-    "переподключение капстоуна теряет зачётный режим");
+  assert.match(retry[1], /const run = activeRunRef\.current/,
+    "повтор не читает параметры исходной партии");
+  assert.match(retry[1], /launch\(run\.scenarioId,\s*run\.mode,\s*run\.options\)/,
+    "повтор теряет исходные сценарий, зачётный режим или параметры партии");
 });
 
 test("офлайн-ядро не кладёт условие дня на зачётный стол", async () => {

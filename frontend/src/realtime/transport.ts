@@ -30,6 +30,8 @@ import {
 
 /** Всё, чего нет в старом словаре `ServerMsg`. Экраны берут по мере готовности. */
 export interface RealtimeExtras {
+  /** Snapshot recovered after a dropped socket; preserve the local transcript. */
+  onResume?: (state: StateView) => void;
   /** Состояние лица оппонента (из реакции движка). */
   onAvatar?: (state: string, reaction: string | null, lipsync: boolean) => void;
   /** Наблюдение камеры. НИКОГДА не влияет на оценку — плашка едет в событии. */
@@ -86,6 +88,7 @@ export class RealtimeTransport implements Transport {
   private pendingAnalysis: Analysis | null = null;
   private pendingDeltas: Deltas | null = null;
   private pendingState: StateView | null = null;
+  private pendingText = "";
   private pendingCoach: { text: string; techniques?: string[]; reject?: boolean } | null = null;
   private lastReaction: string | null = null;
   private turnCounter = 0;
@@ -96,6 +99,7 @@ export class RealtimeTransport implements Transport {
   private voiceWanted = false;
   private cameraWanted = false;
   private closed = false;
+  private captureFinished = false;
   /** Партия уже началась: `session.created` пришёл. До него ошибка —
    *  провал запуска, после — сообщение со стола. */
   private live = false;
@@ -111,18 +115,16 @@ export class RealtimeTransport implements Transport {
     this.options = options;
   }
 
-  send(message: ClientMsg): void {
-    if (this.closed) return;
+  send(message: ClientMsg): boolean {
+    if (this.closed) return false;
     switch (message.type) {
       case "start":
         void this.begin(message);
-        break;
+        return true;
       case "turn":
-        this.session?.sendText(message.text);
-        break;
+        return this.session?.sendText(message.text) ?? false;
       case "hint":
-        this.session?.requestHint();
-        break;
+        return this.session?.requestHint() ?? false;
     }
   }
 
@@ -143,10 +145,17 @@ export class RealtimeTransport implements Transport {
     if (this.drainTimer) { clearInterval(this.drainTimer); this.drainTimer = null; }
     this.session?.stop();
     this.session = null;
-    void this.media?.stop();
-    this.media = null;
+    this.stopCapture();
     void this.player?.dispose();
     this.player = null;
+  }
+
+  private stopCapture(): void {
+    this.captureFinished = true;
+    const media = this.media;
+    this.media = null;
+    void media?.stop();
+    this.options.onSpeech?.(false);
   }
 
   // -- запуск партии -------------------------------------------------------
@@ -154,6 +163,7 @@ export class RealtimeTransport implements Transport {
   private async begin(message: Extract<ClientMsg, { type: "start" }>): Promise<void> {
     const layers = { ...(message.layers ?? {}) } as Record<string, boolean>;
     this.live = false;
+    this.captureFinished = false;
     this.lang = message.lang;
     this.probeEnabled = !!layers.probe;
     this.probeMemory = { ...NO_PROBES };
@@ -170,15 +180,25 @@ export class RealtimeTransport implements Transport {
       layers,
     };
 
-    this.session = new RealtimeSession({
+    const session = new RealtimeSession({
       mode: this.voiceWanted ? "voice" : "text",
       onEvent: (event) => this.route(event),
       onStatus: (status) => this.onConn(mapStatus(status)),
       onProtocol: this.options.onProtocol,
+      onResume: (created) => {
+        if (this.closed) return;
+        this.pendingState = null;
+        this.pendingText = "";
+        this.pendingAnalysis = this.pendingDeltas = this.pendingCoach = null;
+        this.options.onResume?.(created.state as StateView);
+        this.options.onCapabilities?.(session.capabilities);
+      },
     });
+    this.session = session;
 
     try {
-      const created = await this.session.start(payload);
+      const created = await session.start(payload);
+      if (this.closed || this.session !== session) { session.stop(); return; }
       this.live = true;
       this.options.onCapabilities?.(this.session.capabilities);
       this.emit({
@@ -200,6 +220,8 @@ export class RealtimeTransport implements Transport {
       // только заодно с голосом, а сама по себе молча не работала.
       if (this.voiceWanted || this.cameraWanted) await this.startMedia();
     } catch (error) {
+      if (this.closed || this.session !== session) return;
+      session.stop();
       this.emit({ type: "error", message: (error as Error).message });
       this.onConn("lost");
     }
@@ -242,6 +264,7 @@ export class RealtimeTransport implements Transport {
    * бы отказ в микрофоне отказом в игре.
    */
   private async startMedia(): Promise<void> {
+    if (this.closed || this.captureFinished) return;
     if (this.voiceWanted) {
       this.player = new AudioPlayer({ outputSampleRate: 24000 });
       this.player.init();
@@ -252,25 +275,26 @@ export class RealtimeTransport implements Transport {
       if (this.cameraWanted) this.emit({ type: "layer_failed", layer: "camera", reason: "нужен https или localhost" });
       return;
     }
-    this.media = new MediaProvider({
+    const media = new MediaProvider({
       video: this.options.videoEl?.current ?? undefined,
       canvas: this.options.canvasEl?.current ?? undefined,
       videoRef: this.options.videoEl ?? null,
       canvasRef: this.options.canvasEl ?? null,
     });
-    this.media.onChunk = ({ audio, frame }) => {
-      this.session?.sendAudio(toBase64(audio.buffer), frame,
-                              frame ? this.media?.lastChangeRatio() : undefined);
-      if (frame) this.options.onCameraFrame?.();
+    this.media = media;
+    media.onChunk = ({ audio, frame }) => {
+      const sent = this.session?.sendAudio(toBase64(audio.buffer), frame,
+                              frame ? media.lastChangeRatio() : undefined);
+      if (frame && sent) this.options.onCameraFrame?.();
     };
-    this.media.onFrame = (frame) => {
-      this.session?.sendFrame(frame, this.media?.lastChangeRatio());
-      this.options.onCameraFrame?.();
+    media.onFrame = (frame) => {
+      if (this.session?.sendFrame(frame, media.lastChangeRatio())) this.options.onCameraFrame?.();
     };
     // `start` больше не бросает на отказ устройства: отказ — это ответ
     // пользователя, а не сбой. Он возвращает отчёт по каждому слою, и каждый
     // невставший слой называется на экране поимённо.
-    const report = await this.media.start({ camera: this.cameraWanted, mic: this.voiceWanted });
+    const report = await media.start({ camera: this.cameraWanted, mic: this.voiceWanted });
+    if (this.closed || this.captureFinished || this.media !== media) { await media.stop(); return; }
     if (this.voiceWanted && report.mic !== "ok")
       this.emit({ type: "layer_failed", layer: "voice", reason: String(report.mic) });
     if (this.cameraWanted && report.camera !== "ok")
@@ -368,6 +392,7 @@ export class RealtimeTransport implements Transport {
       case "response.output.delta": {
         const kind = String(event.kind ?? "");
         if (kind === "text") {
+          this.pendingText += String(event.text ?? "");
           this.player?.beginTurn();
           this.emit({ type: "opponent_delta", chunk: String(event.text ?? "") });
         } else if (kind === "audio") {
@@ -390,6 +415,9 @@ export class RealtimeTransport implements Transport {
         // Сервер погасил реплику. Звук, уже стоящий в расписании браузера,
         // остановит только это — вторая половина перебивания живёт здесь.
         this.player?.stopAll();
+        // The engine has already committed this move. Interruption cancels the
+        // reply producer, which never emits response.done, so settle it here.
+        this.flushTurn(this.pendingText);
         return;
 
       case "avatar.state":
@@ -421,6 +449,7 @@ export class RealtimeTransport implements Transport {
         return;
 
       case "debrief":
+        this.stopCapture();
         this.emit({ type: "debrief", debrief: event.debrief as never });
         return;
 
@@ -431,6 +460,9 @@ export class RealtimeTransport implements Transport {
       // Наше собственное `session.close` тоже приезжает сюда (`user_stop`), и
       // объявлять человеку то, что он сам только что нажал, незачем.
       case "session.closed": {
+        this.stopCapture();
+        this.player?.stopAll();
+        this.markOppAudio(false);
         const reason = String(event.reason ?? "");
         if (reason === "taken_over") this.emit({ type: "notice", text: I18N[this.lang].conn.takenOver });
         return;
@@ -486,6 +518,8 @@ export class RealtimeTransport implements Transport {
     this.pendingAnalysis = null;
     this.pendingDeltas = null;
     this.pendingCoach = null;
+    this.pendingState = null;
+    this.pendingText = "";
   }
 }
 
@@ -495,6 +529,7 @@ function emptyAnalysis(): Analysis {
 }
 
 function mapStatus(status: ConnectionStatus): ConnStatus {
+  if (status === "connecting" || status === "idle") return "connecting";
   if (status === "reconnecting") return "reconnecting";
   if (status === "lost") return "lost";
   return "online";

@@ -23,7 +23,7 @@ import base64
 import contextlib
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Awaitable, Callable, Optional
 
 import numpy as np
@@ -40,19 +40,19 @@ from app.perception.vision import VisionSampler
 from app.perception.realtime_voice import RealtimeVoicePipeline
 from app.perception.voice_pipeline import VoicePipeline
 from app.protocol import reproducible_run
-from app.providers.asr.openrouter import OpenRouterASR
+from app.providers.asr import make_asr
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import describe as describe_models
 from app.providers.tts.base import Voice
 from app.providers.tts.base import TTSProvider
 from app.providers.tts.edge import EdgeTTS
 from app.providers.tts.openai_speech import OpenAISpeechTTS
-from app.realtime import limits
+from app.realtime import admission, limits
 from app.realtime.events import InputAppend, SessionInit, error, session_closed
 from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
                                   RealtimeSession, keep_for_resume,
                                   restore_from_resume)
-from app.session import store
+from app.session import SessionConfig, store
 
 _log = logging.getLogger(__name__)
 
@@ -174,12 +174,13 @@ class _Work:
 
     def __init__(self) -> None:
         self._lock = asyncio.Lock()
+        self._closed = False
         self._turns: set[asyncio.Task] = set()
         self._hint: Optional[asyncio.Task] = None
 
     def start_turn(self, orchestrator: "NegotiationOrchestrator",
                    session: "RealtimeSession", text: str) -> bool:
-        if len(self._turns) > _MAX_QUEUED_TURNS:
+        if self._closed or session.evicted or len(self._turns) > _MAX_QUEUED_TURNS:
             return False
         task = asyncio.create_task(self._turn(orchestrator, session, text))
         self._turns.add(task)
@@ -212,7 +213,7 @@ class _Work:
                 session.bus.publish(error("turn_failed", "turn failed"))
 
     def start_hint(self, session: "RealtimeSession") -> None:
-        if self._hint is not None and not self._hint.done():
+        if self._closed or (self._hint is not None and not self._hint.done()):
             return
         self._hint = asyncio.create_task(self._safe_hint(session))
 
@@ -227,6 +228,7 @@ class _Work:
 
     async def aclose(self) -> None:
         """Сокет ушёл — платить за его ход больше не за что."""
+        self._closed = True
         tasks = [t for t in (*self._turns, self._hint) if t is not None]
         for task in tasks:
             task.cancel()
@@ -237,6 +239,10 @@ class _Work:
 
 async def realtime_ws(websocket: WebSocket) -> None:
     await websocket.accept()
+    # Fixed deadline: invalid frames/failed starts cannot renew an idle socket.
+    # Time only receives, so valid custom generation keeps its own timeout.
+    init_deadline = asyncio.get_running_loop().time() + admission.INIT_TIMEOUT_S
+    init_lang = "en" if websocket.query_params.get("lang") == "en" else "ru"
     mode = websocket.query_params.get("mode", "text")
     if mode not in ("text", "voice"):
         await websocket.close(code=1008, reason=f"unsupported mode: {mode}")
@@ -280,7 +286,18 @@ async def realtime_ws(websocket: WebSocket) -> None:
     try:
         while True:
             try:
-                message = await websocket.receive_json()
+                if session is None:
+                    remaining = init_deadline - asyncio.get_running_loop().time()
+                    if remaining <= 0:
+                        raise TimeoutError
+                    message = await asyncio.wait_for(websocket.receive_json(), remaining)
+                else:
+                    message = await websocket.receive_json()
+            except TimeoutError:
+                await websocket.send_json(error(
+                    "init_timeout", admission.init_timeout_message(init_lang)))
+                await websocket.close(code=1008, reason="session_init_timeout")
+                break
             except WebSocketDisconnect:
                 raise
             except Exception:
@@ -324,6 +341,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         await websocket.send_json(error("bad_payload", _why(exc)))
                         continue
                     payload.mode = mode  # URL — истина, а не поле в теле
+                    init_lang = payload.lang
 
                     # Место под партию занимается ДО генерации сценария: самый
                     # дорогой вызов в продукте не должен уходить в модель ради
@@ -361,7 +379,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         continue
                     session.client_host = peer
 
-                    orchestrator, voice, vision = _wire(session)
+                    orchestrator, voice, vision = _wire(session, work=work)
                     writer = asyncio.create_task(_pump(websocket, session))
                     # Владельцем записываемся ПОСЛЕ того, как всё поднято:
                     # вытесняющий зовёт `quiesce`, и гасить полусобранное было
@@ -370,6 +388,10 @@ async def realtime_ws(websocket: WebSocket) -> None:
                                    quiesce=_quiesce, lease=lease)
                     _OWNERS[session.session_id] = owner
                     await websocket.send_json(_created_payload(session, voice))
+                    if session.engine_session.state.status != "active":
+                        # Итог мог потеряться вместе с сокетом. Грейд уже
+                        # посчитан: возвращаем его без повторного вызова ИИ.
+                        await orchestrator._send_debrief(enrich=False)
                     continue
 
                 if session is None or orchestrator is None:
@@ -481,6 +503,12 @@ async def realtime_ws(websocket: WebSocket) -> None:
                 _log.exception("realtime: %s уронил обработчик", kind)
                 with contextlib.suppress(Exception):
                     await websocket.send_json(error("server_error", "internal error"))
+                if kind == "session.init":
+                    # Partial initialization may already own a game lease.
+                    # Retrying here would overwrite it and leak the old slot.
+                    with contextlib.suppress(Exception):
+                        await websocket.close(code=1011, reason="init_failed")
+                    break
                 continue
 
     except WebSocketDisconnect:
@@ -560,6 +588,12 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     if payload.resume:
         existing = store.claim(payload.resume)
         if existing is not None:
+            config = store.config(payload.resume)
+            if config is None:
+                store.release(payload.resume)
+                return None, ("Не удалось восстановить условия партии. Начните новую."
+                              if payload.lang == "ru" else
+                              "The session settings could not be restored. Start a new game.")
             # Партия могла остаться ЗА ЖИВЫМ СОКЕТОМ: в метро TCP умирает
             # молча, и сервер узнаёт об обрыве позже человека. Прежний владелец
             # вытесняется — с внятной причиной и отдельным кодом закрытия, — а
@@ -570,11 +604,12 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
             resumed = RealtimeSession(
                 session_id=payload.resume,
                 engine_session=existing,
-                lang=payload.lang,
-                mode=payload.mode,
-                game_mode=payload.gameMode,
-                layers=_layers_for(payload),
-                reputation=payload.reputation,
+                lang=config.lang,
+                mode=config.mode,
+                game_mode=config.game_mode,
+                layers=Layers.from_dict(dict(config.layers)),
+                reputation=config.reputation,
+                daily=config.daily,
             )
             # Ходы и шкалы вернул движок, наблюдения камеры вернуть некому:
             # `RealtimeSession` здесь новая. Без этой строки разбор после метро
@@ -614,8 +649,9 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
         # последним.
         return None, f"unknown scenario: {scenario_id[:64]}"
 
-    if payload.reputation is not None:
-        views.apply_reputation(engine_session, payload.reputation)
+    reputation = None if reproducible_run(payload.gameMode) else payload.reputation
+    if reputation is not None:
+        views.apply_reputation(engine_session, reputation)
 
     # УСЛОВИЕ ДНЯ. Накладывается той же схемой, что репутация кампании: это вход
     # партии (длина, стартовые шкалы), а не правило подсчёта — `score_session`
@@ -636,20 +672,24 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
             daily_mod = table.modifier.id
 
     session_id = store.new_id()
-    store.put(session_id, engine_session)
+    layers = _layers_for(payload)
+    store.put(session_id, engine_session, config=SessionConfig(
+        lang=payload.lang, mode=payload.mode, game_mode=payload.gameMode,
+        layers=tuple(asdict(layers).items()), reputation=reputation, daily=daily_mod,
+    ))
     return RealtimeSession(
         session_id=session_id,
         engine_session=engine_session,
         lang=payload.lang,
         mode=payload.mode,
         game_mode=payload.gameMode,
-        layers=_layers_for(payload),
-        reputation=payload.reputation,
+        layers=layers,
+        reputation=reputation,
         daily=daily_mod,
     ), None
 
 
-def _wire(session: RealtimeSession) -> tuple[
+def _wire(session: RealtimeSession, *, work: Optional[_Work] = None) -> tuple[
         NegotiationOrchestrator, Optional[VoicePipeline], Optional[VisionSampler]]:
     """Собрать подсистемы вокруг сессии по включённым слоям.
 
@@ -671,12 +711,15 @@ def _wire(session: RealtimeSession) -> tuple[
         # прогон той же фразы мерил кэш, а не синтез.
         # Edge остаётся запасным: он бесплатен и не требует ключа.
         provider: TTSProvider = OpenAISpeechTTS()
+        fallback: Optional[TTSProvider] = EdgeTTS()
         if not provider.available():
-            provider = EdgeTTS()
+            provider, fallback = fallback, None
         if provider.available():
             tts = TTSTaskManager(provider, session.bus.publish,
                                  Voice(id="", lang=session.lang,
-                                       female=_persona_is_female(scenario)))
+                                       female=_persona_is_female(scenario)),
+                                 fallback=fallback)
+    session.tts_available = tts is not None
 
     orchestrator = NegotiationOrchestrator(session, tts=tts, avatar=avatar)
 
@@ -697,6 +740,14 @@ def _wire(session: RealtimeSession) -> tuple[
             обязан стоять на обоих. Иначе он превращается в предел на КЛАВИАТУРУ:
             микрофон остаётся открытым входом в те же три платных вызова.
             """
+            if work is not None:
+                # Принятый ход принадлежит сокету, а не таймеру конца речи.
+                # Голос и текст проходят одну очередь с одним сроком жизни.
+                if not work.start_turn(orchestrator, session, text):
+                    session.bus.publish(error("busy", "turn already in flight"))
+                return
+            # Для самостоятельного использования оркестратора (без сокета)
+            # сериализацию всё равно обеспечивает его собственный замок.
             await _turn_budget(session)
             await orchestrator.on_player_turn(text)
 
@@ -709,7 +760,7 @@ def _wire(session: RealtimeSession) -> tuple[
         )
         if pipeline is None or not pipeline.available:
             pipeline = VoicePipeline(
-                asr=OpenRouterASR(), lang=session.lang,
+                asr=make_asr(), lang=session.lang,
                 on_turn=guarded_turn,
                 on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
                 publish=session.bus.publish,
@@ -851,7 +902,7 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         greeting = intro + " " + greeting
 
     capabilities = {
-        "voice": bool(session.layers.voice),
+        "voice": bool(session.layers.voice) and session.tts_available,
         "microphone": voice is not None,
         "camera": bool(session.layers.camera) and orchat.available(),
         # Отдельная возможность, а не подпункт камеры: тумблер «покерфейс»

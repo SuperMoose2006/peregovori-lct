@@ -6,6 +6,7 @@ import type { ChatEntry } from "../api/useNegotiation";
 import type { Analysis, Deltas } from "../types";
 import type { MeterLabels, Strings } from "../i18n";
 import { tagText } from "../lib/tagLabel";
+import { Icon } from "./Icon";
 
 interface Props {
   log: ChatEntry[];
@@ -57,7 +58,7 @@ interface Props {
   // True while the label refers to the JUDGE, not the opponent. The bubble then
   // drops its opponent styling — it is not the counterpart speaking.
   typingJudging?: boolean;
-  // shown inside the 💡 bubble while the coach's answer is in flight
+  // shown inside the hint bubble while the coach's answer is in flight
   hintPendingLabel: string;
   // Fills the composer with a coach-suggested line (the AI hint's worked
   // example). Absent ⇒ the line is shown but not offered as one tap.
@@ -147,7 +148,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
             return (
               <div className="hintbub pending" key={e.id}>
                 <div>
-                  💡{" "}
+                  <Icon name="bulb" />{" "}
                   <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>{" "}
                   <span className="typing-label">{hintPendingLabel}</span>
                 </div>
@@ -156,7 +157,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
           }
           return (
             <div className="hintbub" key={e.id}>
-              <div>💡 {e.text}</div>
+              <div><Icon name="bulb" /> {e.text}</div>
               {e.line && onUseLine ? (
                 <div className="hintline">
                   <span className="hintline-q">«{e.line}»</span>
@@ -208,16 +209,16 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
                   {e.reject ? <span className="jc-chip reject">{judgeReject}</span> : null}
                   {judgeActive ? (
                     <span className="judge-badge" title={judgeBadge.aria} aria-label={judgeBadge.aria}>
-                      ⚖ {judgeBadge.label}
+                      <Icon name="scales" /> {judgeBadge.label}
                     </span>
                   ) : null}
                 </div>
               ) : null}
               {/* The label is a prefix for the note — without a note it dangled
-                  as a bare "💡 тренер:" above the chips. */}
+                  as a bare «тренер:» above the chips. */}
               {e.text ? (
                 <div className="cl-note">
-                  <span className="coachline-b">💡 {coachLabel}:</span> {e.text}
+                  <span className="coachline-b"><Icon name="bulb" /> {coachLabel}:</span> {e.text}
                 </div>
               ) : null}
               <button
@@ -328,7 +329,7 @@ function ProbeCard({ entry, probeLabels, probeTally, registerProbe, onProbeAnswe
       aria-labelledby={`pb-q-${e.id}`}
     >
       <div className="pb-head">
-        <b id={`pb-q-${e.id}`}>🎭 {probeLabels.ask}</b>
+        <b id={`pb-q-${e.id}`}><Icon name="masks" /> {probeLabels.ask}</b>
         {probeTally ? <span className="pb-tally">{probeTally}</span> : null}
       </div>
       <div className="pb-opts" onKeyDown={onKey}>

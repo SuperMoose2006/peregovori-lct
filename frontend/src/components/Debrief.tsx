@@ -9,11 +9,13 @@ import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
 import { LOOKED_IN_SILENCE } from "../lib/layers";
 import { formatDeal, plural } from "../lib/format";
 import { play } from "../lib/sound";
+import { downloadReport } from "../lib/reportExport";
 import { ScreenHeading } from "./ScreenHeading";
 import { XpAward } from "./Gamification";
 import { Karl, MascotImg, Tikhon, type KarlState, type TikhonState } from "./Mascot";
 import { RematchOffer } from "./Rematch";
 import type { PastRun } from "../lib/progress";
+import { Icon, DataIcon } from "./Icon";
 
 /** Сколько строк ленты помещается в карточку. Партия на двенадцать ходов
  *  успевает набрать вчетверо больше (взгляд не чаще раза в 8 секунд), а разбор
@@ -127,7 +129,18 @@ export function Debrief({
   runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
   secondaryIssues, termsConceded, onCourse, rematch,
 }: Props) {
+  const [exportStatus, setExportStatus] = useState("");
+  const exportCopy = lang === "ru"
+    ? { group: "Сохранить разбор", text: "Скачать разбор", json: "Данные JSON", done: "Скачивание началось", error: "Не удалось сохранить файл. Попробуйте ещё раз." }
+    : { group: "Save report", text: "Download report", json: "JSON data", done: "Download started", error: "Could not save the file. Please try again." };
+  const saveReport = (format: "txt" | "json") => {
+    try {
+      downloadReport({ debrief: d, lang, mode, scenarioTitle, playerName, playerMoves: whatIfMoves, createdAt: new Date().toISOString() }, format);
+      setExportStatus(exportCopy.done);
+    } catch { setExportStatus(exportCopy.error); }
+  };
   const gc = GRADE_COLOR[d.grade] || "var(--brass)";
+  const gradeInk = ({ A: "var(--trust-ink)", B: "var(--info-ink)", C: "var(--brass)", D: "var(--ink)", F: "var(--tension-ink)" } as Record<string, string>)[d.grade] || "var(--ink)";
   // Лента камеры приезжает в самом разборе — с ходами и временем, посчитанными
   // там же, где живёт партия.
   const visTape = useMemo(() => visionTape(d.observations), [d.observations]);
@@ -273,13 +286,13 @@ export function Debrief({
                 } as CSSProperties
               }
             >
-              <span className="gl" style={{ color: gc }} aria-hidden="true">
+              <span className="gl" style={{ color: gradeInk }} aria-hidden="true">
                 {d.grade}
               </span>
               <span className="gs" aria-hidden="true">{d.overall}/100</span>
             </div>
             <div>
-              {exam ? <div className="cert-eyebrow">🏆 {t.exam.eyebrow}</div> : null}
+              {exam ? <div className="cert-eyebrow"><Icon name="trophy" /> {t.exam.eyebrow}</div> : null}
               {/* h1: разбор — самостоятельный экран, заголовка первого уровня
                   на нём не было. */}
               <ScreenHeading as="h1">{exam ? t.exam.resultTitle : t.debriefTitle}</ScreenHeading>
@@ -338,13 +351,19 @@ export function Debrief({
               {game ? <XpAward t={t} lang={lang} game={game} failed={game.failed} /> : null}
               {passed ? (
                 <button className="cert-print" type="button" onClick={() => window.print()}>
-                  🖨 {t.exam.download}
+                  <Icon name="print" /> {t.exam.download}
                 </button>
               ) : null}
             </div>
           </div>
 
           {passed ? <div className="cert-certifies">{t.exam.certifies}</div> : null}
+
+          <div className="export-actions" role="group" aria-label={exportCopy.group}>
+            <button className="btn ghost" type="button" onClick={() => saveReport("txt")}><span aria-hidden="true">↓</span> {exportCopy.text}</button>
+            <button className="btn ghost" type="button" onClick={() => saveReport("json")}>{exportCopy.json}</button>
+            <span className="export-status" role="status" aria-live="polite">{exportStatus}</span>
+          </div>
 
           {/* Hoisted to the top (directly under the grade ring): the single
               pivotal-turn replay is the jury's magnet — an inviting teaser + the
@@ -414,7 +433,7 @@ export function Debrief({
 
           {techniqueFloored ? (
             <div className="tfloor" role="note">
-              <span className="tfloor-i" aria-hidden="true">⚖</span>
+              <span className="tfloor-i" aria-hidden="true"><Icon name="scales" /></span>
               <span>{t.techniqueFloor}</span>
             </div>
           ) : null}
@@ -425,7 +444,7 @@ export function Debrief({
             <div className="reveal">
               {/* h2, а не h3: это раздел ПОД заголовком экрана, и уровнем ниже
                   он был прыжком через ступень в навигации диктора. */}
-              <h2>🔎 {t.reveal.title}</h2>
+              <h2><Icon name="search" /> {t.reveal.title}</h2>
               <ul>
                 {d.interests.map((it, i) => (
                   <li key={i} className={it.found ? "rv-found" : "rv-missed"}>
@@ -457,7 +476,7 @@ export function Debrief({
               объяснение хода — такое же сопровождение, как слово наставника. */}
           {at(1) && !exam && d.her_side && d.her_side.turns.length > 0 ? (
             <div className="herside">
-              <h2>🪑 {t.herSide.title}</h2>
+              <h2><Icon name="chair" /> {t.herSide.title}</h2>
               <div className="hs-lead">
                 {/* Тихон отвечает за память, и поза `chart` — «указывает на
                     цифру» — нарисована ровно под колонку, где у каждой реплики
@@ -506,7 +525,7 @@ export function Debrief({
               там сопровождение выключено до конца. */}
           {at(1) && !exam && d.other_side ? (
             <div className="herside otherside">
-              <h2>🪞 {t.otherSide.debriefTitle}</h2>
+              <h2><Icon name="mirror" /> {t.otherSide.debriefTitle}</h2>
               <div className="hs-lead">
                 <MascotImg dir="tikhon" state="chart" alt={t.otherSide.mascotAlt} size={44} />
                 <p>
@@ -558,7 +577,7 @@ export function Debrief({
 
           {at(1) && showTerms ? (
             <div className={`dbterms${tradedLabels.length ? "" : " none"}`}>
-              <span className="dbt-label">🔄 {t.terms.debriefLabel}</span>
+              <span className="dbt-label"><Icon name="refresh" /> {t.terms.debriefLabel}</span>
               {tradedLabels.length ? (
                 <span className="dbt-chips">
                   {tradedLabels.map((label, i) => (
@@ -578,7 +597,7 @@ export function Debrief({
           {at(1) && probeStats && probeStats.asked > 0 ? (
             <div className="obs">
               <div className="obs-head">
-                <h2>🎭 {t.probe.debriefHead}</h2>
+                <h2><Icon name="masks" /> {t.probe.debriefHead}</h2>
                 <span className="obs-badge">{t.probe.observation}</span>
               </div>
               <div className="obs-body">
@@ -601,7 +620,7 @@ export function Debrief({
           {at(1) && observations && visTape.tape.length > 0 ? (
             <div className="obs">
               <div className="obs-head">
-                <h2>📷 {t.layers.seenHead}</h2>
+                <h2><Icon name="camera" /> {t.layers.seenHead}</h2>
                 <span className="obs-badge">{t.probe.observation}</span>
               </div>
               <div className="vis-lead">
@@ -644,7 +663,7 @@ export function Debrief({
             && (d.observation_looks ?? 0) > 0 ? (
             <div className="obs">
               <div className="obs-head">
-                <h2>📷 {t.layers.seenHead}</h2>
+                <h2><Icon name="camera" /> {t.layers.seenHead}</h2>
                 <span className="obs-badge">{t.probe.observation}</span>
               </div>
               <div className="vis-lead">
@@ -657,7 +676,7 @@ export function Debrief({
           {at(1) && tells && tells.frames > 0 ? (
             <div className="obs">
               <div className="obs-head">
-                <h2>😐 {t.layers.names.pokerface}</h2>
+                <h2><Icon name="face" /> {t.layers.names.pokerface}</h2>
                 <span className="obs-badge">{t.probe.observation}</span>
               </div>
               <p className="obs-tells">
@@ -670,7 +689,7 @@ export function Debrief({
 
           {at(2) && d.ai_verdict ? (
             <div className="mentor">
-              <h2>🎓 {t.mentor.title}</h2>
+              <h2><Icon name="cap" /> {t.mentor.title}</h2>
               <p className="mn-verdict">{d.ai_verdict}</p>
               {d.ai_strength || d.ai_growth ? (
                 <div className="mn-grid">
@@ -762,7 +781,7 @@ export function Debrief({
             ) : null}
             {!exam && onCourse && weakBlock ? (
               <button className="coach-course" onClick={() => onCourse(weakBlock.id)}>
-                {weakBlock.icon} {t.course.trainThis}: <b>{weakBlock.title[lang]}</b> →
+                <DataIcon name={weakBlock.icon} /> {t.course.trainThis}: <b>{weakBlock.title[lang]}</b> →
               </button>
             ) : null}
           </div>

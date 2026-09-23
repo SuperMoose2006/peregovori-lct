@@ -10,6 +10,7 @@
 // объяснения хватает, чтобы человек решил, что кнопка не работает.
 import type { Lang } from "../types";
 import type { Strings } from "../i18n";
+import { Icon } from "./Icon";
 
 interface Props {
   t: Strings;
@@ -85,7 +86,7 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate }:
             Никакого «мгновенно» — генерация занимает секунды, и обещать иное
             значит заставить человека нажать второй раз. */}
         <p className="cust-promise">
-          <span aria-hidden="true">🎲</span> {t.custom.promise}
+          <span aria-hidden="true"><Icon name="dice" /></span> {t.custom.promise}
         </p>
       </div>
     </>

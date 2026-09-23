@@ -106,7 +106,7 @@ class VoicePipeline:
 
     @property
     def available(self) -> bool:
-        return self._vad.available
+        return self._asr.available() and self._vad.available
 
     def set_opponent_speaking(self, speaking: bool) -> None:
         """Оркестратор сообщает, звучит ли сейчас голос оппонента.

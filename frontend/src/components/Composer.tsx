@@ -11,6 +11,7 @@ import { plural } from "../lib/format";
 import { previewChips } from "../lib/techniques";
 import { haptic, play } from "../lib/sound";
 import { MAX_INPUT, clampInput, inputRemaining, showInputNote } from "../lib/net";
+import { Icon } from "./Icon";
 
 interface Props {
   disabled: boolean;
@@ -21,10 +22,10 @@ interface Props {
   blocked?: boolean;
   placeholder: string;
   quickMoves: QuickMove[];
-  onSend: (text: string) => void;
+  onSend: (text: string) => boolean | void;
   onHint: () => void;
   hintEnabled: boolean;
-  /** Имя кнопки подсказки для диктора: сам значок 💡 помечен aria-hidden. */
+  /** Имя кнопки подсказки для диктора: сам значок помечен aria-hidden. */
   hintLabel: string;
   /** Имя кнопки отправки. Тоже строка из словаря, а не английское «send»:
    *  aria-label — пользовательский контент, и русский диктор читал «сенд». */
@@ -52,18 +53,19 @@ export function Composer({
 
   const submit = () => {
     const t = text.trim();
-    if (!t || disabled) return;
+    if (!t || disabled || blocked) return;
+    if (onSend(t) === false) return;
     // Soft send cue + a light haptic tap. This is also a genuine user gesture,
     // so it doubles as the first chance to unlock the AudioContext.
     play("send");
     haptic();
-    onSend(t);
     setText("");
   };
 
   // Chips are sentence STARTERS: seed the box with the stem and hand the player
   // the caret at the end so they finish the thought (never a complete move).
   const insertStem = (stem: string) => {
+    if (blocked) return;
     setText(stem);
     requestAnimationFrame(() => {
       const el = taRef.current;
@@ -102,13 +104,13 @@ export function Composer({
           // Cap defensively even if maxLength is bypassed (paste, IME, autofill).
           onChange={(e) => setText(clampInput(e.target.value))}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               submit();
             }
           }}
         />
-        <button className="send" onClick={submit} disabled={disabled || !text.trim()} aria-label={sendLabel}>
+        <button className="send" onClick={submit} disabled={disabled || blocked || !text.trim()} aria-label={sendLabel}>
           ➤
         </button>
       </div>
@@ -120,13 +122,13 @@ export function Composer({
       ) : null}
       <div className="quick">
         {hintEnabled ? (
-          <button onClick={onHint} disabled={disabled} aria-label={hintLabel} title={hintLabel}>
-            <span aria-hidden="true">💡</span>
+          <button onClick={onHint} disabled={disabled || blocked} aria-label={hintLabel} title={hintLabel}>
+            <span aria-hidden="true"><Icon name="bulb" /></span>
           </button>
         ) : null}
         {quickMoves.map((q, i) => (
-          <button key={i} onClick={() => insertStem(q.text)}>
-            {q.label}
+          <button key={i} onClick={() => insertStem(q.text)} disabled={blocked}>
+            <Icon name={q.icon} /> {q.label}
           </button>
         ))}
       </div>

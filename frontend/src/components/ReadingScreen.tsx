@@ -31,6 +31,7 @@ import {
 import { Karl, Tikhon, karlState } from "./Mascot";
 import { Meters } from "./Meters";
 import { ScreenHeading } from "./ScreenHeading";
+import { DataIcon } from "./Icon";
 
 interface Props {
   t: Strings;
@@ -130,7 +131,7 @@ export function ReadingScreen({ t, lang, onClose }: Props) {
     <section className="screen reading">
       <div className="wrap rd-wrap">
         <header className="rd-head">
-          <span className="rd-ic" aria-hidden="true">{reading.icon}</span>
+          <span className="rd-ic" aria-hidden="true"><DataIcon name={reading.icon} /></span>
           <div className="rd-id">
             <ScreenHeading as="h1" className="rd-title">{t.reading.title}</ScreenHeading>
             <p className="rd-sub">
