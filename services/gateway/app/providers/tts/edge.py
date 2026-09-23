@@ -43,6 +43,9 @@ _DECODE_CHUNK = 2048
 
 class EdgeTTS(TTSProvider):
     def available(self) -> bool:
+        from app.providers import network_enabled
+        if not network_enabled():
+            return False
         try:
             import edge_tts  # noqa: F401
         except ImportError:
@@ -56,6 +59,8 @@ class EdgeTTS(TTSProvider):
         return _VOICES.get((voice.lang, voice.female), _VOICES[("ru", True)])
 
     async def stream(self, text: str, voice: Voice) -> AsyncIterator[bytes]:
+        if not self.available() or not text.strip():
+            return
         import edge_tts
 
         if not text.strip():
@@ -86,8 +91,9 @@ class EdgeTTS(TTSProvider):
             # оркестратор уже знает, что поколение погашено.
             raise
         except Exception:
-            # Сеть отвалилась на середине — отдаём, что успели декодировать.
-            pass
+            # Оркестратор должен отличать закончившуюся фразу от оборванной:
+            # иначе интерфейс обещает звук, а человек слышит тишину.
+            raise
 
         tail = decoder.feed(bytes(buf), flush=True)
         if tail:

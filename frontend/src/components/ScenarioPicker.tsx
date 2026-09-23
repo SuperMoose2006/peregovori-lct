@@ -2,6 +2,7 @@
 // Сам ВЫБОР режима живёт в сайдбаре (SideNav) и только там: дублирующий ряд
 // кнопок здесь был, но всегда отключался пропом, то есть не показывался никогда.
 // practice/exam — полка сценариев, campaign — арка, custom — поле ввода.
+import { useState } from "react";
 import type { CampaignView, Lang, Mode, ScenarioContext } from "../types";
 import type { Strings } from "../i18n";
 import { catalog, SCENARIO_MAP } from "../data/scenarios";
@@ -12,13 +13,38 @@ import { CampaignArc, CampaignPicker, type CampaignProgress } from "./CampaignSc
 import { blockById } from "../lib/courseMap";
 import { dailyTable } from "../lib/daily";
 import { MascotImg } from "./Mascot";
+import { filterCatalog, scenarioTopic, type CatalogDifficulty, type CatalogTopic } from "../lib/catalogFilter";
+import { Icon, DataIcon } from "./Icon";
+
+const BROWSE = {
+  ru: {
+    eyebrow: "Практика настоящих разговоров", title: "Договариваться — навык.", accent: "Тренируйте его здесь.",
+    subtitle: "Пробуйте разные подходы, замечайте реакцию собеседника и находите решение, которое устроит обоих.",
+    search: "Найти ситуацию", placeholder: "Зарплата, аренда, сложный разговор…",
+    all: "Все ситуации", career: "Карьера", business: "Бизнес", life: "Жизнь", topicLabel: "Сфера переговоров",
+    level: "Сложность", levels: { all: "Любая сложность", starter: "Для разогрева · 1–3", challenge: "Бросить вызов · 4–5" },
+    count: "Показано {n} из {total}", empty: "Такой ситуации пока нет", emptyBody: "Попробуйте другое слово или снимите фильтры.", reset: "Сбросить фильтры",
+    difficulty: "Сложность {n} из 5", practice: "Можно ошибаться. Можно переиграть.",
+    examTitle: "Проверьте себя без подсказок", examBody: "Выберите знакомую или новую ситуацию. В конце — оценка ваших решений и сертификат за успешную партию.",
+  },
+  en: {
+    eyebrow: "Practice for real conversations", title: "Negotiation is a skill.", accent: "Make it yours.",
+    subtitle: "Try a different approach, read your opponent’s response and find an agreement that works for both of you.",
+    search: "Find a situation", placeholder: "Salary, rent, a difficult conversation…",
+    all: "All situations", career: "Career", business: "Business", life: "Everyday life", topicLabel: "Negotiation context",
+    level: "Difficulty", levels: { all: "Any difficulty", starter: "Warm up · 1–3", challenge: "Challenge yourself · 4–5" },
+    count: "Showing {n} of {total}", empty: "No matching situations yet", emptyBody: "Try another search or clear your filters.", reset: "Clear filters",
+    difficulty: "Difficulty {n} of 5", practice: "Room to make mistakes. Room to try again.",
+    examTitle: "Put your skills to the test", examBody: "Choose a familiar situation or try a new one. Get feedback on your decisions and earn a certificate for a successful negotiation.",
+  },
+} as const;
 
 const GRADE_COLOR: Record<string, string> = {
-  A: "var(--trust)",
-  B: "var(--info)",
+  A: "var(--trust-ink)",
+  B: "var(--info-ink)",
   C: "var(--brass)",
-  D: "#d98a3c",
-  F: "var(--tension)",
+  D: "var(--ink)",
+  F: "var(--tension-ink)",
 };
 
 interface Props {
@@ -161,9 +187,24 @@ export function ScenarioPicker({
   examName, onExamNameChange, onCourseBlock, onWarmup,
   route = null, onRoute,
 }: Props) {
-  const rows = catalog(lang);
+  const [query, setQuery] = useState("");
+  const [topic, setTopic] = useState<CatalogTopic>("all");
+  const [difficulty, setDifficulty] = useState<CatalogDifficulty>("all");
+  const copy = BROWSE[lang];
+  const allRows = catalog(lang);
+  const rows = filterCatalog(allRows, query, topic, difficulty);
+  const filtered = !!query.trim() || topic !== "all" || difficulty !== "all";
+  const reset = () => { setQuery(""); setTopic("all"); setDifficulty("all"); };
   return (
     <>
+      {mode === "practice" ? (
+        <header className="practice-intro">
+          <span className="practice-eyebrow"><span aria-hidden="true">✦</span> {copy.eyebrow}</span>
+          <h2>{copy.title}<br /><span>{copy.accent}</span></h2>
+          <p>{copy.subtitle}</p>
+          <span className="practice-promise"><span aria-hidden="true">✓</span> {copy.practice}</span>
+        </header>
+      ) : null}
       {/* Маршрут стоит ПЕРВЫМ и только в тренировке: в кампании колонку занимает
           арка, в «своей сделке» — поле ввода, а на экзамене подталкивать вообще
           нечем. Всё остальное на главной после этого — вторым весом. */}
@@ -193,8 +234,8 @@ export function ScenarioPicker({
       ) : (
         <>
           {mode === "exam" ? (
-            <div className="exam-name">
-              <label htmlFor="exam-name-input">🏆 {t.exam.nameLabel}</label>
+            <><header className="practice-intro exam-intro"><span className="practice-eyebrow">{t.modes.exam.title}</span><h2>{copy.examTitle}</h2><p>{copy.examBody}</p></header><div className="exam-name">
+              <label htmlFor="exam-name-input"><Icon name="trophy" /> {t.exam.nameLabel}</label>
               <input
                 id="exam-name-input"
                 type="text"
@@ -203,24 +244,35 @@ export function ScenarioPicker({
                 placeholder={t.exam.namePlaceholder}
                 onChange={(e) => onExamNameChange(e.target.value)}
               />
-            </div>
+            </div></>
           ) : null}
-          <div className="section-head">{t.pickHead}</div>
-          <div className="cards">
+          <section className="catalog-browser" aria-label={t.pickHead}>
+          <div className="catalog-heading"><h2>{t.pickHead}</h2><span role="status" aria-live="polite">{copy.count.replace("{n}", String(rows.length)).replace("{total}", String(allRows.length))}</span></div>
+          <div className="catalog-toolbar">
+            <label className="catalog-search"><span className="sr-only">{copy.search}</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg><input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={copy.placeholder} maxLength={120} /></label>
+            <label className="catalog-level"><span className="sr-only">{copy.level}</span><select value={difficulty} onChange={(e) => setDifficulty(e.target.value as CatalogDifficulty)}>{(["all", "starter", "challenge"] as const).map((value) => <option key={value} value={value}>{copy.levels[value]}</option>)}</select></label>
+          </div>
+          <div className="catalog-topics" role="group" aria-label={copy.topicLabel}>
+            {(["all", "career", "business", "life"] as const).map((value) => <button type="button" className={topic === value ? "selected" : ""} aria-pressed={topic === value} key={value} onClick={() => setTopic(value)}>{copy[value]}</button>)}
+            {filtered ? <button className="catalog-reset" onClick={reset}>{copy.reset}</button> : null}
+          </div>
+          {rows.length === 0 ? <div className="catalog-empty"><span aria-hidden="true">⌕</span><h3>{copy.empty}</h3><p>{copy.emptyBody}</p><button className="ghost" onClick={reset}>{copy.reset}</button></div> : null}
+          <div className="cards" id="scenario-results">
             {rows.map((sc) => (
-              <button className="card" key={sc.id} onClick={() => onStart(sc.id)}>
+              <button className="card" key={sc.id} onClick={() => onStart(sc.id)} data-scenario={sc.id}>
                 {/* Meet-your-8-opponents: the same portrait as the table, at a
                     neutral expression (no live state to read yet). The deal-type
                     emoji rides in a small corner badge so the card stays legible. */}
                 <div className="ic">
                   <Avatar scenarioId={sc.id} mood="neutral" label={sc.title} />
-                  <span className="ic-badge" aria-hidden="true">{sc.icon}</span>
+                  <span className="ic-badge" aria-hidden="true"><DataIcon name={sc.icon} /></span>
                 </div>
+                <span className="card-topic">{copy[scenarioTopic(sc.id)]}</span>
                 <div className="ct">{sc.title}</div>
                 <div className="cr">{sc.role}</div>
                 <div className="cf">
                   <div className="cf-l">
-                    <div className="diff">
+                    <div className="diff" role="img" aria-label={copy.difficulty.replace("{n}", String(sc.difficulty))}>
                       {Array.from({ length: 5 }, (_, i) => (
                         <i className={i < sc.difficulty ? "on" : ""} key={i} />
                       ))}
@@ -232,6 +284,7 @@ export function ScenarioPicker({
               </button>
             ))}
           </div>
+          </section>
         </>
       )}
     </>

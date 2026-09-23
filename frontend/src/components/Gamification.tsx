@@ -20,6 +20,7 @@ import {
   getBlockProgress, rankForXp, skillViews, strongestWeakest,
   type GameResult, type MilestoneHit, type Profile, type SkillId,
 } from "../lib/progress";
+import { Icon, DataIcon } from "./Icon";
 
 // Per-skill bar color. Labels carry the meaning; color just aids scanning.
 const SKILL_COLOR: Record<SkillId, string> = {
@@ -96,11 +97,11 @@ export function HeroStats({
         </div>
         {profile.streak > 0 ? (
           <div className="hs-streak" title={t.streakLabel.replace("{n}", String(profile.streak))}>
-            <span className="hs-flame" aria-hidden="true">🔥</span>
+            <span className="hs-flame" aria-hidden="true"><Icon name="flame" /></span>
             <b>{profile.streak}</b>
             {profile.freezes > 0 ? (
               <span className="hs-freeze" title={t.gam.freezeSaved}>
-                🧊 {t.gam.freezeLabel} ×{profile.freezes}
+                <Icon name="ice" /> {t.gam.freezeLabel} ×{profile.freezes}
               </span>
             ) : null}
           </div>
@@ -124,7 +125,7 @@ function DailyRing({ progress, met }: { progress: number; met: boolean }) {
           transform="rotate(-90 18 18)"
         />
       </svg>
-      <span className="hs-ring-emoji">{met ? "🔥" : "◌"}</span>
+      <span className="hs-ring-emoji">{met ? <Icon name="flame" /> : "◌"}</span>
     </span>
   );
 }
@@ -227,7 +228,7 @@ export function SkillsProfile({
               const pct = Math.round(blockCompletion(bp, b.lessons.length, blockSize(b.id)) * 100);
               return (
                 <li key={b.id} className={bp.passed ? "done" : ""}>
-                  <span className="cm-ic" aria-hidden="true">{bp.passed ? "★" : b.icon}</span>
+                  <span className="cm-ic" aria-hidden="true">{bp.passed ? "★" : <DataIcon name={b.icon} />}</span>
                   <span className="cm-t">{b.title[lang]}</span>
                   <span className="cm-bar"><i style={{ width: `${pct}%` }} /></span>
                   <span className="cm-p">{pct}%</span>
@@ -242,7 +243,7 @@ export function SkillsProfile({
               const on = profile.achievements.includes(a.id);
               return (
                 <div className={`badge${on ? " on" : ""}`} key={a.id} title={on ? a.desc[lang] : t.gam.locked}>
-                  <span className="badge-ic">{a.icon}</span>
+                  <span className="badge-ic"><DataIcon name={a.icon} /></span>
                   <span className="badge-nm">{a.name[lang]}</span>
                   <span className="badge-ds">{on ? a.desc[lang] : t.gam.locked}</span>
                 </div>
@@ -434,7 +435,7 @@ export function AchievementToasts({ t, lang, ids }: { t: Strings; lang: Lang; id
         if (!a) return null;
         return (
           <div className="ach-toast" key={id} style={{ animationDelay: `${i * 0.12}s` }}>
-            <span className="ach-ic">{a.icon}</span>
+            <span className="ach-ic"><DataIcon name={a.icon} /></span>
             <span className="ach-txt">
               <b>{t.gam.unlockedToast}</b>
               <span>{a.name[lang]}</span>

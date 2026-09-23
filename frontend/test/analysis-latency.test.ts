@@ -300,3 +300,4 @@ test("без turn.analysis теги всё равно доезжают с реп
   assert.notEqual(me.argSettled, true,
     "число из `opponent` — черновик; помечать его посчитанным нельзя");
 });
+

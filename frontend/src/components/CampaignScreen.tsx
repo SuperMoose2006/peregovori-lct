@@ -9,6 +9,7 @@ import { COURSE_BLOCKS } from "../lib/courseMap";
 import { ScreenHeading } from "./ScreenHeading";
 import type { CampaignProgress, StageResult } from "../lib/progress";
 import { Karl } from "./Mascot";
+import { Icon, DataIcon } from "./Icon";
 
 // ПРОГРЕСС КАМПАНИИ ЖИВЁТ В ПРОФИЛЕ, а не в состоянии React: он переживает F5,
 // хранится по идентификатору кампании и разбирается защищённо (lib/progress.ts).
@@ -97,7 +98,7 @@ function ActRow({
         {result.grade}
       </span>
     ) : status === "locked" ? (
-      <span className="lock" aria-hidden="true">🔒</span>
+      <span className="lock" aria-hidden="true"><Icon name="lock" /></span>
     ) : (
       <span className="num">{index + 1}</span>
     );
@@ -116,7 +117,7 @@ function ActRow({
       <div className="act-body">
         <div className="act-label">{stage.act}</div>
         <div className="act-title">
-          <span className="act-ic">{stage.icon}</span>
+          <span className="act-ic"><DataIcon name={stage.icon} /></span>
           {stage.title}
         </div>
         <div className="act-meta">
@@ -130,7 +131,7 @@ function ActRow({
             <span>{t.course.actTeaches}:</span>
             {blocksForScenario(stage.scenario_id).map((b) => (
               <button key={b.id} className="act-course-b" onClick={() => onCourse(b.id)}>
-                {b.icon} {b.title[lang]}
+                <DataIcon name={b.icon} /> {b.title[lang]}
               </button>
             ))}
             {/* Разминка: два задания на приём этого акта — и сразу за стол.
@@ -182,7 +183,7 @@ export function CampaignPicker({
           return (
             <button key={c.id} className={`camp-pick-b${active === c.id ? " sel" : ""}`}
                     aria-pressed={active === c.id} onClick={() => onPick(c.id)}>
-              <span className="cp-ic" aria-hidden="true">{c.icon}</span>
+              <span className="cp-ic" aria-hidden="true"><DataIcon name={c.icon} /></span>
               <span className="cp-txt">
                 <b>{c.title}</b>
                 <span className="cp-tag">{c.tagline}</span>
@@ -236,7 +237,7 @@ export function CampaignArc({
       <div className="section-head">{t.campaign.overviewHead}</div>
       <div className="camp">
         <div className="camp-head">
-          <div className="camp-ic">{campaign.icon}</div>
+          <div className="camp-ic"><DataIcon name={campaign.icon} /></div>
           <div className="camp-heading">
             <h2 className="camp-title">{campaign.title}</h2>
             <p className="camp-tag">{campaign.tagline}</p>
@@ -298,8 +299,8 @@ export function CampaignComplete({
       <div className="wrap">
         <div className="debrief cert">
           <div className="camp-done-head">
-            <div className="camp-ic big">{campaign.icon}</div>
-            <div className="cert-eyebrow">🏔 {t.campaign.completeEyebrow}</div>
+            <div className="camp-ic big"><DataIcon name={campaign.icon} /></div>
+            <div className="cert-eyebrow"><Icon name="mountain" /> {t.campaign.completeEyebrow}</div>
             {/* ScreenHeading, а не голый h2: вершина кампании — отдельный
                 экран, и переход на него не объявлялся ничем. */}
             <ScreenHeading as="h1">{t.campaign.completeTitle}</ScreenHeading>

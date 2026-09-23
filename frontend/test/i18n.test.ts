@@ -89,9 +89,16 @@ const TERMS = /\b(SPIN|BATNA|ZOPA|XP)\b/g;
 const CYR = /[А-Яа-яЁё]/;
 const LETTER = /[A-Za-zА-Яа-яЁё]/;
 
+/** Поля, которые НЕ показывают человеку. `icon` — имя значка из `Icon.tsx`, и
+ *  оно обязано быть одинаковым в обоих словарях: по нему сверяют подсказки с
+ *  движком (`tests/test_suggested_lines.py`). Латиница здесь не забытый
+ *  перевод, а ключ, и переводить его значило бы сломать сверку. */
+const NOT_TEXT = new Set(["icon"]);
+
 function walk(o: unknown, path: string, out: [string, string][]): void {
   for (const [k, v] of Object.entries((o ?? {}) as Record<string, unknown>)) {
     const p = path ? `${path}.${k}` : k;
+    if (NOT_TEXT.has(k)) continue;
     if (typeof v === "string") out.push([p, v]);
     else if (v && typeof v === "object") walk(v, p, out);
   }

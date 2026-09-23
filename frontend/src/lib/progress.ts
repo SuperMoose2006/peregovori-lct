@@ -224,7 +224,7 @@ export function updateStreak(prev: StreakState, lastDay: string, today: string):
 
 // ---- Что серия скажет о СЕГОДНЯШНЕМ дне -------------------------------------
 //
-// Полоска «🔥 N» в шапке говорит, сколько дней подряд игрок возвращался, и
+// Полоска серии в шапке говорит, сколько дней подряд игрок возвращался, и
 // молчит о единственном, что от него сейчас зависит: засчитан ли СЕГОДНЯШНИЙ
 // день. Разница между «серия жива, но сегодня вы ещё не играли» и «день уже
 // записан» — это ровно то, ради чего серию вообще смотрят.
@@ -694,19 +694,19 @@ export interface Achievement {
 // Six skill-honest badges. Each is unlocked by a real negotiation outcome, never
 // by grinding. Predicates below decide unlock from (profile-after, this debrief).
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: "first_a", icon: "🏆", name: { ru: "Высший балл", en: "Top marks" }, desc: { ru: "Грейд A впервые", en: "Earn an A grade" } },
-  { id: "streak_3", icon: "🔥", name: { ru: "Три дня подряд", en: "Three-day streak" }, desc: { ru: "Играть 3 дня подряд", en: "Play 3 days in a row" } },
-  { id: "all_interests", icon: "🔍", name: { ru: "Все интересы", en: "Full read" }, desc: { ru: "Вскрыть все интересы в игре", en: "Uncover every hidden interest in one game" } },
-  { id: "no_threat_deal", icon: "🤝", name: { ru: "Чистая сделка", en: "Clean deal" }, desc: { ru: "Сделка без единой угрозы", en: "Close a deal with zero threats" } },
-  { id: "criteria_tradeoff", icon: "⚖️", name: { ru: "Критерий и размен", en: "Criterion & trade" }, desc: { ru: "Критерий и размен в одной игре", en: "Use an objective criterion and a trade-off in one game" } },
-  { id: "five_scenarios", icon: "🗺️", name: { ru: "Пять столов", en: "Five tables" }, desc: { ru: "Сыграть 5 разных сценариев", en: "Play 5 different scenarios" } },
+  { id: "first_a", icon: "trophy", name: { ru: "Высший балл", en: "Top marks" }, desc: { ru: "Грейд A впервые", en: "Earn an A grade" } },
+  { id: "streak_3", icon: "flame", name: { ru: "Три дня подряд", en: "Three-day streak" }, desc: { ru: "Играть 3 дня подряд", en: "Play 3 days in a row" } },
+  { id: "all_interests", icon: "search", name: { ru: "Все интересы", en: "Full read" }, desc: { ru: "Вскрыть все интересы в игре", en: "Uncover every hidden interest in one game" } },
+  { id: "no_threat_deal", icon: "handshake", name: { ru: "Чистая сделка", en: "Clean deal" }, desc: { ru: "Сделка без единой угрозы", en: "Close a deal with zero threats" } },
+  { id: "criteria_tradeoff", icon: "scales", name: { ru: "Критерий и размен", en: "Criterion & trade" }, desc: { ru: "Критерий и размен в одной игре", en: "Use an objective criterion and a trade-off in one game" } },
+  { id: "five_scenarios", icon: "map", name: { ru: "Пять столов", en: "Five tables" }, desc: { ru: "Сыграть 5 разных сценариев", en: "Play 5 different scenarios" } },
   // Курсовые. Дают ту же валюту, что и партии: у игрока одна история обучения,
   // а не две параллельных полки значков.
-  { id: "block_passed", icon: "📗", name: { ru: "Первый блок", en: "First block" }, desc: { ru: "Сдать экзамен блока", en: "Pass a block exam" } },
-  { id: "exam_clean", icon: "💯", name: { ru: "Без единой ошибки", en: "Flawless" }, desc: { ru: "Сдать экзамен блока на максимум", en: "Score full marks on a block exam" } },
-  { id: "course_half", icon: "📘", name: { ru: "Половина пути", en: "Halfway" }, desc: { ru: "Сдать половину блоков курса", en: "Pass half of the course blocks" } },
-  { id: "course_done", icon: "🎓", name: { ru: "Курс пройден", en: "Course complete" }, desc: { ru: "Сдать все блоки курса", en: "Pass every course block" } },
-  { id: "master_exam", icon: "👑", name: { ru: "Мастер", en: "Master" }, desc: { ru: "Сдать экзамен мастера — три партии подряд", en: "Pass the master exam — three negotiations in a row" } },
+  { id: "block_passed", icon: "book", name: { ru: "Первый блок", en: "First block" }, desc: { ru: "Сдать экзамен блока", en: "Pass a block exam" } },
+  { id: "exam_clean", icon: "check", name: { ru: "Без единой ошибки", en: "Flawless" }, desc: { ru: "Сдать экзамен блока на максимум", en: "Score full marks on a block exam" } },
+  { id: "course_half", icon: "books", name: { ru: "Половина пути", en: "Halfway" }, desc: { ru: "Сдать половину блоков курса", en: "Pass half of the course blocks" } },
+  { id: "course_done", icon: "cap", name: { ru: "Курс пройден", en: "Course complete" }, desc: { ru: "Сдать все блоки курса", en: "Pass every course block" } },
+  { id: "master_exam", icon: "crown", name: { ru: "Мастер", en: "Master" }, desc: { ru: "Сдать экзамен мастера — три партии подряд", en: "Pass the master exam — three negotiations in a row" } },
 ];
 
 export function getAchievement(id: string): Achievement | undefined {

@@ -9,19 +9,21 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --force",
     "test": "tsc -b --force && TSX_TSCONFIG_PATH=./tsconfig.app.json node --import tsx --test test/*.test.ts",
-    "e2e": "node e2e/smoke.mjs"
+    "e2e": "node e2e/smoke.mjs",
+    "e2e:improvements": "node e2e/improvements.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@types/node": "^22.20.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^4.7.0",
     "playwright-core": "^1.49.1",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^6.4.3"
   }
 }

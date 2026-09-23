@@ -16,7 +16,7 @@ export type ChatEntry =
   // ли это число семантический судья (иначе словарь движка).
   | { id: number; kind: "me"; text: string; analysis?: Analysis; deltas?: Deltas;
       argSettled?: boolean; judged?: boolean }
-  // `pending` marks the placeholder shown the instant 💡 is pressed. With a
+  // `pending` marks the placeholder shown the instant the hint button is pressed. With a
   // live AI coach the answer takes seconds, and without a placeholder the
   // press produced no visible change at all.
   | { id: number; kind: "hint"; text: string; line?: string; pending?: boolean }

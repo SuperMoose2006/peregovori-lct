@@ -1,15 +1,22 @@
 # `.PHONY` перечисляет только СУЩЕСТВУЮЩИЕ цели. Здесь стояли `avatar` и
 # `dev`, для которых правил нет: `make dev` выходил С НУЛЁМ, не сделав
 # ничего, — тот же тихий обман, что и `make preflight --live`.
-.PHONY: install gateway frontend test test-py test-js test-commit backend-pack e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers
+.PHONY: install build serve gateway frontend test test-py test-js test-commit backend-pack e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers
 
+PYTHON ?= python3
 PY  := services/gateway/.venv/bin/python
 PIP := services/gateway/.venv/bin/pip
 
 install:                       ## install gateway + frontend deps
-	python3 -m venv services/gateway/.venv
-	$(PIP) install -q -r services/gateway/requirements.txt
-	cd frontend && npm install
+	$(PYTHON) -m venv services/gateway/.venv
+	$(PIP) install -q -r services/gateway/requirements.txt -c services/gateway/requirements.lock
+	cd frontend && npm ci
+
+build:                         ## production frontend served by the gateway
+	cd frontend && npm run build
+
+serve:                         ## local app on http://127.0.0.1:8010 (run make build first)
+	cd services/gateway && .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010
 
 gateway:                       ## realtime gateway on :8010
 	cd services/gateway && .venv/bin/uvicorn app.main:app --reload --port 8010
@@ -61,6 +68,7 @@ preflight-layers:              ## голос и зрение одним прог
 e2e:                           ## браузерная проверка (нужен поднятый gateway)
 	cd frontend && node e2e/smoke.mjs --out /tmp/dialog-e2e
 	cd frontend && node e2e/course.mjs --out /tmp/dialog-e2e
+	cd frontend && node e2e/improvements.mjs --out /tmp/dialog-e2e/improvements
 
 # Локально: `make gateway` и `make frontend` в двух терминалах.
 # Липсинк аватара делает OpenTalking (.upstream/opentalking, нужен GPU) —

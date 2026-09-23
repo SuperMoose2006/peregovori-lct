@@ -44,8 +44,9 @@ import { initAudioUnlock, isMuted, toggleMuted } from "./lib/sound";
 import { GEN_TIMEOUT_MS, genReducer } from "./lib/net";
 import { scrollTo, scrollTop } from "./lib/motion";
 import { useModalShell } from "./lib/modal";
+import { Icon } from "./components/Icon";
 
-type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course" | "warmup";
+type Screen = "home" | "generating" | "gen_error" | "game" | "debrief" | "campaign_done" | "profile" | "course" | "warmup" | "admin";
 
 // ЧТО ГРУЗИТСЯ ПО ТРЕБОВАНИЮ, А ЧТО СРАЗУ.
 //
@@ -63,6 +64,7 @@ const loadWarmup = () => import("./components/Warmup").then((m) => ({ default: m
 const loadRematchRail = () => import("./components/Rematch").then((m) => ({ default: m.RematchRail }));
 // Витрина роста на экране профиля: график истории партий. Тоже отложена — на
 // домашнем экране её нет, а тянуть её туда ради одной карточки незачем.
+const loadAdmin = () => import("./components/AdminScenarioScreen").then((m) => ({ default: m.AdminScenarioScreen }));
 const loadGrowth = () => import("./components/Growth").then((m) => ({ default: m.Growth }));
 
 /**
@@ -78,7 +80,7 @@ const loadGrowth = () => import("./components/Growth").then((m) => ({ default: m
  * ничего показывать. Настоящий отказ увидит тот, кто в этот экран пойдёт.
  */
 const WARM: Array<() => Promise<unknown>> = [
-  loadTable, loadDebrief, loadCourse, loadWarmup, loadRematchRail, loadGrowth,
+  loadTable, loadDebrief, loadCourse, loadWarmup, loadRematchRail, loadGrowth, loadAdmin,
   // Транспорты: с сервером и без него. Второй — офлайн-ядро, ради которого всё
   // это и делается.
   () => import("./realtime/transport"),
@@ -105,6 +107,9 @@ type Theme = "light" | "dark" | null;
 const LANG_KEY = "dialog.lang.v1";
 const THEME_KEY = "dialog.theme.v1";
 const LAYERS_KEY = "dialog.layers.v1";
+type DrillContext = { ex: CourseExercise; blockId: string; exam?: ExamCtx };
+type LaunchOptions = { daily?: string; reputation?: number; fixedOff?: boolean; drill?: DrillContext; source?: "admin" };
+type ActiveRun = { scenarioId: string; mode: Mode; options?: LaunchOptions };
 
 /** Выбор слоёв — настройка игрока, а не свойство одной партии: он живёт в
  *  профиле и переживает перезагрузку. Читается защищённо, как язык и тема:
@@ -185,20 +190,28 @@ export default function App() {
   // Прогресс каждой живёт в профиле по её идентификатору и переживает F5.
   const [campaigns, setCampaigns] = useState<CampaignView[]>([]);
   const [campaignId, setCampaignId] = useState<string | null>(null);
-  // Dedupe recording a stage result: each debrief is a fresh object, so identity
-  // tells one stage's debrief from the next (and from a reset).
+  // The session reducer retains one canonical debrief object through resume.
   const recordedDebrief = useRef<DebriefData | null>(null);
   // Retention profile (localStorage): best grades, attempts, day streak. Loaded
   // once; each debrief folds in a result and re-persists. `lastRecord` carries
   // the just-finished run's personal-best delta to the Debrief screen.
   const [profile, setProfile] = useState<Profile>(() => loadProfile());
+  const profileRef = useRef(profile);
+  const commitProfile = useCallback((next: Profile) => {
+    // Effects for a finished game run in order and see previous writes even
+    // before React renders. Persistence stays outside React state updaters.
+    profileRef.current = next;
+    saveProfile(next);
+    setProfile(next);
+  }, []);
   const [lastGame, setLastGame] = useState<GameResult | null>(null);
   // Капстоун курса: настоящая партия, запущенная из урока или экзамена блока.
   // Она идёт по обычному пути (движок судит, слои выключены), а курс узнаёт
   // результат из состояния партии — никакой отдельной «учебной» механики.
-  const [drill, setDrill] = useState<{ ex: CourseExercise; blockId: string; exam?: ExamCtx } | null>(null);
+  const [drill, setDrill] = useState<DrillContext | null>(null);
   const [drillVerdict, setDrillVerdict] = useState<{ ok: boolean } | null>(null);
   const recordedDrill = useRef<DebriefData | null>(null);
+  const activeRunRef = useRef<ActiveRun | null>(null);
   const recordedProgress = useRef<DebriefData | null>(null);
   // Sound layer: local mirror of the persisted mute flag drives the header
   // toggle's icon; the cues themselves read the flag live from lib/sound.
@@ -248,6 +261,17 @@ export default function App() {
   }, [nego.state?.status]);
   const t = I18N[lang];
 
+  const leaveSession = useCallback(() => {
+    nego.reset();
+    activeRunRef.current = null;
+    setDrill(null);
+    setDrillVerdict(null);
+    setLayersOpen(false);
+    setCurrentScenario(null);
+    dispatchGen("reset");
+    setGenErr(null);
+  }, [nego.reset]);
+
   // Apply theme to the document root (drives the CSS variables).
   useEffect(() => {
     const root = document.documentElement;
@@ -277,29 +301,27 @@ export default function App() {
   // shot before showing the box score. The player can skip the hold by pressing
   // the outcome strip's button, and the timer guarantees they never get stuck.
   useEffect(() => {
-    if (!nego.debrief) return;
+    if (screen !== "game" || !nego.debrief) return;
     const id = setTimeout(() => setScreen("debrief"), OUTCOME_HOLD_MS);
     return () => clearTimeout(id);
-  }, [nego.debrief]);
+  }, [nego.debrief, screen]);
 
   // Record every finished negotiation into the retention profile (any mode):
-  // best-only-if-improved, attempts++, day streak. Deduped per debrief object.
-  // Read fresh from storage before writing so the update is idempotent even if
-  // React batching replays this effect.
+  // best-only-if-improved, attempts++, day streak. The reducer also deduplicates
+  // a retransmitted final scorecard after resume.
   useEffect(() => {
     if (!nego.debrief) return;
     if (recordedProgress.current === nego.debrief) return;
     recordedProgress.current = nego.debrief;
     const scenarioId = nego.scenario?.id ?? currentScenario ?? "custom";
-    const res = applyDebrief(loadProfile(), scenarioId, nego.debrief);
-    saveProfile(res.profile);
-    setProfile(res.profile);
+    const res = applyDebrief(profileRef.current, scenarioId, nego.debrief);
+    commitProfile(res.profile);
     setLastGame(res);
     // Тем же разбором, из которого получился грейд, — и ОТДЕЛЬНО от профиля:
     // запись истории не имеет права ни изменить оценку, ни уронить партию, если
     // хранилище закрыто (внутри всё best-effort).
     appendHistory(scenarioId, nego.debrief);
-  }, [nego.debrief, nego.scenario, currentScenario]);
+  }, [nego.debrief, nego.scenario, currentScenario, commitProfile]);
 
   // След идущей партии: одно состояние на ход. Дедупликация по НОМЕРУ хода, а не
   // по ссылке: каждое сообщение сервера приносит новый объект состояния, и без
@@ -432,21 +454,16 @@ export default function App() {
     const d = nego.debrief;
     const total = campaign.stages.length;
     // Свёртка чистая и живёт в lib/progress; здесь остаётся только запись в
-    // профиль. Обновление функциональное: этот эффект идёт ПОСЛЕ того, что
-    // складывает XP и серию, и обязан класть акт поверх его результата.
-    setProfile((prev) => {
-      const next = recordCampaignStage(prev, campaignId, total, d.grade, d.overall);
-      saveProfile(next);
-      return next;
-    });
-  }, [mode, nego.debrief, campaign, campaignId]);
+    // профиль. Этот эффект идёт ПОСЛЕ записи XP и кладёт акт поверх неё.
+    commitProfile(recordCampaignStage(profileRef.current, campaignId, total, d.grade, d.overall));
+  }, [mode, nego.debrief, campaign, campaignId, commitProfile]);
 
   // Итог капстоуна снимается с ТОГО ЖЕ состояния, что и грейд: предикат смотрит
   // только в поля движка, поэтому «сдал» здесь значит ровно то же, что в партии.
   useEffect(() => {
     if (!drill || !nego.debrief || !nego.state) return;
     if (recordedDrill.current === nego.debrief) return;
-    recordedDrill.current = nego.debrief;
+    const debrief = nego.debrief;
     const state = nego.state;
     const ex = drill;
     // БАНК УПРАЖНЕНИЙ ГРУЗИТСЯ ЗДЕСЬ, А НЕ НА ГЛАВНОЙ. Три обращения — предикат
@@ -457,31 +474,29 @@ export default function App() {
     // если нет — эта же секунда всё равно уходит на разбор.
     let alive = true;
     void import("./lib/courseExam").then(({ checkDrill, noteCapstone, COURSE_MASTER, MASTER_PASS_MARK }) => {
-      if (!alive) return;
+      if (!alive || recordedDrill.current === debrief) return;
+      recordedDrill.current = debrief;
       const verdict = checkDrill(ex.ex, state);
       setDrillVerdict({ ok: verdict.ok });
       // Экзамен блока записывает СЕБЯ САМ — на своём экране итога
       // (CourseScreen.ExamRunner). Отсюда уходит только результат партии:
       // счёт, разбор промахов и урок восстановления живут там, где их видно.
       if (ex.exam) noteCapstone(ex.ex.id, verdict.ok);
-      setProfile((prev) => {
-        let next = ex.exam
-          ? prev
-          : recordExercise(prev, ex.blockId, ex.ex.id, ex.ex.xp, verdict.ok).profile;
-        // Экзамен мастера считается по числу СДАННЫХ партий: две из трёх и он
-        // закрыт. Отдельной попытки не заводим — переигрывать можно любую.
-        if (ex.blockId === MASTER_ID) {
-          const solved = next.course[MASTER_ID]?.solved.length ?? 0;
-          if (solved >= MASTER_PASS_MARK && !next.course[MASTER_ID]?.passed) {
-            next = recordExam(next, MASTER_ID, solved, COURSE_MASTER.length, MASTER_PASS_MARK).profile;
-          }
+      let next = ex.exam
+        ? profileRef.current
+        : recordExercise(profileRef.current, ex.blockId, ex.ex.id, ex.ex.xp, verdict.ok).profile;
+      // Экзамен мастера считается по числу СДАННЫХ партий: две из трёх и он
+      // закрыт. Отдельной попытки не заводим — переигрывать можно любую.
+      if (ex.blockId === MASTER_ID) {
+        const solved = next.course[MASTER_ID]?.solved.length ?? 0;
+        if (solved >= MASTER_PASS_MARK && !next.course[MASTER_ID]?.passed) {
+          next = recordExam(next, MASTER_ID, solved, COURSE_MASTER.length, MASTER_PASS_MARK).profile;
         }
-        saveProfile(next);
-        return next;
-      });
+      }
+      commitProfile(next);
     });
     return () => { alive = false; };
-  }, [drill, nego.debrief, nego.state]);
+  }, [drill, nego.debrief, nego.state, commitProfile]);
 
   // Куда именно ведёт кнопка курса: первый незакрытый урок, а не «в курс».
   const courseNext = useMemo(
@@ -495,10 +510,11 @@ export default function App() {
   // Разминка перед актом кампании: блок курса, из которого берутся задания.
   const [warmupBlock, setWarmupBlock] = useState<string | null>(null);
   const openCourse = useCallback((at: { blockId: string; lesson: number | null } | null) => {
+    leaveSession();
     setCourseStart(at);
     setScreen("course");
     scrollTop();
-  }, []);
+  }, [leaveSession]);
 
   const coursePassed = useMemo(
     () => COURSE_BLOCKS.filter((b) => profile.course[b.id]?.passed).length,
@@ -550,7 +566,12 @@ export default function App() {
    * экзамен.
    */
   const launch = useCallback(
-    (scenarioId: string, m: Mode, opts?: { daily?: string; reputation?: number; fixedOff?: boolean }) => {
+    (scenarioId: string, m: Mode, opts?: LaunchOptions) => {
+      activeRunRef.current = { scenarioId, mode: m, options: opts };
+      setCurrentScenario(scenarioId);
+      setDrill(opts?.drill ?? null);
+      setDrillVerdict(null);
+      recordedDrill.current = null;
       const use = sessionLayers(m, layerPrefs, layerStates, opts?.fixedOff);
       setActiveLayers(use);
       setActiveDaily(opts?.daily);
@@ -639,16 +660,13 @@ export default function App() {
   const startDrill = useCallback(
     (ex: CourseExercise, ctx: { blockId: string; exam?: ExamCtx }) => {
       if (!ex.scenario_id) return;
-      setDrill({ ex, blockId: ctx.blockId, exam: ctx.exam });
-      setDrillVerdict(null);
-      recordedDrill.current = null;
       // Экран — обычная тренировка (разбор капстоуна не сертификат), а партия
       // идёт режимом "drill": по нему СЕРВЕР гасит семантического судью и слои.
       // Вердикт капстоуна доказан прогоном движка, значит и получен обязан
       // быть им же (docs/judge-reproducibility.md).
       setMode("practice");
       setCurrentScenario(ex.scenario_id);
-      launch(ex.scenario_id, "drill", { fixedOff: true });
+      launch(ex.scenario_id, "drill", { fixedOff: true, drill: { ex, ...ctx } });
     },
     [launch],
   );
@@ -656,11 +674,9 @@ export default function App() {
   const backToCourse = useCallback(() => {
     // Возврат ведёт туда, откуда пришли: экзамен мастера — свой экран, иначе карта.
     setCourseStart(drill?.blockId === MASTER_ID ? { blockId: MASTER_ID, lesson: null } : null);
-    setDrill(null);
-    setDrillVerdict(null);
-    nego.reset?.();
+    leaveSession();
     setScreen("course");
-  }, [drill, nego]);
+  }, [drill, leaveSession]);
 
 
   /** "прочитано n из m" — answered-correctly over asked. Counted from the log,
@@ -702,15 +718,18 @@ export default function App() {
     }
     if (screen !== "game" || !currentScenario) return;
     if ((nego.state?.turn ?? 0) > 0 || nego.debrief) return;
-    const useNow = sessionLayers(mode, use, layerStates, !!drill);
+    const useNow = sessionLayers(mode, use, layerStates, !!activeRunRef.current?.options?.fixedOff);
     const same = (Object.keys(useNow) as LayerId[]).every((k) => useNow[k] === activeLayers[k]);
     if (same) return; // нечего менять — и незачем рвать сессию
     setActiveLayers(useNow);
-    nego.start(currentScenario, mode, undefined, undefined, useNow, activeDaily);
+    const run = activeRunRef.current;
+    if (!run) return;
+    nego.start(run.scenarioId, run.mode, undefined, run.options?.reputation, useNow, run.options?.daily);
   }, [layerStates, screen, currentScenario, nego, mode, drill, activeLayers, activeDaily]);
 
   const startCustom = useCallback(() => {
     if (!situation.trim()) return;
+    leaveSession();
     setCurrentScenario(null);
     setGenErr(null);
     setActiveLayers(NO_LAYERS); // своя сделка идёт без слоёв — сравнимость та же
@@ -719,11 +738,12 @@ export default function App() {
     // dispatch drives the screen → "generating" (see the gen-phase effect above).
     dispatchGen("start");
     scrollTop();
-  }, [nego, situation, customContext]);
+  }, [nego, situation, customContext, leaveSession]);
 
   // gen_error fallback: abandon the custom generation and jump to the ready-made
   // scenario picker (practice mode) so a failed generation is never a dead end.
   const pickReadyScenario = useCallback(() => {
+    leaveSession();
     dispatchGen("reset");
     setGenErr(null);
     nego.clearError();
@@ -732,7 +752,7 @@ export default function App() {
     requestAnimationFrame(() => {
       scrollTo(document.getElementById("play"), { block: "start" });
     });
-  }, [nego]);
+  }, [nego, leaveSession]);
 
   // Launch the current campaign act, carrying the running reputation into it. If
   // the arc is already finished, jump to the summit summary instead.
@@ -751,26 +771,22 @@ export default function App() {
   // Debrief → advance: back to the arc overview (progress already recorded), or
   // to the summit summary after the final act.
   const nextAct = useCallback(() => {
-    nego.reset();
+    leaveSession();
     const total = campaign?.stages.length ?? 0;
     setScreen(progress.stageIndex >= total ? "campaign_done" : "home");
     scrollTop();
-  }, [nego, campaign, progress.stageIndex]);
+  }, [leaveSession, campaign, progress.stageIndex]);
 
   const replayCampaign = useCallback(() => {
     // Обнуляется ОДНА кампания: вторая — отдельная история с отдельным прогрессом.
     if (campaignId) {
-      setProfile((prev) => {
-        const next = resetCampaign(prev, campaignId);
-        saveProfile(next);
-        return next;
-      });
+      commitProfile(resetCampaign(profileRef.current, campaignId));
     }
     recordedDebrief.current = null;
-    nego.reset();
+    leaveSession();
     setScreen("home");
     scrollTop();
-  }, [nego, campaignId]);
+  }, [leaveSession, campaignId, commitProfile]);
 
   // Switching modes clears a stale generation error from the custom view.
   const selectMode = useCallback(
@@ -783,42 +799,48 @@ export default function App() {
 
   /** Почему тумблеры заперты — или null, если их можно трогать. */
   const layersLock =
-    mode !== "practice" || drill ? t.layers.lockedMode
+    mode !== "practice" || drill || activeRunRef.current?.options?.fixedOff ? t.layers.lockedMode
     : screen === "game" && ((nego.state?.turn ?? 0) > 0 || nego.debrief) ? t.layers.lockedStarted
     : null;
 
   const goHome = useCallback(() => {
-    setLayersOpen(false);
-    dispatchGen("reset");
-    setGenErr(null);
-    nego.reset();
+    leaveSession();
     setScreen("home");
     scrollTop();
-  }, [nego]);
+  }, [leaveSession]);
 
   const openProfile = useCallback(() => {
+    leaveSession();
     setScreen("profile");
     scrollTop();
-  }, []);
+  }, [leaveSession]);
 
-  // Customizable daily goal: persist the chosen target (1..3). Read fresh from
-  // storage so we never clobber a concurrently-recorded debrief's fields.
+  const openAdmin = useCallback(() => {
+    leaveSession();
+    setScreen("admin");
+    scrollTop();
+  }, [leaveSession]);
+  const startAdmin = useCallback((id: string) => {
+    setMode("practice");
+    dispatchGen("reset");
+    launch(id, "practice", { fixedOff: true, source: "admin" });
+  }, [launch]);
+
+  // Customizable daily goal: use the latest profile including unrendered writes.
   const setGoalTarget = useCallback((target: number) => {
-    const next = setDailyGoalTarget(loadProfile(), target);
-    saveProfile(next);
-    setProfile(next);
-  }, []);
+    commitProfile(setDailyGoalTarget(profileRef.current, target));
+  }, [commitProfile]);
 
   // Mobile hero CTA: bring the opponent picker into view (it sits just below the
   // hero on the same home screen). Reduced-motion callers still land there.
 
   const retry = useCallback(() => {
-    // Переподключение обязано вернуть ТУ ЖЕ партию: со «столом дня» и с
-    // погашенными слоями капстоуна, а не «похожую».
     if (mode === "custom") startCustom();
-    else if (currentScenario) launch(currentScenario, drill ? "drill" : mode,
-                                     { daily: activeDaily, fixedOff: !!drill });
-  }, [mode, currentScenario, launch, startCustom, activeDaily, drill]);
+    else {
+      const run = activeRunRef.current;
+      if (run) launch(run.scenarioId, run.mode, run.options);
+    }
+  }, [mode, launch, startCustom]);
 
   /** Прошлая партия, переигранная движком ход за ходом. Пересчёт только при
    *  смене соперника: движок — чистая функция, от времени результат не зависит.
@@ -859,9 +881,10 @@ export default function App() {
       <a className="skip" href="#main">{t.a11y.skip}</a>
       <SideNav
         t={t}
-        active={screen === "profile" ? "profile" : screen === "course" ? "course" : mode}
+        active={screen === "admin" ? "admin" : screen === "profile" ? "profile" : screen === "course" ? "course" : mode}
         onMode={(m) => { selectMode(m); if (screen !== "home") goHome(); }}
         onProfile={openProfile}
+        onAdmin={openAdmin}
         onCourse={() => openCourse(null)}
       />
       {/* `playing` включает заполнение окна: за столом высоту раздаёт флекс, а
@@ -872,10 +895,10 @@ export default function App() {
         {/* Живые счётчики так, как их показывает игра. */}
         <div className="hudstats" aria-label={t.a11y.stats}>
           <span className="st-c" title={t.streakLabel.replace("{n}", String(profile.streak))}>
-            <b aria-hidden="true">🔥</b> {profile.streak}
+            <b aria-hidden="true"><Icon name="flame" /></b> {profile.streak}
           </span>
           <span className="st-c">
-            <b aria-hidden="true">💎</b> {profile.xp} XP
+            <b aria-hidden="true"><Icon name="gem" /></b> {profile.xp} XP
           </span>
         </div>
         <div className="brand">
@@ -903,7 +926,7 @@ export default function App() {
               aria-label={isDark ? t.a11y.themeDark : t.a11y.themeLight}
               aria-pressed={isDark}
             >
-              {isDark ? "☀" : "◐"}
+              <Icon name={isDark ? "sun" : "moon"} />
             </button>
           </div>
           <div className="seg">
@@ -912,7 +935,7 @@ export default function App() {
               aria-label={muted ? t.sound.unmute : t.sound.mute}
               aria-pressed={muted}
             >
-              {muted ? "🔇" : "🔊"}
+              <Icon name={muted ? "mute" : "sound"} />
             </button>
           </div>
         </div>
@@ -1053,43 +1076,46 @@ export default function App() {
         </section>
       )}
 
-      {screen === "game" && scenario && (
+      {screen === "game" && (
         <>
           {/* Mid-game connection health. "reconnecting" is a calm, non-blocking
               banner; "lost" degrades to a small panel offering a restart (which
               reconnects to the backend, or continues on the offline demo) or home.
               Progress/profile are already persisted, so neither loses the player's
               standing — only the in-flight server session. */}
-          {nego.conn === "reconnecting" ? (
+          {scenario && (nego.conn === "reconnecting" || nego.conn === "connecting") ? (
             <div className="conn-banner" role="status">
               <span className="conn-spin" aria-hidden="true" />
               <span>{t.conn.reconnecting}</span>
             </div>
           ) : null}
-          {nego.conn === "lost" ? (
-            <div className="conn-lost" role="alert">
+          {nego.conn === "lost" || (!scenario && nego.error) ? (
+            <div className={`conn-lost${scenario ? "" : " conn-lost--initial"}`} role="alert">
               {/* Карл без реплики: строки ниже — сообщение продукта, а не его
                   слова, и подписывать их его именем было бы выдумкой. Он даёт
                   им лицо, и только. */}
               <div className="karl-note">
                 <Karl state="concern" compact name={t.mascot.karl} alt={t.mascot.alt} />
                 <div className="conn-lost-body">
-                  <b>{t.conn.lostTitle}</b>
-                  <span>{t.conn.lostBody}</span>
+                  {scenario ? <b>{t.conn.lostTitle}</b> : <ScreenHeading as="h1">{t.conn.startFailed}</ScreenHeading>}
+                  <span>{nego.error || (scenario ? t.conn.lostBody : t.conn.startFailedBody)}</span>
                 </div>
               </div>
               <div className="conn-lost-actions">
                 <button className="primary" onClick={retry}>{t.conn.retry}</button>
-                <button className="ghost" onClick={goHome}>{t.conn.home}</button>
+                <button className="ghost" onClick={activeRunRef.current?.options?.source === "admin" ? openAdmin : goHome}>
+                  {activeRunRef.current?.options?.source === "admin" ? t.nav.admin : t.conn.home}
+                </button>
               </div>
             </div>
           ) : null}
-          <LazyScreen lang={lang} load={loadTable} onHome={goHome} render={(Table) => (
+          {scenario ? <LazyScreen lang={lang} load={loadTable} onHome={goHome} render={(Table) => (
           <Table
             t={t}
             lang={lang}
             mode={mode}
             kind={nego.kind}
+            conn={nego.conn}
             scenario={scenario}
             state={nego.state}
             log={nego.log}
@@ -1125,12 +1151,12 @@ export default function App() {
             onProbeAnswer={activeLayers.probe ? nego.answerProbe : undefined}
             onSeeDebrief={() => setScreen("debrief")}
           />
-          )} />
+          )} /> : null}
           {/* Панель «вы тогда · вы сейчас». Портал в <body> по той же причине,
               что и шторка слоёв: экран партии держит собственный transform и
               стал бы опорой для `position: fixed`. Стол при этом не трогается
               вовсе — сравнение это надстройка, а не часть игры. */}
-          {showRival && rival && rivalTrail ? createPortal(
+          {showRival && scenario && rival && rivalTrail ? createPortal(
             <LazyScreen lang={lang} load={loadRematchRail} silent render={(RematchRail) => (
             <RematchRail
               t={t}
@@ -1149,7 +1175,7 @@ export default function App() {
         </>
       )}
 
-      {screen === "game" && !nego.scenario && (
+      {screen === "game" && !nego.scenario && nego.conn !== "lost" && !nego.error && (
         <section className="screen">
           <div className="wrap">
             {/* Пустой экран ожидания сессии: строка та же, но ждёт её теперь
@@ -1282,11 +1308,17 @@ export default function App() {
           t={t}
           lang={lang}
           profile={profile}
-          onProfile={(p) => { setProfile(p); saveProfile(p); }}
+          onProfile={commitProfile}
           blockId={warmupBlock}
           onDone={() => { setWarmupBlock(null); beginStage(); }}
           onSkip={() => { setWarmupBlock(null); setScreen("home"); }}
         />
+        )} />
+      )}
+
+      {screen === "admin" && (
+        <LazyScreen lang={lang} load={loadAdmin} onHome={goHome} render={(AdminScenarioScreen) => (
+          <AdminScenarioScreen lang={lang} onExit={goHome} onLaunch={startAdmin} />
         )} />
       )}
 
@@ -1296,7 +1328,7 @@ export default function App() {
           t={t}
           lang={lang}
           profile={profile}
-          onProfile={(p) => { setProfile(p); saveProfile(p); }}
+          onProfile={commitProfile}
           onStartDrill={startDrill}
           onExit={goHome}
           startAt={courseStart}

@@ -36,7 +36,7 @@ export function synthCampaigns(lang: Lang): CampaignView[] {
         act: st.act[lang],
         intro: st.intro[lang],
         title: def ? def.title[lang] : st.scenario_id,
-        icon: def ? def.icon : "🎯",
+        icon: def ? def.icon : "target",
         difficulty: def ? def.diff : 3,
       };
     }),

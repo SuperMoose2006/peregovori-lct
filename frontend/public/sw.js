@@ -9,13 +9,16 @@
 //
 // The API/WebSocket turn-protocol is NEVER cached — the negotiation must always hit
 // the live backend (or the in-page mock), never a stale reply.
-const CACHE_VERSION = "dialog-v1";
+const CACHE_VERSION = "dialog-dev-shell";
+const PRECACHE = /* BUILD_PRECACHE */ [];
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((c) => c.addAll(SHELL)).catch(() => {}),
+    caches.open(CACHE_VERSION)
+      .then((c) => c.addAll([...new Set([...SHELL, ...PRECACHE])]))
+      // An incomplete install never replaces the last working offline version.
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -23,7 +26,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("dialog-") && k !== CACHE_VERSION).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -35,7 +38,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // leave cross-origin alone
   // Never touch the live turn-protocol (REST + WebSocket) — always the network.
-  if (url.pathname.startsWith("/api") || url.pathname.startsWith("/ws")) return;
+  if (url.pathname.startsWith("/api") || url.pathname.startsWith("/ws") || url.pathname.startsWith("/v1/realtime")) return;
   // Dev-server internals (Vite HMR, raw source modules) must never be cached, or a
   // reload would serve stale JS. Harmless in prod (these paths don't exist there).
   if (
@@ -52,8 +55,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put("/index.html", copy)).catch(() => {});
+          if (res.ok && (res.headers.get("content-type") || "").includes("text/html")) {
+            const copy = res.clone();
+            caches.open(CACHE_VERSION).then((c) => c.put("/index.html", copy)).catch(() => {});
+          }
           return res;
         })
         .catch(() => caches.match("/index.html").then((r) => r || caches.match("/"))),

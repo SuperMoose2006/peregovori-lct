@@ -106,8 +106,8 @@ export function synthCustomScenario(situation: string, lang: Lang, context?: Sce
 
   return {
     id: "custom_mock",
-    icon: "🎯",
-    face: "🧑‍💼",
+    icon: "target",
+    face: "person",
     diff: context?.difficulty ?? 3,
     dir: kind.dir,
     title,

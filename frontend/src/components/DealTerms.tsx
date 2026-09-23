@@ -6,6 +6,7 @@
 // issues (the parent also guards), so non-logrolling scenarios are unaffected.
 import type { ScenarioView, StateView } from "../types";
 import type { Strings } from "../i18n";
+import { Icon } from "./Icon";
 
 interface Props {
   scenario: ScenarioView;
@@ -20,7 +21,7 @@ export function DealTerms({ scenario, state, t }: Props) {
 
   return (
     <div className="dealterms">
-      <div className="dtm-head">🔄 {t.terms.title}</div>
+      <div className="dtm-head"><Icon name="refresh" /> {t.terms.title}</div>
       <ul className="dtm-list">
         {issues.map((iss) => {
           const traded = conceded.has(iss.id);

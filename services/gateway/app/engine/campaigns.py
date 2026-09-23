@@ -82,7 +82,7 @@ def epilogue_key(reputation: float | None) -> str:
 CAMPAIGNS: list[Campaign] = [
     Campaign(
         id="career",
-        icon="🧗",
+        icon="climb",
         title={"ru": "Восхождение", "en": "The Climb"},
         tagline={
             "ru": "Пройдите путь от junior до фаундера — четыре переговорки, и репутация тянется за вами.",
@@ -164,7 +164,7 @@ CAMPAIGNS: list[Campaign] = [
     ),
     Campaign(
         id="own_shop",
-        icon="🛠",
+        icon="tools",
         title={"ru": "Своё дело", "en": "On Your Own"},
         tagline={
             "ru": "Первый клиент, машина, студия и контракт, который держит всё. "

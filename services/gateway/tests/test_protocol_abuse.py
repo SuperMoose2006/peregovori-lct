@@ -630,8 +630,8 @@ def fake_voice(monkeypatch):
     holder: list[_FakeVoice] = []
     real_wire = endpoint._wire
 
-    def wire(session):
-        orchestrator, _voice, vision = real_wire(session)
+    def wire(session, **kwargs):
+        orchestrator, _voice, vision = real_wire(session, **kwargs)
         voice = _FakeVoice()
         holder.append(voice)
         return orchestrator, voice, vision

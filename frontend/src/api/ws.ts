@@ -87,17 +87,28 @@ export function createTransport(
   const status = onStatus ?? (() => {});
 
   let decided = false;
+  let closed = false;
   let inner: Transport | null = null;
+  let probe: AbortController | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const early: ClientMsg[] = [];
+  status("connecting");
 
   // Публичный прокси: копит отправки, пока транспорт не выбран.
   const proxy: Required<Transport> = {
     send(msg) {
-      if (inner) inner.send(msg);
-      else early.push(msg);
+      if (closed) return false;
+      if (inner) return inner.send(msg);
+      if (decided || msg.type !== "start") return false;
+      early.push(msg);
+      return true;
     },
     close() {
+      closed = true;
       decided = true;
+      probe?.abort();
+      clearTimeout(timer);
+      early.length = 0;
       inner?.close();
     },
     // Прокси обязан пробрасывать всё, что появилось на выбранном транспорте:
@@ -110,6 +121,17 @@ export function createTransport(
 
   const adopt = (transport: Transport, kind: TransportKind) => {
     if (decided) return;
+    const adminStart = early.find((msg) => msg.type === "start" && msg.scenarioId.startsWith("admin_"));
+    if (kind === "mock" && adminStart?.type === "start") {
+      decided = true;
+      transport.close();
+      early.length = 0;
+      onMessage({ type: "error", message: adminStart.lang === "en"
+        ? "This scenario needs the server. Reconnect or return to the editor."
+        : "Для этого сценария нужен сервер. Восстановите связь или вернитесь в редактор." });
+      status("lost");
+      return;
+    }
     decided = true;
     inner = transport;
     onKind(kind);
@@ -121,12 +143,12 @@ export function createTransport(
   // Офлайн-ядро: без сервера продукт остаётся играбельным целиком.
   const goMock = () => {
     if (decided) return;
-    if (mockDisabled()) { status("lost"); return; }
+    if (mockDisabled()) { decided = true; status("lost"); return; }
     withDeadline(import("../mock/mockServer"))
       .then((m) => { if (!decided) adopt(new m.MockServer(onMessage), "mock"); })
       // Не доехало и офлайн-ядро — играть не на чем, и сказать об этом надо
       // словами: «lost» рисует панель с переподключением, а не пустой стол.
-      .catch(() => status("lost"));
+      .catch(() => { if (!closed) status("lost"); });
   };
 
   if (mockForced()) {
@@ -137,8 +159,8 @@ export function createTransport(
   // Проба сервера REST-ом, а не сокетом: дешевле, и — главное — не занимает
   // realtime-сессию впустую. Сокет realtime-транспорта открывается один раз,
   // сразу под партию, а не «на разведку и заново».
-  const probe = new AbortController();
-  const timer = setTimeout(() => probe.abort(), OPEN_TIMEOUT_MS);
+  probe = new AbortController();
+  timer = setTimeout(() => probe?.abort(), OPEN_TIMEOUT_MS);
 
   // Адрес — через `api/backend.ts`: на разнесённом развёртывании это уже не
   // «тот же origin», а вписанный на сборке. Промах пробы значит ровно то же,
