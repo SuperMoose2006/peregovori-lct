@@ -1,0 +1,54 @@
+{
+  "date": "2026-09-25",
+  "base_revision": "b80abda",
+  "logs": {
+    "deep-backend-baseline": {
+      "log": "tmp/deep-backend-baseline.log",
+      "sha256": "574405791a32225095c5d3132aaac875a2ace06f479f37408479e0c4b12dcea0"
+    },
+    "deep-frontend-baseline": {
+      "log": "tmp/deep-frontend-baseline.log",
+      "sha256": "31f059f0e1917b87be89947284b83a899dd141d969b7dc268786559ebb309eb4"
+    },
+    "deep-frontend-after": {
+      "log": "tmp/deep-frontend-after.log",
+      "sha256": "e79643b18fc61f0b585ba4bd36dde2675f083d0cfff724b11c0c2228e1a25453"
+    },
+    "deep-transport-before": {
+      "log": "tmp/deep-transport-before.log",
+      "sha256": "74519ae1c10507bd459f2b8bd301c6ddea9adb60b4a1d750e78effec1152852c"
+    },
+    "deep-transport-after": {
+      "log": "tmp/deep-transport-after.log",
+      "sha256": "871b89d68555a12b946fbcbfa97c90dd9b66c49656348eb862e2e4ae60113a33"
+    },
+    "deep-transport-mutation": {
+      "log": "tmp/deep-transport-mutation.log",
+      "sha256": "74519ae1c10507bd459f2b8bd301c6ddea9adb60b4a1d750e78effec1152852c"
+    },
+    "deep-rehearsal": {
+      "log": "tmp/deep-rehearsal.log",
+      "sha256": "582c38a4f9a9497678a7b93c898c31a1edf5997e9342e8cfccfc417d16c26fc3"
+    },
+    "deep-rehearsal-repeat": {
+      "log": "tmp/deep-rehearsal-repeat.log",
+      "sha256": "c35fab7943e6a66386a09a481fcfff788203eb188987745986a706a6d377e705"
+    },
+    "deep-transport-contract": {
+      "log": "tmp/deep-transport-contract.log",
+      "sha256": "7b2070dfe1b943d3838dfb0175c9399eee21ae76b3eed5b15cfdcca905fb46ce"
+    },
+    "deep-attestation": {
+      "log": "tmp/deep-attestation.log",
+      "sha256": "93a52eac608cc2ede638899bb210da8a15b6bd4620d0bf023e2ce6373a739eb2"
+    },
+    "deep-wait": {
+      "log": "tmp/deep-wait.log",
+      "sha256": "a05bba8c9992deab469550e96e8914076f1f91c926035550f39a5920b68b50bf"
+    },
+    "deep-avatar": {
+      "log": "tmp/deep-avatar.log",
+      "sha256": "8d058bbaf0954641a4cc08b4bc2eb3f508379e9daaa06db530bfa9262d961906"
+    }
+  }
+}

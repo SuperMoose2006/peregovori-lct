@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 const root = resolve(import.meta.dirname, '..');
 const out = resolve(root, '../tmp/rehearsal'+(process.argv.includes('--live')?'-live':'-offline'));
 mkdirSync(out, { recursive: true });
-const server = await createServer({root, server:{host:'127.0.0.1', port:15209, strictPort:true, proxy:{'/api':process.env.AUDIT_API ?? 'http://127.0.0.1:18208','/v1/realtime':{target:'ws://127.0.0.1:18208',ws:true}}},
+const server = await createServer({root, optimizeDeps:{entries:['src/main.tsx','src/realtime/vendor/media-provider.ts']}, server:{host:'127.0.0.1', port:15209, strictPort:true, proxy:{'/api':process.env.AUDIT_API ?? 'http://127.0.0.1:18208','/v1/realtime':{target:'ws://127.0.0.1:18208',ws:true}}},
   plugins:[{name:'rehearsal-actions', enforce:'pre', transform(code,id){
     if (id === root+'/src/App.tsx') {
       assert.equal([...code.matchAll(/^  return \(/gm)].length,1);

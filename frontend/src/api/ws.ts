@@ -60,24 +60,9 @@ function mockDisabled(): boolean {
   return import.meta.env.VITE_MOCK === "0";
 }
 
-export interface CreatedTransport {
-  transport: Transport;
-  kind: TransportKind;
-}
-
-// Attempts a real WS connection; if it doesn't open within OPEN_TIMEOUT_MS
-// (backend not running) it swaps in the MockServer so the UI still works.
-// onStatus (optional) reports live connection health AFTER the WS is chosen — a
-// mid-game drop drives "reconnecting" → "online" (recovered) or "lost" (gave up).
-//
-// ROBUSTNESS INVARIANT (item 7): the mock fallback is INITIAL-CONNECT ONLY. It can
-// fire solely while `decided === false` — and `decided` flips true the instant the
-// socket opens (`ws.onopen` → useWs). So a slow/failed PER-TURN opponent or judge
-// response on an ALREADY-CONNECTED session never triggers useMock: the socket stays
-// open (no drop event), the "demo mode (no server)" banner never appears, judge_active
-// stays as the greeting set it, and the typing indicator holds. Only a real socket
-// close/error mid-session engages LiveWsTransport's reconnect path (a distinct
-// "reconnecting" banner), never the mock swap.
+// Probe backend health, then choose realtime or the local engine once.
+// Only initial selection may fall back. After adoption, realtime owns reconnects;
+// a slow turn or a dropped connection never changes the selected engine.
 export function createTransport(
   onMessage: ServerMsgHandler,
   onKind: (kind: TransportKind) => void,
@@ -126,7 +111,7 @@ export function createTransport(
       .then((m) => { if (!decided) adopt(new m.MockServer(onMessage), "mock"); })
       // Не доехало и офлайн-ядро — играть не на чем, и сказать об этом надо
       // словами: «lost» рисует панель с переподключением, а не пустой стол.
-      .catch(() => status("lost"));
+      .catch(() => { if (!decided) status("lost"); });
   };
 
   if (mockForced()) {
