@@ -136,7 +136,14 @@ async def judge_turn(context: str, player_text: str, lang: str = "ru",
                                 temperature=JUDGE_TEMPERATURE, raw=True),
                 timeout=remaining,
             )
-        except (asyncio.TimeoutError, asyncio.CancelledError):
+        except asyncio.CancelledError:
+            # ОТМЕНА — НЕ «СУДЬЯ НЕ УСПЕЛ». Её присылает уход сокета или
+            # вытеснение, и ход обязан остановиться ДО `apply_move`. Здесь она
+            # стояла в одной скобке с таймаутом и превращалась в None: движок
+            # применял ход с keyword-баллом уже после того, как партию отменили,
+            # и счёт зависел от того, в какую миллисекунду оборвалась связь.
+            raise
+        except asyncio.TimeoutError:
             return None
         except Exception:
             return None
