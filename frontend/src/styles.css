@@ -3944,3 +3944,86 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Значок, стоящий вместо крупного эмодзи (карточки слоёв, шапки экранов),
    держит прежний кегль — иначе вся вёрстка вокруг съедет. */
 .ly-ic .ico, .cp-ic .ico, .camp-ic .ico, .ach-ic .ico, .badge-ic .ico { width: 1em; height: 1em; }
+
+/* ---------- Встреча с крупным собеседником (MeetingStage) ----------
+   Тренировка с голосом: собеседник крупно, над шкалами и лентой. Сцена тёмная
+   В ОБЕИХ темах — это окно разговора, как у видеозвонка: белый текст на ней
+   читается с запасом, а лицо не спорит с интерфейсом вокруг. Всё прочее на
+   столе остаётся где было — шкалы, цена, лента, композер. */
+.meeting { display: flex; flex-direction: column; gap: 10px; padding: 12px 12px 10px;
+  border-bottom: 2px solid var(--line); background: var(--panel); }
+.mt-stage { position: relative; display: grid; place-items: center; overflow: hidden;
+  height: clamp(240px, 36vh, 380px); border-radius: var(--r);
+  background: radial-gradient(120% 90% at 50% 18%, #3b4b53 0%, #1b262b 72%); }
+.mt-face { height: calc(100% - 24px); aspect-ratio: 1; }
+.mt-face .face { width: 100%; height: 100%; border-radius: 16px; overflow: hidden; background: #26333a; }
+/* Рисованный портрет получает размер инлайном (Avatar.tsx) — во встрече его
+   задаёт сцена, иначе он застывал бы на 280 px при любой высоте окна. */
+.mt-face .face .av-svg { width: 100% !important; height: 100% !important; }
+.mt-face .face__img { width: 100%; height: 100%; object-fit: cover; }
+.meeting[data-status="reconnecting"] .mt-face,
+.meeting[data-status="lost"] .mt-face { filter: grayscale(1) brightness(0.6); }
+.mt-who { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 2px; max-width: calc(50% - 24px - min(18vh, 170px)); color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / 55%); }
+.mt-who b { font-size: 17px; font-weight: 900; line-height: 1.2; }
+.mt-who span { max-width: 100%; font-size: 13px; font-weight: 700; opacity: 0.9;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mt-status { position: absolute; right: 12px; top: 12px; display: inline-flex; align-items: center; gap: 8px;
+  max-width: 50%; padding: 6px 12px; border-radius: 999px; background: rgb(0 0 0 / 60%); color: #fff;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.mt-status i { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #afafaf; }
+.mt-status.speaking i { background: #58cc02; animation: mtpulse 1.2s ease-in-out infinite; }
+.mt-status.hearing i { background: #1cb0f6; }
+.mt-status.thinking i { background: #ffc800; }
+.mt-status.reconnecting i, .mt-status.lost i { background: #ff4b4b; }
+@keyframes mtpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+/* Стенд обязан быть подписан как стенд — плашка на самом кадре, не в сноске. */
+.mt-who .mt-test { margin-top: 6px; padding: 3px 8px; border-radius: 8px; opacity: 1; text-shadow: none;
+  white-space: normal;
+  background: #ffc800; color: #3c3c3c; font-size: 11px; font-weight: 900; letter-spacing: 0.04em;
+  text-transform: uppercase; }
+.mt-sub { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+  width: max-content; max-width: min(92%, 640px); margin: 0; padding: 8px 14px; border-radius: 12px;
+  background: rgb(0 0 0 / 74%); color: #fff; font-size: 16px; font-weight: 700; line-height: 1.4; text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mt-sound { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 12px 20px;
+  border-radius: 16px; background: var(--brass); color: var(--on-brass); border-bottom: 4px solid var(--edge);
+  font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; }
+.mt-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.mt-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px;
+  border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 14px; background: var(--panel);
+  color: var(--ink); font-size: 14px; font-weight: 800; transition: background-color 0.15s; }
+.mt-btn .ico { font-size: 18px; }
+.mt-btn:hover:not(:disabled) { background: var(--panel-2); }
+.mt-btn:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
+.mt-btn:disabled { opacity: 0.5; cursor: default; }
+.mt-btn.off { background: var(--bad-bg); border-color: var(--red); color: var(--bad-ink); }
+.mt-btn.cut { background: var(--sel-bg); border-color: var(--sel-line); color: var(--sel-ink); }
+.mt-btn.end { color: var(--tension-ink); }
+.mt-nomic { align-self: center; font-size: 13px; color: var(--ink-dim); }
+.opp-card.in-meeting { padding: 12px 14px; }
+
+/* На узком экране листается СТРАНИЦА, и фокус в поле ввода уводил сцену за
+   верхний край — человек отвечал собеседнику, которого не видел. Сцена
+   прилипает к верху, пока лента и композер уезжают под неё. Обрезка у
+   карточки чата снимается: иначе она стала бы опорой прилипания. */
+@media (max-width: 860px) {
+  /* `min-width: 0` обязателен: без обрезки элемент сетки берёт ширину по
+     самому широкому ребёнку (полоса быстрых приёмов не переносится), и
+     страница уезжает вбок. Обрезка раньше делала это молча. */
+  .chat.with-meeting { overflow: visible; min-width: 0; }
+  .chat.with-meeting .meeting { position: sticky; top: 0; z-index: 6; border-radius: var(--r) var(--r) 0 0; }
+}
+@media (max-width: 640px) {
+  .meeting { padding: 8px; gap: 8px; }
+  .mt-stage { height: 30vh; min-height: 200px; }
+  .mt-who .mt-test { font-size: 10px; padding: 2px 6px; }
+  .mt-who b { font-size: 15px; }
+  .mt-who { max-width: 46%; }
+  .mt-who > span:not(.mt-test) { display: none; }
+  .mt-sub { font-size: 15px; }
+  /* Четыре кнопки в 390 px: на экране значки, подписи — диктору. */
+  .mt-btn { min-width: 48px; justify-content: center; padding: 8px 12px; }
+  .mt-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}

@@ -147,6 +147,8 @@ export class RealtimeTransport implements Transport {
   audioBlocked(): boolean { return this.player?.blocked ?? false; }
   /** Жест пользователя: разрешить браузеру играть звук. */
   resumeAudio(): void { this.player?.resume(); }
+  /** Выключить микрофон, не закрывая его: дорожка молчит, партия идёт. */
+  setMicMuted(muted: boolean): void { this.media?.setMicEnabled(!muted); }
 
   /** Перебивание с кнопки. Голосовое сервер замечает сам, через VAD. */
   interrupt(): void {

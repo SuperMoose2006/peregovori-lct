@@ -53,7 +53,7 @@ function App(){
    scenarioId:scenario,avatarState,state:null,exam:kind==='exam'||kind==='exam-missing',size:280,
    speaking:kind==='missing'||kind==='recover',
    speakingLabel:'Speaking',label:'Counterpart',getSpeechLevel:level,
-   amplitudeAnimation:kind==='voice'||kind==='live'||kind.startsWith('blink'),animationLabel:'Local amplitude animation'})));
+   renderer:(kind==='voice'||kind==='live'||kind.startsWith('blink'))?'amplitude':'portrait',animationLabel:'Local amplitude animation'})));
 }
 createRoot(document.getElementById('root')).render(React.createElement(App));
 window.endNegotiation=()=>{transport?.interrupt();transport?.send({type:"turn",text:"Согласен на вашу цену. Договорились."})};

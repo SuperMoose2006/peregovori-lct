@@ -912,6 +912,11 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         "cloud_ai": orchat.available(),
         "models": describe_models(),
         "avatar": {"available": False, "lipsync": False, "transport": "none"},
+        # Будет ли у ответа ЗВУК. `voice` выше повторяет лишь то, что голос
+        # просили; синтеза при этом может не быть (офлайн, нет ключа), и
+        # экран встречи, построенный вокруг звучащего собеседника, обязан это
+        # знать до первого хода. Тот же выбор, что у сборки партии.
+        "speech": bool(session.layers.voice) and make_tts() is not None,
     }
     if session.layers.avatar:
         caps = _make_avatar(session).capabilities()

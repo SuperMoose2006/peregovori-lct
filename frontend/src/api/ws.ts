@@ -118,6 +118,7 @@ export function createTransport(
     videoFrame: () => inner?.videoFrame?.() ?? null,
     audioBlocked: () => inner?.audioBlocked?.() ?? false,
     resumeAudio: () => inner?.resumeAudio?.(),
+    setMicMuted: (muted: boolean) => inner?.setMicMuted?.(muted),
     interrupt: () => inner?.interrupt?.(),
   };
 

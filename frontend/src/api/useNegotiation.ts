@@ -114,6 +114,7 @@ export interface Negotiation extends NegotiationState {
   /** Звук ответа пришёл, а браузер его держит — нужен жест пользователя. */
   getAudioBlocked: () => boolean;
   resumeAudio: () => void;
+  setMicMuted: (muted: boolean) => void;
   /** Оборвать реплику оппонента кнопкой. Голосом сервер перебивает сам. */
   interrupt: () => void;
 }
@@ -310,10 +311,11 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
   const getVideoFrame = useCallback(() => transportRef.current?.videoFrame?.() ?? null, []);
   const getAudioBlocked = useCallback(() => transportRef.current?.audioBlocked?.() ?? false, []);
   const resumeAudio = useCallback(() => transportRef.current?.resumeAudio?.(), []);
+  const setMicMuted = useCallback((muted: boolean) => transportRef.current?.setMicMuted?.(muted), []);
   const interrupt = useCallback(() => transportRef.current?.interrupt?.(), []);
 
   return { ...s, start, turn, requestHint, answerProbe, clearError, reset, getMicLevel, getSpeechLevel,
-           getVideoFrame, getAudioBlocked, resumeAudio, interrupt };
+           getVideoFrame, getAudioBlocked, resumeAudio, setMicMuted, interrupt };
 }
 
 // Pure reducer over the ServerMsg stream.

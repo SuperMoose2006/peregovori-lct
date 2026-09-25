@@ -21,6 +21,8 @@ export interface Transport {
   audioBlocked?(): boolean;
   /** Жест пользователя: разрешить браузеру играть звук. */
   resumeAudio?(): void;
+  /** Выключить/включить микрофон, не закрывая партию. */
+  setMicMuted?(muted: boolean): void;
   /** Оборвать реплику оппонента вручную (кнопка, а не голос). */
   interrupt?(): void;
 }
