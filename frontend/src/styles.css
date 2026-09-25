@@ -3955,7 +3955,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .mt-stage { position: relative; display: grid; place-items: center; overflow: hidden;
   height: clamp(240px, 36vh, 380px); border-radius: var(--r);
   background: radial-gradient(120% 90% at 50% 18%, #3b4b53 0%, #1b262b 72%); }
-.mt-face { height: calc(100% - 24px); aspect-ratio: 1; }
+/* `min-width: 0` — не украшение: картинка состояния 512 px, и без него
+   элемент сетки растягивался по её собственной ширине, а не по высоте сцены
+   (ролик 256 px и кадры 256 px этого не показывали). */
+.mt-face { height: calc(100% - 24px); aspect-ratio: 1; min-width: 0; min-height: 0; }
 .mt-face .face { width: 100%; height: 100%; border-radius: 16px; overflow: hidden; background: #26333a; }
 /* Рисованный портрет получает размер инлайном (Avatar.tsx) — во встрече его
    задаёт сцена, иначе он застывал бы на 280 px при любой высоте окна. */
