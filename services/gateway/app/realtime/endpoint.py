@@ -44,9 +44,7 @@ from app.providers.asr import make_asr, voice_mode, describe_voice
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import describe as describe_models
 from app.providers.tts.base import Voice
-from app.providers.tts.base import TTSProvider
-from app.providers.tts.edge import EdgeTTS
-from app.providers.tts.openai_speech import OpenAISpeechTTS
+from app.providers.tts.choose import make_tts
 from app.realtime import limits
 from app.realtime.events import InputAppend, SessionInit, error, session_closed
 from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
@@ -725,16 +723,12 @@ def _wire(session: RealtimeSession, *, work: Optional["_Work"] = None) -> tuple[
 
     tts: Optional[TTSTaskManager] = None
     if session.layers.voice:
-        # ПОРЯДОК ПО ЗАМЕРУ, А НЕ ПО ЦЕНЕ. На заведомо новом тексте — а в игре
-        # каждая реплика новая — edge даёт медиану 2318 мс до первого звука,
-        # openai 936 мс. Прежняя цифра edge «570 мс» оказалась артефактом:
-        # эндпоинт Microsoft кэширует уже произнесённый текст, и повторный
-        # прогон той же фразы мерил кэш, а не синтез.
-        # Edge остаётся запасным: он бесплатен и не требует ключа.
-        provider: TTSProvider = OpenAISpeechTTS()
-        if not provider.available():
-            provider = EdgeTTS()
-        if provider.available():
+        # Порядок провайдеров (по замеру, а не по цене) живёт в `make_tts` —
+        # один на партию и на `/api/health`. Прежняя цифра edge «570 мс»
+        # оказалась артефактом: эндпоинт Microsoft кэширует уже произнесённый
+        # текст, и повторный прогон той же фразы мерил кэш, а не синтез.
+        provider = make_tts()
+        if provider is not None:
             tts = TTSTaskManager(provider, session.bus.publish,
                                  Voice(id="", lang=session.lang,
                                        female=_persona_is_female(scenario)))
@@ -924,8 +918,12 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         capabilities["avatar"] = {
             "available": caps.available, "lipsync": caps.lipsync,
             "lipsync_mode": caps.lipsync_mode,
+            "interruptible": caps.interruptible,
             "transport": caps.transport, "states": list(caps.states),
             "reason": caps.reason or None,
+            # Стенд обязан быть подписан как стенд: клиент по этому флагу
+            # пишет «тестовый видеопоток» над кадром.
+            "synthetic": caps.synthetic,
         }
 
     return {

@@ -26,6 +26,8 @@ from app.orchestrator import negotiation as nego
 from app.orchestrator.negotiation import NegotiationOrchestrator
 from app.realtime.events import SessionInit
 from app.realtime import endpoint
+from app.providers.tts.edge import EdgeTTS
+from app.providers.tts.openai_speech import OpenAISpeechTTS
 
 
 async def _session(**kw):
@@ -76,8 +78,8 @@ async def test_voice_turn_waits_for_the_typed_turn_instead_of_overlapping_it(slo
     # вообще до него доходит.
     monkeypatch.setenv("NEGO_VOICE", "classic")
     monkeypatch.setenv("NEGO_ASR", "parakeet")
-    monkeypatch.setattr(endpoint.OpenAISpeechTTS, "available", lambda self: False)
-    monkeypatch.setattr(endpoint.EdgeTTS, "available", lambda self: False)
+    monkeypatch.setattr(OpenAISpeechTTS, "available", lambda self: False)
+    monkeypatch.setattr(EdgeTTS, "available", lambda self: False)
     session = await _session(mode="voice", layers={"voice": True})
     work = endpoint._Work()
     orch, pipeline, _ = endpoint._wire(session, work=work)

@@ -30,6 +30,8 @@ from app.providers.asr.parakeet import ParakeetASR
 from app.realtime import endpoint
 from app.realtime.events import SessionInit
 from app.session import store
+from app.providers.tts.edge import EdgeTTS
+from app.providers.tts.openai_speech import OpenAISpeechTTS
 
 REFUSAL = "unavailable (NEGO_AI=off)"
 
@@ -74,8 +76,8 @@ def test_an_unknown_asr_choice_disables_voice_instead_of_guessing(monkeypatch, c
 async def test_a_disabled_asr_gives_the_game_no_microphone(monkeypatch):
     """Провод сходится с health и здесь: выключено в строке — выключено в партии."""
     _env(monkeypatch, NEGO_ASR="typo", NEGO_VOICE="classic")
-    monkeypatch.setattr(endpoint.OpenAISpeechTTS, "available", lambda self: False)
-    monkeypatch.setattr(endpoint.EdgeTTS, "available", lambda self: False)
+    monkeypatch.setattr(OpenAISpeechTTS, "available", lambda self: False)
+    monkeypatch.setattr(EdgeTTS, "available", lambda self: False)
     session, problem = await endpoint._build_session(SessionInit(
         scenarioId="supplier", mode="voice", layers={"voice": True}))
     assert problem is None
@@ -94,8 +96,8 @@ async def test_wire_and_health_agree_on_the_cloud_provider_too(monkeypatch):
     _env(monkeypatch, NEGO_ASR="openrouter", NEGO_VOICE="classic")
     # Доступность — без сети: сам распознаватель в этом тесте не зовётся.
     monkeypatch.setattr(OpenRouterASR, "available", lambda self: True)
-    monkeypatch.setattr(endpoint.OpenAISpeechTTS, "available", lambda self: False)
-    monkeypatch.setattr(endpoint.EdgeTTS, "available", lambda self: False)
+    monkeypatch.setattr(OpenAISpeechTTS, "available", lambda self: False)
+    monkeypatch.setattr(EdgeTTS, "available", lambda self: False)
     session, problem = await endpoint._build_session(SessionInit(
         scenarioId="supplier", mode="voice", layers={"voice": True}))
     assert problem is None

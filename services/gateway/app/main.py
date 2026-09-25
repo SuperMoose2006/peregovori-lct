@@ -78,14 +78,11 @@ def _voice_describe() -> str:
 
 
 def _tts_describe() -> str | None:
-    """Кто сейчас говорит. Тот же порядок, что в endpoint.py — иначе health
-    рассказывал бы про одного провайдера, а звучал бы другой."""
-    from app.providers.tts.edge import EdgeTTS
-    from app.providers.tts.openai_speech import OpenAISpeechTTS
-    for provider in (OpenAISpeechTTS(), EdgeTTS()):
-        if provider.available():
-            return provider.describe()
-    return None
+    """Кто сейчас говорит. Тот же выбор, что у партии (`make_tts`) — иначе
+    health рассказывал бы про одного провайдера, а звучал бы другой."""
+    from app.providers.tts.choose import make_tts
+    provider = make_tts()
+    return provider.describe() if provider is not None else None
 
 
 app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_lifespan)
