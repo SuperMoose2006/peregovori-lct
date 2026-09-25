@@ -111,6 +111,9 @@ test("video wire follows current generation and drops cancelled frames", async (
 });
 
 test("late audio after response.done returns the speaking indicator to idle", async () => {
+  // «Говорит» ставит проигрыватель по своим часам, а не приход чанка: звук,
+  // который браузер не играет, не должен зажигать лицо. Поддельный
+  // проигрыватель поэтому отдаёт часы: пока звук под указателем — они есть.
   const { RealtimeTransport } = await import("../src/realtime/transport");
   const speaking: boolean[] = [];
   const transport = new RealtimeTransport(() => {}, () => {}, { onOppAudio: on => speaking.push(on) });
@@ -122,12 +125,20 @@ test("late audio after response.done returns the speaking indicator to idle", as
     socket.deliver({ type: "session.created", session_id: "late-audio", scenario: { id: "supplier" },
       state: { status: "active", turn: 1 }, greeting: "Hello", capabilities: {} });
     await tick();
-    (transport as any).player = { isPlaying: false, playChunk() {}, endTurn() {}, stopAll() {}, dispose: async () => {} };
+    let audible = false;
+    (transport as any).player = {
+      get busy() { return audible; }, blocked: false, isPlaying: false,
+      playbackTimeMs: () => (audible ? 120 : null),
+      playChunk() { audible = true; }, beginTurn() {}, endTurn() {}, stopAll() { audible = false; },
+      dispose: async () => {},
+    };
     socket.deliver({ type: "response.done", text: "Hello" });
     await new Promise(resolve => setTimeout(resolve, 550));
     socket.deliver({ type: "response.output.delta", generation_id: "late", kind: "audio", audio: "AAAAAA==" });
+    await new Promise(resolve => setTimeout(resolve, 150));
     assert.deepEqual(speaking, [true]);
-    await new Promise(resolve => setTimeout(resolve, 550));
+    audible = false;
+    await new Promise(resolve => setTimeout(resolve, 350));
     assert.deepEqual(speaking, [true, false]);
   } finally { transport.close(); }
 });

@@ -17,6 +17,10 @@ export interface Transport {
   /** Amplitude of opponent audio on its playback clock; no input audio. */
   speechLevel?(): number;
   videoFrame?(): string | null;
+  /** Звук ответа пришёл, но браузер его не играет — нужен жест пользователя. */
+  audioBlocked?(): boolean;
+  /** Жест пользователя: разрешить браузеру играть звук. */
+  resumeAudio?(): void;
   /** Оборвать реплику оппонента вручную (кнопка, а не голос). */
   interrupt?(): void;
 }

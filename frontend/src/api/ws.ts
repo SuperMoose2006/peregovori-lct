@@ -116,6 +116,8 @@ export function createTransport(
     micLevel: () => inner?.micLevel?.() ?? 0,
     speechLevel: () => inner?.speechLevel?.() ?? 0,
     videoFrame: () => inner?.videoFrame?.() ?? null,
+    audioBlocked: () => inner?.audioBlocked?.() ?? false,
+    resumeAudio: () => inner?.resumeAudio?.(),
     interrupt: () => inner?.interrupt?.(),
   };
 
