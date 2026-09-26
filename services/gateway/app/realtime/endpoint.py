@@ -1,3 +1,4 @@
+# AUDIT-DEBT resume-auth: possession of session ID permits takeover; no participant identity binding. See docs/deep-audit-12206/CLEANUP.md.
 """endpoint.py — WebSocket `/v1/realtime`. Единственная дверь в партию.
 
 ПРОИСХОЖДЕНИЕ ЖИЗНЕННОГО ЦИКЛА: MiniCPM-o-Demo (Apache-2.0, commit 50b0865c),

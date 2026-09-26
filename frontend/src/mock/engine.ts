@@ -1,3 +1,4 @@
+// AUDIT-CONTRACT dual-engine: required offline implementation; preserve server parity, do not remove as a duplicate. See docs/deep-audit-12206/CLEANUP.md.
 // engine.ts — deterministic mock negotiation engine.
 // Ported from legacy-node/public/demo.html; outputs are shaped to the protocol
 // (types.ts): Analysis, Deltas, StateView, Debrief. This lets the MockServer

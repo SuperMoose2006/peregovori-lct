@@ -1,3 +1,4 @@
+# AUDIT-DEBT paid-video: provider contract exists; paid stream is not integrated/accepted. Requires owner account, key and budget. See docs/deep-audit-12206/CLEANUP.md.
 """One registration point for optional video adapters; no paid default."""
 import os
 from typing import Callable

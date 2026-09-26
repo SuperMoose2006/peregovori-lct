@@ -72,6 +72,7 @@ export interface RealtimeTransportOptions extends RealtimeExtras {
 export class RealtimeTransport implements Transport {
   private readonly faceFrames = new AvatarFrames();
   private audioGeneration = "";
+  private serverSessionId = "";
   private readonly emit: ServerMsgHandler;
   private readonly onConn: (status: ConnStatus) => void;
   private readonly options: RealtimeTransportOptions;
@@ -180,6 +181,7 @@ export class RealtimeTransport implements Transport {
 
     try {
       const created = await this.session.start(payload);
+      this.serverSessionId = String(created.session_id ?? "");
       this.live = true;
       this.options.onCapabilities?.(this.session.capabilities);
       this.emit({
@@ -316,7 +318,10 @@ export class RealtimeTransport implements Transport {
 
   private route(event: ServerEvent): void {
     switch (event.type) {
-      case "session.created":
+      case "session.created": {
+        const nextSessionId = String(event.session_id ?? "");
+        const replaced = !!this.serverSessionId && nextSessionId !== this.serverSessionId;
+        this.serverSessionId = nextSessionId;
         // Reconnect handshake must update the visible state, not only the socket.
         this.pendingState = null;
         this.pendingAnalysis = null;
@@ -331,10 +336,15 @@ export class RealtimeTransport implements Transport {
           scenario: event.scenario as ScenarioView, state: event.state as StateView,
           text: String(event.greeting ?? ""),
           judge_active: Boolean((event.capabilities as Record<string, unknown>)?.judge) });
-        this.emit({ type: "notice", text: this.lang === "ru"
-          ? "Связь восстановлена. Состояние стола получено с сервера; последний ответ мог прерваться."
-          : "Connection restored. The table state was received from the server; the last reply may have been interrupted." });
+        this.emit({ type: "notice", text: replaced
+          ? (this.lang === "ru"
+            ? "Предыдущая попытка недоступна. Начата новая попытка; прошлый результат не восстановлен."
+            : "The previous attempt is unavailable. A new attempt has started; the previous result was not restored.")
+          : (this.lang === "ru"
+            ? "Связь восстановлена. Состояние стола получено с сервера; последний ответ мог прерваться."
+            : "Connection restored. The table state was received from the server; the last reply may have been interrupted.") });
         return;
+      }
 
       case "turn.analysis":
         // ТЕГИ УХОДЯТ НА ЭКРАН СРАЗУ, А НЕ ЧЕРЕЗ СЕКУНДУ С ЛИШНИМ.

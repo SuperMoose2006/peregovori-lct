@@ -1,3 +1,4 @@
+// AUDIT-CONTRACT course-access: 50% progress may open the next study block; passing/master credit still requires exams. See docs/deep-audit-12206/CLEANUP.md.
 // CourseScreen.tsx — курс приёмов: карта блоков, уроки, экзамен блока.
 //
 // ЗАЧЕМ ОН РЯДОМ С КАМПАНИЕЙ. Кампания учит играть партию целиком; курс учит

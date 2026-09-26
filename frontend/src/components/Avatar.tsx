@@ -1,3 +1,4 @@
+// AUDIT-LIMIT face: amplitude mouth, procedural blink and loop clips are not phoneme lip sync or validated perceptual quality. See docs/deep-audit-12206/CLEANUP.md.
 // Avatar.tsx — parametric flat-illustration portraits for the 8 counterparts.
 // Why: the opponent card used to swap a single generic emoji by mood — the
 // cheapest-feeling surface in the app. Here every scenario id maps to a distinct

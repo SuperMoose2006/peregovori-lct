@@ -1,3 +1,4 @@
+# AUDIT-DEBT attestation: anonymous attempt only; single HMAC key has no rotation/key_id. Replacing it invalidates old records. See docs/deep-audit-12206/CLEANUP.md.
 """Server-issued evidence of one anonymous exam, not a qualification diploma.
 
 No client score, identity claim or local course progress enters issuance.

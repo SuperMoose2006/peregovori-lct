@@ -1,3 +1,4 @@
+// AUDIT-DEBT offline-cache: obsolete build hashes are retained for open tabs; bounded eviction needs a migration test. See docs/deep-audit-12206/CLEANUP.md.
 // sw.js — minimal offline-shell service worker for «Диалог».
 //
 // The build injects its hashed JS/CSS paths below. A first visit must cache

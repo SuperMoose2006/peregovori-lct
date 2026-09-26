@@ -59,7 +59,19 @@ for(const lang of ['ru','en']){
  const route=data.routes.find(r=>r.id===`practice/supplier/${lang}/agreement`);
  if(route.status==='прошёл')route.faults.empty='прошёл: tmp/deep-ui-practice-agreement/results.json (empty and whitespace composing guards)';
  const inputPath='tmp/deep-input/results.json';
- if(existsSync(root+'/'+inputPath)&&JSON.parse(readFileSync(root+'/'+inputPath)).some(r=>r.lang===lang&&r.label==='quit'))for(const fault of ['long','unicode','double-action','reload','two-tabs'])route.faults[fault]='прошёл: '+inputPath+' (isolated offline path)';
+ if(existsSync(root+'/'+inputPath)&&JSON.parse(readFileSync(root+'/'+inputPath)).some(r=>r.lang===lang&&r.label==='quit'))for(const fault of ['long','unicode','double-action','reload','two-tabs','back'])route.faults[fault]='прошёл: '+inputPath+' (isolated offline path)';
+}
+
+// Follow-up evidence may be from the current stand's different revision.
+for(const dir of ['remaining-ui','remaining-ui-repeat','custom-live-ui','remaining-ui-stand']){
+ const path=`tmp/${dir}/results.json`;if(!existsSync(root+'/'+path))continue;
+ const bytes=readFileSync(root+'/'+path);evidence.push({path,sha256:createHash('sha256').update(bytes).digest('hex')});
+ for(const result of JSON.parse(bytes))attach(result.id,result.status,path,result.scope||'See exact browser trace and provider configuration');
+}
+const expiredPath='tmp/expired-resume-ui/results.json';
+if(existsSync(root+'/'+expiredPath))for(const result of JSON.parse(readFileSync(root+'/'+expiredPath))){
+ const route=data.routes.find(r=>r.id===`practice/supplier/${result.id.split('/')[1]}/agreement`);
+ route.faults['expired-session']=result.status+': '+expiredPath+' (missing resume ID after confirmed turn)';
 }
 
 data.auditDate='2026-09-26';data.scope='Status applies to the named path and evidence scope, not to every failure or provider configuration.';

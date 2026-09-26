@@ -1,3 +1,4 @@
+// AUDIT-LIMIT smoke: seeded progress checks layout only, not earned course completion. See docs/deep-audit-12206/CLEANUP.md.
 // smoke.mjs — обход продукта в настоящем браузере.
 //
 // ЗАЧЕМ ОН ЕСТЬ. Юнит-тесты доказывают, что движок считает верно, а курс не

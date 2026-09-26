@@ -1,3 +1,4 @@
+// AUDIT-DEBT custom-offline: heuristic fallback, not semantic model generation. See docs/deep-audit-12206/CLEANUP.md.
 // customScenario.ts — MockServer's local stand-in for the backend scenario
 // generator (backend/app/ai/scenario_gen.py). The real backend asks an LLM to
 // design the persona/ZOPA/interests; with no backend running we synthesize a

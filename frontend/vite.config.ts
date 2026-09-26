@@ -1,3 +1,4 @@
+// AUDIT-DEBT tooling: Vite/esbuild audit advisories remain; major upgrade requires compatibility regression. Keep dev binding on loopback. See docs/deep-audit-12206/CLEANUP.md.
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { offlineShell } from "./build/offline";
