@@ -71,7 +71,10 @@ export const MAX_INPUT = 2000;
 export const INPUT_NOTE_AT = 1800; // show the remaining-count note past this length
 
 export function clampInput(text: string, max = MAX_INPUT): string {
-  return text.length > max ? text.slice(0, max) : text;
+  const clipped = text.length > max ? text.slice(0, max) : text;
+  // maxlength and JS slicing count UTF-16 units; never keep half a pair.
+  const last = clipped.charCodeAt(clipped.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? clipped.slice(0, -1) : clipped;
 }
 
 export function inputRemaining(text: string, max = MAX_INPUT): number {

@@ -1,21 +1,22 @@
 // sw.js — minimal offline-shell service worker for «Диалог».
 //
-// Anti-stale design: the cache name carries a VERSION. On activate we delete every
-// cache that isn't the current version, so a freshly deployed SW can never serve
-// assets from a previous generation. Navigations are network-first (so the shell
-// HTML — and the hashed asset URLs it references — stay fresh, falling back to the
-// cached shell only when offline). Content-hashed static assets are cache-first (a
-// cached hit is always correct because the hash changes when the bytes change).
+// The build injects its hashed JS/CSS paths below. A first visit must cache
+// these too: the initial entry loaded before this worker gained control.
+// The cache namespace remains stable across releases so an already-open tab
+// can still load its old hashed chunks. Evicting obsolete build assets is a
+// separate maintenance policy; do not delete caches owned by other apps.
+// Navigations refresh the shell online and fall back to its cached copy offline.
 //
 // The API/WebSocket turn-protocol is NEVER cached — the negotiation must always hit
 // the live backend (or the in-page mock), never a stale reply.
 const CACHE_VERSION = "dialog-v1";
+const BUILD_ASSETS = [];
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((c) => c.addAll(SHELL)).catch(() => {}),
+    caches.open(CACHE_VERSION).then((c) => c.addAll([...SHELL, ...BUILD_ASSETS])),
   );
 });
 
@@ -23,7 +24,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("dialog-") && k !== CACHE_VERSION).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });

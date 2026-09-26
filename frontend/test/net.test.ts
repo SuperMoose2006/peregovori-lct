@@ -109,3 +109,10 @@ test("inputRemaining and showInputNote track the cap threshold", () => {
   assert.equal(showInputNote("x".repeat(INPUT_NOTE_AT)), true);
   assert.ok(INPUT_NOTE_AT < MAX_INPUT, "the note appears before the hard cap");
 });
+
+test("clampInput preserves complete Unicode characters at the boundary", () => {
+  assert.equal(clampInput("ab🤝",3),"ab");
+  assert.equal(clampInput("ab\ud83e",3),"ab","native maxlength may already split a surrogate pair");
+  assert.equal(clampInput("ab🤝",4),"ab🤝");
+  assert.equal(clampInput("Привет 🤝"),"Привет 🤝");
+});
