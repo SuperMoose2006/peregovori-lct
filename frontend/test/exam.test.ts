@@ -174,3 +174,17 @@ test("капстоун не обещает партии длиной в свой
     }
   }
 });
+
+
+test("final course block does not promise a nonexistent next block", () => {
+  for (const lang of ["ru", "en"] as const) {
+    try {
+      saveExamRun({ ...runFor(COURSE_BLOCKS[COURSE_BLOCKS.length - 1].id, true), capstoneOk: true });
+      const final = render(lang);
+      assert.ok(final.includes(I18N[lang].course.examPass));
+      assert.ok(!final.includes(I18N[lang].course.karlExamPass), "last block must not announce another block");
+      saveExamRun({ ...runFor(BLOCK, true), capstoneOk: true });
+      assert.ok(render(lang).includes(I18N[lang].course.karlExamPass), "ordinary block still announces progression");
+    } finally { clearExamRun(); }
+  }
+});

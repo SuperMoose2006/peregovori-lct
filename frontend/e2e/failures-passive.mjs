@@ -1,4 +1,5 @@
-// Full React + real gateway through a severable TCP proxy. No synthetic input.
+// Full React + real gateway through a severable TCP proxy.
+// DOM actions stay inside our own headless browser; no operating-system input.
 import { createServer } from 'vite';
 import { chromium } from 'playwright-core';
 import { createServer as tcpServer, connect } from 'node:net';
@@ -6,7 +7,8 @@ import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
 const voice=process.argv.includes('--voice');
-const root=resolve(import.meta.dirname,'..'), out=resolve(root,'../tmp/failures-rehearsal'+(voice?'-voice':''));
+const dom=process.argv.includes('--dom');
+const root=resolve(import.meta.dirname,'..'), out=resolve(root,'../tmp/failures-rehearsal'+(voice?'-voice':'')+(dom?'-dom':''));
 mkdirSync(out,{recursive:true});
 const sockets=new Set();let blocked=false;
 const proxy=tcpServer(client=>{
@@ -32,8 +34,25 @@ try{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:15212');
   await page.waitForFunction(()=>!!window.rehearsal);
+  const submit=async text=>{
+    if(dom){await page.locator('.chat textarea').fill(text);await page.locator('.send').click();}
+    else await page.evaluate(text=>window.rehearsal.nego.turn(text),text);
+  };
+  const start=async mode=>{
+    if(dom){
+      for(let i=0;i<8&&await page.locator('.milestone-go').count();i++)await page.locator('.milestone-go').click();
+      await page.locator(`[data-nav="${mode==='exam'?'exam':'practice'}"]`).first().click();
+      await page.locator('.cards .card').first().click();
+      await page.locator('.chat textarea').waitFor();
+      if(await page.locator('.onb-skip').count())await page.locator('.onb-skip').click();
+    }else{
+      await page.evaluate(mode=>window.rehearsal.setMode(mode),mode);
+      await page.waitForTimeout(50);
+      await page.evaluate(()=>window.rehearsal.start('supplier'));
+    }
+  };
   await fault(true);
-  await page.evaluate(()=>window.rehearsal.start('supplier'));
+  await start('practice');
   await page.waitForFunction(()=>window.rehearsal.nego.state?.status==='active');
   // Cut the network after the engine applies a move but before reply completion.
   await fault(true);
@@ -41,7 +60,7 @@ try{
     await page.waitForFunction(()=>window.rehearsal.nego.log.some(e=>e.kind==='me'&&e.text.includes('контракте')),{},{timeout:20000});
     assert.equal(await page.evaluate(()=>window.rehearsal.nego.busy),true);
     results.push({case:'recorded-browser-microphone',asr:'controlled transcript',busy:true});
-  }else await page.evaluate(()=>window.rehearsal.nego.turn('Что для вас важнее всего в этом контракте?'));
+  }else await submit('Что для вас важнее всего в этом контракте?');
   for(let i=0;i<100;i++){
     const states=await (await fetch('http://127.0.0.1:18212/__test/state')).json();
     if(states.at(-1)?.turn===1)break;
@@ -66,28 +85,26 @@ try{
   results.push({case:'network-resume',ms:Math.round(performance.now()-disconnectedAt),turn:1});
   // A stalled model is bounded even if the provider never throws a timeout.
   await fault(true);const slowAt=performance.now();
-  await page.evaluate(()=>window.rehearsal.nego.turn('По рыночным данным цена 87, это независимый стандарт.'));
+  await submit('По рыночным данным цена 87, это независимый стандарт.');
   await page.waitForFunction(()=>window.rehearsal.nego.busy);
   await page.screenshot({path:out+'/model-wait.png'});
   await page.waitForFunction(()=>!window.rehearsal.nego.busy&&window.rehearsal.nego.state?.turn===2,{},{timeout:19000});
   results.push({case:'model-timeout-fallback',ms:Math.round(performance.now()-slowAt),turn:2});
   await fault(false);
-  await page.evaluate(()=>window.rehearsal.nego.turn('Согласен на вашу цену. Договорились.'));
+  await submit('Согласен на вашу цену. Договорились.');
   await page.waitForFunction(()=>window.rehearsal.screen==='debrief');
   assert.equal(await page.evaluate(()=>window.rehearsal.nego.state.turn),3);
   await page.screenshot({path:out+'/completed-after-failures.png'});
   // Real exam -> server registry -> verified printable document.
-  await page.evaluate(()=>window.rehearsal.setMode('exam'));
-  await page.waitForTimeout(50);
   const began=performance.now();
-  await page.evaluate(()=>window.rehearsal.start('supplier'));
+  await start('exam');
   await page.waitForFunction(()=>window.rehearsal.nego.state?.turn===0);
   const fixture=JSON.parse(readFileSync(resolve(root,'test/fixtures/games.json'),'utf8'));
   const moves=fixture.principled.supplier.ru;
   for(const text of moves){
     if(await page.evaluate(()=>window.rehearsal.nego.state.status!=='active'))break;
     const turn=await page.evaluate(()=>window.rehearsal.nego.state.turn);
-    await page.evaluate(text=>window.rehearsal.nego.turn(text),text);
+    await submit(text);
     await page.waitForFunction(n=>!window.rehearsal.nego.busy&&window.rehearsal.nego.state.turn>n,turn);
   }
   await page.waitForFunction(()=>window.rehearsal.screen==='debrief');
@@ -96,11 +113,16 @@ try{
   const documentResponse=await page.request.get('http://127.0.0.1:15212'+href);
   assert.equal(documentResponse.status(),200);
   assert.match(await documentResponse.text(),/Личность не удостоверена/);
+  if(dom){
+    for(let i=0;i<8&&await page.locator('.milestone-go').count();i++)await page.locator('.milestone-go').click();
+    const [documentPage]=await Promise.all([page.context().waitForEvent('page'),link.click()]);
+    await documentPage.waitForLoadState();assert.match(await documentPage.locator('body').innerText(),/Личность не удостоверена/);
+    await documentPage.screenshot({path:out+'/anonymous-certificate.png',fullPage:true});await documentPage.close();
+  }
   results.push({case:'complete-exam-and-registry',ms:Math.round(performance.now()-began),grade:await page.evaluate(()=>window.rehearsal.nego.debrief.grade)});
   await page.screenshot({path:out+'/verified-exam.png'});
   // A persistent outage reaches a visible recovery panel, not an endless spinner.
-  await page.evaluate(()=>window.rehearsal.setMode('practice'));await page.waitForTimeout(50);
-  await page.evaluate(()=>window.rehearsal.start('supplier'));
+  await start('practice');
   await page.waitForFunction(()=>window.rehearsal.nego.state?.turn===0);
   blocked=true;for(const s of sockets)s.destroy();
   await page.locator('.conn-lost').waitFor({timeout:18000});

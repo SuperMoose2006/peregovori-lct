@@ -609,7 +609,8 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, resume, onStartDrill
             .replace("{pass}", String(draw.passMark))}</p>
           {saved?.xp ? <p className="lesson-xp">+{saved.xp} XP</p> : null}
           <Karl state={passed ? "celebrate" : "concern"}
-                line={passed ? t.course.karlExamPass : t.course.karlExamFail} name={t.mascot.karl} />
+                line={passed ? (blockId === COURSE_BLOCKS[COURSE_BLOCKS.length - 1].id
+                  ? t.course.examPass : t.course.karlExamPass) : t.course.karlExamFail} name={t.mascot.karl} />
           {/* Разбор откладывается до конца — во время экзамена подсказок нет. */}
           {/* Урок восстановления: провал обязан заканчиваться маршрутом, а не
               констатацией. Уроки берутся из промахов, а не из общего списка. */}

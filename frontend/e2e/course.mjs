@@ -26,24 +26,39 @@
 //
 //   node e2e/course.mjs [--url http://127.0.0.1:8010] [--out /tmp/dialog-e2e]
 import { chromium } from "playwright-core";
-import { readFileSync, mkdirSync } from "node:fs";
+import { I18N } from "../src/i18n.ts";
+import { COURSE_BANK as BANK, COURSE_MASTER } from "../src/data/course.generated.ts";
+import { COURSE_BLOCKS } from "../src/data/course.blocks.generated.ts";
+import { readFileSync, mkdirSync, appendFileSync, writeFileSync } from "node:fs";
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
   return i > -1 ? process.argv[i + 1] : fallback;
 };
+const LANG = arg("lang", "ru");
+const T = I18N[LANG];
+if (!T) throw Error("Unsupported language");
 const BASE = arg("url", "http://127.0.0.1:8010");
-const OUT = arg("out", "/tmp/dialog-e2e");
+const OUT_BASE = arg("out", "/tmp/dialog-e2e");
+let OUT = OUT_BASE;
+const BLOCK_COUNT = Number(arg("blocks", "1"));
+if (!Number.isInteger(BLOCK_COUNT) || BLOCK_COUNT < 1) throw Error("--blocks must be a positive integer");
 const EXE = process.env.CHROME_PATH
   || "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome";
 mkdirSync(OUT, { recursive: true });
+writeFileSync(`${OUT_BASE}/steps.jsonl`, "");
 
 // Ответы берём из сгенерированного банка — как их знает продукт.
-const src = readFileSync(new URL("../src/data/course.generated.ts", import.meta.url), "utf8");
-const bankJson = src.slice(src.indexOf("export const COURSE_BANK: Exercise[] = ") + 39,
-                           src.indexOf("];", src.indexOf("export const COURSE_BANK")) + 1);
-const BANK = JSON.parse(bankJson);
-const byId = Object.fromEntries(BANK.map((x) => [x.id, x]));
+const BLOCK_IDS = COURSE_BLOCKS.map(block => block.id);
+let currentBlock;
+async function currentExercise() {
+  const prompt = (await p.locator(".ex-prompt").innerText()).trim();
+  const quote = (await p.locator(".ex-quote").allTextContents()).join("\n");
+  const candidates = BANK.filter(x => x.block === currentBlock && x.prompt[LANG] === prompt
+    && (!x.player_line || !["meters", "reaction"].includes(x.type) || quote.includes(x.player_line[LANG])));
+  if (candidates.length !== 1) throw Error(`Ambiguous visible exercise: ${currentBlock}, ${prompt}, candidates=${candidates.map(x=>x.id)}`);
+  return candidates[0];
+}
 
 // ЛИНИЯ КАПСТОУНА БЕРЁТСЯ ИЗ ФИКСТУРЫ ЭТАЛОННЫХ ПАРТИЙ, А НЕ ПИШЕТСЯ ЗДЕСЬ.
 // `frontend/test/fixtures/games.json` — тот же набор, которым
@@ -64,10 +79,12 @@ try {
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 } });
 const p = await ctx.newPage();
 const errs = [];
+const trace = async label => appendFileSync(`${OUT_BASE}/steps.jsonl`, JSON.stringify({label, lang:LANG, text:await p.locator("body").innerText()}) + "\n");
 p.on("pageerror", (e) => errs.push(String(e)));
 p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("Failed to load")) errs.push(m.text().slice(0,120)); });
 
 await p.goto(BASE, { waitUntil: "networkidle" });
+if (LANG === "en") await p.getByRole("button", { name: "EN", exact: true }).click();
 // КЛЮЧ ОБУЧЕНИЯ — `dialog.tutorialDone.v1` СО ЗНАЧЕНИЕМ "1" (lib/progress.ts).
 // Прибор ставил `dialog.tutorial.v1` = "done": ключ, которого продукт не знает.
 // На экранах курса это ничем не пахло, а вот капстоун идёт в режиме practice —
@@ -76,38 +93,27 @@ await p.evaluate(() => localStorage.setItem("dialog.tutorialDone.v1", "1"));
 await p.reload({ waitUntil: "networkidle" });
 
 // Отвечает верно на текущее задание, опознавая тип по разметке.
-async function answer() {
+async function answer(forceWrong = false) {
   const kind = (await p.locator(".ex").getAttribute("class")) || "";
   const type = (kind.match(/ex--([a-z_]+)/) || [])[1];
+  const ex = await currentExercise();
   if (type === "choice" || type === "spot_error" || type === "reaction" ||
       type === "meters" || type === "face") {
     // Верный вариант ищем по тексту: банк знает ответ, разметка знает порядок.
-    const id = await p.locator(".ex-prompt").textContent();
-    const ex = BANK.find((x) => x.prompt.ru === id?.trim());
-    if (!ex) throw new Error("не нашли задание по тексту: " + id);
     let label;
-    if (type === "choice" || type === "spot_error") label = ex.options[ex.answer].ru;
-    else if (type === "meters") label = { trust: "Доверие", tension: "Напряжение",
-      info: "Информация", leverage: "Рычаг", up: "Вырастет", down: "Упадёт" }[ex.answer];
-    else label = { walked_out: "Встаёт из-за стола", offended: "Принимает на свой счёт",
-      hardened: "Закрывается", pressured: "Под давлением", not_yet: "Пока не соглашается",
-      neutral: "Держит нейтралитет", collaborated: "Идёт навстречу",
-      persuaded: "Принимает довод", opened_up: "Приоткрывается", warmed: "Теплеет" }[ex.answer];
-    await p.locator(".ex-opt", { hasText: label }).first().click();
+    if (type === "choice" || type === "spot_error") label = ex.options[ex.answer][LANG];
+    else if (type === "meters") label = T.course.meters[ex.answer];
+    else label = T.probe.reactions[ex.answer];
+    if(forceWrong)await p.locator(".ex-opt").filter({hasNotText:label}).first().click();
+    else await p.locator(".ex-opt", { hasText: label }).first().click();
   } else if (type === "numeric") {
-    const id = await p.locator(".ex-prompt").textContent();
-    const ex = BANK.find((x) => x.prompt.ru === id?.trim());
     await p.locator(".ex-num input").fill(String(ex.answer.value));
   } else if (type === "freeform") {
-    const id = await p.locator(".ex-prompt").textContent();
-    const ex = BANK.find((x) => x.prompt.ru === id?.trim());
-    await p.locator(".ex-free textarea").fill(ex.reference.ru);
+    await p.locator(".ex-free textarea").fill(ex.reference[LANG]);
   } else if (type === "order") {
-    const id = await p.locator(".ex-prompt").textContent();
-    const ex = BANK.find((x) => x.prompt.ru === id?.trim());
     // Поднимаем каждый элемент на своё место кнопками ↑
     for (let target = 0; target < ex.answer.length; target++) {
-      const want = ex.items.find((i) => i.id === ex.answer[target]).ru;
+      const want = ex.items.find((i) => i.id === ex.answer[target])[LANG];
       const rows = p.locator(".ex-order li");
       const n = await rows.count();
       let at = -1;
@@ -119,24 +125,25 @@ async function answer() {
       }
     }
   } else if (type === "match") {
-    const id = await p.locator(".ex-prompt").textContent();
-    const ex = BANK.find((x) => x.prompt.ru === id?.trim());
     for (const [left, right] of Object.entries(ex.answer)) {
-      const lt = ex.left.find((l) => l.id === left).ru;
-      const rt = ex.right.find((r) => r.id === right).ru;
+      const lt = ex.left.find((l) => l.id === left)[LANG];
+      const rt = ex.right.find((r) => r.id === right)[LANG];
       await p.locator(".ex-match ul").first().locator("button", { hasText: lt }).first().click();
       await p.locator(".ex-match ul").nth(1).locator("button", { hasText: rt }).first().click();
     }
   } else if (type === "drill") {
     return "drill";
   }
-  await p.locator("button:has-text('Проверить')").click();
+  await p.getByRole("button", { name: T.course.checkIt, exact: true }).click();
   await p.waitForTimeout(300);
   const ok = (await p.locator(".ex-verdict.ok").count()) === 1;
-  if (!ok) {
+  const rejected = forceWrong && ["choice","spot_error","reaction","meters","face"].includes(type);
+  if (ok === rejected) {
     const why = await p.locator(".ex-verdict").textContent();
     throw new Error(`эталонный ответ не засчитан (${type}): ${why?.slice(0, 160)}`);
   }
+  await trace(`exercise ${ex.id}: ${rejected ? "incorrect answer rejected" : "correct answer"}`);
+  console.log(`${rejected ? "REJECT" : "PASS"} exercise ${ex.id} ${LANG}`);
   return type;
 }
 
@@ -157,13 +164,6 @@ async function clearScrims() {
   }
 }
 
-/** Ищет упражнение по тексту вопроса — как это делает `answer()`. */
-function exByPrompt(text) {
-  const ex = BANK.find((x) => x.prompt.ru === (text || "").trim());
-  if (!ex) throw new Error("не нашли задание по тексту: " + text);
-  return ex;
-}
-
 /**
  * Доигрывает капстоун: настоящая мини-партия эталонной линией.
  *
@@ -171,15 +171,15 @@ function exByPrompt(text) {
  * шлюзе он занимает от секунды до десятка. Ждём СОБЫТИЯ: появления новой
  * реплики оппонента, а на последнем ходу — вердикта капстоуна.
  */
-async function playCapstone() {
+async function playCapstone(masterExercise) {
   await clearScrims();
-  const ex = exByPrompt(await p.locator(".ex-prompt").textContent());
-  const lines = GAMES.principled?.[ex.scenario_id]?.ru;
+  const ex = masterExercise ?? await currentExercise();
+  const lines = GAMES.principled?.[ex.scenario_id]?.[LANG];
   if (!lines) throw new Error(
     `нет эталонной линии для стола «${ex.scenario_id}» в test/fixtures/games.json`);
   console.log(`  капстоун ${ex.id}: стол «${ex.scenario_id}», ${lines.length} реплик`);
 
-  await p.locator(".ex-drill button.btn.primary").click();
+  await p.locator(masterExercise ? ".wrap.lesson > button.btn.primary" : ".ex-drill button.btn.primary").click();
   await p.waitForSelector(".chat textarea", { timeout: 40000 });
   for (const line of lines) {
     if (await p.locator(".drill-verdict, .debrief").count()) break;
@@ -192,6 +192,7 @@ async function playCapstone() {
       (n) => document.querySelectorAll(".msg.opp").length > n
              || document.querySelector(".drill-verdict, .debrief") !== null,
       before, { timeout: 120000 });
+    await trace(`drill ${ex.id}: turn`);
   }
   await p.waitForSelector(".drill-verdict", { timeout: 120000 });
   await clearScrims();
@@ -221,11 +222,51 @@ async function examResult() {
   const recovery = await p.locator(".recovery li button").count();
   const exit = ((await p.locator(".exam-exit").textContent()) || "").trim();
   await p.screenshot({ path: `${OUT}/block-04-exam-result.png`, fullPage: true });
-  await p.locator(".exam-exit").click();
-  await p.waitForTimeout(900);
+  if(process.argv.includes("--remediation")){
+    if(head!==T.course.examFail||!recovery)throw Error("Failed exam must offer relevant recovery lessons");
+    await p.locator('.recovery li button').first().click();await trace('recovery lesson');
+    await p.getByRole('button',{name:T.course.toTasks,exact:true}).click();
+    while(await p.locator('.ex').count()){
+      await answer();await p.getByRole('button',{name:`${T.course.next} →`,exact:true}).click();await p.waitForTimeout(300);
+    }
+    await p.locator('.wrap.lesson.done button.primary').click();
+    await p.getByRole('button',{name:T.course.examStart,exact:true}).waitFor();await trace('recovered lesson, retry available');
+    await p.getByRole('button',{name:`← ${T.course.allBlocks}`,exact:true}).click();await p.locator('.course-path').waitFor();
+  }else{await p.locator(".exam-exit").click();await p.waitForTimeout(900);}
   return { head, lead, rows, recovery, exit };
 }
 
+try {
+if (process.argv.includes("--warmup")) {
+  await p.locator('[data-nav="campaign"]').first().click();
+  await p.locator('.act-course-b.warm').first().click();
+  await p.locator('.warm-head').waitFor();
+  const title=await p.locator('.warm-head').innerText();
+  const block=COURSE_BLOCKS.find(x=>title.includes(x.title[LANG]));
+  if(!block)throw Error("Warmup block not identified from its visible title");
+  currentBlock=block.id;
+  await p.locator('.ex').waitFor();
+  while(await p.locator('.ex').count()){
+    const before=await p.locator('.lesson-step').innerText();await answer();
+    await p.getByRole('button',{name:`${T.course.next} →`,exact:true}).click();
+    await p.waitForFunction(before=>!!document.querySelector('.wrap.lesson.done')||document.querySelector('.lesson-step')?.textContent!==before,before);
+  }
+  await p.locator('.wrap.lesson.done button.primary').click();await p.locator('.chat textarea').waitFor();
+  for(const line of GAMES.principled.salary[LANG]){
+    if(await p.locator('.debrief, .outcome').count())break;
+    const before=await p.locator('.msg.opp:not(.typing-msg)').count();
+    await p.locator('.chat textarea').fill(line);await p.locator('.send').click();
+    await p.waitForFunction(n=>(document.querySelectorAll('.msg.opp:not(.typing-msg)').length>n&&!document.querySelector('.caret, .wait-status, .typing-msg'))||!!document.querySelector('.debrief, .outcome'),before);
+    await trace('warmup campaign turn');
+  }
+  await p.locator('.debrief').waitFor();await trace('warmup debrief');
+  await p.locator('[data-nav="practice"]').first().click();await p.locator('.cards .card').first().waitFor();
+  console.log('PASS warmup exercises → negotiation → debrief → home '+LANG);
+} else for (let blockIndex = 0; blockIndex < BLOCK_COUNT; blockIndex++) {
+currentBlock = BLOCK_IDS[blockIndex];
+if (!currentBlock) throw Error("Requested more blocks than the catalog contains");
+OUT = `${OUT_BASE}/block-${blockIndex + 1}`;
+mkdirSync(OUT, { recursive: true });
 // По ключу раздела, а не по русской подписи: см. смоук.
 await p.locator('[data-nav="course"]').click();
 await p.waitForTimeout(400);
@@ -237,14 +278,15 @@ for (let i = 0; i < lessons; i++) {
   await clearScrims();
   await p.locator(".lesson-list button").nth(i).click();
   await p.waitForTimeout(300);
-  await p.locator("button:has-text('К заданиям'), button:has-text('Урок пройден')").first().click();
+  await trace(`lesson ${currentBlock}/${i+1}`);
+  await p.getByRole("button", {name:T.course.toTasks, exact:true}).or(p.getByRole("button", {name:T.course.lessonDone, exact:true})).first().click();
   await p.waitForTimeout(350);
   while (await p.locator(".ex").count()) {
     // Капстоун ВНУТРИ УРОКА необязателен: рядом с ним стоит «Дальше →», и его
     // можно пройти мимо. Раньше здесь стоял `break`, и он уносил не только
     // капстоун, но и все задания урока после него.
     await answer();
-    const next = p.locator("button:has-text('Дальше')").first();
+    const next = p.getByRole("button", {name:`${T.course.next} →`, exact:true}).first();
     if (!(await next.count())) break;
     await next.click();
     await p.waitForTimeout(300);
@@ -259,13 +301,13 @@ await p.screenshot({ path: `${OUT}/block-01-done.png`, fullPage: true });
 
 // Экзамен блока — те же эталонные ответы
 await clearScrims();
-await p.locator("button:has-text('Сдавать экзамен')").click();
+await p.getByRole("button", {name:T.course.examStart, exact:true}).click();
 await p.waitForTimeout(400);
 let capstone = null;
 let result = null;
 let asked = 0;
 while (await p.locator(".ex").count()) {
-  const type = await answer();
+  const type = await answer(process.argv.includes("--remediation"));
   asked += 1;
   if (type === "drill") {
     await p.screenshot({ path: `${OUT}/block-02-exam.png`, fullPage: true });
@@ -273,7 +315,7 @@ while (await p.locator(".ex").count()) {
     result = await examResult();
     break;
   }
-  const next = p.locator("button:has-text('Дальше'), button:has-text('Завершить')").first();
+  const next = p.getByRole("button", {name:`${T.course.next} →`, exact:true}).or(p.getByRole("button", {name:T.course.examFinish, exact:true})).first();
   if (!(await next.count())) break;
   await next.click();
   await p.waitForTimeout(350);
@@ -281,14 +323,18 @@ while (await p.locator(".ex").count()) {
 await p.waitForTimeout(600);
 await p.screenshot({ path: `${OUT}/block-05-map.png`, fullPage: true });
 
+if(process.argv.includes("--remediation")){
+  if(!capstone?.ok||result?.head!==T.course.examFail||!result?.recovery)throw Error('Remediation route incomplete');
+  if(await p.locator('.cnode.done').count()!==0||!await p.locator('.master-card button').isDisabled())throw Error('Failed exam must not earn a passed block or unlock master exam');
+  console.log('PASS failed exam → recovery lesson → retry available '+LANG);continue;
+}
+
 // УТВЕРЖДЕНИЯ СНИМАЮТСЯ С КАРТЫ, А НЕ СО СЧЁТЧИКОВ. `.cnode` идут в порядке
 // курса, поэтому «первый пройден» и «второй открылся» проверяются по позиции:
 // счётчик «хотя бы один done» держался бы и на чужом блоке.
 const nodes = await p.locator(".cnode").evaluateAll(
   (els) => els.map((e) => e.className.replace("cnode", "").trim()));
 const onMap = await p.locator(".course-path").count() === 1;
-await browser.close();
-
 const problems = [];
 if (!capstone) {
   problems.push("экзамен блока не дошёл до капстоуна — раньше здесь прибор молча " +
@@ -312,17 +358,32 @@ if (!result) {
   if (!result.exit) problems.push("с экрана итога некуда уйти");
 }
 if (!onMap) problems.push("после итога экзамена не вернулись на карту блоков");
-if (nodes[0] !== "done") {
-  problems.push(`экзамен блока не сдан: первый узел карты «${nodes[0]}», ожидалось «done»`);
+if (nodes[blockIndex] !== "done") {
+  problems.push(`экзамен блока не сдан: первый узел карты «${nodes[blockIndex]}», ожидалось «done»`);
 }
-if (nodes[1] !== "current") {
-  problems.push(`следующий блок не открылся: второй узел карты «${nodes[1]}», ожидалось «current»`);
+if (blockIndex + 1 < nodes.length && nodes[blockIndex + 1] !== "current") {
+  problems.push(`следующий блок не открылся: второй узел карты «${nodes[blockIndex + 1]}», ожидалось «current»`);
 }
 if (errs.length) problems.push(...errs);
 if (problems.length) {
   console.error("ПРОБЛЕМЫ:\n" + problems.join("\n"));
-  process.exit(1);
+  throw new Error(problems.join("\n"));
 }
 console.log(`блок пройден целиком, капстоун сдан («${capstone.verdict}»), ` +
             `итог экзамена показан («${result.head}» · ${result.lead}), ` +
             `следующий блок открыт · скриншоты: ${OUT}`);
+
+}
+if (process.argv.includes("--master")) {
+  await clearScrims();
+  await p.locator(".master-card button").click();
+  for (const ex of COURSE_MASTER) {
+    OUT = `${OUT_BASE}/${ex.id}`; mkdirSync(OUT, {recursive:true});
+    const result = await playCapstone(ex);
+    if (!result.ok) throw Error(`Master drill failed: ${ex.id}: ${result.verdict}`);
+  }
+  if (await p.locator(".master-list li.done").count() !== COURSE_MASTER.length) throw Error("Master progress not recorded");
+  await p.screenshot({path:`${OUT_BASE}/master-complete.png`,fullPage:true});
+  console.log("PASS full master exam after earned course progression");
+}
+} finally { await ctx.storageState({path:`${OUT_BASE}/storage.json`}); await browser.close(); }
