@@ -1,0 +1,207 @@
+{
+  "date": "2026-09-26",
+  "codeRevision": "1a40d5d",
+  "scope": "Local audit; logs are retained under tmp and are not a new deployment verification.",
+  "files": [
+    {
+      "path": "tmp/deep-final-backend.log",
+      "bytes": 5164,
+      "sha256": "4297a985b1f10abdac8ab3b028f02f1f5a731b223df3156ac09a4595f9a24ea0"
+    },
+    {
+      "path": "tmp/deep-regression-472.log",
+      "bytes": 51453,
+      "sha256": "f8cefb487a804899b87e0b9eea08458864545948714f75fd189e569ab7abf8a2"
+    },
+    {
+      "path": "tmp/deep-build-472.log",
+      "bytes": 2170,
+      "sha256": "927e9d05c84b64c58e0901af6761bdab5df174efbb718de7ecd9f2361ce811b6"
+    },
+    {
+      "path": "tmp/deep-practice-full.log",
+      "bytes": 830,
+      "sha256": "9453a9fc275811eb59fa234f8ae37ac4730d9dfacdee10f60cd43ebb07a2312e"
+    },
+    {
+      "path": "tmp/deep-breakdown-final.log",
+      "bytes": 830,
+      "sha256": "b21e9699b5777a93b430afd0d52a6b77bf90c15678bf26eaadba926268e84c6e"
+    },
+    {
+      "path": "tmp/deep-mirror-final.log",
+      "bytes": 470,
+      "sha256": "36e1b4b3d37afb7be3fb8f497a855ee00509fffdd091800064a96304e91e45b3"
+    },
+    {
+      "path": "tmp/deep-daily.log",
+      "bytes": 46,
+      "sha256": "8860fa2f12a023a11e6ae7a4dbfef48cfb31bb513d290140c48876f416b94400"
+    },
+    {
+      "path": "tmp/deep-custom.log",
+      "bytes": 64,
+      "sha256": "14a3af811f6d49a4f1528b0d3facaa65c1bf52163b447e9d3df14defd91e7ead"
+    },
+    {
+      "path": "tmp/deep-exam.log",
+      "bytes": 758,
+      "sha256": "ab5929d636dc066266895d2303436518ff904c30cbd4f00d58a5ffe6694a2cf4"
+    },
+    {
+      "path": "tmp/deep-exam-fail.log",
+      "bytes": 758,
+      "sha256": "c2a26b285e3d59bc21f65409079db403658f72c82eee14be2a0cb6c811d7f3b7"
+    },
+    {
+      "path": "tmp/deep-reading.log",
+      "bytes": 606,
+      "sha256": "02744297312ea40c81b075bdc7d12ea83c0fcd6f4125072a07fe2a0e3aef6dc9"
+    },
+    {
+      "path": "tmp/deep-campaign.log",
+      "bytes": 136,
+      "sha256": "46ec681855f24938b3f79a8cad8e4a67bfb185fb0de0b0f8ae85966547533605"
+    },
+    {
+      "path": "tmp/deep-master-ru.log",
+      "bytes": 9397,
+      "sha256": "c6f6e71361da6284c3bd23f8701f54cc5c7a865da6e9635de40ebd4d8c4d6bbc"
+    },
+    {
+      "path": "tmp/deep-master-en.log",
+      "bytes": 8616,
+      "sha256": "da27a13f52670781e1fbf525d01d6ae63456948a0d5f840734084781812a3c42"
+    },
+    {
+      "path": "tmp/deep-warmup-ru.log",
+      "bytes": 108,
+      "sha256": "3ea7ba465b5db337a7f3d3ee6d7997f75b38ce5adba3d89d142f537d37b7a9aa"
+    },
+    {
+      "path": "tmp/deep-warmup-en.log",
+      "bytes": 108,
+      "sha256": "a8521499c973a404cc655bbc13a3d357e626aca6f7925d8a0c93f188632d742a"
+    },
+    {
+      "path": "tmp/deep-recovery-ru-final.log",
+      "bytes": 661,
+      "sha256": "61f80202a8d68c4813d1ae8e06809c1ab4a92f2c9ff9886d4422287a718370c2"
+    },
+    {
+      "path": "tmp/deep-recovery-en-final.log",
+      "bytes": 661,
+      "sha256": "f1f3b9d36ce03214ab2ed0b466840e31591288f5ba5330e75b38cad0c944be9e"
+    },
+    {
+      "path": "tmp/deep-profile-corrected.log",
+      "bytes": 34,
+      "sha256": "1c687d7807f31161b7bfce7b3b6c6a90e68e01ff2d42f047ea892e68628b560e"
+    },
+    {
+      "path": "tmp/deep-input-final-repeat.log",
+      "bytes": 99,
+      "sha256": "a3746d844ab01e9535842901b8103cc1588c75db255864198a75c166341883b8"
+    },
+    {
+      "path": "tmp/deep-faults-dom-verified.log",
+      "bytes": 706,
+      "sha256": "536bfd29611de647b8d60da9b73f1989d54d8b4766d64dea704e292553476785"
+    },
+    {
+      "path": "tmp/deep-voice-recording.log",
+      "bytes": 787,
+      "sha256": "748d76545adccbffb855de942af167c0b8b84dc2405bceb89b6bd1b4de236795"
+    },
+    {
+      "path": "tmp/deep-transport-contract.log",
+      "bytes": 127,
+      "sha256": "7b2070dfe1b943d3838dfb0175c9399eee21ae76b3eed5b15cfdcca905fb46ce"
+    },
+    {
+      "path": "tmp/deep-attestation.log",
+      "bytes": 137,
+      "sha256": "93a52eac608cc2ede638899bb210da8a15b6bd4620d0bf023e2ce6373a739eb2"
+    },
+    {
+      "path": "tmp/deep-wait.log",
+      "bytes": 138,
+      "sha256": "a05bba8c9992deab469550e96e8914076f1f91c926035550f39a5920b68b50bf"
+    },
+    {
+      "path": "tmp/deep-avatar.log",
+      "bytes": 459,
+      "sha256": "8d058bbaf0954641a4cc08b4bc2eb3f508379e9daaa06db530bfa9262d961906"
+    },
+    {
+      "path": "tmp/course-negative.log",
+      "bytes": 1363,
+      "sha256": "3e2c0152c54ce307a7233a84884e6d5bd49d1ea600b2574db535e47388bc0709"
+    },
+    {
+      "path": "tmp/course-negative-mutation.log",
+      "bytes": 19044,
+      "sha256": "8854a83f4b93a0cac524ee407c9808b5c6a93915e997f64800a93134e3103700"
+    },
+    {
+      "path": "tmp/unicode-after.log",
+      "bytes": 197,
+      "sha256": "65152995b9ce70222c3588a769b01144d77280f3966253dc8ff12d4e42264c57"
+    },
+    {
+      "path": "tmp/unicode-mutation.log",
+      "bytes": 952,
+      "sha256": "3c479efc9c6e0f7d4fed79cf39603b596379e370b4770dec43c79042ac5a03ea"
+    },
+    {
+      "path": "tmp/final-block-before.log",
+      "bytes": 1064,
+      "sha256": "8a6255a7a83941efe55b004df6b782b8b55698d2aeca337478a21a4f210fb88a"
+    },
+    {
+      "path": "tmp/final-block-mutation.log",
+      "bytes": 1062,
+      "sha256": "479aba8eae2ae497bf2b02e236548a4b610572d4838b15ccfaa97144a35e86a3"
+    },
+    {
+      "path": "tmp/final-block-restored.log",
+      "bytes": 344,
+      "sha256": "6cc09ef3078dc5656f92493b2a7654d7ca9d169a4d6a2790a5a25532f95acad1"
+    },
+    {
+      "path": "tmp/offline-mutations.json",
+      "bytes": 139,
+      "sha256": "183808f9dfb888685e148f5c5e177deb28d03bbe9165809e63e0afa7f9461e7b"
+    },
+    {
+      "path": "tmp/offline-shell-final.log",
+      "bytes": 1017,
+      "sha256": "fb117301ca9ee5ab1490ebe198c1d8e626961e992cc1dc5ada65d3c7786b4f49"
+    },
+    {
+      "path": "tmp/deep-dependency-audit.json",
+      "bytes": 3179,
+      "sha256": "a232a43c4f54c582e49187a28ec28b898283facea30a19a0abba135193391b91"
+    },
+    {
+      "path": "tmp/deep-offline-shell/result.json",
+      "bytes": 1209,
+      "sha256": "a05e41bc3afd983012327f8b2526af991a5e0142f128b1c3484355fb3340e06d"
+    },
+    {
+      "path": "tmp/deep-input/results.json",
+      "bytes": 20868,
+      "sha256": "107d877cb20f7d21962fe475f82a7f79f76b523a9197a333bfc88959c00cc3f3"
+    },
+    {
+      "path": "tmp/deep-profile/results.json",
+      "bytes": 343169,
+      "sha256": "38d0cc61f10c2eecd67a60f0299168585a6dc8b613f46ac7364a35ff4a060698"
+    },
+    {
+      "path": "tmp/failures-rehearsal-dom/results.json",
+      "bytes": 300,
+      "sha256": "8f67b26096a6cb5df1966d9e969c36509d7d4d779fd812b8d8fc6127ba9201f0"
+    }
+  ]
+}

@@ -57,6 +57,7 @@ if(existsSync(root+'/'+faultPath)){
 // Negative matrix is evidence-specific: do not paint all routes green.
 for(const lang of ['ru','en']){
  const route=data.routes.find(r=>r.id===`practice/supplier/${lang}/agreement`);
+ if(route.status==='прошёл')route.faults.empty='прошёл: tmp/deep-ui-practice-agreement/results.json (empty and whitespace composing guards)';
  const inputPath='tmp/deep-input/results.json';
  if(existsSync(root+'/'+inputPath)&&JSON.parse(readFileSync(root+'/'+inputPath)).some(r=>r.lang===lang&&r.label==='quit'))for(const fault of ['long','unicode','double-action','reload','two-tabs'])route.faults[fault]='прошёл: '+inputPath+' (isolated offline path)';
 }

@@ -1,0 +1,30 @@
+[
+  {
+    "path": "tmp/deep-ui-practice-agreement/results.json",
+    "sha256": "e44f514d65c32da6a0e3ff07954a54efe9578372685d5641dc83d165583ab481"
+  },
+  {
+    "path": "tmp/deep-ui-practice-breakdown/results.json",
+    "sha256": "b4e97eecca5bb6ac913c9d77eb76c3171e1ff4cf128c5f5fbdc4773322ebbe23"
+  },
+  {
+    "path": "tmp/deep-ui-mirror-agreement/results.json",
+    "sha256": "6ba87a8192c6147e487baf1175e00716eb625660d85ee4a9a9b8c33bae252feb"
+  },
+  {
+    "path": "tmp/deep-ui-custom-agreement/results.json",
+    "sha256": "c47c3c3eb35831c3a07a1c61bfae3a7fbfee5b5ee1a5e8ec21d606090cd246e7"
+  },
+  {
+    "path": "tmp/deep-reading/results.json",
+    "sha256": "cf5a1981b87f0a2d3a9d63749be755ac023f043ac1ebbf5359c887ad0696226f"
+  },
+  {
+    "path": "tmp/deep-campaign/results.json",
+    "sha256": "2625705277aee757e304805f6a8636e51a453308febb35c00f5c8096b11924af"
+  },
+  {
+    "path": "tmp/deep-ui-daily-agreement/results.json",
+    "sha256": "8317f8c67cb27bc6a4ded0dec5b9828be63627063ac7e7a7c8d46419cd1437bd"
+  }
+]
