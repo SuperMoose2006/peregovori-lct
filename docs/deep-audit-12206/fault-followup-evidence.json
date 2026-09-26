@@ -1,0 +1,3023 @@
+{
+  "base_revision": "779d6e3",
+  "scope": "Local branch only, not integrated or deployed; see FAULT_FOLLOWUP_12206.md",
+  "planned": 298,
+  "passed": 298,
+  "failed": 0,
+  "source_sha256": {
+    "frontend/src/lib/progress.ts": "1006bd14efe38acd0a16fe55bdd7543b8e9c04226de36f77b1159e76b1de9fb5",
+    "frontend/src/components/CourseScreen.tsx": "08fd5daa4b0ddda39a559c1c09a59fdd45be8e9c0ec59eb4ce06810075acef68",
+    "frontend/src/components/Warmup.tsx": "d4ea414656c30779322a1919b347cb92856219dd0a4b072d5021a4e6ff24876a",
+    "frontend/e2e/course-input-faults.mjs": "606d8e29d11cddf3055d7ba3c573a6b620f2b3fbc27b5d095fd80f59c65260a3",
+    "frontend/e2e/course-tabs-faults.mjs": "e0b2ced34665a60ea30be190449a24b44e59a2f10003aeaed90258ce06d31bff",
+    "frontend/test/profile-storage.test.ts": "44e456a2e5338e85ff88409c9a9c90fe5a5eaf6047757daf4df85fad1cb5e5e3"
+  },
+  "cases": [
+    {
+      "lang": "ru",
+      "id": "fo-04",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-fo-04-long/result.json",
+      "sha256": "e6c9034c1e6e6b8fad8ba1e01c737f48f37a0f5449a39d411be94588f43f53c0"
+    },
+    {
+      "lang": "ru",
+      "id": "fo-04",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-fo-04-empty/result.json",
+      "sha256": "9cb320fe599f3a909265bd25c3a2cf9fa4722831e6b961cb8fed7f90cd1a65e9"
+    },
+    {
+      "lang": "ru",
+      "id": "fo-04",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-fo-04-unicode/result.json",
+      "sha256": "d3c61cd74d9356e30223ee46e56f7d68c3c219e78971bc744c99ca7f9b8092ec"
+    },
+    {
+      "lang": "ru",
+      "id": "fo-04",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-fo-04-double/result.json",
+      "sha256": "2c6489e97262cfc9886a1772b83176e9056469ea5d611fcdd2ccdf3ef8fdda58"
+    },
+    {
+      "lang": "ru",
+      "id": "fo-11",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-fo-11-empty/result.json",
+      "sha256": "39f03dda483ef9aebd0921f189956d4ba91c8a2613c3e20cae2ad31ed1c6221e"
+    },
+    {
+      "lang": "ru",
+      "id": "fo-11",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-fo-11-long/result.json",
+      "sha256": "edc2ce496a31dc78507a9cbea95f8e0b600cb50f64e60a3a871724624d918b40"
+    },
+    {
+      "lang": "ru",
+      "id": "fo-11",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-fo-11-unicode/result.json",
+      "sha256": "73218e82d6a166fb51ee0e2c490ab96a31a9f4705d5694a9839503d2d8aa2944"
+    },
+    {
+      "lang": "ru",
+      "id": "fo-11",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-fo-11-double/result.json",
+      "sha256": "cd114fac482c2ad583fa58e0386ccbb22993e34782fd22808171a3a1a951bde1"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-03",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-03-empty/result.json",
+      "sha256": "c31c3b86f45d363968d00eb67f02975c22aa7eb1e7fa619d808f801e57084f2a"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-03",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-03-long/result.json",
+      "sha256": "4130c5ebc60899930fed004a6be48e1260144407693d5069c0e3dc820ab1cc10"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-03",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-03-unicode/result.json",
+      "sha256": "6070cb6c4ea5461f4a59d1616303a573fb6b4182820847168a29b537aea2932e"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-03",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-03-double/result.json",
+      "sha256": "cbad90bfd53724adf62b4eb72d87a954f6686ef08dd8c54f475f3f851c09f9ac"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-06",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-06-empty/result.json",
+      "sha256": "8a3cb6fd1b9ef4e10a33d0854b811881cea05ccdf2ff87584d6ced16742bb33a"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-06",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-06-long/result.json",
+      "sha256": "c34004576203f1f65ba738adc4e7f66ec64b95a1e160a3c0e23b393cdb5d973b"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-06",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-06-unicode/result.json",
+      "sha256": "aeb55aa14c9753780b729336cac793759bb38a4efcdeec8a9d31c73d678c9bad"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-06",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-06-double/result.json",
+      "sha256": "e706ca9ca77cdafdd38bffc0bfc8eb6c5ca9208e37de217bc4f88de8b049f187"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-10",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-10-empty/result.json",
+      "sha256": "871936335dc9b860365b39391719cc81f31a8785a8fd00ada5c1ae296ce3ef0c"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-10",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-10-long/result.json",
+      "sha256": "1ad47e227ccf873d21710f7a712478053c732af733ae9d9a33e9349827640263"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-10",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-10-unicode/result.json",
+      "sha256": "21f3eaaf84e7a1f1c721f8753106cb407bae2c578576e01680b2c880d59d25f6"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-10",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-10-double/result.json",
+      "sha256": "f6b30e41d863fcd8e732436b0cbefe66851002da39ed66814d01ec6d5b0bbe4a"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-08",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-08-empty/result.json",
+      "sha256": "dd92238800bfd79d3c1f0272fb3b1afe4fd6db190e21ff3fca85ffbb1948c53e"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-08",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-08-long/result.json",
+      "sha256": "12629120c4e5e41df95ab1308ade85a7acc3c067e0d2d4a800c38df6c97991cb"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-08",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-08-unicode/result.json",
+      "sha256": "0708f9d327f606194bab61e03af6223112e6f087b73ba1032de5503f70b11b47"
+    },
+    {
+      "lang": "ru",
+      "id": "sp-08",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-sp-08-double/result.json",
+      "sha256": "e3b3a03c7c4001fc636005603bce81808d196b8bb5d0241119a7a9c3b566b1b8"
+    },
+    {
+      "lang": "ru",
+      "id": "al-10",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-al-10-empty/result.json",
+      "sha256": "790ce4fab5c9cd3874b2a9e7477c0c29b1b5dbac4bca27d8d058ea164c83cdee"
+    },
+    {
+      "lang": "ru",
+      "id": "al-10",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-al-10-long/result.json",
+      "sha256": "45b95b86d08977b629f0ce6dc859c8deee4a64e66fccef0017fbde3132c3c971"
+    },
+    {
+      "lang": "ru",
+      "id": "al-10",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-al-10-unicode/result.json",
+      "sha256": "704527c55aef7281bdc7b0ece221f80255d173f7aad7b16676e14cffb6a3ad01"
+    },
+    {
+      "lang": "ru",
+      "id": "al-10",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-al-10-double/result.json",
+      "sha256": "4d969ae44c8ff02f848e46645dbd3eac8c099eb4808a6205ae451b2db8e3b5bd"
+    },
+    {
+      "lang": "ru",
+      "id": "al-02",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-al-02-empty/result.json",
+      "sha256": "18785b8c8007377c3b79c8521d95db7b09c94e9d0aaafa934101e7f0862ae1fc"
+    },
+    {
+      "lang": "ru",
+      "id": "al-02",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-al-02-long/result.json",
+      "sha256": "a3f80bb00093e0cef71237604f553fd5b919528fc2c19caa74ae8c943fe67fb0"
+    },
+    {
+      "lang": "ru",
+      "id": "al-02",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-al-02-unicode/result.json",
+      "sha256": "7e3ee6bfeea17e9b76283d20330b0a33b89b585992854eb2dd9c9007b45484cd"
+    },
+    {
+      "lang": "ru",
+      "id": "al-02",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-al-02-double/result.json",
+      "sha256": "b002cb040db81b118595903e6358b54ef9a2f3d809e6749fa34bbfda724cda66"
+    },
+    {
+      "lang": "ru",
+      "id": "oc-02",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-oc-02-empty/result.json",
+      "sha256": "3f5c98ae6c13fc28507d2d38c4fd18cfedede98056a8de74ccd6cde0c8601fa7"
+    },
+    {
+      "lang": "ru",
+      "id": "oc-02",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-oc-02-long/result.json",
+      "sha256": "bd3a0f8b6418b31d84b312b940c56e7dfdf646540dc87be19f1ec18339df0cb6"
+    },
+    {
+      "lang": "ru",
+      "id": "oc-02",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-oc-02-unicode/result.json",
+      "sha256": "cbe0422403b4e693ec2db84bf6c87368286da2bf57e79d79e5a687a306c2d513"
+    },
+    {
+      "lang": "ru",
+      "id": "oc-02",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-oc-02-double/result.json",
+      "sha256": "d985b873a48692712e0f810299588923017589933c66870ff52ed88b80dc20de"
+    },
+    {
+      "lang": "ru",
+      "id": "oc-05",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-oc-05-empty/result.json",
+      "sha256": "2c39262845e1f9484ff0a3857771dd3b10ec799738bce640144f1d196e0c04de"
+    },
+    {
+      "lang": "ru",
+      "id": "oc-05",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-oc-05-long/result.json",
+      "sha256": "d75243f8ad8a52c6b313227c84a55f4c1d54cf178183e485c937db487b87ea28"
+    },
+    {
+      "lang": "ru",
+      "id": "oc-05",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-oc-05-unicode/result.json",
+      "sha256": "1abe37a8bd0182b57d3fdc4a55586f9eaea502395208579d2f58a55e885a9416"
+    },
+    {
+      "lang": "ru",
+      "id": "oc-05",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-oc-05-double/result.json",
+      "sha256": "b702940576762bdb3356711bd87f07f28efff41afe1dacca497ad26fcf7d5f86"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-01",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-01-empty/result.json",
+      "sha256": "f063ff4aa4982ba3dff46bef7d4291a4b3ad932b7a5ca6e230e4f4e97aab2a9e"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-01",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-01-long/result.json",
+      "sha256": "7329d7c8ed0d2b160a86003f746a51dedb92df2b610339e33522f8fd0482cbea"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-01",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-01-unicode/result.json",
+      "sha256": "a4c09ff162717cf03ab6529f0caae5b2cc55036632d6eeebf37a58aa24fd18f3"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-01",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-01-double/result.json",
+      "sha256": "32d67ebf02e55df43f6757352b37fecd77a3805bc50a3d87298e093bba89ebc0"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-02",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-02-empty/result.json",
+      "sha256": "a0526f70ec07e1586314e45752b9e39febc27e2d1b6dbc51a4f65a431c37cfe7"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-02",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-02-long/result.json",
+      "sha256": "bfd1c180db8de83abb4ea6b300d77e8413a6e51a245d11b2461d6c4bc6e0c64a"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-02",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-02-unicode/result.json",
+      "sha256": "2cb5bf58519a8c15344b20a4d7143adaf2b9c419dba1d3a87f5d0e50b90d4709"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-02",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-02-double/result.json",
+      "sha256": "fc9102d40af491c36e55c3fa9e285678f5ab4ca3fdd2f000c1931e2bd3ea2657"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-04",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-04-empty/result.json",
+      "sha256": "85348052f342b67a2e36fe6cdb982177a5f6b071b40293840207176a1a4c1748"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-04",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-04-long/result.json",
+      "sha256": "7dc69896e29c5c343b5c5589f245b71178d9b65d77cc0fc17d40011b8be618de"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-04",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-04-unicode/result.json",
+      "sha256": "e55d642dae8e95a1c534b9b93d63986b816fc0f3a2f5f63d32746a52e13af33c"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-07",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-07-empty/result.json",
+      "sha256": "e967bf1fb01729f64569291a14fd376f2f3a5ebcfb210676a85baf39a5a6dd64"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-04",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-04-double/result.json",
+      "sha256": "6bae99e14753d50279bbcf7fa5b134eef1772167bcc8b2192709bb0726797568"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-07",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-07-long/result.json",
+      "sha256": "7484b669414566462b9f1741242da67517711a42b2a93d03256358a5bc4d7455"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-07",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-07-unicode/result.json",
+      "sha256": "3596b52f5497e52a21bb13a991e6601be1d0b94aa68d4cec243cde8fc6a12dc9"
+    },
+    {
+      "lang": "ru",
+      "id": "bz-07",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-bz-07-double/result.json",
+      "sha256": "ac0930448cf68b33b9d033a92266e7b77a719df90a2312d374c9c79c2ed5c704"
+    },
+    {
+      "lang": "ru",
+      "id": "an-01",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-01-empty/result.json",
+      "sha256": "c329be7c4b1e609e5edd99201163edb83ed7f2fa7aca0764297352071f7fb9e6"
+    },
+    {
+      "lang": "ru",
+      "id": "an-01",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-01-long/result.json",
+      "sha256": "f0c97b1715b95bf2cd502fd0a21a5afbd95acfc25fc153edf8536ead057e77d8"
+    },
+    {
+      "lang": "ru",
+      "id": "an-01",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-01-unicode/result.json",
+      "sha256": "3e6b81738ee8cbc58d2f2d2135a0081e9f2a051871136257f755199c2d82b00e"
+    },
+    {
+      "lang": "ru",
+      "id": "an-01",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-01-double/result.json",
+      "sha256": "ba7bdbc16bb100ad158b97bb9a477d39eaecabbefc0309a89374a311b70be46b"
+    },
+    {
+      "lang": "ru",
+      "id": "an-03",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-03-empty/result.json",
+      "sha256": "0ba2e6f30e6dce6016b52766d7f84ba8f20701998f6f8f76c59e0f09962a1590"
+    },
+    {
+      "lang": "ru",
+      "id": "an-03",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-03-long/result.json",
+      "sha256": "a76a0dfafef3f1d25ad585a4761537dd934f16a7d62742543b79a68b219c15a5"
+    },
+    {
+      "lang": "ru",
+      "id": "an-03",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-03-unicode/result.json",
+      "sha256": "8a970049cd619d4d2d7493bc251edfb92efadd460228a9250c61bbf722becd79"
+    },
+    {
+      "lang": "ru",
+      "id": "an-10",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-10-empty/result.json",
+      "sha256": "fb5cc7b64239aebdf8fa9595de22ca9f5c29b8c8c282128032a4b3a192ebe6d6"
+    },
+    {
+      "lang": "ru",
+      "id": "an-03",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-03-double/result.json",
+      "sha256": "52c74973734ea499b2bec2b800426908946a72d9765d4288f32af0ce20556dcc"
+    },
+    {
+      "lang": "ru",
+      "id": "an-10",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-10-long/result.json",
+      "sha256": "6f5ec3d5006658346c083427aa7956e09cc94ff97929b99fc192332fdcfb4d30"
+    },
+    {
+      "lang": "ru",
+      "id": "an-10",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-10-unicode/result.json",
+      "sha256": "aed61f668e0c285b586603bdca1aa3f56f8122a9187d787fd66328831fd52344"
+    },
+    {
+      "lang": "ru",
+      "id": "an-10",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-an-10-double/result.json",
+      "sha256": "3b028728f67c5273460db99eec54bae70e03ebd7e5e5426cbd82fc41ed48f18a"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-02",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-02-empty/result.json",
+      "sha256": "e6495179f8e51a0be4e0f4f0426e829aabab0324717d6a69827b14cec9a9d0a9"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-02",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-02-long/result.json",
+      "sha256": "a3df926680d7dc0226fa9d8be540fec3f15e4734d38efff950a8c84707533839"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-02",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-02-unicode/result.json",
+      "sha256": "45ef95713ec2bfbfe51acd4361810df9548572fc363b979bb9739bdade5be14d"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-02",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-02-double/result.json",
+      "sha256": "3834f370c9e01099e826b9d02c4476c8b6e600ed887098a25cd917c31127d90c"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-03",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-03-empty/result.json",
+      "sha256": "d81c810e76ab8477cc7f5f0e866130c5d5ad786b65722c7d768081aceeb9dea2"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-03",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-03-long/result.json",
+      "sha256": "4fb0dd9d96dea9b6964170282d835d88a16417df0d09d59d1c3c1bdc1b49bb75"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-03",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-03-unicode/result.json",
+      "sha256": "79e4b9017a1851cbd9964edef36814f3d94ea0506f0518f671c64b81bc2a2414"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-03",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-03-double/result.json",
+      "sha256": "92d67d5e0a7b1488d2c6013046d00c1401f8e1b12d0399cdc551e63830c32b1b"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-06",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-06-empty/result.json",
+      "sha256": "926ff9c97bb85431efe3dac4a6ed2628f4eb25fd986bb867d73c1c8d1213b27f"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-06",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-06-long/result.json",
+      "sha256": "9d69143bb0587fe0b5e8ee985a52153f740df7be8f8ef46d6c26fa6da8d75e58"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-06",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-06-unicode/result.json",
+      "sha256": "489cae4d326accac02efb3837b99e96bd7b36774de53e7656e0329b9c4ca05fd"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-06",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-06-double/result.json",
+      "sha256": "f565307c3335c9f35eae71a39961e9a7f08435ed12e5c6be5e6352d652375c38"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-07",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-07-empty/result.json",
+      "sha256": "27cf72c49111c5ab3505a81f537366872b2e490e847d455dabe8e70055277db3"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-07",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-07-long/result.json",
+      "sha256": "afedfded2148ad76c147c44dfcc50965799cb875a07c3695ba258f67da003f35"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-07",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-07-unicode/result.json",
+      "sha256": "3761a21c6d2b5651b9fdec6b1bcd9248343415c13cd605bf127b95d6765f044b"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-07",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-07-double/result.json",
+      "sha256": "c7f972c7a00b99c9e1dca7dd134e8d40ce02ec7ed3c3edbb0751232926ba50aa"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-08",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-08-empty/result.json",
+      "sha256": "8f6c1157e2ee4f7e2c5a8a1ae89183d0c2452438ee4e71a00be866e8afab1b94"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-08",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-08-long/result.json",
+      "sha256": "793557b5597ba5b4f8644069a4eff1e4d18aa66902e030113ba2cf6fdfc80a1f"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-08",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-08-unicode/result.json",
+      "sha256": "83995902ef315c915c85527ea5158bdb8fe96dfcb20c9aef9899538466f2da87"
+    },
+    {
+      "lang": "ru",
+      "id": "lr-08",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-lr-08-double/result.json",
+      "sha256": "db778f3876bbb5d08e11bad86e5f58dc040ae34b5073aee8d90af20fceb23d5e"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-02",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-02-empty/result.json",
+      "sha256": "618a30acbc2eea34ce98e34f0b4974d14c5e671109102d0de98c75e96ddfcc09"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-02",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-02-long/result.json",
+      "sha256": "85534b21e1bbbcf89d4328425fa82000fc0b0893a5c2fc26a4e38869237c8f5d"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-02",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-02-unicode/result.json",
+      "sha256": "46242d6e7067d26b30cd6e81e5732fefb6e7bc9615e375149a8f583215a81d9b"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-08",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-08-empty/result.json",
+      "sha256": "0c175c0861538f4d3413f5ef46439026ca39e55d5da3b30fddb3a436c1404737"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-02",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-02-double/result.json",
+      "sha256": "47b331bd87978dfa82e9963d333de15be4315a99be63c6768fa567cd40beca6f"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-08",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-08-unicode/result.json",
+      "sha256": "1616d55c61b63e8cd7b5a845d7b5ba8b7179450c2f5cea1f7a72da015528b3d5"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-08",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-08-long/result.json",
+      "sha256": "c99fcea776e5d3ee9eda690c674a5b09cadd6724e60fc4d36962382808da0748"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-08",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-08-double/result.json",
+      "sha256": "23c028cce2ab81533ce61a01ff2e2746fa00bff9e0fbd504312557a001993f22"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-03",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-03-empty/result.json",
+      "sha256": "90d06082feaee23440cb76f7a9aabce187975068c9c0f9d6d743b3ca4fb8e630"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-03",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-03-long/result.json",
+      "sha256": "0bcec51e99d87f1e66ce26360ec97110772a9b62277ae40e9923dd34bb4ede30"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-03",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-03-unicode/result.json",
+      "sha256": "350ebadcbd12ab93db6fbc1b8834287576d445051bc691bd8423bbe83f64a0a1"
+    },
+    {
+      "lang": "ru",
+      "id": "pd-03",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pd-03-double/result.json",
+      "sha256": "fc701459227ddca94899a0696e1aa33d8d510b58b6cfa1fd9237a6c7fb770622"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-01",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-01-empty/result.json",
+      "sha256": "fb05dc54553075c0f631b9a8f7f2407dfe79d451c5bdc506d440657579305325"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-01",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-01-long/result.json",
+      "sha256": "652f5a49e542045f30d356d6e26d1a4543e708c72e11aa887472a5b6dbca1b22"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-01",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-01-unicode/result.json",
+      "sha256": "8905fb9b38c05ccb750afbdd6150e835e6c7b7b0d7fa3d127571bb30d1018b6e"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-01",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-01-double/result.json",
+      "sha256": "d0baa2341cfe0a6fde9b4340df84eb5ca07c8e2d74d6f12aefc67000bd1f0640"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-03",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-03-empty/result.json",
+      "sha256": "22640f4dae874985bbb138c87b2fc4bdf8f9c103f070e54ea2d0df511a15d54d"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-03",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-03-long/result.json",
+      "sha256": "4d198023eacb0a16b558c2ab9e91cddbea7f404d35540dd3d0ec4b2135dbe43a"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-03",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-03-unicode/result.json",
+      "sha256": "b9be029caddf2c3ce5d6b69b19684665deb346e43aff70dfece41178b1454f8e"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-03",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-03-double/result.json",
+      "sha256": "3fa368b23d7441237a5a6d7ece2f35760c0d478fd13a237f4dc4596af8ee13c0"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-04",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-04-empty/result.json",
+      "sha256": "1c67a104d9e16f9b481fae768355f9c13cfc5cf9d2d29da7e0cf95436c11676d"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-04",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-04-long/result.json",
+      "sha256": "164fc2d86024b7119fc7202c663c9ea704a480682ace574bfb84b71b1d9185d4"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-04",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-04-unicode/result.json",
+      "sha256": "3965163571b7e20f2349b6ac41787ace1fb7e6fead8b1b52727fa091446cc148"
+    },
+    {
+      "lang": "ru",
+      "id": "cl-04",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-cl-04-double/result.json",
+      "sha256": "f536bdfcb725db17bcd374aba3e0b5cb6daa8c375a97ec33fb1e64a89840c3da"
+    },
+    {
+      "lang": "ru",
+      "id": "st-09",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-09-empty/result.json",
+      "sha256": "1834743b69172327ad95104a8aaf9367a2fd90cb844022784886786cc7dbc9a4"
+    },
+    {
+      "lang": "ru",
+      "id": "st-09",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-09-long/result.json",
+      "sha256": "7d90dd7724f03971515ce230d26d071cf4812e4f0944fc76d2db05e96d84e05e"
+    },
+    {
+      "lang": "ru",
+      "id": "st-09",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-09-unicode/result.json",
+      "sha256": "20dde92caebda018f24e7732a38218c9e6b27f6e97ac1532c92417c88b327fea"
+    },
+    {
+      "lang": "ru",
+      "id": "st-09",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-09-double/result.json",
+      "sha256": "aa8977b0d7ff0e752ddf589fc62ac3b9dd62a3cedd11252dbbcd5026c29db15b"
+    },
+    {
+      "lang": "ru",
+      "id": "st-05",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-05-empty/result.json",
+      "sha256": "3420b15b29c51428f2fb3900561ecbfd1071e375abaf6272ad6646ff3eb658b0"
+    },
+    {
+      "lang": "ru",
+      "id": "st-05",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-05-long/result.json",
+      "sha256": "ae0b720d355dcceeab0147f32f7a0aac8b6eef8d822e263c4b7193101732a7e6"
+    },
+    {
+      "lang": "ru",
+      "id": "st-05",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-05-unicode/result.json",
+      "sha256": "6da1707ad890e02ddb43598304af6e6ba87fbc8d2f67d6f22d25904b346ceed6"
+    },
+    {
+      "lang": "ru",
+      "id": "st-05",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-05-double/result.json",
+      "sha256": "2c27e3e05225619e51db82f0c0078d2e1373982f64e3a6b2eeaef4d4a3cb3b36"
+    },
+    {
+      "lang": "ru",
+      "id": "st-07",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-07-empty/result.json",
+      "sha256": "9fff48bd946ffb8173d1844c3189f587241aa986a0f2ba0d2ee567e8b1d98eb7"
+    },
+    {
+      "lang": "ru",
+      "id": "st-07",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-07-long/result.json",
+      "sha256": "d530eb39020e255d2c236ea5739045f9c8514d735c2462b0181a738da85fe3a1"
+    },
+    {
+      "lang": "ru",
+      "id": "st-07",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-07-unicode/result.json",
+      "sha256": "945b792b17585c879aaad188e230c0c38c57874de0da359a1a6ec2071ed406f8"
+    },
+    {
+      "lang": "ru",
+      "id": "st-07",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-st-07-double/result.json",
+      "sha256": "b924013bec69070f9f51860c5ff8265b49dfaad2eea52034198545ff4269fea1"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-01",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-01-empty/result.json",
+      "sha256": "719157d8497addf7281b1440b5bc5298988e18b3e6778f7cca96765e0318d432"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-01",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-01-long/result.json",
+      "sha256": "50016c51c49af101caaf1d8b5faa1b9584efec9a534c3401216deef1f2210c24"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-01",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-01-unicode/result.json",
+      "sha256": "ad3810fecd6191605e25c907657d5ebc176dee388aab1b442e0ed4bb119a5f1b"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-01",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-01-double/result.json",
+      "sha256": "ac75f2b4578d06481ded6e23aa3af4e5590ae396e63f2e6f05dbbfd0ab796c3b"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-03",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-03-empty/result.json",
+      "sha256": "2c16810d780599fe69f54d444c8d4642758afff665221f818afe7d6adc49c65e"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-03",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-03-long/result.json",
+      "sha256": "b79a408bd02fc8dc4aba4f7b9f1db8b702ea1c5bb77020d2eb323d2aa79198e8"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-03",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-03-unicode/result.json",
+      "sha256": "a90d4d5e9f12e65bb5b5038f25a0227a68c0aca58c7c069bb75b69390fc4c0ba"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-03",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-03-double/result.json",
+      "sha256": "ff708f98a0e0f118c6decd5b5df1722a1083a23a560ed8d58d3c1317b708175f"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-06",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-06-empty/result.json",
+      "sha256": "b64f0e0b82a90d6e7fa00851b14cfe6e5ad7af35a44e614b19422356399fe868"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-06",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-06-long/result.json",
+      "sha256": "fe566fd2117fe9d41bb3c234be040fb0a9ad9aa11925c31e188d61809ca35a0b"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-06",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-06-unicode/result.json",
+      "sha256": "d9a0371e5af81fca4a52c41c7588a7b85783b092d60e4d6263348ef40db9cfde"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-06",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-06-double/result.json",
+      "sha256": "ee3e330e8c7a4b7cac665c961a4b73adfec3eddd643a965861f8221fac4c5157"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-08",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-08-empty/result.json",
+      "sha256": "18a3a1d1c544c76e24216309b7b3029fbd75cac010f3757449c3eafd8934f0aa"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-08",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-08-long/result.json",
+      "sha256": "05e2823acf3b11e354667fab1259f5e8aaf73809fbc212d897f6d16f47ff18c3"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-08",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-08-unicode/result.json",
+      "sha256": "6a67617e38391ec211bde23094a601199df1bab3dc33c20e853bb487b90315df"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-08",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-08-double/result.json",
+      "sha256": "ff60f5604b612d7489ff6a8a3aa6fe722c8e916be43f74375bf968706929668a"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-09",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-09-empty/result.json",
+      "sha256": "0fe1279c0164b0e9b6854d9eaf8ae04ce3f03a9611c661a0c41052ddbd30e6aa"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-09",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-09-long/result.json",
+      "sha256": "d56a4d4fc070ce06e2faf4f9c6449751392225b26687da305bafda6e71df1d13"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-09",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-09-unicode/result.json",
+      "sha256": "d8834cd68624c9ec613c7e52ce301532247905d9ba3b9f4dfbe04368226afed7"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-09",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-09-double/result.json",
+      "sha256": "b8076d1f7f64e0c2b38ad78f5503a65c2273543ec5246ddd29b3ab061b194cc7"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-10",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-10-empty/result.json",
+      "sha256": "0fbf43c1b650b9d78e7fcdb85a421a4fdc34494fd03948dcf1e5070dc90c3b22"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-10",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-10-long/result.json",
+      "sha256": "0ad11192729a9d10cbeb7ba94d38ed7dcec5fa09068cb26fe10adc4aefbf2c9a"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-10",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-10-unicode/result.json",
+      "sha256": "f218b29bef5c38e207f23599271c953725d91abac016ae033a9741581844be74"
+    },
+    {
+      "lang": "ru",
+      "id": "pr-10",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/ru-pr-10-double/result.json",
+      "sha256": "e664172331dfc9be2d87d1eaac55f0260b70c0b0c9859a6fb0c6af0f8d1dc924"
+    },
+    {
+      "lang": "en",
+      "id": "fo-04",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-fo-04-empty/result.json",
+      "sha256": "d49e04f8fdb022fb0179ea54950fc74fafbdc958b3f6a5f850afb658ab08d149"
+    },
+    {
+      "lang": "en",
+      "id": "fo-04",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-fo-04-long/result.json",
+      "sha256": "e87e72a21d4f16510deecbd9b9058a12b192cd7fce9e1080837da585a5883e9a"
+    },
+    {
+      "lang": "en",
+      "id": "fo-04",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-fo-04-unicode/result.json",
+      "sha256": "6f9c1ccbb86ea006f8670e0878951f363f0a1636fe2fb53d72a7085667cb6e6f"
+    },
+    {
+      "lang": "en",
+      "id": "fo-04",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-fo-04-double/result.json",
+      "sha256": "a7b6d8261baab35b3121348136148ec83a4ac4770e3fb027ca11ddbca90d61a8"
+    },
+    {
+      "lang": "en",
+      "id": "fo-11",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-fo-11-empty/result.json",
+      "sha256": "1fedc715512eee9057d5952f25eb7be1612d28b68fd730933e43c550ba21392f"
+    },
+    {
+      "lang": "en",
+      "id": "fo-11",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-fo-11-long/result.json",
+      "sha256": "3e1e904ffa6ad1585d0798f602d03f5e85a18b7b4ce1d5cfeda3f78d6bc91668"
+    },
+    {
+      "lang": "en",
+      "id": "fo-11",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-fo-11-unicode/result.json",
+      "sha256": "d4807cbc79e5fde77a371e4dc11f0b4a872ec3b27385ed2458235c464a3ba0fa"
+    },
+    {
+      "lang": "en",
+      "id": "fo-11",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-fo-11-double/result.json",
+      "sha256": "98bc1775a3324120e1dc3efe4992e5019b800847ac5ac69c2f2d8630f71109a7"
+    },
+    {
+      "lang": "en",
+      "id": "sp-03",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-03-empty/result.json",
+      "sha256": "db2dbe656c5c7d06c8a5ed173b0c12f937ac52d0a6b51d173c2f9f44bbae3764"
+    },
+    {
+      "lang": "en",
+      "id": "sp-03",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-03-long/result.json",
+      "sha256": "02c37c73a9698554ab1d25cad271077646ff00cd6e47918f9f3c39afbbe84664"
+    },
+    {
+      "lang": "en",
+      "id": "sp-03",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-03-double/result.json",
+      "sha256": "2df25e3030cca21ad47ce20947282889cce5ad81bde0f949180e3a42c9b3533f"
+    },
+    {
+      "lang": "en",
+      "id": "sp-03",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-03-unicode/result.json",
+      "sha256": "053069abb16171c1cb115fdd8ccd0eeb543507b297318a66cc384a989d31b5bd"
+    },
+    {
+      "lang": "en",
+      "id": "sp-06",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-06-empty/result.json",
+      "sha256": "b73102ef814601623b586f199dc965772c7b1598c8af5b3cdb5b6559195b4f4a"
+    },
+    {
+      "lang": "en",
+      "id": "sp-06",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-06-long/result.json",
+      "sha256": "55541d9fc4562550d19015036d9f27a6ca3fa2faf778034e5e070b963e39201a"
+    },
+    {
+      "lang": "en",
+      "id": "sp-06",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-06-unicode/result.json",
+      "sha256": "1abb0800930672239766fe01b571ac50c86b521179169b80234a62acd97b9ed9"
+    },
+    {
+      "lang": "en",
+      "id": "sp-06",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-06-double/result.json",
+      "sha256": "0cabc92811b8ea7496e8fda396de0472c1ca35bec1303023dfcfbf444d525fb0"
+    },
+    {
+      "lang": "en",
+      "id": "sp-10",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-10-empty/result.json",
+      "sha256": "b1cd1cc1a904fdf5704f3d69550892a7bd7b654479d6ab9fe7e2a776c93f3d07"
+    },
+    {
+      "lang": "en",
+      "id": "sp-10",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-10-long/result.json",
+      "sha256": "648de707389da05347a0d93731b778077039b87655cce251a45dfe83cb7a84bc"
+    },
+    {
+      "lang": "en",
+      "id": "sp-10",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-10-unicode/result.json",
+      "sha256": "5a68ee555e467afd6d5cdc120d6b6fc10828a95848109750224ff4e5dfbed245"
+    },
+    {
+      "lang": "en",
+      "id": "sp-10",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-10-double/result.json",
+      "sha256": "ec07714836d7709b957c6ecdb3a9615a8d1041e1984c1846dd0a3777818d7b24"
+    },
+    {
+      "lang": "en",
+      "id": "sp-08",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-08-empty/result.json",
+      "sha256": "2bb4f9e44d3909d6c54b7397095288458f6a8332c09343ba38ae124df6528571"
+    },
+    {
+      "lang": "en",
+      "id": "sp-08",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-08-long/result.json",
+      "sha256": "601b83b5c3f9eb8fd591bc9894d5e72f603e8135969fb31ec30a8a98a0ef3f59"
+    },
+    {
+      "lang": "en",
+      "id": "sp-08",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-08-unicode/result.json",
+      "sha256": "7b88654c93c57089bde406a011da59421a38b7cd10c23bda23b7ca2837714db0"
+    },
+    {
+      "lang": "en",
+      "id": "sp-08",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-sp-08-double/result.json",
+      "sha256": "84fcd30d63641090068f90eea10d0f377c09f405f821496f5539c6f65581e1e6"
+    },
+    {
+      "lang": "en",
+      "id": "al-10",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-al-10-empty/result.json",
+      "sha256": "ea7aa24e64656ff461035849804134de1a22aa54902c9dcaf78d81266bf09cc9"
+    },
+    {
+      "lang": "en",
+      "id": "al-10",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-al-10-long/result.json",
+      "sha256": "f39131a8a7ab6ec10ddd5eefc26a1a93b5723940da192311c92e9049312cae52"
+    },
+    {
+      "lang": "en",
+      "id": "al-10",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-al-10-unicode/result.json",
+      "sha256": "407ceda0099e89c790d764a66648035f8b4143c3c4c83dc807f3e653715eeaa6"
+    },
+    {
+      "lang": "en",
+      "id": "al-02",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-al-02-empty/result.json",
+      "sha256": "3ac5c904e12e8d36d11fcc9a677bb8e4e947853fbf3ffe4710d0e8ddcf127236"
+    },
+    {
+      "lang": "en",
+      "id": "al-10",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-al-10-double/result.json",
+      "sha256": "5a00bec6e4c7e2092bb9d2bc5c204d711d842cb496f976bceba2511ba78cf3f6"
+    },
+    {
+      "lang": "en",
+      "id": "al-02",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-al-02-long/result.json",
+      "sha256": "841dae0ba722959c231bbe9d1a06aeac331a665b12a904ef935735dca52c22fd"
+    },
+    {
+      "lang": "en",
+      "id": "al-02",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-al-02-unicode/result.json",
+      "sha256": "9e644b753633b4e5feb4a859e3153378bd5fcf3f8ca4a950dc43b70ef82efcc7"
+    },
+    {
+      "lang": "en",
+      "id": "al-02",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-al-02-double/result.json",
+      "sha256": "59a44608eed98c8c4ccd3db0e58c71f42b4961d5e4143aea8400ef9e981026a9"
+    },
+    {
+      "lang": "en",
+      "id": "oc-02",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-oc-02-empty/result.json",
+      "sha256": "01465ac2a6251f4dd9d5391692419fc290a1bc7f725ffee6ab994548574e4bdd"
+    },
+    {
+      "lang": "en",
+      "id": "oc-02",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-oc-02-long/result.json",
+      "sha256": "0307d9179a3c477d09f431f3168d02c90849fd34948e55ee07aa979b58ea813f"
+    },
+    {
+      "lang": "en",
+      "id": "oc-02",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-oc-02-unicode/result.json",
+      "sha256": "3aa39619c9b6b2ad0e488e8128a39b6b4d591be19fef46eaedaedc2ea1f27846"
+    },
+    {
+      "lang": "en",
+      "id": "oc-02",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-oc-02-double/result.json",
+      "sha256": "beba58bafb6edb2195ba8577660f427cab70da88eb5372188e0ff281b1381c66"
+    },
+    {
+      "lang": "en",
+      "id": "oc-05",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-oc-05-empty/result.json",
+      "sha256": "bb45400f6e4bca05571cc73bff26794b9688bcadd69bcda9688cfa9e5f9c539b"
+    },
+    {
+      "lang": "en",
+      "id": "oc-05",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-oc-05-long/result.json",
+      "sha256": "0c99536d54b3a2342f62f061acb988a3678b9f63431ab668801bb889e4aed862"
+    },
+    {
+      "lang": "en",
+      "id": "oc-05",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-oc-05-unicode/result.json",
+      "sha256": "b9c4ef181a4be2a25444cd9bcc87516f27bec8d41fb9d64c63ab7530962721d9"
+    },
+    {
+      "lang": "en",
+      "id": "oc-05",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-oc-05-double/result.json",
+      "sha256": "dbc35f21ef3f2e2fb962f5da1d45d63dcfeb0bbc06d25082748f97b2f1ba4c4a"
+    },
+    {
+      "lang": "en",
+      "id": "bz-01",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-01-empty/result.json",
+      "sha256": "76e54c301d183300c56ef0201bfa4d42994dab5d7524a0abdbce3546ac909a81"
+    },
+    {
+      "lang": "en",
+      "id": "bz-01",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-01-long/result.json",
+      "sha256": "956293036e95730df9288789e7ee86083b63f17b3340c2ea3b2165ef9f085bba"
+    },
+    {
+      "lang": "en",
+      "id": "bz-01",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-01-unicode/result.json",
+      "sha256": "b0406ef0f0e4661c688a8c1225ba1028d792eb994072db1d4e65a188c0688082"
+    },
+    {
+      "lang": "en",
+      "id": "bz-01",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-01-double/result.json",
+      "sha256": "fbc9cf2443e080517153c4316d5806619fbea67ef4543f284733c50d5522ca77"
+    },
+    {
+      "lang": "en",
+      "id": "bz-02",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-02-empty/result.json",
+      "sha256": "77f9618063f93f806632485a3a67c2863bd42bc226bf50a694401d7675702c44"
+    },
+    {
+      "lang": "en",
+      "id": "bz-02",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-02-long/result.json",
+      "sha256": "63d4183c8998d52fe44e8eaea2fbd1b83060230d5044cb51baa6e2b9b3309d2e"
+    },
+    {
+      "lang": "en",
+      "id": "bz-02",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-02-unicode/result.json",
+      "sha256": "89277358e0c96ac859276ca705454d9ed0214e3a76773850f1c73e56e15c9189"
+    },
+    {
+      "lang": "en",
+      "id": "bz-02",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-02-double/result.json",
+      "sha256": "29de6189a868c0e6aa7ad1755a2d12556e1cd5e58a5f926a3cb2c9c01f2fbd91"
+    },
+    {
+      "lang": "en",
+      "id": "bz-04",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-04-empty/result.json",
+      "sha256": "7de367de3831f3bea2c0455507517488350068bb6054ec4a7965e4d5880a3d95"
+    },
+    {
+      "lang": "en",
+      "id": "bz-04",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-04-long/result.json",
+      "sha256": "0ae7f24a47e9c6c1d46fd93c250aeb0a836ceaaaa498bd847aff94aa3c4ad980"
+    },
+    {
+      "lang": "en",
+      "id": "bz-04",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-04-unicode/result.json",
+      "sha256": "c7e104408fe0537ffa3e55f4a005085b5664c36322cc5a91a2e02d2327ddae53"
+    },
+    {
+      "lang": "en",
+      "id": "bz-04",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-04-double/result.json",
+      "sha256": "e539623c917beb9ea16e72b24ace18cad98707f5bb22476a3124d5704243ab36"
+    },
+    {
+      "lang": "en",
+      "id": "bz-07",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-07-empty/result.json",
+      "sha256": "971d00fb289a03b3416df846ce5e00a6edfe83fa93a4bd95e42e58696d251910"
+    },
+    {
+      "lang": "en",
+      "id": "bz-07",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-07-long/result.json",
+      "sha256": "7ee79a58722b8cf75a0d0c79ed6c962d0299a30eaffbaf00c4ae371c77de06e9"
+    },
+    {
+      "lang": "en",
+      "id": "bz-07",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-07-unicode/result.json",
+      "sha256": "77694528f63ba67ac56ffad5721d7807c0186cab771e43fb8c41925065ed1a0f"
+    },
+    {
+      "lang": "en",
+      "id": "bz-07",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-bz-07-double/result.json",
+      "sha256": "072c36a57bfb82117fb851b165547066926d61b3b8e4381843d953975049d333"
+    },
+    {
+      "lang": "en",
+      "id": "an-01",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-01-empty/result.json",
+      "sha256": "426dd1fc5cb707c1e00dd2496d138d91778fdac47aea09399771e6119a9fd1a5"
+    },
+    {
+      "lang": "en",
+      "id": "an-01",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-01-long/result.json",
+      "sha256": "9b6beb4626a88177841fbf5c6b13e219e9ce76f7b2bfa6f997245332d4151c6e"
+    },
+    {
+      "lang": "en",
+      "id": "an-01",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-01-unicode/result.json",
+      "sha256": "c4a33cd929b8b533ba5a267fbdc98f73580a1e11734c3889ad9c1540b2050979"
+    },
+    {
+      "lang": "en",
+      "id": "an-01",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-01-double/result.json",
+      "sha256": "c751289287ca45e15f729bd3de30586961f385b37f82293c30667a8a9ceead6a"
+    },
+    {
+      "lang": "en",
+      "id": "an-03",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-03-empty/result.json",
+      "sha256": "d8627039fc9c6c41d41be64d98a1c7309b61a8fe77fc2a0d4c9962052fdb4bba"
+    },
+    {
+      "lang": "en",
+      "id": "an-03",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-03-unicode/result.json",
+      "sha256": "27553abc286710025ab705499f4df4ad93aa35ca800788d4aec65f89a4a0b7d2"
+    },
+    {
+      "lang": "en",
+      "id": "an-03",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-03-long/result.json",
+      "sha256": "cb3275843ff83ba094cf734da8f41c42e0f3807be13c398dc1e853e6950541aa"
+    },
+    {
+      "lang": "en",
+      "id": "an-03",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-03-double/result.json",
+      "sha256": "4c50f5e8425899fc744056dcde54a09618e8473395adab871b0fcd738a1eacdb"
+    },
+    {
+      "lang": "en",
+      "id": "an-10",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-10-empty/result.json",
+      "sha256": "b3c575aa1a8fa007cd465d6bfd962b852a69876834b87c1330b1ef3535455dd0"
+    },
+    {
+      "lang": "en",
+      "id": "an-10",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-10-long/result.json",
+      "sha256": "aac06773d5e6c9f4a32b09a177eb6f4e6f4630716980cf06d55965b0f857d980"
+    },
+    {
+      "lang": "en",
+      "id": "an-10",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-10-unicode/result.json",
+      "sha256": "bdcfe372cc7ae0f6d9eb99e02cc09d68297e6cd811cad275f8e6339a7856b4de"
+    },
+    {
+      "lang": "en",
+      "id": "an-10",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-an-10-double/result.json",
+      "sha256": "ba8fc512543c319f5798c006e2aed81e2d4d3458e8c4f1943958a24b381aa442"
+    },
+    {
+      "lang": "en",
+      "id": "lr-02",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-02-empty/result.json",
+      "sha256": "2df75bc38697c60320a62d71c7ab501f93f7dba25af94b8c40841b334b01ee25"
+    },
+    {
+      "lang": "en",
+      "id": "lr-02",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-02-long/result.json",
+      "sha256": "bccf55eb7bcc790c0e0ab2c281d47d661b118f8bf31c3121db069951f5223785"
+    },
+    {
+      "lang": "en",
+      "id": "lr-02",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-02-unicode/result.json",
+      "sha256": "71248d1f95bf9603f6039a21bc28d565b6bc6cfdb0587e4bac9d6ee3534666c3"
+    },
+    {
+      "lang": "en",
+      "id": "lr-02",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-02-double/result.json",
+      "sha256": "3df7246b32e82042b8c274afc9ac7aa2b49f5f03c955257c5921f06589fcffdf"
+    },
+    {
+      "lang": "en",
+      "id": "lr-03",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-03-empty/result.json",
+      "sha256": "51f7f3b6e0b48517cd74c3d3d4f5f62ce560f6a476888fafaaa15417d6c41f12"
+    },
+    {
+      "lang": "en",
+      "id": "lr-03",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-03-long/result.json",
+      "sha256": "0ba750752748643c4245af28650e78d3e42a9c6bf4741a2711bf02318378dfd3"
+    },
+    {
+      "lang": "en",
+      "id": "lr-03",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-03-unicode/result.json",
+      "sha256": "49450b44938fb42fea1a03f99001f919a8332565093032d2c9c1a1f822b9b134"
+    },
+    {
+      "lang": "en",
+      "id": "lr-03",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-03-double/result.json",
+      "sha256": "360089793fe56c3db9a7e9a2bd8fe77193a469734250f9cdf3b88770613050c5"
+    },
+    {
+      "lang": "en",
+      "id": "lr-06",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-06-empty/result.json",
+      "sha256": "82575922b278a57c4747d37a4ba6b3b48d5a9cddc4300c53e3744666d544f2ce"
+    },
+    {
+      "lang": "en",
+      "id": "lr-06",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-06-long/result.json",
+      "sha256": "fbcc599dcec44578411c672878abf78b0f58dd1fb45f219f311147748e3aa180"
+    },
+    {
+      "lang": "en",
+      "id": "lr-06",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-06-unicode/result.json",
+      "sha256": "403c585db5d881823d1d2d6d120c18dde0ba885258aff1ad01127eb847e2dbb3"
+    },
+    {
+      "lang": "en",
+      "id": "lr-06",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-06-double/result.json",
+      "sha256": "dee40d824f210a7795087e406a0c7a6b1c2efb381b79d9edaa8ba75913cbb849"
+    },
+    {
+      "lang": "en",
+      "id": "lr-07",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-07-empty/result.json",
+      "sha256": "68d2c1c917703ffd7ae9be4a457e73e9a9cd56ee59d105963a89bab7ac590e0a"
+    },
+    {
+      "lang": "en",
+      "id": "lr-07",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-07-long/result.json",
+      "sha256": "4fbad3b04e5592cbcc8b2243b5baf5720e3fc95ba8ec956ffb028163611b5ed1"
+    },
+    {
+      "lang": "en",
+      "id": "lr-07",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-07-unicode/result.json",
+      "sha256": "2d2aeccad1ddb46ce04c9f44462eb951b2df73fcfaa396862b0f5260a119db82"
+    },
+    {
+      "lang": "en",
+      "id": "lr-07",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-07-double/result.json",
+      "sha256": "79d2a32497e1804ef029162cb195a16c89296dd5c8441b1224feb39f5a112521"
+    },
+    {
+      "lang": "en",
+      "id": "lr-08",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-08-empty/result.json",
+      "sha256": "ac731bb04edaa428d07ddeb95e627cc70a9bd7fc91429ce62c6557105c294e4d"
+    },
+    {
+      "lang": "en",
+      "id": "lr-08",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-08-long/result.json",
+      "sha256": "5cbf556ef342de67e7e152b111885169f0dd3bcf10d7b79525c6064a4dbb0970"
+    },
+    {
+      "lang": "en",
+      "id": "lr-08",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-08-unicode/result.json",
+      "sha256": "0943a7edb71244610303d3db61fcdc031a9ce324c6a246bc4dde52eb4ed2fc50"
+    },
+    {
+      "lang": "en",
+      "id": "lr-08",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-lr-08-double/result.json",
+      "sha256": "c51b3c0409ba76c5cf3578cbaaf95e30d54f6a1d1ceeb583691a153de7ff17d3"
+    },
+    {
+      "lang": "en",
+      "id": "pd-02",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-02-empty/result.json",
+      "sha256": "8ddc7c4ab3884abb04a32ada92eb956e74dcdb7e76fe2372882730a27f7fd629"
+    },
+    {
+      "lang": "en",
+      "id": "pd-02",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-02-long/result.json",
+      "sha256": "233ed0fb7802ce82c7fa2a800683cfb0b542205afe6290af76520c38eea3f6b6"
+    },
+    {
+      "lang": "en",
+      "id": "pd-02",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-02-unicode/result.json",
+      "sha256": "56bcddf027c7b7b3788e9cde51b0778a84fc5dfde5d69a83e28cf38dfa30ff51"
+    },
+    {
+      "lang": "en",
+      "id": "pd-02",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-02-double/result.json",
+      "sha256": "9bbf13640820c8971e8a9bba55b943f2e654d5d0e13b1970d1278e75aa5518f1"
+    },
+    {
+      "lang": "en",
+      "id": "pd-08",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-08-empty/result.json",
+      "sha256": "3e71f3a22b7e17be09875b414c8f4e6373473666a2580ddddf1c877cb46fbcd2"
+    },
+    {
+      "lang": "en",
+      "id": "pd-08",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-08-long/result.json",
+      "sha256": "c4ed12ae7181f2f426a5ba37a96f79712631722b05a72ab4e5bd0e1abcc80fa2"
+    },
+    {
+      "lang": "en",
+      "id": "pd-08",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-08-unicode/result.json",
+      "sha256": "27ce62def9672b8628ac8037c33278ae0bb212fee010e44f66b1273774773932"
+    },
+    {
+      "lang": "en",
+      "id": "pd-08",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-08-double/result.json",
+      "sha256": "f1fe42b1a866260cd210c0e8fea427c0833eebe93d3f2ea12b0f7de0e9b7882c"
+    },
+    {
+      "lang": "en",
+      "id": "pd-03",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-03-empty/result.json",
+      "sha256": "7b3ad30cedb4a75a47620450065e6d113133f034be8b973ed003b3c9eed374cb"
+    },
+    {
+      "lang": "en",
+      "id": "pd-03",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-03-long/result.json",
+      "sha256": "ccfc153a861cfcfd503eb793aa874371db3cc53486209d60bf28e97acfcb9f87"
+    },
+    {
+      "lang": "en",
+      "id": "pd-03",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-03-unicode/result.json",
+      "sha256": "30d19444d3dcfc4f97d0be49a573cf1042b6d19f00c8d79fb96022c7f284ea75"
+    },
+    {
+      "lang": "en",
+      "id": "pd-03",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pd-03-double/result.json",
+      "sha256": "79d5e5d6de5c76699091cd0904e52790070e04240a8859b55b049607f241af23"
+    },
+    {
+      "lang": "en",
+      "id": "cl-01",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-01-empty/result.json",
+      "sha256": "f3ab260cfac5406613e0be117b8dd1c94046c49d009c25a6d0938dc312a731ad"
+    },
+    {
+      "lang": "en",
+      "id": "cl-01",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-01-long/result.json",
+      "sha256": "af8cb56718e1f603b00a3a389ded77dbf6cedc8edb9297a66c6a6ed3e6152005"
+    },
+    {
+      "lang": "en",
+      "id": "cl-01",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-01-unicode/result.json",
+      "sha256": "3f610a236d7700345a5bd9acb1e7305955d167c26bdf1410ae4b3fdd34a22646"
+    },
+    {
+      "lang": "en",
+      "id": "cl-01",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-01-double/result.json",
+      "sha256": "e7c3771adedd1dd28a7c93f012adf82d1d8c57531b149fc58a7fe64a7cca481c"
+    },
+    {
+      "lang": "en",
+      "id": "cl-03",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-03-empty/result.json",
+      "sha256": "d4f2f562f79b79a25a7175fdadcadda25f75c828c4c11e67581f65521b5327b6"
+    },
+    {
+      "lang": "en",
+      "id": "cl-03",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-03-long/result.json",
+      "sha256": "f92b366456d0ee3df4b81d993ad6655f5a5084452add08b69cac74fe5154aaa0"
+    },
+    {
+      "lang": "en",
+      "id": "cl-03",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-03-unicode/result.json",
+      "sha256": "c7747e0ae1d45c4102ec6b5b7698cef2c2466b4d0c7aee5a822b4fc009325086"
+    },
+    {
+      "lang": "en",
+      "id": "cl-03",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-03-double/result.json",
+      "sha256": "bae517f9c9428e5adfde8aabefef8578a41ab13f61db3a5233a241ff8d25583e"
+    },
+    {
+      "lang": "en",
+      "id": "cl-04",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-04-empty/result.json",
+      "sha256": "f5449fff0ac9d898cfd9a109c941822a1c83809524eb34ddb90b3f7f92113099"
+    },
+    {
+      "lang": "en",
+      "id": "cl-04",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-04-long/result.json",
+      "sha256": "7c025b7f70e84610cb07a0f85f8e6b8273b313033b1fdcc833137a0ee048393e"
+    },
+    {
+      "lang": "en",
+      "id": "cl-04",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-04-unicode/result.json",
+      "sha256": "9463856fbd8b3fa83e2b208babe4e3939004d1e627491c2f3e6dc7bdf4fcfa08"
+    },
+    {
+      "lang": "en",
+      "id": "cl-04",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-cl-04-double/result.json",
+      "sha256": "f2570396d5c892cab05d39e0504642040bc57b16882cf1de016610766a95a193"
+    },
+    {
+      "lang": "en",
+      "id": "st-09",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-09-long/result.json",
+      "sha256": "2cfae926d310d5ab0de62b0e7fb30cf42ce0c3b9a5eeefae1a26775d2830bf01"
+    },
+    {
+      "lang": "en",
+      "id": "st-09",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-09-empty/result.json",
+      "sha256": "4f2e73e88aeab1ec98a59b3fe834e058f6370a56e64a770e70a90f86f6aee627"
+    },
+    {
+      "lang": "en",
+      "id": "st-09",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-09-unicode/result.json",
+      "sha256": "21679b1b6da9a819c48e6cbe2dd9c187da48385b26e3d502914f6b94f70bd38f"
+    },
+    {
+      "lang": "en",
+      "id": "st-09",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-09-double/result.json",
+      "sha256": "567307b18e78cfcc2dfb8b61c999371d22dfe23dc272153bebcc00d78e2e6e80"
+    },
+    {
+      "lang": "en",
+      "id": "st-05",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-05-empty/result.json",
+      "sha256": "ecdc9c6cf2bc44ac7ead9a25c85de8083bf65a7ece9b3ef3e187f675f31d9ca0"
+    },
+    {
+      "lang": "en",
+      "id": "st-05",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-05-long/result.json",
+      "sha256": "d4b1703671ec69214d0d22101d97b58efc0dc6af6927e306572cf46baf0a0939"
+    },
+    {
+      "lang": "en",
+      "id": "st-05",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-05-unicode/result.json",
+      "sha256": "c04d2bd6a4fac5e97680a541c7b0cd3e9fe6762804c584e80b9e3ac715f00335"
+    },
+    {
+      "lang": "en",
+      "id": "st-05",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-05-double/result.json",
+      "sha256": "fde26ecec5307079d7b4c331b2120ba0003281cff9b0bf2f761519d52ff7bf3e"
+    },
+    {
+      "lang": "en",
+      "id": "st-07",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-07-empty/result.json",
+      "sha256": "79631f1b2063c52fcf7ed372e3721f5c08e7122134ef9066ba5382ec52c94dca"
+    },
+    {
+      "lang": "en",
+      "id": "st-07",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-07-long/result.json",
+      "sha256": "1efa7447c4d9d6ca51b1764f3863f867724d5fd1cc950171cf61968bfab12307"
+    },
+    {
+      "lang": "en",
+      "id": "st-07",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-07-unicode/result.json",
+      "sha256": "cb1eb0a7f46e6d86e6fd36059336c9f4fd518492e3712b6dd652485176e979b1"
+    },
+    {
+      "lang": "en",
+      "id": "st-07",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-st-07-double/result.json",
+      "sha256": "6da674b2b08a99cf28c1b4c3b5deffc6cee0ed0b6f7e6def6932c627c9c6dcd1"
+    },
+    {
+      "lang": "en",
+      "id": "pr-01",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-01-empty/result.json",
+      "sha256": "b0b5089be646ad74bd5adc8ca9da68b4664da3b3886f72a589b848e8c63791d8"
+    },
+    {
+      "lang": "en",
+      "id": "pr-01",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-01-unicode/result.json",
+      "sha256": "49a5e2740c723842f8556be7a2a8fb4598e255131c833920f905523a62308317"
+    },
+    {
+      "lang": "en",
+      "id": "pr-01",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-01-long/result.json",
+      "sha256": "c39ffed2f3dc6c147b34e956ff9e39085b45e1ffbc4481293b26dac2235f5d79"
+    },
+    {
+      "lang": "en",
+      "id": "pr-01",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-01-double/result.json",
+      "sha256": "b5d5fe519376a8d261b0477939548b59e8039eb0c5ceebdfb72811c863fcc839"
+    },
+    {
+      "lang": "en",
+      "id": "pr-03",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-03-empty/result.json",
+      "sha256": "1a3f11fbe0545f92a270ada20c118a94cebed977f06f7529b5404f1c391b2aba"
+    },
+    {
+      "lang": "en",
+      "id": "pr-03",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-03-unicode/result.json",
+      "sha256": "f8b99cb54df9bf8fc123912298bdaddddbfc8abfaf09fb0c5222141bc1b1767d"
+    },
+    {
+      "lang": "en",
+      "id": "pr-03",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-03-long/result.json",
+      "sha256": "eac47f90b5591e014a79c8ac5f6b5c5fd378f344f82b904f92e9eccc425d9b0a"
+    },
+    {
+      "lang": "en",
+      "id": "pr-03",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-03-double/result.json",
+      "sha256": "bf2ee60c3965f40b9e36f7117039aea4ea4d21fd57adad3e363a80e3bcfaeb3c"
+    },
+    {
+      "lang": "en",
+      "id": "pr-06",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-06-empty/result.json",
+      "sha256": "4bc7ccde43a4c2713aa262630103797567d50b0319ef021c045d9abbaf69df60"
+    },
+    {
+      "lang": "en",
+      "id": "pr-06",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-06-long/result.json",
+      "sha256": "c19d646ba144762fe11055d7cc44e96b7b589c3d4c2e2097841a88499b7e593e"
+    },
+    {
+      "lang": "en",
+      "id": "pr-06",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-06-unicode/result.json",
+      "sha256": "8a164755641c687924622e09f316a62a29072a4f43f5cb426f1d400f2795652a"
+    },
+    {
+      "lang": "en",
+      "id": "pr-06",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-06-double/result.json",
+      "sha256": "4a088c5b4cc52265637f00cec8c3f9708c9aab796dbc1856b6a230bab3cc512f"
+    },
+    {
+      "lang": "en",
+      "id": "pr-08",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-08-empty/result.json",
+      "sha256": "5631ad4b3c6f2d8335d39f0057de3e0af78309c8f30ff419247ed9baca2c66b1"
+    },
+    {
+      "lang": "en",
+      "id": "pr-08",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-08-long/result.json",
+      "sha256": "3fe84cea2238b2def954d830754d20d658b05860807fc8e0cbc80a95d7223b1c"
+    },
+    {
+      "lang": "en",
+      "id": "pr-08",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-08-unicode/result.json",
+      "sha256": "d80b143c16ccf6b67b03edf5713be73877e7a850dc68055eaf381d4957b9f8cf"
+    },
+    {
+      "lang": "en",
+      "id": "pr-08",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-08-double/result.json",
+      "sha256": "3cc86121e2694c80f79e4da714aed5f528fefbbfc2da7a5c1c157d70c1e4c3c1"
+    },
+    {
+      "lang": "en",
+      "id": "pr-09",
+      "type": "numeric",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-09-empty/result.json",
+      "sha256": "de2002d00be3ebbccf2a30a2f8c02bc69cc2b2027790b8104a46fdb3af397cdf"
+    },
+    {
+      "lang": "en",
+      "id": "pr-09",
+      "type": "numeric",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-09-long/result.json",
+      "sha256": "6baeecee7143e24127af2c8f7304e69bc5909bdad79c022944bc1edd2cf06ae3"
+    },
+    {
+      "lang": "en",
+      "id": "pr-09",
+      "type": "numeric",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-09-unicode/result.json",
+      "sha256": "d72c9f2b5c997e6ee6aee0acd37d71188bf17414f7a77e26df517046abbd0fe3"
+    },
+    {
+      "lang": "en",
+      "id": "pr-09",
+      "type": "numeric",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-09-double/result.json",
+      "sha256": "dec9de8d395eebf5c8e10f000f94a1ac411ce85e593ba03df080e39e822fa390"
+    },
+    {
+      "lang": "en",
+      "id": "pr-10",
+      "type": "freeform",
+      "fault": "empty",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-10-empty/result.json",
+      "sha256": "f3c94ba0eb86ca5cfd5850352b3bdbef738d536cb79be3479e5c4b25479ca972"
+    },
+    {
+      "lang": "en",
+      "id": "pr-10",
+      "type": "freeform",
+      "fault": "long",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-10-long/result.json",
+      "sha256": "3790e2d65ba5beef965d59a826844fbafebbde991d54345a9d7546f1031fc34e"
+    },
+    {
+      "lang": "en",
+      "id": "pr-10",
+      "type": "freeform",
+      "fault": "double",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-10-double/result.json",
+      "sha256": "eac71db5b95a4a42af93c670e55bc6011206b79a8084e3d0d953433210d383d9"
+    },
+    {
+      "lang": "en",
+      "id": "pr-10",
+      "type": "freeform",
+      "fault": "unicode",
+      "status": "passed",
+      "exitCode": 0,
+      "evidence": "tmp/course-input-faults/en-pr-10-unicode/result.json",
+      "sha256": "2edf47a32a52f20e67685f824f0065a89a8c40595b868149fc0141e0466e33e9"
+    },
+    {
+      "id": "course-two-tabs",
+      "lang": "ru",
+      "fault": "stale-profile",
+      "status": "passed",
+      "runs": {
+        "before": {
+          "status": "failed",
+          "evidence": "tmp/course-tabs-ru-before/results.json",
+          "sha256": "705d436c18b423d85473767334a8b1dd3e79ba0ceb87eecdb3bb046664ce481a"
+        },
+        "after": {
+          "status": "passed",
+          "evidence": "tmp/course-tabs-ru-after/results.json",
+          "sha256": "e57ade439673ca9c3d609e42da984eb5012826873deee3ff9618a9a92aa3c2f7"
+        },
+        "mutation-verified": {
+          "status": "failed",
+          "evidence": "tmp/course-tabs-ru-mutation-verified/results.json",
+          "sha256": "705d436c18b423d85473767334a8b1dd3e79ba0ceb87eecdb3bb046664ce481a"
+        }
+      }
+    },
+    {
+      "id": "course-two-tabs",
+      "lang": "en",
+      "fault": "stale-profile",
+      "status": "passed",
+      "runs": {
+        "before": {
+          "status": "failed",
+          "evidence": "tmp/course-tabs-en-before/results.json",
+          "sha256": "e3e088019416fcd121ce58c0c9f77549127800c5bfb8a6703632f248ae42fe49"
+        },
+        "after": {
+          "status": "passed",
+          "evidence": "tmp/course-tabs-en-after/results.json",
+          "sha256": "f1bd689f7a96a5e4fca0a71f3391e7ff1d9d483bc37b1ef5262d0ff1a907d403"
+        },
+        "mutation-verified": {
+          "status": "failed",
+          "evidence": "tmp/course-tabs-en-mutation-verified/results.json",
+          "sha256": "e3e088019416fcd121ce58c0c9f77549127800c5bfb8a6703632f248ae42fe49"
+        }
+      }
+    }
+  ]
+}
