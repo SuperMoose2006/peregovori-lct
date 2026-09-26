@@ -33,14 +33,23 @@ function harness() {
   return { server, messages, waitFor };
 }
 
-test("custom generation can be forced to fail (failure-UI seam)", async () => {
-  const { server, waitFor } = harness();
-  // The sentinel makes the deterministic synth emit {type:error} instead of a
-  // greeting — the hook the failure/retry UI is exercised against.
-  server.send({ type: "start", scenarioId: "", lang: "ru", mode: "custom", situation: "force-gen-error" });
-  const err = await waitFor((m) => m.type === "error");
-  assert.equal(err.type, "error");
-  if (err.type === "error") assert.ok(err.message.length > 0);
+for (const input of [
+  {situation:"Обсуждаем genfail как название проекта",search:""},
+  {situation:"Обсуждаем force-gen-error как название проекта",search:""},
+  {situation:"Обсуждаем стоимость проекта",search:"?genfail=1"},
+]) test(`custom text and URL are data, not fault controls: ${input.situation}/${input.search}`, async () => {
+  const {server,waitFor} = harness();
+  const previous=Object.getOwnPropertyDescriptor(globalThis,"location");
+  Object.defineProperty(globalThis,"location",{value:{search:input.search},configurable:true});
+  try {
+    server.send({type:"start",scenarioId:"",lang:"ru",mode:"custom",situation:input.situation});
+    const first=await waitFor(m=>m.type==="greeting"||m.type==="error");
+    assert.equal(first.type,"greeting","ordinary description/URL must not trigger a QA failure");
+  } finally {
+    server.close();
+    if(previous)Object.defineProperty(globalThis,"location",previous);
+    else Reflect.deleteProperty(globalThis,"location");
+  }
 });
 
 test("greeting → opponent turns → debrief over the protocol", async () => {

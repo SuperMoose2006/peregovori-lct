@@ -178,7 +178,7 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
     <section className="screen course">
       <div className="wrap">
         <ScreenHeading as="h1">{t.course.title}</ScreenHeading>
-        <p className="lead">{t.course.lead}</p>
+        <p className="lead">{t.course.lead.replace("{n}", String(COURSE_BLOCKS.length))}</p>
         {/* Работа над ошибками: список живёт ровно до тех пор, пока ошибка не
             исправлена. Ничего не «висит» вечно и не копится молча. */}
         {missed.length ? (

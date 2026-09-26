@@ -1186,7 +1186,7 @@ export const I18N: Record<Lang, Strings> = {
            course: "Курс", exam: "Экзамен", progress: "Прогресс", profile: "Профиль" },
     course: {
       title: "Курс приёмов",
-      lead: "Девять блоков: вопрос → эмоция → легитимность → сила → числа → создание ценности → защита → закрытие. В каждом уроки, задания и экзамен.",
+      lead: "Блоков: {n}. Вопрос → эмоция → легитимность → сила → числа → создание ценности → защита → закрытие. В каждом уроки, задания и экзамен.",
       blocksDone: "Сдано блоков: {n} из {total}",
       blockOf: "блок {n} из {total}",
       blockDone: "пройден",
@@ -1983,7 +1983,7 @@ export const I18N: Record<Lang, Strings> = {
            course: "Course", exam: "Exam", progress: "Progress", profile: "Profile" },
     course: {
       title: "Technique course",
-      lead: "Nine blocks: question → emotion → legitimacy → power → numbers → value creation → defence → closing. Each has lessons, drills and an exam.",
+      lead: "{n} blocks: question → emotion → legitimacy → power → numbers → value creation → defence → closing. Each has lessons, drills and an exam.",
       blocksDone: "Blocks passed: {n} of {total}",
       blockOf: "block {n} of {total}",
       blockDone: "completed",
