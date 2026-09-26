@@ -98,6 +98,9 @@ export function emptyBlockProgress(): BlockProgress {
 
 const VERSION = 5;
 const KEY = "dialog.progress.v1";
+// If a quota/permission error leaves an older blob on disk, keep this tab's
+// latest progress usable until a later write succeeds. It is not durable.
+let unsavedProfile: Profile | null = null;
 
 // Streak-freeze economy (Duolingo's anxiety-reducer): a small buffer that eats a
 // missed day so a good habit isn't punished by one busy day. Earned by showing up
@@ -397,10 +400,16 @@ function sanitizeRecord(v: unknown): ScenarioRecord | null {
   return { bestGrade, bestScore, attempts, lastPlayed };
 }
 
-export function loadProfile(): Profile {
+// Read before a write: another tab may have completed a lesson since mount.
+// Preserve in-memory progress when storage is unavailable. This prevents stale
+// sequential writes, not simultaneous cross-tab read/modify/write races.
+// AUDIT-LIMIT profile-writers: mixed quota failure + another tab is not merged.
+// See docs/deep-audit-12206/CLEANUP.md.
+export function loadProfile(fallback: Profile = emptyProfile()): Profile {
+  if (unsavedProfile) return unsavedProfile;
   try {
     const raw = typeof localStorage !== "undefined" ? localStorage.getItem(KEY) : null;
-    if (!raw) return emptyProfile();
+    if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     const scenarios: Record<string, ScenarioRecord> = {};
     const src = parsed.scenarios;
@@ -445,7 +454,7 @@ export function loadProfile(): Profile {
       campaigns: sanitizeCampaigns(parsed.campaigns),
     };
   } catch {
-    return emptyProfile();
+    return fallback;
   }
 }
 
@@ -524,9 +533,12 @@ function sanitizeSkills(v: unknown): Record<SkillId, SkillAgg> {
 
 export function saveProfile(p: Profile): void {
   try {
-    if (typeof localStorage !== "undefined") localStorage.setItem(KEY, JSON.stringify(p));
+    if (typeof localStorage === "undefined") { unsavedProfile = p; return; }
+    localStorage.setItem(KEY, JSON.stringify(p));
+    unsavedProfile = null;
   } catch {
     // storage full / disabled / private mode — progress is best-effort, not load-bearing.
+    unsavedProfile = p;
   }
 }
 

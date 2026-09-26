@@ -19,7 +19,7 @@ import {
   exercisesOf, exercisesOfLesson, masterUnlocked, type ExamDraw,
 } from "../lib/course";
 import {
-  MASTER_ID, blockCompletion, getBlockProgress, markLessonDone, missedExercises, recordExam,
+  MASTER_ID, blockCompletion, getBlockProgress, loadProfile, markLessonDone, missedExercises, recordExam,
   recordExercise, type Profile,
 } from "../lib/progress";
 import {
@@ -300,7 +300,7 @@ function RedoRunner({ t, lang, profile, onProfile, onBack }: {
   const onDone = (correct: boolean) => {
     setAnswered(true);
     if (correct) setFixed((n) => n + 1);
-    const res = recordExercise(profile, entry.blockId, ex.id, ex.xp, correct);
+    const res = recordExercise(loadProfile(profile), entry.blockId, ex.id, ex.xp, correct);
     onProfile(res.profile);
   };
 
@@ -446,7 +446,7 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
   const [answered, setAnswered] = useState(false);
 
   const finishTheory = () => {
-    onProfile(markLessonDone(profile, blockId, lesson));
+    onProfile(markLessonDone(loadProfile(profile), blockId, lesson));
     setStep(0);
   };
 
@@ -456,7 +456,7 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
     const ex = items[step];
     // Профиль обновляем ВСЕГДА, а не только когда начислен XP: ошибка тоже
     // меняет профиль — она попадает в работу над ошибками.
-    const res = recordExercise(profile, blockId, ex.id, ex.xp, correct);
+    const res = recordExercise(loadProfile(profile), blockId, ex.id, ex.xp, correct);
     onProfile(res.profile);
     if (res.xpGain) setGained((x) => x + res.xpGain);
   };
@@ -569,7 +569,7 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, resume, onStartDrill
     recorded.current = true;
     // Экзамен со слоями и без обязан быть сравним, поэтому он и не знает о них
     // вовсе: здесь только банк и движок.
-    const res = recordExam(profile, blockId, points, draw.total, draw.passMark);
+    const res = recordExam(loadProfile(profile), blockId, points, draw.total, draw.passMark);
     onProfile(res.profile);
     // Сдача блока звучит как повышение ранга — это и есть повышение.
     play(res.passed ? "levelup" : "wrong");

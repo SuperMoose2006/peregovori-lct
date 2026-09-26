@@ -13,7 +13,7 @@ import { useMemo, useState } from "react";
 import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import { blockById, exercisesOf } from "../lib/course";
-import { recordExercise, type Profile } from "../lib/progress";
+import { loadProfile, recordExercise, type Profile } from "../lib/progress";
 import { Exercise } from "./Exercise";
 import { Karl } from "./Mascot";
 import { ScreenHeading } from "./ScreenHeading";
@@ -52,7 +52,7 @@ export function Warmup({ t, lang, profile, onProfile, blockId, onDone, onSkip }:
     if (correct) setRight((n) => n + 1);
     const ex = items[step];
     // Как и в уроке: ошибка тоже меняет профиль (попадает в работу над ошибками).
-    const res = recordExercise(profile, blockId, ex.id, ex.xp, correct);
+    const res = recordExercise(loadProfile(profile), blockId, ex.id, ex.xp, correct);
     onProfile(res.profile);
   };
 
