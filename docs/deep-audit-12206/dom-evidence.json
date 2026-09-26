@@ -26,5 +26,21 @@
   {
     "path": "tmp/deep-ui-daily-agreement/results.json",
     "sha256": "8317f8c67cb27bc6a4ded0dec5b9828be63627063ac7e7a7c8d46419cd1437bd"
+  },
+  {
+    "path": "tmp/remaining-ui/results.json",
+    "sha256": "7a68dde0eba15382717bea1caa717aa3b2e3b069a7c2dc64d52aed80a7cfba3b"
+  },
+  {
+    "path": "tmp/remaining-ui-repeat/results.json",
+    "sha256": "fc5c1d855dce673fc751378a695560206e58902b8f5af7401acd7359d7497bab"
+  },
+  {
+    "path": "tmp/custom-live-ui/results.json",
+    "sha256": "bf80e01ecd29e114e6227e4adbb69d3cec7bdc91738b56581da09b5d05c2c246"
+  },
+  {
+    "path": "tmp/remaining-ui-stand/results.json",
+    "sha256": "ed2ef7c56bd0db655b50bbf3bf2f0862b1a968154b7c5e3bcc1de89069b8e039"
   }
 ]

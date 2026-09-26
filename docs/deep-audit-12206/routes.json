@@ -34,9 +34,9 @@
         "unicode": "прошёл: tmp/deep-input/results.json (isolated offline path)",
         "double-action": "прошёл: tmp/deep-input/results.json (isolated offline path)",
         "reload": "прошёл: tmp/deep-input/results.json (isolated offline path)",
-        "back": "не проверялся",
+        "back": "прошёл: tmp/deep-input/results.json (isolated offline path)",
         "two-tabs": "прошёл: tmp/deep-input/results.json (isolated offline path)",
-        "expired-session": "не проверялся",
+        "expired-session": "прошёл: tmp/expired-resume-ui/results.json (missing resume ID after confirmed turn)",
         "asr-failure": "не проверялся",
         "tts-failure": "не проверялся",
         "model-failure": "не проверялся",
@@ -5981,8 +5981,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/custom-live-ui/results.json",
+          "scope": "Installed stand 20260923-b682bb4, live generation/model; NOT local branch"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -6466,11 +6471,19 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
+      "status": "прошёл",
       "evidence": [
         {
           "log": "tmp/deep-profile/results.json",
           "scope": "Preset selection verified only; full media/device path is NOT implied"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Synthetic media devices; real gateway; controlled ASR; TTS/vision intentionally unavailable (degraded path)"
+        },
+        {
+          "log": "tmp/remaining-ui-stand/results.json",
+          "scope": "Installed 20260923-b682bb4, real providers, prerecorded microphone, synthetic camera; no physical-device verification"
         }
       ],
       "faults": {
@@ -6536,11 +6549,19 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
+      "status": "прошёл",
       "evidence": [
         {
           "log": "tmp/deep-profile/results.json",
           "scope": "Preset selection verified only; full media/device path is NOT implied"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Synthetic media devices; real gateway; controlled ASR; TTS/vision intentionally unavailable (degraded path)"
+        },
+        {
+          "log": "tmp/remaining-ui-stand/results.json",
+          "scope": "Installed 20260923-b682bb4, real providers, prerecorded microphone, synthetic camera; no physical-device verification"
         }
       ],
       "faults": {
@@ -6571,11 +6592,19 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
+      "status": "прошёл",
       "evidence": [
         {
           "log": "tmp/deep-profile/results.json",
           "scope": "Preset selection verified only; full media/device path is NOT implied"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Synthetic media devices; real gateway; controlled ASR; TTS/vision intentionally unavailable (degraded path)"
+        },
+        {
+          "log": "tmp/remaining-ui-stand/results.json",
+          "scope": "Installed 20260923-b682bb4, real providers, prerecorded microphone, synthetic camera; no physical-device verification"
         }
       ],
       "faults": {
@@ -6606,11 +6635,19 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
+      "status": "прошёл",
       "evidence": [
         {
           "log": "tmp/deep-profile/results.json",
           "scope": "Preset selection verified only; full media/device path is NOT implied"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Synthetic media devices; real gateway; controlled ASR; TTS/vision intentionally unavailable (degraded path)"
+        },
+        {
+          "log": "tmp/remaining-ui-stand/results.json",
+          "scope": "Installed 20260923-b682bb4, real providers, prerecorded microphone, synthetic camera; no physical-device verification"
         }
       ],
       "faults": {
@@ -6681,6 +6718,10 @@
         {
           "log": "tmp/failures-rehearsal-dom/results.json",
           "scope": "real isolated gateway, fresh exam, registry signature, DOM link to printable anonymous document; deterministic provider"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Real gateway + temporary registry"
         }
       ],
       "faults": {
@@ -6716,6 +6757,10 @@
         {
           "log": "tmp/failures-rehearsal-dom/results.json",
           "scope": "real isolated gateway, fresh exam, registry signature, DOM link to printable anonymous document; deterministic provider"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "DOM link to real signed anonymous document"
         }
       ],
       "faults": {
@@ -6746,8 +6791,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Public identifier is shareable, NOT proof of presenter identity"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -6776,8 +6826,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Browser-origin forged POST rejected; unknown document 404; signed result unchanged"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -6806,8 +6861,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Completed exam resumed with requested practice mode returns same signed identifier and result"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -6851,9 +6911,9 @@
         "unicode": "прошёл: tmp/deep-input/results.json (isolated offline path)",
         "double-action": "прошёл: tmp/deep-input/results.json (isolated offline path)",
         "reload": "прошёл: tmp/deep-input/results.json (isolated offline path)",
-        "back": "не проверялся",
+        "back": "прошёл: tmp/deep-input/results.json (isolated offline path)",
         "two-tabs": "прошёл: tmp/deep-input/results.json (isolated offline path)",
-        "expired-session": "не проверялся",
+        "expired-session": "прошёл: tmp/expired-resume-ui/results.json (missing resume ID after confirmed turn)",
         "asr-failure": "не проверялся",
         "tts-failure": "не проверялся",
         "model-failure": "не проверялся",
@@ -12798,8 +12858,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/custom-live-ui/results.json",
+          "scope": "Installed stand 20260923-b682bb4, live generation/model; NOT local branch"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -13283,11 +13348,23 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
+      "status": "прошёл",
       "evidence": [
         {
           "log": "tmp/deep-profile/results.json",
           "scope": "Preset selection verified only; full media/device path is NOT implied"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "See exact browser trace and provider configuration"
+        },
+        {
+          "log": "tmp/remaining-ui-repeat/results.json",
+          "scope": "Synthetic media devices; real gateway; controlled ASR; TTS/vision intentionally unavailable (degraded path)"
+        },
+        {
+          "log": "tmp/remaining-ui-stand/results.json",
+          "scope": "Installed 20260923-b682bb4, real providers, prerecorded microphone, synthetic camera; no physical-device verification"
         }
       ],
       "faults": {
@@ -13353,11 +13430,19 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
+      "status": "прошёл",
       "evidence": [
         {
           "log": "tmp/deep-profile/results.json",
           "scope": "Preset selection verified only; full media/device path is NOT implied"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Synthetic media devices; real gateway; controlled ASR; TTS/vision intentionally unavailable (degraded path)"
+        },
+        {
+          "log": "tmp/remaining-ui-stand/results.json",
+          "scope": "Installed 20260923-b682bb4, real providers, prerecorded microphone, synthetic camera; no physical-device verification"
         }
       ],
       "faults": {
@@ -13388,11 +13473,19 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
+      "status": "прошёл",
       "evidence": [
         {
           "log": "tmp/deep-profile/results.json",
           "scope": "Preset selection verified only; full media/device path is NOT implied"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Synthetic media devices; real gateway; controlled ASR; TTS/vision intentionally unavailable (degraded path)"
+        },
+        {
+          "log": "tmp/remaining-ui-stand/results.json",
+          "scope": "Installed 20260923-b682bb4, real providers, prerecorded microphone, synthetic camera; no physical-device verification"
         }
       ],
       "faults": {
@@ -13423,11 +13516,19 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
+      "status": "прошёл",
       "evidence": [
         {
           "log": "tmp/deep-profile/results.json",
           "scope": "Preset selection verified only; full media/device path is NOT implied"
+        },
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Synthetic media devices; real gateway; controlled ASR; TTS/vision intentionally unavailable (degraded path)"
+        },
+        {
+          "log": "tmp/remaining-ui-stand/results.json",
+          "scope": "Installed 20260923-b682bb4, real providers, prerecorded microphone, synthetic camera; no physical-device verification"
         }
       ],
       "faults": {
@@ -13493,8 +13594,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Real gateway + temporary registry"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -13523,8 +13629,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "DOM link to real signed anonymous document"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -13553,8 +13664,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Public identifier is shareable, NOT proof of presenter identity"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -13583,8 +13699,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Browser-origin forged POST rejected; unknown document 404; signed result unchanged"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
@@ -13613,8 +13734,13 @@
         "результат/отказ",
         "выход"
       ],
-      "status": "не проверялся",
-      "evidence": [],
+      "status": "прошёл",
+      "evidence": [
+        {
+          "log": "tmp/remaining-ui/results.json",
+          "scope": "Completed exam resumed with requested practice mode returns same signed identifier and result"
+        }
+      ],
       "faults": {
         "empty": "не проверялся",
         "long": "не проверялся",
