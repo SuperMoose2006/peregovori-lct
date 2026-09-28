@@ -26,6 +26,7 @@
 //
 //   node e2e/course.mjs [--url http://127.0.0.1:8010] [--out /tmp/dialog-e2e]
 import { chromium } from "playwright-core";
+import { browserExecutable } from "./browser.mjs";
 import { I18N } from "../src/i18n.ts";
 import { COURSE_BANK as BANK, COURSE_MASTER } from "../src/data/course.generated.ts";
 import { COURSE_BLOCKS } from "../src/data/course.blocks.generated.ts";
@@ -43,8 +44,7 @@ const OUT_BASE = arg("out", "/tmp/dialog-e2e");
 let OUT = OUT_BASE;
 const BLOCK_COUNT = Number(arg("blocks", "1"));
 if (!Number.isInteger(BLOCK_COUNT) || BLOCK_COUNT < 1) throw Error("--blocks must be a positive integer");
-const EXE = process.env.CHROME_PATH
-  || "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome";
+const EXE = browserExecutable();
 mkdirSync(OUT, { recursive: true });
 writeFileSync(`${OUT_BASE}/steps.jsonl`, "");
 

@@ -63,7 +63,7 @@ export const REPUTATION_LINES: Record<string, Record<Lang, string>> = {
 export const CAMPAIGN_DEFS: CampaignDef[] = [
   {
     "id": "career",
-    "icon": "🧗",
+    "icon": "climb",
     "title": {
       "ru": "Восхождение",
       "en": "The Climb"
@@ -143,7 +143,7 @@ export const CAMPAIGN_DEFS: CampaignDef[] = [
   },
   {
     "id": "own_shop",
-    "icon": "🛠",
+    "icon": "tools",
     "title": {
       "ru": "Своё дело",
       "en": "On Your Own"

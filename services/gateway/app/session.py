@@ -56,6 +56,17 @@ class SessionStore:
         self._reap()
         return self._sessions.get(session_id)
 
+    def active_scenario_ids(self) -> set[str]:
+        """Сценарии, занятые живыми партиями — включая ждущие resume.
+
+        Вызывается из `engine/scenarios.py` перед вытеснением сгенерированного
+        сценария: пока партия жива (или ждёт возвращения), её стол удалять
+        нельзя, иначе человек вернётся к пустому месту.
+        """
+        self._reap()
+        return {sid for session in self._sessions.values()
+                if (sid := getattr(session, "scenario_id", None))}
+
     def drop(self, session_id: str) -> None:
         """Удалить немедленно. Только для явного завершения партии."""
         self._sessions.pop(session_id, None)

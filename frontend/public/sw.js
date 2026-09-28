@@ -1,23 +1,24 @@
-// AUDIT-DEBT offline-cache: obsolete build hashes are retained for open tabs; bounded eviction needs a migration test. See docs/deep-audit-12206/CLEANUP.md.
 // sw.js — minimal offline-shell service worker for «Диалог».
 //
-// The build injects its hashed JS/CSS paths below. A first visit must cache
-// these too: the initial entry loaded before this worker gained control.
-// The cache namespace remains stable across releases so an already-open tab
-// can still load its old hashed chunks. Evicting obsolete build assets is a
-// separate maintenance policy; do not delete caches owned by other apps.
-// Navigations refresh the shell online and fall back to its cached copy offline.
+// Anti-stale design: the cache name carries a VERSION. On activate we delete every
+// cache that isn't the current version, so a freshly deployed SW can never serve
+// assets from a previous generation. Navigations are network-first (so the shell
+// HTML — and the hashed asset URLs it references — stay fresh, falling back to the
+// cached shell only when offline). Content-hashed static assets are cache-first (a
+// cached hit is always correct because the hash changes when the bytes change).
 //
 // The API/WebSocket turn-protocol is NEVER cached — the negotiation must always hit
 // the live backend (or the in-page mock), never a stale reply.
-const CACHE_VERSION = "dialog-v1";
-const BUILD_ASSETS = [];
+const CACHE_VERSION = "dialog-dev-shell";
+const PRECACHE = /* BUILD_PRECACHE */ [];
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((c) => c.addAll([...SHELL, ...BUILD_ASSETS])),
+    caches.open(CACHE_VERSION)
+      .then((c) => c.addAll([...new Set([...SHELL, ...PRECACHE])]))
+      // An incomplete install never replaces the last working offline version.
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -37,7 +38,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // leave cross-origin alone
   // Never touch the live turn-protocol (REST + WebSocket) — always the network.
-  if (url.pathname.startsWith("/api") || url.pathname.startsWith("/ws")) return;
+  if (url.pathname.startsWith("/api") || url.pathname.startsWith("/ws") || url.pathname.startsWith("/v1/realtime")) return;
   // Dev-server internals (Vite HMR, raw source modules) must never be cached, or a
   // reload would serve stale JS. Harmless in prod (these paths don't exist there).
   if (
@@ -54,8 +55,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put("/index.html", copy)).catch(() => {});
+          if (res.ok && (res.headers.get("content-type") || "").includes("text/html")) {
+            const copy = res.clone();
+            caches.open(CACHE_VERSION).then((c) => c.put("/index.html", copy)).catch(() => {});
+          }
           return res;
         })
         .catch(() => caches.match("/index.html").then((r) => r || caches.match("/"))),

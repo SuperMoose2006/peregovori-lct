@@ -223,7 +223,7 @@ async def test_silence_alone_never_becomes_a_move():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_open_microphone_does_not_eat_the_players_move():
+async def test_open_microphone_does_not_eat_the_players_move(monkeypatch):
     """Потолок хода считает РЕЧЬ, а не время с открытым микрофоном.
 
     Браузер шлёт кадры непрерывно, тишину в том числе (`media-provider.ts` не
@@ -232,6 +232,8 @@ async def test_open_microphone_does_not_eat_the_players_move():
     срабатывал `reset()`: если он приходился на говорящего человека, ход
     исчезал молча — ни расшифровки, ни ошибки, ни ответа оппонента.
     """
+    monkeypatch.setenv("NEGO_AI", "on")
+    monkeypatch.setenv("OPENAI_REALTIME_KEY", "")
     rig = _Rig()
     quiet = np.zeros(SAMPLE_RATE, dtype=np.int16)   # секунда тишины
     for _ in range(rv._MAX_TURN_SECONDS + 10):      # две с лишним минуты «в эфире»
@@ -249,8 +251,10 @@ async def test_open_microphone_does_not_eat_the_players_move():
 
 
 @pytest.mark.asyncio
-async def test_forgotten_microphone_in_a_noisy_room_still_has_a_ceiling():
+async def test_forgotten_microphone_in_a_noisy_room_still_has_a_ceiling(monkeypatch):
     """Настоящий забытый микрофон — тот, в который льётся звук, — потолок имеет."""
+    monkeypatch.setenv("NEGO_AI", "on")
+    monkeypatch.setenv("OPENAI_REALTIME_KEY", "")
     rig = _Rig()
     await rig.started()
     await rig.delta("бесконечная реплика")
@@ -273,6 +277,7 @@ async def test_rejected_key_is_said_out_loud_not_swallowed(monkeypatch):
     оставался `true`, и человек говорил в пустоту. Это то самое четвёртое
     состояние — «выглядит настоящим, а внутри пусто», — которого не бывает.
     """
+    monkeypatch.setenv("NEGO_AI", "on")
     rig = _Rig()
     rig.pipe._key = "sk-not-a-real-key"
 

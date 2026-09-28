@@ -1,0 +1,38 @@
+# One origin for the UI, REST and WebSocket; certificates renew automatically.
+dialog.2-26-49-28.nip.io {
+    encode zstd gzip
+    request_body {
+        max_size 2MB
+    }
+
+    # These adapters are exclusively for a process on the server itself.
+    @internal path /v1/chat/completions /v1/audio/speech /v1/models
+    respond @internal 404
+
+    # CORS does not protect WebSocket handshakes. CLI clients may omit Origin.
+    @foreign_ws {
+        path /v1/realtime
+        header Origin *
+        not header Origin https://dialog.2-26-49-28.nip.io
+    }
+    respond @foreign_ws "Origin is not allowed" 403
+
+    @private path_regexp private (^|/)\.
+    respond @private 404
+
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "camera=(self), microphone=(self), geolocation=()"
+        -Server
+    }
+    @entry path / /index.html /sw.js
+    header @entry Cache-Control "no-cache"
+    @hashed path /assets/*
+    header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+    # Caddy replaces untrusted client-supplied X-Forwarded-* headers.
+    reverse_proxy 127.0.0.1:8010
+}

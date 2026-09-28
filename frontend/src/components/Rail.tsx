@@ -12,6 +12,7 @@ import type { Profile } from "../lib/progress";
 import { dailyGoalView, rankForXp, getRecord, streakView, DAILY_GOAL_MAX } from "../lib/progress";
 import { plural } from "../lib/format";
 import { MascotImg } from "./Mascot";
+import { DataIcon } from "./Icon";
 
 export function RailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -96,7 +97,7 @@ export function DailyCard({ t, lang, onPlay }:
   return (
     <RailCard title={t.daily.title}>
       <button className="rc-daily" onClick={() => onPlay(table.scenarioId)}>
-        <span className="rc-daily-ic" aria-hidden="true">{sc.icon}</span>
+        <span className="rc-daily-ic" aria-hidden="true"><DataIcon name={sc.icon} /></span>
         <span className="rc-daily-txt">
           <b>{sc.title[lang]}</b>
           <span className="rc-daily-mod">{table.modifier.label[lang]}</span>
@@ -142,7 +143,7 @@ export function MemoryCard({ t, lang, profile }:
 /**
  * «Серия» — что она скажет о СЕГОДНЯШНЕМ дне.
  *
- * Чип «🔥 N» в шапке показывает число дней и молчит о единственном, что от
+ * Чип серии в шапке показывает число дней и молчит о единственном, что от
  * игрока сейчас зависит: засчитан ли сегодняшний день. Разница между «серия
  * жива, но вы ещё не играли» и «день уже записан» — это ровно то, ради чего
  * серию смотрят, и до сих пор её нельзя было увидеть нигде.
@@ -180,7 +181,7 @@ export function StreakCard({ t, profile }: { t: Strings; profile: Profile }) {
     <RailCard title={t.streak.title}>
       <div className="rc-streak">
         {/* Декоративная: строка рядом называет и число дней, и что с ним
-            делать. Числового чипа тут нет намеренно — «🔥 5» рядом со словами
+            делать. Числового чипа тут нет намеренно — «5» рядом со словами
             «серия прервана» противоречит сам себе: в профиле пятёрка стоит до
             следующей партии, а серии уже нет. */}
         <MascotImg dir={face.dir} state={face.state} alt="" size={44} />

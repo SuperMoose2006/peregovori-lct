@@ -21,7 +21,7 @@ import type { ScenarioDef } from "./scenarios";
 
 export const MIRRORS: ScenarioDef[] = [
   {
-    id: "supplier_mirror", mirrorOf: "supplier", icon: "🏭", face: "👨‍💼", diff: 3, dir: "high",
+    id: "supplier_mirror", mirrorOf: "supplier", icon: "factory", face: "person", diff: 3, dir: "high",
     title: { ru: "Поставщик: другая сторона", en: "Supplier: the other side" },
     role: {
       ru: "Вы — глава продаж поставщика. Тот же контракт, только цену теперь защищаете вы.",
@@ -84,7 +84,7 @@ export const MIRRORS: ScenarioDef[] = [
     },
   },
   {
-    id: "investor_mirror", mirrorOf: "investor", icon: "🏦", face: "🧔", diff: 5, dir: "high",
+    id: "investor_mirror", mirrorOf: "investor", icon: "bank", face: "person", diff: 5, dir: "high",
     title: { ru: "Инвестор: другая сторона", en: "Investor: the other side" },
     role: {
       ru: "Вы — партнёр фонда. Тот же раунд, только долю теперь защищаете вы.",
@@ -147,7 +147,7 @@ export const MIRRORS: ScenarioDef[] = [
     },
   },
   {
-    id: "freelance_mirror", mirrorOf: "freelance_rate", icon: "🧑‍💻", face: "🧑‍🔧", diff: 3, dir: "low",
+    id: "freelance_mirror", mirrorOf: "freelance_rate", icon: "person", face: "tools", diff: 3, dir: "low",
     title: { ru: "Ставка фрилансера: другая сторона", en: "Freelance rate: the other side" },
     role: {
       ru: "Вы — основатель стартапа и платите за разработку. Тот же проект, только бюджет теперь защищаете вы.",
@@ -210,7 +210,7 @@ export const MIRRORS: ScenarioDef[] = [
     },
   },
   {
-    id: "salary_mirror", mirrorOf: "salary", icon: "🏢", face: "🧑‍🎓", diff: 4, dir: "low",
+    id: "salary_mirror", mirrorOf: "salary", icon: "building", face: "cap", diff: 4, dir: "low",
     title: { ru: "Зарплата: другая сторона", en: "Salary: the other side" },
     role: {
       ru: "Вы — нанимающий директор. Тот же оффер, только вилку теперь защищаете вы.",
@@ -273,7 +273,7 @@ export const MIRRORS: ScenarioDef[] = [
     },
   },
   {
-    id: "conflict_mirror", mirrorOf: "conflict", icon: "⏱️", face: "😟", diff: 4, dir: "high",
+    id: "conflict_mirror", mirrorOf: "conflict", icon: "clock", face: "worried", diff: 4, dir: "high",
     title: { ru: "Конфликт: другая сторона", en: "Conflict: the other side" },
     role: {
       ru: "Вы — тимлид отдела, который сорвал сроки. Тот же спор, только сдвиг теперь выторговываете вы.",
@@ -336,7 +336,7 @@ export const MIRRORS: ScenarioDef[] = [
     },
   },
   {
-    id: "rent_mirror", mirrorOf: "rent", icon: "🔑", face: "🧑", diff: 2, dir: "high",
+    id: "rent_mirror", mirrorOf: "rent", icon: "key", face: "person", diff: 2, dir: "high",
     title: { ru: "Аренда: другая сторона", en: "Rent: the other side" },
     role: {
       ru: "Вы — собственница квартиры. Та же квартира, только цену теперь защищаете вы.",

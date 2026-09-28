@@ -1,13 +1,12 @@
-// AUDIT-DEBT tooling: Vite/esbuild audit advisories remain; major upgrade requires compatibility regression. Keep dev binding on loopback. See docs/deep-audit-12206/CLEANUP.md.
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { offlineShell } from "./build/offline";
+import { offlinePlugin } from "./build/offline";
 
 // Дев-сервер проксирует realtime-сессию и REST на гейтвей. Когда гейтвей не
 // поднят, фронтенд уходит в офлайн-ядро (см. src/api/ws.ts) — `npm run dev`
 // показывает продукт целиком в любом случае.
 export default defineConfig({
-  plugins: [react(), offlineShell()],
+  plugins: [react(), offlinePlugin()],
   server: {
     port: 5173,
     // ПРИВЯЗКА К ЛУПБЭКУ — НЕ ПРЕДОСТОРОЖНОСТЬ, А ЗАПЛАТКА НА ДЫРУ.

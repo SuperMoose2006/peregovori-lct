@@ -61,7 +61,19 @@ async def _lifespan(_app: FastAPI):
 
 
 def _voice_describe() -> str:
+    """Что health говорит про голос.
+
+    `describe_voice()` описывает НАСТРОЙКУ — какой распознаватель выбран, и это
+    верно независимо от сети. Health отвечает на другой вопрос: заработает ли
+    голос сейчас. Без сети партии нет вовсе — оппонент молчит, судья не считает,
+    — поэтому называть здесь распознаватель значило бы обещать то, чего не будет.
+    """
+    from app.providers import network_enabled
     from app.providers.asr import describe_voice
+    if not network_enabled():
+        # Сначала отказ, потом настройка: строка не обещает работающий голос,
+        # но по-прежнему называет провайдера — и health сходится с проводом.
+        return f"unavailable (NEGO_AI=off) — настроено: {describe_voice()}"
     return describe_voice()
 
 
@@ -79,6 +91,9 @@ def _tts_describe() -> str | None:
 app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_lifespan)
 from app.attestation import router as attestation_router
 app.include_router(attestation_router)
+
+from app.admin_context import router as admin_context_router
+app.include_router(admin_context_router)
 
 # --------------------------------------------------------------------- доступ
 #

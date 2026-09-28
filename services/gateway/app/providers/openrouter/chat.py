@@ -29,6 +29,7 @@ from typing import AsyncIterator, Optional
 import httpx
 
 from app.ai.sanitize import sanitize  # проверенная санитизация — переиспользуем
+from app.providers import network_enabled
 from app.providers.routing import Role, model_for
 
 _BASE_URL = "https://openrouter.ai/api/v1"
@@ -48,7 +49,7 @@ def available() -> bool:
     Игра обязана оставаться играбельной без сети, поэтому «недоступно» — это
     штатное состояние, а не ошибка.
     """
-    return bool(_api_key()) and os.getenv("NEGO_AI", "").strip().lower() != "off"
+    return bool(_api_key()) and network_enabled()
 
 
 def _get_client() -> httpx.AsyncClient:

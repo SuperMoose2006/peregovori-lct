@@ -219,18 +219,18 @@ export function previewChips(raw: string): PreviewChip[] {
   const add = (cond: boolean, key: string, label: string) => {
     if (cond) out.push({ key, label });
   };
-  add(x.includes("?"), "spin", "❓");
+  add(x.includes("?"), "spin", "question");
   add(has(x, LEX.rationale), "criteria", "↳ arg");
-  add(has(x, LEX.objectiveCriteria), "criteria", "📊");
+  add(has(x, LEX.objectiveCriteria), "criteria", "chart");
   // Якорь — единственный приём, который стоит ПОКАЗАТЬ ещё до отправки: он
   // ценен ровно первым ходом (движок считает по нему право первого слова), а
   // узнать об этом постфактум значит узнать поздно. Класс `.tag.anchor` в
   // styles.css уже есть — чип не заявляет ничего нового, только то, что
   // словарь и так засчитал.
-  add(has(x, LEX.anchor), "anchor", "⚓");
-  add(has(x, LEX.batna), "batna", "🛡");
-  add(has(x, LEX.acknowledge) || has(x, LEX.interestsProbe), "empathy", "🤝");
-  add(has(x, LEX.tradeoff), "tradeoff", "🔄");
-  add(has(x, LEX.threat), "threat", "⚠");
+  add(has(x, LEX.anchor), "anchor", "anchor");
+  add(has(x, LEX.batna), "batna", "shield");
+  add(has(x, LEX.acknowledge) || has(x, LEX.interestsProbe), "empathy", "handshake");
+  add(has(x, LEX.tradeoff), "tradeoff", "refresh");
+  add(has(x, LEX.threat), "threat", "warning");
   return out.slice(0, 6);
 }

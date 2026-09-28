@@ -12,6 +12,8 @@ Every number below is EXACTLY as in the reference JS.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from threading import RLock
+import time
 
 
 @dataclass(frozen=True)
@@ -117,7 +119,7 @@ class Scenario:
 SCENARIOS: list[Scenario] = [
     Scenario(
         id="supplier",
-        icon="📦",
+        icon="box",
         difficulty=2,
         title={"ru": "Контракт с поставщиком", "en": "Supplier Contract"},
         role={
@@ -211,7 +213,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         id="salary",
-        icon="💼",
+        icon="briefcase",
         difficulty=3,
         title={"ru": "Переговоры о зарплате", "en": "Salary Negotiation"},
         role={
@@ -303,7 +305,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         id="conflict",
-        icon="🤝",
+        icon="handshake",
         difficulty=4,
         title={"ru": "Конфликт между отделами", "en": "Cross-team Conflict"},
         role={
@@ -402,7 +404,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         id="investor",
-        icon="🚀",
+        icon="rocket",
         difficulty=5,
         title={"ru": "Раунд с инвестором", "en": "Investor Term Sheet"},
         role={
@@ -501,7 +503,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         id="rent",
-        icon="🏠",
+        icon="house",
         difficulty=2,
         title={"ru": "Аренда квартиры", "en": "Apartment Rent"},
         role={
@@ -608,7 +610,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         id="used_car",
-        icon="🚗",
+        icon="car",
         difficulty=3,
         title={"ru": "Покупка авто с рук", "en": "Buying a Used Car"},
         role={
@@ -707,7 +709,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         id="freelance_rate",
-        icon="💻",
+        icon="laptop",
         difficulty=4,
         title={"ru": "Ставка фрилансера", "en": "Freelance Rate"},
         role={
@@ -806,7 +808,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         id="sla_renewal",
-        icon="🛰️",
+        icon="satellite",
         difficulty=5,
         title={"ru": "Продление SLA-контракта", "en": "SLA Contract Renewal"},
         role={
@@ -914,7 +916,7 @@ SCENARIOS: list[Scenario] = [
     ),
     Scenario(
         id="candidate_offer",
-        icon="✍️",
+        icon="pen",
         difficulty=2,
         title={"ru": "Оффер сильному кандидату", "en": "Making the Offer"},
         role={
@@ -1066,7 +1068,7 @@ MIRRORS: list[Scenario] = [
     Scenario(
         id="supplier_mirror",
         mirror_of="supplier",
-        icon="🏭",
+        icon="factory",
         difficulty=3,
         title={"ru": "Поставщик: другая сторона", "en": "Supplier: the other side"},
         role={
@@ -1156,7 +1158,7 @@ MIRRORS: list[Scenario] = [
     Scenario(
         id="investor_mirror",
         mirror_of="investor",
-        icon="🏦",
+        icon="bank",
         difficulty=5,
         title={"ru": "Инвестор: другая сторона", "en": "Investor: the other side"},
         role={
@@ -1246,7 +1248,7 @@ MIRRORS: list[Scenario] = [
     Scenario(
         id="freelance_mirror",
         mirror_of="freelance_rate",
-        icon="🧑‍💻",
+        icon="person",
         difficulty=3,
         title={"ru": "Ставка фрилансера: другая сторона", "en": "Freelance rate: the other side"},
         role={
@@ -1345,7 +1347,7 @@ MIRRORS: list[Scenario] = [
     Scenario(
         id="salary_mirror",
         mirror_of="salary",
-        icon="🏢",
+        icon="building",
         difficulty=4,
         title={"ru": "Зарплата: другая сторона", "en": "Salary: the other side"},
         role={
@@ -1457,7 +1459,7 @@ MIRRORS: list[Scenario] = [
     Scenario(
         id="conflict_mirror",
         mirror_of="conflict",
-        icon="⏱️",
+        icon="clock",
         difficulty=4,
         title={"ru": "Конфликт: другая сторона", "en": "Conflict: the other side"},
         role={
@@ -1568,7 +1570,7 @@ MIRRORS: list[Scenario] = [
     Scenario(
         id="rent_mirror",
         mirror_of="rent",
-        icon="🔑",
+        icon="key",
         difficulty=2,
         title={"ru": "Аренда: другая сторона", "en": "Rent: the other side"},
         role={
@@ -1670,10 +1672,49 @@ MIRRORS: list[Scenario] = [
 # Runtime registry for generated ("custom") scenarios. These are ephemeral,
 # session-scoped, and never mutate the static SCENARIOS catalog.
 _RUNTIME: dict[str, Scenario] = {}
+_RUNTIME_USED: dict[str, float] = {}
+_RUNTIME_LOCK = RLock()
+RUNTIME_MAX = 128
+RUNTIME_TTL_S = 3600
+
+
+class RuntimeRegistryFull(RuntimeError):
+    """All available slots belong to active games; retry after one ends."""
+
+
+def _active_runtime_ids() -> set[str]:
+    # Import lazily: the session store imports the engine during app startup.
+    from app.session import store
+    return store.active_scenario_ids()
+
+
+def _prune_runtime(now: float, active: set[str]) -> None:
+    for key in list(_RUNTIME):
+        if key not in active and now - _RUNTIME_USED.get(key, now) >= RUNTIME_TTL_S:
+            _RUNTIME.pop(key, None)
+            _RUNTIME_USED.pop(key, None)
+    for key in list(_RUNTIME_USED):
+        if key not in _RUNTIME:
+            _RUNTIME_USED.pop(key, None)
 
 
 def register_runtime_scenario(scenario: Scenario) -> None:
-    _RUNTIME[scenario.id] = scenario
+    # A preview must never evict a game while its engine still resolves by id.
+    with _RUNTIME_LOCK:
+        now = time.monotonic()
+        active = _active_runtime_ids()
+        _prune_runtime(now, active)
+        if scenario.id not in _RUNTIME and len(_RUNTIME) >= RUNTIME_MAX:
+            candidates = [key for key in _RUNTIME if key not in active]
+            if not candidates:
+                raise RuntimeRegistryFull("scenario capacity reached")
+            oldest = min(candidates, key=lambda key: _RUNTIME_USED.get(key, 0))
+            _RUNTIME.pop(oldest)
+            _RUNTIME_USED.pop(oldest, None)
+        # Reusing an id refreshes the lease without replacing active-game data.
+        if scenario.id not in active:
+            _RUNTIME[scenario.id] = scenario
+        _RUNTIME_USED[scenario.id] = now
 
 
 def by_id(scenario_id: str) -> Scenario | None:
@@ -1685,4 +1726,10 @@ def by_id(scenario_id: str) -> Scenario | None:
     for s in MIRRORS:
         if s.id == scenario_id:
             return s
-    return _RUNTIME.get(scenario_id)
+    with _RUNTIME_LOCK:
+        now = time.monotonic()
+        _prune_runtime(now, _active_runtime_ids())
+        scenario = _RUNTIME.get(scenario_id)
+        if scenario is not None:
+            _RUNTIME_USED[scenario_id] = now
+        return scenario

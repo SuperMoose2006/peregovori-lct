@@ -19,7 +19,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Отличать позицию от интереса и вскрывать второе вопросом, а не догадкой.",
       "en": "Tell a position from an interest, and surface the interest by asking."
     },
-    "icon": "🎯",
+    "icon": "target",
     "scenario_id": "rent",
     "lessons": [
       {
@@ -89,7 +89,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Вести собеседника по S → P → I → N, а не задавать вопросы вразнобой.",
       "en": "Walk your counterpart up S → P → I → N instead of asking questions at random."
     },
-    "icon": "🪜",
+    "icon": "ladder",
     "scenario_id": "supplier",
     "lessons": [
       {
@@ -159,7 +159,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Снимать напряжение отражением и отделять человека от проблемы.",
       "en": "Take tension down by reflecting, and separate the people from the problem."
     },
-    "icon": "🤝",
+    "icon": "handshake",
     "scenario_id": "conflict",
     "lessons": [
       {
@@ -218,7 +218,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Заменять «я так считаю» внешним стандартом, который трудно оспорить.",
       "en": "Replace “because I say so” with an external standard that is hard to dispute."
     },
-    "icon": "📊",
+    "icon": "chart",
     "scenario_id": "salary",
     "lessons": [
       {
@@ -277,7 +277,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Считать зону сделки и опираться на альтернативу как на спокойствие, а не как на дубину.",
       "en": "Compute the deal zone and lean on your alternative as calm, not as a club."
     },
-    "icon": "🛡",
+    "icon": "shield",
     "scenario_id": "investor",
     "lessons": [
       {
@@ -336,7 +336,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Ставить обоснованный первый номер и не давать чужому якорю задать рамку.",
       "en": "Set a grounded first number, and refuse to let their anchor set the frame."
     },
-    "icon": "⚓",
+    "icon": "anchor",
     "scenario_id": "used_car",
     "lessons": [
       {
@@ -395,7 +395,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Находить, что дёшево для вас и дорого для них, и связывать вопросы в пакет.",
       "en": "Find what is cheap for you and dear to them, and bundle issues into a package."
     },
-    "icon": "🔄",
+    "icon": "refresh",
     "scenario_id": "supplier",
     "lessons": [
       {
@@ -454,7 +454,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Не отвечать на ультиматум ультиматумом и переводить атаку обратно в критерии.",
       "en": "Never answer an ultimatum with an ultimatum; redirect the attack into criteria."
     },
-    "icon": "🧱",
+    "icon": "bricks",
     "scenario_id": "sla_renewal",
     "lessons": [
       {
@@ -513,7 +513,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Понимать, когда закрывать, чем закрывать и на чём сделка фиксируется.",
       "en": "Know when to close, what to close with, and where the deal actually settles."
     },
-    "icon": "🏁",
+    "icon": "flag",
     "scenario_id": "supplier",
     "lessons": [
       {
@@ -572,7 +572,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Узнавать стиль оппонента и платить за приём ту цену, которую он стоит именно с ним.",
       "en": "Read the counterpart's style and pay the price each technique actually costs with them."
     },
-    "icon": "🎭",
+    "icon": "masks",
     "scenario_id": "candidate_offer",
     "lessons": [
       {
@@ -631,7 +631,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       "ru": "Приходить с целью, красной линией, альтернативой и готовым разменом — а не искать их в разговоре.",
       "en": "Arrive with a target, a red line, an alternative and a ready trade — instead of hunting for them mid-conversation."
     },
-    "icon": "📋",
+    "icon": "clipboard",
     "scenario_id": "salary",
     "lessons": [
       {

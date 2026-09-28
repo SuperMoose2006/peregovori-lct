@@ -18,6 +18,7 @@ import type { Strings } from "../i18n";
 import { MIRRORS } from "../data/mirrors";
 import { SCENARIO_MAP, defendedInterests } from "../data/scenarios";
 import { ScreenHeading } from "./ScreenHeading";
+import { Icon, DataIcon } from "./Icon";
 
 interface Props {
   t: Strings;
@@ -30,7 +31,7 @@ export function OtherSideScreen({ t, lang, onClose, onPlay }: Props) {
   return (
     <div className="wrap rd-wrap">
       <div className="rd-head">
-        <span className="rd-ic" aria-hidden="true">🪞</span>
+        <span className="rd-ic" aria-hidden="true"><Icon name="mirror" /></span>
         <div className="rd-id">
           <ScreenHeading as="h1" className="rd-title">{t.otherSide.title}</ScreenHeading>
           <p className="rd-sub">{t.otherSide.sheetLead}</p>
@@ -49,7 +50,7 @@ export function OtherSideScreen({ t, lang, onClose, onPlay }: Props) {
         return (
           <section className="rd-card os-card" key={def.id}>
             <div className="rd-head">
-              <span className="rd-ic" aria-hidden="true">{def.icon}</span>
+              <span className="rd-ic" aria-hidden="true"><DataIcon name={def.icon} /></span>
               <div className="rd-id">
                 <h2 className="rd-title">{def.title[lang]}</h2>
                 <p className="rd-sub">

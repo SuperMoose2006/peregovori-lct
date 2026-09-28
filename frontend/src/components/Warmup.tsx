@@ -17,6 +17,7 @@ import { loadProfile, recordExercise, type Profile } from "../lib/progress";
 import { Exercise } from "./Exercise";
 import { Karl } from "./Mascot";
 import { ScreenHeading } from "./ScreenHeading";
+import { Icon, DataIcon } from "./Icon";
 
 const COUNT = 2;
 
@@ -76,8 +77,8 @@ export function Warmup({ t, lang, profile, onProfile, blockId, onDone, onSkip }:
     <section className="screen course">
       <div className="wrap lesson">
         <div className="warm-head">
-          <span className="warm-tag">⚡ {t.course.warmupTitle}</span>
-          <span>{block.icon} {block.title[lang]}</span>
+          <span className="warm-tag"><Icon name="bolt" /> {t.course.warmupTitle}</span>
+          <span><DataIcon name={block.icon} /> {block.title[lang]}</span>
           <button className="btn ghost warm-skip" onClick={onSkip}>{t.course.warmupSkip}</button>
         </div>
         <div className="lesson-bar"><i style={{ width: `${(step / items.length) * 100}%` }} /></div>

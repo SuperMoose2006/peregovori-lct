@@ -5,22 +5,26 @@
 // ровно то, что жюри ловит первым.
 import type { Strings } from "../i18n";
 import type { ScreenMode } from "../types";
+import type { NavSection } from "../lib/navigation";
+import { Icon } from "./Icon";
+import type { IconName } from "./Icon";
 
 interface Props {
   t: Strings;
   /** Which entry reads as current. Modes map 1:1 onto the first four rows. */
-  active: ScreenMode | "profile" | "course";
+  active: NavSection;
   onMode: (m: ScreenMode) => void;
   onProfile: () => void;
   /** Курс приёмов — отдельный экран, а не режим партии. */
   onCourse: () => void;
+  onAdmin?: () => void;
 }
 
-const ICONS: Record<string, string> = {
-  practice: "🎯", campaign: "🏆", course: "📚", custom: "🎲", exam: "🎓", profile: "👤",
+const ICONS: Record<string, IconName> = {
+  practice: "target", campaign: "trophy", course: "books", custom: "dice", exam: "cap", profile: "person", admin: "tools",
 };
 
-export function SideNav({ t, active, onMode, onProfile, onCourse }: Props) {
+export function SideNav({ t, active, onMode, onProfile, onCourse, onAdmin }: Props) {
   // Явный aria-label на каждой строке: значок помечен aria-hidden, поэтому без
   // него меню читалось бы диктору как несколько безымянных кнопок.
   const rows: { key: string; label: string; go: () => void }[] = [
@@ -35,6 +39,7 @@ export function SideNav({ t, active, onMode, onProfile, onCourse }: Props) {
     // влезали ни при одном читаемом размере (замер: 7 вкладок = 52px, «Своя
     // сделка» требует 49px уже при 8px).
     { key: "profile", label: t.nav.profile, go: onProfile },
+    ...(onAdmin ? [{ key: "admin", label: t.nav.admin, go: onAdmin }] : []),
   ];
   return (
     <nav className="sidenav" aria-label={t.a11y.nav}>
@@ -56,7 +61,7 @@ export function SideNav({ t, active, onMode, onProfile, onCourse }: Props) {
               aria-current={active === r.key ? "page" : undefined}
               aria-label={r.label}
             >
-              <span className="sn-ic" aria-hidden="true">{ICONS[r.key]}</span>
+              <span className="sn-ic" aria-hidden="true"><Icon name={ICONS[r.key]} /></span>
               <span className="sn-lb">{r.label}</span>
             </button>
           </li>

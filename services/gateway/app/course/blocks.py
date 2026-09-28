@@ -86,7 +86,7 @@ class Block:
 BLOCKS: list[Block] = [
     Block(
         id="foundations",
-        icon="🎯",
+        icon="target",
         title=T("Позиции и интересы", "Positions & Interests"),
         skill=T(
             "Отличать позицию от интереса и вскрывать второе вопросом, а не догадкой.",
@@ -182,7 +182,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="spin-ladder",
-        icon="🪜",
+        icon="ladder",
         title=T("Лестница SPIN", "The SPIN Ladder"),
         skill=T(
             "Вести собеседника по S → P → I → N, а не задавать вопросы вразнобой.",
@@ -244,7 +244,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="active-listening",
-        icon="🤝",
+        icon="handshake",
         title=T("Слушание и деэскалация", "Listening & De-escalation"),
         skill=T(
             "Снимать напряжение отражением и отделять человека от проблемы.",
@@ -302,7 +302,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="objective-criteria",
-        icon="📊",
+        icon="chart",
         title=T("Объективные критерии", "Objective Criteria"),
         skill=T(
             "Заменять «я так считаю» внешним стандартом, который трудно оспорить.",
@@ -359,7 +359,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="batna-zopa",
-        icon="🛡",
+        icon="shield",
         title=T("BATNA и ZOPA", "BATNA & ZOPA"),
         skill=T(
             "Считать зону сделки и опираться на альтернативу как на спокойствие, а не как на дубину.",
@@ -412,7 +412,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="anchoring",
-        icon="⚓",
+        icon="anchor",
         title=T("Якорь и защита от него", "Anchoring & Counter-anchoring"),
         skill=T(
             "Ставить обоснованный первый номер и не давать чужому якорю задать рамку.",
@@ -482,7 +482,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="logrolling",
-        icon="🔄",
+        icon="refresh",
         title=T("Размен и создание ценности", "Logrolling & Value Creation"),
         skill=T(
             "Находить, что дёшево для вас и дорого для них, и связывать вопросы в пакет.",
@@ -535,7 +535,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="pressure-defense",
-        icon="🧱",
+        icon="bricks",
         title=T("Давление и возражения", "Pressure & Objections"),
         skill=T(
             "Не отвечать на ультиматум ультиматумом и переводить атаку обратно в критерии.",
@@ -589,7 +589,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="closing",
-        icon="🏁",
+        icon="flag",
         title=T("Закрытие и фиксация", "Closing & Commitment"),
         skill=T(
             "Понимать, когда закрывать, чем закрывать и на чём сделка фиксируется.",
@@ -642,7 +642,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="styles",
-        icon="🎭",
+        icon="masks",
         title=T("Стиль собеседника", "Their Style"),
         skill=T(
             "Узнавать стиль оппонента и платить за приём ту цену, которую он стоит именно с ним.",
@@ -737,7 +737,7 @@ BLOCKS: list[Block] = [
     ),
     Block(
         id="preparation",
-        icon="\U0001f4cb",
+        icon="clipboard",
         title=T("Подготовка к столу", "Preparing for the Table"),
         skill=T(
             "Приходить с целью, красной линией, альтернативой и готовым разменом — "

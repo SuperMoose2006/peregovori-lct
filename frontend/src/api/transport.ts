@@ -8,7 +8,7 @@ export type ServerMsgHandler = (msg: ServerMsg) => void;
 
 export interface Transport {
   /** Push a client message toward the server (or mock). */
-  send(msg: ClientMsg): void;
+  send(msg: ClientMsg): boolean | void;
   /** Tear down the connection / cancel pending timers. */
   close(): void;
   /** Мгновенный уровень микрофона 0..1. Локальный, поэтому без задержки сети.
@@ -25,4 +25,4 @@ export type TransportKind = "ws" | "mock";
 
 // Live connection health for the real WS transport. The mock is always "online".
 // "reconnecting" = a mid-game drop is being retried; "lost" = retries exhausted.
-export type ConnStatus = "online" | "reconnecting" | "lost";
+export type ConnStatus = "connecting" | "online" | "reconnecting" | "lost";

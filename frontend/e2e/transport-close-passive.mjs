@@ -17,10 +17,11 @@ try{
   await page.route('**/api/health',r=>r.fulfill({status:503}));
   await page.goto('http://127.0.0.1:15415');
   await page.waitForFunction(()=>window.chunkStarted);
-  await page.evaluate(closed=>{if(closed)window.proxy.close();window.releaseChunk()},closed);
+  // Only events after the chunk settles matter: the transport announces "connecting" on creation.
+  const before=await page.evaluate(closed=>{const n=window.events.length;if(closed)window.proxy.close();window.releaseChunk();return n},closed);
   if(!closed)await page.waitForFunction(()=>window.events.includes('lost'));
   else await page.waitForTimeout(500);
-  assert.deepEqual(await page.evaluate(()=>window.events),closed?[]:['lost'],'closed transport must stay silent; active transport must report chunk failure');
+  assert.deepEqual(await page.evaluate(n=>window.events.slice(n),before),closed?[]:['lost'],'closed transport must stay silent; active transport must report chunk failure');
   await page.close();
  }
  console.log('PASS active chunk failure visible; late failure after close silent');

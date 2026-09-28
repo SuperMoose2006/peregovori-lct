@@ -2,8 +2,13 @@
 // Engine/scenario content is localized at the data layer (see data/scenarios.ts).
 import type { Lang, ScreenMode } from "./types";
 import type { SkillId } from "./lib/progress";
+import type { IconName } from "./components/Icon";
 
 export interface QuickMove {
+  /** Имя значка (`components/Icon.tsx`). Оно же — ключ, одинаковый для RU и EN:
+   *  по нему `tests/test_suggested_lines.py` сверяет обещанный приём с тем, что
+   *  видит движок. Раньше этим ключом служил эмодзи в начале ярлыка. */
+  icon: IconName;
   label: string;
   text: string;
 }
@@ -99,7 +104,7 @@ export interface Strings {
   // mobile: label for the collapsible briefing/BATNA section in the game side strip
   moreLabel: string;
   // retention (localStorage profile): streak chip, card best-grade, debrief record
-  streakLabel: string; // "🔥 {n}-day streak" ({n} substituted)
+  streakLabel: string; // "{n}-day streak" ({n} substituted)
   notPlayed: string; // empty best-grade state on a scenario card
   personalBest: string; // debrief: "Personal best"
   newRecord: string; // debrief: "new record!" when the best is beaten
@@ -145,6 +150,8 @@ export interface Strings {
   composerLimit: string;
   // mid-game connection health (reconnect banner / lost-connection panel)
   conn: {
+    startFailed: string;
+    startFailedBody: string;
     reconnecting: string; // non-blocking banner while retrying a dropped socket
     lostTitle: string; // heading once retries are exhausted
     lostBody: string; // calm explanation + reassurance progress is saved
@@ -276,6 +283,9 @@ export interface Strings {
     back: string;
     names: Record<"probe" | "voice" | "camera" | "avatar" | "pokerface", string>;
     blurbs: Record<"probe" | "voice" | "camera" | "avatar" | "pokerface", string>;
+    /** Подпись под подвыбором «покерфейса», пока камера выключена. Он считает
+     *  по её кадрам, поэтому без неё включать нечего. */
+    needsCamera: string;
     presetNames: Record<string, string>;
     /** «сорвались N раз из M кадров» — счётчик «покерфейса» в разборе. */
     tellsOf: string;
@@ -304,7 +314,7 @@ export interface Strings {
     };
   };
   /**
-   * Карточка серии в рейле. Полоска «🔥 N» в шапке говорит, сколько дней подряд
+   * Карточка серии в рейле. Полоска «серии» в шапке говорит, сколько дней подряд
    * игрок возвращался, и молчит о единственном, что от него сейчас зависит:
    * засчитан ли СЕГОДНЯШНИЙ день. Строки ниже — по одной на каждый ответ
    * `streakView` (lib/progress.ts), другого источника у карточки нет.
@@ -411,6 +421,7 @@ export interface Strings {
   // correspond to something the product actually has — inventing a shop or a
   // leaderboard here would advertise what does not exist.
   nav: {
+    admin: string;
     training: string;
     campaign: string;
     custom: string;
@@ -478,7 +489,7 @@ export interface Strings {
     // template must not prefix it with another "Вы —".
     scene: string;
     hint: string;   // one line on what a strong opening does
-    lines: { tag: string; text: string }[];
+    lines: { icon: IconName; tag: string; text: string }[];
   };
   // Подсветка одного элемента на столе (только практика и только первый раз).
   // Каждая подсказка привязана к НАСТОЯЩЕМУ событию движка. Модальной вводной
@@ -688,7 +699,7 @@ export interface Strings {
     dailyProgress: string; // "{done}/{target}" progress under the ring
     dailyTargetLabel: string; // aria/label for the 1/2/3 target selector
     dailyTargetSet: string; // "{n}/day" title on a target button ({n} substituted)
-    freezeLabel: string; // "🧊 заморозка ×{n}" — the {word} in the chip
+    freezeLabel: string; // "заморозка ×{n}" — the {word} in the chip
     freezeSaved: string; // gentle note the day a freeze saved the streak
     streakSkipped: string; // honest note: a D/F run didn't count toward the mastery streak
     // near-full-screen milestone celebration (7-day streak, rank-up)
@@ -819,10 +830,10 @@ export const I18N: Record<Lang, Strings> = {
     },
     pickHead: "Выберите оппонента за столом",
     modes: {
-      practice: { title: "🥋 Практика", desc: "Один сценарий из библиотеки. Подсказки включены." },
-      campaign: { title: "📖 Кампания", desc: "Сюжетная карьерная арка, последствия переносятся." },
-      custom: { title: "🎯 Своя сделка", desc: "Генерация сценария под вашу ситуацию." },
-      exam: { title: "🏆 Экзамен", desc: "Без подсказок. Оценка, сертификат, рейтинг." },
+      practice: { title: "Практика", desc: "Один сценарий из библиотеки. Подсказки включены." },
+      campaign: { title: "Кампания", desc: "Сюжетная карьерная арка, последствия переносятся." },
+      custom: { title: "Своя сделка", desc: "Генерация сценария под вашу ситуацию." },
+      exam: { title: "Экзамен", desc: "Без подсказок. Оценка, сертификат, рейтинг." },
     },
     theirOffer: "их цена",
     yourTarget: "ваша цель",
@@ -874,7 +885,7 @@ export const I18N: Record<Lang, Strings> = {
     judgingLabel: "ИИ-судья разбирает вашу реплику…",
     batna: "BATNA",
     moreLabel: "Брифинг",
-    streakLabel: "🔥 {n} дн. подряд",
+    streakLabel: "{n} дн. подряд",
     notPlayed: "не пройдено",
     personalBest: "Личный рекорд",
     newRecord: "новый рекорд!",
@@ -900,6 +911,8 @@ export const I18N: Record<Lang, Strings> = {
     noAiWhy: "У сервера нет ключа модели, поэтому реплики оппонента берутся из шаблонов движка. Счёт, движение цены и грейд считаются как обычно.",
     composerLimit: "Осталось {n} {form}",
     conn: {
+      startFailed: "Не удалось начать партию",
+      startFailedBody: "Сервер не подтвердил запуск. Повторите попытку или выберите другой сценарий.",
       reconnecting: "Соединение потеряно — переподключаемся…",
       lostTitle: "Связь с сервером прервана",
       lostBody: "Не удалось переподключиться. Можно перезапустить сценарий — ваш прогресс и профиль сохранены.",
@@ -1038,8 +1051,9 @@ export const I18N: Record<Lang, Strings> = {
         voice: "Говорите вслух — и слышите ответ. Можно перебивать",
         camera: "Сигналы присутствия: кто в кадре, куда смотрите",
         avatar: "Оппонент меняется в лице по реакции движка",
-        pokerface: "Считает, сколько раз лицо выдало вас. Требует камеры",
+        pokerface: "Считает, сколько раз лицо выдало вас",
       },
+      needsCamera: "включите камеру — считать нечего без её кадров",
       presetNames: { classic: "Классика", read: "Читай лицо", call: "Видеозвонок",
                      poker: "Покерфейс", full: "Полный контакт" },
       tellsOf: "раз лицо себя выдало — из {n} просмотренных кадров",
@@ -1182,11 +1196,11 @@ export const I18N: Record<Lang, Strings> = {
       best: "Прошлый раз вы прочитали эту партию точно {n} из {total}.",
       a11y: { close: "Закрыть чтение стола", table: "Стол глазами наблюдателя" },
     },
-    nav: { training: "Тренировка", campaign: "Кампания", custom: "Своя сделка",
+    nav: { admin: "Редактор", training: "Тренировка", campaign: "Кампания", custom: "Своя сделка",
            course: "Курс", exam: "Экзамен", progress: "Прогресс", profile: "Профиль" },
     course: {
       title: "Курс приёмов",
-      lead: "Блоков: {n}. Вопрос → эмоция → легитимность → сила → числа → создание ценности → защита → закрытие. В каждом уроки, задания и экзамен.",
+      lead: "{n} блоков: от первого вопроса до сложной сделки. Короткие уроки, задания и переговоры, в которых вы сразу применяете новый приём.",
       blocksDone: "Сдано блоков: {n} из {total}",
       blockOf: "блок {n} из {total}",
       blockDone: "пройден",
@@ -1250,7 +1264,7 @@ export const I18N: Record<Lang, Strings> = {
       warmupReady: "Разминка пройдена",
       warmupToTable: "За стол",
       warmupKarl: "Теперь то же самое — но живьём, и цена будет двигаться по-настоящему.",
-      warmupCta: "⚡ Разминка · 2 задания",
+      warmupCta: "Разминка · 2 задания",
       redoTitle: "Работа над ошибками",
       redoDone: "Ошибки разобраны",
       redoKarl: "Исправленная ошибка стоит половину XP — и всё равно это лучшая сделка в продукте.",
@@ -1306,9 +1320,9 @@ export const I18N: Record<Lang, Strings> = {
       // и не засчитывал ни одну. Зачаток обрывается ровно там, где игрок
       // обязан подставить тему со своего же стола.
       lines: [
-        { tag: "🎯 Интерес", text: "Что для вас важно в " },
-        { tag: "📊 Критерий", text: "Давайте опираться на объективные данные: " },
-        { tag: "🔄 Размен", text: "В обмен на движение по цене мы готовы " },
+        { icon: "target", tag: "Интерес", text: "Что для вас важно в " },
+        { icon: "chart", tag: "Критерий", text: "Давайте опираться на объективные данные: " },
+        { icon: "refresh", tag: "Размен", text: "В обмен на движение по цене мы готовы " },
       ],
     },
     onboarding: {
@@ -1481,7 +1495,7 @@ export const I18N: Record<Lang, Strings> = {
       dailyTargetLabel: "Цель на день",
       dailyTargetSet: "{n} в день",
       freezeLabel: "заморозка",
-      freezeSaved: "🧊 Заморозка сохранила вашу серию — пропущенный день не в счёт.",
+      freezeSaved: "Заморозка сохранила вашу серию — пропущенный день не в счёт.",
       streakSkipped: "Этот результат не засчитан в серию — она растёт за грейд C и выше.",
       milestone: {
         kicker: "Веха",
@@ -1562,13 +1576,13 @@ export const I18N: Record<Lang, Strings> = {
     },
     // Stems, not finished moves: the chip drops a sentence STARTER into the box
     // that the player must complete in their own words (a full worked example
-    // lives behind the 💡 hint). Leaving the scoring to the player, not the chip.
+    // lives behind the подсказки hint). Leaving the scoring to the player, not the chip.
     quickMoves: [
-      { label: "❓ Вопрос SPIN", text: "Расскажите, как сейчас устроен " },
-      { label: "🎯 Интерес", text: "Почему для вас важно именно " },
-      { label: "📊 Критерий", text: "По рыночным данным справедливая величина — " },
-      { label: "🤝 Эмпатия", text: "Я понимаю, что для вас важно " },
-      { label: "🔄 Размен", text: "Если мы пойдём навстречу по срокам, сможете ли вы " },
+      { icon: "question", label: "Вопрос SPIN", text: "Расскажите, как сейчас устроен " },
+      { icon: "target", label: "Интерес", text: "Почему для вас важно именно " },
+      { icon: "chart", label: "Критерий", text: "По рыночным данным справедливая величина — " },
+      { icon: "handshake", label: "Эмпатия", text: "Я понимаю, что для вас важно " },
+      { icon: "refresh", label: "Размен", text: "Если мы пойдём навстречу по срокам, сможете ли вы " },
     ],
   },
   en: {
@@ -1625,10 +1639,10 @@ export const I18N: Record<Lang, Strings> = {
     },
     pickHead: "Choose your counterpart",
     modes: {
-      practice: { title: "🥋 Practice", desc: "A single scenario from the library. Hints on." },
-      campaign: { title: "📖 Campaign", desc: "A narrative career arc; consequences carry over." },
-      custom: { title: "🎯 Custom deal", desc: "Generate a scenario for your own situation." },
-      exam: { title: "🏆 Exam", desc: "No hints. Score, certificate, ranking." },
+      practice: { title: "Practice", desc: "A single scenario from the library. Hints on." },
+      campaign: { title: "Campaign", desc: "A narrative career arc; consequences carry over." },
+      custom: { title: "Custom deal", desc: "Generate a scenario for your own situation." },
+      exam: { title: "Exam", desc: "No hints. Score, certificate, ranking." },
     },
     theirOffer: "their offer",
     yourTarget: "your target",
@@ -1676,7 +1690,7 @@ export const I18N: Record<Lang, Strings> = {
     judgingLabel: "the AI judge is reading your line…",
     batna: "BATNA",
     moreLabel: "Briefing",
-    streakLabel: "🔥 {n}-day streak",
+    streakLabel: "{n}-day streak",
     notPlayed: "not played",
     personalBest: "Personal best",
     newRecord: "new record!",
@@ -1702,6 +1716,8 @@ export const I18N: Record<Lang, Strings> = {
     noAiWhy: "The server has no model key, so the counterpart replies from engine templates. Scoring, price movement and the grade are unchanged.",
     composerLimit: "{n} {form} left",
     conn: {
+      startFailed: "Could not start the game",
+      startFailedBody: "The server did not confirm the game. Try again or choose another scenario.",
       reconnecting: "Connection lost — reconnecting…",
       lostTitle: "Lost connection to the server",
       lostBody: "We couldn't reconnect. You can restart the scenario — your progress and profile are saved.",
@@ -1840,8 +1856,9 @@ export const I18N: Record<Lang, Strings> = {
         voice: "Speak aloud — and hear the reply. You can cut in",
         camera: "Presence signals: who is in frame, where you look",
         avatar: "Their expression follows the engine's reaction",
-        pokerface: "Counts how often your face gave you away. Needs the camera",
+        pokerface: "Counts how often your face gave you away",
       },
+      needsCamera: "turn the camera on — there are no frames to count without it",
       presetNames: { classic: "Classic", read: "Read the face", call: "Video call",
                      poker: "Poker face", full: "Full contact" },
       tellsOf: "times your face gave you away — out of {n} frames seen",
@@ -1979,11 +1996,11 @@ export const I18N: Record<Lang, Strings> = {
       best: "Last time you read this round exactly {n} of {total}.",
       a11y: { close: "Close the table reading", table: "The table as an observer sees it" },
     },
-    nav: { training: "Training", campaign: "Campaign", custom: "Your deal",
+    nav: { admin: "Editor", training: "Training", campaign: "Campaign", custom: "Your deal",
            course: "Course", exam: "Exam", progress: "Progress", profile: "Profile" },
     course: {
       title: "Technique course",
-      lead: "{n} blocks: question → emotion → legitimacy → power → numbers → value creation → defence → closing. Each has lessons, drills and an exam.",
+      lead: "{n} blocks: from your first question to a complex deal. Short lessons, exercises and negotiations where you put each new skill into practice.",
       blocksDone: "Blocks passed: {n} of {total}",
       blockOf: "block {n} of {total}",
       blockDone: "completed",
@@ -2047,7 +2064,7 @@ export const I18N: Record<Lang, Strings> = {
       warmupReady: "Warm-up done",
       warmupToTable: "To the table",
       warmupKarl: "Now the same thing — live, and the price will actually move.",
-      warmupCta: "⚡ Warm-up · 2 tasks",
+      warmupCta: "Warm-up · 2 tasks",
       redoTitle: "Fix your misses",
       redoDone: "Misses cleared",
       redoKarl: "A fixed mistake is worth half the XP — and it is still the best deal in this product.",
@@ -2097,9 +2114,9 @@ export const I18N: Record<Lang, Strings> = {
       scene: "{role} Across from you: {name}. Their price: {offer}. Your target: {target}, red line: {red}.",
       hint: "They have three hidden interests. The topics they sit in are listed in the \u201cHidden interests\u201d panel — ask ABOUT A TOPIC and the interest opens. Until you surface them the argument is only about price — and there the harder pusher wins.",
       lines: [
-        { tag: "🎯 Interest", text: "What matters to you in " },
-        { tag: "📊 Criterion", text: "Let's anchor on objective data: " },
-        { tag: "🔄 Trade-off", text: "In exchange for movement on price, we can " },
+        { icon: "target", tag: "Interest", text: "What matters to you in " },
+        { icon: "chart", tag: "Criterion", text: "Let's anchor on objective data: " },
+        { icon: "refresh", tag: "Trade-off", text: "In exchange for movement on price, we can " },
       ],
     },
     onboarding: {
@@ -2272,7 +2289,7 @@ export const I18N: Record<Lang, Strings> = {
       dailyTargetLabel: "Daily goal",
       dailyTargetSet: "{n}/day",
       freezeLabel: "freeze",
-      freezeSaved: "🧊 A freeze saved your streak — the missed day doesn't count.",
+      freezeSaved: "A freeze saved your streak — the missed day doesn't count.",
       streakSkipped: "This result didn't count toward your streak — it grows on a grade C or better.",
       milestone: {
         kicker: "Milestone",
@@ -2352,13 +2369,13 @@ export const I18N: Record<Lang, Strings> = {
       themeLight: "Light theme",
     },
     // Stems, not finished moves — the player completes each in their own words
-    // (the full worked example stays behind the 💡 hint button).
+    // (the full worked example stays behind the подсказки hint button).
     quickMoves: [
-      { label: "❓ SPIN question", text: "Tell me about your current process for " },
-      { label: "🎯 Interest", text: "Why is that important to you — " },
-      { label: "📊 Criterion", text: "By the market rate, the fair value is " },
-      { label: "🤝 Empathy", text: "I understand that what matters to you is " },
-      { label: "🔄 Trade-off", text: "If we move on timing, can you move on " },
+      { icon: "question", label: "SPIN question", text: "Tell me about your current process for " },
+      { icon: "target", label: "Interest", text: "Why is that important to you — " },
+      { icon: "chart", label: "Criterion", text: "By the market rate, the fair value is " },
+      { icon: "handshake", label: "Empathy", text: "I understand that what matters to you is " },
+      { icon: "refresh", label: "Trade-off", text: "If we move on timing, can you move on " },
     ],
   },
 };

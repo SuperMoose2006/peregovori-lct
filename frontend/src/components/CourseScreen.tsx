@@ -32,6 +32,7 @@ import { AchievementToasts } from "./Gamification";
 import { play } from "../lib/sound";
 import { WhyTeaches } from "./WhyTeaches";
 import { ScreenHeading } from "./ScreenHeading";
+import { Icon, DataIcon } from "./Icon";
 
 interface Props {
   t: Strings;
@@ -216,11 +217,11 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
             return (
               <li key={b.id} className={`cnode ${status}`}>
                 {/* Значок помечен aria-hidden, поэтому имя кнопки нужно задать явно:
-                    без него запертые узлы читались диктору как «кнопка 🔒» — пять
+                    без него запертые узлы читались диктору как «кнопка замо́к» — пять
                     одинаковых безымянных кнопок подряд. */}
                 <button className="cnode-btn" onClick={() => open && onOpen(b.id)} disabled={!open}
                         aria-label={`${b.title[lang]} — ${p.passed ? t.course.blockDone : open ? t.course.blockOpen : t.course.blockLocked}`}>
-                  <span className="cnode-ic" aria-hidden="true">{p.passed ? "★" : open ? b.icon : "🔒"}</span>
+                  <span className="cnode-ic" aria-hidden="true">{p.passed ? "★" : open ? <DataIcon name={b.icon} /> : <Icon name="lock" />}</span>
                   {/* Флажок над текущим узлом: «где я» — без чтения, как в кампании. */}
                   {status === "current" ? <span className="cnode-flag">{t.campaign.startFlag}</span> : null}
                 </button>
@@ -243,7 +244,7 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
             три партии подряд на незнакомых столах — проверка навыка, а не разминка. */}
         <div className={`master-card${masterUnlocked(doneCount) ? "" : " locked"}`}>
           <span className="master-ic" aria-hidden="true">
-            {profile.course[MASTER_ID]?.passed ? "👑" : masterUnlocked(doneCount) ? "🎓" : "🔒"}
+            <Icon name={profile.course[MASTER_ID]?.passed ? "crown" : masterUnlocked(doneCount) ? "cap" : "lock"} />
           </span>
           <div>
             <h2>{t.course.masterTitle}</h2>
@@ -336,7 +337,7 @@ function MasterExam({ t, lang, profile, onStart, onBack }: {
     <section className="screen course">
       <div className="wrap lesson">
         <button className="btn ghost back" onClick={onBack}>← {t.course.allBlocks}</button>
-        <ScreenHeading as="h1">👑 {t.course.masterTitle}</ScreenHeading>
+        <ScreenHeading as="h1"><Icon name="crown" /> {t.course.masterTitle}</ScreenHeading>
         {/* split/join, а не replace: «{n}» в строке встречается дважды, и с
             обычной заменой второй плейсхолдер оставался в тексте как есть.
             (replaceAll недоступен — цель сборки старше ES2021.) */}
@@ -352,7 +353,7 @@ function MasterExam({ t, lang, profile, onStart, onBack }: {
                 <span className="ml-n">{ok ? "✓" : i + 1}</span>
                 <div>
                   <b>{x.prompt[lang]}</b>
-                  <span>🏁 {x.goal?.[lang]}</span>
+                  <span><Icon name="flag" /> {x.goal?.[lang]}</span>
                 </div>
               </li>
             );
@@ -392,7 +393,7 @@ function BlockView({ t, lang, profile, blockId, onLesson, onExam, onBack }: {
     <section className="screen course">
       <div className="wrap">
         <button className="btn ghost back" onClick={onBack}>← {t.course.allBlocks}</button>
-        <ScreenHeading as="h1">{block.icon} {block.title[lang]}</ScreenHeading>
+        <ScreenHeading as="h1"><DataIcon name={block.icon} /> {block.title[lang]}</ScreenHeading>
         <p className="lead">{block.skill[lang]}</p>
 
         <ol className="lesson-list">
@@ -414,7 +415,7 @@ function BlockView({ t, lang, profile, blockId, onLesson, onExam, onBack }: {
         </ol>
 
         <div className="exam-card">
-          <h2>🎓 {t.course.examTitle}</h2>
+          <h2><Icon name="cap" /> {t.course.examTitle}</h2>
           <p>{t.course.examLead
             .replace("{n}", String(draw.items.length))
             .replace("{pass}", String(draw.passMark))
@@ -664,7 +665,7 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, resume, onStartDrill
         <div className="lesson-bar"><i style={{ width: `${(step / draw.items.length) * 100}%` }} /></div>
         <div className="lesson-step">
           {t.course.stepOf.replace("{n}", String(step + 1)).replace("{total}", String(draw.items.length))}
-          <span className="exam-flag">🎓 {t.course.examMode}</span>
+          <span className="exam-flag"><Icon name="cap" /> {t.course.examMode}</span>
           {/* Выход без записи: прерванная попытка не тратит счётчик и не портит
               лучший результат — наказывать за случайно открытый экзамен не за что. */}
           <button className="btn ghost exam-quit" onClick={onBack}>✕ {t.course.examQuit}</button>
