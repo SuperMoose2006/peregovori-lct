@@ -20,6 +20,8 @@ import { ProgressCards, MethodCard, RailCard, DailyCard, MemoryCard, StreakCard 
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
+import { faceRenderer } from "./lib/faceSource";
+import { meetingMode, syntheticFace } from "./lib/meeting";
 import { Karl } from "./components/Mascot";
 import { ReadingCard } from "./components/ReadingCard";
 import { OtherSideCard } from "./components/OtherSideCard";
@@ -248,6 +250,12 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const nego = useNegotiation(lang, { videoRef, canvasRef });
+  // Микрофон во встрече выключается, не закрывая партию. Дорожка та же и
+  // после переподключения, поэтому выбор применяется заново к каждой новой
+  // сессии; новая партия начинает с включённым.
+  const [micMuted, setMicMuted] = useState(false);
+  useEffect(() => { setMicMuted(false); }, [nego.scenario?.id]);
+  useEffect(() => { nego.setMicMuted(micMuted); }, [micMuted, nego.capabilities, nego.setMicMuted]);
   // A reload cannot restore this in-memory UI session. Never silently imply it did.
   const [interruptedRun] = useState(() => {
     try { return sessionStorage.getItem("dialog.active-run") === "1"; }
@@ -866,6 +874,11 @@ export default function App() {
   const scenario = nego.scenario;
   const debrief = nego.debrief;
 
+  // ВСТРЕЧА. Только тренировка с поднятым голосом и настоящим синтезом
+  // (lib/meeting.ts); правила партии от неё не зависят.
+  const meeting = meetingMode({ mode, layers: activeLayers, capabilities: nego.capabilities });
+  const micAvailable = nego.capabilities?.microphone === true && !nego.layerFail.voice;
+
   const showRival =
     screen === "game" && mode === "practice" && !drill &&
     !!rival && !!rivalTrail && rivalTrail.length > 0 &&
@@ -1128,8 +1141,14 @@ export default function App() {
             oppSpeaking={nego.oppSpeaking}
             getSpeechLevel={nego.getSpeechLevel}
             getVideoFrame={nego.getVideoFrame}
-            amplitudeAnimation={["amplitude", "video"].includes(String((nego.capabilities?.avatar as { lipsync_mode?: string } | undefined)?.lipsync_mode))}
-
+            faceRenderer={faceRenderer(nego.capabilities)}
+            meeting={meeting}
+            syntheticFace={syntheticFace(nego.capabilities)}
+            micAvailable={micAvailable}
+            micMuted={micMuted}
+            onToggleMic={() => setMicMuted((m) => !m)}
+            getAudioBlocked={nego.getAudioBlocked}
+            onResumeAudio={nego.resumeAudio}
             layers={activeLayers}
             onOpenLayers={() => setLayersOpen(true)}
             layersOpen={layersOpen}

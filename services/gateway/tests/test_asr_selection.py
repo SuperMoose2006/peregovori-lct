@@ -12,6 +12,8 @@ from app.providers.asr.openrouter import OpenRouterASR
 from app.perception.voice_pipeline import VoicePipeline
 from app.realtime import endpoint
 from app.realtime.events import SessionInit
+from app.providers.tts.edge import EdgeTTS
+from app.providers.tts.openai_speech import OpenAISpeechTTS
 
 
 @pytest.mark.parametrize("choice", [None, "", "auto", "parakeet"])
@@ -41,8 +43,8 @@ async def test_wire_and_health_agree_on_demo_provider(monkeypatch):
     from app.main import _voice_describe
     monkeypatch.setenv("NEGO_VOICE", "classic")
     monkeypatch.setenv("NEGO_ASR", "parakeet")
-    monkeypatch.setattr(endpoint.OpenAISpeechTTS, "available", lambda self: False)
-    monkeypatch.setattr(endpoint.EdgeTTS, "available", lambda self: False)
+    monkeypatch.setattr(OpenAISpeechTTS, "available", lambda self: False)
+    monkeypatch.setattr(EdgeTTS, "available", lambda self: False)
     session, error = await endpoint._build_session(SessionInit(
         scenarioId="supplier", mode="voice", layers={"voice": True}))
     assert error is None
@@ -58,8 +60,8 @@ async def test_unavailable_explicit_mode_cannot_silently_switch(monkeypatch, mod
     monkeypatch.setenv("NEGO_VOICE", mode)
     monkeypatch.setattr(endpoint.RealtimeVoicePipeline, "available", property(lambda self: False))
     monkeypatch.setattr(endpoint, "make_asr", lambda: pytest.fail("implicit ASR fallback"))
-    monkeypatch.setattr(endpoint.OpenAISpeechTTS, "available", lambda self: False)
-    monkeypatch.setattr(endpoint.EdgeTTS, "available", lambda self: False)
+    monkeypatch.setattr(OpenAISpeechTTS, "available", lambda self: False)
+    monkeypatch.setattr(EdgeTTS, "available", lambda self: False)
     session, error = await endpoint._build_session(SessionInit(
         scenarioId="supplier", mode="voice", layers={"voice": True}))
     assert error is None

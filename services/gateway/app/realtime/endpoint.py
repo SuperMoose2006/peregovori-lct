@@ -45,9 +45,7 @@ from app.providers.asr import make_asr, voice_mode, describe_voice
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import describe as describe_models
 from app.providers.tts.base import Voice
-from app.providers.tts.base import TTSProvider
-from app.providers.tts.edge import EdgeTTS
-from app.providers.tts.openai_speech import OpenAISpeechTTS
+from app.providers.tts.choose import make_tts
 from app.realtime import limits
 from app.realtime.events import InputAppend, SessionInit, error, session_closed
 from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
@@ -171,6 +169,14 @@ class _Work:
     Замок здесь не для скорости, а для движка: `on_player_turn` двигает
     `engine.turn`, и два хода внахлёст (голосовой пайплайн + `input.commit`)
     посчитали бы один ход дважды.
+
+    ОДИН ВХОД НА ОБА ПУТИ. Голос долго шёл мимо этого класса — пайплайн звал
+    оркестратор напрямую, и замок, написанный ровно против гонки «голос +
+    клавиатура», её не держал. Теперь распознанная реплика приходит сюда же
+    через `run_turn`. Замок при этом НЕ дедупликация: одинаковый текст,
+    присланный дважды, — два хода. Повторов клиент не шлёт (`turn()` уходит
+    только при живом соединении и ни из какой очереди не переотправляется);
+    дубль исключается тем, что вытесненный сокет больше не принимает ходов.
     """
 
     def __init__(self) -> None:
@@ -180,12 +186,32 @@ class _Work:
 
     def start_turn(self, orchestrator: "NegotiationOrchestrator",
                    session: "RealtimeSession", text: str) -> bool:
+        return self._spawn(orchestrator, session, text) is not None
+
+    def _spawn(self, orchestrator: "NegotiationOrchestrator",
+               session: "RealtimeSession", text: str) -> Optional[asyncio.Task]:
         if len(self._turns) > _MAX_QUEUED_TURNS:
-            return False
+            return None
         task = asyncio.create_task(self._turn(orchestrator, session, text))
         self._turns.add(task)
         task.add_done_callback(self._turns.discard)
-        return True
+        return task
+
+    async def run_turn(self, orchestrator: "NegotiationOrchestrator",
+                       session: "RealtimeSession", text: str) -> None:
+        """Ход из голоса: та же задача и тот же замок, что у `input.commit`.
+
+        Пайплайны распознавания ЖДУТ свой ход (`await on_turn(...)`), поэтому
+        здесь ожидание, а не постановка в очередь: отмена ждущего (закрытие
+        пайплайна) отменяет и ход — ровно как при прежнем прямом вызове.
+        """
+        if session.evicted:
+            return
+        task = self._spawn(orchestrator, session, text)
+        if task is None:
+            session.bus.publish(error("busy", "turn already in flight"))
+            return
+        await task
 
     async def _turn(self, orchestrator: "NegotiationOrchestrator",
                     session: "RealtimeSession", text: str) -> None:
@@ -202,6 +228,12 @@ class _Work:
         # честно горит, а сокет продолжает слушать.
         await _turn_budget(session)
         async with self._lock:
+            # ПОСЛЕ ОЖИДАНИЯ — ПРОВЕРИТЬ ЗАНОВО. Придержка и замок — это время,
+            # за которое партию мог забрать другой сокет. Ход, дождавшийся
+            # очереди уже в чужой партии, считать нельзя: владелец теперь
+            # другой, и его ход был бы вторым за одну реплику.
+            if session.evicted:
+                return
             try:
                 await orchestrator.on_player_turn(text)
             except asyncio.CancelledError:
@@ -266,6 +298,12 @@ async def realtime_ws(websocket: WebSocket) -> None:
         тот, кто вытесняет, — иначе `session.closed` уехал бы вперемешку с
         чанком синтеза.
         """
+        # Распознавание гасится ПЕРВЫМ: иначе реплика, которую оно дослушает
+        # за время остановки, успела бы встать в очередь ходов уже после
+        # `work.aclose()`. Вход хода и сам проверяет `evicted` — это второй рубеж.
+        if voice is not None:
+            with contextlib.suppress(Exception):
+                await voice.close()
         await work.aclose()
         if orchestrator is not None:
             with contextlib.suppress(Exception):
@@ -362,7 +400,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         continue
                     session.client_host = peer
 
-                    orchestrator, voice, vision = _wire(session)
+                    orchestrator, voice, vision = _wire(session, work=work)
                     writer = asyncio.create_task(_pump(websocket, session))
                     # Владельцем записываемся ПОСЛЕ того, как всё поднято:
                     # вытесняющий зовёт `quiesce`, и гасить полусобранное было
@@ -666,14 +704,19 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
     ), None
 
 
-def _wire(session: RealtimeSession) -> tuple[
+def _wire(session: RealtimeSession, *, work: Optional["_Work"] = None) -> tuple[
         NegotiationOrchestrator, Optional[VoicePipeline], Optional[VisionSampler]]:
     """Собрать подсистемы вокруг сессии по включённым слоям.
+
+    `work` — очередь ходов ЭТОГО сокета; сокет передаёт её всегда, и через
+    неё же ходит голос. Без неё сборка берёт отдельную — так проверяют саму
+    проводку тесты, которым сокет не нужен.
 
     Слои включают КАНАЛЫ, а не правила игры: выключенный голос означает, что
     синтез не поднимается, но ход, шкалы и грейд считаются ровно так же.
     """
     scenario = engine.by_id(session.engine_session.scenario_id)
+    work = work if work is not None else _Work()
 
     avatar: Optional[AvatarProvider] = None
     if session.layers.avatar:
@@ -681,16 +724,12 @@ def _wire(session: RealtimeSession) -> tuple[
 
     tts: Optional[TTSTaskManager] = None
     if session.layers.voice:
-        # ПОРЯДОК ПО ЗАМЕРУ, А НЕ ПО ЦЕНЕ. На заведомо новом тексте — а в игре
-        # каждая реплика новая — edge даёт медиану 2318 мс до первого звука,
-        # openai 936 мс. Прежняя цифра edge «570 мс» оказалась артефактом:
-        # эндпоинт Microsoft кэширует уже произнесённый текст, и повторный
-        # прогон той же фразы мерил кэш, а не синтез.
-        # Edge остаётся запасным: он бесплатен и не требует ключа.
-        provider: TTSProvider = OpenAISpeechTTS()
-        if not provider.available():
-            provider = EdgeTTS()
-        if provider.available():
+        # Порядок провайдеров (по замеру, а не по цене) живёт в `make_tts` —
+        # один на партию и на `/api/health`. Прежняя цифра edge «570 мс»
+        # оказалась артефактом: эндпоинт Microsoft кэширует уже произнесённый
+        # текст, и повторный прогон той же фразы мерил кэш, а не синтез.
+        provider = make_tts()
+        if provider is not None:
             tts = TTSTaskManager(provider, session.bus.publish,
                                  Voice(id="", lang=session.lang,
                                        female=_persona_is_female(scenario)))
@@ -703,12 +742,13 @@ def _wire(session: RealtimeSession) -> tuple[
         async def guarded_turn(text: str) -> None:
             """Ход из голоса — через ту же калитку, что и напечатанный.
 
-            Два пути к движку — `input.commit` и распознанная речь, — и предел
-            обязан стоять на обоих. Иначе он превращается в предел на КЛАВИАТУРУ:
-            микрофон остаётся открытым входом в те же три платных вызова.
+            Два пути к движку — `input.commit` и распознанная речь, — и на обоих
+            обязаны стоять и предел темпа, и замок хода. Предел здесь стоял
+            всегда, замка не было: голос звал оркестратор напрямую, и реплика,
+            распознанная, пока шёл напечатанный ход, двигала тот же счётчик
+            внахлёст. Теперь путь один — `_Work.run_turn`.
             """
-            await _turn_budget(session)
-            await orchestrator.on_player_turn(text)
+            await work.run_turn(orchestrator, session, text)
 
         want_realtime = voice_mode() == "realtime"
         pipeline = RealtimeVoicePipeline(
@@ -873,14 +913,23 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         "cloud_ai": orchat.available(),
         "models": describe_models(),
         "avatar": {"available": False, "lipsync": False, "transport": "none"},
+        # Будет ли у ответа ЗВУК. `voice` выше повторяет лишь то, что голос
+        # просили; синтеза при этом может не быть (офлайн, нет ключа), и
+        # экран встречи, построенный вокруг звучащего собеседника, обязан это
+        # знать до первого хода. Тот же выбор, что у сборки партии.
+        "speech": bool(session.layers.voice) and make_tts() is not None,
     }
     if session.layers.avatar:
         caps = _make_avatar(session).capabilities()
         capabilities["avatar"] = {
             "available": caps.available, "lipsync": caps.lipsync,
             "lipsync_mode": caps.lipsync_mode,
+            "interruptible": caps.interruptible,
             "transport": caps.transport, "states": list(caps.states),
             "reason": caps.reason or None,
+            # Стенд обязан быть подписан как стенд: клиент по этому флагу
+            # пишет «тестовый видеопоток» над кадром.
+            "synthetic": caps.synthetic,
         }
 
     return {

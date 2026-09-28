@@ -100,6 +100,22 @@ export class AudioPlayer {
     return this.playing;
   }
 
+  /** Звук есть — играет или ждёт в джиттер-буфере. */
+  get busy(): boolean {
+    return this.playing || this.pending.length > 0;
+  }
+
+  /** Звук пришёл, а браузер держит AudioContext приостановленным (автозапуск
+   *  без жеста пользователя). Слышно не будет, пока человек не нажмёт. */
+  get blocked(): boolean {
+    return this.busy && this.ctx?.state === "suspended";
+  }
+
+  /** Возобновить воспроизведение по жесту пользователя. */
+  resume(): void {
+    if (this.ctx?.state === "suspended") void this.ctx.resume().catch(() => {});
+  }
+
   /** Sample only audio scheduled for playback now, never network arrival time. */
   speechLevel(): number {
     return this.ctx?.state === "running" ? this.envelope.level(this.ctx.currentTime) : 0;

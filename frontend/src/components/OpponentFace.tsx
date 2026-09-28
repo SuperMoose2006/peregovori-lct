@@ -13,6 +13,7 @@
 import { useEffect, useState } from "react";
 import { Avatar, avatarMood, type Mood } from "./Avatar";
 import type { StateView } from "../types";
+import { pickFaceSource, type FaceRenderer } from "../lib/faceSource";
 
 /** Состояния, для которых есть отдельная картинка. Зеркало `BASE_STATES` генератора. */
 const DRAWN_STATES = [
@@ -55,7 +56,8 @@ interface Props {
   speaking?: boolean;
   getSpeechLevel?: () => number;
   getVideoFrame?: () => string | null;
-  amplitudeAnimation?: boolean;
+  /** Чем сервер рисует лицо (`capabilities.avatar.lipsync_mode`). См. lib/faceSource.ts. */
+  renderer?: FaceRenderer;
   animationLabel?: string;
   /** Размер рисованного запасного портрета. Картинку состояния масштабирует CSS. */
   size?: number;
@@ -66,7 +68,7 @@ interface Props {
 }
 
 export function OpponentFace({
-  scenarioId, avatarState, state, exam, speaking = false, size = 96, label, speakingLabel, getSpeechLevel, amplitudeAnimation = false, animationLabel, getVideoFrame,
+  scenarioId, avatarState, state, exam, speaking = false, size = 96, label, speakingLabel, getSpeechLevel, renderer = "portrait", animationLabel, getVideoFrame,
 }: Props) {
   const mood = avatarMood(state, exam);
   // В экзамене шкалы скрыты, и лицо не должно их выдавать: фиксируем нейтральное.
@@ -79,7 +81,8 @@ export function OpponentFace({
   const [opening, setOpening] = useState(0);
   const [videoFrame, setVideoFrame] = useState<string | null>(null);
   const [badVideoFrame, setBadVideoFrame] = useState<string | null>(null);
-  const animated = amplitudeAnimation && !exam && !!getSpeechLevel;
+  // Живые часы нужны и амплитудному рту, и кадрам: оба рисуются по звуку.
+  const animated = renderer !== "portrait" && !exam && !!getSpeechLevel;
   useEffect(() => {
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReducedMotion(preference.matches);
@@ -88,7 +91,7 @@ export function OpponentFace({
     return () => preference.removeEventListener('change', update);
   }, []);
   useEffect(() => {
-    if (!animated) { setOpening(0); return; }
+    if (!animated) { setOpening(0); setVideoFrame(null); return; }
     let frame = 0;
     const tick = () => {
       setVideoFrame(getVideoFrame?.() ?? null);
@@ -99,18 +102,26 @@ export function OpponentFace({
     return () => cancelAnimationFrame(frame);
   }, [animated, getSpeechLevel, getVideoFrame]);
 
+  const hasFrame = renderer === "video" && !!videoFrame && videoFrame !== badVideoFrame;
+  const source = pickFaceSource({
+    renderer, exam, reducedMotion, hasFrame,
+    stillFailed: failedSrc === src, loopFailed: failedClip === clip,
+  });
+  const amplitudeMouth = source === "drawn" && renderer === "amplitude";
+
   // Размер задаёт CSS (`.opp-card .face` меняет его по ширине экрана), поэтому
   // инлайновых width/height здесь нет: они перебили бы медиазапросы.
   return (
     <div className="face" data-motion-preference={reducedMotion ? "reduced" : "full"}
-      title={animated && !videoFrame ? animationLabel : undefined} data-renderer={animated ? (videoFrame ? "video" : "amplitude") : "portrait"}>
-      {animated && videoFrame && videoFrame !== badVideoFrame ? (
-        <img className="face__img" src={videoFrame} alt={label ?? ""}
+      title={amplitudeMouth ? animationLabel : undefined}
+      data-renderer={renderer} data-source={source}>
+      {source === "frame" ? (
+        <img className="face__img" src={videoFrame!} alt={label ?? ""}
           onError={() => setBadVideoFrame(videoFrame)} />
-      ) : animated || failedSrc === src ? (
+      ) : source === "drawn" ? (
         <Avatar scenarioId={scenarioId} mood={mood} size={size} label={label}
-          mouthOpening={animated ? opening : 0} idleMotion={!exam && !reducedMotion} />
-      ) : !exam && !reducedMotion && failedClip !== clip ? (
+          mouthOpening={renderer === "amplitude" && animated ? opening : 0} idleMotion={!exam && !reducedMotion} />
+      ) : source === "loop" ? (
         <video key={clip} className="face__img" src={clip} poster={src}
           autoPlay loop muted playsInline preload="metadata" aria-label={label ?? ""}
           onError={() => setFailedClip(clip)} />
@@ -123,7 +134,9 @@ export function OpponentFace({
         onError={() => setFailedSrc(src)}
         draggable={false}
       />}
-      {speaking && !animated && (
+      {/* Индикатор речи — там, где губы не двигаются сами: портрет, ролик,
+          пауза между кадрами. У кадра и амплитудного рта он лишний. */}
+      {speaking && source !== "frame" && !amplitudeMouth && (
         <span className="face__voice" aria-label={speakingLabel}>
           <i /><i /><i />
         </span>

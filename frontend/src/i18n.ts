@@ -328,6 +328,16 @@ export interface Strings {
     away: string;     // прервана, и перерыв длинный — {n} {form}
   };
   // Полоса живых слоёв под композером.
+  /** Встреча с крупным собеседником: тренировка с голосом (lib/meeting.ts). */
+  meeting: {
+    title: string;
+    status: Record<"connecting" | "reconnecting" | "lost" | "speaking" | "hearing" | "thinking" | "listening", string>;
+    /** Стенд подписан как стенд: `capabilities.avatar.synthetic`. */
+    testStream: string;
+    micOff: string; micOn: string; micMuted: string; noMic: string;
+    interrupt: string; text: string; end: string;
+    soundBlocked: string; soundOn: string;
+  };
   live: {
     micOn: string; hearing: string; interrupt: string;
     inFrame: string; outFrame: string; peekNote: string; peekOpen: string;
@@ -1089,6 +1099,28 @@ export const I18N: Record<Lang, Strings> = {
       shielded: "Пропуск покроет заморозка: их в запасе {n}.",
       lost: "Серия прервана. Сегодняшняя партия начнёт новую.",
       away: "Вас не было {n} {form}. Стол на месте.",
+    },
+    meeting: {
+      title: "Встреча",
+      status: {
+        connecting: "Подключение…",
+        reconnecting: "Связь прервалась — возвращаемся в ту же партию",
+        lost: "Связь потеряна",
+        speaking: "Говорит",
+        hearing: "Слышит вас",
+        thinking: "Думает",
+        listening: "Слушает",
+      },
+      testStream: "Тестовый видеопоток — не видео собеседника",
+      micOff: "Выключить микрофон",
+      micOn: "Включить микрофон",
+      micMuted: "Микрофон выключен",
+      noMic: "Микрофона нет — отвечайте текстом",
+      interrupt: "Перебить",
+      text: "Ответить текстом",
+      end: "Завершить",
+      soundBlocked: "Браузер не включил звук",
+      soundOn: "Включить звук",
     },
     live: {
       micOn: "микрофон активен",
@@ -1894,6 +1926,28 @@ export const I18N: Record<Lang, Strings> = {
       shielded: "A freeze will cover the gap — {n} left in reserve.",
       lost: "The streak is broken. Today's session starts a new one.",
       away: "You have been away {n} {form}. The table is still here.",
+    },
+    meeting: {
+      title: "Meeting",
+      status: {
+        connecting: "Connecting…",
+        reconnecting: "Connection dropped — returning to the same game",
+        lost: "Connection lost",
+        speaking: "Speaking",
+        hearing: "Hearing you",
+        thinking: "Thinking",
+        listening: "Listening",
+      },
+      testStream: "Test video stream — not the counterpart's video",
+      micOff: "Mute microphone",
+      micOn: "Unmute microphone",
+      micMuted: "Microphone off",
+      noMic: "No microphone — reply by text",
+      interrupt: "Cut in",
+      text: "Reply by text",
+      end: "End",
+      soundBlocked: "The browser has not enabled sound",
+      soundOn: "Turn sound on",
     },
     live: {
       micOn: "microphone live",

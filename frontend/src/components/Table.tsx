@@ -12,6 +12,9 @@ import { teachingPlaceholder, formatDeal } from "../lib/format";
 import { haptic, play } from "../lib/sound";
 import { WaitStatus } from "./WaitStatus";
 import { OpponentFace } from "./OpponentFace";
+import type { FaceRenderer } from "../lib/faceSource";
+import { MeetingStage } from "./MeetingStage";
+import { meetingStatus } from "../lib/meeting";
 import { ScreenHeading } from "./ScreenHeading";
 import { scrollTo } from "../lib/motion";
 import { Meters } from "./Meters";
@@ -68,7 +71,17 @@ interface Props {
   oppSpeaking?: boolean;
   getSpeechLevel?: () => number;
   getVideoFrame?: () => string | null;
-  amplitudeAnimation?: boolean;
+  /** Чем сервер рисует лицо — см. lib/faceSource.ts. */
+  faceRenderer?: FaceRenderer;
+  /** Встреча с крупным собеседником (lib/meeting.ts решает, когда). */
+  meeting?: boolean;
+  /** Кадры синтетические — стенд обязан быть подписан. */
+  syntheticFace?: boolean;
+  micAvailable?: boolean;
+  micMuted?: boolean;
+  onToggleMic?: () => void;
+  getAudioBlocked?: () => boolean;
+  onResumeAudio?: () => void;
   /** Какие слои подняты В ЭТОЙ партии. Выключенные не оставляют следов на экране. */
   layers?: Layers;
   /** Открыть шторку слоёв. Полноэкранный экран подготовки перед партией убран —
@@ -109,7 +122,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, amplitudeAnimation = false, layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -164,6 +177,10 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
   // Exam is an assessment: all live coaching feedback (meters, interests tracker,
   // technique chips/badges, meter deltas, hint) is withheld until the debrief.
   const exam = mode === "exam";
+  // Субтитр встречи — последняя реплика собеседника, пока она звучит или ещё
+  // печатается. Когда он замолчал, субтитр уходит: лента хранит всё целиком.
+  const lastOpp = meeting ? [...log].reverse().find((e) => e.kind === "opp") : undefined;
+  const subtitle = lastOpp && lastOpp.kind === "opp" && (oppSpeaking || lastOpp.streaming) ? lastOpp.text : null;
   // Первая партия человека: практика и флаг «вводную ещё не видел». Больше
   // ничего от неё не зависит — ни движок, ни оценка.
   const newcomer = useRef(shouldRunTutorial(mode, isTutorialDone()));
@@ -465,9 +482,11 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
             {/* While a "read her face" question is open the portrait becomes the
                 main object on screen — this is the one beat that justifies the
                 parametric expressions, which otherwise work almost unnoticed. */}
-            <div className={`opp-card${probeOpen ? " reading" : ""}`}>
-              {probeOpen ? <div className="opp-cue">{t.probe.readFace}</div> : null}
-              <OpponentFace
+            <div className={`opp-card${probeOpen && !meeting ? " reading" : ""}${meeting ? " in-meeting" : ""}`}>
+              {probeOpen && !meeting ? <div className="opp-cue">{t.probe.readFace}</div> : null}
+              {/* Во встрече лицо уже крупно на сцене — второе, маленькое, здесь
+                  было бы тем же человеком дважды. */}
+              {meeting ? null : <OpponentFace
                 scenarioId={scenario.id}
                 avatarState={avatarState}
                 state={st}
@@ -475,11 +494,11 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
                 speaking={oppSpeaking}
                 getSpeechLevel={getSpeechLevel}
                 getVideoFrame={getVideoFrame}
-                amplitudeAnimation={amplitudeAnimation}
+                renderer={faceRenderer}
                 animationLabel={t.a11y.amplitudeAnimation}
                 speakingLabel={t.a11y.speaking}
                 label={scenario.counterpart_name}
-              />
+              />}
               <div>
                 <div className="nm">{scenario.counterpart_name}</div>
                 <div className="ps">{scenario.counterpart_persona}</div>
@@ -634,7 +653,32 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
               двух на странице не бывает. Имени у раздела нет намеренно: свою
               живую область лента уже называет сама, и второй ориентир с тем же
               именем — лишний пункт в списке, а не помощь. */}
-          <section className="chat">
+          <section className={`chat${meeting ? " with-meeting" : ""}`}>
+            {meeting ? (
+              <MeetingStage
+                t={t.meeting}
+                speakingLabel={t.a11y.speaking}
+                animationLabel={t.a11y.amplitudeAnimation}
+                scenario={scenario}
+                state={st}
+                avatarState={avatarState}
+                renderer={faceRenderer}
+                synthetic={syntheticFace}
+                status={meetingStatus({ conn, oppSpeaking, userSpeaking, busy })}
+                subtitle={subtitle}
+                oppSpeaking={oppSpeaking}
+                micAvailable={micAvailable}
+                micMuted={micMuted}
+                onToggleMic={onToggleMic}
+                onInterrupt={onInterrupt}
+                onTextMode={() => composeRef.current?.querySelector("textarea")?.focus()}
+                onEnd={onQuit}
+                getSpeechLevel={getSpeechLevel}
+                getVideoFrame={getVideoFrame}
+                getAudioBlocked={getAudioBlocked}
+                onResumeAudio={onResumeAudio}
+              />
+            ) : null}
             {/* Единственная панель шкал в игре: полные подписи, объяснение в
                 подсказке, обрубки только там, где полное слово не влезает. */}
             {st && !exam ? (
@@ -783,7 +827,9 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
                   oppSpeaking={oppSpeaking}
                   transcript={transcript}
                   getMicLevel={getMicLevel}
-                  onInterrupt={onInterrupt}
+                  // Во встрече «перебить» стоит на сцене — вторая кнопка рядом
+                  // с полем ввода была бы той же кнопкой дважды.
+                  onInterrupt={meeting ? undefined : onInterrupt}
                   videoRef={videoRef}
                   canvasRef={canvasRef}
                   labels={t.live}

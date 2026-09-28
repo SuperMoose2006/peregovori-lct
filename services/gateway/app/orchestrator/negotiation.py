@@ -144,8 +144,13 @@ class NegotiationOrchestrator:
         #    число из этого события показывать игроку нельзя; авторитетное
         #    уходит ниже, в `engine.state`.
         analysis = engine.analyze(text)
-        engine_sess.turn += 1
-        turn_id = engine_sess.turn
+        # НОМЕР ХОДА ЗАКРЕПЛЯЕТСЯ В ТОЧКЕ ПРИНЯТИЯ, А НЕ ЗДЕСЬ. До `apply_move`
+        # впереди ожидание судьи — секунда сети, — и отмена в эту секунду
+        # (обрыв, вытеснение) раньше оставляла счётчик увеличенным без
+        # применённого хода и без строки в журнале: партия теряла ход из
+        # лимита. Теперь всё до точки принятия — черновик без побочных
+        # эффектов на движке; сама точка ниже не содержит ни одного `await`.
+        turn_id = engine_sess.turn + 1
         bus.publish({
             "type": "turn.analysis",
             "turn_id": turn_id,
@@ -172,7 +177,11 @@ class NegotiationOrchestrator:
             bus.publish({"type": "judge.completed", "turn_id": turn_id,
                          "semantic": judgement is not None})
 
-        # 3. Движок считает ход. ЕДИНСТВЕННОЕ место, где меняется состояние игры.
+        # 3. ТОЧКА ПРИНЯТИЯ ХОДА. Отсюда и до публикации `engine.state` — ни
+        #    одного `await`: счётчик, движок и журнал меняются одним куском, и
+        #    отмена либо не застаёт ход вовсе, либо застаёт его принятым.
+        #    Движок считает ход — ЕДИНСТВЕННОЕ место, где меняется состояние игры.
+        engine_sess.turn = turn_id
         result = engine.apply_move(engine_sess, analysis, text, judge=judgement)
 
         timeout = False

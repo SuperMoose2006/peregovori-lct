@@ -71,7 +71,21 @@ export interface RealtimeTransportOptions extends RealtimeExtras {
 
 export class RealtimeTransport implements Transport {
   private readonly faceFrames = new AvatarFrames();
+  /** ПРИНЯТОЕ ПОКОЛЕНИЕ ОТВЕТА И ЕГО ИСТОРИЯ.
+   *
+   *  Поколение принимается ровно один раз — первым событием с новым id, будь
+   *  то текст или звук, — и в этот момент прежнее уходит целиком: звук, кадры,
+   *  часы проигрывателя. Раньше часы сбрасывал первый ТЕКСТОВЫЙ кусок: звук,
+   *  пришедший раньше текста, продолжал старые часы, а запоздавший текст обрывал
+   *  уже звучащий ответ. Ушедшие id помнятся, и их хвосты (звук, кадр, `done`,
+   *  отмена) не оживляют и не глушат новое поколение. Id непрозрачны: их никто
+   *  не сравнивает по порядку — только «тот же / виденный / новый». */
   private audioGeneration = "";
+  private readonly retiredGenerations = new Set<string>();
+  /** Текст принятого поколения — чтобы довести ход, если его перебили до `done`. */
+  private generationText = "";
+  /** Ход этого поколения уже собран (`response.done` или отмена) — второй раз нельзя. */
+  private generationFlushed = false;
   private serverSessionId = "";
   private readonly emit: ServerMsgHandler;
   private readonly onConn: (status: ConnStatus) => void;
@@ -130,12 +144,44 @@ export class RealtimeTransport implements Transport {
 
   speechLevel(): number { return this.player?.speechLevel() ?? 0; }
   videoFrame(): string | null { return this.faceFrames.at(this.player?.playbackTimeMs() ?? null); }
+  /** Звук ответа пришёл, а браузер его не играет (политика автозапуска). */
+  audioBlocked(): boolean { return this.player?.blocked ?? false; }
+  /** Жест пользователя: разрешить браузеру играть звук. */
+  resumeAudio(): void { this.player?.resume(); }
+  /** Выключить микрофон, не закрывая его: дорожка молчит, партия идёт. */
+  setMicMuted(muted: boolean): void { this.media?.setMicEnabled(!muted); }
 
   /** Перебивание с кнопки. Голосовое сервер замечает сам, через VAD. */
   interrupt(): void {
     this.faceFrames.clear();
     this.player?.stopAll();
+    this.markOppAudio(false);
     this.session?.cancel();
+  }
+
+  private retireGeneration(id: string): void {
+    if (!id) return;
+    this.retiredGenerations.add(id);
+    // Помнить вечно незачем: хвост приходит в пределах секунд. Сотня — с запасом.
+    if (this.retiredGenerations.size > 128) {
+      const oldest = this.retiredGenerations.values().next().value;
+      if (oldest !== undefined) this.retiredGenerations.delete(oldest);
+    }
+  }
+
+  /** Пропустить событие поколения `id` или выбросить как хвост ушедшего. */
+  private admitGeneration(id: string): boolean {
+    if (!id || id === this.audioGeneration) return true;
+    if (this.retiredGenerations.has(id)) return false;
+    this.retireGeneration(this.audioGeneration);
+    this.audioGeneration = id;
+    this.generationText = "";
+    this.generationFlushed = false;
+    this.faceFrames.clear();
+    this.player?.stopAll();
+    this.player?.beginTurn();
+    this.markOppAudio(false);
+    return true;
   }
 
   close(): void {
@@ -304,14 +350,18 @@ export class RealtimeTransport implements Transport {
   }
 
   /** `response.done` значит «модель дописала», а звук играет секундами дольше —
-   *  поэтому конец речи ловим по опустевшему проигрывателю, а не по событию. */
+   *  поэтому конец речи ловим по опустевшему проигрывателю, а не по событию.
+   *  И начало речи — тоже по нему: «говорит» горит, пока под указателем
+   *  воспроизведения стоит запланированный звук, а не пока летят чанки. */
   private watchDrain(): void {
     if (this.drainTimer) return;
     let quiet = 0;
-    this.drainTimer = setInterval(() => {
-      if (this.player?.isPlaying) { quiet = 0; return; }
-      if (++quiet >= 2) this.markOppAudio(false);   // 2 × 200 мс тишины
-    }, 200);
+    const tick = () => {
+      if (this.player?.playbackTimeMs() != null) { quiet = 0; this.markOppAudio(true); return; }
+      if (this.player?.busy && !this.player.blocked) { quiet = 0; return; } // джиттер-буфер
+      if (++quiet >= 2) this.markOppAudio(false);   // 2 × тишина
+    };
+    this.drainTimer = setInterval(tick, 100);
   }
 
   // -- перевод событий -----------------------------------------------------
@@ -327,6 +377,12 @@ export class RealtimeTransport implements Transport {
         this.pendingAnalysis = null;
         this.pendingDeltas = null;
         this.pendingCoach = null;
+        // Поколения прежнего сокета не вернутся: новый пишет свои. Текущее
+        // уходит в историю, чтобы его запоздавший хвост ничего не тронул.
+        this.retireGeneration(this.audioGeneration);
+        this.audioGeneration = "";
+        this.generationText = "";
+        this.generationFlushed = true;
         this.faceFrames.clear();
         this.player?.stopAll();
         this.markOppAudio(false);
@@ -410,17 +466,18 @@ export class RealtimeTransport implements Transport {
 
       case "response.output.delta": {
         const kind = String(event.kind ?? "");
-        const generation = String(event.generation_id ?? "");
-        if (generation && generation !== this.audioGeneration) {
-          this.faceFrames.clear();
-          this.audioGeneration = generation;
+        if (kind === "text" || kind === "audio") {
+          if (!this.admitGeneration(String(event.generation_id ?? ""))) return;
         }
         if (kind === "text") {
-          this.player?.beginTurn();
-          this.emit({ type: "opponent_delta", chunk: String(event.text ?? "") });
+          const chunk = String(event.text ?? "");
+          this.generationText += chunk;
+          this.emit({ type: "opponent_delta", chunk });
         } else if (kind === "audio") {
           this.player?.playChunk(String(event.audio ?? ""));
-          this.markOppAudio(true);
+          // «Говорит» ставит не приход чанка, а проигрыватель: сторож ниже
+          // смотрит на его часы. Чанк, пришедший в приостановленный браузером
+          // AudioContext, звучать не будет — и лицо не должно делать вид.
           this.watchDrain(); // TTS may arrive after response.done's quiet timer expired.
         } else if (kind === "transcript") {
           this.options.onTranscript?.(String(event.text ?? ""), Boolean(event.final));
@@ -428,22 +485,48 @@ export class RealtimeTransport implements Transport {
         return;
       }
 
-      case "response.done":
+      case "response.done": {
+        // `done` — конец ТЕКСТА. Звук того же поколения после него доигрывает:
+        // поколение остаётся принятым, пока его не сменит новое или отмена.
+        if (!this.admitGeneration(String(event.generation_id ?? ""))) return;
         this.player?.endTurn();
         this.watchDrain();
-        this.flushTurn(String(event.text ?? ""));
+        if (!this.generationFlushed) {
+          this.generationFlushed = true;
+          this.flushTurn(String(event.text ?? ""));
+        }
         return;
+      }
 
-      case "generation.cancelled":
+      case "generation.cancelled": {
+        const id = String(event.generation_id ?? "");
+        if (id && id !== this.audioGeneration) {
+          // Отмена чужого поколения — старого или ещё не пришедшего — текущее
+          // не трогает: только запоминаем, чтобы его хвост не прошёл.
+          this.retireGeneration(id);
+          return;
+        }
         this.markOppAudio(false);
         // Сервер погасил реплику. Звук, уже стоящий в расписании браузера,
         // остановит только это — вторая половина перебивания живёт здесь.
         this.faceFrames.clear();
         this.player?.stopAll();
+        // ПЕРЕБИТЫЙ ДО `done` ХОД ДОВОДИТ КЛИЕНТ. Движок ход уже применил
+        // (`engine.state` пришёл раньше реплики), а `response.done` погашенного
+        // поколения сервер не пришлёт. Без этого стол висел занятым до
+        // переподключения. В ленте остаётся то, что успело прийти.
+        if (!this.generationFlushed) {
+          this.generationFlushed = true;
+          this.flushTurn(this.generationText);
+        }
+        this.retireGeneration(this.audioGeneration);
+        this.audioGeneration = "";
         return;
+      }
 
       case "avatar.frame":
-        if (event.generation_id === this.audioGeneration) this.faceFrames.push(event);
+        if (event.generation_id === this.audioGeneration
+            && !this.retiredGenerations.has(String(event.generation_id))) this.faceFrames.push(event);
         return;
 
       case "avatar.state":

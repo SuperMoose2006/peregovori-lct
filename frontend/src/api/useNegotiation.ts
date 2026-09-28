@@ -111,6 +111,10 @@ export interface Negotiation extends NegotiationState {
   getMicLevel: () => number;
   getSpeechLevel: () => number;
   getVideoFrame: () => string | null;
+  /** Звук ответа пришёл, а браузер его держит — нужен жест пользователя. */
+  getAudioBlocked: () => boolean;
+  resumeAudio: () => void;
+  setMicMuted: (muted: boolean) => void;
   /** Оборвать реплику оппонента кнопкой. Голосом сервер перебивает сам. */
   interrupt: () => void;
 }
@@ -205,16 +209,16 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
           // подготовки, и они приезжают в сообщении `start` (см. transport.ts).
           videoEl: realtimeRef.current.videoRef ?? null,
           canvasEl: realtimeRef.current.canvasRef ?? null,
-          // Лицо и звук — два независимых признака речи. Аватар может быть
-          // выключен, а оппонент всё равно звучит: тогда «говорит» приходит из
-          // собственного проигрывателя (onOppAudio). Складываем оба, иначе в
-          // режиме «только голос» перебить оппонента нечем.
+          // «ГОВОРИТ» РЕШАЕТ ПРОИГРЫВАТЕЛЬ, А НЕ СЕРВЕР. Состояние лица приходит
+          // с сервера в момент синтеза, а слышно реплику позже — после
+          // джиттер-буфера, а в приостановленном браузером звуке не слышно
+          // вовсе. Поэтому индикатор, кнопка перебивания и лицо связаны с
+          // часами проигрывателя (onOppAudio), а `avatar.state` задаёт только
+          // выражение.
           onAvatar: (avatarState) =>
-            currentState((p) => ({ ...p, avatarState,
-                           oppSpeaking: avatarState === "speaking" || p.oppAudio })),
+            currentState((p) => ({ ...p, avatarState })),
           onOppAudio: (speaking) =>
-            currentState((p) => ({ ...p, oppAudio: speaking,
-                           oppSpeaking: speaking || p.avatarState === "speaking" })),
+            currentState((p) => ({ ...p, oppAudio: speaking, oppSpeaking: speaking })),
           onTell: (expressive, total) =>
             currentState((p) => ({ ...p, tells: total, tellNow: expressive,
                            tellFrames: p.tellFrames + 1 })),
@@ -305,9 +309,13 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
   const getMicLevel = useCallback(() => transportRef.current?.micLevel?.() ?? 0, []);
   const getSpeechLevel = useCallback(() => transportRef.current?.speechLevel?.() ?? 0, []);
   const getVideoFrame = useCallback(() => transportRef.current?.videoFrame?.() ?? null, []);
+  const getAudioBlocked = useCallback(() => transportRef.current?.audioBlocked?.() ?? false, []);
+  const resumeAudio = useCallback(() => transportRef.current?.resumeAudio?.(), []);
+  const setMicMuted = useCallback((muted: boolean) => transportRef.current?.setMicMuted?.(muted), []);
   const interrupt = useCallback(() => transportRef.current?.interrupt?.(), []);
 
-  return { ...s, start, turn, requestHint, answerProbe, clearError, reset, getMicLevel, getSpeechLevel, getVideoFrame, interrupt };
+  return { ...s, start, turn, requestHint, answerProbe, clearError, reset, getMicLevel, getSpeechLevel,
+           getVideoFrame, getAudioBlocked, resumeAudio, setMicMuted, interrupt };
 }
 
 // Pure reducer over the ServerMsg stream.

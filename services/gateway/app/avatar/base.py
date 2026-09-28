@@ -75,12 +75,15 @@ class AvatarCapabilities:
     lipsync_mode: str = "none"
     #: Умеет ли провайдер прерывать себя на полуслове.
     interruptible: bool = False
-    #: Транспорт видео: none | images | webrtc.
+    #: Транспорт видео: none | images | local | jpeg (кадры по аудиочасам).
     transport: str = "none"
     #: Человекочитаемая причина недоступности — рисуется под переключателем.
     reason: dict[str, str] = field(default_factory=dict)
     #: Поддерживаемые состояния.
     states: tuple[str, ...] = AVATAR_STATES
+    #: Кадры синтетические (стенд), а не лицо собеседника. Клиент обязан
+    #: подписать такой поток как тестовый — иначе стенд выглядел бы продуктом.
+    synthetic: bool = False
 
 
 class AvatarProvider(abc.ABC):
