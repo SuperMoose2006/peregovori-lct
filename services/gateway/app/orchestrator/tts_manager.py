@@ -60,6 +60,15 @@ class TTSTaskManager:
         # A failed/slow face cannot block speech or the negotiation.
         self.on_audio: Optional[Callable[..., Awaitable[None]]] = None
         self.on_audio_error: Optional[Callable[[], Awaitable[None]]] = None
+        #: Куда отдавать аудиособытия вместо шины. Пусто — сразу в шину, как
+        #: всегда. Лицо от внешнего сервиса придерживает звук человеку, чтобы
+        #: кадр успевал к нему (`avatar/live/adapter.py::audio_out`).
+        self.audio_out: Optional[Callable[[dict], None]] = None
+        #: Звука поколения больше не будет: реплика дописана (`finish`) и всё
+        #: синтезированное отдано. Сервису видео это нужно, чтобы дорисовать
+        #: хвост реплики (замечание R2), а не ждать продолжения.
+        self.on_audio_end: Optional[Callable[[str], Awaitable[None]]] = None
+        self._finished_generation = ""
 
         self._tasks: list[asyncio.Task] = []
         self._queues: list[asyncio.Queue[bytes]] = []
@@ -87,7 +96,7 @@ class TTSTaskManager:
         self._sequence += 1
         queue: asyncio.Queue[bytes] = asyncio.Queue()
         self._queues.append(queue)
-        self._tasks.append(asyncio.create_task(self._synth(text, queue)))
+        self._tasks.append(asyncio.create_task(self._synth(text, queue, generation_id)))
 
         if self._sender is None or self._sender.done():
             self._sender = asyncio.create_task(self._send_in_order())
@@ -95,16 +104,24 @@ class TTSTaskManager:
 
     # -------------------------------------------------------------- внутри
 
-    async def _synth(self, text: str, queue: asyncio.Queue[bytes]) -> None:
+    async def _synth(self, text: str, queue: asyncio.Queue[bytes], generation_id: str = "") -> None:
         """Синтез одной фразы в свою очередь. Ошибка = пустая фраза, не падение.
 
         Молчание одной фразы лучше, чем оборванная реплика: движок уже посчитал
         ход, текст на экране есть, и разговор продолжается.
         """
         received = False
+        # Синтез, который говорит сам в реальном времени (голос сервиса видео),
+        # объявляет свой потолок на фразу и просит поколение фразы; обычный
+        # синтез не объявляет ничего и зовётся ровно как раньше.
+        timeout = getattr(self._provider, "synthesis_timeout_s", None)
+        if not isinstance(timeout, (int, float)) or isinstance(timeout, bool):
+            timeout = SYNTHESIS_TIMEOUT_S
+        extra = ({"generation_id": generation_id}
+                 if getattr(self._provider, "wants_generation", False) is True else {})
         try:
-            async with asyncio.timeout(SYNTHESIS_TIMEOUT_S):
-                async for chunk in self._provider.stream(text, self._voice):
+            async with asyncio.timeout(timeout):
+                async for chunk in self._provider.stream(text, self._voice, **extra):
                     if chunk:
                         received = True
                         await queue.put(chunk)
@@ -133,6 +150,8 @@ class TTSTaskManager:
                     # ещё не дорезать следующую — реплика продолжается.
                     await asyncio.sleep(0.02)
                     if self._next_to_send >= len(self._queues) and self._all_done():
+                        if self._finished_generation == self._generation_id:
+                            await self._audio_ended(self._generation_id)
                         return
                     continue
 
@@ -141,12 +160,16 @@ class TTSTaskManager:
                     chunk = await queue.get()
                     if chunk is _EOP or chunk == _EOP:
                         break
-                    self._publish(output_delta(
+                    event = output_delta(
                         "audio",
                         generation_id=self._generation_id,
                         turn_id=self._turn_id,
                         audio=base64.b64encode(chunk).decode("ascii"),
-                    ))
+                    )
+                    if self.audio_out is not None:
+                        self.audio_out(event)
+                    else:
+                        self._publish(event)
                     if self.on_audio:
                         try:
                             await asyncio.wait_for(self.on_audio(
@@ -166,6 +189,36 @@ class TTSTaskManager:
 
     def _all_done(self) -> bool:
         return bool(self._tasks) and all(t.done() for t in self._tasks)
+
+    # ------------------------------------------------------------ конец звука
+
+    def finish(self, generation_id: str) -> None:
+        """Реплика дописана: новых фраз этого поколения не будет.
+
+        Звук может ещё синтезироваться — тогда сигнал конца подаст отправщик,
+        когда отдаст последнее. Если всё уже отдано, сигнал уходит сейчас.
+        Без слушателя (`on_audio_end`) — ничего не делает.
+        """
+        if self.on_audio_end is None or not generation_id:
+            return
+        self._finished_generation = generation_id
+        if generation_id != self._generation_id:
+            return          # этого поколения здесь не звучало
+        if self._sender is None or self._sender.done():
+            task = asyncio.create_task(self._audio_ended(generation_id))
+            self._tasks.append(task)
+
+    async def _audio_ended(self, generation_id: str) -> None:
+        if self.on_audio_end is None or self._finished_generation != generation_id:
+            return
+        self._finished_generation = ""
+        try:
+            await asyncio.wait_for(self.on_audio_end(generation_id), timeout=0.05)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # Лицу не удалось сказать «конец» — звук от этого не зависит.
+            pass
 
     # ----------------------------------------------------------------- отмена
 

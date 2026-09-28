@@ -54,8 +54,16 @@ async def _lifespan(_app: FastAPI):
     Держать его открытым — не микрооптимизация: холодное TLS-рукопожатие к
     OpenRouter стоит сотни миллисекунд, и они видны напрямую в критическом пути
     судьи. Закрываем на shutdown, иначе `uvicorn --reload` течёт сокетами.
+
+    Здесь же — проверка ключа живого видео (`avatar/live/config.py`): битый
+    ключ говорится в лог при старте словами, а не первой партией перед жюри.
+    Проверка идёт фоном и старт не задерживает; без названного сервиса она
+    не делает ничего.
     """
+    from app.avatar.live.config import startup_check
+    check = asyncio.create_task(startup_check())
     yield
+    check.cancel()
     from app.providers.openrouter import chat as orchat
     await orchat.aclose()
 
@@ -427,7 +435,15 @@ def health() -> dict:
         "tts": _tts_describe(),
         # Кто слушает: realtime-сессия или запасной путь файлом.
         "voice": _voice_describe(),
+        # Живое видео собеседника: «off» без кредов, иначе сервис и вход; при
+        # битом ключе — почему выключено (`avatar/live/config.py`).
+        "live_video": _live_video_describe(),
     }
+
+
+def _live_video_describe() -> str:
+    from app.avatar.live.config import describe
+    return describe()
 
 
 @app.get("/api/scenarios")

@@ -536,6 +536,18 @@ export class RealtimeTransport implements Transport {
             avatar: { ...(this.session.capabilities.avatar as object),
               lipsync: true, lipsync_mode: "amplitude", transport: "local" } };
           this.options.onCapabilities?.(this.session.capabilities);
+        } else if (this.session && event.lipsync_mode === "video" && event.transport === "jpeg") {
+          // Сервис видео снова на связи (сервер переподключился между
+          // репликами) — лицо возвращается к кадрам. Только если лицо сейчас
+          // НЕ видео: повтор того же режима на каждом состоянии не должен
+          // перерисовывать экран. Без кредов сервер этого не шлёт никогда.
+          const avatar = (this.session.capabilities.avatar ?? {}) as Record<string, unknown>;
+          if (avatar.lipsync_mode !== "video") {
+            this.session.capabilities = { ...this.session.capabilities,
+              avatar: { ...avatar, lipsync: true, lipsync_mode: "video", transport: "jpeg",
+                synthetic: event.synthetic === true } };
+            this.options.onCapabilities?.(this.session.capabilities);
+          }
         }
         this.options.onAvatar?.(String(event.state ?? "listening"),
                                 (event.reaction as string) ?? null,

@@ -75,6 +75,11 @@ class NegotiationOrchestrator:
         if tts and avatar:
             tts.on_audio = avatar.speak
             tts.on_audio_error = self._fallback_avatar
+            # У локальных лиц оба — пустые: звук идёт в шину сразу, конец
+            # звука никому не сообщается. Лицо от внешнего сервиса придерживает
+            # звук под свои кадры и дорисовывает хвост реплики по сигналу конца.
+            tts.audio_out = avatar.audio_out
+            tts.on_audio_end = avatar.end_of_speech
         self._generation_task: Optional[asyncio.Task] = None
         #: Кому сообщать, звучит ли голос оппонента. Ставится извне
         #: (`realtime/endpoint.py`) на голосовой пайплайн — без этого его защита
@@ -89,10 +94,17 @@ class NegotiationOrchestrator:
         """A broken optional face must not discard an already applied move."""
         from app.avatar.amplitude import AmplitudeAvatar
         old = self.avatar
+        if old:
+            # Придержанный старым лицом звук — человеку сейчас и по порядку,
+            # ДО того, как синтез начнёт публиковать мимо него: иначе
+            # следующий кусок реплики обогнал бы предыдущий.
+            old.flush_audio()
         self.avatar = AmplitudeAvatar(self.session.engine_session.scenario_id, self.session.bus.publish)
         self.session.avatar_provider = self.avatar
         if self.tts:
             self.tts.on_audio = self.avatar.speak
+            self.tts.audio_out = self.avatar.audio_out
+            self.tts.on_audio_end = self.avatar.end_of_speech
         await self.avatar.set_state('listening')
         if old:
             try:
@@ -371,6 +383,10 @@ class NegotiationOrchestrator:
         # Услышанное дописано в историю обычной репликой — чтобы `interrupt()`
         # не занёс её второй раз как оборванную.
         self.session.spoken_so_far = ""
+        # Новых фраз этого поколения не будет: синтез скажет лицу «конец
+        # звука», когда отдаст последнее (без слушателя — ничего не делает).
+        if self.tts and self.session.generation_id:
+            self.tts.finish(self.session.generation_id)
 
     # ------------------------------------------------------------ перебивание
 

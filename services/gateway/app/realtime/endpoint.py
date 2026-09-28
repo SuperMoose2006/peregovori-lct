@@ -728,13 +728,17 @@ def _wire(session: RealtimeSession, *, work: Optional["_Work"] = None) -> tuple[
         # один на партию и на `/api/health`. Прежняя цифра edge «570 мс»
         # оказалась артефактом: эндпоинт Microsoft кэширует уже произнесённый
         # текст, и повторный прогон той же фразы мерил кэш, а не синтез.
-        provider = make_tts()
+        provider = _speech_for(avatar)
         if provider is not None:
             tts = TTSTaskManager(provider, session.bus.publish,
                                  Voice(id="", lang=session.lang,
                                        female=_persona_is_female(scenario)))
 
     orchestrator = NegotiationOrchestrator(session, tts=tts, avatar=avatar)
+    if avatar is not None:
+        # Лицо от внешнего сервиса начинает подключаться сейчас, в фоне, не
+        # задерживая `session.created`; у локальных лиц это пустое действие.
+        avatar.start()
 
     voice = None
     if session.mode == "voice" and session.layers.voice:
@@ -831,9 +835,20 @@ def _vision_budget(session: RealtimeSession) -> bool:
 def _make_avatar(session: RealtimeSession) -> AvatarProvider:
     """Voice uses local amplitude animation; text keeps the portrait provider."""
     if session.avatar_provider is None:
+        scenario = engine.by_id(session.engine_session.scenario_id)
         session.avatar_provider = create_avatar(session.engine_session.scenario_id,
-                                                session.bus.publish, voice=session.layers.voice)
+                                                session.bus.publish, voice=session.layers.voice,
+                                                lang=session.lang,
+                                                female=_persona_is_female(scenario))
     return session.avatar_provider
+
+
+def _speech_for(avatar: Optional[AvatarProvider]):
+    """Синтез партии. Тот же выбор, что у `make_tts`, — если только лицо не
+    говорит своим голосом (сервис видео на входе `text`): тогда голос его, а
+    наш синтез остаётся запасным. Решает лицо по своей возможности, не по имени."""
+    provider = make_tts()
+    return avatar.voice_for(provider) if avatar is not None else provider
 
 
 #: Мужские имена, оканчивающиеся на «а»/«я». Нужны только для СГЕНЕРИРОВАННЫХ
@@ -917,7 +932,8 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         # просили; синтеза при этом может не быть (офлайн, нет ключа), и
         # экран встречи, построенный вокруг звучащего собеседника, обязан это
         # знать до первого хода. Тот же выбор, что у сборки партии.
-        "speech": bool(session.layers.voice) and make_tts() is not None,
+        "speech": bool(session.layers.voice) and _speech_for(
+            _make_avatar(session) if session.layers.avatar else None) is not None,
     }
     if session.layers.avatar:
         caps = _make_avatar(session).capabilities()

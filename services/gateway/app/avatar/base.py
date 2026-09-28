@@ -27,11 +27,14 @@ hardened · offended · not_yet · probe_vague · walked_out.
 
 from __future__ import annotations
 
-# CONTRACT(avatar-video): общий интерфейс и передача PCM готовы, внешнего адаптера нет.
-# Настоящим станет: выбранный провайдер с проверкой задержки, отмены и закрытия ресурсов.
+# CONTRACT(avatar-video): интерфейс, адаптер сервиса и заглушка готовы (`avatar/live/`),
+# ни один платный сервис вживую не проверен — ключа нет.
+# Настоящим станет: драйвер выбранного сервиса, проверенный с ключом по
+# docs/INTEGRATION_LIVE_VIDEO.md (задержка кадра, отмена, закрытие сессии).
 
 import abc
 from dataclasses import dataclass, field
+from typing import Callable, Optional
 
 #: Состояния лица. Надмножество запрошенного в задании; каждое обязано иметь
 #: картинку или клип — то, что умеет `presence`.
@@ -117,3 +120,29 @@ class AvatarProvider(abc.ABC):
     async def close(self) -> None:
         """Release provider tasks/connections on socket close. Override for video."""
         await self.interrupt()
+
+    # -- необязательное: нужно лицу от внешнего сервиса (`avatar/live/`) -------
+    # У локальных лиц всё ниже — пустые действия, и путь звука без ключа
+    # остаётся ровно тем же: синтез публикует звук сам и сразу.
+
+    #: Куда синтез отдаёт аудиособытия вместо шины. None — публиковать сразу.
+    #: Внешнему сервису нужно время на кадр, и звук человеку придерживается,
+    #: чтобы кадр успевал к нему (`avatar/live/adapter.py`).
+    audio_out: Optional[Callable[[dict], None]] = None
+
+    def start(self) -> None:
+        """Партия собрана — можно открывать соединения. Без сети в конструкторе."""
+        return None
+
+    def flush_audio(self) -> None:
+        """Отдать придержанный звук сейчас, по порядку. Перед заменой лица."""
+        return None
+
+    async def end_of_speech(self, generation_id: str) -> None:
+        """Звука этого поколения больше не будет (замечание R2)."""
+        return None
+
+    def voice_for(self, fallback):
+        """Синтез партии. Лицо, которое говорит своим голосом, подставляет свой,
+        держа `fallback` в запасе; остальные возвращают его без изменений."""
+        return fallback
