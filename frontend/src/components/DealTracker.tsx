@@ -112,7 +112,7 @@ export function DealTracker({ scenario, state, t, lang }: Props) {
         <div className="dt-good" style={{ left: `${gz1}%`, width: `${gz2 - gz1}%` }} />
 
         {/* their opening anchor — a faint ghost tick showing where they started */}
-        <div className="dt-mark opening" style={{ left: pct(opening) }}>
+        <div className="dt-mark start" style={{ left: pct(opening) }}>
           <span className="tick" />
           <span className="lbl">{t.tracker.opening}</span>
         </div>

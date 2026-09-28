@@ -18,7 +18,7 @@ import { Icon, DataIcon } from "./Icon";
 
 const BROWSE = {
   ru: {
-    eyebrow: "Практика настоящих разговоров", title: "Договариваться — навык.", accent: "Тренируйте его здесь.",
+    title: "Договариваться — навык.", accent: "Тренируйте его здесь.",
     subtitle: "Пробуйте разные подходы, замечайте реакцию собеседника и находите решение, которое устроит обоих.",
     search: "Найти ситуацию", placeholder: "Зарплата, аренда, сложный разговор…",
     all: "Все ситуации", career: "Карьера", business: "Бизнес", life: "Жизнь", topicLabel: "Сфера переговоров",
@@ -28,7 +28,7 @@ const BROWSE = {
     examTitle: "Проверьте себя без подсказок", examBody: "Выберите знакомую или новую ситуацию. В конце — оценка ваших решений и сертификат за успешную партию.",
   },
   en: {
-    eyebrow: "Practice for real conversations", title: "Negotiation is a skill.", accent: "Make it yours.",
+    title: "Negotiation is a skill.", accent: "Make it yours.",
     subtitle: "Try a different approach, read your opponent’s response and find an agreement that works for both of you.",
     search: "Find a situation", placeholder: "Salary, rent, a difficult conversation…",
     all: "All situations", career: "Career", business: "Business", life: "Everyday life", topicLabel: "Negotiation context",
@@ -199,7 +199,6 @@ export function ScenarioPicker({
     <>
       {mode === "practice" ? (
         <header className="practice-intro">
-          <span className="practice-eyebrow"><span aria-hidden="true">✦</span> {copy.eyebrow}</span>
           <h2>{copy.title}<br /><span>{copy.accent}</span></h2>
           <p>{copy.subtitle}</p>
           <span className="practice-promise"><span aria-hidden="true">✓</span> {copy.practice}</span>
@@ -259,7 +258,7 @@ export function ScenarioPicker({
           {rows.length === 0 ? <div className="catalog-empty"><span aria-hidden="true">⌕</span><h3>{copy.empty}</h3><p>{copy.emptyBody}</p><button className="ghost" onClick={reset}>{copy.reset}</button></div> : null}
           <div className="cards" id="scenario-results">
             {rows.map((sc) => (
-              <button className="card" key={sc.id} onClick={() => onStart(sc.id)} data-scenario={sc.id}>
+              <button className="card" key={sc.id} onClick={() => onStart(sc.id)} data-scenario={sc.id} data-topic={scenarioTopic(sc.id)}>
                 {/* Meet-your-8-opponents: the same portrait as the table, at a
                     neutral expression (no live state to read yet). The deal-type
                     emoji rides in a small corner badge so the card stays legible. */}

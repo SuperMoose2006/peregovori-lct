@@ -290,7 +290,7 @@ export function XpAward({ t, lang, game, failed }: { t: Strings; lang: Lang; gam
       <div className="xpa-cap">{failed ? t.gam.xpAwardFailed : t.gam.xpAwardLabel}</div>
       {game.leveledUp && !failed ? (
         <div className="xpa-level">
-          <span className="xpa-spark" aria-hidden="true">✦</span> {t.gam.levelUp}
+          <span className="xpa-spark" aria-hidden="true"><Icon name="climb" /></span> {t.gam.levelUp}
           <b> {game.rankAfter.rank.name[lang]}</b>
         </div>
       ) : null}

@@ -732,14 +732,14 @@ export function Debrief({
 
           {at(2) && master ? (
             <div className="master">
-              <h2>✦ {t.master.title}</h2>
+              <h2>{t.master.title}</h2>
               <div className="ms-grid">
                 <div className="ms-cell yours">
                   <span className="ms-lab">{t.master.yours}</span>
                   <blockquote className="ms-q">«{master.quote}»</blockquote>
                 </div>
                 <div className="ms-cell mstr">
-                  <span className="ms-lab">✦ {t.master.label}</span>
+                  <span className="ms-lab">{t.master.label}</span>
                   <blockquote className="ms-q ms-line">«{master.line}»</blockquote>
                 </div>
               </div>
