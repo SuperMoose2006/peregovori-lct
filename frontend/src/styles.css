@@ -2568,7 +2568,15 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    ещё не достигнута и ни один кружок не залит. */
 .rc-steps button.tgt { border-color: var(--brass); color: var(--ink); }
 .rc-steps button.on.tgt { border-color: var(--edge); }
+/* Цель, отложенная на завтра: пунктир — «ещё не действует». Сплошной ободок
+   остаётся у сегодняшней, и две цели на одной строке не путаются. */
+.rc-steps button.next, .rc-steps i.next { border: 2px dashed var(--info-ink); color: var(--ink); }
 .rc-steps button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+/* Правило выбора — рядом с кнопками и до нажатия: запрет на понижение в тот
+   же день не должен обнаруживаться методом тыка. */
+.rc-goal-rule { margin: 10px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-dim); }
+.rc-goal-later { margin: 6px 0 0; font-size: 12px; line-height: 1.45; font-weight: 700; color: var(--ink); }
+.rc-goal-later:empty { margin: 0; }
 /* На телефоне кружок 22px — цель нажатия вдвое меньше порога в 44px. Увеличиваем
    САМУ кнопку, а не невидимую область через ::after: у соседей зазор 5px, и
    растянутые зоны налезали бы друг на друга — эту ошибку тут уже допускали. */

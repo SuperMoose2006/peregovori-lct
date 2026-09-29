@@ -276,7 +276,15 @@ export interface Strings {
   // Виджеты правого рейла оболочки. У каждого, кроме имени, — строка «что это и
   // что с этим делать»: одно имя («Цель дня 0/1») не отвечало ни на один вопрос.
   daily: { title: string; lead: string; best: string };   // best: {grade} {score}
-  goal: { title: string; count: string; hint: string };  // count: {done} {target}
+  // Цель дня: поднять можно сразу, опустить — со следующего дня. `rule` стоит
+  // рядом с выбором ВСЕГДА, чтобы запрет был виден до нажатия, а не после.
+  goal: {
+    title: string; count: string; hint: string;  // count: {done} {target}
+    rule: string;      // правило выбора — до нажатия
+    later: string;     // отложено понижение: {today} {later}
+    setNow: string;    // подсказка на кнопке, которая действует сразу: {n}
+    setLater: string;  // подсказка на кнопке, которая действует с завтра: {n}
+  };
   rank: { title: string; toNext: string; hint: string };  // toNext: "{n} XP до «{rank}»"
   method: { title: string; lead: string; more: string };
   // Две группы рейла и раздел «другие форматы» на главной.
@@ -1110,7 +1118,11 @@ export const I18N: Record<Lang, Strings> = {
     goal: {
       title: "Цель на сегодня",
       count: "{done} из {target}",
-      hint: "Сколько переговоров провести сегодня. Засчитывается любая законченная партия. Цель можно поменять: 1, 2 или 3.",
+      hint: "Сколько переговоров провести сегодня. Засчитывается любая законченная партия.",
+      rule: "Поднять цель можно сразу, опустить — только со следующего дня: обещание себе не отменяют посреди дня.",
+      later: "Сегодня цель — {today}, с завтрашнего дня — {later}. Передумали — выберите {today} снова.",
+      setNow: "{n} в день — с сегодняшнего дня",
+      setLater: "{n} в день — с завтрашнего дня, сегодня цель не изменится",
     },
     rank: {
       title: "Ваш ранг",
@@ -2008,7 +2020,11 @@ export const I18N: Record<Lang, Strings> = {
     goal: {
       title: "Today's goal",
       count: "{done} of {target}",
-      hint: "How many negotiations to finish today. Any finished game counts. You can change the goal: 1, 2 or 3.",
+      hint: "How many negotiations to finish today. Any finished game counts.",
+      rule: "You can raise the goal right away; lowering it starts tomorrow — a promise to yourself isn't taken back halfway through the day.",
+      later: "Today's goal is {today}; from tomorrow it's {later}. Changed your mind? Pick {today} again.",
+      setNow: "{n} a day — starting today",
+      setLater: "{n} a day — starting tomorrow; today's goal stays as it is",
     },
     rank: {
       title: "Your rank",

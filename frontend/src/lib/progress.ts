@@ -45,6 +45,9 @@ export interface Profile {
   // ---- retention layer v3 (streak-freeze, daily goal, milestone dedupe) ------
   freezes: number; // held streak-freezes (earned 1 per 5-day streak, capped)
   dailyGoalTarget: number; // games/day the player aims for (1..3, default 1)
+  // Отложенное понижение цели: сегодня цель остаётся прежней, `target` вступает
+  // в силу с дня `from`. null — ничего не отложено. См. setDailyGoalTarget.
+  dailyGoalPending: DailyGoalPending | null;
   dailyDoneDay: string; // YYYY-MM-DD the dailyDoneCount applies to ("" = none)
   dailyDoneCount: number; // finished games on dailyDoneDay (toward the goal ring)
   celebratedMilestones: string[]; // milestone ids already shown (never repeat)
@@ -122,6 +125,12 @@ function clampGoal(n: number): number {
   return clamp(Math.round(n), DAILY_GOAL_MIN, DAILY_GOAL_MAX);
 }
 
+/** Понижение цели, назначенное на будущий день. */
+export interface DailyGoalPending {
+  target: number; // 1..3, меньше цели дня, в котором его назначили
+  from: string;   // YYYY-MM-DD: первый день, в который оно действует
+}
+
 function emptySkills(): Record<SkillId, SkillAgg> {
   const s = {} as Record<SkillId, SkillAgg>;
   for (const id of SKILL_IDS) s[id] = { sum: 0, n: 0 };
@@ -132,7 +141,7 @@ export function emptyProfile(): Profile {
   return {
     version: VERSION, scenarios: {}, streak: 0, lastStreakDay: "", xp: 0,
     skills: emptySkills(), achievements: [],
-    freezes: 0, dailyGoalTarget: DAILY_GOAL_DEFAULT, dailyDoneDay: "", dailyDoneCount: 0,
+    freezes: 0, dailyGoalTarget: DAILY_GOAL_DEFAULT, dailyGoalPending: null, dailyDoneDay: "", dailyDoneCount: 0,
     celebratedMilestones: [], course: {}, campaigns: {},
   };
 }
@@ -163,6 +172,23 @@ function daysBetween(a: string, b: string): number {
   const pb = Date.parse(b + "T00:00:00Z");
   if (!isFinite(pa) || !isFinite(pb)) return NaN;
   return Math.round((pb - pa) / 86_400_000);
+}
+
+/** Следующий календарный день после ключа `YYYY-MM-DD`. Арифметика на самом
+ *  ключе, а не на часах: ключ уже местный (dayKey), и переход через полночь
+ *  или смену летнего времени здесь ничего не сдвигает. */
+export function nextDayKey(day: string): string {
+  const t = Date.parse(day + "T00:00:00Z");
+  if (!isFinite(t)) return day;
+  const d = new Date(t + 86_400_000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
+/** Сколько миллисекунд до ближайшей местной полуночи (плюс секунда запаса).
+ *  По нему экран сам перерисовывает цель дня, когда наступил следующий день. */
+export function msUntilNextDay(now: Date = new Date()): number {
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+  return Math.max(1000, next.getTime() - now.getTime());
 }
 
 // Pure streak transition. today is a day key (see dayKey).
@@ -284,24 +310,60 @@ export function streakView(profile: Profile, today: string = dayKey()): StreakVi
 
 // ---- Daily goal (customizable target, per-day progress) ----------------------
 
+//
+// ПОДНЯТЬ МОЖНО СРАЗУ, ОПУСТИТЬ — ТОЛЬКО СО СЛЕДУЮЩЕГО ДНЯ. Раньше цель
+// переставлялась в любую сторону в любой момент: поставил три, сыграл одну,
+// переставил на одну — и «цель выполнена». Обязательство, которое отменяется
+// одним нажатием, обязательством не является (у Duolingo, откуда механика,
+// понизить цель текущего дня тоже нельзя). Решение владельца: понижение
+// принимается, но вступает в силу со следующего местного календарного дня —
+// той же границы, по которой считается серия.
+//
+// Отложенное понижение применяется ЧТЕНИЕМ, а не записью: всё, что спрашивает
+// цель (показ, зачёт партии), идёт через `resolveDailyGoal` с сегодняшним днём.
+// Поэтому в полночь оно вступает в силу само, без захода в настройки. Таймер в
+// карточке (Rail.tsx::useDayKey) только перерисовывает открытую вкладку — от
+// него правило не зависит: проспи он полночь, первая же партия нового дня
+// посчитается по новой цели.
+
 export interface DailyGoalView {
-  target: number; // the player's chosen 1..3
+  target: number; // цель, действующая СЕГОДНЯ (1..3)
   done: number; // finished games so far today
   met: boolean; // done >= target
   progress: number; // 0..1 fraction toward the target (for the ring)
+  /** Понижение, отложенное на завтра; null — не отложено. */
+  later: number | null;
+}
+
+/** Какая цель действует в день `today` и что ещё отложено. Чистая. */
+export function resolveDailyGoal(profile: Profile, today: string): { target: number; pending: DailyGoalPending | null } {
+  const pending = profile.dailyGoalPending;
+  // Ключи дня — YYYY-MM-DD, строковое сравнение совпадает с календарным.
+  if (pending && today >= pending.from) return { target: clampGoal(pending.target), pending: null };
+  return { target: clampGoal(profile.dailyGoalTarget), pending };
 }
 
 // Pure read of today's daily-goal state — how many games are done vs the chosen
 // target. `today` is injectable for tests; the count only counts if it's today's.
 export function dailyGoalView(profile: Profile, today: string = dayKey()): DailyGoalView {
-  const target = clampGoal(profile.dailyGoalTarget);
+  const { target, pending } = resolveDailyGoal(profile, today);
   const done = profile.dailyDoneDay === today ? Math.max(0, profile.dailyDoneCount) : 0;
-  return { target, done, met: done >= target, progress: clamp(done / target, 0, 1) };
+  return {
+    target, done, met: done >= target, progress: clamp(done / target, 0, 1),
+    later: pending ? clampGoal(pending.target) : null,
+  };
 }
 
-// Pure setter for the daily target (returns a fresh Profile). Clamped to 1..3.
-export function setDailyGoalTarget(profile: Profile, target: number): Profile {
-  return { ...profile, dailyGoalTarget: clampGoal(target) };
+/**
+ * Выбор цели. Не меньше сегодняшней — действует сразу и снимает отложенное
+ * понижение (последний выбор отменяет предыдущий). Меньше сегодняшней —
+ * сегодня не меняется ничего, а выбор ложится на завтра.
+ */
+export function setDailyGoalTarget(profile: Profile, target: number, today: string = dayKey()): Profile {
+  const want = clampGoal(target);
+  const now = resolveDailyGoal(profile, today).target;
+  if (want >= now) return { ...profile, dailyGoalTarget: want, dailyGoalPending: null };
+  return { ...profile, dailyGoalTarget: now, dailyGoalPending: { target: want, from: nextDayKey(today) } };
 }
 
 // ---- Milestones (near-full-screen celebrations, once each) -------------------
@@ -377,6 +439,7 @@ export function recordDebrief(
     achievements: profile.achievements,
     freezes: profile.freezes,
     dailyGoalTarget: profile.dailyGoalTarget,
+    dailyGoalPending: profile.dailyGoalPending,
     dailyDoneDay: profile.dailyDoneDay,
     dailyDoneCount: profile.dailyDoneCount,
     celebratedMilestones: profile.celebratedMilestones,
@@ -398,6 +461,14 @@ function sanitizeRecord(v: unknown): ScenarioRecord | null {
   const attempts = typeof r.attempts === "number" && r.attempts >= 0 ? Math.floor(r.attempts) : 0;
   const lastPlayed = typeof r.lastPlayed === "string" ? r.lastPlayed : "";
   return { bestGrade, bestScore, attempts, lastPlayed };
+}
+
+function sanitizeGoalPending(v: unknown): DailyGoalPending | null {
+  if (!v || typeof v !== "object") return null;
+  const r = v as Record<string, unknown>;
+  if (typeof r.target !== "number" || !isFinite(r.target)) return null;
+  if (typeof r.from !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(r.from)) return null;
+  return { target: clampGoal(r.target), from: r.from };
 }
 
 // Read before a write: another tab may have completed a lesson since mount.
@@ -438,6 +509,9 @@ export function loadProfile(fallback: Profile = emptyProfile()): Profile {
         typeof parsed.dailyGoalTarget === "number" && isFinite(parsed.dailyGoalTarget)
           ? clampGoal(parsed.dailyGoalTarget)
           : DAILY_GOAL_DEFAULT,
+      // Отложенное понижение появилось позже всего остального: у старого
+      // профиля его нет — значит, ничего не отложено. Кривое — тоже ничего.
+      dailyGoalPending: sanitizeGoalPending(parsed.dailyGoalPending),
       dailyDoneDay: typeof parsed.dailyDoneDay === "string" ? parsed.dailyDoneDay : "",
       dailyDoneCount:
         typeof parsed.dailyDoneCount === "number" && parsed.dailyDoneCount >= 0
@@ -829,7 +903,10 @@ export function applyDebrief(
 
   // Daily goal: count finished games in the local day, then fire "met" only on the
   // game that CROSSES the chosen target (later games the same day don't re-fire).
-  const dailyTarget = clampGoal(profile.dailyGoalTarget);
+  // Цель — та, что действует СЕГОДНЯ: с учётом понижения, чей день наступил.
+  // Записывается она же — вступившее в силу понижение уходит из профиля.
+  const goalToday = resolveDailyGoal(profile, today);
+  const dailyTarget = goalToday.target;
   const doneBefore = profile.dailyDoneDay === today ? Math.max(0, profile.dailyDoneCount) : 0;
   const dailyDone = doneBefore + 1;
   const dailyGoalMet = dailyDone === dailyTarget;
@@ -878,6 +955,8 @@ export function applyDebrief(
     streak: streakOut.streak,
     freezes: streakOut.freezes,
     lastStreakDay: streakOut.lastStreakDay,
+    dailyGoalTarget: goalToday.target,
+    dailyGoalPending: goalToday.pending,
     dailyDoneDay: today,
     dailyDoneCount: dailyDone,
   };
