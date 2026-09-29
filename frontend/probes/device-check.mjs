@@ -46,6 +46,8 @@ async function run(tag, args, deny = false) {
   await p.addInitScript(() => {
     localStorage.setItem("dialog.tutorialDone.v1", "1");
     localStorage.setItem("dialog.tours.v1", '{"enabled":false}');
+    // Явный выбор «всё выключено»: проверяется включение нажатием, а не умолчание.
+    if (!localStorage.getItem("dialog.layers.v1")) localStorage.setItem("dialog.layers.v1", '{"probe":false,"voice":false,"camera":false,"avatar":false,"pokerface":false}');
     const md = navigator.mediaDevices;
     if (!md?.getUserMedia) return;
     const orig = md.getUserMedia.bind(md);

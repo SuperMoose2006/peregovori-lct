@@ -12,8 +12,8 @@ import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { checkDevice, classifyMediaError, requestLayers, type DeviceCheck, type DeviceLayer } from "../src/lib/deviceCheck";
-import { NO_LAYERS, NO_SERVER_REASON, withServer, type LayerId, type LayerState } from "../src/lib/layers";
+import { checkDevice, classifyMediaError, dropFailedLayers, requestLayers, type DeviceCheck, type DeviceLayer } from "../src/lib/deviceCheck";
+import { DEFAULT_LAYERS, NO_LAYERS, NO_SERVER_REASON, parseLayerPrefs, pruneLayers, withServer, type LayerId, type LayerState } from "../src/lib/layers";
 import { LayersPanel } from "../src/components/Setup";
 import { I18N } from "../src/i18n";
 
@@ -145,4 +145,58 @@ test("подпись под тумблером обещает проверку �
   const app = readFileSync(join(SRC, "App.tsx"), "utf8");
   assert.match(app, /onToggle=\{\(id\) => chooseLayers\(layerPrefs,/, "профиль включает слой в обход проверки");
   assert.match(app, /onToggle=\{\(id\) => chooseLayers\(activeLayers,/, "шторка за столом включает слой в обход проверки");
+});
+
+// ---- Умолчание: все слои включены у нового профиля --------------------------------
+
+test("новый профиль получает все пять слоёв включёнными", () => {
+  assert.deepEqual(parseLayerPrefs(null), { probe: true, voice: true, camera: true, avatar: true, pokerface: true });
+  assert.deepEqual(DEFAULT_LAYERS, parseLayerPrefs(null));
+});
+
+test("явный выбор сильнее умолчания и переживает перезагрузку", () => {
+  const off = JSON.stringify({ probe: false, voice: false, camera: false, avatar: false, pokerface: false });
+  assert.deepEqual(parseLayerPrefs(off), NO_LAYERS, "выключенные слои не включаются заново");
+  const some = JSON.stringify({ probe: true, voice: false, camera: true, avatar: false, pokerface: false });
+  assert.deepEqual(parseLayerPrefs(some), { probe: true, voice: false, camera: true, avatar: false, pokerface: false });
+  assert.deepEqual(parseLayerPrefs("{испорчено"), NO_LAYERS, "по испорченной записи камеру не включаем");
+  const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+  assert.match(app, /return parseLayerPrefs\(localStorage\.getItem\(LAYERS_KEY\)\);/);
+});
+
+test("включённый умолчанием недоступный слой гаснет с той же причиной", () => {
+  const offline = withServer(READY, "offline");
+  const got = pruneLayers(DEFAULT_LAYERS, offline);
+  assert.deepEqual(got, { probe: true, voice: false, camera: false, avatar: false, pokerface: false });
+  const html = renderToStaticMarkup(createElement(LayersPanel, {
+    t: ru, lang: "ru" as const, layers: DEFAULT_LAYERS, states: offline, onToggle: () => {}, onPreset: () => {},
+  }));
+  const at = html.indexOf(`aria-label="${ru.layers.names.camera}"`);
+  const tag = html.slice(html.lastIndexOf("<button", at), html.indexOf(">", at));
+  assert.match(tag, /aria-checked="false"/, "камера без сервера не горит включённой");
+  assert.ok(html.includes(NO_SERVER_REASON.ru), "причина не названа");
+});
+
+test("умолчание не выпрашивает устройство: включено — «спросим в начале партии», с кнопкой проверить", () => {
+  const html = renderToStaticMarkup(createElement(LayersPanel, {
+    t: ru, lang: "ru" as const, layers: DEFAULT_LAYERS, states: READY, onToggle: () => {}, onPreset: () => {},
+    onCheckNow: () => {},
+  }));
+  assert.ok(html.includes(ru.layers.check.camera.pending));
+  assert.ok(html.includes(ru.layers.check.voice.pending));
+  assert.ok(html.includes(ru.layers.checkNow));
+  // Ни одного вызова устройства при загрузке: App спрашивает только из
+  // chooseLayers (нажатие) и checkLayerNow (кнопка).
+  const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+  assert.equal((app.match(/checkDevice\(/g) ?? []).length, 2, "checkDevice вызывается где-то ещё");
+});
+
+test("отказ устройства гасит слой в выборе человека — переключатель не остаётся включённым", () => {
+  assert.deepEqual(dropFailedLayers(DEFAULT_LAYERS, { camera: "доступ не разрешён" }),
+    { ...DEFAULT_LAYERS, camera: false, pokerface: false });
+  assert.deepEqual(dropFailedLayers(DEFAULT_LAYERS, { voice: "занято" }), { ...DEFAULT_LAYERS, voice: false });
+  assert.deepEqual(dropFailedLayers(DEFAULT_LAYERS, {}), DEFAULT_LAYERS);
+  const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+  assert.match(app, /dropFailedLayers\(cur, \{ voice: layerFailVoice, camera: layerFailCamera \}\)/, "отказ в партии не гасит слой");
+  assert.match(app, /if \(r !== "granted"\) \{\s*setLayerPrefs/, "отказ по «Проверить сейчас» не гасит слой");
 });

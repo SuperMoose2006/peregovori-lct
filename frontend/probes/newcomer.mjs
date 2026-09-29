@@ -190,6 +190,9 @@ for (const [lang, w, h] of [["ru", 1440, 900], ["en", 1440, 900], ["ru", 390, 84
 // ---- 3. Первая партия: подсказки за столом ждут конца тура стола ----------------------
 {
   const { ctx, page } = await fresh(1440, 900, "ru");
+  // Явный выбор «Классика»: здесь меряются подсказки первой партии, а вопрос
+  // «Читай лицо» (у нового профиля он включён умолчанием) запирал бы поле ввода.
+  await page.addInitScript(() => { if (!localStorage.getItem("dialog.layers.v1")) localStorage.setItem("dialog.layers.v1", '{"probe":false,"voice":false,"camera":false,"avatar":false,"pokerface":false}'); });
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.waitForSelector(".onb-tip", { timeout: 8000 }).catch(() => null);
   await page.locator(".onb-skip").click();
@@ -332,6 +335,31 @@ async function campaignTracker(lang, tag) {
 await campaignTracker("ru", "ru-campaign");
 await campaignTracker("en", "en-campaign");
 
+// ---- 3б. Умолчание: новый профиль — все слои включены, недоступные гаснут с причиной ----
+{
+  const t = I18N.ru;
+  const { ctx, page } = await fresh(1440, 900, "ru");
+  await page.addInitScript((off) => { localStorage.setItem("dialog.tours.v1", off); }, TOURS_OFF);
+  await page.goto(BASE, { waitUntil: "networkidle" });
+  await page.locator('[data-nav="profile"]').first().click();
+  await page.waitForSelector(".prof-layers");
+  await page.waitForTimeout(800);
+  const state = async (name) => page.locator(".prof-layers").getByRole("switch", { name, exact: true }).getAttribute("aria-checked");
+  const probeOn = await state(t.layers.names.probe);
+  check(probeOn === "true", `умолчание: «${t.layers.names.probe}» включён у нового профиля (${probeOn})`);
+  for (const id of ["voice", "camera"]) {
+    const on = await state(t.layers.names[id]);
+    const card = await page.locator(".prof-layers .layer").filter({ has: page.getByRole("switch", { name: t.layers.names[id], exact: true }) }).innerText();
+    const avail = !/нет связи|на сервере|нужен https/i.test(card);
+    check(avail ? on === "true" : on === "false",
+      `умолчание: «${t.layers.names[id]}» ${avail ? "включён, доступ спросят в начале партии" : "погашен с причиной"} (${on}): ${card.replace(/\s+/g, " ").slice(0, 140)}`);
+  }
+  const stored = await page.evaluate(() => localStorage.getItem("dialog.layers.v1"));
+  check(stored === null, `умолчание не записано как выбор человека (${stored})`);
+  await page.locator(".prof-layers").screenshot({ path: `${OUT}/ru-1440-layers-default.png` });
+  await ctx.close();
+}
+
 // ---- 4. Профиль, своя сделка, редактор ---------------------------------------------
 for (const lang of ["ru", "en"]) {
   const t = I18N[lang];
@@ -345,8 +373,7 @@ for (const lang of ["ru", "en"]) {
   check((await page.locator(".lay-where").innerText()).includes(lang === "ru" ? "Тренировка" : "Training"),
     `${lang}: профиль говорит, где работают слои`);
   const later = await page.locator(".ly-later").innerText().catch(() => "");
-  check(later.toLowerCase().includes(t.layers.unavailable.toLowerCase()),
-    `${lang}: живое видео-лицо помечено «${t.layers.unavailable}»: ${later.replace(/\s+/g, " ")}`);
+  check(later.includes(t.layers.avatarVideo), `${lang}: про живое видео-лицо сказано, что будет в обоих случаях: ${later.replace(/\s+/g, " ")}`);
 
   await page.click('[data-nav="custom"]');
   await page.waitForSelector(".cust-vs", { timeout: 10000 });

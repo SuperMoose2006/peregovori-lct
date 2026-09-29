@@ -23,9 +23,9 @@ import { loadTourPrefs, markSeenThisSession, saveTourPrefs, seenThisSession, set
          type TourPrefs, type TourSection } from "./lib/tours";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
-import { detectLayers, pruneLayers, sessionLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
+import { detectLayers, parseLayerPrefs, pruneLayers, sessionLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
 import { fetchServerHealth } from "./api/health";
-import { checkDevice, requestLayers, type DeviceChecks, type DeviceLayer } from "./lib/deviceCheck";
+import { checkDevice, dropFailedLayers, requestLayers, type DeviceChecks, type DeviceLayer } from "./lib/deviceCheck";
 import { faceRenderer } from "./lib/faceSource";
 import { meetingMode, syntheticFace } from "./lib/meeting";
 import { Karl } from "./components/Mascot";
@@ -125,13 +125,7 @@ type ActiveRun = { scenarioId: string; mode: Mode; options?: LaunchOptions };
  *  включено» всегда остаётся верным ответом. */
 function loadLayerPrefs(): Layers {
   try {
-    const raw = localStorage.getItem(LAYERS_KEY);
-    if (!raw) return NO_LAYERS;
-    const saved = JSON.parse(raw) as Partial<Layers>;
-    return {
-      probe: !!saved.probe, voice: !!saved.voice, camera: !!saved.camera,
-      avatar: !!saved.avatar, pokerface: !!saved.pokerface,
-    };
+    return parseLayerPrefs(localStorage.getItem(LAYERS_KEY));
   } catch {
     return NO_LAYERS;
   }
@@ -802,6 +796,35 @@ export default function App() {
    * смениться, и замыкание на старый applyLayers применило бы выбор не туда.
    */
   const [deviceChecks, setDeviceChecks] = useState<DeviceChecks>({});
+  // Устройство отказало уже в партии (слой был включён умолчанием или выбран
+  // раньше): гасим его и в выборе человека. Переключатель не остаётся
+  // «включён», а следующая партия не выпрашивает то же самое снова. Причина
+  // уже названа строкой за столом (Table.tsx, .layer-off).
+  const layerFailVoice = !!nego.layerFail.voice;
+  const layerFailCamera = !!nego.layerFail.camera;
+  useEffect(() => {
+    if (!layerFailVoice && !layerFailCamera) return;
+    setLayerPrefs((cur) => {
+      const next = dropFailedLayers(cur, { voice: layerFailVoice, camera: layerFailCamera });
+      try { localStorage.setItem(LAYERS_KEY, JSON.stringify(next)); } catch { /* приватный режим */ }
+      return next;
+    });
+  }, [layerFailVoice, layerFailCamera]);
+  /** «Проверить сейчас» у слоя, включённого умолчанием: явное нажатие —
+   *  законный повод спросить устройство, не дожидаясь партии. Отказ гасит слой. */
+  const checkLayerNow = useCallback((layer: DeviceLayer) => {
+    setDeviceChecks((c) => ({ ...c, [layer]: "checking" }));
+    void checkDevice(layer).then((r) => {
+      setDeviceChecks((c) => ({ ...c, [layer]: r }));
+      if (r !== "granted") {
+        setLayerPrefs((cur) => {
+          const next = dropFailedLayers(cur, { [layer]: true });
+          try { localStorage.setItem(LAYERS_KEY, JSON.stringify(next)); } catch { /* приватный режим */ }
+          return next;
+        });
+      }
+    });
+  }, []);
   const chooseLayers = useCallback((current: Layers, next: Layers) => {
     setDeviceChecks((c) => {
       const out = { ...c };
@@ -1414,6 +1437,7 @@ export default function App() {
                   onToggle={(id) => chooseLayers(layerPrefs, { ...layerPrefs, [id]: !layerPrefs[id] })}
                   onPreset={(next) => chooseLayers(layerPrefs, next)}
                   checks={deviceChecks}
+                  onCheckNow={checkLayerNow}
                 />
               </div>
             </div>

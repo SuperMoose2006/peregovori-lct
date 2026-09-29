@@ -224,7 +224,13 @@ test("профиль говорит, где слои работают, и пом
   assert.ok(html.includes(ru.layers.needs.voice) && html.includes(ru.layers.needs.camera));
   // Живого видео-лица нет — строка есть, выключателя у неё нет, и она «недоступно».
   const later = html.slice(html.indexOf("ly-later"));
-  assert.ok(later.includes(ru.layers.avatarLater) && later.includes(ru.layers.unavailable));
+  assert.ok(later.includes(ru.layers.avatarVideo), "про живое видео-лицо ничего не сказано");
+  // Не «появится позже»: адаптер живого видео едет на стенд, и строка не врёт
+  // ни когда сервер его поднял, ни когда нет.
+  for (const lang of ["ru", "en"] as const) {
+    assert.doesNotMatch(I18N[lang].layers.avatarVideo, /появится позже|coming later/);
+    assert.match(I18N[lang].layers.avatarVideo, /сервер|server/);
+  }
   const laterBlock = later.slice(0, later.indexOf("</div></div>") + 12);
   assert.doesNotMatch(laterBlock, /role="switch"/, "у того, чего нет, не бывает тумблера");
 });

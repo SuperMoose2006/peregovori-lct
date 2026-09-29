@@ -56,6 +56,8 @@ interface Props {
   fail?: { voice?: string; camera?: string };
   /** Итог проверки устройства, спрошенного при включении (lib/deviceCheck.ts). */
   checks?: DeviceChecks;
+  /** «Проверить сейчас» у голоса и камеры, включённых без нажатия (умолчание). */
+  onCheckNow?: (layer: "voice" | "camera") => void;
 }
 
 /**
@@ -115,7 +117,7 @@ function PokerfaceRow({ t, lang, state, failed, on, cameraOn, locked, onToggle }
   );
 }
 
-export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockNote = null, fail, checks = {} }: Props) {
+export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockNote = null, fail, checks = {}, onCheckNow }: Props) {
   const locked = !!lockNote;
   /** Почему именно этот слой не поднялся — или null. «Покерфейс» считает по
    *  кадрам камеры, поэтому её отказ гасит и его. */
@@ -182,8 +184,19 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
                 {/* Что понадобится от браузера — заранее, а не отказом посреди
                     партии. Только у доступных: у недоступных под тумблером
                     уже стоит причина. */}
-                {available && (id === "voice" || id === "camera") && !check
+                {available && (id === "voice" || id === "camera") && !check && !on
                   ? <span className="ly-req">{t.layers.needs[id]}</span> : null}
+                {/* Включён без нажатия (умолчание нового профиля): доступ ещё не
+                    спрашивали и при открытии страницы не спросим — только в
+                    начале партии или по явному нажатию «Проверить сейчас». */}
+                {available && (id === "voice" || id === "camera") && !check && on ? (
+                  <span className="ly-req">
+                    {t.layers.check[id].pending}
+                    {onCheckNow ? (
+                      <>{" "}<button type="button" className="ly-checknow" onClick={() => onCheckNow(id)}>{t.layers.checkNow}</button></>
+                    ) : null}
+                  </span>
+                ) : null}
                 {/* Ответ устройства — сразу после нажатия, рядом с тумблером:
                     выдан, отказ, нет устройства, занято. Отказ оставляет
                     тумблер выключенным и говорит, как выдать доступ потом. */}
@@ -209,20 +222,18 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
                   ? `${id === "voice" ? t.live.offVoice : t.live.offCamera} · ${failed}`
                   : available ? t.layers.sameGrade : reasonText(st, lang)}
               </span>
-              {/* STUB(live-video): живого видео-лица у собеседника НЕТ — есть
-                  нарисованные выражения, и тумблер выше честно включает только
-                  их. Строка без переключателя и с пометкой «недоступно»:
-                  выключателя у того, чего нет, быть не может. Станет настоящим,
-                  когда адаптер живого видео (ветка feature/live-video-adapter)
-                  будет влит и получит ключ поставщика — тогда здесь встанет
-                  тумблер по `capabilities.avatar.lipsync_mode === "video"`. */}
+              {/* ЖИВОЕ ВИДЕО-ЛИЦО — ПО ТОМУ, ЧТО ПОДНЯЛ СЕРВЕР. Адаптер живого
+                  видео едет на стенд, но поднимается он или нет, знает только
+                  сервер (`capabilities.avatar` в session.created), и до партии
+                  клиенту это не известно. Поэтому строка не обещает и не
+                  отрицает: говорит, что будет в обоих случаях. Выключателя у
+                  неё нет — видео включается тем же слоем лица. */}
               {id === "avatar" ? (
                 <div className="ly-later">
                   <span className="ly-ic" aria-hidden="true"><Icon name="camera" /></span>
                   <div className="ly-txt">
-                    <b>{t.layers.avatarLater}</b>
+                    <b>{t.layers.avatarVideo}</b>
                   </div>
-                  <span className="ly-note na">{t.layers.unavailable}</span>
                 </div>
               ) : null}
               {id === "camera" ? (

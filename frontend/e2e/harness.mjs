@@ -242,9 +242,13 @@ export class Flow {
    * @param lang,theme    заранее выбранные язык и тема (как будто человек уже был здесь)
    * @param tutorialDone  пропустить вводную (по умолчанию нет: первый визит)
    * @param storage       прочие ключи localStorage до первой загрузки
+   * @param layers        "off" (по умолчанию) — явный выбор «Классика»: сценарии
+   *                      написаны под партию без слоёв, а новый профиль теперь
+   *                      получает их все включёнными (lib/layers.ts::DEFAULT_LAYERS).
+   *                      "default" — не сеять выбор, увидеть умолчание.
    */
   async open({ width = 1440, height = 950, lang = null, theme = null, tutorialDone = false,
-               storage = {}, calmMotion = true } = {}) {
+               storage = {}, calmMotion = true, layers = "off" } = {}) {
     const ctx = await this.suite.browser.newContext({
       viewport: { width, height },
       // Уменьшенное движение: переходы не дорисовываются между шагом и
@@ -255,6 +259,9 @@ export class Flow {
     this.contexts.push(ctx);
     const seed = { ...storage };
     if (lang) seed["dialog.lang.v1"] = lang;
+    if (layers === "off" && !("dialog.layers.v1" in seed)) {
+      seed["dialog.layers.v1"] = JSON.stringify({ probe: false, voice: false, camera: false, avatar: false, pokerface: false });
+    }
     if (theme) seed["dialog.theme.v1"] = theme;
     if (tutorialDone) {
       seed["dialog.tutorialDone.v1"] = "1";
