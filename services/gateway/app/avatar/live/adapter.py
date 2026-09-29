@@ -12,12 +12,16 @@
 
 2. ОБЩИЙ БУФЕР ЗВУКА И КАДРОВ (замечание R1). Сервису нужно время: наш звук
    уходит к нему, кадр возвращается через сотни миллисекунд, а клиент
-   показывает кадр, только пока тот не старше 250 мс от звучащего звука. Без
-   буфера кадр опаздывал бы всегда. Поэтому звук человеку придерживается на
-   `av_delay_ms` (`audio_out`), а сервис получает его сразу (`speak`). Кадры
-   отдаются клиенту не раньше, чем за `LOOKAHEAD_MS` до своего звука, и не
-   отдаются вовсе, если их звук уже отзвучал больше чем на 250 мс назад:
+   показывает кадр, только пока тот не старше порога (`stale_ms`, 2.5 кадра)
+   от звучащего звука. Без буфера кадр опаздывал бы всегда. Поэтому звук
+   человеку придерживается на `av_delay_ms` (`audio_out`), а сервис получает
+   его сразу (`speak`). Кадры отдаются клиенту не раньше, чем за
+   `LOOKAHEAD_MS` до своего звука, и не отдаются вовсе, если их звук
+   отзвучал больше чем на порог назад:
    такой кадр клиент всё равно выбросит, а 30 КБ по сокету уже ушли бы.
+   Удержание постоянное, но первый звук реплики вдобавок ЖДЁТ её первый кадр
+   речи — не дольше `lips_wait_ms` от начала (`_lips_gate`): у сервиса бывает
+   холодный старт, которого постоянное удержание не покрывает.
 
 3. СИГНАЛ КОНЦА ЗВУКА (замечание R2). `end_of_speech` приходит от синтеза,
    когда реплика дописана и её звук весь отдан; драйвер переводит его в
@@ -53,11 +57,11 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 from app.avatar.base import AVATAR_STATES, AvatarCapabilities, AvatarProvider
-from app.avatar.frames import avatar_frame
-from app.avatar.live.clock import STALE_MS, PlaybackClock
-from app.avatar.live.config import LiveVideoConfig
-from app.avatar.live.driver import (Closed, DriverError, LiveVideoDriver, Persona, VideoFrame,
-                                    VoiceChunk)
+from app.avatar.frames import avatar_frame, avatar_idle_frame
+from app.avatar.live.clock import PlaybackClock, frame_slot
+from app.avatar.live.config import LiveVideoConfig, stale_limit_ms
+from app.avatar.live.driver import (Closed, DriverError, IdleFrame, LiveVideoDriver, Persona,
+                                    VideoFrame, VoiceChunk)
 
 _log = logging.getLogger("dialog.live_video")
 
@@ -87,6 +91,10 @@ class Stats:
 
     frames_in: int = 0
     frames_sent: int = 0
+    #: Из отданных: пришли к клиенту раньше своего звука — губы в такт.
+    frames_on_time: int = 0
+    #: Из отданных: позже своего звука, но в пределах порога — губы позади голоса.
+    frames_shown_late: int = 0
     frames_late: int = 0
     frames_foreign: int = 0     # чужое/погашенное поколение или режим портрета
     frames_invalid: int = 0
@@ -94,6 +102,7 @@ class Stats:
     frames_overflow: int = 0
     audio_held: int = 0
     audio_direct: int = 0
+    idle_sent: int = 0
     degrades: list[str] = field(default_factory=list)
     recoveries: int = 0
     connects: int = 0
@@ -137,7 +146,16 @@ class LiveVideoAvatar(AvatarProvider):
         self.input = probe.info.input
         delay = cfg.av_delay_ms if cfg.av_delay_ms is not None else probe.info.av_delay_ms
         self._av_delay_s = max(0, delay) / 1000.0
-        self._min_gap_ms = 1000.0 / cfg.fps
+        self._lips_wait_s = max(0, cfg.lips_wait_ms) / 1000.0
+        #: Первый звук реплики ещё ждёт её первый кадр речи.
+        self._lips_gate = False
+        #: Когда пришёл первый кадр речи реплики.
+        self._lips_at: Optional[float] = None
+        self._fps = cfg.fps
+        #: Порог устаревшего кадра речи, мс — и здесь, и у клиента (через
+        #: `capabilities.avatar.stale_ms`), чтобы оба судили одинаково.
+        self.stale_ms = stale_limit_ms(cfg)
+        self._reply = {"gen": "", "on_time": 0, "late": 0, "dropped": 0, "lags": [], "waited_ms": 0.0}
 
         #: Что сказано клиенту: `video` или `amplitude`.
         self.mode = "video"
@@ -196,6 +214,7 @@ class LiveVideoAvatar(AvatarProvider):
             return
         # Сначала звук: всё придержанное — человеку, по порядку.
         self._flush_held()
+        self._report_reply()
         self._closed = True
         self._release_utterances(_Utterance.CANCEL)
         tasks = [t for t in (self._supervisor, self._ticker, self._sender, *self._side_tasks) if t]
@@ -235,7 +254,7 @@ class LiveVideoAvatar(AvatarProvider):
             return AvatarCapabilities(
                 available=True, lipsync=True, lipsync_mode="video", interruptible=True,
                 transport="jpeg", states=AVATAR_STATES,
-                synthetic=bool(self._info and self._info.synthetic))
+                synthetic=bool(self._info and self._info.synthetic), stale_ms=self.stale_ms)
         return AvatarCapabilities(available=True, lipsync=True, lipsync_mode="amplitude",
                                   interruptible=True, transport="local", states=AVATAR_STATES)
 
@@ -256,6 +275,8 @@ class LiveVideoAvatar(AvatarProvider):
         }
         if video and self._info and self._info.synthetic:
             event["synthetic"] = True
+        if video:
+            event["stale_ms"] = self.stale_ms
         if reason:
             event["reason"] = reason
         if detail:
@@ -371,6 +392,9 @@ class LiveVideoAvatar(AvatarProvider):
 
     def _begin(self, generation_id: str) -> None:
         """Первое звучание нового поколения."""
+        self._report_reply()
+        self._reply = {"gen": generation_id, "on_time": 0, "late": 0, "dropped": 0, "lags": [],
+                       "waited_ms": 0.0}
         self._flush_held()
         self._gen = generation_id
         self.clock.reset(generation_id)
@@ -378,6 +402,8 @@ class LiveVideoAvatar(AvatarProvider):
         self._last_in_pts = None
         self._covered_pts = None
         self._first_audio_at = self._now()
+        self._lips_gate = self._lips_wait_s > self._av_delay_s
+        self._lips_at = None
         if self.mode == "video" and self.input == "audio" and self.link != "ready":
             # Сервис не на связи к началу реплики — кадров под неё не будет
             # вовсе. Честнее сразу рисованный рот, чем фото с немым голосом;
@@ -553,6 +579,8 @@ class LiveVideoAvatar(AvatarProvider):
             async for event in driver.events():
                 if isinstance(event, VideoFrame):
                     self._on_frame(event)
+                elif isinstance(event, IdleFrame):
+                    self._on_idle(event)
                 elif isinstance(event, VoiceChunk):
                     self._on_voice(event)
                 elif isinstance(event, Closed):
@@ -608,12 +636,16 @@ class LiveVideoAvatar(AvatarProvider):
             if pts < self._last_in_pts:
                 self.stats.frames_invalid += 1
                 return
-            if pts - self._last_in_pts < self._min_gap_ms * 0.999:
+            if frame_slot(pts, self._fps) <= frame_slot(self._last_in_pts, self._fps):
                 self.stats.frames_thinned += 1
                 return
+        if self._last_in_pts is None:
+            self._lips_at = self._now()
         self._last_in_pts = pts
         if self._first_audio_at is not None and len(self.stats.frame_lag_ms) < 5000:
-            self.stats.frame_lag_ms.append((self._now() - self._first_audio_at) * 1000.0 - pts)
+            lag = (self._now() - self._first_audio_at) * 1000.0 - pts
+            self.stats.frame_lag_ms.append(lag)
+            self._reply["lags"].append(lag)
         self._pending.append(VideoFrame(frame.generation_id, pts, frame.jpeg))
         if len(self._pending) > PENDING_MAX:
             self._pending.pop(0)
@@ -632,9 +664,10 @@ class LiveVideoAvatar(AvatarProvider):
                     self.stats.frames_late += len(self._pending)
                     self._pending.clear()
                 return      # звук под этот кадр ещё не отдан клиенту
-            if now > at + STALE_MS / 1000.0:
+            if now > at + self.stale_ms / 1000.0:
                 self._pending.pop(0)
                 self.stats.frames_late += 1
+                self._reply["dropped"] += 1
                 continue
             if now < at - LOOKAHEAD_MS / 1000.0:
                 return
@@ -648,7 +681,47 @@ class LiveVideoAvatar(AvatarProvider):
                 self.stats.first_frame_lag_ms.append((now - self._first_audio_at) * 1000.0)
             self._publish(event)
             self.stats.frames_sent += 1
+            # Кадр уходит клиенту до своего звука — клиент покажет его ровно
+            # тогда, когда этот звук зазвучит. Позже — губы позади голоса.
+            if now <= at:
+                self.stats.frames_on_time += 1
+                self._reply["on_time"] += 1
+            else:
+                self.stats.frames_shown_late += 1
+                self._reply["late"] += 1
             self._covered_pts = frame.pts_ms
+
+    def _on_idle(self, frame: IdleFrame) -> None:
+        """Лицо между репликами. Пока реплика звучит или ждёт — не нужно:
+        губы под звук рисуют кадры речи, и трафик на простой не тратится."""
+        if self.mode != "video" or self._held or self._pending:
+            return
+        if self.clock.playing_pts(self._gen, self._now()) is not None:
+            return
+        try:
+            event = avatar_idle_frame(frame.jpeg)
+        except ValueError:
+            self.stats.frames_invalid += 1
+            return
+        self._publish(event)
+        self.stats.idle_sent += 1
+
+    def _report_reply(self) -> None:
+        """Одна строка в журнал на реплику: сколько кадров в такт. На стенде
+        это `journalctl -u dialog | grep "живое видео"` — без прибора."""
+        r = self._reply
+        shown = r["on_time"] + r["late"]
+        if not r["gen"] or not (shown or r["dropped"]):
+            return
+        lags = sorted(r["lags"])
+        p50 = lags[len(lags) // 2] if lags else float("nan")
+        p95 = lags[min(len(lags) - 1, int(len(lags) * 0.95))] if lags else float("nan")
+        _log.info("живое видео: реплика — кадров в такт %d, с опозданием %d, выброшено %d "
+                  "(%.1f%% в такт); отставание кадра p50 %.0f мс, p95 %.0f мс, макс %.0f мс; "
+                  "удержание %.0f мс + ждали губ %.0f мс",
+                  r["on_time"], r["late"], r["dropped"],
+                  100.0 * r["on_time"] / max(1, shown + r["dropped"]), p50, p95,
+                  lags[-1] if lags else float("nan"), self._av_delay_s * 1000.0, r["waited_ms"])
 
     def _on_voice(self, chunk: VoiceChunk) -> None:
         utt = self._utterances.get((chunk.generation_id, chunk.utterance))
@@ -661,6 +734,21 @@ class LiveVideoAvatar(AvatarProvider):
     # ----------------------------------------------------------------- сторож
 
     def _release_due_audio(self, now: float) -> None:
+        if self._held and self._lips_gate and self._held[0][0] <= now:
+            # Удержание вышло, а губ под эту реплику ещё нет. Звук, отданный
+            # сейчас, зазвучал бы под неподвижное лицо — ждём первый кадр речи.
+            if self._lips_at is not None:
+                self._lips_gate = False
+                self._reply["waited_ms"] = max(0.0, (self._lips_at - self._held[0][0]) * 1000.0)
+            elif self._first_audio_at is None or now >= self._first_audio_at + self._lips_wait_s:
+                # Сервис не начал рисовать речь и за потолок: портрет сразу,
+                # придержанный звук уходит с ним же (`_degrade`) — голос цел.
+                self._lips_gate = False
+                self._reply["waited_ms"] = max(0.0, (now - self._held[0][0]) * 1000.0)
+                self._degrade("no_frames")
+                return
+            else:
+                return
         while self._held and self._held[0][0] <= now:
             _, event = self._held.popleft()
             self._release_audio(event)

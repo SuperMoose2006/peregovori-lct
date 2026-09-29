@@ -64,6 +64,11 @@ async def _lifespan(_app: FastAPI):
     check = asyncio.create_task(startup_check())
     yield
     check.cancel()
+    # Партии закрыты — дождаться запросов остановки сессий живого видео у
+    # сервиса: отменённые вместе с процессом, они оставили бы сессии открытыми
+    # и платными, пока сервис не закроет их сам (`driver.finish_stops`).
+    from app.avatar.live.driver import finish_stops
+    await finish_stops()
     from app.providers.openrouter import chat as orchat
     await orchat.aclose()
 

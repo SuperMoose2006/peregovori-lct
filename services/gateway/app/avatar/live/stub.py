@@ -31,7 +31,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from app.avatar.live.config import LiveVideoConfig
-from app.avatar.live.driver import (SAMPLE_RATE, Closed, DriverError, DriverInfo,
+from app.avatar.live.driver import (SAMPLE_RATE, Closed, DriverError, DriverInfo, IdleFrame,
                                     LiveVideoDriver, Persona, VideoFrame, VoiceChunk)
 
 #: Сетка кадров заглушки: 25 к/с, как у большинства сервисов. Адаптер
@@ -72,6 +72,8 @@ class StubDriver(LiveVideoDriver):
         self._fail_after_s = cfg.stub_fail_after_s if fail_after_s is None else fail_after_s
         self._silent_after_s = silent_after_s
         self._now = now
+        self._idle_gap_s = 1.0 / cfg.idle_fps if cfg.idle_fps > 0 else None
+        self._last_idle: Optional[float] = None
         self._connected_at: Optional[float] = None
         self._tasks: list[asyncio.Task] = []
         self._base: Optional[Image.Image] = None
@@ -157,11 +159,28 @@ class StubDriver(LiveVideoDriver):
         """Кадр pts рисуется, когда сервис «проиграл» свой звук до pts, плюс задержка."""
         while True:
             if not self._gen or self._gen_start is None:
+                # Простой: кадр «слушает» с частотой простоя, как у сервиса.
+                if self._idle_gap_s is not None and not self._silent():
+                    now = self._now()
+                    if self._last_idle is None or now - self._last_idle >= self._idle_gap_s:
+                        self._last_idle = now
+                        self.emit(IdleFrame(self._render(-1.0, 0.0)))
                 self._wake.clear()
-                await self._wake.wait()
+                try:
+                    await asyncio.wait_for(self._wake.wait(),
+                                           timeout=self._idle_gap_s or 3600.0)
+                except asyncio.TimeoutError:
+                    pass
                 continue
             fed_ms = self._fed * 1000.0 / SAMPLE_RATE
             if self._next_pts >= fed_ms:
+                # Звук реплики отрисован целиком — сервис снова «слушает».
+                now = self._now()
+                if (self._idle_gap_s is not None and not self._silent()
+                        and now > self._gen_start + self.latency_s + fed_ms / 1000.0
+                        and (self._last_idle is None or now - self._last_idle >= self._idle_gap_s)):
+                    self._last_idle = now
+                    self.emit(IdleFrame(self._render(-1.0, 0.0)))
                 self._wake.clear()
                 try:
                     await asyncio.wait_for(self._wake.wait(), timeout=0.05)
@@ -192,12 +211,13 @@ class StubDriver(LiveVideoDriver):
     def _render(self, pts: float, level: float) -> bytes:
         img = (self._base or Image.new("RGB", (SIZE, SIZE), (46, 62, 70))).copy()
         draw = ImageDraw.Draw(img, "RGBA")
-        x = int((pts % 1000.0) / 1000.0 * SIZE)
+        x = int((max(pts, 0.0) % 1000.0) / 1000.0 * SIZE)
         draw.rectangle((x - 2, 0, x + 2, 10), fill=(0, 200, 255, 255))
         h = int(min(level * 4.0, 1.0) * 28)
         draw.rectangle((SIZE // 2 - 22, 176 - h // 2, SIZE // 2 + 22, 176 + h // 2), fill=(255, 75, 75, 180))
         draw.rectangle((0, SIZE - 22, SIZE, SIZE), fill=(0, 0, 0, 160))
-        draw.text((6, SIZE - 18), f"STUB live video  pts {int(pts):>6} ms", fill=(255, 255, 255, 255))
+        label = "STUB live video  idle" if pts < 0 else f"STUB live video  pts {int(pts):>6} ms"
+        draw.text((6, SIZE - 18), label, fill=(255, 255, 255, 255))
         out = io.BytesIO()
         img.save(out, "JPEG", quality=70)
         return out.getvalue()

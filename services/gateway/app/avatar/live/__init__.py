@@ -49,6 +49,11 @@ def create_live_avatar(scenario_id: str, publish: Callable[[dict], None], *,
         cls = _config.driver_class(spec)
         persona = Persona(scenario_id=scenario_id, lang=lang, female=female,
                           portrait=_portrait(scenario_id))
+        # Лицо — по персонажу (`casting.py`), а не одно на всех.
+        from dataclasses import replace
+        from app.avatar.live.casting import face_for
+        cfg = replace(cfg, avatar=face_for(cfg.vendor, scenario_id, female, explicit=cfg.avatar,
+                                           path=cfg.casting))
         return LiveVideoAvatar(persona, publish, lambda: cls.from_env(cfg, persona), cfg)
     except Exception:
         import logging

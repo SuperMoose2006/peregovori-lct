@@ -7,7 +7,8 @@
 // ║ Файлы:    static/duplex/lib/audio-player.js (295 стр.)                   ║
 // ║           static/duplex/lib/duplex-utils.js  (resampleAudio)             ║
 // ║ Изменено: JS → TS, убраны запись сессии и console-логи, добавлен         ║
-// ║           `stopAll()` как явная точка перебивания                        ║
+// ║           `stopAll()` как явная точка перебивания; `holdOnEnd` —         ║
+// ║           не срезать джиттер-буфер по концу реплики (живое видео)        ║
 // ║ Полный провенанс: docs/upstream-code-map.md                              ║
 // ╚══════════════════════════════════════════════════════════════════════════╝
 //
@@ -76,6 +77,12 @@ export class AudioPlayer {
   private sources: AudioBufferSourceNode[] = [];
   private pending: Float32Array[] = [];
   private delayTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Не начинать раньше джиттер-буфера по концу реплики. Нужно лицу от
+   *  внешнего сервиса: сервер держит звук под кадры и считает, что звук
+   *  заиграет ровно через `playbackDelayMs` после прихода; досрочный старт по
+   *  `response.done` сдвигал бы звук на до 160 мс раньше кадров. Без живого
+   *  видео — выключено, поведение прежнее. */
+  holdOnEnd = false;
 
   constructor(options: AudioPlayerOptions = {}) {
     this.expectedRate = options.outputSampleRate ?? 24000;
@@ -169,7 +176,7 @@ export class AudioPlayer {
   /** Реплика кончилась: доиграть накопленное, новых чанков не ждать. */
   endTurn(): void {
     if (!this.turnActive) return;
-    if (!this.playing && this.pending.length > 0) {
+    if (!this.playing && this.pending.length > 0 && !this.holdOnEnd) {
       if (this.delayTimer) {
         clearTimeout(this.delayTimer);
         this.delayTimer = null;

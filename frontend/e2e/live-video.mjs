@@ -10,6 +10,13 @@
 //          перед жюри: кадры по звуку → сервис отвалился посреди партии →
 //          рисованный портрет → партия идёт дальше, следующая реплика звучит.
 //
+//   live — НАСТОЯЩИЙ сервис (ключ в окружении шлюза, тратит минуты тарифа —
+//          около одной за прогон). Доказывается: до первой реплики на экране
+//          уже живое лицо сервиса (простой), а не рисованный портрет; реплику
+//          рисуют кадры речи; между репликами — снова простой; консоль чистая.
+//          Кадр речи и кадр простоя в DOM неотличимы, поэтому они узнаются по
+//          содержимому: отпечаток JPEG из сокета против `src` картинки на экране.
+//
 // Шлюз поднимается отдельно (см. docs/INTEGRATION_LIVE_VIDEO.md, «Проверка»):
 //   cd frontend && npx vite build --outDir /tmp/lv-dist
 //   cd services/gateway && NEGO_AI=off NEGO_TTS=testtone NEGO_FRONTEND_DIST=/tmp/lv-dist \
@@ -39,6 +46,7 @@ const check = (ok, name, detail = "") => (ok ? passed : problems).push(detail ? 
 const health = await (await fetch(`${URL}/api/health`)).json();
 const live = String(health.live_video ?? "");
 if (EXPECT === "off") check(live.startsWith("off"), "health: живое видео выключено", live);
+else if (EXPECT === "live") check(!live.startsWith("off") && !live.startsWith("stub"), "health: включён настоящий сервис", live);
 else check(live.startsWith("stub"), "health: включена заглушка, а не сервис", live);
 
 const browser = await chromium.launch({
@@ -49,13 +57,24 @@ const browser = await chromium.launch({
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ["microphone"] });
 const page = await ctx.newPage();
 const errors = [];
-const wire = { frames: 0, states: [] };
+const wire = { frames: 0, states: [], speech: new Set(), idle: new Set() };
+// Отпечаток кадра: длина, середина и хвост. Один хвост не годится — у
+// синтетических кадров заглушки концы JPEG совпадают, и простой узнавался бы как речь.
+const tail = (jpeg) => {
+  const s = String(jpeg), mid = Math.floor(s.length / 2);
+  return `${s.length}:${s.slice(mid, mid + 48)}:${s.slice(-48)}`;
+};
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("console", (m) => { if (m.type() === "error" && !/404|501/.test(m.text())) errors.push(m.text()); });
 page.on("websocket", (ws) => ws.on("framereceived", ({ payload }) => {
   if (typeof payload !== "string") return;
-  if (payload.includes('"avatar.frame"')) wire.frames++;
-  else if (payload.includes('"avatar.state"')) {
+  if (payload.includes('"avatar.frame"')) {
+    wire.frames++;
+    if (EXPECT !== "off") {
+      try { const e = JSON.parse(payload); (e.idle ? wire.idle : wire.speech).add(tail(e.jpeg)); }
+      catch { /* не событие */ }
+    }
+  } else if (payload.includes('"avatar.state"')) {
     try { const e = JSON.parse(payload); wire.states.push({ mode: e.lipsync_mode, reason: e.reason ?? null }); }
     catch { /* не событие */ }
   }
@@ -69,7 +88,9 @@ await page.goto(URL, { waitUntil: "networkidle" });
 
 const face = () => page.evaluate(() => {
   const el = document.querySelector(".mt-face .face");
+  const img = el?.querySelector("img.face__img");
   return { source: el?.getAttribute("data-source") ?? null, renderer: el?.getAttribute("data-renderer") ?? null,
+           image: img ? img.getAttribute("src") : null,
            status: document.querySelector(".meeting")?.getAttribute("data-status") ?? null,
            replies: document.querySelectorAll(".msg.opp:not(.typing-msg)").length,
            test: document.querySelector(".mt-test")?.textContent ?? null };
@@ -79,16 +100,24 @@ async function say(text) {
   await box.fill(text);
   await box.press("Enter");
 }
+// Что на экране: кадр речи, кадр простоя, рисованный портрет или иное.
+const kind = (f) => {
+  if (f.source !== "frame") return f.source ?? "none";
+  const t = tail((f.image ?? "").replace(/^data:image\/jpeg;base64,/, ""));
+  return wire.speech.has(t) ? "speech" : wire.idle.has(t) ? "idle" : "frame?";
+};
 async function watch(ms) {
-  const seen = { sources: new Set(), renderers: new Set(), statuses: new Set() };
+  const seen = { sources: new Set(), renderers: new Set(), statuses: new Set(), speaking: [] };
   for (let t = 0; t < ms; t += 100) {
     const f = await face();
     seen.sources.add(f.source); seen.renderers.add(f.renderer); seen.statuses.add(f.status);
+    if (f.status === "speaking") seen.speaking.push(kind(f));
     await page.waitForTimeout(100);
   }
   return seen;
 }
 const list = (set) => [...set].join(",");
+const share = (seen, what) => seen.length ? seen.filter((k) => k === what).length / seen.length : 0;
 
 await page.locator('[data-scenario="supplier"]').first().click();
 await page.waitForSelector("textarea", { timeout: 15000 });
@@ -115,12 +144,58 @@ if (EXPECT === "off") {
   check(answered > greeted, "реплика оппонента пришла", `${greeted} → ${answered}`);
   await page.locator("textarea:visible").first().fill("Второй ход");
   check(await page.locator("button.send").first().isEnabled(), "ход закрыт — можно ходить дальше");
+} else if (EXPECT === "live") {
+  check(start.renderer === "video", "с ключом лицо в режиме видео", String(start.renderer));
+  check(start.test === null, "настоящий сервис не подписан как тестовый поток", String(start.test));
+  // Сервис подключается в фоне (замер — 5–12 с): ждём его лицо в простое.
+  let listening = null;
+  for (let i = 0; i < 250 && listening !== "idle"; i++) {
+    listening = kind(await face());
+    if (listening !== "idle") await page.waitForTimeout(100);
+  }
+  check(listening === "idle", "до первой реплики на экране живое лицо сервиса, а не портрет", String(listening));
+  await page.screenshot({ path: `${OUT}/live-01-listening.png` });
+  const greeted = start.replies;
+  await say("Что для вас важнее всего в этой поставке, кроме цены?");
+  let first = await watch(4000);
+  for (let i = 0; i < 12 && !first.statuses.has("speaking"); i++) first = await watch(1000);
+  const more = await watch(3000);
+  const spoken = [...first.speaking, ...more.speaking];
+  await page.screenshot({ path: `${OUT}/live-02-speaking.png` });
+  check(spoken.length > 0, "собеседник звучал", list(first.statuses));
+  check(share(spoken, "speech") >= 0.8, "пока звучит голос, лицо рисуют кадры речи",
+    `речь ${Math.round(share(spoken, "speech") * 100)}% из ${spoken.length} замеров: ${[...new Set(spoken)].join(",")}`);
+  check(!spoken.includes("drawn"), "во время реплики без рисованной замены", [...new Set(spoken)].join(","));
+  let after = null;
+  for (let i = 0; i < 150 && after !== "idle"; i++) {
+    const f = await face();
+    after = f.status === "speaking" ? "speaking" : kind(f);
+    if (after !== "idle") await page.waitForTimeout(100);
+  }
+  check(after === "idle", "после реплики лицо снова слушает (кадры простоя)", String(after));
+  const answered = (await face()).replies;
+  check(answered > greeted, "реплика оппонента пришла", `${greeted} → ${answered}`);
+  await say("Давайте опираться на рыночные данные: медиана независимых прайсов — 87.");
+  let second = await watch(4000);
+  for (let i = 0; i < 12 && !second.statuses.has("speaking"); i++) second = await watch(1000);
+  const second2 = await watch(3000);
+  const spoken2 = [...second.speaking, ...second2.speaking];
+  check(share(spoken2, "speech") >= 0.8, "вторая реплика — тоже кадрами речи",
+    `речь ${Math.round(share(spoken2, "speech") * 100)}% из ${spoken2.length}`);
+  await page.screenshot({ path: `${OUT}/live-03-second.png` });
+  const failed = wire.states.filter((s) => s.reason === "provider_failed").length;
+  passed.push(`справка: откатов к портрету за прогон — ${failed}; кадров по сокету — ${wire.frames} ` +
+    `(речь ${wire.speech.size}, простой ${wire.idle.size})`);
 } else {
   check(start.renderer === "video", "с заглушкой лицо в режиме видео", String(start.renderer));
   check((start.test ?? "").length > 0, "заглушка подписана как тестовый поток", String(start.test));
   await say("Что для вас важнее всего в этой поставке, кроме цены?");
   const first = await watch(6000);
   check(first.sources.has("frame"), "во время реплики лицо рисуют кадры сервиса", list(first.sources));
+  // Кадр простоя клиент держит до 30 с — без различения «кадр на экране»
+  // прошёл бы и тогда, когда кадров речи нет вовсе.
+  check(share(first.speaking, "speech") >= 0.8, "пока звучит голос — кадры речи, а не простой",
+    `речь ${Math.round(share(first.speaking, "speech") * 100)}% из ${first.speaking.length}: ${[...new Set(first.speaking)].join(",")}`);
   check(!first.sources.has("drawn"), "пока сервис жив — без рисованной замены", list(first.sources));
   await page.screenshot({ path: `${OUT}/stub-02-frames.png` });
   // Ждём обрыв: заглушка рвёт связь по часам (NEGO_LIVE_VIDEO_STUB_FAIL_AFTER_S).

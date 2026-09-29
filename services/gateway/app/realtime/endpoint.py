@@ -947,6 +947,9 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
             # пишет «тестовый видеопоток» над кадром.
             "synthetic": caps.synthetic,
         }
+        if caps.stale_ms is not None:
+            # Только у лица от внешнего сервиса: без ключа ответ тот же, что был.
+            capabilities["avatar"]["stale_ms"] = caps.stale_ms
 
     return {
         "type": "session.created",

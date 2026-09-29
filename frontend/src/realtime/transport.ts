@@ -229,6 +229,7 @@ export class RealtimeTransport implements Transport {
       const created = await this.session.start(payload);
       this.serverSessionId = String(created.session_id ?? "");
       this.live = true;
+      this.faceFrames.setStaleMs((this.session.capabilities.avatar as Record<string, unknown> | undefined)?.stale_ms);
       this.options.onCapabilities?.(this.session.capabilities);
       this.emit({
         type: "greeting",
@@ -293,6 +294,10 @@ export class RealtimeTransport implements Transport {
   private async startMedia(): Promise<void> {
     if (this.voiceWanted) {
       this.player = new AudioPlayer({ outputSampleRate: 24000 });
+      // Лицо от внешнего сервиса (у него свой порог `stale_ms`): звук держится
+      // сервером под кадры — проигрыватель не срезает свой буфер досрочно.
+      const avatar = (this.session?.capabilities.avatar ?? {}) as Record<string, unknown>;
+      this.player.holdOnEnd = typeof avatar.stale_ms === "number";
       this.player.init();
     }
 
@@ -384,6 +389,8 @@ export class RealtimeTransport implements Transport {
         this.generationText = "";
         this.generationFlushed = true;
         this.faceFrames.clear();
+        this.faceFrames.setStaleMs(((event.capabilities as Record<string, unknown> | undefined)
+          ?.avatar as Record<string, unknown> | undefined)?.stale_ms);
         this.player?.stopAll();
         this.markOppAudio(false);
         this.options.onCapabilities?.((event.capabilities as Record<string, unknown>) ?? {});
@@ -525,13 +532,15 @@ export class RealtimeTransport implements Transport {
       }
 
       case "avatar.frame":
+        // Лицо сервиса между репликами: без поколения и места в звуке.
+        if (event.idle === true) { this.faceFrames.pushIdle(event.jpeg); return; }
         if (event.generation_id === this.audioGeneration
             && !this.retiredGenerations.has(String(event.generation_id))) this.faceFrames.push(event);
         return;
 
       case "avatar.state":
         if (this.session && event.lipsync_mode === "amplitude") {
-          this.faceFrames.clear();
+          this.faceFrames.reset();
           // `synthetic: false`: подпись «тестовый видеопоток» относится к
           // потоку, а потока больше нет — на экране рисованный портрет.
           this.session.capabilities = { ...this.session.capabilities,
@@ -544,6 +553,7 @@ export class RealtimeTransport implements Transport {
           // НЕ видео: повтор того же режима на каждом состоянии не должен
           // перерисовывать экран. Без кредов сервер этого не шлёт никогда.
           const avatar = (this.session.capabilities.avatar ?? {}) as Record<string, unknown>;
+          this.faceFrames.setStaleMs(event.stale_ms);
           if (avatar.lipsync_mode !== "video") {
             this.session.capabilities = { ...this.session.capabilities,
               avatar: { ...avatar, lipsync: true, lipsync_mode: "video", transport: "jpeg",

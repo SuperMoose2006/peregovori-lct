@@ -45,7 +45,7 @@ from typing import AsyncIterator, Optional
 import numpy as np
 
 from app.avatar.live.config import LiveVideoConfig
-from app.avatar.live.driver import Closed, DriverError, DriverInfo, Persona
+from app.avatar.live.driver import Closed, DriverError, DriverInfo, Persona, keep_stop
 from app.avatar.live.media import f32_to_s16
 from app.avatar.live.vendors._webrtc import WebRtcDriver, http_verdict
 
@@ -105,8 +105,8 @@ class LiveAvatarDriver(WebRtcDriver):
         super().__init__(cfg, persona)
         self.info = DriverInfo(vendor="liveavatar", input="audio", av_delay_ms=AV_DELAY_MS)
         self.session_id: Optional[str] = None
-        self.avatar_id: Optional[str] = (SANDBOX_AVATAR if cfg.sandbox and not cfg.avatar
-                                         else cfg.avatar or None)
+        # Песочница принимает только своё лицо — раскладка персонажей тут не действует.
+        self.avatar_id: Optional[str] = SANDBOX_AVATAR if cfg.sandbox else (cfg.avatar or None)
         self._ws = None
         self._room = None
         self._connected = asyncio.Event()
@@ -365,13 +365,13 @@ class LiveAvatarDriver(WebRtcDriver):
 
         Зовётся ПЕРВЫМ шагом закрытия, до любого `await`: закрытие партии
         ограничено секундой и может быть прервано, а запрос к API — занять
-        дольше. Без явной остановки минуты идут до таймаута простоя (5 мин).
+        дольше. Без явной остановки минуты идут, пока сервис не закроет сессию
+        сам (замер 29.09 — через 194–210 с). Выходящий процесс ждёт этих
+        запросов — `driver.finish_stops`.
         """
         if not self.session_id:
             return
-        task = asyncio.get_running_loop().create_task(_stop_session(self._cfg.key, self.session_id))
-        _STOPPING.add(task)
-        task.add_done_callback(_STOPPING.discard)
+        keep_stop(asyncio.get_running_loop().create_task(_stop_session(self._cfg.key, self.session_id)))
         self.closed_session_id, self.session_id = self.session_id, None
 
     async def close(self) -> None:
@@ -407,10 +407,6 @@ def _tls(url: str):
         return ssl.create_default_context(cafile=certifi.where())
     except Exception:
         return ssl.create_default_context()
-
-
-#: Запросы остановки, которые доживают закрытия партии.
-_STOPPING: set[asyncio.Task] = set()
 
 
 async def _stop_session(key: str, session_id: str) -> None:

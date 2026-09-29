@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import json
 import logging
 import time
 
@@ -88,7 +89,12 @@ class Recorder:
         return [e for e in self.events("response.output.delta") if e.get("kind") == "audio"]
 
     def frames(self) -> list[dict]:
-        return self.events("avatar.frame")
+        """Кадры речи (с поколением и местом в звуке)."""
+        return [e for e in self.events("avatar.frame") if not e.get("idle")]
+
+    def idles(self) -> list[dict]:
+        """Кадры лица между репликами."""
+        return [e for e in self.events("avatar.frame") if e.get("idle")]
 
     def states(self) -> list[dict]:
         return self.events("avatar.state")
@@ -332,8 +338,9 @@ def _audio_event(gen: str, ms: float) -> dict:
 
 
 def test_frame_older_than_250ms_by_the_audio_clock_is_not_sent():
+    """Прежнее правило (порог задан явно 250 мс) — как у стенда и без удержания."""
     now = [100.0]
-    avatar, rec = _manual(now)
+    avatar, rec = _manual(now, stale_ms=250)
     avatar.audio_out(_audio_event("g", 1000))      # без выпускающего — сразу клиенту
     play0 = avatar.clock.play_time("g", 0)
     assert play0 == pytest.approx(100.16)
@@ -472,7 +479,7 @@ async def test_provider_slower_than_the_threshold_is_not_a_failure():
     клиента: 160 + 250 мс. Кадр с задержкой 250 мс в него укладывается.
     """
     rec = Recorder()
-    avatar = _avatar(rec, cfg=_cfg(stall_ms=600, av_delay_ms=0), latency_ms=250)
+    avatar = _avatar(rec, cfg=_cfg(stall_ms=600, av_delay_ms=0, stale_ms=250), latency_ms=250)
     await _connected(avatar)
     manager = await _speak(avatar, rec, ShortTTS(chunks=10))
     await _played_out(avatar, manager)
@@ -593,15 +600,18 @@ async def test_reply_starting_before_the_service_is_up_uses_the_portrait_without
 async def test_interrupt_drops_held_audio_and_silences_the_service():
     rec = Recorder()
     drivers: list[StubDriver] = []
-    avatar = _avatar(rec, drivers=drivers, latency_ms=300)      # звук держится 400 мс
+    # Звук держится 400 мс и ждёт губы до 0.8 с: ждём дольше обоих — погашенная
+    # реплика не должна зазвучать ни по сроку удержания, ни по потолку ожидания.
+    avatar = _avatar(rec, cfg=_cfg(lips_wait_ms=800), drivers=drivers, latency_ms=300)
     await _connected(avatar)
     manager = await _speak(avatar, rec, ShortTTS(chunks=6))
     await manager.wait_idle()
     assert avatar._held, "звук ещё придержан"
     manager.clear()
     await avatar.interrupt()
-    await asyncio.sleep(0.6)
+    await asyncio.sleep(1.0)
     assert rec.audio() == [] and rec.frames() == []
+    assert avatar.stats.degrades == [], "перебивание — не отказ сервиса"
     assert await _until(lambda: drivers[0].interrupts == 1)
     assert rec.states()[-1]["state"] == "listening"
     await avatar.close()
@@ -874,3 +884,401 @@ async def test_live_video_changes_nothing_in_the_grade(monkeypatch):
         return result["overall"], result["grade"], session.engine_session.turn
 
     assert await play(True) == await play(False)
+
+
+# ------------------------------------------ хромакей, порог, простой, раскладка
+
+def _green_frame(side: int = 96) -> np.ndarray:
+    """Кадр на хромакее: зелёный фон, «лицо» — телесный круг по центру."""
+    img = np.zeros((side, side, 3), np.uint8)
+    img[...] = (0, 255, 1)
+    yy, xx = np.mgrid[0:side, 0:side]
+    face = (yy - side / 2) ** 2 + (xx - side / 2) ** 2 < (side / 3) ** 2
+    img[face] = (220, 180, 150)
+    return img
+
+
+def test_chroma_key_replaces_green_with_the_background_and_keeps_the_person():
+    from app.avatar.live.media import chroma_key, is_green_screen, parse_background
+    frame = _green_frame()
+    assert is_green_screen(frame)
+    bg = parse_background("#123456", 96)
+    out = chroma_key(frame, bg).astype(int)
+    assert tuple(out[2, 2]) == (0x12, 0x34, 0x56), "угол — новый фон"
+    assert abs(out[48, 48] - np.array([220, 180, 150])).max() <= 3, "лицо не тронуто"
+    excess = out[..., 1] - np.maximum(out[..., 0], out[..., 2])
+    assert int((excess > 25).sum()) == 0, "зелёной каймы не осталось"
+
+
+def test_green_spill_is_removed_at_the_edge_and_green_on_the_person_is_kept():
+    """Зелёный галстук посреди человека — не отсвет экрана, серым он не становится."""
+    from app.avatar.live.media import chroma_key
+    frame = _green_frame().copy()
+    yy, xx = np.mgrid[0:96, 0:96]
+    dist = np.sqrt((yy - 48) ** 2 + (xx - 48) ** 2)
+    ring = (dist < 32) & (dist >= 31)                    # край волос с отсветом
+    frame[ring] = (150, 175, 120)
+    frame[45:51, 45:51] = (60, 100, 70)                  # галстук
+    out = chroma_key(frame, np.full((96, 96, 3), 100, np.float32)).astype(int)
+    excess = out[..., 1] - np.maximum(out[..., 0], out[..., 2])
+    assert excess[ring].max() <= 5, "зелёная кайма на краю осталась"
+    assert excess[45:51, 45:51].min() >= 25, "зелёное на самом человеке стало серым"
+
+
+def test_faces_with_a_real_background_pass_untouched_and_off_disables_keying():
+    from app.avatar.live.media import FramePainter, encode_jpeg, is_green_screen
+    office = np.full((96, 96, 3), (120, 110, 100), np.uint8)
+    assert not is_green_screen(office)
+    assert FramePainter("stage", size=96)(office) == encode_jpeg(office, size=96)
+    green = _green_frame()
+    assert FramePainter("off", size=96)(green) == encode_jpeg(green, size=96)
+    painter = FramePainter("stage", size=96)
+    assert painter(green) != encode_jpeg(green, size=96) and painter.keyed == 1
+
+
+def test_painter_puts_the_configured_background_behind_a_green_screen_face():
+    import io
+    from PIL import Image
+    from app.avatar.live.media import FramePainter
+    out = np.asarray(Image.open(io.BytesIO(FramePainter("#ff0000", size=96)(_green_frame()))).convert("RGB")).astype(int)
+    assert abs(out[3, 3] - np.array([255, 0, 0])).max() <= 12, "фон — заданный цвет, а не сцена по умолчанию"
+    assert abs(out[48, 48] - np.array([220, 180, 150])).max() <= 12, "лицо на месте"
+
+
+def test_background_can_be_a_colour_an_image_or_the_stage(tmp_path):
+    from PIL import Image
+    from app.avatar.live.media import parse_background, stage_background
+    assert parse_background("off", 32) is None
+    assert parse_background("#ff0000", 8)[0, 0].tolist() == [255.0, 0.0, 0.0]
+    path = tmp_path / "bg.png"
+    Image.new("RGB", (40, 20), (1, 2, 3)).save(path)
+    assert parse_background(str(path), 16)[5, 5].tolist() == [1.0, 2.0, 3.0]
+    stage = stage_background(64)
+    assert stage[0, 32][2] > stage[63, 32][2], "сцена темнеет книзу, как в интерфейсе"
+
+
+def test_stale_threshold_is_two_and_a_half_frames_unless_set():
+    assert live_config.stale_limit_ms(_cfg(fps=25.0)) == 100
+    assert live_config.stale_limit_ms(_cfg(fps=15.0)) == 167
+    assert live_config.stale_limit_ms(_cfg(fps=25.0, stale_ms=180)) == 180
+    assert live_config.load({"NEGO_LIVE_VIDEO": "stub", "NEGO_LIVE_VIDEO_STALE_MS": "120"}).stale_ms == 120
+
+
+def test_frames_are_counted_on_time_late_or_dropped_against_their_sound():
+    now = [100.0]
+    avatar, rec = _manual(now, fps=25.0)           # порог 100 мс
+    avatar.audio_out(_audio_event("g", 2000))      # звук с 100.16
+    for pts in (0.0, 40.0, 400.0):
+        avatar._on_frame(VideoFrame("g", pts, JPEG))
+    now[0] = 100.16 + 0.080                        # pts 0 — на 80 мс позже, pts 40 — на 40
+    avatar._release_frames(now[0])
+    assert avatar.stats.frames_shown_late == 2 and avatar.stats.frames_on_time == 1
+    avatar._on_frame(VideoFrame("g", 440.0, JPEG))
+    now[0] = 100.16 + 0.440 + 0.101                # на 101 мс позже — за порогом
+    avatar._release_frames(now[0])
+    assert avatar.stats.frames_late == 1
+
+
+@pytest.mark.asyncio
+async def test_idle_face_is_shown_between_replies_and_never_over_a_reply():
+    rec = Recorder()
+    avatar = _avatar(rec, cfg=_cfg(idle_fps=20.0), latency_ms=50)
+    await _connected(avatar)
+    assert await _until(lambda: len(rec.idles()) >= 3), "лицо между репликами не пришло"
+    manager = await _speak(avatar, rec, ShortTTS(chunks=10))
+    speech_from = time.monotonic() + 0.2
+    await manager.wait_idle()
+    finished = await _until(lambda: avatar.clock.finished_at() is not None, 2)
+    assert finished
+    end = avatar.clock.finished_at()
+    # Судить можно, только когда реплика отзвучала: сервис «слушает» уже
+    # после того, как дорисовал звук, а у человека звук ещё играет.
+    await asyncio.sleep(max(0.0, end - time.monotonic()) + 0.05)
+    during = [t for t, e in rec.log if e.get("idle") and speech_from < t < end - 0.05]
+    assert during == [], "кадр простоя поверх звучащей реплики"
+    assert await _until(lambda: any(t > end for t, e in rec.log if e.get("idle")), 3), \
+        "после реплики лицо снова слушает"
+    avatar._degrade("test", strike=False)
+    count = len(rec.idles())
+    await asyncio.sleep(0.3)
+    assert len(rec.idles()) == count, "в режиме портрета простой не шлётся"
+    await avatar.close()
+
+
+def test_live_face_tells_the_client_its_stale_threshold_and_local_faces_do_not(monkeypatch):
+    from app.realtime.endpoint import _created_payload
+    monkeypatch.setenv("NEGO_LIVE_VIDEO", "off")
+    local = RealtimeSession("local", engine.create_session("supplier", "ru"), layers=Layers(voice=True, avatar=True))
+    assert "stale_ms" not in _created_payload(local, None)["capabilities"]["avatar"], \
+        "без ключа ответ session.created тот же, что был"
+    monkeypatch.setenv("NEGO_LIVE_VIDEO", "stub")
+    live = RealtimeSession("live", engine.create_session("supplier", "ru"), layers=Layers(voice=True, avatar=True))
+    assert _created_payload(live, None)["capabilities"]["avatar"]["stale_ms"] == 100
+
+
+def test_each_reply_leaves_one_line_in_the_log(caplog):
+    now = [100.0]
+    avatar, _ = _manual(now)
+    avatar.audio_out(_audio_event("g1", 1000))
+    avatar._on_frame(VideoFrame("g1", 0.0, JPEG))
+    avatar._release_frames(now[0])
+    with caplog.at_level(logging.INFO, logger="dialog.live_video"):
+        avatar.audio_out(_audio_event("g2", 100))
+    assert any("в такт 1" in r.getMessage() for r in caplog.records), [r.getMessage() for r in caplog.records]
+
+
+# ---------------------------------------------- звук ждёт губы: холодный старт
+
+async def _holding(now_box: list[float], **cfg_kw) -> tuple[LiveVideoAvatar, Recorder]:
+    """Ручные часы и «живой» выпускающий: звук придерживается, отпускаем руками."""
+    avatar, rec = _manual(now_box, **cfg_kw)
+    avatar._ticker = asyncio.get_running_loop().create_future()
+    return avatar, rec
+
+
+@pytest.mark.asyncio
+async def test_first_sound_of_a_reply_waits_for_its_first_lip_frame():
+    """Замер через продукт: первая реплика партии у LiveAvatar отставала на
+    1.07–2.97 с при 0.57–1.23 с у остальных. Удержание вышло, губ нет — звук
+    ждёт; пришёл кадр — звук уходит, и кадр оказывается раньше своего звука."""
+    now = [100.0]
+    avatar, rec = await _holding(now, av_delay_ms=1000, lips_wait_ms=3000)
+    avatar.audio_out(_audio_event("g", 500))
+    avatar.audio_out(_audio_event("g", 500))
+    now[0] = 101.5
+    avatar._release_due_audio(now[0])
+    assert rec.audio() == [], "звук ушёл под неподвижное лицо"
+    now[0] = 101.7
+    avatar._on_frame(VideoFrame("g", 40.0, JPEG))
+    now[0] = 101.72                                 # следующий шаг выпускающего
+    avatar._release_due_audio(now[0])
+    assert len(rec.audio()) == 2, "губы пришли, а звук всё ждёт"
+    avatar._release_frames(now[0])
+    assert [f["pts_ms"] for f in rec.frames()] == [40.0] and avatar.stats.frames_on_time == 1
+    assert avatar._reply["waited_ms"] == pytest.approx(700, abs=1), "ждали до прихода губ, не до шага"
+    # Ждёт только первый звук реплики: дальше звук идёт по сроку, кадры сторожит сторож.
+    avatar.audio_out(_audio_event("g", 500))
+    now[0] = 102.72
+    avatar._release_due_audio(now[0])
+    assert len(rec.audio()) == 3 and avatar.stats.degrades == []
+
+
+@pytest.mark.asyncio
+async def test_lips_that_came_early_do_not_shorten_the_hold():
+    now = [100.0]
+    avatar, rec = await _holding(now, av_delay_ms=1000, lips_wait_ms=3000)
+    avatar.audio_out(_audio_event("g", 500))
+    avatar._on_frame(VideoFrame("g", 0.0, JPEG))
+    now[0] = 100.99
+    avatar._release_due_audio(now[0])
+    assert rec.audio() == [], "удержание — нижняя граница, губы его не сокращают"
+    now[0] = 101.0
+    avatar._release_due_audio(now[0])
+    assert len(rec.audio()) == 1 and avatar._reply["waited_ms"] == 0
+
+
+@pytest.mark.asyncio
+async def test_no_lips_by_the_ceiling_means_the_portrait_at_once_and_the_whole_voice():
+    now = [100.0]
+    avatar, rec = await _holding(now, av_delay_ms=1000, lips_wait_ms=3000)
+    avatar.audio_out(_audio_event("g", 500))
+    avatar.audio_out(_audio_event("g", 500))
+    now[0] = 102.99
+    avatar._release_due_audio(now[0])
+    assert rec.audio() == [] and avatar.mode == "video"
+    now[0] = 103.0
+    avatar._release_due_audio(now[0])
+    assert len(rec.audio()) == 2, "голос потерян за лицом, которое не пришло"
+    assert avatar.mode == "amplitude" and avatar.stats.degrades == ["no_frames"]
+    assert rec.states()[-1]["reason"] == "provider_failed"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("wait_ms", [0, 1000])
+async def test_ceiling_not_above_the_hold_means_a_plain_fixed_hold(wait_ms):
+    now = [100.0]
+    avatar, rec = await _holding(now, av_delay_ms=1000, lips_wait_ms=wait_ms)
+    avatar.audio_out(_audio_event("g", 500))
+    now[0] = 101.0
+    avatar._release_due_audio(now[0])
+    assert len(rec.audio()) == 1 and avatar.mode == "video", "без ожидания губ — ровно удержание"
+
+
+def test_thinning_keeps_a_jittery_stream_at_its_own_rate_and_halves_a_faster_one():
+    """Замер 29.09: метки LiveAvatar при 25 к/с — 40–44 мс, изредка меньше 40.
+    Строгое «не чаще 40 мс» выбрасывало такие кадры: 13 % кадров, губы на 80 мс."""
+    now = [100.0]
+    avatar, _ = _manual(now, fps=25.0)
+    avatar.audio_out(_audio_event("g", 2000))
+    jitter = [0.0, 39.2, 80.4, 119.1, 161.0, 199.6, 240.0]
+    for pts in jitter:
+        avatar._on_frame(VideoFrame("g", pts, JPEG))
+    assert [f.pts_ms for f in avatar._pending] == jitter and avatar.stats.frames_thinned == 0
+    avatar, _ = _manual(now, fps=25.0)
+    avatar.audio_out(_audio_event("g", 2000))
+    for i in range(12):                             # 50 к/с → вдвое реже
+        avatar._on_frame(VideoFrame("g", i * 20.0, JPEG))
+    assert [f.pts_ms for f in avatar._pending] == [0.0, 40.0, 80.0, 120.0, 160.0, 200.0]
+
+
+def test_lips_ceiling_is_three_seconds_unless_set():
+    assert live_config.load({"NEGO_LIVE_VIDEO": "stub"}).lips_wait_ms == 3000
+    assert live_config.load({"NEGO_LIVE_VIDEO": "stub", "NEGO_LIVE_VIDEO_LIPS_WAIT_MS": "0"}).lips_wait_ms == 0
+    cfg = live_config.load({"NEGO_LIVE_VIDEO": "stub", "NEGO_LIVE_VIDEO_LIPS_WAIT_MS": "60000"})
+    assert cfg.lips_wait_ms == 3000 and cfg.warnings
+
+
+def test_live_video_lines_reach_the_journal_when_nobody_set_up_logging():
+    """Юнит стенда не настраивает логи: без своего обработчика строка «кадров в
+    такт» (INFO) не дошла бы до журнала вовсе."""
+    root, log = logging.getLogger(), logging.getLogger("dialog.live_video")
+    saved = (root.handlers[:], log.handlers[:], log.level)
+    root.handlers[:], log.handlers[:] = [], []
+    log.setLevel(logging.NOTSET)
+    try:
+        live_config._journal()
+        assert log.handlers and log.getEffectiveLevel() == logging.INFO
+        live_config._journal()
+        assert len(log.handlers) == 1, "второй обработчик — каждая строка дважды"
+        log.handlers[:] = []
+        log.setLevel(logging.NOTSET)
+        root.handlers[:] = [logging.NullHandler()]
+        live_config._journal()
+        assert log.handlers == [], "логи настроены выше — не вмешиваемся"
+    finally:
+        root.handlers[:], log.handlers[:] = saved[0], saved[1]
+        log.setLevel(saved[2])
+
+
+def test_faces_come_from_the_casting_by_persona_then_env_then_gender(tmp_path):
+    from app.avatar.live.casting import face_for
+    path = tmp_path / "c.json"
+    path.write_text(json.dumps({"liveavatar": {"defaults": {"female": "F", "male": "M"},
+                                               "personas": {"supplier": "P"}}}))
+    assert face_for("liveavatar", "supplier", True, explicit="E", path=str(path)) == "P"
+    assert face_for("liveavatar", "salary", False, explicit="E", path=str(path)) == "E"
+    assert face_for("liveavatar", "salary", False, path=str(path)) == "M"
+    assert face_for("liveavatar", "rent", True, path=str(path)) == "F"
+    assert face_for("anam", "rent", True, path=str(path)) == ""
+    assert face_for("liveavatar", "rent", True, path=str(tmp_path / "missing.json")) == ""
+
+
+def test_built_in_casting_gives_women_and_men_different_faces():
+    from app.avatar.live.casting import face_for
+    female, male = face_for("liveavatar", "supplier", True), face_for("liveavatar", "salary", False)
+    assert female and male and female != male
+
+
+def test_casting_document_rows_become_persona_faces():
+    from app.avatar.live.casting import parse_casting_doc
+    doc = """# Кастинг
+| Персонаж | Стол | Лицо | id |
+|---|---|---|---|
+| Ирина, глава продаж | `supplier` | Judy Lawyer | 6e32f90a-f566-45be-9ec7-a5f6999ee606 |
+| Павел | salary | Dexter | 0930FD59-C8AD-434D-AD53-B391A1768720 |
+| без лица | rent | — | — |
+| два стола | supplier, salary | x | 11111111-2222-3333-4444-555555555555 |
+Текст с 513fd1b7-7ef9-466d-9af2-344e51eeb833 вне таблицы.
+"""
+    assert parse_casting_doc(doc, {"supplier", "salary", "rent"}) == {
+        "supplier": "6e32f90a-f566-45be-9ec7-a5f6999ee606",
+        "salary": "0930fd59-c8ad-434d-ad53-b391a1768720"}
+
+
+def test_casting_json_matches_the_casting_document_when_it_exists():
+    """Раскладка «персонаж → лицо» пишется только из документа кастинга.
+    Документа нет — и в JSON по персонажам пусто: лицо, вписанное руками, не
+    пережило бы следующей сверки и никем не подтверждено."""
+    from app.avatar.live.casting import table
+    from tools import sync_casting
+    if not sync_casting.DOC.exists():
+        personas = {vendor: (section or {}).get("personas") for vendor, section in table().items()
+                    if isinstance(section, dict)}
+        assert all(not faces for faces in personas.values()), personas
+        return
+    assert sync_casting.main(["--check"]) == 0, "раскладка разошлась с документом: python -m tools.sync_casting"
+
+
+@pytest.mark.asyncio
+async def test_the_live_face_is_chosen_per_persona(monkeypatch):
+    seen = []
+
+    class Recording(StubDriver):
+        @classmethod
+        def from_env(cls, cfg, persona):
+            seen.append((persona.scenario_id, cfg.avatar))
+            return cls(cfg, persona)
+
+    monkeypatch.setattr(live_config, "driver_class", lambda spec: Recording)
+    monkeypatch.setitem(live_config.VENDORS, "liveavatar", VendorSpec(
+        name="liveavatar", target="unused", needs_key=False, inputs=("audio",)))
+    monkeypatch.setenv("NEGO_LIVE_VIDEO", "liveavatar")
+    from app.avatar.live import create_live_avatar
+    a = create_live_avatar("supplier", lambda e: None, female=True)
+    b = create_live_avatar("salary", lambda e: None, female=False)
+    assert seen[0][1] and seen[1][1] and seen[0][1] != seen[1][1]
+    await a.close(); await b.close()
+
+
+
+# -------------------------------------- выход процесса ждёт остановки сессий
+
+@pytest.mark.asyncio
+async def test_finish_stops_waits_for_this_loop_and_reports_what_did_not_finish():
+    from app.avatar.live.driver import PENDING_STOPS, finish_stops, keep_stop
+    done = []
+
+    async def stop(delay):
+        await asyncio.sleep(delay)
+        done.append(delay)
+
+    keep_stop(asyncio.get_running_loop().create_task(stop(0.05)))
+    assert await finish_stops() == 0 and done == [0.05]
+    slow = asyncio.get_running_loop().create_task(stop(5.0))
+    keep_stop(slow)
+    assert await finish_stops(timeout=0.05) == 1, "не успевшая остановка названа, а не спрятана"
+    slow.cancel()
+    try:
+        await slow
+    except asyncio.CancelledError:
+        pass
+    await asyncio.sleep(0)                       # колбэк завершения — следующим оборотом
+    assert slow not in PENDING_STOPS
+
+
+def test_check_tool_waits_for_the_service_stop_even_when_it_could_not_connect(monkeypatch):
+    """`make live-video-check ARGS=--session` — первый шаг на стенде после ключа.
+    Выход прибора без ожидания оставлял сессию у сервиса открытой."""
+    from app.avatar.live import driver as driver_mod
+    from tools import live_video_check
+
+    class Refused(StubDriver):
+        def __init__(self, cfg, persona):
+            super().__init__(cfg, persona, fail_connect=DriverError("ключ", reason="auth", fatal=True))
+
+    waited = []
+
+    async def finish_stops(timeout: float = 5.0) -> int:
+        waited.append(timeout)
+        return 0
+
+    monkeypatch.setattr(live_config, "driver_class", lambda spec: Refused)
+    monkeypatch.setattr(driver_mod, "finish_stops", finish_stops)
+    assert asyncio.run(live_video_check._session(_cfg(connect_timeout_s=0.5), None)) == 1
+    assert waited, "прибор вышел, не дождавшись остановки сессии у сервиса"
+
+
+def test_gateway_shutdown_waits_for_the_service_stops(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import main
+    from app.avatar.live import driver as driver_mod
+    waited = []
+
+    async def finish_stops(timeout: float = 5.0) -> int:
+        waited.append(timeout)
+        return 0
+
+    monkeypatch.setattr(driver_mod, "finish_stops", finish_stops)
+    with TestClient(main.app):
+        assert waited == []
+    assert waited, "шлюз остановился, не дождавшись остановки сессий живого видео"

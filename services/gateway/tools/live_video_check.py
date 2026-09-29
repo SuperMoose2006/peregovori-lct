@@ -56,20 +56,33 @@ def _speech(seconds: float) -> list[bytes]:
 
 async def _session(cfg: live_config.LiveVideoConfig, save: str | None) -> int:
     from app.avatar.live.adapter import LiveVideoAvatar
-    from app.avatar.live.driver import Persona
+    from app.avatar.live.driver import Persona, finish_stops
 
     events: list[tuple[float, dict]] = []
     persona = Persona("supplier")
     cls = live_config.driver_class(cfg.spec)
     avatar = LiveVideoAvatar(persona, lambda e: events.append((time.monotonic(), e)),
                              lambda: cls.from_env(cfg, persona), cfg)
+    try:
+        return await _drive(avatar, cfg, save, events)
+    finally:
+        await avatar.close()
+        # Остановка сессии у сервиса — фоновая задача, рассчитанная на живой
+        # шлюз. Прибор выходит сразу, и без ожидания запрос отменялся вместе с
+        # циклом событий: 29.09 две такие сессии сервис закрыл сам через 194 и
+        # 210 с, и эти минуты списаны.
+        if await finish_stops():
+            _say("  ✗ остановка сессии у сервиса не подтвердилась за 5 с — проверьте кабинет сервиса")
+
+
+async def _drive(avatar, cfg: live_config.LiveVideoConfig, save: str | None,
+                 events: list[tuple[float, dict]]) -> int:
     started = time.monotonic()
     avatar.start()
     while avatar.link in ("idle", "connecting") and time.monotonic() - started < cfg.connect_timeout_s + 2:
         await asyncio.sleep(0.05)
     if avatar.link != "ready":
         _say(f"✗ подключение не удалось: связь «{avatar.link}», отказы {avatar.stats.degrades}")
-        await avatar.close()
         return 1
     _say(f"✓ подключились за {time.monotonic() - started:.2f} с")
 
@@ -90,7 +103,6 @@ async def _session(cfg: live_config.LiveVideoConfig, save: str | None) -> int:
             break
         await asyncio.sleep(0.05)
     stats = avatar.stats
-    await avatar.close()
 
     frames = [e for _, e in events if e["type"] == "avatar.frame"]
     audio = [e for _, e in events if e.get("kind") == "audio"]
@@ -102,15 +114,24 @@ async def _session(cfg: live_config.LiveVideoConfig, save: str | None) -> int:
         _say(f"  ✗ лицо возвращалось к портрету: {stats.degrades}")
     if stats.frame_lag_ms:
         p50, p95 = _pct(stats.frame_lag_ms, 0.5), _pct(stats.frame_lag_ms, 0.95)
-        # Кадр ОБЯЗАН прийти раньше своего звука: опоздавший на 100 мс ещё
-        # показывается (порог клиента — 250 мс), но губы тогда отстают от
-        # голоса на эти 100 мс, и это видно. Звук у клиента и так ждёт
+        # Кадр ОБЯЗАН прийти раньше своего звука: опоздавший в пределах
+        # порога (`stale_ms`, 100 мс при 25 к/с) ещё показывается, но губы
+        # тогда отстают от голоса, и это видно. Звук у клиента и так ждёт
         # джиттер-буфер; удержание добирает остальное с запасом 50 мс.
         need = max(0, int(p95 - LEAD_MS + 50))
         delay = cfg.av_delay_ms if cfg.av_delay_ms is not None else avatar._info.av_delay_ms
         _say(f"  отставание кадра от своего звука: p50 {p50:.0f} мс, p95 {p95:.0f} мс")
-        _say(f"  удержание звука сейчас {delay} мс; по замеру нужно ≈ {need} мс "
-             f"(NEGO_LIVE_VIDEO_AV_DELAY_MS={need})")
+        # Одна фраза в одной сессии — не основание снижать удержание:
+        # отставание сервиса гуляет от сессии к сессии (замер 29.09 через
+        # продукт — 0.57–1.31 с по репликам), и число выбрано прогонами
+        # через продукт. Поднимать — да, если сервис стабильно медленнее.
+        if need > delay:
+            _say(f"  удержание звука {delay} мс, этой сессии нужно ≈ {need} мс: первый звук реплик "
+                 f"будет ждать губы (до потолка ожидания). Если так в каждой проверке — "
+                 f"NEGO_LIVE_VIDEO_AV_DELAY_MS={need}")
+        else:
+            _say(f"  удержание звука {delay} мс — хватает с запасом {delay - need} мс. Снижать по одной "
+                 f"сессии не надо: число выбирается прогонами через продукт (tools/live_video_e2e.py)")
     if stats.first_frame_lag_ms:
         _say(f"  первый кадр ушёл человеку через {stats.first_frame_lag_ms[0]:.0f} мс от первого звука")
     if save and frames:
@@ -127,6 +148,11 @@ async def _session(cfg: live_config.LiveVideoConfig, save: str | None) -> int:
 
 async def main(args: argparse.Namespace) -> int:
     cfg = live_config.load()
+    if cfg.vendor:
+        # Лицо — то же, что партия дала бы первому столу (раскладка по персонажам).
+        from dataclasses import replace
+        from app.avatar.live.casting import face_for
+        cfg = replace(cfg, avatar=face_for(cfg.vendor, "supplier", True, explicit=cfg.avatar, path=cfg.casting))
     _say(f"сервис: {cfg.vendor or '—'}; вход: {cfg.input}; лицо: {cfg.avatar or 'по умолчанию сервиса'}")
     _say(f"порог сторожа {cfg.stall_ms} мс; кадров/с {cfg.fps:g}; сторона кадра {cfg.size} px")
     for warning in cfg.warnings:

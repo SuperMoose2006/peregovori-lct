@@ -756,12 +756,13 @@ async def test_liveavatar_stop_is_requested_before_anything_can_interrupt_closin
     await driver.connect()
     closing = asyncio.get_running_loop().create_task(driver.close())
     await asyncio.sleep(0)                    # закрытие успело сделать первый шаг
-    assert driver.closed_session_id == "sess-1" and liveavatar._STOPPING, \
+    from app.avatar.live.driver import PENDING_STOPS, finish_stops
+    assert driver.closed_session_id == "sess-1" and PENDING_STOPS, \
         "остановка сессии не запрошена первым шагом закрытия"
     closing.cancel()
     with contextlib.suppress(asyncio.CancelledError):
         await closing
-    await asyncio.gather(*liveavatar._STOPPING, return_exceptions=True)
+    assert await finish_stops() == 0
     assert calls["stopped"] == [{"session_id": "sess-1", "reason": "USER_CLOSED"}]
     assert driver.closed_session_id == "sess-1"
 
@@ -926,3 +927,103 @@ def test_our_audio_reaches_the_service_as_int16_at_its_rate():
     assert same.size == 2400 and abs(int(same[1200]) - 16383) <= 1
     down = np.frombuffer(f32_to_s16(pcm, dst_rate=16000), dtype="<i2")
     assert down.size == 1600
+
+
+@pytest.mark.asyncio
+async def test_driver_keeps_a_jittery_stream_at_its_own_rate_before_encoding():
+    """Прореживание до JPEG: метки LiveAvatar при 25 к/с дрожат (40–44 мс,
+    изредка 39). Строгое «не чаще 40 мс» выбрасывало такие кадры — 13 % губ."""
+    from app.avatar.live.driver import Persona, VideoFrame
+    from app.avatar.live.vendors._webrtc import WebRtcDriver
+
+    cfg = LiveVideoConfig(vendor="anam", key="an_0123456789abcdef0123", fps=25.0, size=64, idle_fps=0.0)
+    clock = [10.0]
+    drv = WebRtcDriver(cfg, Persona("supplier"), now=lambda: clock[0])
+    drv._generation = "g"
+    drv._anchor.sent("g", np.full(2400, 0.3, dtype="<f4").tobytes())
+    drv._anchor.returned_audio(np.full(480, 0.3, dtype=np.float32), 48000, 10.0)
+    times = [0.0, 0.0392, 0.0804, 0.1191, 0.161, 0.1996, 0.24]
+
+    class Frame:
+        def __init__(self, t):
+            self.time = t
+
+        def to_ndarray(self, format):
+            return np.zeros((64, 64, 3), dtype=np.uint8)
+
+    async def frames():
+        for t in times:
+            clock[0] = 10.01 + t
+            yield Frame(t)
+
+    drv._closing = True                     # конец потока здесь — не обрыв
+    await drv._video_loop(frames())
+    got = []
+    while not drv._events.empty():
+        event = drv._events.get_nowait()
+        if isinstance(event, VideoFrame):
+            got.append(event)
+    assert len(got) == len(times), [round(f.pts_ms, 1) for f in got]
+
+
+@pytest.mark.asyncio
+async def test_driver_sends_the_listening_face_between_replies_at_the_idle_rate():
+    """Между репликами лицо сервиса — кадры простоя, реже кадров речи."""
+    from app.avatar.live.driver import IdleFrame, Persona, VideoFrame
+    from app.avatar.live.vendors._webrtc import WebRtcDriver
+
+    cfg = LiveVideoConfig(vendor="anam", key="an_0123456789abcdef0123", fps=25.0, size=64, idle_fps=5.0)
+    clock = [10.0]
+    drv = WebRtcDriver(cfg, Persona("supplier"), now=lambda: clock[0])
+
+    class Frame:
+        def __init__(self, t):
+            self.time = t
+
+        def to_ndarray(self, format):
+            return np.zeros((64, 64, 3), dtype=np.uint8)
+
+    async def frames():
+        for i in range(25):                  # секунда простоя при 25 к/с
+            clock[0] = 10.0 + i * 0.04
+            yield Frame(i * 0.04)
+
+    drv._closing = True
+    await drv._video_loop(frames())
+    events = []
+    while not drv._events.empty():
+        events.append(drv._events.get_nowait())
+    assert not [e for e in events if isinstance(e, VideoFrame)], "без реплики кадров речи нет"
+    idle = [e for e in events if isinstance(e, IdleFrame)]
+    assert 4 <= len(idle) <= 6, f"простой — около 5 в секунду, а не {len(idle)}"
+
+
+def test_liveavatar_session_is_stopped_only_if_the_exiting_process_waits_for_it(monkeypatch):
+    """Прибор закрывает лицо и сразу выходит. Запрос остановки — фоновая
+    задача; без ожидания он отменялся вместе с циклом событий, и 29.09 сервис
+    сам закрыл две такие сессии через 194 и 210 с (`ZOMBIE_SESSION_REAP`)."""
+    import httpx
+    from app.avatar.live.driver import finish_stops
+    from app.avatar.live.vendors import liveavatar
+    calls = _fake_liveavatar(monkeypatch)
+    fast = httpx.AsyncClient
+
+    class SlowStop(fast):
+        async def post(self, url, headers=None, json=None):
+            if url.endswith("/v1/sessions/stop"):
+                await asyncio.sleep(0.2)          # настоящий API отвечает сотни миллисекунд
+            return await super().post(url, headers=headers, json=json)
+
+    monkeypatch.setattr(httpx, "AsyncClient", SlowStop)
+
+    async def run(wait: bool) -> None:
+        driver = liveavatar.LiveAvatarDriver(_la_cfg(), Persona("supplier"))
+        await driver.connect()
+        await driver.close()
+        if wait:
+            assert await finish_stops() == 0
+
+    asyncio.run(run(False))
+    assert calls["stopped"] == [], "без ожидания остановка отменяется с выходом процесса"
+    asyncio.run(run(True))
+    assert calls["stopped"] == [{"session_id": "sess-1", "reason": "USER_CLOSED"}]

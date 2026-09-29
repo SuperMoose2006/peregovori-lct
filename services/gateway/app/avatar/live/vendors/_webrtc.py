@@ -21,9 +21,10 @@ from typing import AsyncIterator, Optional
 
 import numpy as np
 
+from app.avatar.live.clock import frame_slot
 from app.avatar.live.config import LiveVideoConfig
-from app.avatar.live.driver import Closed, DriverError, LiveVideoDriver, Persona, VideoFrame
-from app.avatar.live.media import encode_jpeg
+from app.avatar.live.driver import Closed, DriverError, IdleFrame, LiveVideoDriver, Persona, VideoFrame
+from app.avatar.live.media import FramePainter
 from app.avatar.live.vendors._anchor import SpeechAnchor
 
 _log = logging.getLogger("dialog.live_video")
@@ -60,8 +61,12 @@ class WebRtcDriver(LiveVideoDriver):
         self._tasks: list[asyncio.Task] = []
         self._closing = False
         self._last_pts: Optional[float] = None
-        self._min_gap_ms = 1000.0 / cfg.fps
+        self._fps = cfg.fps
         self._generation = ""
+        #: Кадр → JPEG, с заменой зелёного экрана, если лицо снято на нём.
+        self._paint = FramePainter(cfg.background, size=cfg.size)
+        self._idle_gap_s = 1.0 / cfg.idle_fps if cfg.idle_fps > 0 else None
+        self._last_idle: Optional[float] = None
 
     # -- что делает подкласс ------------------------------------------------------
 
@@ -137,13 +142,21 @@ class WebRtcDriver(LiveVideoDriver):
                 arrival = self._now()
                 pts = self._anchor.video_pts(arrival, self._video_time(frame))
                 if pts is None or not self._anchor.generation:
+                    # Не наша речь — лицо слушает. Реже, чем речь: это фон
+                    # между репликами, а не губы под звук.
+                    if self._idle_gap_s is not None and (
+                            self._last_idle is None or arrival - self._last_idle >= self._idle_gap_s * 0.999):
+                        self._last_idle = arrival
+                        jpeg = await asyncio.to_thread(self._paint, self._video_rgb(frame))
+                        if jpeg is not None:
+                            self.emit(IdleFrame(jpeg))
                     continue
-                if self._last_pts is not None and pts - self._last_pts < self._min_gap_ms * 0.999:
+                if self._last_pts is not None and frame_slot(pts, self._fps) <= frame_slot(self._last_pts, self._fps):
                     continue
                 self._last_pts = pts
                 gen = self._anchor.generation
                 rgb = self._video_rgb(frame)
-                jpeg = await asyncio.to_thread(encode_jpeg, rgb, size=self._cfg.size)
+                jpeg = await asyncio.to_thread(self._paint, rgb)
                 if jpeg is not None and gen == self._anchor.generation:
                     self.emit(VideoFrame(gen, pts, jpeg))
         except asyncio.CancelledError:

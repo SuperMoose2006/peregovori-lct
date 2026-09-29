@@ -46,6 +46,11 @@ ENV_SIZE = "NEGO_LIVE_VIDEO_SIZE"
 ENV_CONNECT_TIMEOUT = "NEGO_LIVE_VIDEO_CONNECT_TIMEOUT_S"
 ENV_MAX_FAILURES = "NEGO_LIVE_VIDEO_MAX_FAILURES"
 ENV_SANDBOX = "NEGO_LIVE_VIDEO_SANDBOX"
+ENV_STALE = "NEGO_LIVE_VIDEO_STALE_MS"
+ENV_BACKGROUND = "NEGO_LIVE_VIDEO_BACKGROUND"
+ENV_IDLE_FPS = "NEGO_LIVE_VIDEO_IDLE_FPS"
+ENV_CASTING = "NEGO_LIVE_VIDEO_CASTING"
+ENV_LIPS_WAIT = "NEGO_LIVE_VIDEO_LIPS_WAIT_MS"
 ENV_STUB_FAIL = "NEGO_LIVE_VIDEO_STUB_FAIL_AFTER_S"
 ENV_STUB_LATENCY = "NEGO_LIVE_VIDEO_STUB_LATENCY_MS"
 
@@ -56,10 +61,22 @@ _OFF = {"", "off", "0", "no", "none", "false", "local"}
 #: полторы секунды речи — значит, кадров под эту речь уже не будет, и
 #: человеку честнее показать рисованный рот, чем застывшую фотографию.
 DEFAULT_STALL_MS = 1500
-#: Кадров в секунду на провод. Сервисы отдают 25–40, но каждый кадр — это
-#: 20–40 КБ base64 по сокету партии: 15 к/с держат губы читаемыми и
-#: вдвое-втрое дешевле по трафику.
-DEFAULT_FPS = 15.0
+#: Кадров в секунду на провод. 25 — родная частота LiveAvatar (замер
+#: 29.09): владелец выбрал точный липсинк, а смыкание губ на м/п/б длится
+#: 60–100 мс и при 15 к/с проскакивает между кадрами. Цена — трафик: кадр
+#: 15–25 КБ, порядка 3–4 Мбит/с на партию, пока оппонент говорит.
+DEFAULT_FPS = 25.0
+#: Кадров в секунду между репликами: живое лицо сервиса вместо рисованного
+#: портрета, пока человек думает. Меньше — дешевле по трафику; дыхание и
+#: моргание читаются и при 8.
+DEFAULT_IDLE_FPS = 8.0
+#: Сколько, считая от первого звука реплики, звук может ждать её первый кадр
+#: речи. Замер 29.09 через продукт: первая реплика партии у LiveAvatar
+#: приходила с отставанием 1.07, 1.10 и 2.97 с против 0.57–1.23 с у
+#: остальных — холодный старт, который постоянным удержанием не покрыть.
+#: Три секунды — наибольшее замеренное плюс кадр; дольше сервис не начал
+#: рисовать — портрет сразу, а не ещё полторы секунды немого фото.
+DEFAULT_LIPS_WAIT_MS = 3000
 #: Сторона кадра, px. Лицо на сцене встречи — 280 px, в рельсе меньше.
 DEFAULT_SIZE = 320
 DEFAULT_CONNECT_TIMEOUT_S = 12.0
@@ -116,6 +133,10 @@ class LiveVideoConfig:
     input: str = "audio"
     #: None — берётся заявленное драйвером (`DriverInfo.av_delay_ms`).
     av_delay_ms: Optional[int] = None
+    #: Потолок ожидания губ, мс от первого звука реплики: звук не уходит
+    #: человеку, пока не пришёл первый кадр её речи. Не больше удержания
+    #: (и 0) — ожидания нет, только постоянное удержание.
+    lips_wait_ms: int = DEFAULT_LIPS_WAIT_MS
     stall_ms: int = DEFAULT_STALL_MS
     pts_offset_ms: int = 0
     fps: float = DEFAULT_FPS
@@ -124,6 +145,17 @@ class LiveVideoConfig:
     max_failures: int = DEFAULT_MAX_FAILURES
     stub_fail_after_s: Optional[float] = None
     stub_latency_ms: int = 0
+    #: Сколько кадр речи может висеть на экране без смены, мс. None — 2.5
+    #: шага кадра (`stale_limit_ms`): при удержании звука кадры приходят
+    #: раньше своего звука, и порог больше не про опоздание, а про дыру в
+    #: потоке — пропал один кадр, терпим; пропало больше — не держим
+    #: застывший рот под звучащий голос.
+    stale_ms: Optional[int] = None
+    #: Фон вместо зелёного экрана: `stage` · `#rrggbb` · путь к картинке · `off`.
+    background: str = "stage"
+    idle_fps: float = DEFAULT_IDLE_FPS
+    #: Раскладка «персонаж → лицо» (`casting.py`). Пусто — встроенная.
+    casting: str = ""
     #: Бесплатная песочница сервиса, если он её даёт (LiveAvatar: сессия
     #: около минуты, своё тестовое лицо, кредиты не списываются).
     sandbox: bool = False
@@ -254,6 +286,7 @@ def load(env: Optional[Mapping[str, str]] = None) -> LiveVideoConfig:
         avatar=(env.get(ENV_AVATAR) or "").strip(),
         input=wanted,
         av_delay_ms=av_delay,
+        lips_wait_ms=_number(env, ENV_LIPS_WAIT, DEFAULT_LIPS_WAIT_MS, 0, 10000, warnings),
         stall_ms=_number(env, ENV_STALL, DEFAULT_STALL_MS, 200, 20000, warnings),
         pts_offset_ms=_number(env, ENV_PTS_OFFSET, 0, -2000, 2000, warnings),
         fps=_number(env, ENV_FPS, DEFAULT_FPS, 1.0, 60.0, warnings, cast=float),
@@ -264,6 +297,10 @@ def load(env: Optional[Mapping[str, str]] = None) -> LiveVideoConfig:
         stub_fail_after_s=stub_fail,
         stub_latency_ms=_number(env, ENV_STUB_LATENCY, 0, 0, 5000, warnings),
         sandbox=(env.get(ENV_SANDBOX) or "").strip().lower() in ("1", "on", "true", "yes"),
+        stale_ms=_number(env, ENV_STALE, None, 40, 1000, warnings) if (env.get(ENV_STALE) or "").strip() else None,
+        background=(env.get(ENV_BACKGROUND) or "stage").strip() or "stage",
+        idle_fps=_number(env, ENV_IDLE_FPS, DEFAULT_IDLE_FPS, 0.0, 30.0, warnings, cast=float),
+        casting=(env.get(ENV_CASTING) or "").strip(),
         errors=tuple(errors),
         warnings=tuple(warnings),
         missing_key=missing_key,
@@ -325,6 +362,22 @@ def describe(cfg: Optional[LiveVideoConfig] = None) -> str:
     return f"{cfg.vendor} ({what}; вход {cfg.input}, {voice})"
 
 
+def _journal() -> None:
+    """Строки живого видео — в журнал, даже если логирование не настроено.
+
+    Юнит стенда запускает uvicorn без конфига логов: у корня обработчиков нет,
+    и Python показывает только WARNING и выше. А строка «кадров в такт» на
+    реплику — единственный способ проверить губы на стенде без прибора.
+    Обработчик ставится, только если сервис назван и выше никто не настроил.
+    """
+    if _log.hasHandlers():
+        return
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(levelname)s %(name)s %(message)s"))
+    _log.addHandler(handler)
+    _log.setLevel(logging.INFO)
+
+
 async def startup_check(cfg: Optional[LiveVideoConfig] = None, *, timeout_s: float = 8.0) -> str:
     """Проверка при старте шлюза. Никогда не роняет процесс.
 
@@ -338,6 +391,7 @@ async def startup_check(cfg: Optional[LiveVideoConfig] = None, *, timeout_s: flo
     if not cfg.vendor:
         STATUS.checked = "off"
         return STATUS.checked
+    _journal()
     if cfg.errors:
         for problem in cfg.errors:
             _log.error("живое видео выключено: %s. До исправления — рисованный портрет.", problem)
@@ -395,3 +449,16 @@ async def startup_check(cfg: Optional[LiveVideoConfig] = None, *, timeout_s: flo
     STATUS.checked = f"{cfg.vendor}: ключ принят — {verdict}"
     _log.info("живое видео: %s", STATUS.checked)
     return STATUS.checked
+
+
+def stale_limit_ms(cfg: LiveVideoConfig) -> int:
+    """Порог устаревшего кадра речи: заданный или 2.5 шага кадра.
+
+    2.5 шага — это «один кадр пропал, и это не видно; пропали два — лицо
+    уходит на кадр простоя, а не держит открытый рот под голос». При 25 к/с
+    — 100 мс; дольше держать рот вредно: звук впереди губ больше чем на
+    ~90 мс заметен глазу (ITU-R BT.1359, порог приемлемости).
+    """
+    if cfg.stale_ms:
+        return int(cfg.stale_ms)
+    return int(round(2.5 * 1000.0 / cfg.fps))

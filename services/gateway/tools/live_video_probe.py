@@ -46,7 +46,7 @@ import numpy as np
 from app.avatar.live import config as live_config
 from app.avatar.live.adapter import LiveVideoAvatar
 from app.avatar.live.clock import LEAD_MS, STALE_MS
-from app.avatar.live.driver import Persona
+from app.avatar.live.driver import Persona, finish_stops
 from app.avatar.live.media import encode_jpeg
 from app.avatar.live.vendors import liveavatar
 
@@ -325,6 +325,7 @@ async def run(args) -> int:
     finally:
         watcher.cancel()
         await avatar.close()
+        await finish_stops()            # иначе запрос остановки отменится с выходом
         if liveavatar._STOPPING:
             await asyncio.gather(*liveavatar._STOPPING, return_exceptions=True)
         for f in j.futures:

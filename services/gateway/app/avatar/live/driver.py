@@ -92,6 +92,14 @@ class VideoFrame:
 
 
 @dataclass(frozen=True)
+class IdleFrame:
+    """Кадр лица между репликами (слушает, дышит, моргает). Без места в звуке:
+    клиент показывает его, пока реплика не звучит, вместо рисованного портрета."""
+
+    jpeg: bytes
+
+
+@dataclass(frozen=True)
 class VoiceChunk:
     """Режим `text`: кусок голоса сервиса для фразы `utterance`."""
 
@@ -117,7 +125,7 @@ class Closed:
     planned: bool = False
 
 
-DriverEvent = Union[VideoFrame, VoiceChunk, Closed]
+DriverEvent = Union[VideoFrame, IdleFrame, VoiceChunk, Closed]
 
 
 class DriverError(Exception):
@@ -218,3 +226,29 @@ class LiveVideoDriver(abc.ABC):
             yield event
             if isinstance(event, Closed):
                 return
+
+
+# ------------------------------------------------- остановка сессии у сервиса
+
+#: Запросы «остановить сессию у сервиса», которые переживают закрытие партии:
+#: оно ограничено секундой, а запрос к API бывает дольше. Процесс, который
+#: выходит, — прибор или шлюз при остановке — обязан их дождаться
+#: (`finish_stops`): запрос, отменённый вместе с циклом событий, оставляет
+#: сессию открытой, пока сервис не закроет её сам. Замер 29.09: LiveAvatar
+#: закрыл две такие сессии через 194 и 210 с (`ZOMBIE_SESSION_REAP`), и эти
+#: минуты списаны.
+PENDING_STOPS: set[asyncio.Task] = set()
+
+
+def keep_stop(task: asyncio.Task) -> None:
+    PENDING_STOPS.add(task)
+    task.add_done_callback(PENDING_STOPS.discard)
+
+
+async def finish_stops(timeout: float = 5.0) -> int:
+    """Дождаться запросов остановки этого цикла событий. Сколько не успело."""
+    loop = asyncio.get_running_loop()
+    pending = [t for t in PENDING_STOPS if not t.done() and t.get_loop() is loop]
+    if pending:
+        await asyncio.wait(pending, timeout=timeout)
+    return sum(1 for t in pending if not t.done())
