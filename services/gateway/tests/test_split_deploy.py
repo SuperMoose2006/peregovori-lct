@@ -270,7 +270,9 @@ def test_the_backend_artifact_carries_everything_it_needs_and_no_secrets(tmp_pat
     assert done.returncode == 0, done.stderr
 
     for needed in ("services/gateway/app/main.py", "services/gateway/app/engine/engine.py",
-                   "services/gateway/requirements.txt", "adapters/opentalking_negotiation.py"):
+                   "services/gateway/requirements.txt", "adapters/opentalking_negotiation.py",
+                   # SDK живого видео ставятся на сервере до ключа — файл обязан доехать.
+                   "services/gateway/requirements-live-video.txt"):
         assert (dest / needed).is_file(), f"в артефакте нет {needed}"
 
     assert not (dest / "frontend").exists(), "фронтенд уехал на бэкенд-сервер"

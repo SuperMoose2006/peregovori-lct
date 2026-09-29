@@ -1,7 +1,7 @@
 # `.PHONY` перечисляет только СУЩЕСТВУЮЩИЕ цели. Здесь стояли `avatar` и
 # `dev`, для которых правил нет: `make dev` выходил С НУЛЁМ, не сделав
 # ничего, — тот же тихий обман, что и `make preflight --live`.
-.PHONY: install build serve gateway frontend test test-py test-js test-commit backend-pack e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers
+.PHONY: install build serve gateway frontend test test-py test-js test-commit backend-pack e2e preflight preflight-live preflight-stand preflight-voice preflight-vision preflight-layers live-video-install live-video-check
 
 PYTHON ?= python3
 PY  := services/gateway/.venv/bin/python
@@ -64,6 +64,15 @@ preflight-vision:              ## то же плюс НАСТОЯЩИЙ кадр
 
 preflight-layers:              ## голос и зрение одним прогоном
 	cd services/gateway && .venv/bin/python tools/preflight.py --voice --vision $(ARGS)
+
+# ЖИВОЕ ВИДЕО СОБЕСЕДНИКА — docs/INTEGRATION_LIVE_VIDEO.md. Установка SDK
+# делается ДО ключа: тогда после ключа остаётся перезапуск. Проверка без
+# флагов бесплатна (настройки + ключ); сессию открывает только ARGS=--session.
+live-video-install:            ## SDK сервисов живого видео (ставить до ключа)
+	$(PIP) install -q -r services/gateway/requirements-live-video.txt
+
+live-video-check:              ## живое видео: настройки и ключ; ARGS=--session — одна короткая сессия
+	cd services/gateway && .venv/bin/python -m tools.live_video_check $(ARGS)
 
 e2e:                           ## браузерная проверка (нужен поднятый gateway)
 	cd frontend && node e2e/smoke.mjs --out /tmp/dialog-e2e

@@ -20,3 +20,8 @@ os.environ["NEGO_AI"] = "off"
 # и удалённая переменная тут же вернулась бы из .env.
 os.environ["NEGO_HTTP_PASSWORD"] = ""
 os.environ["NEGO_JUDGE"] = "0"
+# Живое видео — платный сетевой сервис: ключ из `.env` разработчика не должен
+# ни включить его в тестах, ни потратить минуты. Тесты видео включают
+# заглушку явно через monkeypatch.
+os.environ["NEGO_LIVE_VIDEO"] = "off"
+os.environ["NEGO_LIVE_VIDEO_KEY"] = ""

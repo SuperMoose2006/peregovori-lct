@@ -1,0 +1,10 @@
+{
+  "_note": "Персонаж → лицо сервиса живого видео. Правится tools/sync_casting.py по документу кастинга (AVATAR_CASTING.md в docs, когда появится), руками — только defaults.",
+  "liveavatar": {
+    "defaults": {
+      "female": "6e32f90a-f566-45be-9ec7-a5f6999ee606",
+      "male": "0930fd59-c8ad-434d-ad53-b391a1768720"
+    },
+    "personas": {}
+  }
+}
