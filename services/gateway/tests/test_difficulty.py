@@ -154,13 +154,47 @@ def test_difficulty_never_lets_the_opponent_cross_the_floor() -> None:
                 assert sess.state.offer_opp <= sc.opponent_reservation + 0.001, (sid, d)
 
 
+@pytest.mark.parametrize("scenario_id,opening_quote", [("salary", 205.0),
+                                                       ("candidate_offer", 235.0)])
+def test_finer_price_grid_never_turns_a_concession_into_a_retraction(
+        scenario_id: str, opening_quote: float) -> None:
+    """Крупная сетка 5 оставляет нечётную цену, мелкая сетка 2 её не содержит.
+
+    Раньше маленькая положительная уступка при смене сетки округлялась НАЗАД:
+    зарплата 205 → 204, цена кандидата 235 → 236. Продолжение торга не должно
+    отзывать предложение; большой заработанный шаг при этом обязан работать.
+    """
+    from app.engine import engine as core
+
+    sess = engine.create_session(scenario_id, "ru")
+    sess.turn = 1
+    greeting = "Здравствуйте."
+    engine.apply_move(sess, analyze(greeting), greeting)
+    assert sess.ledger  # Следующая уступка использует сетку продолжения торга.
+    sess.state.offer_opp = opening_quote
+    sc = by_id(scenario_id)
+    assert core.price_step(sc, opening=True) == 5
+    assert core.price_step(sc) == 2
+
+    core._concede(sess, 0.02)
+    assert sess.state.offer_opp == opening_quote, (
+        f"{scenario_id}: маленькая уступка отозвала предложение "
+        f"{opening_quote} → {sess.state.offer_opp}")
+
+    core._concede(sess, 0.20)
+    if sess.lower_better:
+        assert sc.opponent_reservation <= sess.state.offer_opp < opening_quote
+    else:
+        assert opening_quote < sess.state.offer_opp <= sc.opponent_reservation
+
+
 # ---- Точка приложения №2: порог доверия для вскрытия интереса ---------------
 
 #: Вопрос, попадающий в первый скрытый интерес поставщика (объёмы/загрузка).
 THEMATIC_PROBE_RU = PRINCIPLED["supplier"]["ru"][0]
 
 
-@pytest.mark.parametrize("difficulty,gate", [(2, 30), (3, 32), (4, 34), (5, 36)])
+@pytest.mark.parametrize("difficulty,gate", [(1, 26), (2, 30), (3, 34), (4, 38), (5, 39)])
 def test_reveal_trust_gate_rises_with_difficulty(difficulty: int, gate: float) -> None:
     """У трудного собеседника открыться должно быть труднее.
 

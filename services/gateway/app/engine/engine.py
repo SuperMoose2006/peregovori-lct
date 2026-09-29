@@ -177,20 +177,17 @@ def create_session(scenario_id: str, lang: str = "ru") -> Session:
 #: стола: иначе «привязать сложность» означало бы «сделать всем хуже, кроме
 #: двойки», и баланс всех столов, кроме самого лёгкого, поехал бы вниз разом.
 DIFFICULTY_MID = 3.5
-#: Шаг сопротивления на единицу сложности. Числу цена известна: при 0.06 путь от
-#: 2 к 5 меняет заработанную уступку на ±9 % от середины, и этого хватает, чтобы
-#: разница читалась в цифре на столе, но не хватает, чтобы принципиальная партия
-#: у инвестора (74 из 100, запас до B — четыре балла) свалилась в C. Инвариант 2
-#: тут ограничивает сверху, а требование различимости — снизу.
-DIFFICULTY_CONCESSION_K = 0.06
-#: Прибавка к порогу доверия за единицу сложности сверх двойки. Базовые 30
-#: остаются у самого лёгкого стола; у инвестора порог 36. Стартовое доверие 40,
-#: поэтому первый вопрос вскрывает интерес на ЛЮБОМ столе (инвариант 9: капстоун
-#: обязан проходиться), а вот вернуться к расспросам после хамства на трудном
-#: столе уже не выйдет — доверие туда не дотянется.
-DIFFICULTY_TRUST_GATE_STEP = 2.0
-#: Порог доверия для вскрытия интереса у самого лёгкого стола.
+#: Калибровка 1620 партий: прежние 0.06 терялись при округлении цены. Удвоенный
+#: шаг различает соседние уровни в раннем закрытии, сохраняя сильную игру.
+#: Числа и воспроизводимый прибор — docs/DIFFICULTY_CALIBRATION.md.
+DIFFICULTY_CONCESSION_K = 0.12
+#: Прибавка сверх двойки усиливает последствия потери доверия. Без потолка
+#: пятый уровень получал 42 и блокировал первый вопрос при стартовых 40:
+#: эталонная партия переставала проходить капстоун инвестора.
+DIFFICULTY_TRUST_GATE_STEP = 4.0
+#: Второй уровень сохраняет базовый порог; первый стоит на шаг ниже.
 REVEAL_TRUST_GATE_BASE = 30.0
+REVEAL_TRUST_GATE_MAX = 39.0
 
 
 def _difficulty(sess: Session) -> float:
@@ -219,7 +216,8 @@ def reveal_trust_gate(sess: Session) -> float:
     вас за угрозу своему бизнесу, открыться должно быть труднее, чем у сговорчивого
     поставщика, — и это ровно та разница, которую карточка обещала точками.
     """
-    return REVEAL_TRUST_GATE_BASE + DIFFICULTY_TRUST_GATE_STEP * (_difficulty(sess) - 2.0)
+    return min(REVEAL_TRUST_GATE_MAX,
+               REVEAL_TRUST_GATE_BASE + DIFFICULTY_TRUST_GATE_STEP * (_difficulty(sess) - 2.0))
 
 
 def flexibility(sess: Session) -> float:
@@ -277,9 +275,15 @@ def best_available(sc: Scenario) -> float:
 #: Из каких шагов выбирается шаг цены. Список «человеческих» чисел: живые люди
 #: двигаются на 5, на 0.5, на 1 — но не на 1.37.
 _NICE_STEPS = (0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0, 50.0)
+PRICE_STEP_DIVISOR = 32
+#: Первое предложение без размена остаётся на крупной сетке; пакетный размен
+#: или продолжение торга допускает мелкие уступки. Иначе крупная сетка стирает
+#: разницу ценности двух разных условий уже при первом пакетном предложении.
+#: Первый якорь сохраняет крупную сетку и числовой пример курса.
+OPENING_PRICE_STEP_DIVISOR = 16
 
 
-def price_step(sc: Scenario) -> float:
+def price_step(sc: Scenario, *, opening: bool = False) -> float:
     """Шаг, которым двигается цена на этом столе.
 
     ЗАЧЕМ. Уступка считалась долей оставшегося пути и округлялась до сотых, из-за
@@ -291,13 +295,14 @@ def price_step(sc: Scenario) -> float:
     ВЫВОДИТСЯ ИЗ РАЗМАХА, А НЕ ВПИСЫВАЕТСЯ ЧИСЛОМ: на девяти столах шкалы
     отличаются в двести раз (0.9 процентного пункта аптайма против 160 тысяч за
     машину), а «своя сделка» генерируется на ходу — руками для неё шаг не
-    пропишешь. Шестнадцатая часть размаха даёт примерно дюжину заметных шагов на
-    партию, что и есть торг.
+    пропишешь. Первая реплика без размена использует крупный шаг; пакетные
+    предложения и продолжение торга — вдвое меньшую целевую сетку, чтобы
+    уступки соседних уровней не сливались.
     """
     span = abs(sc.opponent_open - sc.opponent_reservation)
     if span <= 0:
         return 0.01
-    target = span / 16
+    target = span / (OPENING_PRICE_STEP_DIVISOR if opening else PRICE_STEP_DIVISOR)
     return min(_NICE_STEPS, key=lambda x: abs(x - target))
 
 
@@ -322,7 +327,7 @@ def _concede(sess: Session, fraction: float) -> None:
     floor = sc.opponent_reservation
     dist = floor - s.offer_opp  # signed; toward player
     moved = s.offer_opp + dist * fraction
-    step = price_step(sc)
+    step = price_step(sc, opening=not sess.ledger and not s.tradeoffs_used)
     # Округляем ПРОТИВ движения: оппонент уступает ровно на «человеческий» шаг
     # и ни копейкой больше. Дно от этого только дальше.
     units = moved / step
@@ -331,7 +336,10 @@ def _concede(sess: Session, fraction: float) -> None:
     # сдвинулась, а движение было — двигаем ровно на один шаг.
     if abs(snapped - s.offer_opp) < step / 2 and abs(dist * fraction) > step / 2:
         snapped = s.offer_opp + (-step if floor < s.offer_opp else step)
-    s.offer_opp = _round2(snapped)
+    # Сетки могут не вкладываться: 205 кратно шагу 5, но не шагу 2. Округление
+    # малой уступки к новой сетке тогда давало 204 при движении ВВЕРХ. Уступка
+    # вправе округлиться в ноль, но обратный ход принадлежит только _retract.
+    s.offer_opp = _round2(clamp(snapped, min(s.offer_opp, floor), max(s.offer_opp, floor)))
 
 
 def _retract(sess: Session, fraction: float) -> None:
@@ -393,7 +401,7 @@ def _anchor_frame(sess: Session, anchor: float) -> bool:
     moved = s.offer_opp + math.copysign(shift, gap)
     # Округляем ПРОТИВ движения, как и уступку: оппонент двигается на
     # «человеческий» шаг и ни копейкой больше, а дно от этого только дальше.
-    step = price_step(sc)
+    step = price_step(sc, opening=True)
     units = moved / step
     snapped = (math.ceil(units) if floor < s.offer_opp else math.floor(units)) * step
     snapped = max(snapped, floor) if floor < s.offer_opp else min(snapped, floor)
