@@ -100,6 +100,7 @@ if (EXPECT === "off") {
   check(start.renderer === "amplitude" && start.source === "drawn",
     "без кредов лицо — рисованный портрет со ртом по громкости", `${start.renderer}/${start.source}`);
   check(start.test === null, "без кредов нет подписи «тестовый поток»");
+  const greeted = start.replies;          // приветствие — тоже реплика оппонента
   await say("Что для вас важнее всего в этой поставке, кроме цены?");
   const seen = await watch(6000);
   check(!seen.sources.has("frame"), "без кредов кадров на экране нет", list(seen.sources));
@@ -110,7 +111,10 @@ if (EXPECT === "off") {
   check(wire.frames === 0, "без кредов ни одного avatar.frame по сокету", String(wire.frames));
   check(wire.states.every((s) => s.mode === "amplitude"), "все состояния лица — прежний режим amplitude",
     JSON.stringify(wire.states.slice(0, 3)));
-  check((await face()).replies >= 1, "реплика оппонента пришла");
+  const answered = (await face()).replies;
+  check(answered > greeted, "реплика оппонента пришла", `${greeted} → ${answered}`);
+  await page.locator("textarea:visible").first().fill("Второй ход");
+  check(await page.locator("button.send").first().isEnabled(), "ход закрыт — можно ходить дальше");
 } else {
   check(start.renderer === "video", "с заглушкой лицо в режиме видео", String(start.renderer));
   check((start.test ?? "").length > 0, "заглушка подписана как тестовый поток", String(start.test));

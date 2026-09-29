@@ -134,6 +134,7 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
     ("describe-hides-video", LIVE + "config.py", "    return f\"{cfg.vendor} ({what}; вход {cfg.input}, {voice})\"", "    return \"off\"", ("py", "e2e-stub")),
     ("speech-denied", "services/gateway/app/realtime/endpoint.py", "        \"speech\": bool(session.layers.voice) and _speech_for(", "        \"speech\": False and _speech_for(", ("py", "e2e-off", "e2e-stub")),
     ("local-face-swallows-voice", "services/gateway/app/avatar/base.py", "    audio_out: Optional[Callable[[dict], None]] = None", "    audio_out = staticmethod(lambda event: None)", ("e2e-off",)),
+    ("reply-lost", "services/gateway/app/orchestrator/negotiation.py", "        sess.bus.publish(output_delta(\"text\", generation_id=generation_id,\n                                      turn_id=turn_id, text=line, final=True))", "        pass", ("e2e-off",)),
     ("reply-never-done", "services/gateway/app/orchestrator/negotiation.py", "        sess.bus.publish(response_done(generation_id=generation_id, turn_id=turn_id,\n                                       text=line, reason=\"turn_end\"))\n        self._finish_generation()", "        self._finish_generation()", ("e2e-off", "e2e-stub")),
     ("frames-never-published", LIVE + "adapter.py", "            self._publish(event)\n            self.stats.frames_sent += 1", "            self.stats.frames_sent += 1", ("py", "e2e-stub")),
     ("synthetic-hidden", LIVE + "adapter.py", "synthetic=bool(self._info and self._info.synthetic))", "synthetic=False)", ("py", "e2e-stub")),
@@ -149,7 +150,7 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
     ("http-500-fatal", V + "_webrtc.py", "        return DriverError(f\"{vendor}: проверка ключа ответила {status} {body[:120]}\", reason=\"http\")", "        return DriverError(f\"{vendor}: проверка ключа ответила {status} {body[:120]}\", reason=\"http\", fatal=True)", ("py",)),
     ("onset-always-zero", V + "_anchor.py", "    return float(loud[0]) * WINDOW_MS", "    return 0.0", ("py",)),
     ("simli-errors-all-retry", V + "simli.py", "                              fatal=any(code in text for code in _FATAL))", "                              fatal=False)", ("py",)),
-    ("la-livekit-name-drift", V + "liveavatar.py", "LK_TRACK_EVENT = \"track_subscribed\"", "LK_TRACK_EVENT = \"track_published\"", ("py",)),
+    ("la-livekit-name-drift", V + "liveavatar.py", "LK_TRACK_EVENT = \"track_subscribed\"", "LK_TRACK_EVENT = \"track_ready\"", ("py",)),
     # --- клиент
     ("client-console-error", T, "          this.faceFrames.clear();\n          // `synthetic: false`", "          console.error(\"live video mutation\");\n          this.faceFrames.clear();\n          // `synthetic: false`", ("e2e-off", "e2e-stub")),
     ("client-no-video-recovery", T, "} else if (this.session && event.lipsync_mode === \"video\" && event.transport === \"jpeg\") {", "} else if (false) {", ("js",)),
@@ -166,6 +167,11 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
 #: Мутации, которым нужна правка в двух местах (второе — снять страховку,
 #: которая иначе спрячет поломку от проверки).
 EXTRA_EDITS: dict[str, list[tuple[str, str, str]]] = {
+    # Реплика не доходит вовсе: ни текстом по ходу, ни итогом.
+    "reply-lost": [(
+        "services/gateway/app/orchestrator/negotiation.py",
+        "        sess.bus.publish(response_done(generation_id=generation_id, turn_id=turn_id,\n                                       text=line, reason=\"turn_end\"))\n        self._finish_generation()\n\n    async def _stream_opponent",
+        "        self._finish_generation()\n\n    async def _stream_opponent")],
     # Лицо бросает после отказа, и оркестратор больше не ловит — ход падает.
     "turn-dies-after-failure": [(
         "services/gateway/app/orchestrator/negotiation.py",
