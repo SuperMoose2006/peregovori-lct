@@ -44,7 +44,7 @@ console.log(`сборка сверена: ${want} (${DIST})`);
 const browser = await chromium.launch({ executablePath: EXE, args: ["--no-sandbox"] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
 const page = await ctx.newPage();
-await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); } catch {} });
+await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch {} });
 await page.goto(BASE, { waitUntil: "domcontentloaded" });
 await page.waitForTimeout(2000);
 

@@ -20,7 +20,7 @@ const b = await chromium.launch({ executablePath:"/root/.cache/ms-playwright/chr
 const ctx = await b.newContext({ viewport:{width:1440,height:900},
   httpCredentials:{username:"dialog",password:PASS} });
 const p = await ctx.newPage();
-await p.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1","1"); } catch {} });
+await p.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1","1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch {} });
 await p.goto(HOST + "/", { waitUntil:"domcontentloaded", timeout:40000 });
 await p.waitForTimeout(2500);
 // Здесь слой обязан НЕ загореться — это и есть предмет замера, поэтому

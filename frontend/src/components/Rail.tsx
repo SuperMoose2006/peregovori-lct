@@ -4,12 +4,13 @@
 // Without it the content column is the whole width and the layout stops reading
 // as an app — which is exactly the gap between what was designed on the canvas
 // and what the code shipped first.
+import { useEffect, useState } from "react";
 import type { Strings } from "../i18n";
 import { dailyTable } from "../lib/daily";
 import { SCENARIO_MAP } from "../data/scenarios";
 import type { Lang } from "../types";
 import type { Profile } from "../lib/progress";
-import { dailyGoalView, rankForXp, getRecord, streakView, DAILY_GOAL_MAX } from "../lib/progress";
+import { dailyGoalView, dayKey, msUntilNextDay, rankForXp, getRecord, streakView, DAILY_GOAL_MAX } from "../lib/progress";
 import { plural } from "../lib/format";
 import { MascotImg } from "./Mascot";
 import { DataIcon } from "./Icon";
@@ -50,6 +51,33 @@ export function RailGroup({ head, note, className, children }:
   );
 }
 
+/**
+ * Сегодняшний местный день — и перерисовка, когда он сменился.
+ *
+ * Цель дня считается от сегодняшнего дня: отложенное понижение вступает в
+ * силу в полночь, счётчик партий обнуляется там же. Без этого вкладка,
+ * открытая с вечера, показывала бы вчерашнюю цель до первого клика. Таймер —
+ * до ближайшей полуночи; после сна машины он может проспать её, поэтому день
+ * сверяется ещё и при возвращении на вкладку.
+ */
+export function useDayKey(): string {
+  const [day, setDay] = useState(() => dayKey());
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const arm = () => {
+      timer = setTimeout(() => { setDay(dayKey()); arm(); }, msUntilNextDay());
+    };
+    arm();
+    const recheck = () => setDay(dayKey());
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", recheck);
+    };
+  }, []);
+  return day;
+}
+
 /** Daily goal + rank: the two widgets every screen of the shell carries.
  *
  * ВЫБОР ЦЕЛИ ЖИВЁТ ЗДЕСЬ. Раньше цифры 1/2/3 были кликабельны только в
@@ -57,9 +85,11 @@ export function RailGroup({ head, note, className, children }:
  * сама возможность поменять цель дня, хотя к оформлению она отношения не имеет.
  * Поэтому пипсы переехали в рейл и стали кнопками: показ и выбор в одном месте.
  */
-export function ProgressCards({ t, lang, profile, onSetGoal }:
-  { t: Strings; lang: Lang; profile: Profile; onSetGoal?: (target: number) => void }) {
-  const goal = dailyGoalView(profile);
+export function ProgressCards({ t, lang, profile, onSetGoal, today: todayProp }:
+  { t: Strings; lang: Lang; profile: Profile; onSetGoal?: (target: number) => void; today?: string }) {
+  const liveDay = useDayKey();
+  const today = todayProp ?? liveDay;
+  const goal = dailyGoalView(profile, today);
   const r = rankForXp(profile.xp);
   return (
     <>
@@ -74,18 +104,30 @@ export function ProgressCards({ t, lang, profile, onSetGoal }:
                 aria-hidden={onSetGoal ? undefined : true}>
             {Array.from({ length: DAILY_GOAL_MAX }, (_, i) => {
               const n = i + 1;
-              const cls = `${i < goal.done ? "on" : ""}${goal.target === n ? " tgt" : ""}`.trim();
+              const cls = [i < goal.done ? "on" : "", goal.target === n ? "tgt" : "",
+                           goal.later === n ? "next" : ""].filter(Boolean).join(" ");
+              // Что сделает нажатие, сказано ДО нажатия: меньше сегодняшней
+              // цели — ляжет на завтра (lib/progress.ts::setDailyGoalTarget).
+              const when = n < goal.target ? t.goal.setLater : t.goal.setNow;
               return onSetGoal ? (
-                <button key={n} className={cls} aria-pressed={goal.target === n}
-                        title={t.gam.dailyTargetSet.replace("{n}", String(n))}
+                <button key={n} className={cls || undefined} aria-pressed={goal.target === n}
+                        title={when.replace("{n}", String(n))}
                         onClick={() => onSetGoal(n)}>{n}</button>
               ) : (
-                <i key={n} className={cls}>{n}</i>
+                <i key={n} className={cls || undefined}>{n}</i>
               );
             })}
           </span>
         </div>
         <div className="rc-bar"><i style={{ width: `${Math.round(goal.progress * 100)}%` }} /></div>
+        {onSetGoal ? <p className="rc-goal-rule">{t.goal.rule}</p> : null}
+        {/* Живая область стоит всегда, меняется только её текст: диктор
+            объявляет изменение, а не появление нового элемента. */}
+        <p className="rc-goal-later" role="status">
+          {goal.later !== null
+            ? t.goal.later.split("{today}").join(String(goal.target)).replace("{later}", String(goal.later))
+            : null}
+        </p>
       </RailCard>
 
       <RailCard title={t.rank.title}>

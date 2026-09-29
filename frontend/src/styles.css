@@ -1535,6 +1535,11 @@ textarea:focus { outline: none; border-color: var(--sel-line); background: var(-
 .onb-tip.a-left .onb-arrow { left: -7px; border-top: none; border-right: none; }
 .onb-tip.a-right .onb-arrow { left: auto; right: -7px; border-bottom: none; border-left: none; }
 .onb-step { font-size: 11.5px; font-weight: 700; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+/* «Больше не показывать в этом разделе» — видимая галочка в самой карточке,
+   а не спрятанная в настройках: отказаться от тура должно быть так же просто,
+   как его пройти. Вернуть — Профиль → «Подсказки». */
+.onb-opt { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--ink-dim); cursor: pointer; }
+.onb-opt input { width: 18px; height: 18px; margin: 0; accent-color: var(--brass); flex: 0 0 auto; cursor: pointer; }
 
 .onb-title { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
 .onb-body { font-size: 13.5px; line-height: 1.52; color: var(--ink-dim); }
@@ -2296,6 +2301,12 @@ textarea:focus-visible,
   border: 1px solid color-mix(in srgb, var(--info) 30%, var(--line));
 }
 .ly-txt .ly-req { font-size: 11.5px; color: var(--ink-faint); }
+/* Ответ устройства под тумблером: выдан — зелёным, отказ — красным с тем, как
+   выдать доступ, «спрашиваем» — нейтрально. */
+.ly-txt .ly-check { font-size: 12px; line-height: 1.45; font-weight: 700; color: var(--ink-dim); }
+.ly-txt .ly-check.granted { color: var(--trust-ink); }
+.ly-txt .ly-check.denied, .ly-txt .ly-check.missing,
+.ly-txt .ly-check.busy, .ly-txt .ly-check.failed { color: var(--tension-ink); }
 /* Строка «видео-лица нет» внутри карточки лица: та же раскладка, что у
    подвыбора камеры, но без тумблера — выключателя у того, чего нет, не бывает.
    Свой класс, а не `.ly-sub`: тот означает «подвыбор» и ищется по имени. */
@@ -2432,6 +2443,31 @@ textarea:focus-visible,
 
 /* Слои в профиле: их дом, а не ворота перед партией. */
 .prof-layers { max-width: 760px; margin: 0 auto; padding: 0 0 40px; }
+/* «Подсказки» в Профиле — над слоями, той же ширины. */
+.tour-prefs { max-width: 760px; margin: 0 auto 28px; padding: 16px 18px; background: var(--panel); border: 2px solid var(--line); border-radius: var(--r); }
+.tour-prefs .pl-head { margin-bottom: 8px; }
+.tp-lead { margin: 0 0 12px; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+.tp-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tp-label { font-size: 14px; font-weight: 700; color: var(--ink); }
+.tp-off { margin: 12px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
+.tp-restore { font: inherit; font-weight: 700; color: var(--info-ink); background: none; border: 0; padding: 4px 0; cursor: pointer; text-decoration: underline; min-height: 32px; }
+/* Кнопка тура текущего раздела в шапке: подпись на широком экране, на телефоне —
+   один значок (имя остаётся в aria через текст, скрытый только визуально). */
+.tour-help {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 12px;
+  font: inherit; font-size: 12.5px; font-weight: 700; color: var(--info-ink);
+  background: var(--panel); border: 2px solid color-mix(in srgb, var(--info) 35%, var(--line)); border-radius: 999px; cursor: pointer;
+}
+.tour-help:hover { background: color-mix(in srgb, var(--info) 8%, var(--panel)); }
+.tour-help:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+@media (max-width: 720px) {
+  /* Кнопка тура добавила шапке 52px, и на 390px кнопка звука уехала за край
+     (ui.mjs: scrollWidth 398). Зазоры между кнопками шапки ужаты, сами цели
+     касания — нет. */
+  .controls { gap: 4px; }
+  .tour-help { min-width: 44px; min-height: 44px; padding: 6px 10px; justify-content: center; }
+  .tour-help .tour-help-l { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 .pl-head { margin: 0 0 14px; font-family: var(--serif); font-size: 20px; }
 
 /* ---------- Modality layers: the question in the log ----------
@@ -2568,7 +2604,15 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    ещё не достигнута и ни один кружок не залит. */
 .rc-steps button.tgt { border-color: var(--brass); color: var(--ink); }
 .rc-steps button.on.tgt { border-color: var(--edge); }
+/* Цель, отложенная на завтра: пунктир — «ещё не действует». Сплошной ободок
+   остаётся у сегодняшней, и две цели на одной строке не путаются. */
+.rc-steps button.next, .rc-steps i.next { border: 2px dashed var(--info-ink); color: var(--ink); }
 .rc-steps button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+/* Правило выбора — рядом с кнопками и до нажатия: запрет на понижение в тот
+   же день не должен обнаруживаться методом тыка. */
+.rc-goal-rule { margin: 10px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-dim); }
+.rc-goal-later { margin: 6px 0 0; font-size: 12px; line-height: 1.45; font-weight: 700; color: var(--ink); }
+.rc-goal-later:empty { margin: 0; }
 /* На телефоне кружок 22px — цель нажатия вдвое меньше порога в 44px. Увеличиваем
    САМУ кнопку, а не невидимую область через ::after: у соседей зазор 5px, и
    растянутые зоны налезали бы друг на друга — эту ошибку тут уже допускали. */

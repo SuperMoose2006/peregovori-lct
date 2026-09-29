@@ -50,7 +50,7 @@ for (const vp of VIEWPORTS) {
     const where = `${lang}/${vp.tag}`;
     page.on("console", (m) => { if (m.type() === "error" && !/WebSocket/.test(m.text())) errors.push(`[${where}] ${m.text()}`); });
     page.on("pageerror", (e) => errors.push(`[${where}] PAGEERROR ${e.message}`));
-    await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); } catch {} });
+    await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch {} });
     await page.goto(BASE, { waitUntil: "networkidle" });
     if (lang === "en") { await page.click('.seg button:has-text("EN")'); await page.waitForTimeout(200); }
 

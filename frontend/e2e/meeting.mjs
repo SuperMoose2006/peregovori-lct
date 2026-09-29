@@ -55,7 +55,7 @@ async function open({ width = 1440, height = 900, theme = "light", lang = "ru", 
   page.on("console", (m) => { if (m.type() === "error" && !/404|501/.test(m.text())) errors.push(m.text()); });
   page.on("websocket", (ws) => { const s = { url: ws.url(), closed: false }; sockets.push(s); ws.on("close", () => { s.closed = true; }); });
   await page.addInitScript(({ theme, lang, layers }) => {
-    localStorage.setItem("dialog.tutorialDone.v1", "1");
+    localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}');
     localStorage.setItem("dialog.theme.v1", theme);
     localStorage.setItem("dialog.lang.v1", lang);
     localStorage.setItem("dialog.layers.v1", JSON.stringify(layers));

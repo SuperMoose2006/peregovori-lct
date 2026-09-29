@@ -765,7 +765,7 @@ for (const vp of VPS) {
           `${res.status()} на ${url.replace(BASE, "/").slice(0, 90)}${body ? " ← " + body : ""}`);
     }
   });
-  await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); } catch {} });
+  await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch {} });
   if (vp.attr) await page.addInitScript((a) => {
     document.addEventListener("DOMContentLoaded", () => document.documentElement.setAttribute("data-theme", a));
   }, vp.attr);

@@ -49,83 +49,200 @@ async function fresh(width, height, lang) {
 
 const tipTitle = (page) => page.locator(".onb-tip .onb-title").innerText().catch(() => null);
 
-/** Вводная целиком: каждый шаг — снимок, счётчик, заголовок из словаря. */
-async function walkTour(page, t, tag) {
+const { TOURS } = await tsImport("../src/lib/tours.ts", import.meta.url);
+const TOURS_OFF = '{"enabled":false}';
+
+/** Подсказка замерла: плавная прокрутка до цели закончилась. */
+async function settle(page) {
+  const tip = page.locator(".onb-tip");
+  let prev = null;
+  for (let k = 0; k < 25; k++) {
+    await page.waitForTimeout(200);
+    const b = await tip.boundingBox().catch(() => null);
+    if (prev && b && Math.abs(b.y - prev.y) < 0.5 && Math.abs(b.x - prev.x) < 0.5) return;
+    prev = b;
+  }
+}
+
+/** Тур раздела целиком: каждый шаг — снимок, место в окне, галочка, заголовок
+ *  из словаря именно этого раздела и именно в том порядке, что в TOURS. */
+async function walkTour(page, t, section, tag) {
+  await page.waitForSelector(".onb-tip", { timeout: 20000 }).catch(() => null);
   const titles = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 9; i++) {
     const tip = page.locator(".onb-tip");
     if (!(await tip.count())) break;
-    // Подсветка доезжает до цели вместе с плавной прокруткой: на телефоне
-    // путь до рейла — несколько экранов. Ждём, пока подсказка замрёт.
-    let prev = null;
-    for (let k = 0; k < 20; k++) {
-      await page.waitForTimeout(200);
-      const b = await tip.boundingBox();
-      if (prev && b && Math.abs(b.y - prev.y) < 0.5 && Math.abs(b.x - prev.x) < 0.5) break;
-      prev = b;
-    }
+    await settle(page);
     titles.push(await tipTitle(page));
     const box = await tip.boundingBox();
     const vp = page.viewportSize();
     check(box && box.y >= 0 && box.y + box.height <= vp.height + 1 && box.x >= 0 && box.x + box.width <= vp.width + 1,
-      `${tag}: подсказка «${titles.at(-1)}» целиком в окне (${box ? `${Math.round(box.x)},${Math.round(box.y)} ${Math.round(box.width)}×${Math.round(box.height)}` : "нет"})`);
-    await page.screenshot({ path: `${OUT}/${tag}-tour-${i + 1}.png` });
+      `${tag}: «${titles.at(-1)}» целиком в окне (${box ? `${Math.round(box.x)},${Math.round(box.y)} ${Math.round(box.width)}×${Math.round(box.height)}` : "нет"})`);
+    if (i === 0) check(await tip.locator('.onb-opt input[type="checkbox"]').count() === 1, `${tag}: в карточке видна галочка «${t.tour.dontShow}»`);
+    await page.screenshot({ path: `${OUT}/${tag}-${String(i + 1).padStart(2, "0")}.png` });
     await page.locator(".onb-next").click();
   }
+  const order = TOURS[section].map((st) => t.tours[section][st.id].title);
+  const inOrder = titles.every((x, k) => k === 0 || order.indexOf(x) > order.indexOf(titles[k - 1]));
+  check(titles.length >= 3 && titles.every((x) => order.includes(x)) && inOrder,
+    `${tag}: тур раздела «${t.tour.names[section]}» — ${titles.length} шагов: ${titles.join(" → ")}`);
+  check(!(await page.locator(".onb-tip").count()), `${tag}: тур закрылся после последнего шага`);
   return titles;
 }
 
-// ---- 1. Первый заход: вводная, RU, 1440×900 -----------------------------------
+/** Уйти в раздел меню и дождаться его тура. */
+async function enter(page, nav) {
+  await page.locator(`[data-nav="${nav}"]`).first().click();
+  await page.waitForTimeout(400);
+}
+
+// ---- 1. Туры во всех разделах: RU/EN × 1440/390 -----------------------------------
+for (const [lang, w, h] of [["ru", 1440, 900], ["en", 1440, 900], ["ru", 390, 844], ["en", 390, 844]]) {
+  const t = I18N[lang];
+  const tag = `${lang}-${w}`;
+  const { ctx, page } = await fresh(w, h, lang);
+  await page.goto(BASE, { waitUntil: "networkidle" });
+  await walkTour(page, t, "home", `${tag}-tour-home`);
+  for (const [nav, section] of [["campaign", "campaign"], ["course", "course"], ["custom", "custom"],
+                                ["exam", "exam"], ["profile", "profile"], ["admin", "admin"]]) {
+    await enter(page, nav);
+    await walkTour(page, t, section, `${tag}-tour-${section}`);
+  }
+  // Вернулся на главную в том же сеансе — тур второй раз не всплывает.
+  await enter(page, "practice");
+  await page.waitForTimeout(900);
+  check(!(await page.locator(".onb-tip").count()), `${tag}: главная в том же сеансе — тур не повторился`);
+  await page.locator(".route-cta").click();
+  await page.waitForSelector(".dealtracker", { timeout: 20000 });
+  const table = await walkTour(page, t, "table", `${tag}-tour-table`);
+  check(table.length === TOURS.table.length, `${tag}: за столом все ${TOURS.table.length} шагов (${table.length})`);
+  await ctx.close();
+}
+
+// ---- 2. Сеанс, галочка, общий переключатель, кнопка тура — RU, 1440 -------------------
 {
   const t = I18N.ru;
   const { ctx, page } = await fresh(1440, 900, "ru");
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.waitForSelector(".onb-tip", { timeout: 8000 }).catch(() => null);
-  const titles = await walkTour(page, t, "ru-1440");
-  const expected = ["intro", "start", "nav", "progress"].map((k) => t.tour.steps[k].title);
-  check(JSON.stringify(titles) === JSON.stringify(expected),
-    `вводная: ${titles.length} шагов по порядку — ${titles.join(" → ")}`);
-  check(!(await page.locator(".onb-tip").count()), "вводная закрылась после последнего шага");
-  const stage = await page.evaluate(() => localStorage.getItem("dialog.tutorialDone.v1"));
-  check(stage === "home", `флаг после вводной главной = "${stage}" (ожидается "home": подсказки за столом ещё впереди)`);
-
+  await page.locator(".onb-skip").click();
+  await enter(page, "course");
+  await page.waitForSelector(".onb-tip", { timeout: 20000 }).catch(() => null);
+  check(await page.locator(".onb-tip").count() === 1, "курс: тур при первом входе");
+  await page.locator(".onb-skip").click();
+  await enter(page, "custom");
+  await page.waitForSelector(".onb-tip", { timeout: 8000 }).catch(() => null);
+  await page.locator(".onb-skip").click().catch(() => {});
+  await enter(page, "course");
+  await page.waitForTimeout(1500);
+  check(!(await page.locator(".onb-tip").count()), "курс: ушёл и вернулся в том же сеансе — второй раз не всплыл");
   await page.reload({ waitUntil: "networkidle" });
-  await page.waitForTimeout(900);
-  check(!(await page.locator(".onb-tip").count()), "после перезагрузки вводная не вернулась");
-  await page.screenshot({ path: `${OUT}/ru-1440-home.png`, fullPage: true });
+  await page.waitForTimeout(1500);
+  check(!(await page.locator(".onb-tip").count()), "перезагрузка той же вкладки — тур не повторился");
 
+  // Кнопка в шапке — тур ТЕКУЩЕГО раздела.
+  await enter(page, "course");
+  await page.locator(".tour-help").click();
+  await page.waitForSelector(".onb-tip", { timeout: 20000 }).catch(() => null);
+  const first = await tipTitle(page);
+  check(Object.values(t.tours.course).some((c) => c.title === first), `«${t.tour.replay}» в курсе открывает тур курса: «${first}»`);
+  // Галочка «Больше не показывать в этом разделе».
+  await page.locator('.onb-opt input[type="checkbox"]').check();
+  await page.screenshot({ path: `${OUT}/ru-1440-dontshow-checked.png` });
+  await page.locator(".onb-skip").click();
+  const prefs = await page.evaluate(() => localStorage.getItem("dialog.tours.v1"));
+  check(/"off":\["course"\]/.test(prefs ?? ""), `галочка отключила только курс: ${prefs}`);
+
+  // Новая вкладка — новый сеанс: главная снова с туром, курс — без.
+  const tab = await ctx.newPage();
+  await tab.goto(BASE, { waitUntil: "networkidle" });
+  await tab.waitForSelector(".onb-tip", { timeout: 8000 }).catch(() => null);
+  check(await tab.locator(".onb-tip").count() === 1, "новая вкладка: тур главной снова показан");
+  await tab.locator(".onb-skip").click();
+  await enter(tab, "course");
+  await tab.waitForTimeout(2000);
+  check(!(await tab.locator(".onb-tip").count()), "новая вкладка: курс, отключённый галочкой, молчит");
+
+  // Профиль: общий переключатель и возврат отключённого.
+  await enter(tab, "profile");
+  await tab.waitForSelector(".tour-prefs");
+  await tab.locator(".onb-skip").click().catch(() => {});
+  const off = await tab.locator(".tp-off").innerText().catch(() => "");
+  check(off.includes(t.tour.names.course), `профиль говорит, где подсказки отключены: «${off}»`);
+  await tab.locator(".tour-prefs").screenshot({ path: `${OUT}/ru-1440-profile-tips-off.png` });
+  await tab.locator(".tp-restore").click();
+  const back = await tab.evaluate(() => localStorage.getItem("dialog.tours.v1"));
+  check(/"off":\[\]/.test(back ?? "") && /"enabled":true/.test(back ?? ""), `«${t.tour.prefsRestore}» вернул подсказки: ${back}`);
+  await tab.locator('.tour-prefs [role="switch"]').click();
+  const allOff = await tab.evaluate(() => localStorage.getItem("dialog.tours.v1"));
+  check(/"enabled":false/.test(allOff ?? ""), `общий переключатель выключил подсказки: ${allOff}`);
+  await tab.locator(".tour-prefs").screenshot({ path: `${OUT}/ru-1440-profile-tips-switch.png` });
+  const tab2 = await ctx.newPage();
+  await tab2.goto(BASE, { waitUntil: "networkidle" });
+  await tab2.waitForTimeout(1500);
+  check(!(await tab2.locator(".onb-tip").count()), "подсказки выключены в профиле — новая вкладка молчит");
+  await tab2.locator(".tour-help").click();
+  await tab2.waitForSelector(".onb-tip", { timeout: 8000 }).catch(() => null);
+  check(await tab2.locator(".onb-tip").count() === 1, "даже выключенные, по кнопке «Как здесь всё устроено?» подсказки есть");
+  await ctx.close();
+}
+
+// ---- 3. Первая партия: подсказки за столом ждут конца тура стола ----------------------
+{
+  const { ctx, page } = await fresh(1440, 900, "ru");
+  await page.goto(BASE, { waitUntil: "networkidle" });
+  await page.waitForSelector(".onb-tip", { timeout: 8000 }).catch(() => null);
+  await page.locator(".onb-skip").click();
   // Рейл и форматы: что где стоит.
+  const t = I18N.ru;
+  await page.screenshot({ path: `${OUT}/ru-1440-home.png`, fullPage: true });
   const railHeads = await page.locator(".rail .rail-head b").allInnerTexts();
   check(railHeads.some((h) => h.toLowerCase() === t.rail.progressHead.toLowerCase()), `рейл: группа «${t.rail.progressHead}» подписана`);
   const formats = await page.locator(".formats .rc h2").allInnerTexts();
   check(formats.length === 3, `другие форматы под каталогом: ${formats.join(" · ")}`);
-  check(!(await page.locator(".rail [data-reading], .rail [data-other-side]").count()), "форматы тренировки больше не в рейле");
-  for (const hint of [t.goal.hint, t.rank.hint]) {
-    check(await page.getByText(hint, { exact: false }).count() > 0, `пояснение в рейле: «${hint.slice(0, 40)}…»`);
-  }
   const method = page.locator(".rc-method summary").first();
   await method.click();
   check(await page.locator(".rc-method details[open] .rc-method-ex").count() === 1, "«Четыре главных приёма»: пример раскрывается по нажатию");
-
-  // Повтор вводной с кнопки.
-  await page.locator(".practice-tour").click();
-  await page.waitForSelector(".onb-tip", { timeout: 4000 }).catch(() => null);
-  check(await page.locator(".onb-tip").count() === 1, "кнопка «Как здесь всё устроено?» открывает вводную заново");
-  await page.locator(".onb-skip").click();
-  check(!(await page.locator(".onb-tip").count()), "«Пропустить» закрывает вводную");
-
-  // ---- 2. Первая партия: подсказки за столом живы после вводной главной -------
   await page.locator(".route-cta").click();
   await page.waitForSelector(".dealtracker", { timeout: 20000 });
-  await page.waitForTimeout(600);
-  await page.screenshot({ path: `${OUT}/ru-1440-table-t0.png` });
+  await page.waitForSelector(".onb-tip", { timeout: 20000 }).catch(() => null);
+  await page.locator(".onb-skip").click();
   await page.fill("textarea", "Расскажите, как у вас устроено производство?");
   await page.keyboard.press("Enter");
   await page.waitForFunction(() => !document.querySelector("textarea")?.disabled, null, { timeout: 30000 });
   await page.waitForSelector(".onb-tip", { timeout: 6000 }).catch(() => null);
   check(await page.locator(".onb-tip").count() === 1,
-    `подсказка за столом в первой партии показалась: «${await tipTitle(page)}»`);
+    `подсказка первой партии после тура стола показалась: «${await tipTitle(page)}»`);
   await page.screenshot({ path: `${OUT}/ru-1440-table-coachmark.png` });
+  await page.locator(".onb-skip").click().catch(() => {});
+
+  // Доиграть принципиальную партию и пройти тур разбора.
+  const lines = [
+    "А почему для вас важна оплата — предоплата помогла бы?",
+    "Что критично по сроку контракта: разовая поставка или годовой?",
+    "По рынку аналог идёт 86-88; альтернатива у нас по 95, но с риском качества. Ориентир — 86.",
+    "Если дадим годовой контракт с гарантией объёма и 30% предоплату — подвинетесь к 86?",
+    "Договорились: 86 ₽/шт, годовой контракт, предоплата 30%. Фиксируем?",
+  ];
+  const closing = lines[lines.length - 1];
+  for (let k = 0; k < 6; k++) lines.push(closing); // стол закрывается, когда цена сошлась
+  for (const line of lines) {
+    if (await page.locator(".gh, .outcome").count()) break;
+    if (!(await page.locator("textarea:not([disabled])").count())) break;
+    await page.fill("textarea", line);
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => !document.querySelector("textarea")?.disabled || document.querySelector(".outcome"), null, { timeout: 30000 });
+    await page.waitForTimeout(400);
+    await page.locator(".onb-skip").click({ timeout: 500 }).catch(() => {});
+  }
+  await page.locator(".oc-go:not([disabled])").click({ timeout: 15000 }).catch(() => {});
+  await page.waitForSelector(".gh", { timeout: 20000 }).catch(() => null);
+  if (await page.locator(".gh").count()) {
+    const deb = await walkTour(page, t, "debrief", "ru-1440-tour-debrief");
+    check(deb.length >= 3, `разбор: тур из ${deb.length} шагов`);
+  } else {
+    check(false, "разбор так и не открылся — тур разбора не проверен");
+  }
   await ctx.close();
 }
 
@@ -133,7 +250,7 @@ async function walkTour(page, t, tag) {
 async function campaignTracker(lang, tag) {
   const t = I18N[lang];
   const { ctx, page } = await fresh(1440, 900, lang);
-  await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); } catch { /* */ } });
+  await page.addInitScript((off) => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", off); } catch { /* */ } }, TOURS_OFF);
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.click('[data-nav="campaign"]');
   await page.waitForSelector(".camp-cta", { timeout: 15000 });
@@ -219,7 +336,7 @@ await campaignTracker("en", "en-campaign");
 for (const lang of ["ru", "en"]) {
   const t = I18N[lang];
   const { ctx, page } = await fresh(1440, 900, lang);
-  await page.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); } catch { /* */ } });
+  await page.addInitScript((off) => { try { localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", off); } catch { /* */ } }, TOURS_OFF);
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.click('[data-nav="profile"]');
   await page.waitForSelector(".prof-layers", { timeout: 10000 });
@@ -240,16 +357,6 @@ for (const lang of ["ru", "en"]) {
   await page.waitForSelector(".admin-vs", { timeout: 15000 });
   await page.screenshot({ path: `${OUT}/${lang}-admin.png`, fullPage: true });
   check((await page.locator(".admin-vs").innerText()).length > 40, `${lang}: «Редактор» объясняет отличие от своей сделки`);
-  await ctx.close();
-}
-
-// ---- 5. Телефон: вводная влезает в окно ---------------------------------------
-{
-  const { ctx, page } = await fresh(390, 844, "ru");
-  await page.goto(BASE, { waitUntil: "networkidle" });
-  await page.waitForSelector(".onb-tip", { timeout: 8000 }).catch(() => null);
-  const titles = await walkTour(page, I18N.ru, "ru-390");
-  check(titles.length >= 3, `телефон: вводная прошла ${titles.length} шагов`);
   await ctx.close();
 }
 

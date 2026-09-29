@@ -108,6 +108,9 @@ interface Props {
   // absent when the layer is off, and the chat then renders no question at all.
   probeTally?: string;
   onProbeAnswer?: (id: number, choice: number) => void;
+  /** Идёт тур по столу (SectionTour). Подсветки первой партии ждут его конца:
+   *  две подсказки разом — это не вводная, а шум. */
+  tourActive?: boolean;
 }
 
 /** Какая подсветка сейчас на столе. `first` — гарантированная: см. эффект №3. */
@@ -122,7 +125,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef }: Props) {
+export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -407,13 +410,13 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
   const tutShownTurn = useRef(-1);
   useEffect(() => {
     if (!tutOn || tutMark !== null) return;
-    if (busy || finished || probeOpen) return;
+    if (busy || finished || probeOpen || tourActive) return;
     if (tutQueue.length === 0) return;
     if (turnNow <= tutShownTurn.current) return;
     tutShownTurn.current = turnNow;
     setTutMark(tutQueue[0]);
     setTutQueue((q) => q.slice(1));
-  }, [tutOn, tutMark, tutQueue, busy, finished, probeOpen, turnNow]);
+  }, [tutOn, tutMark, tutQueue, busy, finished, probeOpen, turnNow, tourActive]);
 
   // Игрок пошёл дальше — подсветка снимается сама. Висеть до клика по «Понятно»
   // она не имеет права: это подсказка, а не шлагбаум.

@@ -70,7 +70,7 @@ const UNLOCKED = `(() => {
   // Ключ и значение — как в lib/progress.ts. Раньше здесь стоял
   // "dialog.tutorial.v1"/"done": ключ, которого продукт не знает, то есть
   // подготовка профиля молча не делала того, ради чего написана.
-  localStorage.setItem("dialog.tutorialDone.v1", "1");
+  localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}');
 })()`;
 
 async function open(name, { width = 1440, height = 950, unlocked = false } = {}) {

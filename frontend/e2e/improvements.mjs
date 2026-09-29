@@ -26,7 +26,7 @@ if (process.argv.includes("--layout-only")) {
 async function context(width = 1440, height = 1000) {
   const ctx = await browser.newContext({ viewport: { width, height }, acceptDownloads: true });
   await ctx.addInitScript(() => {
-    localStorage.setItem("dialog.tutorialDone.v1", "1");
+    localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}');
     localStorage.setItem("dialog.lang.v1", "ru");
     localStorage.setItem("dialog.theme.v1", "light");
   });

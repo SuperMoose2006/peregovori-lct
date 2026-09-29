@@ -9,8 +9,8 @@
 // который движок только что изменил.
 //
 // Слой владеет только показом и замером. КАКОЙ шаг показывать и КОГДА решает
-// хозяин: за столом — Table, по событиям движка; на главной — HomeTour, короткий
-// обход при первом заходе. Состояния игры здесь не трогают, поэтому
+// хозяин: за столом — Table, по событиям движка первой партии; в каждом разделе —
+// SectionTour, тур по его элементам (правила показа — lib/tours.ts). Состояния игры здесь не трогают, поэтому
 // детерминированный движок остаётся единственным источником правды.
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -27,6 +27,9 @@ export interface CoachStep {
   onSkip: () => void;
   /** «Шаг 2 из 4» — у серии подсказок. У одиночной подсветки на столе его нет. */
   progress?: string;
+  /** Галочка «Больше не показывать» — видимая, прямо в карточке. У туров
+   *  разделов она есть, у одиночных подсветок за столом её нет. */
+  optOut?: { label: string; checked: boolean; onChange: (checked: boolean) => void };
 }
 
 const reduceMotion = () =>
@@ -95,7 +98,7 @@ export function placeTip(hole: Rect, vw: number, vh: number, tipW: number, tipH:
 }
 
 export function Onboarding(props: CoachStep) {
-  const { stepKey, targetRef, title, body, primaryLabel, onPrimary, skipLabel, onSkip, progress } = props;
+  const { stepKey, targetRef, title, body, primaryLabel, onPrimary, skipLabel, onSkip, progress, optOut } = props;
   const [rect, setRect] = useState<Rect | null>(null);
   const lastRect = useRef<Rect | null>(null);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -186,6 +189,13 @@ export function Onboarding(props: CoachStep) {
         <span className="onb-arrow" aria-hidden="true" />
         <div className="onb-title">{title}</div>
         <div className="onb-body">{body}</div>
+        {optOut ? (
+          <label className="onb-opt">
+            <input type="checkbox" checked={optOut.checked}
+                   onChange={(e) => optOut.onChange(e.currentTarget.checked)} />
+            <span>{optOut.label}</span>
+          </label>
+        ) : null}
 
         <div className="onb-foot">
           {progress ? <span className="onb-step">{progress}</span> : null}

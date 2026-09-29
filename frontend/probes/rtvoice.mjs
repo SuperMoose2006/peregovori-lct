@@ -27,7 +27,7 @@ p.on("websocket", ws => ws.on("framereceived", f => {
       marks.push([((Date.now()-start)/1000).toFixed(2), "ПЕРВЫЙ ЗВУК", ""]);
     }
   } catch {} }));
-await p.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1","1"); } catch {} });
+await p.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1","1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch {} });
 await p.goto(HOST + "/", { waitUntil:"domcontentloaded", timeout:40000 });
 await p.waitForTimeout(2800);
 // Слой включается из шторки стола, и промах ВАЛИТ прогон: прибор, который

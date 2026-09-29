@@ -82,7 +82,7 @@ const page = await ctx.newPage();
 page.on("websocket", (ws) => wire.sockets.push(ws.url()));
 page.on("pageerror", (e) => problems.push(`pageerror ${e}`));
 await page.addInitScript(() => {
-  try { localStorage.setItem("dialog.tutorialDone.v1", "1"); } catch { /* приватный режим */ }
+  try { localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch { /* приватный режим */ }
 });
 
 try {
