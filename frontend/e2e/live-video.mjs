@@ -138,7 +138,10 @@ if (EXPECT === "off") {
   const later = await face();
   check(later.replies > before, "партия продолжается: следующая реплика пришла", `${before} → ${later.replies}`);
   check(second.statuses.has("speaking"), "следующая реплика звучит", list(second.statuses));
-  check(await page.locator("textarea:visible").isEnabled(), "следующий ход разрешён");
+  // Не «поле доступно» — печатать вперёд можно и во время хода. Ход закрыт,
+  // только когда кнопка отправки снова активна.
+  await page.locator("textarea:visible").first().fill("Третий ход");
+  check(await page.locator("button.send").first().isEnabled(), "следующий ход разрешён");
   const recovered = wire.states.some((s) => s.reason === "provider_recovered");
   passed.push(`справка: связь восстановлена и видео вернулось между репликами — ${recovered ? "да" : "нет"}`);
   await page.screenshot({ path: `${OUT}/stub-04-continued.png` });

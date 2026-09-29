@@ -80,7 +80,7 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
     ("watchdog-hair-trigger", LIVE + "adapter.py", "        if playing - covered > self._cfg.stall_ms:", "        if playing - covered > 0:", ("py",)),
     ("closed-event-ignored", LIVE + "adapter.py", "                if closed is not None and not self._closed:\n                    self._degrade(f\"closed: {closed.reason}\", fatal=closed.fatal)", "                if closed is not None and not self._closed:\n                    pass", ("py", "e2e-stub")),
     ("no-recovery", LIVE + "adapter.py", "        if self.mode == \"amplitude\" and self._can_recover():", "        if False:", ("py",)),
-    ("recovery-ignores-limit", LIVE + "adapter.py", "        if self.failures >= self._cfg.max_failures:\n            return False", "        if False:\n            return False", ("py",)),
+    ("limit-never-gives-up", LIVE + "adapter.py", "        if fatal or self.failures >= self._cfg.max_failures:", "        if fatal:", ("py",)),
     ("dead-session-left-open", LIVE + "adapter.py", "            self._supervisor.cancel()\n        self._background(self._close_driver())", "            self._supervisor.cancel()\n        pass", ("py",)),
     ("fatal-retried", LIVE + "adapter.py", "                self._degrade(f\"connect: {exc.reason}\", fatal=exc.fatal)", "                self._degrade(f\"connect: {exc.reason}\", fatal=False)", ("py",)),
     ("no-reconnect", LIVE + "adapter.py", "            if attempt >= len(RECONNECT_BACKOFF_S):", "            if True:", ("py",)),
@@ -127,7 +127,31 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
     ("mono-unscaled", V + "_webrtc.py", "    if fmt.startswith(\"s16\"):\n        mono = mono / 32768.0", "    if fmt.startswith(\"s16\"):\n        mono = mono", ("py",)),
     ("jpeg-not-square", LIVE + "media.py", "    if w != h:", "    if False:", ("py",)),
     ("f32-unscaled", LIVE + "media.py", "    return (np.clip(samples, -1.0, 1.0) * 32767.0).astype(\"<i2\").tobytes()", "    return (np.clip(samples, -1.0, 1.0) * 1.0).astype(\"<i2\").tobytes()", ("py",)),
+    # --- добиты по таблице «ни разу не покраснели»
+    ("key-check-too-strict", LIVE + "config.py", "    if len(key) < 16:", "    if len(key) < 64:", ("py",)),
+    ("accepted-key-disables", LIVE + "config.py", "    STATUS.checked = f\"{cfg.vendor}: ключ принят — {verdict}\"", "    STATUS.rejected = STATUS.checked = f\"{cfg.vendor}: ключ принят — {verdict}\"", ("py",)),
+    ("describe-lies-when-off", LIVE + "config.py", "    if not cfg.vendor:\n        return \"off\"", "    if not cfg.vendor:\n        return \"stub (видео)\"", ("py", "e2e-off")),
+    ("describe-hides-video", LIVE + "config.py", "    return f\"{cfg.vendor} ({what}; вход {cfg.input}, {voice})\"", "    return \"off\"", ("py", "e2e-stub")),
+    ("speech-denied", "services/gateway/app/realtime/endpoint.py", "        \"speech\": bool(session.layers.voice) and _speech_for(", "        \"speech\": False and _speech_for(", ("py", "e2e-off", "e2e-stub")),
+    ("local-face-swallows-voice", "services/gateway/app/avatar/base.py", "    audio_out: Optional[Callable[[dict], None]] = None", "    audio_out = staticmethod(lambda event: None)", ("e2e-off",)),
+    ("reply-never-done", "services/gateway/app/orchestrator/negotiation.py", "        sess.bus.publish(response_done(generation_id=generation_id, turn_id=turn_id,\n                                       text=line, reason=\"turn_end\"))\n        self._finish_generation()", "        self._finish_generation()", ("e2e-off", "e2e-stub")),
+    ("frames-never-published", LIVE + "adapter.py", "            self._publish(event)\n            self.stats.frames_sent += 1", "            self.stats.frames_sent += 1", ("py", "e2e-stub")),
+    ("synthetic-hidden", LIVE + "adapter.py", "synthetic=bool(self._info and self._info.synthetic))", "synthetic=False)", ("py", "e2e-stub")),
+    ("degrade-at-every-reply", LIVE + "adapter.py", "        if self.mode == \"video\" and self.input == \"audio\" and self.link != \"ready\":", "        if self.mode == \"video\" and self.input == \"audio\":", ("py", "e2e-stub")),
+    ("starts-as-portrait", LIVE + "adapter.py", "        self.mode = \"video\"\n        #: Связь", "        self.mode = \"amplitude\"\n        #: Связь", ("py", "e2e-stub")),
+    ("voice-lost-after-failure", LIVE + "adapter.py", "            self._release_audio(event)\n            self.stats.audio_direct += 1", "            self.stats.audio_direct += 1", ("py", "e2e-stub")),
+    ("turn-dies-after-failure", LIVE + "adapter.py", "        self._publish(self._state_event(reason=reason, reaction=reaction))", "        if self.mode == \"amplitude\":\n            raise RuntimeError(\"face\")\n        self._publish(self._state_event(reason=reason, reaction=reaction))", ("e2e-stub",)),
+    ("anam-errors-all-fatal", V + "anam.py", "reason=code or \"connect\", fatal=code in _FATAL)", "reason=code or \"connect\", fatal=True)", ("py",)),
+    ("anam-no-interrupt", V + "anam.py", "        if self._session is not None:\n            await self._session.interrupt()", "        if self._session is not None:\n            pass", ("py",)),
+    ("anam-close-callback-ignored", V + "anam.py", "            if not self._closing:\n                self.emit(Closed(f\"anam: {code} {reason or ''}\".strip()))", "            if False:\n                self.emit(Closed(f\"anam: {code} {reason or ''}\".strip()))", ("py",)),
+    ("http-402-retried", V + "_webrtc.py", "    if status == 402:", "    if False:", ("py",)),
+    ("http-403-retried", V + "_webrtc.py", "    if status in (401, 403):", "    if status in (401,):", ("py",)),
+    ("http-500-fatal", V + "_webrtc.py", "        return DriverError(f\"{vendor}: проверка ключа ответила {status} {body[:120]}\", reason=\"http\")", "        return DriverError(f\"{vendor}: проверка ключа ответила {status} {body[:120]}\", reason=\"http\", fatal=True)", ("py",)),
+    ("onset-always-zero", V + "_anchor.py", "    return float(loud[0]) * WINDOW_MS", "    return 0.0", ("py",)),
+    ("simli-errors-all-retry", V + "simli.py", "                              fatal=any(code in text for code in _FATAL))", "                              fatal=False)", ("py",)),
+    ("la-livekit-name-drift", V + "liveavatar.py", "LK_TRACK_EVENT = \"track_subscribed\"", "LK_TRACK_EVENT = \"track_published\"", ("py",)),
     # --- клиент
+    ("client-console-error", T, "          this.faceFrames.clear();\n          // `synthetic: false`", "          console.error(\"live video mutation\");\n          this.faceFrames.clear();\n          // `synthetic: false`", ("e2e-off", "e2e-stub")),
     ("client-no-video-recovery", T, "} else if (this.session && event.lipsync_mode === \"video\" && event.transport === \"jpeg\") {", "} else if (false) {", ("js",)),
     ("client-label-kept", T, "transport: \"local\", synthetic: false } };", "transport: \"local\" } };", ("js", "e2e-stub")),
     ("client-no-dedupe", T, "          if (avatar.lipsync_mode !== \"video\") {", "          if (true) {", ("js",)),
@@ -139,11 +163,23 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
 ]
 
 
+#: Мутации, которым нужна правка в двух местах (второе — снять страховку,
+#: которая иначе спрячет поломку от проверки).
+EXTRA_EDITS: dict[str, list[tuple[str, str, str]]] = {
+    # Лицо бросает после отказа, и оркестратор больше не ловит — ход падает.
+    "turn-dies-after-failure": [(
+        "services/gateway/app/orchestrator/negotiation.py",
+        "            await asyncio.wait_for(self.avatar.set_state(state, reaction=reaction), timeout=0.05)\n        except asyncio.CancelledError:\n            raise\n        except Exception:",
+        "            await asyncio.wait_for(self.avatar.set_state(state, reaction=reaction), timeout=0.05)\n        except asyncio.CancelledError:\n            raise\n        except KeyError:")],
+}
+
+
 def _pytest() -> tuple[bool, set[str], str]:
     run = subprocess.run([PY, "-m", "pytest", *PY_TESTS, "-q", "-p", "no:cacheprovider", "-rfE"],
                          cwd=GATEWAY, env=ENV, text=True, stdout=subprocess.PIPE,
                          stderr=subprocess.STDOUT, timeout=600)
-    failed = set(re.findall(r"^(?:FAILED|ERROR) (\S+)", run.stdout, re.M))
+    # Имя параметризованного теста может содержать пробел: до « - » или конца строки.
+    failed = set(re.findall(r"^(?:FAILED|ERROR) (.+?)(?: - .*)?$", run.stdout, re.M))
     return run.returncode == 0, failed, run.stdout
 
 
@@ -237,24 +273,29 @@ def main(argv: list[str]) -> int:
     for name, rel, before, after, where in MUTATIONS:
         if only and name not in only:
             continue
-        path = ROOT / rel
-        original = path.read_text(encoding="utf-8")
-        count = original.count(before)
-        assert count == 1, f"{name}: якорь мутации встречается {count} раз в {rel}"
+        edits = [(rel, before, after)] + EXTRA_EDITS.get(name, [])
+        originals = {}
+        for erel, ebefore, _ in edits:
+            text = originals.setdefault(erel, (ROOT / erel).read_text(encoding="utf-8"))
+            count = text.count(ebefore)
+            assert count == 1, f"{name}: якорь мутации встречается {count} раз в {erel}"
         try:
-            path.write_text(original.replace(before, after), encoding="utf-8")
+            for erel, ebefore, eafter in edits:
+                path = ROOT / erel
+                path.write_text(path.read_text(encoding="utf-8").replace(ebefore, eafter), encoding="utf-8")
             reds: set[str] = set()
             logs = []
             for suite in suites:
                 if suite.startswith("e2e") and suite not in where:
                     continue        # браузер — только для мутаций, которые он обязан ловить
-                _, failed, log = run_suite(suite, rebuild=rel.startswith("frontend/"))
+                _, failed, log = run_suite(suite, rebuild=any(e.startswith("frontend/") for e in originals))
                 reds |= failed
                 logs.append(f"===== {suite}\n{log}")
             (OUT / f"{name}.log").write_text("\n".join(logs))
         finally:
-            path.write_text(original, encoding="utf-8")
-            if rel.startswith("frontend/") and with_e2e:
+            for erel, text in originals.items():
+                (ROOT / erel).write_text(text, encoding="utf-8")
+            if any(e.startswith("frontend/") for e in originals) and with_e2e:
                 subprocess.run(["npx", "vite", "build", "--outDir", DIST], cwd=FRONT, env=ENV,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for test in reds:

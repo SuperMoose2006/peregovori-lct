@@ -262,9 +262,9 @@ class LiveVideoAvatar(AvatarProvider):
             self._background(self._driver.set_mood(self._state, reaction))
 
     def _can_recover(self) -> bool:
+        # Предел отказов отдельно не проверяется: дойдя до него, `_degrade`
+        # закрывает связь (`_give_up`), и `link` уже не `ready`.
         if self.input != "audio" or self._voice_failed or self.link != "ready":
-            return False
-        if self.failures >= self._cfg.max_failures:
             return False
         # Только между репликами: посреди звучащей речи лицо не меняет стиль.
         return not self._held and self.clock.playing_pts(self._gen, self._now()) is None

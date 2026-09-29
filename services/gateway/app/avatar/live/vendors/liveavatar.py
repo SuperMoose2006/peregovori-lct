@@ -69,6 +69,12 @@ CONNECT_WAIT_S = 10.0
 #: а декодирование на сервере и трафик от сервиса растут с каждой ступенью.
 QUALITY = "medium"
 AVATAR_IDENTITY = "heygen"
+#: Имена из SDK LiveKit, на которые опирается драйвер. Вынесены, чтобы тест
+#: сверял их с установленным пакетом: переименование в SDK — красный тест,
+#: а не молчаливый портрет на показе.
+LK_TRACK_EVENT = "track_subscribed"
+LK_GONE_EVENT = "disconnected"
+LK_VIDEO_FORMAT = "RGB24"
 
 
 def _unwrap(response) -> dict:
@@ -185,8 +191,8 @@ class LiveAvatarDriver(WebRtcDriver):
             if not self._closing:
                 self.emit(Closed("liveavatar: комната LiveKit закрыта"))
 
-        room.on("track_subscribed", on_track)
-        room.on("disconnected", on_gone)
+        room.on(LK_TRACK_EVENT, on_track)
+        room.on(LK_GONE_EVENT, on_gone)
         self._room = room
         await room.connect(lk_url, lk_token, options=rtc.RoomOptions(auto_subscribe=True))
         try:
@@ -197,7 +203,7 @@ class LiveAvatarDriver(WebRtcDriver):
         who = AVATAR_IDENTITY if AVATAR_IDENTITY in complete else next(iter(complete))
         if who != AVATAR_IDENTITY:
             _log.warning("живое видео: liveavatar — лицо в комнате под именем %r, не %r", who, AVATAR_IDENTITY)
-        video = rtc.VideoStream(complete[who]["video"], format=rtc.VideoBufferType.RGB24)
+        video = rtc.VideoStream(complete[who]["video"], format=getattr(rtc.VideoBufferType, LK_VIDEO_FORMAT))
         audio = rtc.AudioStream(complete[who]["audio"], sample_rate=48000, num_channels=1)
         return video, audio
 

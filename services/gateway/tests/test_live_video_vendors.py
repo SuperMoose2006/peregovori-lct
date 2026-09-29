@@ -812,14 +812,17 @@ async def test_liveavatar_failed_start_still_stops_the_billed_session(monkeypatc
 
 
 def test_our_calls_exist_in_the_real_livekit_sdk():
-    lk = pytest.importorskip("livekit")
+    """Имена, на которые опирается драйвер LiveAvatar, — в установленном SDK LiveKit."""
+    pytest.importorskip("livekit")
     from livekit import rtc
     import inspect
-    assert {"track_subscribed", "disconnected"} <= set(rtc.room.EventTypes.__args__)
+    from app.avatar.live.vendors import liveavatar as driver
+    assert {driver.LK_TRACK_EVENT, driver.LK_GONE_EVENT} <= set(rtc.room.EventTypes.__args__)
+    assert hasattr(rtc.VideoBufferType, driver.LK_VIDEO_FORMAT)
     assert "auto_subscribe" in {f for f in rtc.RoomOptions.__dataclass_fields__}
     assert "format" in inspect.signature(rtc.VideoStream).parameters
     assert {"sample_rate", "num_channels"} <= set(inspect.signature(rtc.AudioStream).parameters)
-    assert hasattr(rtc.VideoBufferType, "RGB24") and hasattr(rtc.TrackKind, "KIND_VIDEO")
+    assert hasattr(rtc.TrackKind, "KIND_VIDEO") and hasattr(rtc.TrackKind, "KIND_AUDIO")
     assert "timestamp_us" in rtc.VideoFrameEvent.__dataclass_fields__
 
 
@@ -830,13 +833,16 @@ def test_service_frames_become_square_jpegs_within_the_wire_limit():
     from app.avatar.live.media import MAX_JPEG_BYTES, encode_jpeg
     rng = np.random.default_rng(1)
     wide = rng.integers(0, 255, size=(720, 1280, 3), dtype=np.uint8)      # шум — худшее для JPEG
-    wide[:, 280:1000] = 90                                               # «лицо» по центру
+    wide[:, 280:1000] = 90                                               # центральный квадрат 720 px
+    wide[:, :280] = 250                                                  # поля по краям — светлые
+    wide[:, 1000:] = 250
     data = encode_jpeg(wide, size=320)
     assert data is not None and data.startswith(b"\xff\xd8") and len(data) <= MAX_JPEG_BYTES
-    img = Image.open(io.BytesIO(data))
-    assert img.size == (320, 320)
-    centre = np.asarray(img.convert("RGB"))[100:220, 100:220].astype(int)
-    assert abs(centre.mean() - 90) < 12, "квадрат вырезан из середины, а не с края"
+    img = np.asarray(Image.open(io.BytesIO(data)).convert("RGB")).astype(int)
+    assert img.shape[:2] == (320, 320)
+    assert abs(img[100:220, 100:220].mean() - 90) < 12, "квадрат вырезан из середины"
+    assert img[:, :24].mean() < 150 and img[:, -24:].mean() < 150, \
+        "поля 16:9 не отрезаны — кадр сжат в квадрат, лицо сплющено"
 
 
 def test_our_audio_reaches_the_service_as_int16_at_its_rate():

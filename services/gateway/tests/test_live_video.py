@@ -636,10 +636,22 @@ def test_health_names_the_live_video_state(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_audio_is_never_held_without_a_running_releaser():
-    rec = Recorder()
-    avatar = _avatar(rec)
-    avatar.audio_out(_audio_event("g", 100))        # start() не звали — цикла нет
-    assert len(rec.audio()) == 1
+    """Связь есть, а выпускающего цикла нет (не запущен или упал) — звук сразу."""
+    now = [100.0]
+    avatar, rec = _manual(now)                      # связь «ready», start() не звали
+    assert avatar.mode == "video" and avatar._av_delay_s > 0
+    avatar.audio_out(_audio_event("g", 100))
+    assert len(rec.audio()) == 1, "звук остался бы в очереди, которую некому отпустить"
+
+    async def crashed():
+        raise RuntimeError("ticker died")
+
+    task = asyncio.get_running_loop().create_task(crashed())
+    with pytest.raises(RuntimeError):
+        await task
+    avatar._ticker = task
+    avatar.audio_out(_audio_event("g", 100))
+    assert len(rec.audio()) == 2, "упавший выпускающий — тоже никого"
 
 
 # -------------------------------------------------------------- вход text
