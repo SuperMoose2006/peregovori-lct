@@ -21,9 +21,9 @@
 // читается вовсе, поэтому прошедшие старый тур видят новые туры — для них это
 // новое. Сам старый флаг по-прежнему решает подсветки за столом в первой партии.
 
-export type TourSection = "home" | "table" | "course" | "custom" | "admin" | "campaign" | "exam" | "profile";
+export type TourSection = "home" | "table" | "debrief" | "course" | "custom" | "admin" | "campaign" | "exam" | "profile";
 
-export const TOUR_SECTIONS: TourSection[] = ["home", "table", "course", "custom", "admin", "campaign", "exam", "profile"];
+export const TOUR_SECTIONS: TourSection[] = ["home", "table", "debrief", "course", "custom", "admin", "campaign", "exam", "profile"];
 
 export interface TourStep { id: string; selector: string }
 
@@ -48,6 +48,16 @@ export const TOURS: Record<TourSection, TourStep[]> = {
     { id: "terms", selector: ".side-more-toggle" },
     { id: "composer", selector: ".compose" },
     { id: "exit", selector: ".side-acts" },
+  ],
+  // Разбор после партии — первое, что человек видит, доиграв: буква, три
+  // части оценки и что с ними делать. Кнопки «дальше» стоят в последней части
+  // разбора и в туре появляются, когда до неё дошли.
+  debrief: [
+    { id: "grade", selector: ".gh" },
+    { id: "parts", selector: ".sb" },
+    { id: "beats", selector: ".beats" },
+    { id: "whatif", selector: ".whatif" },
+    { id: "next", selector: ".dacts" },
   ],
   course: [
     { id: "path", selector: ".course-path" },
@@ -95,6 +105,7 @@ export const TOURS: Record<TourSection, TourStep[]> = {
  *  файлами, а стол ещё и ждёт ответа сервера. */
 export const TOUR_READY: Partial<Record<TourSection, string>> = {
   table: ".dealtracker",
+  debrief: ".gh",
   course: ".course-path",
   admin: ".admin-presets",
   campaign: ".arc",

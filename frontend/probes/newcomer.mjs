@@ -214,6 +214,35 @@ for (const [lang, w, h] of [["ru", 1440, 900], ["en", 1440, 900], ["ru", 390, 84
   check(await page.locator(".onb-tip").count() === 1,
     `подсказка первой партии после тура стола показалась: «${await tipTitle(page)}»`);
   await page.screenshot({ path: `${OUT}/ru-1440-table-coachmark.png` });
+  await page.locator(".onb-skip").click().catch(() => {});
+
+  // Доиграть принципиальную партию и пройти тур разбора.
+  const lines = [
+    "А почему для вас важна оплата — предоплата помогла бы?",
+    "Что критично по сроку контракта: разовая поставка или годовой?",
+    "По рынку аналог идёт 86-88; альтернатива у нас по 95, но с риском качества. Ориентир — 86.",
+    "Если дадим годовой контракт с гарантией объёма и 30% предоплату — подвинетесь к 86?",
+    "Договорились: 86 ₽/шт, годовой контракт, предоплата 30%. Фиксируем?",
+  ];
+  const closing = lines[lines.length - 1];
+  for (let k = 0; k < 6; k++) lines.push(closing); // стол закрывается, когда цена сошлась
+  for (const line of lines) {
+    if (await page.locator(".gh, .outcome").count()) break;
+    if (!(await page.locator("textarea:not([disabled])").count())) break;
+    await page.fill("textarea", line);
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => !document.querySelector("textarea")?.disabled || document.querySelector(".outcome"), null, { timeout: 30000 });
+    await page.waitForTimeout(400);
+    await page.locator(".onb-skip").click({ timeout: 500 }).catch(() => {});
+  }
+  await page.locator(".oc-go:not([disabled])").click({ timeout: 15000 }).catch(() => {});
+  await page.waitForSelector(".gh", { timeout: 20000 }).catch(() => null);
+  if (await page.locator(".gh").count()) {
+    const deb = await walkTour(page, t, "debrief", "ru-1440-tour-debrief");
+    check(deb.length >= 3, `разбор: тур из ${deb.length} шагов`);
+  } else {
+    check(false, "разбор так и не открылся — тур разбора не проверен");
+  }
   await ctx.close();
 }
 

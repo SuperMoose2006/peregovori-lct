@@ -1161,7 +1161,7 @@ export const I18N: Record<Lang, Strings> = {
       prefsSwitch: "Показывать подсказки в разделах",
       prefsOff: "Отключены галочкой в разделах: {list}.",
       prefsRestore: "Вернуть во всех разделах",
-      names: { home: "Тренировка", table: "Стол переговоров", course: "Курс", custom: "Своя сделка", admin: "Редактор", campaign: "Кампания", exam: "Экзамен", profile: "Профиль" },
+      names: { home: "Тренировка", table: "Стол переговоров", debrief: "Разбор партии", course: "Курс", custom: "Своя сделка", admin: "Редактор", campaign: "Кампания", exam: "Экзамен", profile: "Профиль" },
     },
     tours: {
       home: {
@@ -1178,6 +1178,13 @@ export const I18N: Record<Lang, Strings> = {
         terms: { title: "Брифинг и что предложить взамен", body: "Под этой кнопкой — условия задачи и то, что вы можете дать второй стороне в обмен на уступку по цене: например, срок контракта или предоплату. Это размен, и он двигает цену лучше торга." },
         composer: { title: "Ваша реплика", body: "Пишите своими словами и отправляйте. Кнопки под полем вставляют начало фразы под нужный приём, лампочка — подсказка тренера. Ходов в партии ограниченное число — счётчик вверху." },
         exit: { title: "Как закончить", body: "Сделка закрывается в разговоре: предложите итог — «Договорились: 86 за штуку, фиксируем?». Кнопка «выйти» прерывает партию без результата. «Слои» — голос, камера и другие добавки, выбираются до первого хода." },
+      },
+      debrief: {
+        grade: { title: "Оценка партии", body: "Буква и число — итог, который поставил движок: 40% экономика сделки, 25% отношения, 35% техника. A и B — метод сработал, C — зачёт, D и F — есть над чем поработать." },
+        parts: { title: "Из чего она сложилась", body: "Экономика — насколько выгодна цена сделки. Отношения — с каким доверием и напряжением вы расстались. Техника — вопросы, опора на факты, размены и отсутствие давления." },
+        beats: { title: "Разбор по частям", body: "Итог, что вы упустили, что сказал бы мастер. Кнопка ведёт к следующей части, точки — переход между ними." },
+        whatif: { title: "А что если…", body: "Ваш самый дорогой ход. Впишите другую реплику — движок покажет, как пошла бы партия с того же места." },
+        next: { title: "Дальше", body: "Сыграть ещё раз — прошлая попытка пойдёт рядом ход за ходом — или вернуться к выбору. Каждая партия пополняет профиль навыков." },
       },
       course: {
         path: { title: "Карта курса", body: "Блоки идут от первого вопроса к сложной сделке. В каждом — короткие уроки с заданиями и экзамен в конце. Закрытые блоки откроются по мере прохождения." },
@@ -2127,7 +2134,7 @@ export const I18N: Record<Lang, Strings> = {
       prefsSwitch: "Show section tips",
       prefsOff: "Turned off with the checkbox in: {list}.",
       prefsRestore: "Bring them back everywhere",
-      names: { home: "Training", table: "Negotiation table", course: "Course", custom: "Your deal", admin: "Editor", campaign: "Campaign", exam: "Exam", profile: "Profile" },
+      names: { home: "Training", table: "Negotiation table", debrief: "Game breakdown", course: "Course", custom: "Your deal", admin: "Editor", campaign: "Campaign", exam: "Exam", profile: "Profile" },
     },
     tours: {
       home: {
@@ -2144,6 +2151,13 @@ export const I18N: Record<Lang, Strings> = {
         terms: { title: "Brief and what to offer in return", body: "Behind this button: the task and what you can give the other side in exchange for movement on price — say, contract length or a deposit. That's a trade-off, and it moves the price better than haggling." },
         composer: { title: "Your line", body: "Write in your own words and send. The buttons under the box insert the start of a phrase for a technique; the bulb asks the coach for a hint. A game has a limited number of turns — see the counter on top." },
         exit: { title: "How to finish", body: "A deal closes in the conversation: propose the terms — “Agreed: 86 per unit, shall we lock it?”. The “leave” button ends the game without a result. “Layers” — voice, camera and other extras, chosen before the first move." },
+      },
+      debrief: {
+        grade: { title: "The game's grade", body: "The letter and number are the result the engine gave: 40% deal economics, 25% relationship, 35% technique. A and B — the method worked, C — a pass, D and F — room to grow." },
+        parts: { title: "What it's made of", body: "Economics — how good the price is. Relationship — the trust and tension you parted with. Technique — questions, facts, trade-offs and no pressure." },
+        beats: { title: "The breakdown in parts", body: "Outcome, what you missed, what a master would say. The button leads to the next part; the dots switch between them." },
+        whatif: { title: "What if…", body: "Your most costly move. Type a different line and the engine shows how the game would have gone from the same point." },
+        next: { title: "What next", body: "Play again — your previous attempt runs alongside move by move — or go back to the list. Every game adds to your skills profile." },
       },
       course: {
         path: { title: "Course map", body: "Blocks go from your first question to a complex deal. Each has short lessons with exercises and an exam at the end. Locked blocks open as you progress." },

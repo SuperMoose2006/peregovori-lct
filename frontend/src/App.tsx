@@ -292,6 +292,7 @@ export default function App() {
   // имеют — там одна кнопка «дальше».
   const tourSection: TourSection | null =
     screen === "game" ? (nego.scenario ? "table" : null)
+    : screen === "debrief" ? (nego.debrief ? "debrief" : null)
     : screen === "home" ? ({ practice: "home", campaign: "campaign", custom: "custom", exam: "exam" } as const)[mode]
     : screen === "course" ? "course"
     : screen === "profile" ? "profile"

@@ -175,9 +175,20 @@ test("App: тур раздела сам при входе, раз за сеан�
   assert.match(app, /markSeenThisSession\(tourSection\);\s*setTour\(tourSection\)/);
   assert.match(app, /className="tour-help" onClick=\{replayTour\}/);
   assert.match(app, /<TourPrefsPanel\b/);
-  for (const s of TOUR_SECTIONS.filter((x) => x !== "home" && x !== "table")) {
-    assert.ok(app.includes(`"${s}"`), `раздел ${s} не распознаётся`);
+  // Каждый раздел обязан распознаваться ИМЕННО в выражении «какой раздел
+  // сейчас открыт» — строка с его именем где-то ещё в App ничего не доказывает.
+  const from = app.indexOf("const tourSection: TourSection | null =");
+  const expr = app.slice(from, app.indexOf(": null;", from));
+  assert.ok(from > 0 && expr.length > 0, "выражение раздела не найдено");
+  const all: TourSection[] = TOUR_SECTIONS;
+  for (const s of all) assert.ok(expr.includes(`"${s}"`), `раздел ${s} не распознаётся`);
+});
+
+test("тур разбора называет формулу оценки — ту же, что считает движок", () => {
+  // Инвариант 3: overall = 0.4·economic + 0.25·relationship + 0.35·technique.
+  for (const lang of ["ru", "en"] as const) {
+    const body = I18N[lang].tours.debrief.grade.body;
+    for (const w of ["40%", "25%", "35%"]) assert.ok(body.includes(w), `${lang}: в оценке нет «${w}»`);
   }
-  const sections: TourSection[] = ["home", "table"];
-  for (const s of sections) assert.ok(app.includes(`"${s}"`), s);
+  assert.deepEqual(TOURS.debrief.slice(0, 2).map((s) => s.id), ["grade", "parts"]);
 });
