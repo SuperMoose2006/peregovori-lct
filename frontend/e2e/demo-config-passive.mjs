@@ -61,7 +61,7 @@ try{
  writeFileSync(out+'/result.json',JSON.stringify({health,total_ms:Math.round(performance.now()-began),steps,result,errors},null,2));
  assert.ok(result.peak>0,'real TTS reached browser audio player');
  assert.equal(result.debrief.attestation,undefined,'permanent issuance stays off');
- assert.ok(steps[1].log.some(e=>e.kind==='sys'&&/parakeet/.test(e.text)),'actual ASR visible');
+ assert.ok(steps.every(step=>!step.log.some(e=>e.kind==='sys'&&/parakeet|no automatic cloud ASR/.test(e.text))),'internal ASR configuration stays out of the chat');
  assert.deepEqual(errors,[]);
  writeFileSync(out+'/result.json',JSON.stringify({health,total_ms:Math.round(performance.now()-began),steps,result,errors},null,2));
  console.log(JSON.stringify({total_ms:Math.round(performance.now()-began),steps:steps.map(s=>({name:s.name,ms:s.elapsed_ms,turn:s.state?.turn})),peak:result.peak,grade:result.debrief.grade,errors}));
