@@ -80,7 +80,7 @@ export const PRESETS: { id: string; label: { ru: string; en: string }; layers: L
   { id: "poker", label: { ru: "Покерфейс", en: "Poker face" },
     layers: { ...NO_LAYERS, camera: true, avatar: true, pokerface: true } },
   { id: "full", label: { ru: "Полный контакт", en: "Full contact" },
-    layers: { probe: true, voice: true, camera: true, avatar: true, pokerface: false } },
+    layers: { probe: true, voice: true, camera: true, avatar: true, pokerface: true } },
 ];
 
 /**
