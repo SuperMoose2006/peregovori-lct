@@ -85,6 +85,27 @@ test("custom configuration reaches session.init unchanged", async () => {
   }
 });
 
+test("legacy custom difficulty is normalized on the wire without mutating its context", async () => {
+  const { RealtimeTransport } = await import("../src/realtime/transport");
+  const { DEFAULT_SCENARIO_CONTEXT } = await import("../src/lib/scenarioContext");
+  for (const difficulty of [2, 4]) {
+    const context = { ...DEFAULT_SCENARIO_CONTEXT, difficulty };
+    const transport = new RealtimeTransport(() => {}, () => {});
+    try {
+      transport.send({ type: "start", scenarioId: "custom", lang: "en", mode: "custom",
+        situation: "Negotiate a supply contract", context });
+      await tick();
+      const socket = Socket.latest;
+      socket.deliver({ type: "session.queue_done" });
+      await tick();
+      const init = socket.sent.find(event => event.type === "session.init");
+      assert.ok(init);
+      assert.deepEqual((init.payload as { context: unknown }).context, { ...context, difficulty: 3 });
+      assert.equal(context.difficulty, difficulty);
+    } finally { transport.close(); }
+  }
+});
+
 test("video wire follows current generation and drops cancelled frames", async () => {
   const { RealtimeTransport } = await import("../src/realtime/transport");
   const transport = new RealtimeTransport(() => {}, () => {});

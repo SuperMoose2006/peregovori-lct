@@ -15,6 +15,7 @@ import { MIRROR_MAP } from "../data/mirrors";
 import { analyze, applyMove, newSession, stateView } from "../mock/engine";
 import type { PastRun } from "./progress";
 import type { TrailPoint } from "./rematch";
+import { REPLAY_BALANCE_VERSION } from "./rematch";
 
 /**
  * Переиграть сохранённую партию ход за ходом.
@@ -27,6 +28,9 @@ import type { TrailPoint } from "./rematch";
  * Это честное «недоступно», а не пустая панель (принцип 2).
  */
 export function replayRun(run: PastRun): TrailPoint[] | null {
+  // Preserve saved score/moves, but never label a replay under new rules as
+  // the historical trajectory. Old records deliberately stay unversioned.
+  if (run.opening.balanceVersion !== REPLAY_BALANCE_VERSION) return null;
   const def = SCENARIO_MAP[run.scenarioId] ?? MIRROR_MAP[run.scenarioId];
   if (!def || run.moves.length === 0) return null;
   const s = newSession(def, run.lang);

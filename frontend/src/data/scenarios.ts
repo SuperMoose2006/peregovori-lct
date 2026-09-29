@@ -4,6 +4,7 @@
 // tradeoffs/style/secondaryIssues/hiddenInterestKeywords/batnaStrength);
 // toScenarioView() projects the public, protocol-facing subset (types.ts ScenarioView).
 import type { DefendedInterest, Lang, ScenarioView } from "../types";
+import { normalizeDifficulty } from "../lib/difficulty";
 
 export type CounterpartStyle = "relationship" | "analytical" | "tough";
 type L = Record<Lang, string>;
@@ -67,7 +68,7 @@ export interface ScenarioDef {
 
 export const SCENARIOS: ScenarioDef[] = [
   {
-    id: "supplier", icon: "box", face: "person", diff: 2, dir: "low",
+    id: "supplier", icon: "box", face: "person", diff: 3, dir: "low",
     title: { ru: "Контракт с поставщиком", en: "Supplier Contract" },
     role: {
       ru: "Вы — менеджер по закупкам: снизить цену, не потеряв надёжного поставщика.",
@@ -193,7 +194,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "conflict", icon: "handshake", face: "angry", diff: 4, dir: "low",
+    id: "conflict", icon: "handshake", face: "angry", diff: 3, dir: "low",
     title: { ru: "Конфликт между отделами", en: "Cross-team Conflict" },
     role: {
       ru: "Вы — тимлид: смежный отдел сорвал сроки и обвиняет вас. Договоритесь, сохранив отношения.",
@@ -337,7 +338,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "rent", icon: "house", face: "person", diff: 2, dir: "low",
+    id: "rent", icon: "house", face: "person", diff: 3, dir: "low",
     title: { ru: "Аренда квартиры", en: "Apartment Rent" },
     role: {
       ru: "Вы — арендатор: снизить месячную плату, не потеряв удачную квартиру.",
@@ -477,7 +478,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "freelance_rate", icon: "laptop", face: "person", diff: 4, dir: "high",
+    id: "freelance_rate", icon: "laptop", face: "person", diff: 3, dir: "high",
     title: { ru: "Ставка фрилансера", en: "Freelance Rate" },
     role: {
       ru: "Вы — независимый разработчик: поднять дневную ставку по проекту для стартапа.",
@@ -615,7 +616,7 @@ export const SCENARIOS: ScenarioDef[] = [
     },
   },
   {
-    id: "candidate_offer", icon: "pen", face: "person", diff: 2, dir: "low",
+    id: "candidate_offer", icon: "pen", face: "person", diff: 3, dir: "low",
     title: { ru: "Оффер сильному кандидату", en: "Making the Offer" },
     role: {
       ru: "Вы нанимаете: бюджет с запасом, второго оффера у него нет. Пусть выйдет — и останется.",
@@ -692,7 +693,7 @@ export function toScenarioView(def: ScenarioDef, lang: Lang): ScenarioView {
   return {
     id: def.id,
     icon: def.icon,
-    difficulty: def.diff,
+    difficulty: normalizeDifficulty(def.diff),
     title: def.title[lang],
     role: def.role[lang],
     counterpart_name: def.cp.nm[lang],
@@ -735,7 +736,7 @@ export function catalog(lang: Lang): CatalogItem[] {
   return SCENARIOS.map((s) => ({
     id: s.id,
     icon: s.icon,
-    difficulty: s.diff,
+    difficulty: normalizeDifficulty(s.diff),
     title: s.title[lang],
     role: s.role[lang],
   }));

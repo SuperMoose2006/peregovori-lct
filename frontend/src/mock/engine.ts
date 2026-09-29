@@ -7,6 +7,7 @@ import type { Lang } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, WhatIfBranch } from "../types";
 import { LEX, cnt, has, hasUnnegated, isClose, isShortClose, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
+import { normalizeDifficulty } from "../lib/difficulty";
 import type { CounterpartStyle, ScenarioDef } from "../data/scenarios";
 // Зеркальный стол сажает игрока в кресло персоны ОРИГИНАЛЬНОГО стола, и три
 // вещи, которые он там защищает, берутся оттуда целиком (см. otherSide ниже).
@@ -131,7 +132,7 @@ export interface Session {
   sc: ScenarioDef;
   lang: Lang;
   lowerBetter: boolean;
-  /** Сложность стола (1..5) — та самая, что рисуется точками на карточке выбора.
+  /** Режим стола (IDs 1/3/5; сохранённые 2/4 нормализуются при чтении).
    *  Живёт на СЕССИИ, а не читается из сценария на каждом ходу: партия может
    *  быть заведена с подменённой сложностью, и тогда всё поведение обязано
    *  пересчитаться из одного места. Зеркало backend Session.difficulty. */
@@ -199,7 +200,7 @@ export interface LedgerEntry {
 
 export function newSession(sc: ScenarioDef, lang: Lang): Session {
   return {
-    sc, lang, lowerBetter: sc.dir === "low", difficulty: sc.diff, turn: 0, maxTurns: 12,
+    sc, lang, lowerBetter: sc.dir === "low", difficulty: normalizeDifficulty(sc.diff), turn: 0, maxTurns: 12,
     // Seed leverage from BATNA strength (× 0.4) exactly like the backend engine.
     trust: 40, tension: 25, info: 0, leverage: sc.batnaStrength * 0.4,
     offerOpp: sc.open, offerPlayer: null, frameOpen: sc.open,
@@ -321,23 +322,23 @@ function plausibleOffer(sc: ScenarioDef, n: number): number | null {
   return null;
 }
 
-/** Середина шкалы сложности (2..5 у восьми готовых столов; своя сделка может
- *  прислать 1). Множитель сопротивления считается ОТ НЕЁ, а не от самого лёгкого
- *  стола: иначе «привязать сложность» означало бы «сделать всем хуже, кроме
- *  двойки». Зеркало engine.py::DIFFICULTY_MID. */
+/** Историческая точка отсчёта калибровки, не центр трёх режимов. Сохраняем её,
+ *  чтобы переход на три режима не менял заработанную уступку при тех же IDs.
+ *  Зеркало engine.py::DIFFICULTY_MID. */
 export const DIFFICULTY_MID = 3.5;
-/** Шаг сопротивления на единицу сложности: путь от 2 к 5 меняет заработанную
- *  уступку на ±9 % от середины. Зеркало engine.py::DIFFICULTY_CONCESSION_K. */
-export const DIFFICULTY_CONCESSION_K = 0.06;
+/** Шаг откалиброван по полным партиям: docs/DIFFICULTY_CALIBRATION.md.
+ *  Зеркало engine.py::DIFFICULTY_CONCESSION_K. */
+export const DIFFICULTY_CONCESSION_K = 0.12;
 /** Прибавка к порогу доверия за единицу сложности сверх двойки.
  *  Зеркало engine.py::DIFFICULTY_TRUST_GATE_STEP. */
-export const DIFFICULTY_TRUST_GATE_STEP = 2;
-/** Порог доверия для вскрытия интереса у самого лёгкого стола. */
+export const DIFFICULTY_TRUST_GATE_STEP = 4;
+/** Базовый порог второго уровня; потолок сохраняет доступность первого вопроса. */
 export const REVEAL_TRUST_GATE_BASE = 30;
+export const REVEAL_TRUST_GATE_MAX = 39;
 
 /** Сложность сессии, зажатая в шкалу карточки (1..5). */
 function difficultyOf(s: Session): number {
-  return Math.max(1, Math.min(5, s.difficulty));
+  return normalizeDifficulty(s.difficulty);
 }
 
 /** Во сколько раз сложность стола меняет ЗАРАБОТАННУЮ уступку.
@@ -352,7 +353,8 @@ export function resistance(s: Session): number {
 /** Порог доверия, ниже которого интерес не вскрывается: у трудного собеседника
  *  открыться должно быть труднее. Зеркало engine.py::reveal_trust_gate. */
 export function revealTrustGate(s: Session): number {
-  return REVEAL_TRUST_GATE_BASE + DIFFICULTY_TRUST_GATE_STEP * (difficultyOf(s) - 2);
+  return Math.min(REVEAL_TRUST_GATE_MAX,
+    REVEAL_TRUST_GATE_BASE + DIFFICULTY_TRUST_GATE_STEP * (difficultyOf(s) - 2));
 }
 
 export function flex(s: Session): number {
@@ -379,20 +381,23 @@ export function bestAvailable(sc: ScenarioDef): number {
 /** Из каких шагов выбирается шаг цены: живые люди двигаются на 5, на 0.5, на 1 —
  *  но не на 1.37. Зеркало engine.py::_NICE_STEPS. */
 const NICE_STEPS = [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50];
+export const PRICE_STEP_DIVISOR = 32;
+export const OPENING_PRICE_STEP_DIVISOR = 16;
 
 /** Шаг цены выводится из размаха шкалы, а не вписывается числом: шкалы девяти
  *  столов отличаются в двести раз, а «своя сделка» генерируется на ходу.
  *  Зеркало engine.py::price_step. */
-export function priceStep(sc: ScenarioDef): number {
+export function priceStep(sc: ScenarioDef, opening = false): number {
   const span = Math.abs(sc.open - sc.floor);
   if (span <= 0) return 0.01;
-  const target = span / 16;
+  const target = span / (opening ? OPENING_PRICE_STEP_DIVISOR : PRICE_STEP_DIVISOR);
   return NICE_STEPS.reduce((a, b) => (Math.abs(b - target) < Math.abs(a - target) ? b : a));
 }
 
 function concede(s: Session, f: number): void {
   const moved = s.offerOpp + (s.sc.floor - s.offerOpp) * f;
-  const step = priceStep(s.sc);
+  // Пакетный размен уже требует мелкой сетки, даже в первом предложении.
+  const step = priceStep(s.sc, s.ledger.length === 0 && s.tradeoffs.length === 0);
   // Округляем ПРОТИВ движения: оппонент уступает ровно на человеческий шаг и ни
   // копейкой больше, поэтому дно от округления только дальше (инвариант 1).
   const units = moved / step;
@@ -402,7 +407,10 @@ function concede(s: Session, f: number): void {
   if (Math.abs(snapped - s.offerOpp) < step / 2 && Math.abs(dist) > step / 2) {
     snapped = s.offerOpp + (s.sc.floor < s.offerOpp ? -step : step);
   }
-  s.offerOpp = Math.round(snapped * 100) / 100;
+  // После смены сетки (например, 205 при новом шаге 2) округление не должно
+  // превращать заработанную уступку в откат. Зеркало engine.py::_concede.
+  s.offerOpp = Math.round(clamp(snapped, Math.min(s.offerOpp, s.sc.floor),
+    Math.max(s.offerOpp, s.sc.floor)) * 100) / 100;
 }
 // Обратный ход: оппонент снимает часть уже данной уступки, цена уходит назад к
 // РАМКЕ стола. Наказание, которого не видно в цифре, — не наказание. Рамку мог
@@ -433,7 +441,7 @@ function anchorFrame(s: Session, anchor: number): boolean {
   if (span <= 0 || !towardPlayer) return false;
   const shift = Math.min(Math.abs(gap) * FIRST_WORD_PULL, span * FIRST_WORD_CAP);
   const moved = s.offerOpp + Math.sign(gap) * shift;
-  const step = priceStep(s.sc);
+  const step = priceStep(s.sc, true);
   const units = moved / step;
   let snapped = (floor < s.offerOpp ? Math.ceil(units) : Math.floor(units)) * step;
   snapped = floor < s.offerOpp ? Math.max(snapped, floor) : Math.min(snapped, floor);

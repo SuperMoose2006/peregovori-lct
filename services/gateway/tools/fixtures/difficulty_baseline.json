@@ -1,0 +1,130 @@
+{
+  "source_revision": "516ddf556babc6ff04df53dbe02c3c56e92d1552",
+  "input_sha256": "a904153b4b63943ce9a75452670bfa23c78d52cdf5f82373e029dfd99419b447",
+  "scenario_difficulties": {
+    "candidate_offer": 2,
+    "conflict": 4,
+    "freelance_rate": 4,
+    "investor": 5,
+    "rent": 2,
+    "salary": 3,
+    "sla_renewal": 5,
+    "supplier": 2,
+    "used_car": 3
+  },
+  "parameters": {
+    "concession_k": 0.06,
+    "gate_step": 2,
+    "price_divisor": 16
+  },
+  "principled": {
+    "candidate_offer": {
+      "overall": 90,
+      "grade": "A",
+      "economic": 100,
+      "relationship": 100,
+      "technique": 71,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 230.0,
+      "offer_opp": 210.0
+    },
+    "conflict": {
+      "overall": 81,
+      "grade": "B",
+      "economic": 83,
+      "relationship": 98,
+      "technique": 66,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 7.0,
+      "offer_opp": 7.0
+    },
+    "freelance_rate": {
+      "overall": 88,
+      "grade": "A",
+      "economic": 100,
+      "relationship": 100,
+      "technique": 67,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 19.0,
+      "offer_opp": 19.5
+    },
+    "investor": {
+      "overall": 85,
+      "grade": "A",
+      "economic": 93,
+      "relationship": 98,
+      "technique": 67,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 18.42,
+      "offer_opp": 19.0
+    },
+    "rent": {
+      "overall": 89,
+      "grade": "A",
+      "economic": 100,
+      "relationship": 100,
+      "technique": 69,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 63.0,
+      "offer_opp": 63.0
+    },
+    "salary": {
+      "overall": 87,
+      "grade": "A",
+      "economic": 100,
+      "relationship": 98,
+      "technique": 65,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 230.0,
+      "offer_opp": 235.0
+    },
+    "sla_renewal": {
+      "overall": 88,
+      "grade": "A",
+      "economic": 100,
+      "relationship": 98,
+      "technique": 66,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 99.85,
+      "offer_opp": 99.85
+    },
+    "supplier": {
+      "overall": 92,
+      "grade": "A",
+      "economic": 100,
+      "relationship": 100,
+      "technique": 78,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 86.0,
+      "offer_opp": 84.0
+    },
+    "used_car": {
+      "overall": 88,
+      "grade": "A",
+      "economic": 100,
+      "relationship": 98,
+      "technique": 66,
+      "status": "agreement",
+      "interests_found": 3,
+      "turn": 6,
+      "deal": 1060.0,
+      "offer_opp": 1050.0
+    }
+  }
+}

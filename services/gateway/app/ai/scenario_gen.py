@@ -35,7 +35,7 @@ def _sys_prompt(lang: str) -> str:
             "Ты — дизайнер сценариев для тренажёра переговоров. По описанию ситуации от пользователя "
             "создай ОДИН сценарий деловых переговоров. Верни СТРОГО JSON (без markdown, без пояснений) "
             "со следующими полями:\n"
-            '{"title": str, "icon": ОДНО ИМЯ из списка ниже, "difficulty": целое число от 1 до 5, "role": "кто игрок и его цель, 1-2 предложения",\n'
+            '{"title": str, "icon": ОДНО ИМЯ из списка ниже, "difficulty": одно из чисел 1, 3, 5, "role": "кто игрок и его цель, 1-2 предложения",\n'
             ' "counterpart_name": str, "counterpart_persona": "1 предложение", '
             '"style": "relationship|tough|analytical",\n'
             ' "unit": "суффикс числа, напр. \'₽\', \'%\', \' млн\', \' дн\'", '
@@ -57,7 +57,7 @@ def _sys_prompt(lang: str) -> str:
     return (
         "You are a scenario designer for a negotiation trainer. From the user's situation, create ONE "
         "business-negotiation scenario. Return STRICT JSON (no markdown, no prose) with these fields:\n"
-        '{"title": str, "icon": ONE NAME from the list below, "difficulty": integer from 1 to 5, "role": "who the player is and their goal, 1-2 sentences",\n'
+        '{"title": str, "icon": ONE NAME from the list below, "difficulty": one of 1, 3, 5, "role": "who the player is and their goal, 1-2 sentences",\n'
         ' "counterpart_name": str, "counterpart_persona": "1 sentence", '
         '"style": "relationship|tough|analytical",\n'
         ' "unit": "number suffix e.g. \'$\', \'%\', \'k\', \' days\'", '

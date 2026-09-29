@@ -17,7 +17,9 @@
 from __future__ import annotations
 
 from typing import Literal, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.engine.difficulty import normalize_difficulty
 
 # Формы курса являются частью контракта; реализация отделена от форм партии.
 from app.course.schema import COURSE_EXERCISE, CourseExercise  # noqa: F401
@@ -40,8 +42,14 @@ class ScenarioContext(BaseModel):
     topic: str = Field(default="", max_length=120)
     opponent_role: str = Field(default="", max_length=120)
     opponent_goal: str = Field(default="", max_length=240)
-    difficulty: int = Field(default=3, ge=1, le=5, strict=True)
+    difficulty: int = Field(default=3, ge=1, le=5, strict=True,
+                            description="Modes 1/3/5; legacy 2 and 4 map to 3 on read")
     style: Literal["relationship", "tough", "analytical"] = "analytical"
+
+    @field_validator("difficulty")
+    @classmethod
+    def migrate_difficulty(cls, value: int) -> int:
+        return normalize_difficulty(value)
 
 
 #: РЕЖИМ НА ПРОВОДЕ — не то же самое, что режим экрана. Он говорит серверу, ЧТО

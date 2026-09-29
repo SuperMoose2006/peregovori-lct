@@ -11,6 +11,7 @@
 import type { Lang, ScenarioContext } from "../types";
 import type { Strings } from "../i18n";
 import { Icon } from "./Icon";
+import { DifficultySelect } from "./DifficultySelect";
 
 interface Props {
   t: Strings;
@@ -75,10 +76,8 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
                 ))}
               <label>
                 <span>{t.custom.context.difficulty}</span>
-                <select value={context.difficulty}
-                  onChange={(e) => onContextChange({ ...context, difficulty: Number(e.target.value) })}>
-                  {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n} / 5</option>)}
-                </select>
+                <DifficultySelect lang={lang} value={context.difficulty}
+                  onChange={(difficulty) => onContextChange({ ...context, difficulty })} />
               </label>
               <label>
                 <span>{t.custom.context.style}</span>

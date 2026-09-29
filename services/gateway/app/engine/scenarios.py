@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from threading import RLock
 import time
 
+from .difficulty import normalize_difficulty
+
 
 @dataclass(frozen=True)
 class Counterpart:
@@ -114,6 +116,11 @@ class Scenario:
     # правке, а тот же самый — иначе карточка «что вы защищали» обещала бы
     # секреты, которых за оригинальным столом нет.
     mirror_of: str = ""
+
+    def __post_init__(self) -> None:
+        # Read-time migration also covers saved custom scenarios and replace().
+        # Source records/IDs are retained; no persistent rewrite is required.
+        object.__setattr__(self, "difficulty", normalize_difficulty(self.difficulty))
 
 
 SCENARIOS: list[Scenario] = [

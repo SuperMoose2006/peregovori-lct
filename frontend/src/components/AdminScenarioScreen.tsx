@@ -9,6 +9,7 @@ import {
 import "./AdminScenarioScreen.css";
 import { ScreenHeading } from "./ScreenHeading";
 import { DataIcon, Icon } from "./Icon";
+import { DifficultySelect } from "./DifficultySelect";
 
 const COPY = {
   ru: {
@@ -111,7 +112,7 @@ export function AdminScenarioScreen({ lang, onExit, onLaunch }: AdminScenarioScr
           <label htmlFor="admin-topic">{t.topic}<input id="admin-topic" required minLength={3} maxLength={120} value={draft.topic} onChange={e => change({ topic: e.target.value })}/></label>
           <label htmlFor="admin-role">{t.role}<input id="admin-role" required minLength={2} maxLength={80} value={draft.opponentRole} onChange={e => change({ opponentRole: e.target.value })}/></label>
           <label htmlFor="admin-tone">{t.tone}<select id="admin-tone" value={draft.tone} onChange={e => change({ tone: e.target.value as AdminTone })}>{TONES.map(tone => <option value={tone} key={tone}>{labels.tones[tone]}</option>)}</select></label>
-          <label htmlFor="admin-difficulty">{t.difficulty} <output htmlFor="admin-difficulty">{draft.difficulty}/5</output><input id="admin-difficulty" type="range" min={1} max={5} step={1} value={draft.difficulty} onChange={e => change({ difficulty: Number(e.target.value) })}/><span className="admin-range-hints"><span>{t.easy}</span><span>{t.hard}</span></span></label>
+          <label htmlFor="admin-difficulty">{t.difficulty}<DifficultySelect id="admin-difficulty" lang={lang} value={draft.difficulty} onChange={difficulty => change({ difficulty })} /></label>
           <fieldset className="admin-goals"><legend>{t.goals}</legend><p id="admin-goals-help">{t.goalsHelp}</p>
             {GOALS.map(goal => <label className="admin-check" key={goal}><input type="checkbox" checked={draft.opponentGoals.includes(goal)} aria-describedby="admin-goals-help" onChange={() => toggleGoal(goal)}/><span>{labels.goals[goal]}</span></label>)}
           </fieldset>

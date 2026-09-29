@@ -147,9 +147,10 @@ BLOCKS: list[Block] = [
             )),
             Lesson(5, T("Интерес открывается на доверии", "An interest opens on trust"), T(
                 "Самое контринтуитивное правило движка: идеальный вопрос на холодном столе не "
-                "вскрывает ничего. Интерес открывается, только если доверие ВЫШЕ порога — 30 у самого "
-                "лёгкого стола и по +2 за каждую ступень сложности: 32 у зарплаты, 34 у конфликта, "
-                "36 у инвестора. Стартовое доверие 40, поэтому первый же вопрос по теме работает; а "
+                "вскрывает ничего. Интерес открывается, только если доверие ВЫШЕ порога: 26 в режиме "
+                "«Больше уступок», 34 в режиме «Умеренные уступки» и 39 в режиме «Меньше уступок». "
+                "У поставщика, зарплаты и конфликта порог 34, у инвестора — 39. "
+                "Стартовое доверие 40, поэтому первый же вопрос по теме работает; а "
                 "вот после грубости (−22) или ультиматума (−14) вы проваливаетесь под порог, и тот же "
                 "вопрос перестаёт работать.\n\n"
                 "Что видно на экране: Информация растёт не на 24, а на 5 — это потолок для вопроса, "
@@ -162,9 +163,10 @@ BLOCKS: list[Block] = [
                 "сначала отражение чувства (доверие +8, напряжение −10) или пара тёплых фраз, потом "
                 "конкретный вопрос про конкретную вещь.",
                 "The engine's most counter-intuitive rule: a perfect question at a cold table opens "
-                "nothing. An interest opens only when trust is ABOVE the gate — 30 at the easiest "
-                "table, plus 2 for every step of difficulty: 32 for the salary table, 34 for the "
-                "conflict, 36 for the investor. You start at 40, so the very first on-topic question "
+                "nothing. An interest opens only when trust is ABOVE the gate: 26 in More "
+                "concessions, 34 in Moderate concessions and 39 in Fewer concessions. The supplier, "
+                "salary and conflict tables use 34; the investor uses 39. "
+                "You start at 40, so the very first on-topic question "
                 "works; but after rudeness (−22) or an ultimatum (−14) you drop under the gate and the "
                 "same question stops working.\n\n"
                 "What you see on screen: Information rises by 5 instead of 24 — that is the ceiling "

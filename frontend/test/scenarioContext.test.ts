@@ -26,6 +26,8 @@ test("facilitator settings are labelled in both languages and bounded", () => {
     assert.match(html, /maxLength="240"/);
     assert.match(html, /value="5" selected=""/);
     assert.match(html, /value="tough" selected=""/);
+    const difficultySelect = html.match(/<select[^>]*>([\s\S]*?)<\/select>/)?.[1] ?? "";
+    assert.deepEqual([...difficultySelect.matchAll(/value="(\d+)"/g)].map(match => Number(match[1])), [1, 3, 5]);
   }
 });
 

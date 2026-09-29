@@ -1,7 +1,8 @@
 import type { CatalogItem } from "../data/scenarios";
+import { normalizeDifficulty, type DifficultyMode } from "./difficulty";
 
 export type CatalogTopic = "all" | "career" | "business" | "life";
-export type CatalogDifficulty = "all" | "starter" | "challenge";
+export type CatalogDifficulty = "all" | DifficultyMode;
 
 const TOPICS: Record<string, Exclude<CatalogTopic, "all">> = {
   supplier: "business", investor: "business", freelance_rate: "business", sla_renewal: "business",
@@ -33,8 +34,7 @@ export function filterCatalog(rows: CatalogItem[], query: string, topic: Catalog
   const terms = normalize(query).split(/\s+/).filter(Boolean);
   return rows.filter((row) => {
     if (topic !== "all" && scenarioTopic(row.id) !== topic) return false;
-    if (difficulty === "starter" && row.difficulty > 3) return false;
-    if (difficulty === "challenge" && row.difficulty < 4) return false;
+    if (difficulty !== "all" && normalizeDifficulty(row.difficulty) !== difficulty) return false;
     const text = normalize(`${row.title} ${row.role} ${KEYWORDS[row.id] ?? ""}`);
     return terms.every((term) => text.includes(term));
   });

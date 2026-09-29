@@ -5,6 +5,7 @@
 import { apiFetch } from "./backend";
 import type { CampaignView, Lang } from "../types";
 import { synthCampaigns } from "../data/campaigns";
+import { normalizeDifficulty } from "../lib/difficulty";
 
 const FETCH_TIMEOUT_MS = 1500;
 
@@ -22,7 +23,9 @@ export async function getCampaigns(lang: Lang): Promise<CampaignView[]> {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as { campaigns?: CampaignView[] };
     if (!data.campaigns || data.campaigns.length === 0) throw new Error("empty");
-    return data.campaigns;
+    return data.campaigns.map(campaign => ({ ...campaign,
+      stages: campaign.stages.map(stage => ({ ...stage, difficulty: normalizeDifficulty(stage.difficulty) })),
+    }));
   } catch {
     // Backend down / not running: fall back to the offline synth so the mode
     // still plays (same shape the endpoint would have returned).

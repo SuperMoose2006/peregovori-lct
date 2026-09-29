@@ -1,5 +1,6 @@
 import type { Lang, ScenarioView } from "../types";
 import { apiFetch } from "../api/backend";
+import { normalizeDifficulty } from "./difficulty";
 
 export const ADMIN_DRAFT_KEY = "dialog.adminContext.v1";
 export const DOMAINS = ["procurement", "career", "property", "investment", "team", "freelance"] as const;
@@ -45,12 +46,12 @@ const PRESETS: Record<AdminDomain, { ru: [string, string]; en: [string, string];
 };
 export function adminPreset(domain: AdminDomain, lang: Lang): AdminDraft {
   const p = PRESETS[domain];
-  return { domain, topic: p[lang][0], opponentRole: p[lang][1], difficulty: p.difficulty, tone: p.tone, opponentGoals: [...p.goals] };
+  return { domain, topic: p[lang][0], opponentRole: p[lang][1], difficulty: normalizeDifficulty(p.difficulty), tone: p.tone, opponentGoals: [...p.goals] };
 }
 export function translateAdminPreset(draft: AdminDraft, from: Lang, to: Lang): AdminDraft {
   const preset = adminPreset(draft.domain, from);
   const untouched = draft.topic === preset.topic && draft.opponentRole === preset.opponentRole
-    && draft.difficulty === preset.difficulty && draft.tone === preset.tone
+    && normalizeDifficulty(draft.difficulty) === preset.difficulty && draft.tone === preset.tone
     && [...draft.opponentGoals].sort().join() === [...preset.opponentGoals].sort().join();
   return untouched ? adminPreset(draft.domain, to) : draft;
 }
@@ -72,31 +73,36 @@ export function loadAdminDraft(lang: Lang, storage?: Pick<Storage, "getItem">): 
     const raw = storage?.getItem(ADMIN_DRAFT_KEY);
     if (raw && raw.length <= 4096) {
       const draft: unknown = JSON.parse(raw);
-      if (validAdminDraft(draft)) return draft;
+      if (validAdminDraft(draft)) return { ...draft, difficulty: normalizeDifficulty(draft.difficulty) };
     }
   } catch { /* A blocked or corrupt local draft must not prevent configuration. */ }
   return adminPreset("procurement", lang);
 }
 export function saveAdminDraft(draft: AdminDraft, storage?: Pick<Storage, "setItem">): boolean {
   if (!storage || !validAdminDraft(draft)) return false;
-  try { storage.setItem(ADMIN_DRAFT_KEY, JSON.stringify(draft)); return true; }
+  try { storage.setItem(ADMIN_DRAFT_KEY, JSON.stringify({ ...draft, difficulty: normalizeDifficulty(draft.difficulty) })); return true; }
   catch { return false; }
 }
 export function adminPreviewIsCurrent(preview: AdminPreview | null, draft: AdminDraft, lang: Lang): boolean {
   if (!preview || preview.context.lang !== lang) return false;
   const c = preview.context;
-  return c.domain === draft.domain && c.topic === draft.topic.trim() && c.difficulty === draft.difficulty
+  return c.domain === draft.domain && c.topic === draft.topic.trim()
+    && normalizeDifficulty(c.difficulty) === normalizeDifficulty(draft.difficulty)
     && c.tone === draft.tone && c.opponentRole === draft.opponentRole.trim()
     && [...c.opponentGoals].sort().join() === [...draft.opponentGoals].sort().join();
 }
 export async function requestAdminPreview(draft: AdminDraft, lang: Lang, signal: AbortSignal): Promise<AdminPreview> {
   const response = await apiFetch("/api/admin/scenarios/preview", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...draft, lang }), signal,
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...draft, difficulty: normalizeDifficulty(draft.difficulty), lang }), signal,
   });
   if (!response.ok) throw new Error(response.status === 429 ? "rate" : response.status === 401 ? "auth" : response.status === 422 ? "invalid" : "server");
   const data: unknown = await response.json();
   const result = data as AdminPreview;
   if (!result || !validAdminDraft(result.context) || !result.scenario?.id?.startsWith("admin_")
       || typeof result.scenario.briefing !== "string" || !Array.isArray(result.effects)) throw new Error("server");
-  return result;
+  return { ...result,
+    context: { ...result.context, difficulty: normalizeDifficulty(result.context.difficulty) },
+    scenario: { ...result.scenario, difficulty: normalizeDifficulty(result.scenario.difficulty) },
+  };
 }

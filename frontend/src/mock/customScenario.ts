@@ -7,6 +7,7 @@
 // unit/direction; the rest is a solid generic template that echoes the situation.
 import type { Lang, ScenarioContext } from "../types";
 import type { ScenarioDef } from "../data/scenarios";
+import { normalizeDifficulty } from "../lib/difficulty";
 
 type L = Record<Lang, string>;
 
@@ -109,7 +110,7 @@ export function synthCustomScenario(situation: string, lang: Lang, context?: Sce
     id: "custom_mock",
     icon: "target",
     face: "person",
-    diff: context?.difficulty ?? 3,
+    diff: normalizeDifficulty(context?.difficulty),
     dir: kind.dir,
     title,
     role,

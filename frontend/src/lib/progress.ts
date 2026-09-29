@@ -9,6 +9,7 @@
 
 import { COURSE_BLOCKS } from "../data/course.blocks.generated";
 import type { Debrief, Mode } from "../types";
+import { normalizeDifficulty } from "./difficulty";
 
 export type Grade = "A" | "B" | "C" | "D" | "F";
 
@@ -1084,6 +1085,9 @@ export interface RunOpening {
   trust: number;
   tension: number;
   maxTurns: number;
+  /** Absent on historical records: their final result remains valid, but the
+   *  old trajectory cannot be reconstructed using a different balance. */
+  balanceVersion?: string;
 }
 
 /** Одна сохранённая партия: вход движка плюс итог, который движок поставил. */
@@ -1145,6 +1149,8 @@ function sanitizeRun(v: unknown): PastRun | null {
       trust: clamp(num(op.trust, 40), 0, 100),
       tension: clamp(num(op.tension, 25), 0, 100),
       maxTurns: clamp(Math.round(num(op.maxTurns, 12)), 1, PAST_MAX_MOVES),
+      ...(typeof op.balanceVersion === "string" && op.balanceVersion.length <= 64
+        ? { balanceVersion: op.balanceVersion } : {}),
     },
     moves,
     grade: g as Grade,
@@ -1389,9 +1395,9 @@ export function chooseNextStep(profile: Profile, input: RouteInput): NextStepPic
   //    воспроизводимым, а не «каким-нибудь из двух».
   if (played.length === 0 && !touchedCourse) {
     const easiest = input.tables.reduce<RouteTable | null>(
-      (best, t) => (best === null || t.difficulty < best.difficulty ? t : best), null);
+      (best, t) => (best === null || normalizeDifficulty(t.difficulty) < normalizeDifficulty(best.difficulty) ? t : best), null);
     if (easiest) {
-      return { ...NO_STEP, kind: "first", scenarioId: easiest.id, difficulty: easiest.difficulty };
+      return { ...NO_STEP, kind: "first", scenarioId: easiest.id, difficulty: normalizeDifficulty(easiest.difficulty) };
     }
     return daily;
   }

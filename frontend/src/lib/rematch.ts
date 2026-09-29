@@ -24,6 +24,9 @@
 import type { StateView } from "../types";
 import type { RunOpening } from "./progress";
 
+/** Bump whenever balance or scenario defaults change replayed trajectories. */
+export const REPLAY_BALANCE_VERSION = "concessions-three-modes-v1";
+
 /** Один ход прошлой партии: что было сказано и куда после этого встал стол. */
 export interface TrailPoint {
   turn: number; // 1-based, как номер хода на экране
@@ -40,12 +43,14 @@ export function priceOf(state: StateView): number {
  *  дня против обычного, акт с репутацией против практики), и сравнение обязано
  *  сказать это словами, а не молча показать расхождение как заслугу игрока. */
 export function sameOpening(a: RunOpening, b: RunOpening): boolean {
-  return a.trust === b.trust && a.tension === b.tension && a.maxTurns === b.maxTurns;
+  return a.trust === b.trust && a.tension === b.tension && a.maxTurns === b.maxTurns
+    && a.balanceVersion === b.balanceVersion;
 }
 
 /** Снять стартовые условия с самого первого состояния партии (turn 0). */
 export function openingOf(state: StateView): RunOpening {
-  return { trust: state.trust, tension: state.tension, maxTurns: state.max_turns };
+  return { trust: state.trust, tension: state.tension, maxTurns: state.max_turns,
+    balanceVersion: REPLAY_BALANCE_VERSION };
 }
 
 export type MeterId = "trust" | "tension" | "info" | "leverage";

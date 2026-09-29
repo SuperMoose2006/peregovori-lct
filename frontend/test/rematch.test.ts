@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   METER_IDS, meterGaps, meterSeries, openingOf, priceGap, priceOf, priceSeries,
-  sameOpening, sparkPoints,
+  sameOpening, sparkPoints, REPLAY_BALANCE_VERSION,
 } from "../src/lib/rematch";
 // Пересчёт живёт отдельно: он единственный здесь зовёт движок-зеркало.
 import { replayRun } from "../src/lib/rematchReplay";
@@ -35,7 +35,7 @@ const run = (o: Partial<PastRun> = {}): PastRun => ({
   scenarioId: "supplier",
   lang: "ru",
   at: "2026-08-01T10:00:00.000Z",
-  opening: { trust: 40, tension: 25, maxTurns: 12 },
+  opening: { trust: 40, tension: 25, maxTurns: 12, balanceVersion: REPLAY_BALANCE_VERSION },
   moves: MOVES,
   grade: "B",
   score: 72,
@@ -82,14 +82,14 @@ test("переигровка повторяет цикл партии ход в 
 test("стартовые условия стола восстанавливаются замером, а не догадкой", () => {
   // «Холодный старт» столa дня: доверие ниже. Переигровка обязана начинать
   // оттуда же, иначе короткий/холодный стол сравнивался бы с обычным молча.
-  const cold = replayRun(run({ opening: { trust: 25, tension: 25, maxTurns: 12 } }));
+  const cold = replayRun(run({ opening: { ...run().opening, trust: 25 } }));
   const plain = replayRun(run());
   assert.ok(cold && plain);
   assert.ok(cold[0].state.trust < plain[0].state.trust);
 });
 
 test("короткий стол закрывается по своему числу ходов", () => {
-  const short = replayRun(run({ opening: { trust: 40, tension: 25, maxTurns: 2 } }));
+  const short = replayRun(run({ opening: { ...run().opening, maxTurns: 2 } }));
   assert.ok(short);
   assert.equal(short.length, 2);
   assert.equal(short[short.length - 1].state.status, "breakdown");
@@ -106,9 +106,19 @@ test("openingOf снимает ровно то, что меняют модифи
   const trail = replayRun(run());
   assert.ok(trail);
   const op = openingOf({ ...trail[0].state, trust: 25, tension: 40, max_turns: 8 });
-  assert.deepEqual(op, { trust: 25, tension: 40, maxTurns: 8 });
-  assert.ok(sameOpening(op, { trust: 25, tension: 40, maxTurns: 8 }));
-  assert.ok(!sameOpening(op, { trust: 25, tension: 40, maxTurns: 12 }));
+  assert.deepEqual(op, { trust: 25, tension: 40, maxTurns: 8, balanceVersion: REPLAY_BALANCE_VERSION });
+  assert.ok(sameOpening(op, { ...op }));
+  assert.ok(!sameOpening(op, { ...op, maxTurns: 12 }));
+  assert.ok(!sameOpening(op, { ...op, balanceVersion: undefined }));
+});
+
+test("старый баланс не переигрывается как прежняя траектория", () => {
+  for (const balanceVersion of [undefined, "older-balance"]) {
+    const past = run({ opening: { trust: 40, tension: 25, maxTurns: 12, balanceVersion } });
+    const before = structuredClone(past);
+    assert.equal(replayRun(past), null);
+    assert.deepEqual(past, before, "исторические ходы и итог не должны переписываться");
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -234,6 +244,12 @@ test("localStorage: запись, чтение и защита от испорч
     // а не мегабайтами, иначе квота localStorage унесёт с собой профиль.
     const blob = store.get("dialog.pastruns.v1") ?? "";
     assert.ok(blob.length < 4096, `одна партия занимает ${blob.length} байт`);
+
+    const legacy = run({ opening: { trust: 40, tension: 25, maxTurns: 12 } });
+    const legacyBlob = JSON.stringify({ v: 1, tables: { supplier: legacy } });
+    store.set("dialog.pastruns.v1", legacyBlob);
+    assert.deepEqual(loadPastRun("supplier"), legacy);
+    assert.equal(store.get("dialog.pastruns.v1"), legacyBlob, "чтение не мигрирует историю записью");
 
     // Испорченный блоб — «сравнивать не с чем», а не исключение в партию.
     store.set("dialog.pastruns.v1", "{не json");

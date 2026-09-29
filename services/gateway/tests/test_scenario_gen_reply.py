@@ -110,7 +110,7 @@ def test_a_chatty_fenced_reply_still_yields_the_table(monkeypatch):
 # ------------------------------------------------------- остальные поля
 
 @pytest.mark.parametrize(("raw", "expected"), [
-    (42, 5), (-3, 1), ("4", 4), ("hard", 3), (None, 3), (2.9, 2),
+    (42, 5), (-3, 1), ("4", 3), ("hard", 3), (None, 3), (2.9, 3),
 ])
 def test_difficulty_is_clamped_to_the_scale_the_engine_knows(monkeypatch, raw, expected):
     assert _generate(monkeypatch, {**BASE, "difficulty": raw}).difficulty == expected

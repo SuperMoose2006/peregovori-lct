@@ -15,6 +15,8 @@ import { dailyTable } from "../lib/daily";
 import { MascotImg } from "./Mascot";
 import { filterCatalog, scenarioTopic, type CatalogDifficulty, type CatalogTopic } from "../lib/catalogFilter";
 import { Icon, DataIcon } from "./Icon";
+import { DIFFICULTY_MODES, difficultyLabel, normalizeDifficulty } from "../lib/difficulty";
+import { DifficultyIndicator } from "./DifficultyIndicator";
 
 const BROWSE = {
   ru: {
@@ -22,9 +24,9 @@ const BROWSE = {
     subtitle: "Вы ведёте переговоры с собеседником, которого играет ИИ: у него своя цена, граница и скрытые интересы. Договоритесь выгодно и не испортите отношения — после партии получите разбор и оценку.",
     search: "Найти ситуацию", placeholder: "Зарплата, аренда, сложный разговор…",
     all: "Все ситуации", career: "Карьера", business: "Бизнес", life: "Жизнь", topicLabel: "Сфера переговоров",
-    level: "Сложность", levels: { all: "Любая сложность", starter: "Для разогрева · 1–3", challenge: "Бросить вызов · 4–5" },
+    level: "Режим уступок", allLevels: "Любой режим уступок",
     count: "Показано {n} из {total}", empty: "Такой ситуации пока нет", emptyBody: "Попробуйте другое слово или снимите фильтры.", reset: "Сбросить фильтры",
-    difficulty: "Сложность {n} из 5", practice: "Можно ошибаться. Можно переиграть.",
+    practice: "Можно ошибаться. Можно переиграть.",
     examTitle: "Проверьте себя без подсказок", examBody: "Выберите знакомую или новую ситуацию. В конце — оценка ваших решений и сертификат за успешную партию.",
   },
   en: {
@@ -32,9 +34,9 @@ const BROWSE = {
     subtitle: "You negotiate with a counterpart played by AI: they have their own price, a limit and hidden interests. Reach a good deal without damaging the relationship — after the game you get a breakdown and a grade.",
     search: "Find a situation", placeholder: "Salary, rent, a difficult conversation…",
     all: "All situations", career: "Career", business: "Business", life: "Everyday life", topicLabel: "Negotiation context",
-    level: "Difficulty", levels: { all: "Any difficulty", starter: "Warm up · 1–3", challenge: "Challenge yourself · 4–5" },
+    level: "Concession mode", allLevels: "Any concession mode",
     count: "Showing {n} of {total}", empty: "No matching situations yet", emptyBody: "Try another search or clear your filters.", reset: "Clear filters",
-    difficulty: "Difficulty {n} of 5", practice: "Room to make mistakes. Room to try again.",
+    practice: "Room to make mistakes. Room to try again.",
     examTitle: "Put your skills to the test", examBody: "Choose a familiar situation or try a new one. Get feedback on your decisions and earn a certificate for a successful negotiation.",
   },
 } as const;
@@ -117,7 +119,9 @@ export function NextStepCard({ t, lang, pick, campaigns, onGo }: {
   switch (pick.kind) {
     case "first":
       title = sub(t.route.firstTitle, { table: tableTitle });
-      why = sub(t.route.firstWhy, { diff: pick.difficulty });
+      why = lang === "ru"
+        ? `${difficultyLabel(pick.difficulty, lang)} — начните с этого режима, чтобы освоить вопросы, аргументы и размен условий.`
+        : `${difficultyLabel(pick.difficulty, lang)} — start here to practise questions, arguments and trading terms.`;
       cta = t.route.firstCta;
       state = "wave";
       break;
@@ -260,7 +264,7 @@ export function ScenarioPicker({
           <div className="catalog-heading"><h2>{t.pickHead}</h2><span role="status" aria-live="polite">{copy.count.replace("{n}", String(rows.length)).replace("{total}", String(allRows.length))}</span></div>
           <div className="catalog-toolbar">
             <label className="catalog-search"><span className="sr-only">{copy.search}</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg><input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={copy.placeholder} maxLength={120} /></label>
-            <label className="catalog-level"><span className="sr-only">{copy.level}</span><select value={difficulty} onChange={(e) => setDifficulty(e.target.value as CatalogDifficulty)}>{(["all", "starter", "challenge"] as const).map((value) => <option key={value} value={value}>{copy.levels[value]}</option>)}</select></label>
+            <label className="catalog-level"><span className="sr-only">{copy.level}</span><select value={difficulty} onChange={(e) => setDifficulty(e.target.value === "all" ? "all" : normalizeDifficulty(Number(e.target.value)))}><option value="all">{copy.allLevels}</option>{DIFFICULTY_MODES.map((value) => <option key={value} value={value}>{difficultyLabel(value, lang)}</option>)}</select></label>
           </div>
           <div className="catalog-topics" role="group" aria-label={copy.topicLabel}>
             {(["all", "career", "business", "life"] as const).map((value) => <button type="button" className={topic === value ? "selected" : ""} aria-pressed={topic === value} key={value} onClick={() => setTopic(value)}>{copy[value]}</button>)}
@@ -282,11 +286,7 @@ export function ScenarioPicker({
                 <div className="cr">{sc.role}</div>
                 <div className="cf">
                   <div className="cf-l">
-                    <div className="diff" role="img" aria-label={copy.difficulty.replace("{n}", String(sc.difficulty))}>
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <i className={i < sc.difficulty ? "on" : ""} key={i} />
-                      ))}
-                    </div>
+                    <DifficultyIndicator value={sc.difficulty} lang={lang} />
                     <BestChip t={t} profile={profile} id={sc.id} />
                   </div>
                   <div className="go">{lang === "ru" ? "Начать →" : "Start →"}</div>
