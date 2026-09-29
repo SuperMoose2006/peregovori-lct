@@ -10,6 +10,7 @@ import { ScreenHeading } from "./ScreenHeading";
 import type { CampaignProgress, StageResult } from "../lib/progress";
 import { Karl } from "./Mascot";
 import { Icon, DataIcon } from "./Icon";
+import { DifficultyIndicator } from "./DifficultyIndicator";
 
 // ПРОГРЕСС КАМПАНИИ ЖИВЁТ В ПРОФИЛЕ, а не в состоянии React: он переживает F5,
 // хранится по идентификатору кампании и разбирается защищённо (lib/progress.ts).
@@ -48,16 +49,6 @@ export function averageGrade(results: StageResult[]): { avg: number; grade: stri
   const avg = Math.round(results.reduce((s, r) => s + r.overall, 0) / results.length);
   const grade = avg >= 85 ? "A" : avg >= 70 ? "B" : avg >= 55 ? "C" : avg >= 40 ? "D" : "F";
   return { avg, grade };
-}
-
-function Difficulty({ n }: { n: number }) {
-  return (
-    <div className="diff">
-      {Array.from({ length: 5 }, (_, i) => (
-        <i className={i < n ? "on" : ""} key={i} />
-      ))}
-    </div>
-  );
 }
 
 // One act row in the arc. `status` drives the node glyph + badge.
@@ -121,7 +112,7 @@ function ActRow({
           {stage.title}
         </div>
         <div className="act-meta">
-          <Difficulty n={stage.difficulty} />
+          <DifficultyIndicator value={stage.difficulty} lang={lang} />
           <span className="act-of">{t.campaign.actOf.replace("{n}", String(index + 1)).replace("{total}", String(total))}</span>
           <span className={`act-badge ${status}`}>{badge}</span>
         </div>

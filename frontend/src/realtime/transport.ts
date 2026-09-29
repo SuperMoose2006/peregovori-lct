@@ -14,6 +14,7 @@ import type { Analysis, ClientMsg, Deltas, Lang, ScenarioView, StateView } from 
 import type { ConnStatus, ServerMsgHandler, Transport } from "../api/transport";
 import { I18N } from "../i18n";
 import { SERVER_SIDE_REASON } from "../lib/layers";
+import { normalizeDifficulty } from "../lib/difficulty";
 import { AudioPlayer } from "./vendor/audio-player";
 import { AvatarFrames } from "../lib/avatarFrames";
 import { MediaProvider, toBase64 } from "./vendor/media-provider";
@@ -165,7 +166,7 @@ export class RealtimeTransport implements Transport {
       lang: message.lang,
       gameMode: message.mode,
       situation: message.situation ?? null,
-      context: message.context,
+      context: message.context ? { ...message.context, difficulty: normalizeDifficulty(message.context.difficulty) } : undefined,
       reputation: message.reputation ?? null,
       daily: message.daily ?? null,
       layers,

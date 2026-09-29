@@ -17,6 +17,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError, field_validator
 
 from app import views
+from app.engine.difficulty import difficulty_name, normalize_difficulty
 from app.engine.scenarios import (
     SCENARIOS, SecondaryIssue, Scenario, RuntimeRegistryFull, register_runtime_scenario,
 )
@@ -35,6 +36,11 @@ class AdminContext(BaseModel):
     opponentRole: str = Field(min_length=2, max_length=80)
     opponentGoals: list[Goal] = Field(min_length=1, max_length=3)
     lang: Literal['ru', 'en'] = 'ru'
+
+    @field_validator('difficulty')
+    @classmethod
+    def migrate_difficulty(cls, value: int) -> int:
+        return normalize_difficulty(value)
 
     @field_validator('topic', 'opponentRole')
     @classmethod
@@ -161,8 +167,8 @@ def preview(context: AdminContext) -> dict:
         raise HTTPException(503, detail='scenario_capacity') from exc
     ru = context.lang == 'ru'
     effects = [
-        (f'Сложность {context.difficulty}/5 меняет сопротивление уступкам и порог доверия.' if ru else
-         f'Difficulty {context.difficulty}/5 changes concession resistance and the trust threshold.'),
+        (f'Режим «{difficulty_name(context.difficulty, context.lang)}» меняет сопротивление уступкам и порог доверия.' if ru else
+         f'“{difficulty_name(context.difficulty, context.lang)}” changes concession resistance and the trust threshold.'),
         _TONE_TEXT[context.tone][context.lang],
         ('Приоритет цены сужает запас уступок сверх вашей цели.' if ru else
          'Price priority narrows the concession margin beyond your target.')

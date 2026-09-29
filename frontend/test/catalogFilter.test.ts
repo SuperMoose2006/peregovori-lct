@@ -19,9 +19,10 @@ test("search matches all words across title and role, regardless of case or ё",
 
 test("context and difficulty combine, and clearing them restores all situations", () => {
   const rows = catalog("en");
-  assert.deepEqual(filterCatalog(rows, "", "career", "starter").map((r) => r.id), ["salary", "candidate_offer"]);
-  assert.deepEqual(filterCatalog(rows, "", "life", "challenge"), []);
-  assert.deepEqual(filterCatalog(rows, "", "business", "challenge").map((r) => r.id), ["investor", "freelance_rate", "sla_renewal"]);
+  assert.deepEqual(filterCatalog(rows, "", "career", 1), []);
+  assert.deepEqual(filterCatalog(rows, "", "career", 3).map((r) => r.id), ["salary", "conflict", "candidate_offer"]);
+  assert.deepEqual(filterCatalog(rows, "", "life", 5), []);
+  assert.deepEqual(filterCatalog(rows, "", "business", 5).map((r) => r.id), ["investor", "sla_renewal"]);
   assert.equal(filterCatalog(rows, "", "all", "all").length, rows.length);
 });
 

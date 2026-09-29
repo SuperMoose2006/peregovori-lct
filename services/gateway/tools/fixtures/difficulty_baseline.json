@@ -1,6 +1,17 @@
 {
   "source_revision": "516ddf556babc6ff04df53dbe02c3c56e92d1552",
   "input_sha256": "a904153b4b63943ce9a75452670bfa23c78d52cdf5f82373e029dfd99419b447",
+  "scenario_difficulties": {
+    "candidate_offer": 2,
+    "conflict": 4,
+    "freelance_rate": 4,
+    "investor": 5,
+    "rent": 2,
+    "salary": 3,
+    "sla_renewal": 5,
+    "supplier": 2,
+    "used_car": 3
+  },
   "parameters": {
     "concession_k": 0.06,
     "gate_step": 2,

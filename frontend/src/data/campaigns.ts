@@ -14,6 +14,7 @@
 import type { CampaignStageView, CampaignView, Lang } from "../types";
 import { SCENARIO_MAP } from "./scenarios";
 import { CAMPAIGN_DEFS } from "./campaigns.generated";
+import { normalizeDifficulty } from "../lib/difficulty";
 
 export { CAMPAIGN_DEFS };
 
@@ -37,7 +38,7 @@ export function synthCampaigns(lang: Lang): CampaignView[] {
         intro: st.intro[lang],
         title: def ? def.title[lang] : st.scenario_id,
         icon: def ? def.icon : "target",
-        difficulty: def ? def.diff : 3,
+        difficulty: normalizeDifficulty(def?.diff),
       };
     }),
   }));

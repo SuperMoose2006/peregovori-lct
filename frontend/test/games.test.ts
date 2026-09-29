@@ -329,12 +329,12 @@ test("инвариант 8: сессия несёт сложность стол�
 test("инвариант 8: сопротивление и порог доверия совпадают с движком-источником", () => {
   const s = newSession(SCENARIO_MAP.supplier, "ru");
   // 1 + 0.12·(3.5 − d): лёгкий стол уступает щедрее, трудный скупее.
-  for (const [d, want] of [[1, 1.30], [2, 1.18], [3, 1.06], [4, 0.94], [5, 0.82]] as [number, number][]) {
+  for (const [d, want] of [[1, 1.30], [2, 1.06], [3, 1.06], [4, 1.06], [5, 0.82]] as [number, number][]) {
     s.difficulty = d;
     assert.ok(Math.abs(resistance(s) - want) < 1e-9, `d=${d}: ${resistance(s)} вместо ${want}`);
   }
   // min(39, 30 + 4·(d − 2)): первый вопрос доступен при стартовом доверии 40.
-  for (const [d, want] of [[1, 26], [2, 30], [3, 34], [4, 38], [5, 39]] as [number, number][]) {
+  for (const [d, want] of [[1, 26], [2, 34], [3, 34], [4, 34], [5, 39]] as [number, number][]) {
     s.difficulty = d;
     assert.equal(revealTrustGate(s), want, `d=${d}`);
   }

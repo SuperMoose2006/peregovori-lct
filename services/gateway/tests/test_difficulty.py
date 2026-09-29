@@ -194,7 +194,7 @@ def test_finer_price_grid_never_turns_a_concession_into_a_retraction(
 THEMATIC_PROBE_RU = PRINCIPLED["supplier"]["ru"][0]
 
 
-@pytest.mark.parametrize("difficulty,gate", [(1, 26), (2, 30), (3, 34), (4, 38), (5, 39)])
+@pytest.mark.parametrize("difficulty,gate", [(1, 26), (2, 34), (3, 34), (4, 34), (5, 39)])
 def test_reveal_trust_gate_rises_with_difficulty(difficulty: int, gate: float) -> None:
     """У трудного собеседника открыться должно быть труднее.
 

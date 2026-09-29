@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .format import format_deal, format_number
+from .difficulty import normalize_difficulty
 from .scenarios import Scenario, by_id
 from .techniques import Analysis, analyze, norm
 # `_has` — то же сравнение «основа с начала слова», по которому работают все
@@ -153,7 +154,7 @@ def create_session(scenario_id: str, lang: str = "ru") -> Session:
         created_turn=0,
         max_turns=12,
         turn=0,
-        difficulty=sc.difficulty,
+        difficulty=normalize_difficulty(sc.difficulty),
         state=GameState(
             trust=40,
             tension=25,
@@ -172,10 +173,8 @@ def create_session(scenario_id: str, lang: str = "ru") -> Session:
     )
 
 
-#: Середина шкалы сложности (2..5 у готовых столов; своя сделка может
-#: прислать 1). Множитель сопротивления считается ОТ НЕЁ, а не от самого лёгкого
-#: стола: иначе «привязать сложность» означало бы «сделать всем хуже, кроме
-#: двойки», и баланс всех столов, кроме самого лёгкого, поехал бы вниз разом.
+#: Центр исходной калибровки. Сохраняем 3.5 при выборе трёх измеренных
+#: настроек 1/3/5: перенести центр в 3 означало бы повторно изменить баланс.
 DIFFICULTY_MID = 3.5
 #: Калибровка 1620 партий: прежние 0.06 терялись при округлении цены. Удвоенный
 #: шаг различает соседние уровни в раннем закрытии, сохраняя сильную игру.
@@ -191,8 +190,8 @@ REVEAL_TRUST_GATE_MAX = 39.0
 
 
 def _difficulty(sess: Session) -> float:
-    """Сложность сессии, зажатая в шкалу карточки (1..5)."""
-    return max(1.0, min(5.0, float(sess.difficulty)))
+    """Three calibrated modes; legacy session overrides use the same migration."""
+    return normalize_difficulty(sess.difficulty)
 
 
 def resistance(sess: Session) -> float:

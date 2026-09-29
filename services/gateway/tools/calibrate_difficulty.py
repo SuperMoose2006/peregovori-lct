@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from contextlib import contextmanager, nullcontext
+from contextlib import ExitStack, contextmanager
 from dataclasses import asdict, replace
 import hashlib
 import itertools
@@ -27,29 +27,39 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "services/gateway"))
 
 from app.engine import engine as eng  # noqa: E402
+from app.engine import scenarios as scenario_catalog  # noqa: E402
 from app.engine.techniques import analyze  # noqa: E402
 
 FIXTURE = ROOT / "frontend/test/fixtures/games.json"
-LEVELS = range(1, 6)
+LEVELS = (1, 3, 5)
+HISTORICAL_LEVELS = (1, 2, 3, 4, 5)
 POLICIES = ("package", "early_close", "hold_target")
 SEED = 20260929
 BOOTSTRAPS = 20000
 GRADES = "ABCDEF"  # E is deliberately shown as zero: the engine has no E grade.
 BASELINE = Path(__file__).resolve().parent / "fixtures/difficulty_baseline.json"
 OPENING_SLOPE = 0.0
-PROFILES = ("current", "baseline", "three", "opening10", "opening25", "opening50")
+PROFILES = ("current", "five", "baseline", "three", "opening10", "opening25", "opening50")
+
+
+def _legacy_difficulty(value: float) -> float:
+    """The original five-level clamp, used only by historical measurements."""
+    return max(1.0, min(5.0, float(value)))
 
 
 @contextmanager
 def configuration(name: str):
     """Historical/candidate configurations exist only in this offline process.
 
-    Baseline and literal three-parameter trial stay reproducible after the
-    accepted balance changes. Opening-price candidates never alter production
-    scenario objects. They are exploratory, not deployed balancing rules.
+    Current measures the three canonical modes. Baseline, literal three-parameter
+    trial, accepted five-level balance and opening-price candidates retain the
+    original five-point clamp. They never alter production scenario objects.
     """
-    global OPENING_SLOPE
-    previous_slope = OPENING_SLOPE
+    global LEVELS, OPENING_SLOPE
+    if name not in PROFILES:
+        raise ValueError(f"unknown measurement profile: {name}")
+    previous_levels, previous_slope = LEVELS, OPENING_SLOPE
+    LEVELS = (1, 3, 5) if name == "current" else HISTORICAL_LEVELS
     settings = {}
     if name == "baseline":
         settings = dict(DIFFICULTY_CONCESSION_K=.06, DIFFICULTY_TRUST_GATE_STEP=2.,
@@ -59,11 +69,29 @@ def configuration(name: str):
         settings = dict(DIFFICULTY_CONCESSION_K=.12, DIFFICULTY_TRUST_GATE_STEP=4.,
                         PRICE_STEP_DIVISOR=32, OPENING_PRICE_STEP_DIVISOR=32,
                         REVEAL_TRUST_GATE_MAX=100.)
+    elif name != "current":
+        # Freeze the accepted five-level balance, independent of future defaults.
+        settings = dict(DIFFICULTY_CONCESSION_K=.12, DIFFICULTY_TRUST_GATE_STEP=4.,
+                        PRICE_STEP_DIVISOR=32, OPENING_PRICE_STEP_DIVISOR=16,
+                        REVEAL_TRUST_GATE_MAX=39.)
     OPENING_SLOPE = {"opening10": .10, "opening25": .25, "opening50": .50}.get(name, 0.)
     try:
-        with patch.multiple(eng, **settings) if settings else nullcontext():
+        with ExitStack() as patches:
+            if name != "current":
+                patches.enter_context(patch.multiple(eng, **settings))
+                patches.enter_context(patch.object(eng, "normalize_difficulty", _legacy_difficulty))
+                patches.enter_context(patch.object(eng, "_difficulty", lambda sess: _legacy_difficulty(sess.difficulty)))
+                patches.enter_context(patch.object(scenario_catalog, "normalize_difficulty", _legacy_difficulty))
+                # Scenario.__post_init__ now canonicalizes 2/4 at import time.
+                # Restore only copied fixture scenarios; never mutate the catalog.
+                frozen = json.loads(BASELINE.read_text())["scenario_difficulties"]
+                lookup = eng.by_id
+                historical = {sid: replace(lookup(sid), difficulty=d) for sid, d in frozen.items()}
+                patches.enter_context(patch.object(
+                    eng, "by_id", lambda sid: historical[sid] if sid in historical else lookup(sid)))
             yield
     finally:
+        LEVELS = previous_levels
         OPENING_SLOPE = previous_slope
 
 
@@ -240,6 +268,36 @@ def holm(comparisons: list[dict]) -> None:
         row["p_holm"] = previous
 
 
+def migration_probe() -> list[dict]:
+    """One-turn trade-off probe explaining the choice of the legacy 2/4 tie.
+
+    Inputs match the engine's existing high/low-value trade-off contract. This
+    diagnostic is separate from the unchanged 972/1620 completed-game corpus.
+    """
+    scripts = {
+        "supplier": (
+            "Если дадим годовой контракт с гарантией объёма, сможете подвинуться?",
+            "Если добавим предоплату вперёд, сможете подвинуться?"),
+        "rent": (
+            "Давайте в обмен подпишу договор на 11 месяцев, сможете подвинуться?",
+            "Давайте в обмен внесу депозит за 2 месяца, сможете подвинуться?"),
+    }
+    rows = []
+    for sid, lines in scripts.items():
+        for d in (1, 3, 5):
+            row = {"scenario": sid, "difficulty": d, "starting_trust": 45}
+            for kind, line in zip(("high", "low"), lines):
+                sess = eng.create_session(sid, "ru")
+                sess.difficulty = d
+                sess.state.trust = 45
+                sess.turn += 1
+                result = eng.apply_move(sess, analyze(line), line)
+                row[kind] = {"input": line, "offer_delta_abs": abs(result.deltas["offer_opp"]),
+                             "terms_conceded": list(sess.state.terms_conceded)}
+            rows.append(row)
+    return rows
+
+
 def parameters(sids: list[str]) -> dict:
     varying = []
     for d in LEVELS:
@@ -279,6 +337,9 @@ def parameters(sids: list[str]) -> dict:
 
 
 def markdown(data: dict) -> str:
+    levels = tuple(data["measured_levels"])
+    level_columns = " | ".join(map(str, levels))
+    level_separator = "|---|" + "---:|" * len(levels)
     out = [f"# Числа калибровки сложности: {data['profile']}", "",
            "Настройки: " + json.dumps({k: v for k, v in data['parameters'].items()
                                        if k not in ('levels', 'scenarios', 'proposal_arithmetic')}), "",
@@ -297,14 +358,14 @@ def markdown(data: dict) -> str:
                    "target", "reservation", "zopa", "player_batna", "opening_step", "step")) + " |")
     if data['parameters']['opening_slope']:
         out += ["", "Стартовая цена экспериментального оппонента (прочие условия сценария сохранены):", "",
-                "| Сценарий | 1 | 2 | 3 | 4 | 5 |", "|---|---:|---:|---:|---:|---:|"]
+                f"| Сценарий | {level_columns} |", level_separator]
         for p in data['parameters']['scenarios']:
             out.append(f"| {p['scenario']} | " + " | ".join(map(str, p['open_by_level'])) + " |")
     for policy in POLICIES:
         out += ["", f"## {policy}", "",
                 "| Уровень | N | Сделки % | Балл | A/B/C/D/E/F (число) | Ходы до сделки | Срывы % | В пределах игрока % | Достигнута цель % |",
                 "|---|---:|---:|---:|---|---:|---:|---:|---:|"]
-        for d in LEVELS:
+        for d in levels:
             s = data["summaries"][policy][d]
             turns = "—" if s["agreement_turns"] is None else f"{s['agreement_turns']:.2f}"
             out.append(f"| {d} | {s['n']} | {s['agreement_pct']:.2f} | {s['overall']:.4f} | "
@@ -319,24 +380,33 @@ def markdown(data: dict) -> str:
                        f"{c['grade_changes']} | {c['agreement_changes']} |")
         out += ["", "| Уровень | Пройдено пути до дна % | Заблокировано вопросов | Ходов на потолке уступки | Партий economic=100 |",
                 "|---|---:|---:|---:|---:|"]
-        for d in LEVELS:
+        for d in levels:
             s = data["summaries"][policy][d]
             out.append(f"| {d} | {s['conceded_span_pct']:.4f} | {s['gate_blocks']} | "
                        f"{s['at_concession_cap']} | {s['economic_100']} |")
-        out += ["", "| Срез | 1 | 2 | 3 | 4 | 5 |", "|---|---:|---:|---:|---:|---:|"]
+        out += ["", f"| Срез | {level_columns} |", level_separator]
         for group, rows in data["strata"][policy].items():
-            out.append(f"| {group} | " + " | ".join(f"{rows[d]:.4f}" for d in LEVELS) + " |")
+            out.append(f"| {group} | " + " | ".join(f"{rows[d]:.4f}" for d in levels) + " |")
     out += ["", "Сравнение крайних уровней (отдельное семейство из трёх проверок):", "",
             "| Стратегия | Падение 1→5 | 95% cluster bootstrap | p exact | p Holm |",
             "|---|---:|---|---:|---:|"]
     for policy, c in data["endpoints"].items():
         out.append(f"| {policy} | {c['drop']:.4f} | [{c['ci95'][0]:.4f}; {c['ci95'][1]:.4f}] | "
                    f"{c['p_exact']:.5f} | {c['p_holm']:.5f} |")
-    out += ["", "Вариант сокращения до уровней 1/3/5 (Holm по двум парам внутри стратегии):", "",
+    mode_caption = ("Три действующих режима 1/3/5" if data["profile"] == "current" else
+                    "Вариант сокращения до уровней 1/3/5")
+    out += ["", mode_caption + " (Holm по двум парам внутри стратегии):", "",
             "| Стратегия | Пара | Падение балла | p Holm |", "|---|---|---:|---:|"]
     for policy, comparisons in data['three_levels'].items():
         for c in comparisons:
             out.append(f"| {policy} | {c['pair']} | {c['drop']:.4f} | {c['p_holm']:.5f} |")
+    if data.get("migration_probe"):
+        out += ["", "Диагностика миграции: один размен при trust=45 (в N полных партий не входит):", "",
+                "| Сценарий | Режим | Уступка за более ценный размен | Уступка за менее ценный размен |",
+                "|---|---:|---:|---:|"]
+        for row in data["migration_probe"]:
+            out.append(f"| {row['scenario']} | {row['difficulty']} | "
+                       f"{row['high']['offer_delta_abs']:g} | {row['low']['offer_delta_abs']:g} |")
     out += ["", "Арифметика первоначального предложения; результаты выбранного профиля выше:", "",
             "| Уровень | K=0.12 | Шаг порога=4 |", "|---|---:|---:|"]
     for p in data["parameters"]["proposal_arithmetic"]:
@@ -351,8 +421,15 @@ def main() -> None:
     parser.add_argument("--json", type=Path, help="Write complete replay evidence, no credentials or IDs")
     parser.add_argument("--markdown", type=Path, help="Write numeric tables instead of stdout")
     parser.add_argument("--profile", choices=PROFILES, default="current",
-                        help="Current engine, historical baseline, literal three changes, or opening-price trial")
+                        help="Current three modes, historical five-level balance/baseline, literal three changes, or opening-price trial")
+    parser.add_argument("--migration-probe", action="store_true",
+                        help="Print the one-turn high/low trade-off probe for the current three modes")
     args = parser.parse_args()
+    if args.migration_probe:
+        if args.profile != "current":
+            parser.error("--migration-probe measures only the current modes")
+        print(json.dumps(migration_probe(), ensure_ascii=False, indent=2))
+        return
     with configuration(args.profile):
         run(args)
 
@@ -390,7 +467,7 @@ def run(args: argparse.Namespace) -> None:
                 row.update(policy=policy, case_id=case_id, input_lines=lines)
                 cohort.append(row)
         summaries[policy] = {d: summarize([r for r in cohort if r["difficulty"] == d]) for d in LEVELS}
-        comparisons[policy] = [compare(cohort, d, d + 1) for d in range(1, 5)]
+        comparisons[policy] = [compare(cohort, lo, hi) for lo, hi in zip(LEVELS, LEVELS[1:])]
         holm(comparisons[policy])
         endpoints[policy] = compare(cohort, 1, 5)
         three_levels[policy] = [compare(cohort, 1, 3), compare(cohort, 3, 5)]
@@ -407,9 +484,11 @@ def run(args: argparse.Namespace) -> None:
         raise RuntimeError("measurement mutated a scenario")
     if sources_before != fingerprint():
         raise RuntimeError("source files changed during the measurement; rerun")
-    data = {"profile": args.profile, "reference_games": references, "seed": SEED, "bootstrap_samples": BOOTSTRAPS,
+    data = {"profile": args.profile, "measured_levels": list(LEVELS),
+            "reference_games": references, "seed": SEED, "bootstrap_samples": BOOTSTRAPS,
             "parameters": parameters(sorted(fixtures)), "summaries": summaries,
             "comparisons": comparisons, "endpoints": endpoints, "three_levels": three_levels,
+            "migration_probe": migration_probe() if args.profile == "current" else None,
             "strata": strata, "games": rows,
             "source_sha256": sources_before}
     if args.json:

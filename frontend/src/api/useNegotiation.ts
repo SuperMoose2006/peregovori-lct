@@ -6,6 +6,7 @@ import type { Analysis, Deltas, Lang, Mode, ScenarioContext, ScenarioView, Serve
 import type { ConnStatus, Transport, TransportKind } from "./transport";
 import { createTransport } from "./ws";
 import { clampInput } from "../lib/net";
+import { normalizeDifficulty } from "../lib/difficulty";
 
 export type ChatEntry =
   | { id: number; kind: "opp"; text: string; streaming?: boolean }
@@ -321,7 +322,7 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
     case "greeting":
       return {
         ...prev,
-        scenario: msg.scenario,
+        scenario: { ...msg.scenario, difficulty: normalizeDifficulty(msg.scenario.difficulty) },
         state: msg.state,
         busy: false,
         phase: null,

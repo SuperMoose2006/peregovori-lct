@@ -6,6 +6,7 @@ import type { Lang } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, WhatIfBranch } from "../types";
 import { LEX, cnt, has, hasUnnegated, isClose, isShortClose, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
+import { normalizeDifficulty } from "../lib/difficulty";
 import type { CounterpartStyle, ScenarioDef } from "../data/scenarios";
 // Зеркальный стол сажает игрока в кресло персоны ОРИГИНАЛЬНОГО стола, и три
 // вещи, которые он там защищает, берутся оттуда целиком (см. otherSide ниже).
@@ -130,7 +131,7 @@ export interface Session {
   sc: ScenarioDef;
   lang: Lang;
   lowerBetter: boolean;
-  /** Сложность стола (1..5) — та самая, что рисуется точками на карточке выбора.
+  /** Режим стола (IDs 1/3/5; сохранённые 2/4 нормализуются при чтении).
    *  Живёт на СЕССИИ, а не читается из сценария на каждом ходу: партия может
    *  быть заведена с подменённой сложностью, и тогда всё поведение обязано
    *  пересчитаться из одного места. Зеркало backend Session.difficulty. */
@@ -198,7 +199,7 @@ export interface LedgerEntry {
 
 export function newSession(sc: ScenarioDef, lang: Lang): Session {
   return {
-    sc, lang, lowerBetter: sc.dir === "low", difficulty: sc.diff, turn: 0, maxTurns: 12,
+    sc, lang, lowerBetter: sc.dir === "low", difficulty: normalizeDifficulty(sc.diff), turn: 0, maxTurns: 12,
     // Seed leverage from BATNA strength (× 0.4) exactly like the backend engine.
     trust: 40, tension: 25, info: 0, leverage: sc.batnaStrength * 0.4,
     offerOpp: sc.open, offerPlayer: null, frameOpen: sc.open,
@@ -320,10 +321,9 @@ function plausibleOffer(sc: ScenarioDef, n: number): number | null {
   return null;
 }
 
-/** Середина шкалы сложности (2..5 у восьми готовых столов; своя сделка может
- *  прислать 1). Множитель сопротивления считается ОТ НЕЁ, а не от самого лёгкого
- *  стола: иначе «привязать сложность» означало бы «сделать всем хуже, кроме
- *  двойки». Зеркало engine.py::DIFFICULTY_MID. */
+/** Историческая точка отсчёта калибровки, не центр трёх режимов. Сохраняем её,
+ *  чтобы переход на три режима не менял заработанную уступку при тех же IDs.
+ *  Зеркало engine.py::DIFFICULTY_MID. */
 export const DIFFICULTY_MID = 3.5;
 /** Шаг откалиброван по полным партиям: docs/DIFFICULTY_CALIBRATION.md.
  *  Зеркало engine.py::DIFFICULTY_CONCESSION_K. */
@@ -337,7 +337,7 @@ export const REVEAL_TRUST_GATE_MAX = 39;
 
 /** Сложность сессии, зажатая в шкалу карточки (1..5). */
 function difficultyOf(s: Session): number {
-  return Math.max(1, Math.min(5, s.difficulty));
+  return normalizeDifficulty(s.difficulty);
 }
 
 /** Во сколько раз сложность стола меняет ЗАРАБОТАННУЮ уступку.

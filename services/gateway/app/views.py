@@ -13,6 +13,7 @@ from app.engine.campaigns import Campaign
 # 8), и своя арифметика разъехалась бы с ним на первом же 0.5.
 from app.engine.engine import REPEAT_HARD, _js_round
 from app.engine.format import format_number
+from app.engine.difficulty import normalize_difficulty
 from app.protocol import (
     Analysis, Tag, Flags, Deltas, StateView, ScenarioView, SecondaryIssueView, Debrief,
     CampaignView, CampaignStageView, DefendedInterest, OtherSide,
@@ -29,7 +30,7 @@ def campaign_view(c: "Campaign", lang: str) -> CampaignView:
             intro=st.intro[lang],
             title=sc.title[lang],
             icon=sc.icon,
-            difficulty=sc.difficulty,
+            difficulty=normalize_difficulty(sc.difficulty),
         ))
     return CampaignView(
         id=c.id, icon=c.icon, title=c.title[lang], tagline=c.tagline[lang], stages=stages,
@@ -50,7 +51,7 @@ def scenario_view(sc: "engine.Scenario", lang: str) -> ScenarioView:
     return ScenarioView(
         id=sc.id,
         icon=sc.icon,
-        difficulty=sc.difficulty,
+        difficulty=normalize_difficulty(sc.difficulty),
         title=sc.title[lang],
         role=sc.role[lang],
         counterpart_name=sc.counterpart.name[lang],
