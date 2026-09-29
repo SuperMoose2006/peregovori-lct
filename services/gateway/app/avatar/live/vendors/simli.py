@@ -42,6 +42,11 @@ _FATAL = ("INVALID_API_KEY", "BILLING_ERROR", "MISSING_BILLING_INFO", "INVALID_F
           "INVALID_EMOTION")
 
 
+def simli_config(SimliConfig, face_id: str):
+    """Сессия на партию: тишину рисует сервис, простой — до 5 минут."""
+    return SimliConfig(faceId=face_id, handleSilence=True, maxSessionLength=1800, maxIdleTime=300)
+
+
 class SimliDriver(WebRtcDriver):
     vendor = "simli"
 
@@ -70,8 +75,7 @@ class SimliDriver(WebRtcDriver):
             from simli import SimliClient, SimliConfig
         except ImportError as exc:
             raise DriverError(f"simli: SDK не установлен ({exc})", reason="missing_sdk", fatal=True)
-        client = SimliClient(self._cfg.key, SimliConfig(
-            faceId=self._cfg.avatar, handleSilence=True, maxSessionLength=1800, maxIdleTime=300))
+        client = SimliClient(self._cfg.key, simli_config(SimliConfig, self._cfg.avatar))
         self._client = client
         try:
             await client.start()

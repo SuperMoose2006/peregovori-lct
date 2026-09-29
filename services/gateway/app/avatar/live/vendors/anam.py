@@ -70,6 +70,24 @@ def _stock(avatars: list[dict]) -> list[dict]:
             and a.get("createdByOrganizationId") is None]
 
 
+# Настройки сессии — отдельными функциями, чтобы тест сверял их и с подменой
+# SDK, и с настоящими классами пакета, если он установлен.
+
+def persona_config(PersonaConfig, avatar_id: str):
+    """Лицо под наш звук: passthrough, без «мозга» и голоса сервиса."""
+    return PersonaConfig(avatar_id=avatar_id, enable_audio_passthrough=True)
+
+
+def session_options(SessionOptions):
+    """Без записи сессии у сервиса: запись разговора нам у них не нужна."""
+    return SessionOptions(enable_session_replay=False)
+
+
+def audio_config(AgentAudioInputConfig):
+    """Наш синтез — 24 кГц моно; вендор советует ровно это."""
+    return AgentAudioInputConfig(encoding="pcm_s16le", sample_rate=24000, channels=1)
+
+
 class AnamDriver(WebRtcDriver):
     vendor = "anam"
 
@@ -116,8 +134,7 @@ class AnamDriver(WebRtcDriver):
             _log.info("живое видео: anam — лицо не задано, взято стоковое %s", self.avatar_id)
 
         ready = asyncio.Event()
-        client = AnamClient(api_key=self._cfg.key, persona_config=PersonaConfig(
-            avatar_id=self.avatar_id, enable_audio_passthrough=True))
+        client = AnamClient(api_key=self._cfg.key, persona_config=persona_config(PersonaConfig, self.avatar_id))
 
         async def on_ready() -> None:
             ready.set()
@@ -132,7 +149,7 @@ class AnamDriver(WebRtcDriver):
         client.add_listener(AnamEvent.CONNECTION_CLOSED, on_closed)
         self._client = client
         try:
-            session = await client.connect_async(SessionOptions(enable_session_replay=False))
+            session = await client.connect_async(session_options(SessionOptions))
         except AnamError as exc:
             code = getattr(getattr(exc, "code", None), "value", "")
             raise DriverError(f"anam: {exc}", reason=code or "connect", fatal=code in _FATAL)
@@ -142,8 +159,7 @@ class AnamDriver(WebRtcDriver):
         except asyncio.TimeoutError:
             # Сигнал готовности не пришёл — SDK сам его не требует; пробуем так.
             _log.warning("живое видео: anam не прислал session_ready за %.0f с", READY_WAIT_S)
-        self._stream = session.create_agent_audio_input_stream(
-            AgentAudioInputConfig(encoding="pcm_s16le", sample_rate=24000, channels=1))
+        self._stream = session.create_agent_audio_input_stream(audio_config(AgentAudioInputConfig))
         return session.video_frames(), session.audio_frames()
 
     async def _push(self, pcm_f32: bytes) -> None:

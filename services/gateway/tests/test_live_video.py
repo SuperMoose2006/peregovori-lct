@@ -61,8 +61,9 @@ class ShortTTS(TTSProvider):
 
     async def stream(self, text, voice):
         self.texts.append(text)
-        for _ in range(self.chunks):
-            yield _pcm(100, self.marker)
+        for i in range(self.chunks):
+            # Громкость растёт на каждом куске — по ней видно порядок на выходе.
+            yield _pcm(100, self.marker + 0.01 * i)
 
     def describe(self) -> str:
         return "short test tts"
@@ -603,6 +604,37 @@ async def test_close_and_fallback_never_lose_held_audio():
 
 
 @pytest.mark.asyncio
+async def test_drop_while_voice_is_held_releases_it_at_once_and_in_order():
+    """Обрыв, пока звук придержан под кадры: голос уходит человеку сразу, по порядку."""
+    rec = Recorder()
+    drivers: list[StubDriver] = []
+    avatar = _avatar(rec, drivers=drivers, latency_ms=900)     # держим звук ~1 с
+    await _connected(avatar)
+    tts = ShortTTS(chunks=5)
+    manager = await _speak(avatar, rec, tts)
+    await manager.wait_idle()
+    assert len(avatar._held) == 5 and rec.audio() == []
+    dropped_at = time.monotonic()
+    drivers[0].emit(Closed("network"))
+    assert await _until(lambda: len(rec.audio()) == 5, 0.5), "голос остался в очереди за мёртвым лицом"
+    released = [t for t, e in rec.log if e.get("kind") == "audio"]
+    assert released[-1] - dropped_at < 0.3, "придержанный звук ждал своего срока после отказа"
+    peaks = [float(np.abs(np.frombuffer(base64.b64decode(e["audio"]), dtype="<f4")).max())
+             for e in rec.audio()]
+    assert peaks == sorted(peaks) and len(set(round(p, 3) for p in peaks)) == 5, "порядок звука нарушен"
+    await avatar.close()
+
+
+def test_health_names_the_live_video_state(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import main
+    monkeypatch.setenv("NEGO_LIVE_VIDEO", "off")
+    assert TestClient(main.app).get("/api/health").json()["live_video"] == "off"
+    monkeypatch.setenv("NEGO_LIVE_VIDEO", "stub")
+    assert TestClient(main.app).get("/api/health").json()["live_video"].startswith("stub (синтетические")
+
+
+@pytest.mark.asyncio
 async def test_audio_is_never_held_without_a_running_releaser():
     rec = Recorder()
     avatar = _avatar(rec)
@@ -712,9 +744,50 @@ async def test_session_advertises_video_only_with_credentials_and_wires_the_adap
     assert caps["avatar"]["synthetic"] is True, "заглушка обязана называть себя тестовой"
     assert caps["speech"] is True
     assert isinstance(orch.avatar, LiveVideoAvatar)
-    assert orch.tts.audio_out == orch.avatar.audio_out
+    assert orch.tts.audio_out == orch.avatar.audio_out, "звук человеку идёт через удержание лица"
+    assert orch.tts.on_audio_end == orch.avatar.end_of_speech, "сигнал конца звука (R2) проведён"
     assert await _until(lambda: orch.avatar.link == "ready"), "подключение началось при сборке партии"
     await orch.avatar.close()
+
+
+@pytest.mark.asyncio
+async def test_text_input_session_speaks_with_the_service_voice_and_keeps_ours_in_reserve(monkeypatch):
+    from app.avatar.live.voice import LiveVideoVoice
+    from app.providers.tts.testtone import ToneTTS
+    from app.realtime import endpoint
+    from app.realtime.events import SessionInit
+    monkeypatch.setenv("NEGO_TTS", "testtone")
+    monkeypatch.setenv("NEGO_LIVE_VIDEO", "stub")
+    monkeypatch.setenv("NEGO_LIVE_VIDEO_INPUT", "text")
+    session, _ = await endpoint._build_session(SessionInit(
+        scenarioId="supplier", mode="voice", layers={"voice": True, "avatar": True}))
+    orch, _, _ = endpoint._wire(session)
+    assert isinstance(orch.tts._provider, LiveVideoVoice), "голос партии — голос сервиса"
+    assert isinstance(orch.tts._provider._backup, ToneTTS), "наш синтез — в запасе"
+    await orch.avatar.close()
+
+
+@pytest.mark.asyncio
+async def test_text_mode_queued_phrases_are_not_cut_by_the_per_phrase_timeout(monkeypatch):
+    """Сервис говорит фразы по очереди в реальном времени: третья ждёт первые две.
+
+    Обычный потолок синтеза на фразу (15 с) рассчитан на синтез быстрее
+    реального времени; здесь он обрезал бы хвост длинной реплики.
+    """
+    from app.orchestrator import tts_manager
+    monkeypatch.setattr(tts_manager, "SYNTHESIS_TIMEOUT_S", 0.5)
+    rec = Recorder()
+    avatar = _avatar(rec, cfg=_cfg(input="text"), latency_ms=20)
+    provider = avatar.voice_for(ShortTTS(marker=0.9))
+    await _connected(avatar)
+    manager = TTSTaskManager(provider, rec, Voice("", "ru", True))
+    manager.audio_out = avatar.audio_out
+    for phrase in ("первая фраза подлиннее", "вторая фраза подлиннее", "третья"):
+        manager.speak(phrase, generation_id="g1", turn_id=1)
+    await asyncio.wait_for(manager.wait_idle(), 10)
+    assert not [e for e in rec.events("error")], rec.events("error")
+    assert avatar.mode == "video" and avatar.stats.degrades == []
+    await avatar.close()
 
 
 @pytest.mark.asyncio

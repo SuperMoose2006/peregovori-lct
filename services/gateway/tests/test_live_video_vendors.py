@@ -314,6 +314,19 @@ async def test_anam_server_closing_the_session_is_a_closed_event(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_vendor_media_stream_ending_is_a_closed_event(monkeypatch):
+    """Поток кадров кончился без слова сервиса — это обрыв, а не тишина."""
+    from app.avatar.live.vendors.anam import AnamDriver
+    calls = _fake_anam(monkeypatch)
+    driver = AnamDriver(_anam_cfg(), Persona("supplier"))
+    await driver.connect()
+    calls["vendor"].end()
+    event = await asyncio.wait_for(anext(driver.events()), timeout=1)
+    assert isinstance(event, Closed) and "ended" in event.reason
+    await driver.close()
+
+
+@pytest.mark.asyncio
 async def test_anam_picks_a_stock_face_when_none_is_configured(monkeypatch):
     from app.avatar.live.vendors import anam as anam_mod
     calls = _fake_anam(monkeypatch)
@@ -490,6 +503,11 @@ def test_webrtc_audio_frames_of_any_layout_become_mono():
     packed.sample_rate = 48000
     mono, rate = _webrtc.audio_frame_to_mono(packed)
     assert rate == 48000 and mono.size == 960 and abs(float(mono.mean())) < 1e-6
+    same = np.stack([np.full(960, 16384, np.int16)] * 2, axis=1)
+    loud = av.AudioFrame.from_ndarray(same.reshape(1, -1), format="s16", layout="stereo")
+    loud.sample_rate = 48000
+    mono, _ = _webrtc.audio_frame_to_mono(loud)
+    assert float(mono.mean()) == pytest.approx(0.5, abs=1e-3), "int16 переведён в −1…1"
     planar = av.AudioFrame.from_ndarray(np.full((2, 960), 0.5, np.float32), format="fltp", layout="stereo")
     planar.sample_rate = 48000
     mono, _ = _webrtc.audio_frame_to_mono(planar)
@@ -499,12 +517,14 @@ def test_webrtc_audio_frames_of_any_layout_become_mono():
 # ------------------------------------------------ настоящий SDK, если установлен
 
 def test_our_calls_exist_in_the_real_anam_sdk():
+    """Настройки сессии драйвера — через НАСТОЯЩИЕ классы пакета, если он стоит."""
     anam = pytest.importorskip("anam")
-    cfg = anam.PersonaConfig(avatar_id="x", enable_audio_passthrough=True).to_dict()
-    assert cfg == {"avatarId": "x", "enableAudioPassthrough": True}
-    assert anam.SessionOptions(enable_session_replay=False).enable_session_replay is False
-    audio = anam.AgentAudioInputConfig(encoding="pcm_s16le", sample_rate=24000, channels=1)
-    assert audio.sample_rate == 24000
+    from app.avatar.live.vendors import anam as driver
+    cfg = driver.persona_config(anam.PersonaConfig, "x").to_dict()
+    assert cfg == {"avatarId": "x", "enableAudioPassthrough": True}, "passthrough и ничего лишнего"
+    assert driver.session_options(anam.SessionOptions).enable_session_replay is False
+    audio = driver.audio_config(anam.AgentAudioInputConfig)
+    assert (audio.encoding, audio.sample_rate, audio.channels) == ("pcm_s16le", 24000, 1)
     for name in ("create_agent_audio_input_stream", "interrupt", "close", "video_frames", "audio_frames"):
         assert hasattr(anam.Session, name), name
     for name in ("send_audio_chunk", "end_sequence"):
@@ -514,9 +534,10 @@ def test_our_calls_exist_in_the_real_anam_sdk():
 
 def test_our_calls_exist_in_the_real_simli_sdk():
     simli = pytest.importorskip("simli")
-    import inspect
-    fields = inspect.signature(simli.SimliConfig).parameters
-    assert {"faceId", "handleSilence", "maxSessionLength", "maxIdleTime"} <= set(fields)
+    from app.avatar.live.vendors import simli as driver
+    config = driver.simli_config(simli.SimliConfig, "face-1")
+    assert (config.faceId, config.handleSilence) == ("face-1", True)
+    assert config.maxIdleTime >= 300 and config.maxSessionLength >= 900
     for name in ("start", "send", "clearBuffer", "getVideoStreamIterator", "getAudioStreamIterator", "stop"):
         assert hasattr(simli.SimliClient, name), name
 
@@ -756,10 +777,13 @@ async def test_liveavatar_service_disconnect_is_a_closed_event(monkeypatch):
     driver = liveavatar.LiveAvatarDriver(_la_cfg(), Persona("supplier"))
     await driver.connect()
     calls["socket"].inbox.put_nowait(json.dumps({"type": "session.state_updated", "state": "disconnected"}))
-    event = None
-    async for event in driver.events():
-        if isinstance(event, Closed):
-            break
+
+    async def first_closed():
+        async for event in driver.events():
+            if isinstance(event, Closed):
+                return event
+
+    event = await asyncio.wait_for(first_closed(), timeout=2)
     assert isinstance(event, Closed) and "отключена" in event.reason
     await driver.close()
 
@@ -797,3 +821,28 @@ def test_our_calls_exist_in_the_real_livekit_sdk():
     assert {"sample_rate", "num_channels"} <= set(inspect.signature(rtc.AudioStream).parameters)
     assert hasattr(rtc.VideoBufferType, "RGB24") and hasattr(rtc.TrackKind, "KIND_VIDEO")
     assert "timestamp_us" in rtc.VideoFrameEvent.__dataclass_fields__
+
+
+def test_service_frames_become_square_jpegs_within_the_wire_limit():
+    """16:9 кадр сервиса → квадрат из центра нужной стороны, ≤128 000 байт."""
+    import io
+    from PIL import Image
+    from app.avatar.live.media import MAX_JPEG_BYTES, encode_jpeg
+    rng = np.random.default_rng(1)
+    wide = rng.integers(0, 255, size=(720, 1280, 3), dtype=np.uint8)      # шум — худшее для JPEG
+    wide[:, 280:1000] = 90                                               # «лицо» по центру
+    data = encode_jpeg(wide, size=320)
+    assert data is not None and data.startswith(b"\xff\xd8") and len(data) <= MAX_JPEG_BYTES
+    img = Image.open(io.BytesIO(data))
+    assert img.size == (320, 320)
+    centre = np.asarray(img.convert("RGB"))[100:220, 100:220].astype(int)
+    assert abs(centre.mean() - 90) < 12, "квадрат вырезан из середины, а не с края"
+
+
+def test_our_audio_reaches_the_service_as_int16_at_its_rate():
+    from app.avatar.live.media import f32_to_s16
+    pcm = np.full(2400, 0.5, dtype="<f4").tobytes()                       # 100 мс, 24 кГц
+    same = np.frombuffer(f32_to_s16(pcm), dtype="<i2")
+    assert same.size == 2400 and abs(int(same[1200]) - 16383) <= 1
+    down = np.frombuffer(f32_to_s16(pcm, dst_rate=16000), dtype="<i2")
+    assert down.size == 1600

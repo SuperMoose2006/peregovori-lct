@@ -34,7 +34,7 @@ mkdirSync(OUT, { recursive: true });
 
 const problems = [];
 const passed = [];
-const check = (ok, name, detail = "") => (ok ? passed : problems).push(detail ? `${name} — ${detail}` : name);
+const check = (ok, name, detail = "") => (ok ? passed : problems).push(detail ? `${name} ⇒ ${detail}` : name);
 
 const health = await (await fetch(`${URL}/api/health`)).json();
 const live = String(health.live_video ?? "");
@@ -103,6 +103,9 @@ if (EXPECT === "off") {
   await say("Что для вас важнее всего в этой поставке, кроме цены?");
   const seen = await watch(6000);
   check(!seen.sources.has("frame"), "без кредов кадров на экране нет", list(seen.sources));
+  check(list(seen.sources) === "drawn" && list(seen.renderers) === "amplitude",
+    "всю реплику — только рисованный портрет, как без этого слоя",
+    `${list(seen.renderers)}/${list(seen.sources)}`);
   check(seen.statuses.has("speaking"), "собеседник звучал", list(seen.statuses));
   check(wire.frames === 0, "без кредов ни одного avatar.frame по сокету", String(wire.frames));
   check(wire.states.every((s) => s.mode === "amplitude"), "все состояния лица — прежний режим amplitude",
