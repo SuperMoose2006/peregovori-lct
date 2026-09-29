@@ -17,7 +17,10 @@ import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { LayersPanel } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard, RailGroup, DailyCard, StreakCard } from "./components/Rail";
-import { HomeTour } from "./components/HomeTour";
+import { SectionTour } from "./components/SectionTour";
+import { TourPrefsPanel } from "./components/TourPrefs";
+import { loadTourPrefs, markSeenThisSession, saveTourPrefs, seenThisSession, setSectionOff, shouldAutoRunTour,
+         type TourPrefs, type TourSection } from "./lib/tours";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { detectLayers, pruneLayers, sessionLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
@@ -39,7 +42,7 @@ import { isMirrorTable } from "./lib/mirrorIds";
 import { CampaignComplete } from "./components/CampaignScreen";
 import { applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDailyGoalTarget,
          activeCampaignId, chooseNextStep, emptyCampaign, getCampaignProgress,
-         recordCampaignStage, resetCampaign, isWelcomeDone, markWelcomeDone, shouldRunWelcome,
+         recordCampaignStage, resetCampaign,
          type GameResult, type Grade, type NextStepPick, type PastRun, type Profile } from "./lib/progress";
 // История партий — ВИТРИНА, а не механика: свой ключ в localStorage, профиль
 // оценки о ней не знает, в score_session отсюда не уходит ничего (инвариант 6).
@@ -220,22 +223,6 @@ export default function App() {
     setProfile(next);
   }, []);
   const [lastGame, setLastGame] = useState<GameResult | null>(null);
-  // Короткий обход главной при первом заходе. Решение принимается ОДИН раз, по
-  // флагу в localStorage и пустому профилю, — поэтому он переживает
-  // перезагрузку и не всплывает у того, кто уже играл. Повторить можно кнопкой
-  // «Как здесь всё устроено?» в шапке тренировки.
-  const [tourOn, setTourOn] = useState(() => shouldRunWelcome(isWelcomeDone(), profile));
-  const finishTour = useCallback(() => {
-    markWelcomeDone();
-    setTourOn(false);
-  }, []);
-  // Ушёл с главной посреди обхода — значит нашёл дорогу сам: вводная считается
-  // пройденной и при возврате не начинается с первого шага. Условием, а не
-  // очисткой эффекта: StrictMode в разработке прогоняет очистку сразу после
-  // монтирования, и обход гас бы, не успев показаться.
-  useEffect(() => {
-    if (tourOn && (screen !== "home" || mode !== "practice")) finishTour();
-  }, [tourOn, screen, mode, finishTour]);
   // Капстоун курса: настоящая партия, запущенная из урока или экзамена блока.
   // Она идёт по обычному пути (движок судит, слои выключены), а курс узнаёт
   // результат из состояния партии — никакой отдельной «учебной» механики.
@@ -297,6 +284,42 @@ export default function App() {
     } catch { /* Storage restrictions must not prevent practice. */ }
   }, [nego.state?.status]);
   const t = I18N[lang];
+
+  // ---- Туры по разделам (lib/tours.ts) ---------------------------------------
+  // Какой раздел сейчас перед человеком. Стол — только когда партия уже пришла:
+  // до этого подсвечивать нечего. Разбор, разминка и ожидание своих туров не
+  // имеют — там одна кнопка «дальше».
+  const tourSection: TourSection | null =
+    screen === "game" ? (nego.scenario ? "table" : null)
+    : screen === "home" ? ({ practice: "home", campaign: "campaign", custom: "custom", exam: "exam" } as const)[mode]
+    : screen === "course" ? "course"
+    : screen === "profile" ? "profile"
+    : screen === "admin" ? "admin"
+    : null;
+  const [tourPrefs, setTourPrefs] = useState<TourPrefs>(() => loadTourPrefs());
+  const tourPrefsRef = useRef(tourPrefs);
+  tourPrefsRef.current = tourPrefs;
+  const updateTourPrefs = useCallback((next: TourPrefs) => {
+    setTourPrefs(next);
+    saveTourPrefs(next);
+  }, []);
+  /** Тур, который идёт прямо сейчас (сам или по кнопке), — или null. */
+  const [tour, setTour] = useState<TourSection | null>(null);
+  // Вход в раздел: тур показывается сам, если раздел не отключён и в этой
+  // вкладке его ещё не показывали. Помечается В МОМЕНТ ПОКАЗА: ушёл посреди
+  // тура и вернулся — второй раз не всплывает (есть кнопка «Как здесь всё
+  // устроено?»). Повторный прогон эффекта в StrictMode видит пометку и оставляет
+  // идущий тур как есть. Смена раздела гасит тур предыдущего.
+  useEffect(() => {
+    if (!tourSection) { setTour(null); return; }
+    if (shouldAutoRunTour(tourSection, tourPrefsRef.current, seenThisSession())) {
+      markSeenThisSession(tourSection);
+      setTour(tourSection);
+    } else {
+      setTour((cur) => (cur === tourSection ? cur : null));
+    }
+  }, [tourSection]);
+  const replayTour = useCallback(() => { if (tourSection) setTour(tourSection); }, [tourSection]);
 
   const leaveSession = useCallback(() => {
     nego.reset();
@@ -950,6 +973,13 @@ export default function App() {
           <span className="sub">{t.tagline}</span>
         </div>
         <div className="controls">
+          {/* Тур ТЕКУЩЕГО раздела — в любом разделе и в любой момент, даже если
+              его отключили галочкой: это прямая просьба человека. */}
+          {tourSection ? (
+            <button className="tour-help" onClick={replayTour} data-tour-help="">
+              <Icon name="question" /> <span className="tour-help-l">{t.tour.replay}</span>
+            </button>
+          ) : null}
           <div className="seg">
             <button className={lang === "ru" ? "on" : ""} onClick={() => setLang("ru")}>
               RU
@@ -1032,7 +1062,7 @@ export default function App() {
               onExamNameChange={setExamName}
               onCourseBlock={(blockId) => openCourse({ blockId, lesson: null })}
               onWarmup={(blockId) => { setWarmupBlock(blockId); setScreen("warmup"); }}
-              onTour={() => setTourOn(true)}
+              onTour={replayTour}
             />
             {/* ДРУГИЕ ФОРМАТЫ — В ОСНОВНОЙ КОЛОНКЕ, А НЕ В РЕЙЛЕ. Стол дня,
                 разбор чужой партии и игра за другую сторону стояли в рейле
@@ -1085,9 +1115,6 @@ export default function App() {
                 <MethodCard t={t} onCourse={() => openCourse(courseNext)} />
             </aside>
             </div>
-            {/* Вводная рисуется ПОСЛЕ всего экрана: она ищет свои цели в уже
-                отрисованном дереве (HomeTour), и порядок здесь это и гарантирует. */}
-            {tourOn && mode === "practice" ? <HomeTour t={t} onDone={finishTour} /> : null}
           </div>
         </section>
       )}
@@ -1211,6 +1238,7 @@ export default function App() {
             probeTally={activeLayers.probe ? probeTally : undefined}
             onProbeAnswer={activeLayers.probe ? nego.answerProbe : undefined}
             onSeeDebrief={() => setScreen("debrief")}
+            tourActive={tour === "table"}
           />
           )} /> : null}
           {/* Панель «вы тогда · вы сейчас». Портал в <body> по той же причине,
@@ -1347,6 +1375,9 @@ export default function App() {
               за столом, до первого хода. */}
           <section className="screen">
             <div className="wrap">
+              {/* Общий переключатель подсказок. Без него галочка «больше не
+                  показывать», поставленная случайно, стоила бы их навсегда. */}
+              <TourPrefsPanel t={t} prefs={tourPrefs} onChange={updateTourPrefs} />
               <div className="prof-layers">
                 <h2 className="pl-head">{t.layers.head}</h2>
                 <LayersPanel
@@ -1434,6 +1465,19 @@ export default function App() {
 
       {/* Milestone celebration rides over any screen; it self-dismisses per card and
           never repeats a milestone (the ids are deduped against the saved profile). */}
+      {/* Тур раздела — поверх любого экрана, в портале (Onboarding). Ключ по
+          разделу: смена раздела начинает тур с первого шага, а не с того, на
+          котором ушли из прошлого. */}
+      {tour && tour === tourSection ? (
+        <SectionTour
+          key={tour}
+          t={t}
+          section={tour}
+          optedOut={tourPrefs.off.includes(tour)}
+          onOptOut={(off) => updateTourPrefs(setSectionOff(tourPrefsRef.current, tour, off))}
+          onDone={() => setTour(null)}
+        />
+      ) : null}
       {lastGame ? <MilestoneCard t={t} lang={lang} game={lastGame} /> : null}
       {lastGame ? <AchievementToasts t={t} lang={lang} ids={lastGame.newAchievements} /> : null}
 

@@ -66,7 +66,7 @@ const shot = async (name) => {
 async function enter(lang, theme) {
   await page.addInitScript(([l, th]) => {
     try {
-      localStorage.setItem("dialog.tutorialDone.v1", "1");
+      localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}');
       localStorage.setItem("dialog.lang.v1", l);
       localStorage.setItem("dialog.theme.v1", th);
       // Чистый прогресс режима: иначе второй прогон открывал бы другую партию,

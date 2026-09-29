@@ -2,6 +2,7 @@
 // Engine/scenario content is localized at the data layer (see data/scenarios.ts).
 import type { Lang, ScreenMode } from "./types";
 import type { SkillId } from "./lib/progress";
+import type { TourSection } from "./lib/tours";
 import type { IconName } from "./components/Icon";
 
 export interface QuickMove {
@@ -289,17 +290,23 @@ export interface Strings {
   method: { title: string; lead: string; more: string };
   // Две группы рейла и раздел «другие форматы» на главной.
   rail: { progressHead: string; progressNote: string; formatsHead: string; formatsNote: string };
-  // Короткий обход главного экрана при первом заходе (components/HomeTour.tsx).
-  // Шаги — по ключам, а не списком: ключ совпадает с целью подсветки, и
-  // разъехаться между языками они не могут.
+  // Общие слова туров по разделам (components/SectionTour.tsx, lib/tours.ts).
   tour: {
     stepOf: string;   // «Шаг {n} из {total}»
     next: string;
     done: string;
     skip: string;
-    replay: string;   // кнопка «показать вводную ещё раз»
-    steps: Record<"intro" | "start" | "nav" | "progress", { title: string; body: string }>;
+    replay: string;   // кнопка «показать тур этого раздела»
+    dontShow: string; // галочка в карточке тура: отключить ЭТОТ раздел
+    // Карточка «Подсказки» в Профиле: общий переключатель и возврат отключённых.
+    prefsTitle: string; prefsLead: string; prefsSwitch: string;
+    prefsOff: string;     // «Отключены галочкой в разделах: {list}.»
+    prefsRestore: string;
+    names: Record<TourSection, string>;
   };
+  // Туры по разделам (lib/tours.ts). Ключ шага совпадает с id шага в TOURS, и
+  // test/tours.test.ts держит, что у каждого шага есть текст на обоих языках.
+  tours: Record<TourSection, Record<string, { title: string; body: string }>>;
   // The optional modality layers: the pre-game setup screen, the in-log question
   // and its verdict. Reaction names double as the question's answer options.
   layers: {
@@ -1146,23 +1153,69 @@ export const I18N: Record<Lang, Strings> = {
       done: "Всё понятно",
       skip: "Пропустить",
       replay: "Как здесь всё устроено?",
-      steps: {
-        intro: {
-          title: "Это тренажёр переговоров",
-          body: "Вы ведёте переговоры с собеседником, которого играет ИИ: у него своя цена, граница, за которую он не пойдёт, и скрытые интересы. Задача — договориться выгодно и не испортить отношения. После партии — разбор ошибок и оценка от A до F.",
-        },
-        start: {
-          title: "Начните отсюда",
-          body: "Мы подобрали первые переговоры — самые простые. Нажмите зелёную кнопку в этой карточке. Ошибиться не страшно: партию можно переиграть. За столом подсказывает ворон Карл — ваш тренер.",
-        },
-        nav: {
-          title: "Разделы",
-          body: "Тренировка — любая ситуация из каталога. Кампания — серия переговоров, где репутация переходит дальше. Курс — короткие уроки с заданиями. Своя сделка — ИИ соберёт переговоры по вашему описанию. Экзамен — без подсказок, на оценку.",
-        },
-        progress: {
-          title: "Ваш прогресс",
-          body: "Цель на сегодня, серия дней и ранг считаются по вашим партиям. На оценку конкретной партии они не влияют. Слон Тихон хранит ваши рекорды — вы встретите его в разборе после партии.",
-        },
+      dontShow: "Больше не показывать в этом разделе",
+      prefsTitle: "Подсказки",
+      prefsLead: "При входе в раздел показывается короткий тур по его кнопкам и блокам — раз за посещение сайта. Вызвать его в любой момент можно кнопкой «Как здесь всё устроено?» вверху страницы.",
+      prefsSwitch: "Показывать подсказки в разделах",
+      prefsOff: "Отключены галочкой в разделах: {list}.",
+      prefsRestore: "Вернуть во всех разделах",
+      names: { home: "Тренировка", table: "Стол переговоров", course: "Курс", custom: "Своя сделка", admin: "Редактор", campaign: "Кампания", exam: "Экзамен", profile: "Профиль" },
+    },
+    tours: {
+      home: {
+        intro: { title: "Это тренажёр переговоров", body: "Вы ведёте переговоры с собеседником, которого играет ИИ: у него своя цена, граница, за которую он не пойдёт, и скрытые интересы. Задача — договориться выгодно и не испортить отношения. После партии — разбор ошибок и оценка от A до F." },
+        start: { title: "Начните отсюда", body: "Мы подобрали первые переговоры — самые простые. Нажмите зелёную кнопку в этой карточке. Ошибиться не страшно: партию можно переиграть. За столом подсказывает ворон Карл — ваш тренер." },
+        nav: { title: "Разделы", body: "Тренировка — любая ситуация из каталога. Кампания — серия переговоров, где репутация переходит дальше. Курс — короткие уроки с заданиями. Своя сделка — ИИ соберёт переговоры по вашему описанию. Экзамен — без подсказок, на оценку. Профиль — ваш прогресс и настройки, Редактор — для преподавателя. В каждом разделе — свои подсказки." },
+        progress: { title: "Ваш прогресс", body: "Цель на сегодня, серия дней и ранг считаются по вашим партиям. На оценку конкретной партии они не влияют. Слон Тихон хранит ваши рекорды — вы встретите его в разборе после партии." },
+      },
+      table: {
+        meters: { title: "Четыре шкалы разговора", body: "Доверие растёт от эмпатии и честных доводов. Напряжение растёт от давления и грубости: дойдёт до предела — собеседник встанет из-за стола. Информация — сколько вы узнали о его интересах, рычаг — сила ваших доводов. После каждой реплики видно, какая шкала сдвинулась." },
+        price: { title: "Цена сделки", body: "Синяя точка — их цена сейчас, синее кольцо — с чего они начали. Зелёная черта — ваша цель, красная — ваша красная линия: хуже неё соглашаться не стоит, лучше уйти к запасному варианту. Штриховка между ними — ваш коридор. Строка сверху говорит, где их цена сейчас." },
+        interests: { title: "Скрытые интересы", body: "У собеседника три скрытых интереса, здесь видны темы, в которых они лежат. Спросите по теме — интерес откроется, и цена сдвинется без давления." },
+        batna: { title: "Ваш запасной вариант (BATNA)", body: "Что вы сделаете, если не договоритесь. Спокойная ссылка на него — рычаг. Угроза «уйду» в лоб бьёт по доверию." },
+        terms: { title: "Брифинг и что предложить взамен", body: "Под этой кнопкой — условия задачи и то, что вы можете дать второй стороне в обмен на уступку по цене: например, срок контракта или предоплату. Это размен, и он двигает цену лучше торга." },
+        composer: { title: "Ваша реплика", body: "Пишите своими словами и отправляйте. Кнопки под полем вставляют начало фразы под нужный приём, лампочка — подсказка тренера. Ходов в партии ограниченное число — счётчик вверху." },
+        exit: { title: "Как закончить", body: "Сделка закрывается в разговоре: предложите итог — «Договорились: 86 за штуку, фиксируем?». Кнопка «выйти» прерывает партию без результата. «Слои» — голос, камера и другие добавки, выбираются до первого хода." },
+      },
+      course: {
+        path: { title: "Карта курса", body: "Блоки идут от первого вопроса к сложной сделке. В каждом — короткие уроки с заданиями и экзамен в конце. Закрытые блоки откроются по мере прохождения." },
+        current: { title: "Начните с отмеченного", body: "Это следующий блок по порядку. Внутри — теория на минуту, задания разных типов и капстоун: короткая настоящая партия на этот приём." },
+        redo: { title: "Работа над ошибками", body: "Здесь собраны задания, в которых вы ошиблись. Переделать их — дешевле, чем повторить ту же ошибку за столом." },
+        master: { title: "Экзамен мастера", body: "Три партии подряд на новых столах, без подсказок. Откроется, когда сданы все блоки курса." },
+        why: { title: "Почему это учит", body: "Раскройте, чтобы увидеть четыре приёма метода с примерами из партий." },
+      },
+      custom: {
+        vs: { title: "Своя сделка", body: "Здесь вы играете свою настоящую ситуацию: описываете её — ИИ собирает собеседника под неё. Подготовить переговоры для других — это «Редактор»." },
+        text: { title: "Опишите ситуацию", body: "Кто вы, чего хотите, где ваша граница и что мешает договориться. Чем конкретнее описание, тем точнее соберётся собеседник." },
+        examples: { title: "Не с чего начать?", body: "Нажмите пример — он подставится в поле, и его можно поправить под себя." },
+        context: { title: "Для организатора", body: "Необязательные настройки: сфера, тема, роль и цель собеседника, сложность и тон. Нужны, если вы готовите сценарий для учебной группы." },
+        go: { title: "Сгенерировать", body: "ИИ соберёт собеседника за несколько секунд: характер, красную линию, зону согласия и три скрытых интереса. Дальше — обычная партия с разбором." },
+      },
+      admin: {
+        vs: { title: "Редактор — для того, кто учит", body: "Вы собираете переговоры для другого человека из готовых настроек и заранее видите, что он получит. Сыграть свою ситуацию — это «Своя сделка»." },
+        presets: { title: "Готовые примеры", body: "Каждая кнопка заполняет настройки кейсом из своей сферы. Удобно начать с примера и поправить." },
+        fields: { title: "Что делает каждая настройка", body: "Сфера — из какой области кейс. Тема встречи — о чём разговор. Роль собеседника — кто сидит напротив. Тон — насколько он открыт. Сложность — больше уступок или выше требования. Заявленные цели — что он защищает; от них зависят его позиция и ценность ваших уступок." },
+        preview: { title: "Предпросмотр участника", body: "«Посмотреть условия» покажет роль участника, собеседника, условия встречи и то, как настройки на них повлияли. Отсюда же запускается тренировка." },
+        actions: { title: "Черновик и сброс", body: "Черновик сохраняется в этом браузере. «Сбросить» возвращает пример закупок." },
+      },
+      campaign: {
+        pick: { title: "Две кампании", body: "Две сюжетные серии переговоров. Прогресс у каждой свой, переключаться можно в любой момент." },
+        arc: { title: "Путь кампании", body: "Акты идут по порядку. Итог каждого акта меняет вашу репутацию, а она — то, как вас встретят в следующем." },
+        current: { title: "Текущий акт", body: "Описание акта и приём, который он тренирует. «Разминка» — два задания из курса перед партией; её можно пропустить." },
+        rep: { title: "Репутация", body: "Сумма итогов прошлых актов. Высокая — вас встретят теплее, низкая — с настороженностью. На оценку акта она не влияет." },
+        cta: { title: "За стол", body: "Кнопка сажает за стол текущего акта. В кампании голос, камера и другие слои выключены — так акты сравнимы между собой." },
+      },
+      exam: {
+        intro: { title: "Экзамен", body: "Партия без подсказок: шкалы, тренер и подсветки скрыты до разбора. Оценку ставит только движок, поэтому результат воспроизводим." },
+        name: { title: "Имя для результата", body: "Необязательно. Его напечатают на учебном результате, если партия сдана на C или выше." },
+        catalog: { title: "Выберите ситуацию", body: "Любую из каталога. Знакомая — проверка навыка, новая — проверка на неожиданность." },
+      },
+      profile: {
+        rank: { title: "Ранг и опыт", body: "Ранг растёт от опыта за партии и задания курса. На оценку партий он не влияет." },
+        skills: { title: "Навыки", body: "Шесть навыков переговорщика — средняя по всем партиям. Видно, в чём вы сильны и что подтянуть." },
+        growth: { title: "Как вы растёте", body: "История ваших партий. О тенденции здесь говорят с шести партий: по двум точкам линия показала бы уверенность, которой нет." },
+        layers: { title: "Слои", body: "Голос, камера, выражение лица собеседника. Работают только в «Тренировке» и на оценку не влияют." },
+        tips: { title: "Подсказки", body: "Здесь подсказки разделов выключаются везде — и сюда же возвращаются отключённые галочкой." },
       },
     },
     layers: {
@@ -2048,23 +2101,69 @@ export const I18N: Record<Lang, Strings> = {
       done: "Got it",
       skip: "Skip",
       replay: "How does this work?",
-      steps: {
-        intro: {
-          title: "This is a negotiation trainer",
-          body: "You negotiate with a counterpart played by AI: they have their own price, a limit they won't go past, and hidden interests. Your job is to reach a good deal without damaging the relationship. After each game you get a breakdown of your moves and a grade from A to F.",
-        },
-        start: {
-          title: "Start here",
-          body: "We picked your first negotiation \u2014 the easiest one. Press the green button on this card. Mistakes are fine: you can replay any game. At the table, Karl the raven is your coach.",
-        },
-        nav: {
-          title: "Sections",
-          body: "Training \u2014 any situation from the catalogue. Campaign \u2014 a series of negotiations where your reputation carries over. Course \u2014 short lessons with exercises. Your deal \u2014 AI builds a negotiation from your description. Exam \u2014 no hints, graded.",
-        },
-        progress: {
-          title: "Your progress",
-          body: "Today's goal, your day streak and your rank are counted from your games. They never change how a game is scored. Tikhon the elephant keeps your records \u2014 you'll meet him in the breakdown after a game.",
-        },
+      dontShow: "Don't show in this section again",
+      prefsTitle: "Tips",
+      prefsLead: "When you enter a section, a short tour of its buttons and blocks appears — once per visit to the site. You can call it any time with “How does this work?” at the top of the page.",
+      prefsSwitch: "Show section tips",
+      prefsOff: "Turned off with the checkbox in: {list}.",
+      prefsRestore: "Bring them back everywhere",
+      names: { home: "Training", table: "Negotiation table", course: "Course", custom: "Your deal", admin: "Editor", campaign: "Campaign", exam: "Exam", profile: "Profile" },
+    },
+    tours: {
+      home: {
+        intro: { title: "This is a negotiation trainer", body: "You negotiate with a counterpart played by AI: they have their own price, a limit they won't go past, and hidden interests. Your job is to reach a good deal without damaging the relationship. After each game you get a breakdown of your moves and a grade from A to F." },
+        start: { title: "Start here", body: "We picked your first negotiation — the easiest one. Press the green button on this card. Mistakes are fine: you can replay any game. At the table, Karl the raven is your coach." },
+        nav: { title: "Sections", body: "Training — any situation from the catalogue. Campaign — a series of negotiations where your reputation carries over. Course — short lessons with exercises. Your deal — AI builds a negotiation from your description. Exam — no hints, graded. Profile — your progress and settings; Editor — for educators. Every section has its own tips." },
+        progress: { title: "Your progress", body: "Today's goal, your day streak and your rank are counted from your games. They never change how a game is scored. Tikhon the elephant keeps your records — you'll meet him in the breakdown after a game." },
+      },
+      table: {
+        meters: { title: "Four conversation meters", body: "Trust grows with empathy and fair arguments. Tension grows with pressure and rudeness: push it to the limit and the counterpart walks out. Information is how much you've learned about their interests; leverage is the strength of your arguments. After each line you see which meter moved." },
+        price: { title: "The price", body: "The blue dot is their price now, the blue ring is where they started. The green mark is your target, the red one is your red line: don't agree to anything worse — your fallback is better. The hatched band between them is your range. The line on top says where their price stands." },
+        interests: { title: "Hidden interests", body: "The counterpart has three hidden interests; here you see the topics they sit in. Ask about a topic and the interest opens up — and the price moves without pressure." },
+        batna: { title: "Your fallback plan (BATNA)", body: "What you'll do if there's no deal. Mentioning it calmly is leverage. A blunt “I'll walk” hits trust." },
+        terms: { title: "Brief and what to offer in return", body: "Behind this button: the task and what you can give the other side in exchange for movement on price — say, contract length or a deposit. That's a trade-off, and it moves the price better than haggling." },
+        composer: { title: "Your line", body: "Write in your own words and send. The buttons under the box insert the start of a phrase for a technique; the bulb asks the coach for a hint. A game has a limited number of turns — see the counter on top." },
+        exit: { title: "How to finish", body: "A deal closes in the conversation: propose the terms — “Agreed: 86 per unit, shall we lock it?”. The “leave” button ends the game without a result. “Layers” — voice, camera and other extras, chosen before the first move." },
+      },
+      course: {
+        path: { title: "Course map", body: "Blocks go from your first question to a complex deal. Each has short lessons with exercises and an exam at the end. Locked blocks open as you progress." },
+        current: { title: "Start with the marked one", body: "This is the next block in order. Inside: a one-minute theory, exercises of different kinds and a capstone — a short real game on this technique." },
+        redo: { title: "Fix your mistakes", body: "Exercises you got wrong are collected here. Redoing them is cheaper than repeating the same mistake at the table." },
+        master: { title: "Master exam", body: "Three games in a row on new tables, no hints. Opens once every block of the course is passed." },
+        why: { title: "Why this teaches", body: "Expand to see the method's four techniques with examples from real games." },
+      },
+      custom: {
+        vs: { title: "Your deal", body: "Here you play your own real situation: describe it and AI builds a counterpart for it. To prepare a negotiation for others, use the “Editor”." },
+        text: { title: "Describe the situation", body: "Who you are, what you want, where your limit is and what stands in the way. The more specific, the more accurate the counterpart." },
+        examples: { title: "Not sure where to start?", body: "Press an example — it fills the box and you can adjust it." },
+        context: { title: "For facilitators", body: "Optional settings: field, topic, the counterpart's role and goal, difficulty and tone. Useful when you prepare a scenario for a group." },
+        go: { title: "Generate", body: "AI builds the counterpart in a few seconds: character, red line, bargaining zone and three hidden interests. Then it's a regular game with a breakdown." },
+      },
+      admin: {
+        vs: { title: "The Editor is for whoever teaches", body: "You build a negotiation for someone else from ready-made settings and see in advance what they'll get. To play your own situation, use “Your deal”." },
+        presets: { title: "Ready-made examples", body: "Each button fills the settings with a case from its field. It's easiest to start from an example and adjust." },
+        fields: { title: "What each setting does", body: "Context — which field the case comes from. Meeting topic — what the talk is about. Counterpart role — who sits across the table. Tone — how open they are. Difficulty — more concessions or higher expectations. Stated objectives — what they defend; they shape their position and the value of your concessions." },
+        preview: { title: "Learner preview", body: "“Preview the terms” shows the learner's role, the counterpart, the meeting terms and how your settings shaped them. The practice is launched from here too." },
+        actions: { title: "Draft and reset", body: "The draft is saved in this browser. “Reset” brings back the procurement example." },
+      },
+      campaign: {
+        pick: { title: "Two campaigns", body: "Two story-driven series of negotiations. Each keeps its own progress; you can switch at any time." },
+        arc: { title: "The campaign path", body: "Acts go in order. The result of each act changes your reputation, and your reputation changes how you're greeted in the next one." },
+        current: { title: "Current act", body: "What the act is about and which technique it trains. “Warm-up” is two course exercises before the game; you can skip it." },
+        rep: { title: "Reputation", body: "The sum of your earlier acts. High — they greet you warmly, low — with caution. It never changes an act's grade." },
+        cta: { title: "To the table", body: "This button seats you at the current act. In the campaign voice, camera and other layers are off, so acts stay comparable." },
+      },
+      exam: {
+        intro: { title: "Exam", body: "A game with no hints: meters, coach and highlights stay hidden until the breakdown. Only the engine scores it, so the result is reproducible." },
+        name: { title: "Name for the result", body: "Optional. It is printed on the practice result if you pass with a C or better." },
+        catalog: { title: "Pick a situation", body: "Any from the catalogue. A familiar one tests the skill, a new one tests how you handle surprises." },
+      },
+      profile: {
+        rank: { title: "Rank and experience", body: "Your rank grows with experience from games and course exercises. It never changes how games are scored." },
+        skills: { title: "Skills", body: "Six negotiator skills — the average across all your games. You can see what you're strong at and what to work on." },
+        growth: { title: "How you're growing", body: "The history of your games. Trends are shown from six games on: with two points a line would suggest a certainty that isn't there." },
+        layers: { title: "Layers", body: "Voice, camera, the counterpart's expressions. They only work in “Training” and never affect your grade." },
+        tips: { title: "Tips", body: "Turn section tips off everywhere here — and bring back the ones you turned off with the checkbox." },
       },
     },
     layers: {

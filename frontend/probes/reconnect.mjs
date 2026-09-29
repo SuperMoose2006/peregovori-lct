@@ -11,7 +11,7 @@ import { execSync, spawn } from "child_process";
 const b = await chromium.launch({ executablePath: "/root/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome", args:["--no-sandbox"] });
 const ctx = await b.newContext({ viewport:{width:1440,height:900}, ignoreHTTPSErrors:true });
 const p = await ctx.newPage();
-await p.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1","1"); } catch {} });
+await p.addInitScript(() => { try { localStorage.setItem("dialog.tutorialDone.v1","1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch {} });
 await p.goto(HOST + "/", { waitUntil:"domcontentloaded", timeout:40000 });
 await p.waitForTimeout(2600);
 // Карточка ведёт СРАЗУ за стол; промах здесь ВАЛИТ прогон — «партия не

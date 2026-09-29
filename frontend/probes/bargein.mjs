@@ -19,7 +19,7 @@ p.on("websocket", ws => {
   ws.on("framesent", f => { try { ev.push("→" + JSON.parse(f.payload).type); } catch {} });
 });
 await p.addInitScript(() => {
-  try { localStorage.setItem("dialog.tutorialDone.v1","1"); } catch {}
+  try { localStorage.setItem("dialog.tutorialDone.v1","1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch {}
   window.__played = 0;
   const O = window.AudioContext; window.AudioContext = class extends O {
     createBufferSource(){ const s=super.createBufferSource(); const st=s.start.bind(s);

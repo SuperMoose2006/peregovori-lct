@@ -256,7 +256,12 @@ export class Flow {
     const seed = { ...storage };
     if (lang) seed["dialog.lang.v1"] = lang;
     if (theme) seed["dialog.theme.v1"] = theme;
-    if (tutorialDone) seed["dialog.tutorialDone.v1"] = "1";
+    if (tutorialDone) {
+      seed["dialog.tutorialDone.v1"] = "1";
+      // Туры по разделам — своим ключом (lib/tours.ts): прогону, который
+      // вводную пропускает, они так же перекрывали бы кнопки.
+      seed["dialog.tours.v1"] = '{"enabled":false}';
+    }
     if (Object.keys(seed).length) {
       // Только при ПЕРВОЙ загрузке вкладки: иначе перезагрузка затирала бы то,
       // что человек выбрал, и проверка «пережило перезагрузку» врала бы.

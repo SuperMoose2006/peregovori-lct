@@ -22,7 +22,7 @@ p.on("websocket", ws => {
                                       if (m.type==="vision.observation") got.set("ЗРЕНИЕ: "+String(m.text).slice(0,52),1); } catch {} });
 });
 await p.addInitScript(() => {
-  try { localStorage.setItem("dialog.tutorialDone.v1","1"); } catch {}
+  try { localStorage.setItem("dialog.tutorialDone.v1","1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); } catch {}
   window.__gum = [];
   const o = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
   navigator.mediaDevices.getUserMedia = async (c) => { window.__gum.push(JSON.stringify(c).slice(0,70));

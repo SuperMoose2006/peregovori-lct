@@ -117,7 +117,7 @@ async function open({ prof = profile(), theme = null, lang = "ru", init = null, 
   await page.addInitScript(([p, th, lg]) => {
     try {
       localStorage.setItem("dialog.progress.v1", p);
-      localStorage.setItem("dialog.tutorialDone.v1", "1");
+      localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}');
       localStorage.setItem("dialog.lang.v1", lg);
       if (th) localStorage.setItem("dialog.theme.v1", th);
     } catch { /* приватный режим — экран обязан открыться и так */ }

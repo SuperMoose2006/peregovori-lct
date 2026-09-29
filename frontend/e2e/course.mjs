@@ -89,7 +89,7 @@ if (LANG === "en") await p.getByRole("button", { name: "EN", exact: true }).clic
 // Прибор ставил `dialog.tutorial.v1` = "done": ключ, которого продукт не знает.
 // На экранах курса это ничем не пахло, а вот капстоун идёт в режиме practice —
 // и вводный тур вставал ровно поперёк партии, которую прибор пришёл играть.
-await p.evaluate(() => localStorage.setItem("dialog.tutorialDone.v1", "1"));
+await p.evaluate(() => { localStorage.setItem("dialog.tutorialDone.v1", "1"); localStorage.setItem("dialog.tours.v1", '{"enabled":false}'); });
 await p.reload({ waitUntil: "networkidle" });
 
 // Отвечает верно на текущее задание, опознавая тип по разметке.

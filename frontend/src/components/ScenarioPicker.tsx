@@ -80,7 +80,7 @@ interface Props {
   /** «Ваш следующий шаг»: что показать и куда это ведёт. null — карточки нет. */
   route?: NextStepPick | null;
   onRoute?: (pick: NextStepPick) => void;
-  /** Показать вводную ещё раз (HomeTour). Нет обработчика — нет и кнопки. */
+  /** Показать тур раздела ещё раз (SectionTour). Нет обработчика — нет кнопки. */
   onTour?: () => void;
 }
 
@@ -205,8 +205,9 @@ export function ScenarioPicker({
           <p>{copy.subtitle}</p>
           <div className="practice-foot">
             <span className="practice-promise"><span aria-hidden="true">✓</span> {copy.practice}</span>
-            {/* Вводная показывается один раз; пропустивший или забывший её
-                возвращает её отсюда, а не чисткой хранилища браузера. */}
+            {/* Тур раздела показывается сам раз за сеанс; пропустивший или
+                отключивший его возвращает его отсюда — та же кнопка стоит в
+                шапке каждого раздела. */}
             {onTour ? (
               <button type="button" className="practice-tour" onClick={onTour}>
                 <Icon name="question" /> {t.tour.replay}
