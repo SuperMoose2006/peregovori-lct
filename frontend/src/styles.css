@@ -2307,16 +2307,17 @@ textarea:focus-visible,
 .ly-txt .ly-check.granted { color: var(--trust-ink); }
 .ly-txt .ly-check.denied, .ly-txt .ly-check.missing,
 .ly-txt .ly-check.busy, .ly-txt .ly-check.failed { color: var(--tension-ink); }
-/* Строка «видео-лица нет» внутри карточки лица: та же раскладка, что у
-   подвыбора камеры, но без тумблера — выключателя у того, чего нет, не бывает.
+/* Строка про живое видео-лицо внутри карточки лица: та же раскладка, что у
+   подвыбора камеры, но без тумблера — видео включается тем же слоем лица.
    Свой класс, а не `.ly-sub`: тот означает «подвыбор» и ищется по имени. */
 .ly-later {
   grid-area: sub; display: grid; grid-template-columns: auto 1fr;
   grid-template-areas: "ic txt" "note note"; gap: 7px 10px; align-items: start;
-  padding: 12px 0 0 14px; border-top: 1px solid var(--line); opacity: 0.72;
+  padding: 12px 0 0 14px; border-top: 1px solid var(--line);
 }
 .ly-later .ly-ic { font-size: 18px; }
 .ly-later .ly-txt b { font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+.ly-checknow { font: inherit; font-weight: 700; color: var(--info-ink); background: none; border: 0; padding: 2px 0; min-height: 28px; cursor: pointer; text-decoration: underline; }
 .lay-lock {
   margin: 0 0 14px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45;
   color: var(--tension-ink); border-radius: 10px;

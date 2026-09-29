@@ -319,9 +319,11 @@ export interface Strings {
     /** Что понадобится от браузера — вместо безликого «оценка та же». */
     needs: Record<"voice" | "camera", string>;
     /** Ответ устройства на включение слоя (lib/deviceCheck.ts). */
-    check: Record<"voice" | "camera", Record<"checking" | "granted" | "denied" | "missing" | "busy" | "failed", string>>;
-    /** Чего у лица собеседника НЕТ — и что это появится позже. */
-    avatarLater: string;
+    check: Record<"voice" | "camera", Record<"pending" | "checking" | "granted" | "denied" | "missing" | "busy" | "failed", string>>;
+    /** Живое видео-лицо: что будет, если сервер его поднял, и что — если нет. */
+    avatarVideo: string;
+    /** Кнопка «Проверить сейчас» у голоса и камеры, включённых умолчанием. */
+    checkNow: string;
     what: string;            // "[i] что это"
     sameGrade: string;       // caption on every toggle — the honesty guarantee
     unavailable: string;     // badge on a layer the environment cannot deliver
@@ -1237,6 +1239,7 @@ export const I18N: Record<Lang, Strings> = {
       },
       check: {
         voice: {
+          pending: "Включено. Доступ к микрофону браузер спросит в начале партии.",
           checking: "Спрашиваем доступ к микрофону — ответьте в окне браузера.",
           granted: "Микрофон работает. Мы его сразу выключили — он включится, когда начнётся партия.",
           denied: "Доступ к микрофону запрещён. Разрешите его в настройках сайта (значок слева от адреса) и включите слой снова.",
@@ -1245,6 +1248,7 @@ export const I18N: Record<Lang, Strings> = {
           failed: "Микрофон не включился. Попробуйте ещё раз или перезагрузите страницу.",
         },
         camera: {
+          pending: "Включено. Доступ к камере браузер спросит в начале партии.",
           checking: "Спрашиваем доступ к камере — ответьте в окне браузера.",
           granted: "Камера работает. Мы её сразу выключили — она включится, когда начнётся партия.",
           denied: "Доступ к камере запрещён. Разрешите его в настройках сайта (значок слева от адреса) и включите слой снова.",
@@ -1253,7 +1257,8 @@ export const I18N: Record<Lang, Strings> = {
           failed: "Камера не включилась. Попробуйте ещё раз или перезагрузите страницу.",
         },
       },
-      avatarLater: "Живое видео-лицо собеседника появится позже. Сейчас это нарисованные выражения лица.",
+      avatarVideo: "Если сервер поднял живое видео, собеседник говорит с видео-лицом; если нет — лицо показано нарисованными выражениями. На партию и оценку это не влияет.",
+      checkNow: "Проверить сейчас",
       what: "что это",
       sameGrade: "на оценку не влияет",
       lockedMode: "В этой партии слои выключены — её грейд обязан быть сравним с остальными",
@@ -2210,6 +2215,7 @@ export const I18N: Record<Lang, Strings> = {
       },
       check: {
         voice: {
+          pending: "On. The browser will ask for the microphone when the game starts.",
           checking: "Asking for the microphone \u2014 answer the browser prompt.",
           granted: "The microphone works. We switched it off right away \u2014 it turns on when the game starts.",
           denied: "Microphone access is blocked. Allow it in the site settings (the icon left of the address) and turn the layer on again.",
@@ -2218,6 +2224,7 @@ export const I18N: Record<Lang, Strings> = {
           failed: "The microphone didn't start. Try again or reload the page.",
         },
         camera: {
+          pending: "On. The browser will ask for the camera when the game starts.",
           checking: "Asking for the camera \u2014 answer the browser prompt.",
           granted: "The camera works. We switched it off right away \u2014 it turns on when the game starts.",
           denied: "Camera access is blocked. Allow it in the site settings (the icon left of the address) and turn the layer on again.",
@@ -2226,7 +2233,8 @@ export const I18N: Record<Lang, Strings> = {
           failed: "The camera didn't start. Try again or reload the page.",
         },
       },
-      avatarLater: "A live video face for the counterpart is coming later. For now these are drawn expressions.",
+      avatarVideo: "If the server has live video up, the counterpart talks with a video face; if not, the face is shown as drawn expressions. It never affects the game or the grade.",
+      checkNow: "Check now",
       what: "what is this",
       sameGrade: "does not affect your grade",
       lockedMode: "This table runs with layers off — its grade has to stay comparable to the rest",

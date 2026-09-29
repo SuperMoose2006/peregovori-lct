@@ -34,6 +34,40 @@ export const NO_LAYERS: Layers = {
   probe: false, voice: false, camera: false, avatar: false, pokerface: false,
 };
 
+/**
+ * УМОЛЧАНИЕ ДЛЯ НОВОГО ПРОФИЛЯ — ВСЕ СЛОИ ВКЛЮЧЕНЫ. Человек, зашедший впервые
+ * (жюри — с чистым профилем), с выключенными слоями не увидел бы ни голоса, ни
+ * лица, ни вопросов о реакции — половины продукта. Три оговорки держат это
+ * честным:
+ *   1. выбор человека сильнее умолчания: есть сохранённый набор — он и
+ *      действует, умолчание касается только профиля, где выбора ещё не было;
+ *   2. недоступный слой не горит: `pruneLayers`/`withServer` гасят его с той же
+ *      причиной, что и всегда (браузер, сервер, нет связи);
+ *   3. камеру и микрофон умолчание НЕ выпрашивает при открытии страницы —
+ *      доступ спрашивается при первом осмысленном действии (начало партии или
+ *      нажатие), а отказ гасит слой (lib/deviceCheck.ts::dropFailedLayers).
+ */
+export const DEFAULT_LAYERS: Layers = {
+  probe: true, voice: true, camera: true, avatar: true, pokerface: true,
+};
+
+/** Сохранённый выбор слоёв. Нет записи — выбора не было, действует умолчание.
+ *  Запись испорчена — выбора не разобрать, и включать камеру по догадке нельзя:
+ *  всё выключено. */
+export function parseLayerPrefs(raw: string | null): Layers {
+  if (!raw) return { ...DEFAULT_LAYERS };
+  try {
+    const saved = JSON.parse(raw) as Partial<Layers>;
+    if (!saved || typeof saved !== "object") return { ...NO_LAYERS };
+    return {
+      probe: !!saved.probe, voice: !!saved.voice, camera: !!saved.camera,
+      avatar: !!saved.avatar, pokerface: !!saved.pokerface,
+    };
+  } catch {
+    return { ...NO_LAYERS };
+  }
+}
+
 /** Пресеты — это имена, которые можно назвать со сцены; истина — переключатели под ними. */
 export const PRESETS: { id: string; label: { ru: string; en: string }; layers: Layers }[] = [
   { id: "classic", label: { ru: "Классика", en: "Classic" }, layers: NO_LAYERS },

@@ -78,3 +78,16 @@ export async function requestLayers(
   }
   return { layers: pruneLayers(out, states), checks };
 }
+
+/**
+ * Устройство отказало, когда слой был включён без нажатия (умолчание) или уже
+ * в партии: слой гаснет в выборе человека, чтобы переключатель не остался
+ * «включён», а следующая партия не спрашивала то же самое снова. Причина при
+ * этом уже названа — строкой за столом или под переключателем.
+ */
+export function dropFailedLayers(prefs: Layers, failed: Partial<Record<DeviceLayer, unknown>>): Layers {
+  const out = { ...prefs };
+  if (failed.voice) out.voice = false;
+  if (failed.camera) { out.camera = false; out.pokerface = false; }
+  return out;
+}
