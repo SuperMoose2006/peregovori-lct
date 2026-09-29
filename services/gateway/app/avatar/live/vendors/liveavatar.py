@@ -39,6 +39,7 @@ import base64
 import contextlib
 import json
 import logging
+import time
 from typing import AsyncIterator, Optional
 
 import numpy as np
@@ -53,9 +54,12 @@ _log = logging.getLogger("dialog.live_video")
 API = "https://api.liveavatar.com"
 #: Лицо песочницы из документации (sandbox-mode): бесплатно, около минуты.
 SANDBOX_AVATAR = "dd73ea75-1218-4ef3-92ce-606d5f7fbc0a"
-#: Оценка удержания звука по заявлению вендора («первые кадры быстрее
-#: 300 мс») плюс LiveKit и первый кусок звука. Не замер.
-AV_DELAY_MS = 600
+#: Удержание звука под кадры — ЗАМЕР 29.09.2026 (`tools/live_video_probe.py`,
+#: две платные сессии, лица Katya и Judy, 480p): кадр приходит к нам позже
+#: своего звука на 0.88–1.03 с (p50) и до 1.10 с (p95). С прежней оценкой по
+#: заявлению вендора (600 мс) 98–100 % кадров показывались бы с губами позади
+#: голоса или не показывались вовсе; с 1000 мс — 97.6–100 % вовремя.
+AV_DELAY_MS = 1000
 #: Куски звука в `agent.speak`: первый короче — быстрее первый кадр
 #: (как в открытом SDK: 400 мс), дальше около секунды (рекомендация вендора).
 FIRST_CHUNK_MS = 400
@@ -64,6 +68,12 @@ CHUNK_MS = 1000
 #: медленный синтез морил бы сервис голодом (`video_starvation`).
 FLUSH_IDLE_S = 0.2
 KEEPALIVE_S = 60.0
+#: За сколько до предела длины сессии сменить её на новую. Замер 29.09: у
+#: предела сервис НЕ закрывает сессию и не присылает ни ошибки, ни события —
+#: он просто перестаёт говорить (реплика после предела — 370 мс речи из 4.7 с,
+#: дальше простой), и лицо молчит под звучащий голос. Поэтому сессия
+#: сменяется заранее, по `max_session_duration` из ответа на start.
+ROTATE_MARGIN_S = 15.0
 CONNECT_WAIT_S = 10.0
 #: Качество видео: `medium` = 480p. Лицо у нас — 320 px, больше не нужно,
 #: а декодирование на сервере и трафик от сервиса растут с каждой ступенью.
@@ -104,6 +114,22 @@ class LiveAvatarDriver(WebRtcDriver):
         self._sent_in_utterance = 0
         self._flush_handle: Optional[asyncio.TimerHandle] = None
         self._send_lock = asyncio.Lock()
+        #: Потолок длины сессии у сервиса, сек. None — предел тарифа. Прибор
+        #: ставит его, чтобы упавший замер не жёг минуты до таймаута.
+        self.max_session_s: Optional[int] = None
+        #: Сессия, которую остановили, — для прибора (спросить сервис, как кончилась).
+        self.closed_session_id: Optional[str] = None
+        #: Предел длины сессии из ответа на start, сек.
+        self.session_limit_s: Optional[float] = None
+        #: Когда пройден каждый этап подключения (монотонные часы) — для замера.
+        self.marks: dict[str, float] = {}
+
+    def _mark(self, stage: str) -> None:
+        self.marks.setdefault(stage, time.monotonic())
+
+    def _on_ws_event(self, event: dict) -> None:
+        """Каждое событие сокета команд. Пусто; прибор замера пишет их в журнал."""
+        return None
 
     # -- проверка ключа при старте ------------------------------------------------------
 
@@ -142,34 +168,46 @@ class LiveAvatarDriver(WebRtcDriver):
         except ImportError as exc:
             raise DriverError(f"liveavatar: не установлен модуль ({exc})", reason="missing_sdk", fatal=True)
 
+        self._mark("open")
         async with httpx.AsyncClient(timeout=10.0) as client:
             if not self.avatar_id:
                 self.avatar_id = await self._stock_avatar(client)
                 _log.info("живое видео: liveavatar — лицо не задано, взято стоковое %s", self.avatar_id)
+            body = {"mode": "LITE", "avatar_id": self.avatar_id, "is_sandbox": self._cfg.sandbox,
+                    "video_settings": {"quality": QUALITY, "encoding": "H264"}}
+            if self.max_session_s:
+                body["max_session_duration"] = int(self.max_session_s)
+            self._mark("token_request")
             token = _unwrap(await client.post(
-                f"{API}/v1/sessions/token", headers={"X-API-KEY": self._cfg.key},
-                json={"mode": "LITE", "avatar_id": self.avatar_id, "is_sandbox": self._cfg.sandbox,
-                      "video_settings": {"quality": QUALITY, "encoding": "H264"}}))
+                f"{API}/v1/sessions/token", headers={"X-API-KEY": self._cfg.key}, json=body))
+            self._mark("token")
             self.session_id = token.get("session_id")
             session_token = token.get("session_token")
             if not session_token:
                 raise DriverError("liveavatar: нет session_token в ответе", reason="protocol")
             started = _unwrap(await client.post(
                 f"{API}/v1/sessions/start", headers={"Authorization": f"Bearer {session_token}"}, json={}))
+            self._mark("started")
+        limit = started.get("max_session_duration")
+        self.session_limit_s = limit if isinstance(limit, (int, float)) and limit > 0 else None
         ws_url = started.get("ws_url")
         lk_url = started.get("livekit_url")
         lk_token = started.get("livekit_agent_token") or started.get("livekit_client_token")
         if not (ws_url and lk_url and lk_token):
             raise DriverError("liveavatar: в ответе start нет ws_url/livekit_url/токена", reason="protocol")
 
-        self._ws = await websockets.connect(ws_url, max_size=2 ** 20)
+        self._ws = await websockets.connect(ws_url, max_size=2 ** 20, ssl=_tls(ws_url))
+        self._mark("ws_open")
         loop = asyncio.get_running_loop()
         self._tasks.append(loop.create_task(self._read_ws()))
         try:
             await asyncio.wait_for(self._connected.wait(), timeout=CONNECT_WAIT_S)
         except asyncio.TimeoutError:
             raise DriverError("liveavatar: сессия не перешла в connected", reason="connect_timeout")
+        self._mark("ws_connected")
         self._tasks.append(loop.create_task(self._keepalive()))
+        if self.session_limit_s:
+            self._tasks.append(loop.create_task(self._rotate_before_limit(self.session_limit_s)))
 
         room = rtc.Room()
         #: Дорожки по участникам. В комнате сервиса лицо — `heygen`, а кроме
@@ -195,10 +233,12 @@ class LiveAvatarDriver(WebRtcDriver):
         room.on(LK_GONE_EVENT, on_gone)
         self._room = room
         await room.connect(lk_url, lk_token, options=rtc.RoomOptions(auto_subscribe=True))
+        self._mark("room")
         try:
             await asyncio.wait_for(got_both.wait(), timeout=CONNECT_WAIT_S)
         except asyncio.TimeoutError:
             raise DriverError("liveavatar: лицо не опубликовало видео и звук в комнате", reason="no_tracks")
+        self._mark("tracks")
         complete = {who: kinds for who, kinds in by_who.items() if "video" in kinds and "audio" in kinds}
         who = AVATAR_IDENTITY if AVATAR_IDENTITY in complete else next(iter(complete))
         if who != AVATAR_IDENTITY:
@@ -279,6 +319,11 @@ class LiveAvatarDriver(WebRtcDriver):
         self._sent_in_utterance = 0
         await self._send({"type": "agent.interrupt"})
 
+    async def _rotate_before_limit(self, limit_s: float) -> None:
+        await asyncio.sleep(max(5.0, limit_s - ROTATE_MARGIN_S))
+        if not self._closing:
+            self.emit(Closed("liveavatar: сессия подходит к пределу длины — смена сессии", planned=True))
+
     async def _keepalive(self) -> None:
         while True:
             await asyncio.sleep(KEEPALIVE_S)
@@ -293,6 +338,7 @@ class LiveAvatarDriver(WebRtcDriver):
                     event = json.loads(raw)
                 except (TypeError, ValueError):
                     continue
+                self._on_ws_event(event)
                 kind = event.get("type")
                 if kind == "session.state_updated":
                     state = event.get("state")
@@ -314,24 +360,53 @@ class LiveAvatarDriver(WebRtcDriver):
         if not self._closing:
             self.emit(Closed(reason))
 
+    def _request_stop(self) -> None:
+        """Остановить сессию у сервиса — отдельной задачей, которая доживёт.
+
+        Зовётся ПЕРВЫМ шагом закрытия, до любого `await`: закрытие партии
+        ограничено секундой и может быть прервано, а запрос к API — занять
+        дольше. Без явной остановки минуты идут до таймаута простоя (5 мин).
+        """
+        if not self.session_id:
+            return
+        task = asyncio.get_running_loop().create_task(_stop_session(self._cfg.key, self.session_id))
+        _STOPPING.add(task)
+        task.add_done_callback(_STOPPING.discard)
+        self.closed_session_id, self.session_id = self.session_id, None
+
+    async def close(self) -> None:
+        if not self._closing:
+            self._request_stop()
+        await super().close()
+
     async def _shutdown(self) -> None:
         if self._flush_handle is not None:
             self._flush_handle.cancel()
-        if self.session_id:
-            # Остановить явно, и первым делом: иначе минуты идут до таймаута
-            # простоя (5 мин). Отдельной задачей — закрытие партии ограничено
-            # секундой, а запрос к API может занять дольше; задача доживёт.
-            task = asyncio.get_running_loop().create_task(
-                _stop_session(self._cfg.key, self.session_id))
-            _STOPPING.add(task)
-            task.add_done_callback(_STOPPING.discard)
-            self.session_id = None
+        self._request_stop()
         if self._ws is not None:
             with contextlib.suppress(Exception):
                 await self._ws.close()
         if self._room is not None:
             with contextlib.suppress(Exception):
                 await self._room.disconnect()
+
+
+def _tls(url: str):
+    """Сертификаты — из `certifi`, как у httpx, а не из системного хранилища.
+
+    Найдено первым живым прогоном 29.09: на macOS с Python от python.org
+    системного хранилища у модуля `ssl` нет, и сокет команд падал на проверке
+    сертификата, хотя REST (httpx, certifi) проходил. Сессия при этом уже
+    была выдана.
+    """
+    if not url.startswith("wss://"):
+        return None
+    import ssl
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
 
 
 #: Запросы остановки, которые доживают закрытия партии.

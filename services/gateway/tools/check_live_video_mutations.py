@@ -78,7 +78,7 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
     # --- сторож, отказ, возврат
     ("watchdog-off", LIVE + "adapter.py", "        if playing - covered > self._cfg.stall_ms:", "        if False:", ("py",)),
     ("watchdog-hair-trigger", LIVE + "adapter.py", "        if playing - covered > self._cfg.stall_ms:", "        if playing - covered > 0:", ("py",)),
-    ("closed-event-ignored", LIVE + "adapter.py", "                if closed is not None and not self._closed:\n                    self._degrade(f\"closed: {closed.reason}\", fatal=closed.fatal)", "                if closed is not None and not self._closed:\n                    pass", ("py", "e2e-stub")),
+    ("closed-event-ignored", LIVE + "adapter.py", "                if closed is not None and not self._closed:\n                    self._degrade(f\"closed: {closed.reason}\", fatal=closed.fatal,\n                                  strike=not closed.planned)", "                if closed is not None and not self._closed:\n                    pass", ("py", "e2e-stub")),
     ("no-recovery", LIVE + "adapter.py", "        if self.mode == \"amplitude\" and self._can_recover():", "        if False:", ("py",)),
     ("limit-never-gives-up", LIVE + "adapter.py", "        if fatal or self.failures >= self._cfg.max_failures:", "        if fatal:", ("py",)),
     ("dead-session-left-open", LIVE + "adapter.py", "            self._supervisor.cancel()\n        self._background(self._close_driver())", "            self._supervisor.cancel()\n        pass", ("py",)),
@@ -116,7 +116,7 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
     ("simli-no-skip", V + "simli.py", "            await self._client.clearBuffer()", "            pass", ("py",)),
     ("la-no-short-first-chunk", V + "liveavatar.py", "        want_ms = FIRST_CHUNK_MS if self._sent_in_utterance == 0 else CHUNK_MS", "        want_ms = CHUNK_MS", ("py",)),
     ("la-no-speak-end", V + "liveavatar.py", "        await self._send({\"type\": \"agent.speak_end\"})", "        pass", ("py",)),
-    ("la-no-stop", V + "liveavatar.py", "        if self.session_id:\n            # Остановить явно", "        if False:\n            # Остановить явно", ("py",)),
+    ("la-no-stop", V + "liveavatar.py", "        if not self.session_id:\n            return\n        task = asyncio.get_running_loop().create_task(_stop_session(self._cfg.key, self.session_id))", "        if True:\n            return\n        task = asyncio.get_running_loop().create_task(_stop_session(self._cfg.key, self.session_id))", ("py",)),
     ("la-sandbox-ignored", V + "liveavatar.py", "\"is_sandbox\": self._cfg.sandbox,", "\"is_sandbox\": False,", ("py",)),
     ("la-credits-ignored", V + "liveavatar.py", "float(credits) < 1", "float(credits) < 0", ("py",)),
     ("la-disconnect-ignored", V + "liveavatar.py", "                        reason = \"liveavatar: сессия отключена сервисом\"\n                        break", "                        reason = \"liveavatar: сессия отключена сервисом\"\n                        continue", ("py",)),
@@ -151,6 +151,12 @@ MUTATIONS: list[tuple[str, str, str, str, tuple[str, ...]]] = [
     ("onset-always-zero", V + "_anchor.py", "    return float(loud[0]) * WINDOW_MS", "    return 0.0", ("py",)),
     ("simli-errors-all-retry", V + "simli.py", "                              fatal=any(code in text for code in _FATAL))", "                              fatal=False)", ("py",)),
     ("la-livekit-name-drift", V + "liveavatar.py", "LK_TRACK_EVENT = \"track_subscribed\"", "LK_TRACK_EVENT = \"track_ready\"", ("py",)),
+    # --- по итогам живого замера LiveAvatar 29.09
+    ("close-cancels-service-close", LIVE + "adapter.py", "        if self._closing_drivers:\n            await asyncio.wait(set(self._closing_drivers), timeout=1.5)", "        for task in list(self._closing_drivers):\n            task.cancel()", ("py",)),
+    ("la-stop-not-first", V + "liveavatar.py", "        if not self._closing:\n            self._request_stop()\n        await super().close()", "        await super().close()", ("py",)),
+    ("planned-rotation-is-a-strike", LIVE + "adapter.py", "                                  strike=not closed.planned)", "                                  strike=True)", ("py",)),
+    ("la-no-rotation", V + "liveavatar.py", "        if self.session_limit_s:\n            self._tasks.append(loop.create_task(self._rotate_before_limit(self.session_limit_s)))", "        if False:\n            self._tasks.append(loop.create_task(self._rotate_before_limit(self.session_limit_s)))", ("py",)),
+    ("la-no-session-cap", V + "liveavatar.py", "            if self.max_session_s:\n                body[\"max_session_duration\"] = int(self.max_session_s)", "            if False:\n                body[\"max_session_duration\"] = int(self.max_session_s)", ("py",)),
     # --- клиент
     ("client-console-error", T, "          this.faceFrames.clear();\n          // `synthetic: false`", "          console.error(\"live video mutation\");\n          this.faceFrames.clear();\n          // `synthetic: false`", ("e2e-off", "e2e-stub")),
     ("client-no-video-recovery", T, "} else if (this.session && event.lipsync_mode === \"video\" && event.transport === \"jpeg\") {", "} else if (false) {", ("js",)),

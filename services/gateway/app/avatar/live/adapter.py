@@ -168,6 +168,7 @@ class LiveVideoAvatar(AvatarProvider):
         self._ticker: Optional[asyncio.Task] = None
         self._wake: Optional[asyncio.Event] = None
         self._side_tasks: set[asyncio.Task] = set()
+        self._closing_drivers: set[asyncio.Task] = set()
         self.stats = Stats()
 
     # ------------------------------------------------------------ жизненный цикл
@@ -204,12 +205,26 @@ class LiveVideoAvatar(AvatarProvider):
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await task
         await self._close_driver()
+        # Закрытие сессии сервиса, начатое раньше (отказ, предел), гасить
+        # вместе с остальными задачами нельзя: оборванное на полпути, оно не
+        # доходит до «остановить сессию», и платные минуты идут до таймаута.
+        if self._closing_drivers:
+            await asyncio.wait(set(self._closing_drivers), timeout=1.5)
         self.link = "dead"
 
     async def _close_driver(self) -> None:
         driver, self._driver = self._driver, None
         if driver is None:
             return
+        task = asyncio.get_running_loop().create_task(self._bounded_close(driver))
+        self._closing_drivers.add(task)
+        task.add_done_callback(self._closing_drivers.discard)
+        with contextlib.suppress(Exception):
+            # Отмена ждущего не отменяет само закрытие — его дождётся `close()`.
+            await asyncio.shield(task)
+
+    @staticmethod
+    async def _bounded_close(driver: LiveVideoDriver) -> None:
         with contextlib.suppress(Exception):
             await asyncio.wait_for(driver.close(), timeout=1.0)
 
@@ -520,7 +535,8 @@ class LiveVideoAvatar(AvatarProvider):
                     while not self._to_driver.empty():
                         self._to_driver.get_nowait()
                 if closed is not None and not self._closed:
-                    self._degrade(f"closed: {closed.reason}", fatal=closed.fatal)
+                    self._degrade(f"closed: {closed.reason}", fatal=closed.fatal,
+                                  strike=not closed.planned)
             await self._close_driver()
             if self._closed or self.link == "dead":
                 break

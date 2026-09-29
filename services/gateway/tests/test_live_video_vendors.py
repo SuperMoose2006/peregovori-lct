@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import enum
 import json
 import sys
@@ -743,6 +744,79 @@ async def test_liveavatar_driver_follows_the_documented_lite_flow(monkeypatch):
     assert calls["stopped"] == [{"session_id": "sess-1", "reason": "USER_CLOSED"}], \
         "сессию у сервиса останавливают явно — иначе минуты идут до таймаута простоя"
     assert "disconnected" in calls["room"]
+
+
+@pytest.mark.asyncio
+async def test_liveavatar_stop_is_requested_before_anything_can_interrupt_closing(monkeypatch):
+    """Запрос остановки уходит ПЕРВЫМ шагом `close()`, даже если само закрытие
+    тут же отменят (партия закрывается с потолком в секунду)."""
+    from app.avatar.live.vendors import liveavatar
+    calls = _fake_liveavatar(monkeypatch)
+    driver = liveavatar.LiveAvatarDriver(_la_cfg(), Persona("supplier"))
+    await driver.connect()
+    closing = asyncio.get_running_loop().create_task(driver.close())
+    await asyncio.sleep(0)                    # закрытие успело сделать первый шаг
+    assert driver.closed_session_id == "sess-1" and liveavatar._STOPPING, \
+        "остановка сессии не запрошена первым шагом закрытия"
+    closing.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await closing
+    await asyncio.gather(*liveavatar._STOPPING, return_exceptions=True)
+    assert calls["stopped"] == [{"session_id": "sess-1", "reason": "USER_CLOSED"}]
+    assert driver.closed_session_id == "sess-1"
+
+
+@pytest.mark.asyncio
+async def test_liveavatar_session_length_cap_goes_to_the_service(monkeypatch):
+    from app.avatar.live.vendors import liveavatar
+    calls = _fake_liveavatar(monkeypatch)
+    driver = liveavatar.LiveAvatarDriver(_la_cfg(), Persona("supplier"))
+    driver.max_session_s = 90
+    await driver.connect()
+    token = next(c for c in calls["http"] if c[1].endswith("/v1/sessions/token"))
+    assert token[3]["max_session_duration"] == 90
+    assert {"token_request", "token", "started", "ws_connected", "room", "tracks"} <= set(driver.marks)
+    await driver.close()
+
+
+@pytest.mark.asyncio
+async def test_liveavatar_rotates_the_session_before_its_length_limit(monkeypatch):
+    """У предела сервис молча перестаёт говорить (замер 29.09) — драйвер сам
+    объявляет плановую смену сессии заранее, по пределу из ответа на start."""
+    from app.avatar.live.vendors import liveavatar
+    monkeypatch.setattr(liveavatar, "ROTATE_MARGIN_S", 0.0)
+    calls = _fake_liveavatar(monkeypatch)
+    import httpx
+    fake_post = httpx.AsyncClient.post
+
+    async def post(self, url, headers=None, json=None):
+        response = await fake_post(self, url, headers=headers, json=json)
+        if url.endswith("/v1/sessions/start"):
+            response._data = {**response._data, "max_session_duration": 0.2}
+        return response
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", post)
+    monkeypatch.setattr(liveavatar.asyncio, "sleep", _fast_sleep(liveavatar.asyncio.sleep))
+    driver = liveavatar.LiveAvatarDriver(_la_cfg(), Persona("supplier"))
+    await driver.connect()
+    assert driver.session_limit_s == 0.2
+
+    async def first_closed():
+        async for event in driver.events():
+            if isinstance(event, Closed):
+                return event
+
+    event = await asyncio.wait_for(first_closed(), timeout=8)
+    assert event.planned and not event.fatal and "предел" in event.reason
+    await driver.close()
+    assert calls["stopped"], "старая сессия остановлена"
+
+
+def _fast_sleep(real_sleep):
+    """Пауза смены сессии не короче 5 с по коду; в тесте — укорачиваем."""
+    async def sleep(seconds, *a, **kw):
+        return await real_sleep(min(seconds, 0.05), *a, **kw)
+    return sleep
 
 
 @pytest.mark.asyncio

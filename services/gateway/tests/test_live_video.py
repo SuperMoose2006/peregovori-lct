@@ -562,6 +562,22 @@ async def test_transient_drop_reconnects_and_video_returns_between_replies(monke
 
 
 @pytest.mark.asyncio
+async def test_planned_session_rotation_is_not_a_failure_and_video_returns(monkeypatch):
+    """Смена сессии у предела длины — не отказ: предел отказов партии не тратится."""
+    monkeypatch.setattr(adapter_mod, "RECONNECT_BACKOFF_S", (0.05, 0.05, 0.05))
+    rec = Recorder()
+    drivers: list[StubDriver] = []
+    avatar = _avatar(rec, cfg=_cfg(max_failures=1), drivers=drivers)
+    await _connected(avatar)
+    drivers[0].emit(Closed("session limit", planned=True))
+    assert await _until(lambda: len(drivers) >= 2 and avatar.link == "ready")
+    assert avatar.failures == 0 and avatar.link == "ready", "плановая смена сожгла отказ"
+    await avatar.set_state("listening")
+    assert avatar.mode == "video"
+    await avatar.close()
+
+
+@pytest.mark.asyncio
 async def test_reply_starting_before_the_service_is_up_uses_the_portrait_without_a_strike():
     rec = Recorder()
     avatar = _avatar(rec, connect_delay_s=5.0)
@@ -589,6 +605,28 @@ async def test_interrupt_drops_held_audio_and_silences_the_service():
     assert await _until(lambda: drivers[0].interrupts == 1)
     assert rec.states()[-1]["state"] == "listening"
     await avatar.close()
+
+
+@pytest.mark.asyncio
+async def test_closing_the_party_right_after_giving_up_still_finishes_closing_the_service():
+    """Отказ закрывает сессию сервиса в фоне; закрытие партии сразу следом не
+    вправе оборвать это закрытие — иначе платная сессия живёт до таймаута."""
+    finished = []
+
+    class SlowClose(StubDriver):
+        async def close(self):
+            await asyncio.sleep(0.3)
+            finished.append(True)
+            await super().close()
+
+    rec = Recorder()
+    cfg = _cfg()
+    avatar = LiveVideoAvatar(Persona("supplier"), rec, lambda: SlowClose(cfg, Persona("supplier")), cfg)
+    await _connected(avatar)
+    avatar._degrade("quota", fatal=True)          # предел: закрыть сессию сервиса
+    await asyncio.sleep(0)
+    await avatar.close()                          # партия закрывается тут же
+    assert finished == [True], "закрытие сессии сервиса оборвано закрытием партии"
 
 
 @pytest.mark.asyncio
