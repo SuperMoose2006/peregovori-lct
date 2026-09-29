@@ -13,6 +13,7 @@ import { DataIcon, Icon } from "./Icon";
 const COPY = {
   ru: {
     eyebrow: "Для преподавателя и руководителя", title: "Подготовьте переговоры", intro: "Задайте ситуацию и собеседника. Посмотрите условия, затем передайте участнику готовую тренировку.",
+    vsCustom: "Чем это отличается от «Своей сделки»: там вы описываете СВОЮ ситуацию своими словами и садитесь за стол сами. Здесь вы собираете переговоры для другого человека из готовых настроек — сфера, роль и тон собеседника, сложность, его цели, — видите заранее, что он получит, и запускаете.",
     back: "← К практике", presets: "Начать с примера", configure: "1. Настройка ситуации", domain: "Сфера", topic: "Тема встречи", role: "Роль собеседника", tone: "Тон собеседника", difficulty: "Сложность", easy: "Больше уступок", hard: "Выше требования", goals: "Заявленные цели собеседника", goalsHelp: "Выберите от одной до трёх. Они меняют его позицию и ценность ваших уступок.",
     preview: "Посмотреть условия", waiting: "Готовим тренировку…", save: "Сохранить черновик", reset: "Сбросить", saved: "Черновик сохранён в этом браузере.", saveError: "Браузер не сохранил черновик. Вы можете продолжить без сохранения.", resetDone: "Восстановлен пример закупок.",
     previewTitle: "2. Предпросмотр участника", empty: "Здесь появятся условия переговоров", emptyBody: "Начните с готового примера или заполните настройки слева. Предпросмотр покажет роль участника и то, как будет вести себя собеседник.", basis: "На основе кейса", counterpart: "Ваш собеседник", player: "Роль участника", conditions: "Условия встречи", impact: "Как работают настройки", launch: "Начать тренировку", launchHint: "Участник проходит переговоры и получает разбор своих решений.", ready: "Условия готовы. Можно начинать тренировку.",
@@ -20,6 +21,7 @@ const COPY = {
   },
   en: {
     eyebrow: "For educators and team leads", title: "Set up a negotiation", intro: "Choose a situation and a counterpart. Review the terms, then let your learner begin the practice.",
+    vsCustom: "How this differs from “Your deal”: there you describe YOUR own situation in your own words and take the seat yourself. Here you build a negotiation for someone else from ready-made settings — the counterpart's field, role and tone, the difficulty and their goals — see in advance what the learner will get, and launch it.",
     back: "← Back to practice", presets: "Start from an example", configure: "1. Configure the situation", domain: "Context", topic: "Meeting topic", role: "Counterpart role", tone: "Counterpart tone", difficulty: "Difficulty", easy: "More concessions", hard: "Higher expectations", goals: "Counterpart’s stated objectives", goalsHelp: "Choose one to three. These change their position and the value of your concessions.",
     preview: "Preview the terms", waiting: "Preparing practice…", save: "Save draft", reset: "Reset", saved: "Draft saved in this browser.", saveError: "The browser could not save your draft. You can continue without saving.", resetDone: "Procurement example restored.",
     previewTitle: "2. Learner preview", empty: "Your negotiation will appear here", emptyBody: "Start with an example or complete the settings. Preview the learner’s role and how the counterpart will respond.", basis: "Based on", counterpart: "Your counterpart", player: "Learner’s role", conditions: "Meeting terms", impact: "How the settings work", launch: "Start practice", launchHint: "The learner negotiates and gets feedback on their decisions.", ready: "The terms are ready. You can start the practice.",
@@ -91,6 +93,10 @@ export function AdminScenarioScreen({ lang, onExit, onLaunch }: AdminScenarioScr
     <button type="button" className="admin-back" onClick={onExit}>{t.back}</button>
     <header className="admin-heading">
       <p className="admin-eyebrow">{t.eyebrow}</p><ScreenHeading as="h1"><span id="admin-title">{t.title}</span></ScreenHeading><p>{t.intro}</p>
+      {/* Два режима собирают переговоры, и без этой строки их путали: даже
+          прочитав описание, было непонятно, чем редактор отличается от «Своей
+          сделки». Разница — КТО садится за стол и ИЗ ЧЕГО собран стол. */}
+      <p className="admin-vs">{t.vsCustom}</p>
     </header>
     <div className="admin-presets" role="group" aria-label={t.presets}>
       <span>{t.presets}</span>

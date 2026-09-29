@@ -153,6 +153,59 @@ export const SERVER_SIDE_REASON: Record<"camera" | "voice", { ru: string; en: st
   },
 };
 
+/** Сервера нет вовсе — партия идёт офлайн-ядром в браузере, и ни голоса, ни
+ *  камеры, ни реакций лица от сервера там не будет. */
+export const NO_SERVER_REASON: { ru: string; en: string } = {
+  ru: "нет связи с сервером — это работает только через него; партия идёт офлайн, текстом",
+  en: "no connection to the server — this only works through it; the game runs offline, in text",
+};
+
+/** Что сервер сказал о себе в `/api/health` — ровно те поля, что решают слои. */
+export interface ServerHealth {
+  cloud_ai?: boolean;
+  voice?: string;
+}
+
+/**
+ * Доступность слоёв С УЧЁТОМ СЕРВЕРА — до партии, а не после неё.
+ *
+ * ЗАЧЕМ. `detectLayers` знает только браузер. Без сервера (или с сервером без
+ * облака) «Голосом» и «Камера» в профиле выглядели рабочими: тумблер
+ * включался, подпись обещала своё, — а честная причина появлялась только за
+ * столом, после перезапуска партии. Для человека это и был «переключатель,
+ * который не работает» (разбор первого захода; e2e: layers-offline-offered).
+ *
+ * Правила — только из того, что сервер САМ сказал:
+ *   null      — ещё не ответил: утверждать нечего, остаётся браузерное;
+ *   "offline" — сервера нет: голос, камера, покерфейс и реакции лица с сервера
+ *               недоступны (офлайн-ядро их не умеет);
+ *   cloud_ai === false — нет облачного зрения: камера и покерфейс недоступны;
+ *   voice начинается с "unavailable" — голос недоступен.
+ * Уже недоступное браузером не переписывается: его причина первичнее.
+ */
+export function withServer(
+  states: Record<LayerId, LayerState>,
+  server: ServerHealth | "offline" | null,
+): Record<LayerId, LayerState> {
+  if (server === null) return states;
+  const out = { ...states };
+  const deny = (id: LayerId, reason: { ru: string; en: string }) => {
+    if (out[id].available) out[id] = { id, available: false, reason };
+  };
+  if (server === "offline") {
+    for (const id of ["voice", "camera", "pokerface", "avatar"] as LayerId[]) deny(id, NO_SERVER_REASON);
+    return out;
+  }
+  if (server.cloud_ai === false) {
+    deny("camera", SERVER_SIDE_REASON.camera);
+    deny("pokerface", SERVER_SIDE_REASON.camera);
+  }
+  if (typeof server.voice === "string" && server.voice.startsWith("unavailable")) {
+    deny("voice", SERVER_SIDE_REASON.voice);
+  }
+  return out;
+}
+
 /**
  * Разбор, когда камера смотрела и ничего не сказала.
  *

@@ -25,6 +25,31 @@ export function RailCard({ title, children }: { title: string; children: React.R
   );
 }
 
+/**
+ * Группа карточек с подписью «что это за группа».
+ *
+ * ПОЧЕМУ ГРУППЫ. Рейл был стопкой из восьми карточек подряд — стол дня, память,
+ * цель, серия, ранг, курс, чтение, обратная сторона, метод — и новичку порядок
+ * казался случайным: половина из них про прогресс, половина — отдельные
+ * форматы игры. Форматы уехали в основную колонку (App.tsx), а здесь осталось
+ * то, что одинаково относится к любому разделу, — под одной подписью.
+ *
+ * Подпись — не заголовок: у карточек уже есть h2, и лишний уровень в дереве
+ * заголовков диктору не помог бы.
+ */
+export function RailGroup({ head, note, className, children }:
+  { head: string; note: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={`rail-group${className ? ` ${className}` : ""}`}>
+      <div className="rail-head">
+        <b>{head}</b>
+        <span>{note}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /** Daily goal + rank: the two widgets every screen of the shell carries.
  *
  * ВЫБОР ЦЕЛИ ЖИВЁТ ЗДЕСЬ. Раньше цифры 1/2/3 были кликабельны только в
@@ -39,8 +64,11 @@ export function ProgressCards({ t, lang, profile, onSetGoal }:
   return (
     <>
       <RailCard title={t.goal.title}>
+        {/* «0/1» без единого слова не отвечало, цель ЧЕГО это — тренировки,
+            курса, кампании. Подпись под числом говорит, что считается. */}
+        <p className="rc-hint">{t.goal.hint}</p>
         <div className="rc-goal">
-          <b>{goal.done}/{goal.target}</b>
+          <b>{t.goal.count.replace("{done}", String(goal.done)).replace("{target}", String(goal.target))}</b>
           <span className="rc-steps" role={onSetGoal ? "group" : undefined}
                 aria-label={onSetGoal ? t.gam.dailyTargetLabel : undefined}
                 aria-hidden={onSetGoal ? undefined : true}>
@@ -71,6 +99,9 @@ export function ProgressCards({ t, lang, profile, onSetGoal }:
             {t.rank.toNext.replace("{n}", String(r.toNext)).replace("{rank}", r.next.name[lang])}
           </p>
         ) : null}
+        {/* Как ранг считается и на что НЕ влияет — тем же правилом, что
+            `xpForDebrief`: балл партии, бонус за сделку и за рекорд. */}
+        <p className="rc-hint rc-hint-after">{t.rank.hint}</p>
       </RailCard>
     </>
   );
@@ -88,54 +119,47 @@ export function ProgressCards({ t, lang, profile, onSetGoal }:
  * Стол считается ОФЛАЙН, тем же расписанием, что на сервере
  * (`lib/daily.ts` ↔ `app/engine/daily.py`): карточка обязана работать без сети,
  * как и всё остальное.
+ *
+ * ЧТО ЗДЕСЬ БЫЛО НЕПОНЯТНО. Заголовок «Стол дня» и строка условия («Обычный
+ * стол, двенадцать ходов») не говорили главного — что это одна ситуация на
+ * всех и завтра будет другая. Первая строка теперь говорит именно это. Слова
+ * самих условий не трогаются: они зеркало `daily.py`, а движок — не наша зона.
+ *
+ * Сюда же переехала память об этом столе («Тихон помнит» отдельной карточкой):
+ * слон с чужим именем посреди рейла вызывал вопрос «кто это?», а сама строка —
+ * «ваш лучший результат здесь» — нужна ровно там, где решают, садиться ли.
+ * Строки нет, пока нет рекорда: вспоминать нечего.
  */
-export function DailyCard({ t, lang, onPlay }:
-  { t: Strings; lang: Lang; onPlay: (scenarioId: string) => void }) {
+export function DailyCard({ t, lang, profile, onPlay }:
+  { t: Strings; lang: Lang; profile?: Profile; onPlay: (scenarioId: string) => void }) {
   const table = dailyTable();
   const sc = SCENARIO_MAP[table.scenarioId];
   if (!sc) return null;
+  const record = profile ? getRecord(profile, table.scenarioId) : null;
   return (
     <RailCard title={t.daily.title}>
-      <button className="rc-daily" onClick={() => onPlay(table.scenarioId)}>
+      <p className="rc-note">{t.daily.lead}</p>
+      {/* Плитка — описание, а не кнопка: рядом с двумя соседями по разделу
+          «Другие форматы» у каждой карточки одна кнопка внизу, и у этой тоже. */}
+      <div className="rc-daily rc-daily--static">
         <span className="rc-daily-ic" aria-hidden="true"><DataIcon name={sc.icon} /></span>
         <span className="rc-daily-txt">
           <b>{sc.title[lang]}</b>
           <span className="rc-daily-mod">{table.modifier.label[lang]}</span>
         </span>
-      </button>
-      <p className="rc-next">{table.modifier.note[lang]}</p>
-    </RailCard>
-  );
-}
-
-/**
- * «Тихон помнит» — память о столе, который выпал сегодня.
- *
- * Слон в продукте отвечает за память и сертификацию, и до сих пор жил только в
- * курсе и в разборе — то есть там, где память И ТАК очевидна. На домашнем
- * экране, где человек выбирает, во что играть, её не было вовсе, хотя именно
- * здесь она полезнее всего: «этот стол вы уже брали на B, 78».
- *
- * Карточка рисуется, ТОЛЬКО если рекорд есть. Слон, разводящий руками над
- * пустым профилем, — это украшение; вспоминать ему пока нечего.
- */
-export function MemoryCard({ t, lang, profile }:
-  { t: Strings; lang: Lang; profile: Profile }) {
-  const today = dailyTable();
-  const record = getRecord(profile, today.scenarioId);
-  const sc = SCENARIO_MAP[today.scenarioId];
-  if (!record || !record.bestGrade || !sc) return null;
-  return (
-    <RailCard title={t.mascot.rememberTitle}>
-      {/* Картинка без Tikhon-обёртки: та рисует собственный заголовок, а он
-          здесь уже есть у карточки, и диктор прочитал бы имя дважды. */}
-      <div className="rc-memory">
-        <MascotImg dir="tikhon" state="remember" alt="" size={44} />
-        <p className="rc-note">
-          {sc.title[lang]} — {t.personalBest.toLowerCase()}:{" "}
-          <b>{record.bestGrade}</b>, {record.bestScore}
-        </p>
       </div>
+      <p className="rc-next">{table.modifier.note[lang]}</p>
+      {record?.bestGrade ? (
+        <div className="rc-memory">
+          <MascotImg dir="tikhon" state="remember" alt="" size={44} />
+          <p className="rc-note">
+            {t.daily.best.replace("{grade}", record.bestGrade).replace("{score}", String(record.bestScore))}
+          </p>
+        </div>
+      ) : null}
+      <button className="btn primary rc-go" data-daily="play" onClick={() => onPlay(table.scenarioId)}>
+        {t.route.dailyCta}
+      </button>
     </RailCard>
   );
 }
@@ -179,6 +203,7 @@ export function StreakCard({ t, profile }: { t: Strings; profile: Profile }) {
 
   return (
     <RailCard title={t.streak.title}>
+      <p className="rc-hint">{t.streak.hint}</p>
       <div className="rc-streak">
         {/* Декоративная: строка рядом называет и число дней, и что с ним
             делать. Числового чипа тут нет намеренно — «5» рядом со словами
@@ -191,16 +216,36 @@ export function StreakCard({ t, profile }: { t: Strings; profile: Profile }) {
   );
 }
 
-/** The four principles, condensed. Home only — it is the method in one glance,
- *  and it replaces the long "почему это учит" section the game skin drops. */
-export function MethodCard({ t }: { t: Strings }) {
+/**
+ * Четыре приёма метода — с примером под каждым и ссылкой в курс.
+ *
+ * БЫЛО: заголовок «Метод» и четыре строки вроде «BATNA как рычаг». Новичок не
+ * понимал ни что за метод, ни что перечислено, а понявший не получал ничего,
+ * чем можно воспользоваться. Теперь у каждого приёма — мысль и пример из
+ * партии, раскрываются по нажатию (иначе карточка заняла бы полэкрана), и
+ * кнопка ведёт в курс, где приём разобран заданиями.
+ *
+ * Тексты те же, что на экране курса (`t.teach.panels`, WhyTeaches.tsx): второй
+ * пересказ того же метода разошёлся бы с первым при первой же правке.
+ */
+export function MethodCard({ t, onCourse }: { t: Strings; onCourse?: () => void }) {
   return (
     <RailCard title={t.method.title}>
+      <p className="rc-hint">{t.method.lead}</p>
       <ul className="rc-method">
-        {t.principles.map((p, i) => (
-          <li key={i}><span dangerouslySetInnerHTML={{ __html: p }} /></li>
+        {t.teach.panels.map((p) => (
+          <li key={p.name}>
+            <details>
+              <summary>{p.name}</summary>
+              <p>{p.idea}</p>
+              <p className="rc-method-ex">{p.example}</p>
+            </details>
+          </li>
         ))}
       </ul>
+      {onCourse ? (
+        <button className="btn rc-go rc-go-quiet" onClick={onCourse}>{t.method.more} →</button>
+      ) : null}
     </RailCard>
   );
 }

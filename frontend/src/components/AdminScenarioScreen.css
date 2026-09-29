@@ -46,3 +46,10 @@
 .admin-status { min-height: 24px; font-size: 13px; color: var(--ink-dim); }
 .admin-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-width: 760px) { .admin-grid { grid-template-columns: minmax(0, 1fr); } .admin-card { padding: 18px; } .admin-context { padding-top: 12px; padding-inline: 20px; } .admin-empty { min-height: 180px; } }
+/* Чем редактор отличается от «Своей сделки» — отдельной плашкой под вводным
+   абзацем: это ответ на первый вопрос человека, попавшего сюда из меню. */
+.admin-heading .admin-vs {
+  margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.5;
+  color: var(--ink); background: color-mix(in srgb, var(--info) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--info) 30%, var(--line));
+}

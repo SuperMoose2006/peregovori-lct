@@ -552,14 +552,29 @@ export function getRecord(profile: Profile, scenarioId: string): ScenarioRecord 
 // scoring/streak profile, so a corrupt profile blob never blocks or re-triggers
 // onboarding. Reads/writes are defensive (private mode / disabled storage just
 // means the tutorial may show again — never a thrown error into the UI).
+//
+// ОДИН КЛЮЧ, ДВЕ СТАДИИ. Вводная теперь из двух частей: короткий обход главного
+// экрана (что это за продукт и с чего начать) и подсветки за столом в первой
+// партии. Отдельный ключ для первой части сломал бы полтора десятка приборов и
+// e2e-сценариев: все они пишут сюда "1", чтобы вводная не мешала, — и обход
+// главной вылез бы поверх каждого их снимка. Поэтому значение ступенчатое:
+//   нет значения — не видел ничего;
+//   "home"       — обход главной пройден, подсветки за столом ещё впереди;
+//   "1"          — пройдено всё (так было и раньше, и так пишут приборы).
+// Стадия только растёт: "home" никогда не перезаписывает "1".
 const TUTORIAL_KEY = "dialog.tutorialDone.v1";
+const WELCOME_STAGE = "home";
+
+function tutorialStage(): string | null {
+  try {
+    return typeof localStorage !== "undefined" ? localStorage.getItem(TUTORIAL_KEY) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function isTutorialDone(): boolean {
-  try {
-    return typeof localStorage !== "undefined" && localStorage.getItem(TUTORIAL_KEY) === "1";
-  } catch {
-    return false;
-  }
+  return tutorialStage() === "1";
 }
 
 export function markTutorialDone(): void {
@@ -568,6 +583,37 @@ export function markTutorialDone(): void {
   } catch {
     // best-effort; a blocked store just means the guided intro may run again
   }
+}
+
+/** Обход главного экрана уже пройден (или пропущен). Пройденная вводная целиком
+ *  его тоже закрывает: кто доиграл первую партию, тому главную не объясняют. */
+export function isWelcomeDone(): boolean {
+  const s = tutorialStage();
+  return s === WELCOME_STAGE || s === "1";
+}
+
+export function markWelcomeDone(): void {
+  if (isWelcomeDone()) return;
+  try {
+    if (typeof localStorage !== "undefined") localStorage.setItem(TUTORIAL_KEY, WELCOME_STAGE);
+  } catch {
+    // best-effort, как и выше: закрытое хранилище значит «покажем ещё раз»
+  }
+}
+
+/** Обход главной — только тому, кто здесь впервые. Профиль с партиями или
+ *  опытом значит, что человек уже нашёл дорогу сам: объяснять ему главную
+ *  после выкладки было бы не вводной, а помехой. Чистая — держится тестом. */
+export function shouldRunWelcome(welcomeDone: boolean, profile: Pick<Profile, "xp" | "scenarios">): boolean {
+  if (welcomeDone) return false;
+  return !hasPlayed(profile);
+}
+
+/** Доиграл ли человек хоть что-нибудь: партию (запись стола) или задание курса
+ *  (опыт). Отвечает на вопрос «новичок ли это» по профилю, а не по флагу
+ *  вводной: вводную можно пропустить, не сыграв ни одного хода. */
+export function hasPlayed(profile: Pick<Profile, "xp" | "scenarios">): boolean {
+  return profile.xp > 0 || Object.keys(profile.scenarios).length > 0;
 }
 
 // Pure gate for the guided first negotiation. It runs ONLY in practice (an
