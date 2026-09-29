@@ -1,7 +1,7 @@
 // Chat.tsx — the negotiation chat log: opponent/player bubbles, technique tag
 // badges + argumentation score on player lines, per-turn meter delta flashes,
 // streaming opponent text, hint bubbles.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Analysis, Deltas } from "../types";
 import type { MeterLabels, Strings } from "../i18n";
@@ -10,6 +10,7 @@ import { Icon } from "./Icon";
 
 interface Props {
   log: ChatEntry[];
+  scrollPosition?: React.MutableRefObject<ChatScrollPosition | null>;
   metersShort: MeterLabels;
   // full meter names (for accessible delta-chip labels; the chips render short)
   metersFull: MeterLabels;
@@ -80,8 +81,16 @@ export function logAnchor(opening: boolean, played: boolean): "top" | "bottom" {
   return opening && !played ? "top" : "bottom";
 }
 
-export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLabel, argStrings, deltaNone, deltaRepeat, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
+export interface ChatScrollPosition {
+  top: number;
+  atBottom: boolean;
+}
+
+export function Chat({ log, scrollPosition, metersShort, metersFull, deltaAria, logLabel, argLabel, argStrings, deltaNone, deltaRepeat, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const localPosition = useRef<ChatScrollPosition | null>(null);
+  const position = scrollPosition ?? localPosition;
+  const previous = useRef<{ log: ChatEntry[]; typing: boolean; played: boolean } | null>(null);
   // Coach lines are dismissible — the player can wave off a nudge they've read.
   const [dismissed, setDismissed] = useState<Set<number>>(() => new Set());
   const played = log.some((e) => e.kind === "me");
@@ -103,11 +112,35 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
     }
     return ids;
   }, [log]);
-  useEffect(() => {
+  // A new opening JSX object (mic/layer rerender) is not new conversation.
+  // Keep the session-owned position even when a layer restart remounts Table.
+  // Only new conversation content follows the bottom, and only if the reader
+  // was there. The first submitted line still reveals itself below the opening.
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    el.scrollTop = logAnchor(!!opening, played) === "top" ? 0 : el.scrollHeight;
-  }, [log, typing, opening, played]);
+    const saved = position.current;
+    const last = previous.current;
+    const changed = last && (last.log !== log || last.typing !== !!typing);
+    const follow = saved === null
+      ? logAnchor(!!opening, played) === "bottom"
+      : last === null ? saved.atBottom
+      : (!last.played && played) || (!!changed && saved.atBottom);
+    el.scrollTop = follow ? el.scrollHeight : saved?.top ?? 0;
+    position.current = {
+      top: el.scrollTop,
+      atBottom: follow || (saved?.atBottom ?? el.scrollHeight - el.clientHeight - el.scrollTop <= 2),
+    };
+    previous.current = { log, typing: !!typing, played };
+  });
+
+  const rememberPosition = () => {
+    const el = ref.current;
+    if (el) position.current = {
+      top: el.scrollTop,
+      atBottom: el.scrollHeight - el.clientHeight - el.scrollTop <= 2,
+    };
+  };
 
   return (
     // The log is a polite live region: new opponent replies and coach lines are
@@ -128,6 +161,7 @@ export function Chat({ log, metersShort, metersFull, deltaAria, logLabel, argLab
     <div
       className={`log${opening ? " has-opening" : ""}`}
       ref={ref}
+      onScroll={rememberPosition}
       role="log"
       tabIndex={0}
       aria-label={logLabel}

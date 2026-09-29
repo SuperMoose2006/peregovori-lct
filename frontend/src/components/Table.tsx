@@ -18,7 +18,7 @@ import { meetingStatus } from "../lib/meeting";
 import { ScreenHeading } from "./ScreenHeading";
 import { scrollTo } from "../lib/motion";
 import { Meters } from "./Meters";
-import { Chat } from "./Chat";
+import { Chat, type ChatScrollPosition } from "./Chat";
 import { Composer } from "./Composer";
 import { LiveBar } from "./LiveBar";
 import { Karl, karlState } from "./Mascot";
@@ -37,6 +37,7 @@ interface Props {
   scenario: ScenarioView;
   state: StateView | null;
   log: ChatEntry[];
+  chatScrollPosition?: React.MutableRefObject<ChatScrollPosition | null>;
   busy: boolean;
   disconnected?: boolean;
   // Which half of the wait we're in; null when the server never said (mock,
@@ -125,7 +126,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
+export function Table({ chatScrollPosition, t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -734,6 +735,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
               </div>
             </div>
             <Chat
+              scrollPosition={chatScrollPosition}
               onUseLine={(text) => setPrefill({ text, nonce: prefillNonce.current++ })}
               useLineLabel={t.useLine}
               log={log}
