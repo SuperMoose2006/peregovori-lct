@@ -13,6 +13,8 @@
 # ЧТО КОПИРУЕТСЯ И ПОЧЕМУ ИМЕННО ЭТО:
 #   services/gateway/app            сам шлюз: движок, курс, протокол, слои
 #   services/gateway/requirements.txt зависимости
+#   services/gateway/requirements-live-video.txt SDK сервиса живого видео — ставятся
+#                                   на сервере ДО ключа, чтобы ключ был единственным шагом
 #   services/gateway/.env.example   образец файла секретов (сам .env НЕ копируется)
 #   services/gateway/tools          приборы; часть из них монорепозиторные — см. ниже
 #   adapters/                       шов OpenTalking; без него main.py пишет
@@ -53,6 +55,7 @@ PATHS=(
   services/gateway/app
   services/gateway/tools
   services/gateway/requirements.txt
+  services/gateway/requirements-live-video.txt
   services/gateway/.env.example
   adapters
 )

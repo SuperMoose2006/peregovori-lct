@@ -9,6 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { AvatarFrames } from "../src/lib/avatarFrames";
 import { faceRenderer, pickFaceSource } from "../src/lib/faceSource";
+import { syntheticFace } from "../src/lib/meeting";
 
 class Socket {
   static OPEN = 1;
@@ -58,6 +59,7 @@ test("отказ сервиса посреди партии: лицо уходи
   const { transport, socket, seen } = await started({ avatar: VIDEO });
   try {
     assert.equal(mode(seen), "video");
+    assert.equal(syntheticFace(seen[seen.length - 1]), true, "заглушка подписана");
     (transport as any).player = { playbackTimeMs: () => 100, beginTurn() {}, stopAll() {},
       dispose: async () => {} };
     socket.deliver({ type: "response.output.delta", kind: "text", generation_id: "g", text: "Да" });
@@ -66,6 +68,8 @@ test("отказ сервиса посреди партии: лицо уходи
     socket.deliver({ type: "avatar.state", state: "listening", lipsync: true,
       lipsync_mode: "amplitude", transport: "local", reason: "provider_failed", detail: "closed" });
     assert.equal(mode(seen), "amplitude");
+    assert.equal(syntheticFace(seen[seen.length - 1]), false,
+      "подпись «тестовый поток» снята: потока больше нет, на экране портрет");
     assert.equal(transport.videoFrame(), null, "кадр отказавшего сервиса не держится на экране");
     // Так выбирает лицо экран: рисованный портрет со ртом по громкости.
     assert.equal(pickFaceSource({ renderer: mode(seen), exam: false, reducedMotion: false,

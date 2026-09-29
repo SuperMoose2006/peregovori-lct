@@ -98,6 +98,10 @@ class Stats:
     recoveries: int = 0
     connects: int = 0
     first_frame_lag_ms: list[float] = field(default_factory=list)
+    #: На сколько кадр сервиса отстал от своего звука в момент прихода, мс:
+    #: (приход − первый звук поколения) − pts. По нему подбирается удержание
+    #: звука (`tools/live_video_check.py` печатает рекомендацию).
+    frame_lag_ms: list[float] = field(default_factory=list)
 
 
 class _Utterance:
@@ -592,6 +596,8 @@ class LiveVideoAvatar(AvatarProvider):
                 self.stats.frames_thinned += 1
                 return
         self._last_in_pts = pts
+        if self._first_audio_at is not None and len(self.stats.frame_lag_ms) < 5000:
+            self.stats.frame_lag_ms.append((self._now() - self._first_audio_at) * 1000.0 - pts)
         self._pending.append(VideoFrame(frame.generation_id, pts, frame.jpeg))
         if len(self._pending) > PENDING_MAX:
             self._pending.pop(0)

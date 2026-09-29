@@ -45,6 +45,7 @@ ENV_FPS = "NEGO_LIVE_VIDEO_FPS"
 ENV_SIZE = "NEGO_LIVE_VIDEO_SIZE"
 ENV_CONNECT_TIMEOUT = "NEGO_LIVE_VIDEO_CONNECT_TIMEOUT_S"
 ENV_MAX_FAILURES = "NEGO_LIVE_VIDEO_MAX_FAILURES"
+ENV_SANDBOX = "NEGO_LIVE_VIDEO_SANDBOX"
 ENV_STUB_FAIL = "NEGO_LIVE_VIDEO_STUB_FAIL_AFTER_S"
 ENV_STUB_LATENCY = "NEGO_LIVE_VIDEO_STUB_LATENCY_MS"
 
@@ -83,6 +84,8 @@ class VendorSpec:
     key_pattern: str = ""
     #: Модули, без которых драйвер не поднимется, — для внятной ошибки при старте.
     requires: tuple[str, ...] = ()
+    #: Без id лица сервис не работает, а стокового каталога у него нет.
+    needs_avatar: bool = False
 
 
 #: Реестр. Добавить сервис = одна запись здесь + файл драйвера.
@@ -92,11 +95,11 @@ VENDORS: dict[str, VendorSpec] = {
         inputs=("audio", "text")),
     "anam": VendorSpec(
         name="anam", target="app.avatar.live.vendors.anam:AnamDriver",
-        inputs=("audio", "text"), requires=("anam", "aiortc"),
+        inputs=("audio",), requires=("anam", "aiortc"),
         key_hint="ключ из lab.anam.ai → API keys"),
     "simli": VendorSpec(
         name="simli", target="app.avatar.live.vendors.simli:SimliDriver",
-        inputs=("audio",), requires=("simli", "aiortc"),
+        inputs=("audio",), requires=("simli", "aiortc"), needs_avatar=True,
         key_hint="ключ из app.simli.com → API"),
     "liveavatar": VendorSpec(
         name="liveavatar", target="app.avatar.live.vendors.liveavatar:LiveAvatarDriver",
@@ -121,6 +124,9 @@ class LiveVideoConfig:
     max_failures: int = DEFAULT_MAX_FAILURES
     stub_fail_after_s: Optional[float] = None
     stub_latency_ms: int = 0
+    #: Бесплатная песочница сервиса, если он её даёт (LiveAvatar: сессия
+    #: около минуты, своё тестовое лицо, кредиты не списываются).
+    sandbox: bool = False
     #: Почему видео выключено при названном сервисе. Пусто — всё сошлось.
     errors: tuple[str, ...] = ()
     #: Что не так, но не мешает: неверное число заменено умолчанием.
@@ -223,6 +229,9 @@ def load(env: Optional[Mapping[str, str]] = None) -> LiveVideoConfig:
             from app.providers import network_enabled
             if not network_enabled():
                 errors.append("NEGO_AI=off — офлайн-режим, сетевой сервис видео не поднимается")
+            if spec.needs_avatar and not (env.get(ENV_AVATAR) or "").strip():
+                errors.append(f"{ENV_AVATAR} пуст — у {vendor} нет стокового каталога, "
+                              "впишите id лица из кабинета сервиса")
 
     wanted = (env.get(ENV_INPUT) or "").strip().lower() or spec.inputs[0]
     if wanted not in ("audio", "text"):
@@ -254,6 +263,7 @@ def load(env: Optional[Mapping[str, str]] = None) -> LiveVideoConfig:
         max_failures=_number(env, ENV_MAX_FAILURES, DEFAULT_MAX_FAILURES, 1, 100, warnings),
         stub_fail_after_s=stub_fail,
         stub_latency_ms=_number(env, ENV_STUB_LATENCY, 0, 0, 5000, warnings),
+        sandbox=(env.get(ENV_SANDBOX) or "").strip().lower() in ("1", "on", "true", "yes"),
         errors=tuple(errors),
         warnings=tuple(warnings),
         missing_key=missing_key,
@@ -341,6 +351,10 @@ async def startup_check(cfg: Optional[LiveVideoConfig] = None, *, timeout_s: flo
         return STATUS.checked
     spec = cfg.spec
     assert spec is not None
+    if not spec.needs_key:
+        STATUS.checked = f"{cfg.vendor}: ключ не нужен — синтетические кадры без сети"
+        _log.info("живое видео: %s", STATUS.checked)
+        return STATUS.checked
     missing = missing_modules(spec)
     if missing:
         STATUS.rejected = (f"для {cfg.vendor} не установлены модули: {', '.join(missing)} — "

@@ -1,0 +1,19 @@
+# Живое видео собеседника — SDK сервисов. Ставится ТОЛЬКО там, где сервис
+# включён (NEGO_LIVE_VIDEO + ключ); без этого файла продукт работает как раньше:
+# драйверы импортируют SDK лениво, при старте шлюз называет недостающий модуль.
+#
+#   services/gateway/.venv/bin/pip install -r services/gateway/requirements-live-video.txt
+#
+# ВНИМАНИЕ: aiortc 1.15 требует av<18, поэтому установка ОПУСКАЕТ av с 18.1.0
+# (requirements.lock) до 17.1.0. Проверено 29.09.2026: весь набор тестов шлюза
+# зелёный на av 17.1.0 (edge-tts декодирует MP3 тем же API). Ставить без
+# `-c requirements.lock`: с ним pip откажет из-за этого конфликта.
+
+# Anam (NEGO_LIVE_VIDEO=anam): официальный SDK, WebRTC через aiortc.
+anam==0.11.0
+# Simli (NEGO_LIVE_VIDEO=simli): официальный SDK, WebRTC через aiortc.
+simli-ai==2.0.3
+aiortc==1.15.0
+av==17.1.0
+# HeyGen LiveAvatar (NEGO_LIVE_VIDEO=liveavatar): видео приходит комнатой LiveKit.
+livekit==1.1.20

@@ -532,9 +532,11 @@ export class RealtimeTransport implements Transport {
       case "avatar.state":
         if (this.session && event.lipsync_mode === "amplitude") {
           this.faceFrames.clear();
+          // `synthetic: false`: подпись «тестовый видеопоток» относится к
+          // потоку, а потока больше нет — на экране рисованный портрет.
           this.session.capabilities = { ...this.session.capabilities,
             avatar: { ...(this.session.capabilities.avatar as object),
-              lipsync: true, lipsync_mode: "amplitude", transport: "local" } };
+              lipsync: true, lipsync_mode: "amplitude", transport: "local", synthetic: false } };
           this.options.onCapabilities?.(this.session.capabilities);
         } else if (this.session && event.lipsync_mode === "video" && event.transport === "jpeg") {
           // Сервис видео снова на связи (сервер переподключился между
