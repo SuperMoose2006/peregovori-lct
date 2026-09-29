@@ -318,6 +318,8 @@ export interface Strings {
     where: string;
     /** Что понадобится от браузера — вместо безликого «оценка та же». */
     needs: Record<"voice" | "camera", string>;
+    /** Ответ устройства на включение слоя (lib/deviceCheck.ts). */
+    check: Record<"voice" | "camera", Record<"checking" | "granted" | "denied" | "missing" | "busy" | "failed", string>>;
     /** Чего у лица собеседника НЕТ — и что это появится позже. */
     avatarLater: string;
     what: string;            // "[i] что это"
@@ -1223,8 +1225,26 @@ export const I18N: Record<Lang, Strings> = {
       lead: "Слои — необязательные добавки к партии: голос вместо клавиатуры, камера, выражение лица собеседника, вопросы о его реакции. Ни один не влияет на оценку.",
       where: "Работают только в разделе «Тренировка». В кампании, курсе, экзамене и своей сделке слои всегда выключены — так оценки остаются сравнимыми. Выбор отсюда достанется следующей тренировке.",
       needs: {
-        voice: "нужен микрофон — браузер спросит разрешение, когда начнётся партия",
-        camera: "нужна камера — браузер спросит разрешение, когда начнётся партия",
+        voice: "нужен микрофон — браузер спросит разрешение, как только вы включите слой",
+        camera: "нужна камера — браузер спросит разрешение, как только вы включите слой",
+      },
+      check: {
+        voice: {
+          checking: "Спрашиваем доступ к микрофону — ответьте в окне браузера.",
+          granted: "Микрофон работает. Мы его сразу выключили — он включится, когда начнётся партия.",
+          denied: "Доступ к микрофону запрещён. Разрешите его в настройках сайта (значок слева от адреса) и включите слой снова.",
+          missing: "Микрофон не найден. Подключите его и включите слой снова.",
+          busy: "Микрофон занят другой программой. Закройте её и включите слой снова.",
+          failed: "Микрофон не включился. Попробуйте ещё раз или перезагрузите страницу.",
+        },
+        camera: {
+          checking: "Спрашиваем доступ к камере — ответьте в окне браузера.",
+          granted: "Камера работает. Мы её сразу выключили — она включится, когда начнётся партия.",
+          denied: "Доступ к камере запрещён. Разрешите его в настройках сайта (значок слева от адреса) и включите слой снова.",
+          missing: "Камера не найдена. Подключите её и включите слой снова.",
+          busy: "Камера занята другой программой — например, видеозвонком. Закройте её там и включите слой снова.",
+          failed: "Камера не включилась. Попробуйте ещё раз или перезагрузите страницу.",
+        },
       },
       avatarLater: "Живое видео-лицо собеседника появится позже. Сейчас это нарисованные выражения лица.",
       what: "что это",
@@ -2171,8 +2191,26 @@ export const I18N: Record<Lang, Strings> = {
       lead: "Layers are optional extras for a game: voice instead of typing, a camera, the counterpart's facial expressions, questions about how they react. None of them affects your grade.",
       where: "They work only in \u201cTraining\u201d. In the campaign, course, exam and \u201cYour deal\u201d layers are always off, so grades stay comparable. What you choose here applies to your next training game.",
       needs: {
-        voice: "needs a microphone \u2014 the browser will ask for permission when the game starts",
-        camera: "needs a camera \u2014 the browser will ask for permission when the game starts",
+        voice: "needs a microphone \u2014 the browser asks for permission as soon as you turn the layer on",
+        camera: "needs a camera \u2014 the browser asks for permission as soon as you turn the layer on",
+      },
+      check: {
+        voice: {
+          checking: "Asking for the microphone \u2014 answer the browser prompt.",
+          granted: "The microphone works. We switched it off right away \u2014 it turns on when the game starts.",
+          denied: "Microphone access is blocked. Allow it in the site settings (the icon left of the address) and turn the layer on again.",
+          missing: "No microphone found. Connect one and turn the layer on again.",
+          busy: "The microphone is busy in another app. Close it there and turn the layer on again.",
+          failed: "The microphone didn't start. Try again or reload the page.",
+        },
+        camera: {
+          checking: "Asking for the camera \u2014 answer the browser prompt.",
+          granted: "The camera works. We switched it off right away \u2014 it turns on when the game starts.",
+          denied: "Camera access is blocked. Allow it in the site settings (the icon left of the address) and turn the layer on again.",
+          missing: "No camera found. Connect one and turn the layer on again.",
+          busy: "The camera is busy in another app \u2014 a video call, say. Close it there and turn the layer on again.",
+          failed: "The camera didn't start. Try again or reload the page.",
+        },
       },
       avatarLater: "A live video face for the counterpart is coming later. For now these are drawn expressions.",
       what: "what is this",

@@ -17,6 +17,7 @@
 import type { Strings } from "../i18n";
 import type { Lang } from "../types";
 import { PRESETS, reasonText, type LayerId, type Layers, type LayerState } from "../lib/layers";
+import type { DeviceChecks } from "../lib/deviceCheck";
 import { Karl } from "./Mascot";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
@@ -53,6 +54,8 @@ interface Props {
    *  внутри пусто»), которого в продукте не бывает. Ключи — сырые причины из
    *  хука (`useNegotiation.layerFail`). */
   fail?: { voice?: string; camera?: string };
+  /** Итог проверки устройства, спрошенного при включении (lib/deviceCheck.ts). */
+  checks?: DeviceChecks;
 }
 
 /**
@@ -112,7 +115,7 @@ function PokerfaceRow({ t, lang, state, failed, on, cameraOn, locked, onToggle }
   );
 }
 
-export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockNote = null, fail }: Props) {
+export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockNote = null, fail, checks = {} }: Props) {
   const locked = !!lockNote;
   /** Почему именно этот слой не поднялся — или null. «Покерфейс» считает по
    *  кадрам камеры, поэтому её отказ гасит и его. */
@@ -166,7 +169,10 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
           // aria-describedby, а не просто лежит рядом.
           const available = st.available && !failed;
           const cls = !available ? "off na" : on ? "on" : "off";
-          const frozen = locked || !available;
+          // Пока браузер спрашивает устройство, второй клик по тумблеру ждёт
+          // ответа: двойной запрос дал бы два системных окна подряд.
+          const check = id === "voice" || id === "camera" ? checks[id] : undefined;
+          const frozen = locked || !available || check === "checking";
           return (
             <div className={`layer ${cls}${locked ? " locked" : ""}`} key={id}>
               <span className="ly-ic" aria-hidden="true"><Icon name={ICONS[id]} /></span>
@@ -176,8 +182,14 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
                 {/* Что понадобится от браузера — заранее, а не отказом посреди
                     партии. Только у доступных: у недоступных под тумблером
                     уже стоит причина. */}
-                {available && (id === "voice" || id === "camera")
+                {available && (id === "voice" || id === "camera") && !check
                   ? <span className="ly-req">{t.layers.needs[id]}</span> : null}
+                {/* Ответ устройства — сразу после нажатия, рядом с тумблером:
+                    выдан, отказ, нет устройства, занято. Отказ оставляет
+                    тумблер выключенным и говорит, как выдать доступ потом. */}
+                {available && check && (id === "voice" || id === "camera") ? (
+                  <span className={`ly-check ${check}`} role="status">{t.layers.check[id][check]}</span>
+                ) : null}
               </div>
               <button
                 className={`ly-sw${on ? " on" : ""}`}

@@ -25,6 +25,7 @@ import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
 import { detectLayers, pruneLayers, sessionLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
 import { fetchServerHealth } from "./api/health";
+import { checkDevice, requestLayers, type DeviceChecks, type DeviceLayer } from "./lib/deviceCheck";
 import { faceRenderer } from "./lib/faceSource";
 import { meetingMode, syntheticFace } from "./lib/meeting";
 import { Karl } from "./components/Mascot";
@@ -786,6 +787,30 @@ export default function App() {
     if (!run) return;
     nego.start(run.scenarioId, run.mode, undefined, run.options?.reputation, useNow, run.options?.daily);
   }, [layerStates, screen, currentScenario, nego, mode, drill, activeLayers, activeDaily]);
+  const applyLayersRef = useRef(applyLayers);
+  applyLayersRef.current = applyLayers;
+
+  /**
+   * Нажатие тумблера слоя — из профиля или из шторки за столом.
+   *
+   * Голос и камера проверяются СРАЗУ (lib/deviceCheck.ts): устройство
+   * спрашивается в момент нажатия, поток тут же закрывается, а ответ — выдан,
+   * отказ, нет устройства, занято — пишется под тумблером. Не выданное
+   * устройство слой не включает. Выключение и слои без устройств проходят
+   * мгновенно. Применяется через ref: пока человек отвечает браузеру, экран мог
+   * смениться, и замыкание на старый applyLayers применило бы выбор не туда.
+   */
+  const [deviceChecks, setDeviceChecks] = useState<DeviceChecks>({});
+  const chooseLayers = useCallback((current: Layers, next: Layers) => {
+    setDeviceChecks((c) => {
+      const out = { ...c };
+      for (const l of ["voice", "camera"] as DeviceLayer[]) if (!next[l]) delete out[l];
+      return out;
+    });
+    void requestLayers(current, next, layerStates, (l) => checkDevice(l),
+      (l, r) => setDeviceChecks((c) => ({ ...c, [l]: r })))
+      .then(({ layers }) => applyLayersRef.current(layers));
+  }, [layerStates]);
 
   const startCustom = useCallback(() => {
     if (!situation.trim()) return;
@@ -1385,8 +1410,9 @@ export default function App() {
                   lang={lang}
                   layers={layerPrefs}
                   states={layerStates}
-                  onToggle={(id) => applyLayers({ ...layerPrefs, [id]: !layerPrefs[id] })}
-                  onPreset={applyLayers}
+                  onToggle={(id) => chooseLayers(layerPrefs, { ...layerPrefs, [id]: !layerPrefs[id] })}
+                  onPreset={(next) => chooseLayers(layerPrefs, next)}
+                  checks={deviceChecks}
                 />
               </div>
             </div>
@@ -1449,8 +1475,9 @@ export default function App() {
               lang={lang}
               layers={screen === "game" ? activeLayers : layerPrefs}
               states={layerStates}
-              onToggle={(id) => applyLayers({ ...activeLayers, [id]: !activeLayers[id] })}
-              onPreset={applyLayers}
+              onToggle={(id) => chooseLayers(activeLayers, { ...activeLayers, [id]: !activeLayers[id] })}
+              onPreset={(next) => chooseLayers(screen === "game" ? activeLayers : layerPrefs, next)}
+              checks={deviceChecks}
               lockNote={layersLock}
               // Настоящие отказы идущей партии. Без них шторка отвечала
               // «Голосом ✓» над микрофоном, которого не дали (принцип 2), —

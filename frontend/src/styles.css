@@ -2301,6 +2301,12 @@ textarea:focus-visible,
   border: 1px solid color-mix(in srgb, var(--info) 30%, var(--line));
 }
 .ly-txt .ly-req { font-size: 11.5px; color: var(--ink-faint); }
+/* Ответ устройства под тумблером: выдан — зелёным, отказ — красным с тем, как
+   выдать доступ, «спрашиваем» — нейтрально. */
+.ly-txt .ly-check { font-size: 12px; line-height: 1.45; font-weight: 700; color: var(--ink-dim); }
+.ly-txt .ly-check.granted { color: var(--trust-ink); }
+.ly-txt .ly-check.denied, .ly-txt .ly-check.missing,
+.ly-txt .ly-check.busy, .ly-txt .ly-check.failed { color: var(--tension-ink); }
 /* Строка «видео-лица нет» внутри карточки лица: та же раскладка, что у
    подвыбора камеры, но без тумблера — выключателя у того, чего нет, не бывает.
    Свой класс, а не `.ly-sub`: тот означает «подвыбор» и ищется по имени. */
