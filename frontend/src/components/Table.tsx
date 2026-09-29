@@ -7,7 +7,7 @@ import type { Deltas, Lang, Mode, ScenarioView, StateView } from "../types";
 import type { ConnStatus, TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
-import { isTutorialDone, markTutorialDone, shouldRunTutorial } from "../lib/progress";
+import { hasPlayed, isTutorialDone, loadProfile, markTutorialDone, shouldRunTutorial } from "../lib/progress";
 import { teachingPlaceholder, formatDeal } from "../lib/format";
 import { haptic, play } from "../lib/sound";
 import { WaitStatus } from "./WaitStatus";
@@ -167,6 +167,11 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
   // Первая партия человека: практика и флаг «вводную ещё не видел». Больше
   // ничего от неё не зависит — ни движок, ни оценка.
   const newcomer = useRef(shouldRunTutorial(mode, isTutorialDone()));
+  // Легенда графика цены раскрыта, пока человек не доиграл ни одной партии, —
+  // в ЛЮБОМ режиме: новичок, ушедший сразу в кампанию, тоже не знает, что
+  // значат метки. По профилю, а не по флагу вводной: вводная бывает только в
+  // тренировке. Снимается один раз на стол — посреди партии не схлопывается.
+  const [legendOpen] = useState(() => !hasPlayed(loadProfile()));
 
   // Turn 0 leaves a tall empty log. Exam withholds all coaching, so it keeps the
   // bare table; everywhere else the void carries the scene and three real first
@@ -487,7 +492,7 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
             </div>
 
             <div ref={dealRef} className="onb-anchor">
-              <DealTracker scenario={scenario} state={st} t={t} lang={lang} />
+              <DealTracker scenario={scenario} state={st} t={t} lang={lang} legendOpen={legendOpen} coaching={!exam} />
             </div>
 
             {/* ТЕМЫ СТОЯТ ВЫШЕ BATNA — потому что иначе их не видно. Рельс это
@@ -537,8 +542,11 @@ export function Table({ t, lang, mode, kind, scenario, state, log, busy, disconn
                 рельса: сила уйти читается вместе с ценой, против которой она
                 стоит, — темы между ними стоят ровно потому, что ниже их не
                 видно (см. выше). */}
+            {/* Аббревиатура расшифрована прямо здесь, где человек встречает её
+                впервые: имя говорит, что это, строка под ним — зачем. */}
             <div className="batna">
               <b><Icon name="shield" /> {t.batna}</b>
+              <span className="batna-hint">{t.batnaHint}</span>
               <span>{scenario.batna}</span>
             </div>
 

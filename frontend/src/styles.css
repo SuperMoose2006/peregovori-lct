@@ -280,6 +280,7 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 
 /* ---------- Custom deal (Своя сделка) ---------- */
 .custom { display: flex; flex-direction: column; gap: 12px; max-width: 720px; }
+.cust-vs { max-width: 720px; margin: -6px 0 14px; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
 .cust-ta {
   width: 100%; resize: vertical; min-height: 132px;
   background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r);
@@ -467,55 +468,112 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .opp .face { transition: transform 0.2s ease; animation: faceswap 0.35s ease; }
 @keyframes faceswap { from { transform: scale(0.82); opacity: 0.4; } to { transform: scale(1); opacity: 1; } }
 
-/* ---------- Deal tracker (price scale + sparkline) ---------- */
-.dealtracker { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 15px 13px; display: flex; flex-direction: column; gap: 11px; }
+/* ---------- Deal tracker (price scale + legend + price trail) ----------
+   ОДНА ВЕЩЬ — ОДИН ЦВЕТ И ОДНА ФОРМА. Раньше зелёным были цель, свой коридор
+   и метка «старт» (последняя — по ошибке: класс `opening` совпадал с карточкой
+   «Стол накрыт» и рисовал её карточкой с зелёной кромкой). Новичок читал три
+   разные вещи как одну. Теперь:
+     ваша цель            — зелёная черта            (--dt-target)
+     ваша красная линия   — красная черта            (--dt-redline)
+     ваш коридор          — серая штриховка          (--dt-zone)
+     их цена сейчас       — синяя точка              (--dt-theirs)
+     их стартовая цена    — синее кольцо, та же сторона стола, другая форма
+     ваше предложение     — тёмный ромб              (--dt-yours)
+   Цвета заданы ЗДЕСЬ один раз и читаются и шкалой, и легендой (.sw-*), поэтому
+   легенда не может разойтись со шкалой. Тест держит, что ни один из них не
+   совпадает с другим и что зелёный достаётся только цели. */
+.dealtracker {
+  --dt-target: var(--brass);
+  --dt-redline: var(--tension);
+  --dt-theirs: var(--info);
+  --dt-yours: var(--ink);
+  --dt-zone: var(--ink-faint);
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 15px 13px; display: flex; flex-direction: column; gap: 10px;
+}
+.dt-title b { font-size: 10.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-faint); }
 .dt-head { display: flex; justify-content: space-between; align-items: flex-start; }
 .dt-head .ob { text-align: left; }
 .dt-head .ob:last-child { text-align: right; }
+.dt-head .ob .l { display: inline-flex; align-items: center; gap: 6px; }
 
-/* Marker labels are absolutely positioned at their own x on a single row, so
-   two marks landing near each other overlapped into unreadable mush — seen live
-   when the player's offer settled next to "старт". The fixed marks keep the top
-   row; the only label that MOVES ("ваша цена") gets a row to itself below, where
-   nothing can drift into it. Hence 62px rather than 48px. */
-.dt-scale { position: relative; height: 62px; margin: 0 3px; }
-.dt-axis { position: absolute; left: 0; right: 0; top: 21px; height: 4px; border-radius: 3px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--brass) 40%, var(--line-2)), var(--line-2)); }
-.dt-good { position: absolute; top: 17px; height: 12px; border-radius: 4px;
-  background: color-mix(in srgb, var(--trust) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--trust) 32%, transparent); }
-.dt-mark { position: absolute; top: 0; height: 62px; transform: translateX(-50%); pointer-events: none; }
+/* Что значит их цена для ВАС — строкой, а не догадкой по шкале. «Старт» и «их
+   цена» за красной линией выглядели ошибкой графика; это обычное начало торга,
+   и строка говорит, что с ним делать. */
+.dt-status { margin: 0; padding: 7px 10px; border-radius: 8px; font-size: 12px; line-height: 1.4; color: var(--ink);
+  border-left: 3px solid var(--line-2); background: var(--panel-2); }
+.dt-status.beyond { border-left-color: var(--tension); background: color-mix(in srgb, var(--tension) 9%, var(--panel)); }
+.dt-status.zone { border-left-color: var(--info); background: color-mix(in srgb, var(--info) 9%, var(--panel)); }
+.dt-status.target, .dt-status.settled { border-left-color: var(--brass); background: color-mix(in srgb, var(--brass) 9%, var(--panel)); }
+
+/* Шкала: подпись красной линии сверху, ось с метками посередине, края —
+   снизу. Подписей у движущихся меток нет: они налезали друг на друга и на
+   «старт», а имя и число у каждой есть в легенде прямо под шкалой. */
+.dt-scale { position: relative; height: 60px; margin: 0 4px; }
+.dt-axis { position: absolute; left: 0; right: 0; top: 26px; height: 4px; border-radius: 3px; background: var(--line-2); }
+.dt-zone { position: absolute; top: 21px; height: 14px; border-radius: 4px; }
+.dt-zone, .sw-zone {
+  background: repeating-linear-gradient(135deg,
+    color-mix(in srgb, var(--dt-zone) 38%, transparent) 0 2px, transparent 2px 6px);
+  border: 1px dashed color-mix(in srgb, var(--dt-zone) 70%, transparent);
+}
+.dt-mark { position: absolute; top: 0; height: 44px; transform: translateX(-50%); pointer-events: none; }
 .dt-mark.theirs, .dt-mark.yours { transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
-.dt-mark .tick { display: block; width: 2px; height: 20px; margin: 13px auto 0; border-radius: 2px; }
-.dt-mark .dot { display: block; width: 14px; height: 14px; border-radius: 50%; margin: 16px auto 0;
-  border: 2px solid var(--panel); position: relative; z-index: 2; }
-.dt-mark .lbl { position: absolute; top: 34px; left: 50%; transform: translateX(-50%);
-  font-size: 9px; letter-spacing: 0.3px; white-space: nowrap; color: var(--ink-faint); }
-.dt-mark.target .tick { background: var(--brass); box-shadow: 0 0 0 1px color-mix(in srgb, var(--brass) 25%, transparent); }
-.dt-mark.redline .tick { background: var(--tension); }
-.dt-mark.opening .tick { height: 14px; margin-top: 16px; background: var(--ink-faint); opacity: 0.55; }
-.dt-mark.opening .lbl { opacity: 0.7; }
-.dt-mark.theirs .lbl, .dt-mark.yours .lbl { top: 47px; }
-.dt-mark.theirs .dot { background: var(--info); box-shadow: 0 0 10px color-mix(in srgb, var(--info) 55%, transparent); }
-.dt-mark.yours .dot { width: 11px; height: 11px; margin-top: 17px; background: var(--brass-soft); }
+.dt-mark .tick { position: absolute; left: -1.5px; top: 17px; width: 3px; height: 22px; border-radius: 2px; }
+.dt-mark.target .tick { background: var(--dt-target); }
+.dt-mark.redline .tick { background: var(--dt-redline); }
+.dt-mark .lbl { position: absolute; top: 0; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.dt-mark .lbl.al-start { left: -2px; }
+.dt-mark .lbl.al-end { right: -2px; }
+.dt-mark.redline .lbl { color: var(--tension-ink); }
+.dt-mark .dot { position: absolute; z-index: 2; }
+.dt-mark.theirs .dot { top: 21px; left: -7px; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--dt-theirs); border: 2px solid var(--panel);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--dt-theirs) 55%, transparent); }
+.dt-mark.yours .dot { top: 22px; left: -6px; width: 12px; height: 12px; border-radius: 2px; transform: rotate(45deg);
+  background: var(--dt-yours); border: 2px solid var(--panel); z-index: 3; }
+.dt-mark.start .ring { position: absolute; z-index: 1; top: 22px; left: -6px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--panel); border: 2px solid var(--dt-theirs); }
 /* one-shot "settle" pop replayed via keyed remount when an offer moves */
-.dt-mark .settle { position: absolute; top: 16px; left: 50%; width: 14px; height: 14px; margin-left: -7px;
+.dt-mark .settle { position: absolute; top: 21px; left: -7px; width: 14px; height: 14px;
   border-radius: 50%; z-index: 1; pointer-events: none; animation: settle 0.6s ease-out; }
-.dt-mark.theirs .settle { box-shadow: 0 0 0 2px color-mix(in srgb, var(--info) 60%, transparent); }
-.dt-mark.yours .settle { top: 17px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--brass) 55%, transparent); }
+.dt-mark.theirs .settle { box-shadow: 0 0 0 2px color-mix(in srgb, var(--dt-theirs) 60%, transparent); }
+.dt-mark.yours .settle { box-shadow: 0 0 0 2px color-mix(in srgb, var(--dt-yours) 45%, transparent); }
 @keyframes settle { from { opacity: 0.9; transform: scale(0.7); } to { opacity: 0; transform: scale(2.1); } }
+.dt-end { position: absolute; bottom: 0; font-size: 10px; color: var(--ink-faint); white-space: nowrap; }
+.dt-end.good { left: 0; }
+.dt-end.bad { right: 0; }
 
-.dt-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 10px; color: var(--ink-dim); }
-.dt-legend .lg { display: inline-flex; align-items: center; gap: 5px; }
-.dt-legend .lg::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--line-2); }
-.dt-legend .lg.tg::before { background: var(--brass); }
-.dt-legend .lg.rl::before { background: var(--tension); }
-.dt-legend .lg.th::before { border-radius: 50%; background: var(--info); }
-.dt-legend .lg.yo::before { border-radius: 50%; background: var(--brass-soft); }
+/* Образцы легенды — те же цвета и те же формы, что у меток на шкале. */
+.sw { display: inline-block; flex: 0 0 auto; }
+.sw-target, .sw-redline { width: 3px; height: 13px; border-radius: 2px; }
+.sw-target { background: var(--dt-target); }
+.sw-redline { background: var(--dt-redline); }
+.sw-zone { width: 16px; height: 10px; border-radius: 3px; }
+.sw-theirs { width: 11px; height: 11px; border-radius: 50%; background: var(--dt-theirs); }
+.sw-start { width: 11px; height: 11px; border-radius: 50%; background: var(--panel); border: 2px solid var(--dt-theirs); }
+.sw-yours { width: 8px; height: 8px; border-radius: 1px; transform: rotate(45deg); background: var(--dt-yours); }
 
-.dt-spark { display: flex; flex-direction: column; gap: 3px; color: var(--info-ink); }
-.dt-spark-l { font-size: 9.5px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); }
-.dt-spark svg { display: block; overflow: visible; }
+/* Легенда под заголовком «что означают метки»: раскрыта в первой партии,
+   дальше свёрнута (DealTracker.tsx, `legendOpen`). */
+.dt-key summary {
+  cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 700; color: var(--info-ink); padding: 2px 0;
+}
+.dt-key summary::-webkit-details-marker { display: none; }
+.dt-key summary::before { content: "▸"; font-size: 10px; transition: transform 0.15s; }
+.dt-key[open] summary::before { transform: rotate(90deg); }
+.dt-key summary:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; border-radius: 4px; }
+.dt-key[open] summary { margin-bottom: 6px; }
+.dt-key .dt-hidden { margin-top: 6px; }
+.dt-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
+  font-size: 11px; line-height: 1.35; color: var(--ink-dim); }
+.dt-legend li { display: grid; grid-template-columns: 16px 1fr; column-gap: 6px; align-items: center; }
+.dt-legend li .sw { justify-self: center; }
+.dt-legend b { color: var(--ink); font-weight: 700; }
+.dt-hidden { margin: 0; font-size: 11px; line-height: 1.4; color: var(--ink-faint); }
+
+.dt-trail { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--ink-dim); }
+.dt-trail b { color: var(--ink); font-weight: 700; }
 
 /* one-shot glow on the meter that moved most this turn (keyed on turn) */
 .pulse-glow { position: absolute; inset: -2px; border-radius: 6px; pointer-events: none;
@@ -553,10 +611,12 @@ h1, h2, h3, .serif { font-family: var(--serif); }
 .dtm-row.traded .dtm-label { font-weight: 600; }
 .dtm-row.traded .dtm-state { color: var(--brass); font-weight: 700; }
 .dtm-explain { margin: 2px 0 0; font-size: 11px; line-height: 1.45; color: var(--ink-faint); }
+.dtm-lead { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-dim); }
 
 .brief { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--brass); border-radius: 10px; padding: 12px 13px; font-size: 12.5px; color: var(--ink-dim); }
 .batna { font-size: 12px; color: var(--ink-dim); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
 .batna b { color: var(--leverage-ink); display: block; margin-bottom: 3px; letter-spacing: 0.3px; }
+.batna .batna-hint { display: block; margin-bottom: 5px; font-size: 11.5px; color: var(--ink-faint); line-height: 1.4; }
 .quit { border: 1px solid var(--line-2); border-radius: 10px; padding: 9px; font-size: 13px; color: var(--ink-dim); transition: 0.15s; }
 .quit:hover { border-color: var(--brass); color: var(--ink); }
 
@@ -902,7 +962,7 @@ textarea:focus { outline: none; border-color: var(--brass); }
 
   /* The rail's explanatory chrome: 9-11.5px is unreadable past the third row. */
   .ob .l, .dt-legend, .dt-mark .lbl { font-size: 11.5px; }
-  .dtm-explain, .ir-chips li { font-size: 12.5px; }
+  .dtm-explain, .dtm-lead, .ir-chips li { font-size: 12.5px; }
   .tag, .arg, .deltas, .jc-chip { font-size: 12px; }
 
   .bub { font-size: 15.5px; }
@@ -1427,12 +1487,19 @@ textarea:focus { outline: none; border-color: var(--brass); }
 @keyframes onbtip { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes onbfade { from { opacity: 0; } to { opacity: 1; } }
 
+/* Стрелка смотрит НА ЦЕЛЬ, а не в середину подсказки: подсказку прижимает к
+   краю окна, и стрелка по центру показывала бы мимо. Где именно на кромке она
+   стоит, считает placeTip (Onboarding.tsx). */
 .onb-arrow {
-  position: absolute; width: 12px; height: 12px; left: 50%; margin-left: -6px; transform: rotate(45deg);
+  position: absolute; width: 12px; height: 12px; left: var(--onb-arrow-at, 50%); margin-left: -6px; transform: rotate(45deg);
   background: var(--panel); border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line));
 }
 .onb-tip.a-up .onb-arrow { top: -7px; border-right: none; border-bottom: none; }
 .onb-tip.a-down .onb-arrow { bottom: -7px; border-left: none; border-top: none; }
+.onb-tip.a-left .onb-arrow, .onb-tip.a-right .onb-arrow { top: var(--onb-arrow-at, 50%); margin: -6px 0 0; }
+.onb-tip.a-left .onb-arrow { left: -7px; border-top: none; border-right: none; }
+.onb-tip.a-right .onb-arrow { left: auto; right: -7px; border-bottom: none; border-left: none; }
+.onb-step { font-size: 11.5px; font-weight: 700; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 
 .onb-title { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
 .onb-body { font-size: 13.5px; line-height: 1.52; color: var(--ink-dim); }
@@ -2187,6 +2254,24 @@ textarea:focus-visible,
    запрет. Полноэкранным экраном перед партией панель быть перестала — она живёт
    шторкой за столом и разделом в профиле. */
 .lay-panel { display: flex; flex-direction: column; }
+.lay-intro { margin: 0 0 14px; display: flex; flex-direction: column; gap: 8px; }
+.lay-intro p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+.lay-intro .lay-where {
+  padding: 10px 12px; border-radius: 10px; color: var(--ink);
+  background: color-mix(in srgb, var(--info) 8%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--info) 30%, var(--line));
+}
+.ly-txt .ly-req { font-size: 11.5px; color: var(--ink-faint); }
+/* Строка «видео-лица нет» внутри карточки лица: та же раскладка, что у
+   подвыбора камеры, но без тумблера — выключателя у того, чего нет, не бывает.
+   Свой класс, а не `.ly-sub`: тот означает «подвыбор» и ищется по имени. */
+.ly-later {
+  grid-area: sub; display: grid; grid-template-columns: auto 1fr;
+  grid-template-areas: "ic txt" "note note"; gap: 7px 10px; align-items: start;
+  padding: 12px 0 0 14px; border-top: 1px solid var(--line); opacity: 0.72;
+}
+.ly-later .ly-ic { font-size: 18px; }
+.ly-later .ly-txt b { font-size: 13px; font-weight: 600; color: var(--ink-dim); }
 .lay-lock {
   margin: 0 0 14px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45;
   color: var(--tension-ink); border-radius: 10px;
@@ -2407,8 +2492,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   margin: 0 0 12px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
   font-weight: 800; color: var(--ink-faint);
 }
-/* Стол дня — кнопка во всю ширину карточки, а не ссылка: это единственное
-   действие в рейле, и промахнуться по нему на телефоне нельзя. */
+/* Плитка стола дня. Была кнопкой во всю ширину, пока карточка жила в рейле
+   одна со своим действием; в разделе «Другие форматы» действие у каждой
+   карточки — одна кнопка внизу, и плитка стала описанием (`--static`). */
 .rc-daily {
   display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 8px; margin: -2px 0 8px; text-align: left; cursor: pointer;
@@ -2416,6 +2502,8 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   color: inherit; font: inherit;
 }
 .rc-daily:hover { border-color: var(--brass); }
+.rc-daily--static { cursor: default; margin-bottom: 4px; }
+.rc-daily--static:hover { border-color: var(--line); }
 .rc-daily:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 .rc-daily-ic { font-size: 22px; line-height: 1; }
 .rc-daily-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -2467,13 +2555,39 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .rc-bar { display: block; height: 10px; border-radius: 999px; background: var(--panel-2); overflow: hidden; }
 .rc-bar i { display: block; height: 100%; border-radius: 999px; background: var(--brass); transition: width 0.5s ease; }
 .rc-next { margin: 9px 0 0; font-size: 11.5px; color: var(--ink-dim); }
-.rc-method { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
-.rc-method li { font-size: 12.5px; line-height: 1.45; color: var(--ink-dim); padding-left: 13px; position: relative; }
-.rc-method li::before {
-  content: ""; position: absolute; left: 0; top: 7px; width: 5px; height: 5px;
-  border-radius: 50%; background: var(--brass);
+/* Пояснение «что это и что с этим делать» под именем карточки. Мельче текста
+   карточки, но не сноска: это ответ на первый вопрос новичка. */
+.rc-hint { margin: -4px 0 10px; font-size: 12px; line-height: 1.45; color: var(--ink-dim); }
+.rc-hint-after { margin: 10px 0 0; }
+.rc-method { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rc-method li { font-size: 12.5px; line-height: 1.45; color: var(--ink-dim); }
+.rc-method summary {
+  cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 8px; border-radius: 8px; font-weight: 700; color: var(--ink);
 }
-.rc-method li b { color: var(--ink); }
+.rc-method summary::-webkit-details-marker { display: none; }
+.rc-method summary::before { content: "▸"; color: var(--brass); font-size: 11px; transition: transform 0.15s; }
+.rc-method details[open] summary::before { transform: rotate(90deg); }
+.rc-method summary:hover { background: var(--panel-2); }
+.rc-method summary:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
+.rc-method details p { margin: 4px 8px 6px 27px; }
+.rc-method .rc-method-ex { padding-left: 9px; border-left: 2px solid color-mix(in srgb, var(--brass) 45%, var(--line)); color: var(--ink-dim); font-style: italic; }
+.rc-go-quiet { background: transparent; }
+
+/* Группа рейла: подпись над карточками — что это за группа и что с ней делать. */
+.rail-group { display: flex; flex-direction: column; gap: 14px; }
+.rail-head { display: flex; flex-direction: column; gap: 3px; padding: 0 4px; }
+.rail-head b { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 800; color: var(--ink-faint); }
+.rail-head span { font-size: 12px; line-height: 1.4; color: var(--ink-dim); }
+
+/* Другие форматы тренировки — под каталогом, три карточки в ряд. Внутри те же
+   карточки рейла (.rc), поэтому оформление у них общее. */
+.formats { margin-top: 8px; }
+.formats .section-head { margin-bottom: 6px; }
+.formats-note { margin: 0 0 14px; font-size: 13px; color: var(--ink-dim); }
+.formats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; align-items: stretch; }
+.formats-grid .rc { display: flex; flex-direction: column; }
+.formats-grid .rc .rc-go { margin-top: auto; }
 
 
 /* The game screen already HAS an instrument rail — the canvas design puts it on
@@ -2487,6 +2601,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   :root .withrail { grid-template-columns: 1fr; }
   .rail { position: static; flex-direction: row; flex-wrap: wrap; }
   .rail .rc { flex: 1 1 240px; }
+  /* Группа прогресса — отдельной строкой: подпись над ней, карточки в ряд. */
+  .rail .rail-group { flex: 1 1 100%; flex-direction: row; flex-wrap: wrap; }
+  .rail .rail-head { flex: 1 1 100%; }
 }
 @media (max-width: 860px) {
   /* Столбиком: инструменты возвращаются над лентой. */
@@ -3630,7 +3747,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .rd-badge { padding: 5px 10px; border-radius: 999px; background: var(--panel-2);
   border: 1px solid var(--line-2); font-size: 11px; font-weight: 800;
   color: var(--ink-dim); }
-.rd-x { padding: 8px 14px; min-height: 44px; }
+/* Не сжимается: длинный заголовок режима («Разбор чужой партии») отнимал у
+   крестика ширину, и на 390px он становился 43px — меньше цели касания. */
+.rd-x { padding: 8px 14px; min-height: 44px; min-width: 44px; flex-shrink: 0; }
 .rd-watch { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-dim); }
 .rd-price { margin: 8px 0 0; font-family: var(--serif); font-size: 18px; font-weight: 800;
   font-variant-numeric: tabular-nums; }
@@ -3743,8 +3862,20 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .practice-intro h2 { margin: 14px 0 14px; font-size: clamp(27px, 3vw, 43px); line-height: 1.13; letter-spacing: -1.1px; font-weight: 900; text-wrap: balance; }
 .practice-intro h2 > span { color: var(--brass); }
 .practice-intro p { margin: 0; max-width: 61ch; font-size: 15px; line-height: 1.65; color: var(--ink-dim); }
-.practice-promise { display: inline-flex; gap: 7px; margin-top: 15px; font-size: 12px; color: var(--ink-dim); }
+.practice-promise { display: inline-flex; gap: 7px; font-size: 12px; color: var(--ink-dim); }
 .practice-promise > span { color: var(--brass); font-weight: 900; }
+.practice-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 15px; }
+/* Повтор вводной — тихая ссылка, не вторая главная кнопка: главная на экране
+   одна, «Сесть за стол». */
+.practice-tour {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; min-height: 32px;
+  font: inherit; font-size: 12.5px; font-weight: 700; color: var(--info-ink);
+  background: transparent; border: 1px solid color-mix(in srgb, var(--info) 35%, var(--line)); border-radius: 999px; cursor: pointer;
+}
+.practice-tour:hover { background: color-mix(in srgb, var(--info) 8%, var(--panel)); }
+.practice-tour:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+/* Палец, а не курсор: на телефоне цель не меньше 44px (WCAG 2.5.5, audit.mjs). */
+@media (max-width: 720px) { .practice-tour { min-height: 44px; padding: 8px 14px; } }
 .route > .section-head { font-size: 11px; font-weight: 800; letter-spacing: .08em; margin-bottom: 10px; }
 .route-card { padding: 22px; border: 1px solid color-mix(in srgb, var(--brass) 35%, var(--line)); border-radius: 22px; box-shadow: 0 3px 0 color-mix(in srgb, var(--brass) 18%, var(--line)); background: color-mix(in srgb, var(--brass) 5%, var(--panel)); gap: 16px; }
 .route-card .route-title { font-size: 20px; line-height: 1.3; }

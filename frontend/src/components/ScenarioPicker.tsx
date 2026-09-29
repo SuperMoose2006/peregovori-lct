@@ -19,7 +19,7 @@ import { Icon, DataIcon } from "./Icon";
 const BROWSE = {
   ru: {
     eyebrow: "Практика настоящих разговоров", title: "Договариваться — навык.", accent: "Тренируйте его здесь.",
-    subtitle: "Пробуйте разные подходы, замечайте реакцию собеседника и находите решение, которое устроит обоих.",
+    subtitle: "Вы ведёте переговоры с собеседником, которого играет ИИ: у него своя цена, граница и скрытые интересы. Договоритесь выгодно и не испортите отношения — после партии получите разбор и оценку.",
     search: "Найти ситуацию", placeholder: "Зарплата, аренда, сложный разговор…",
     all: "Все ситуации", career: "Карьера", business: "Бизнес", life: "Жизнь", topicLabel: "Сфера переговоров",
     level: "Сложность", levels: { all: "Любая сложность", starter: "Для разогрева · 1–3", challenge: "Бросить вызов · 4–5" },
@@ -29,7 +29,7 @@ const BROWSE = {
   },
   en: {
     eyebrow: "Practice for real conversations", title: "Negotiation is a skill.", accent: "Make it yours.",
-    subtitle: "Try a different approach, read your opponent’s response and find an agreement that works for both of you.",
+    subtitle: "You negotiate with a counterpart played by AI: they have their own price, a limit and hidden interests. Reach a good deal without damaging the relationship — after the game you get a breakdown and a grade.",
     search: "Find a situation", placeholder: "Salary, rent, a difficult conversation…",
     all: "All situations", career: "Career", business: "Business", life: "Everyday life", topicLabel: "Negotiation context",
     level: "Difficulty", levels: { all: "Any difficulty", starter: "Warm up · 1–3", challenge: "Challenge yourself · 4–5" },
@@ -80,6 +80,8 @@ interface Props {
   /** «Ваш следующий шаг»: что показать и куда это ведёт. null — карточки нет. */
   route?: NextStepPick | null;
   onRoute?: (pick: NextStepPick) => void;
+  /** Показать вводную ещё раз (HomeTour). Нет обработчика — нет и кнопки. */
+  onTour?: () => void;
 }
 
 /**
@@ -185,7 +187,7 @@ export function ScenarioPicker({
   campaign, campaignProgress, onBeginStage, profile,
   campaigns = [], campaignProgressOf, onPickCampaign,
   examName, onExamNameChange, onCourseBlock, onWarmup,
-  route = null, onRoute,
+  route = null, onRoute, onTour,
 }: Props) {
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState<CatalogTopic>("all");
@@ -202,7 +204,16 @@ export function ScenarioPicker({
           <span className="practice-eyebrow"><span aria-hidden="true">✦</span> {copy.eyebrow}</span>
           <h2>{copy.title}<br /><span>{copy.accent}</span></h2>
           <p>{copy.subtitle}</p>
-          <span className="practice-promise"><span aria-hidden="true">✓</span> {copy.practice}</span>
+          <div className="practice-foot">
+            <span className="practice-promise"><span aria-hidden="true">✓</span> {copy.practice}</span>
+            {/* Вводная показывается один раз; пропустивший или забывший её
+                возвращает её отсюда, а не чисткой хранилища браузера. */}
+            {onTour ? (
+              <button type="button" className="practice-tour" onClick={onTour}>
+                <Icon name="question" /> {t.tour.replay}
+              </button>
+            ) : null}
+          </div>
         </header>
       ) : null}
       {/* Маршрут стоит ПЕРВЫМ и только в тренировке: в кампании колонку занимает

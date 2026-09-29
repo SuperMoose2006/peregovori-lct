@@ -130,6 +130,16 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
 
   return (
     <div className="lay-panel">
+      {/* ЧТО ЭТО И ГДЕ РАБОТАЕТ — ДО ТУМБЛЕРОВ. Переключатели в профиле
+          выглядели мёртвыми: их включали, уходили в кампанию, а там слои
+          погашены всегда (sessionLayers), и нигде рядом об этом не было ни
+          слова. Замер на стенде: в «Тренировке» голос поднимается
+          (session.created → voice: true, «микрофон активен») — то есть
+          сломанным был не слой, а объяснение. */}
+      <div className="lay-intro">
+        <p>{t.layers.lead}</p>
+        <p className="lay-where"><Icon name="target" /> {t.layers.where}</p>
+      </div>
       {lockNote ? (
         <p className="lay-lock" role="status"><Icon name="lock" /> {lockNote}</p>
       ) : null}
@@ -146,8 +156,10 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
           const st = states[id];
           const failed = failOf(id);
           // Тумблер горит, только если слой И ВПРАВДУ работает. Отказ читается
-          // как «недоступно», а не как выбор игрока.
-          const on = layers[id] && !failed;
+          // как «недоступно», а не как выбор игрока. Недоступность — любая:
+          // браузерная, серверная или отказ устройства; сохранённый в профиле
+          // выбор при этом не стирается — он вернётся, когда слой встанет.
+          const on = layers[id] && st.available && !failed;
           // `aria-disabled`, а не родной `disabled`: выключенный элемент уходит
           // из порядка обхода, и человек с клавиатуры никогда не встретил бы
           // недоступные слои и не узнал почему. Причина связана через
@@ -161,6 +173,11 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
               <div className="ly-txt">
                 <b>{t.layers.names[id]}</b>
                 <span>{t.layers.blurbs[id]}</span>
+                {/* Что понадобится от браузера — заранее, а не отказом посреди
+                    партии. Только у доступных: у недоступных под тумблером
+                    уже стоит причина. */}
+                {available && (id === "voice" || id === "camera")
+                  ? <span className="ly-req">{t.layers.needs[id]}</span> : null}
               </div>
               <button
                 className={`ly-sw${on ? " on" : ""}`}
@@ -180,6 +197,22 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
                   ? `${id === "voice" ? t.live.offVoice : t.live.offCamera} · ${failed}`
                   : available ? t.layers.sameGrade : reasonText(st, lang)}
               </span>
+              {/* STUB(live-video): живого видео-лица у собеседника НЕТ — есть
+                  нарисованные выражения, и тумблер выше честно включает только
+                  их. Строка без переключателя и с пометкой «недоступно»:
+                  выключателя у того, чего нет, быть не может. Станет настоящим,
+                  когда адаптер живого видео (ветка feature/live-video-adapter)
+                  будет влит и получит ключ поставщика — тогда здесь встанет
+                  тумблер по `capabilities.avatar.lipsync_mode === "video"`. */}
+              {id === "avatar" ? (
+                <div className="ly-later">
+                  <span className="ly-ic" aria-hidden="true"><Icon name="camera" /></span>
+                  <div className="ly-txt">
+                    <b>{t.layers.avatarLater}</b>
+                  </div>
+                  <span className="ly-note na">{t.layers.unavailable}</span>
+                </div>
+              ) : null}
               {id === "camera" ? (
                 <PokerfaceRow
                   t={t}

@@ -16,10 +16,12 @@ import {
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { LayersPanel } from "./components/Setup";
-import { ProgressCards, MethodCard, RailCard, DailyCard, MemoryCard, StreakCard } from "./components/Rail";
+import { ProgressCards, MethodCard, RailCard, RailGroup, DailyCard, StreakCard } from "./components/Rail";
+import { HomeTour } from "./components/HomeTour";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
-import { detectLayers, pruneLayers, sessionLayers, NO_LAYERS, type LayerId, type Layers } from "./lib/layers";
+import { detectLayers, pruneLayers, sessionLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
+import { fetchServerHealth } from "./api/health";
 import { Karl } from "./components/Mascot";
 import { ReadingCard } from "./components/ReadingCard";
 import { OtherSideCard } from "./components/OtherSideCard";
@@ -35,7 +37,7 @@ import { isMirrorTable } from "./lib/mirrorIds";
 import { CampaignComplete } from "./components/CampaignScreen";
 import { applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDailyGoalTarget,
          activeCampaignId, chooseNextStep, emptyCampaign, getCampaignProgress,
-         recordCampaignStage, resetCampaign,
+         recordCampaignStage, resetCampaign, isWelcomeDone, markWelcomeDone, shouldRunWelcome,
          type GameResult, type Grade, type NextStepPick, type PastRun, type Profile } from "./lib/progress";
 // История партий — ВИТРИНА, а не механика: свой ключ в localStorage, профиль
 // оценки о ней не знает, в score_session отсюда не уходит ничего (инвариант 6).
@@ -154,7 +156,18 @@ export default function App() {
   // Optional modality layers. `detectLayers` is the single source of truth for
   // what this environment can actually deliver — a saved preset can never switch
   // on something that does not exist (see pruneLayers).
-  const layerStates = useMemo(() => detectLayers(), []);
+  //
+  // И СЕРВЕР ТОЖЕ. Браузер знает, есть ли микрофон, но не знает, поднимет ли
+  // сервер распознавание и зрение — а без этого тумблер в профиле включался и
+  // молча ничего не делал. Одна проба /api/health при загрузке; пока ответа
+  // нет, утверждать нечего, и остаётся браузерное (lib/layers.ts::withServer).
+  const [server, setServer] = useState<ServerHealth | "offline" | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void fetchServerHealth().then((h) => { if (alive) setServer(h); });
+    return () => { alive = false; };
+  }, []);
+  const layerStates = useMemo(() => withServer(detectLayers(), server), [server]);
   /** Чего хочет игрок (профиль, переживает перезагрузку) и что реально получила
    *  ИДУЩАЯ партия. Раньше это была одна переменная — и экзамен, гася слои,
    *  затирал ею выбор человека насовсем. */
@@ -205,6 +218,22 @@ export default function App() {
     setProfile(next);
   }, []);
   const [lastGame, setLastGame] = useState<GameResult | null>(null);
+  // Короткий обход главной при первом заходе. Решение принимается ОДИН раз, по
+  // флагу в localStorage и пустому профилю, — поэтому он переживает
+  // перезагрузку и не всплывает у того, кто уже играл. Повторить можно кнопкой
+  // «Как здесь всё устроено?» в шапке тренировки.
+  const [tourOn, setTourOn] = useState(() => shouldRunWelcome(isWelcomeDone(), profile));
+  const finishTour = useCallback(() => {
+    markWelcomeDone();
+    setTourOn(false);
+  }, []);
+  // Ушёл с главной посреди обхода — значит нашёл дорогу сам: вводная считается
+  // пройденной и при возврате не начинается с первого шага. Условием, а не
+  // очисткой эффекта: StrictMode в разработке прогоняет очистку сразу после
+  // монтирования, и обход гас бы, не успев показаться.
+  useEffect(() => {
+    if (tourOn && (screen !== "home" || mode !== "practice")) finishTour();
+  }, [tourOn, screen, mode, finishTour]);
   // Капстоун курса: настоящая партия, запущенная из урока или экзамена блока.
   // Она идёт по обычному пути (движок судит, слои выключены), а курс узнаёт
   // результат из состояния партии — никакой отдельной «учебной» механики.
@@ -990,22 +1019,42 @@ export default function App() {
               onExamNameChange={setExamName}
               onCourseBlock={(blockId) => openCourse({ blockId, lesson: null })}
               onWarmup={(blockId) => { setWarmupBlock(blockId); setScreen("warmup"); }}
+              onTour={() => setTourOn(true)}
             />
+            {/* ДРУГИЕ ФОРМАТЫ — В ОСНОВНОЙ КОЛОНКЕ, А НЕ В РЕЙЛЕ. Стол дня,
+                разбор чужой партии и игра за другую сторону стояли в рейле
+                вперемешку с целью дня и рангом, и новичок не мог понять, что
+                это: виджеты прогресса или отдельные занятия. Это занятия —
+                поэтому они здесь, под каталогом, одной группой с подписью и с
+                полным описанием у каждого. Только в тренировке: в кампании
+                колонку занимает арка, на экзамене отвлекать нечем.
+                Экраны чтения и зеркальных столов по-прежнему едут отдельными
+                файлами изнутри карточек (test/reading, test/otherSide). */}
+            {mode === "practice" ? (
+              <section className="formats" aria-labelledby="formats-head">
+                <div className="section-head" id="formats-head">{t.rail.formatsHead}</div>
+                <p className="formats-note">{t.rail.formatsNote}</p>
+                <div className="formats-grid">
+                  <DailyCard t={t} lang={lang} profile={profile} onPlay={startDaily} />
+                  <ReadingCard t={t} lang={lang} />
+                  <OtherSideCard t={t} lang={lang} onPlay={startOtherSide} />
+                </div>
+              </section>
+            ) : null}
             </div>
             <aside className="rail">
-                {/* Стол дня стоит ПЕРВЫМ в рейле: это единственная карточка,
-                    которая завтра будет другой, и ради неё сюда возвращаются. */}
-                <DailyCard t={t} lang={lang} onPlay={startDaily} />
-                {/* Сразу под столом дня: память полезнее всего там, где человек
-                    выбирает, во что играть. */}
-                <MemoryCard t={t} lang={lang} profile={profile} />
-                <ProgressCards t={t} lang={lang} profile={profile} onSetGoal={setGoalTarget} />
-                {/* Серия — сразу под целью дня: обе про сегодняшний день, и
-                    только вторая говорит, засчитан ли он. */}
-                <StreakCard t={t} profile={profile} />
+                {/* Прогресс одной группой и с подписью, что он такое: цель,
+                    серия и ранг считаются по партиям и в оценку не входят. */}
+                <RailGroup head={t.rail.progressHead} note={t.rail.progressNote} className="rail-progress">
+                  <ProgressCards t={t} lang={lang} profile={profile} onSetGoal={setGoalTarget} />
+                  {/* Серия — сразу под целью дня: обе про сегодняшний день, и
+                      только вторая говорит, засчитан ли он. */}
+                  <StreakCard t={t} profile={profile} />
+                </RailGroup>
                 {/* Курс живёт в сайдбаре, но с домашнего экрана его надо ещё и
                     ВИДЕТЬ: строка меню не рассказывает, что внутри девять блоков. */}
                 <RailCard title={t.course.title}>
+                  <p className="rc-hint">{t.course.cardLead}</p>
                   <p className="rc-note">
                     {t.course.blocksDone.replace("{n}", String(coursePassed))
                       .replace("{total}", String(COURSE_BLOCKS.length))}
@@ -1020,19 +1069,12 @@ export default function App() {
                     {courseNext ? t.course.continue : t.nav.course} →
                   </button>
                 </RailCard>
-                {/* Чтение чужой партии по ходам: не режим партии, поэтому не в
-                    меню слева, а здесь — рядом с курсом. Экран режима грузится
-                    отдельным файлом изнутри карточки. */}
-                <ReadingCard t={t} lang={lang} />
-                {/* Тот же стол со ВТОРОЙ стороны. Стоит рядом с чтением стола,
-                    потому что оба отвечают на вопрос «чем заняться сегодня»,
-                    и различаются ровно тем, что написано на карточках: чтение
-                    в грейд не входит, а это — партия, и грейд ей ставит тот же
-                    движок. Записи зеркальных столов едут изнутри карточки. */}
-                <OtherSideCard t={t} lang={lang} onPlay={startOtherSide} />
-                <MethodCard t={t} />
+                <MethodCard t={t} onCourse={() => openCourse(courseNext)} />
             </aside>
             </div>
+            {/* Вводная рисуется ПОСЛЕ всего экрана: она ищет свои цели в уже
+                отрисованном дереве (HomeTour), и порядок здесь это и гарантирует. */}
+            {tourOn && mode === "practice" ? <HomeTour t={t} onDone={finishTour} /> : null}
           </div>
         </section>
       )}

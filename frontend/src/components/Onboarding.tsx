@@ -9,7 +9,8 @@
 // который движок только что изменил.
 //
 // Слой владеет только показом и замером. КАКОЙ шаг показывать и КОГДА решает
-// Table, и решает по событиям движка. Состояния игры здесь не трогают, поэтому
+// хозяин: за столом — Table, по событиям движка; на главной — HomeTour, короткий
+// обход при первом заходе. Состояния игры здесь не трогают, поэтому
 // детерминированный движок остаётся единственным источником правды.
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -24,22 +25,91 @@ export interface CoachStep {
   onPrimary: () => void;
   skipLabel: string;
   onSkip: () => void;
+  /** «Шаг 2 из 4» — у серии подсказок. У одиночной подсветки на столе его нет. */
+  progress?: string;
 }
 
 const reduceMotion = () =>
   typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-interface Rect { top: number; left: number; width: number; height: number; }
+export interface Rect { top: number; left: number; width: number; height: number; }
+
+export type TipSide = "up" | "down" | "left" | "right";
+export interface TipPlace {
+  top: number;
+  left: number;
+  /** С какой стороны подсказки торчит стрелка: "up" — цель над подсказкой. */
+  arrow: TipSide;
+  /** Где на кромке подсказки стоит стрелка, в пикселях от её начала. */
+  arrowAt: number;
+}
+
+const GAP = 12;
+const EDGE = 12;
+
+/**
+ * Куда поставить подсказку рядом с подсвеченным элементом.
+ *
+ * ПОЧЕМУ ЧЕТЫРЕ СТОРОНЫ, А НЕ ДВЕ. Раньше подсказка вставала только под целью
+ * или над ней — и для первой же высокой цели (меню разделов во всю высоту
+ * окна) обе стороны оказывались за краем экрана: подсказка рисовалась ниже
+ * нижней кромки, человек видел ободок и не видел ни слова. Теперь, если сверху
+ * и снизу места нет, она встаёт сбоку, а если нет и сбоку — прижимается к низу
+ * окна поверх цели: текст на экране важнее того, что под ним.
+ *
+ * Чистая функция: проверяется тестом на размерах, а не глазами.
+ */
+export function placeTip(hole: Rect, vw: number, vh: number, tipW: number, tipH: number): TipPlace {
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(v, Math.max(lo, hi)));
+  const cx = hole.left + hole.width / 2;
+  const cy = hole.top + hole.height / 2;
+  const horiz = () => clamp(cx - tipW / 2, EDGE, vw - tipW - EDGE);
+  const vert = () => clamp(cy - tipH / 2, EDGE, vh - tipH - EDGE);
+  const arrowX = (left: number) => clamp(cx - left, 18, tipW - 18);
+  const arrowY = (top: number) => clamp(cy - top, 18, tipH - 18);
+
+  const below = hole.top + hole.height + GAP;
+  if (below + tipH <= vh - EDGE) {
+    const left = horiz();
+    return { top: below, left, arrow: "up", arrowAt: arrowX(left) };
+  }
+  const above = hole.top - GAP - tipH;
+  if (above >= EDGE) {
+    const left = horiz();
+    return { top: above, left, arrow: "down", arrowAt: arrowX(left) };
+  }
+  const right = hole.left + hole.width + GAP;
+  if (right + tipW <= vw - EDGE) {
+    const top = vert();
+    return { top, left: right, arrow: "left", arrowAt: arrowY(top) };
+  }
+  const leftSide = hole.left - GAP - tipW;
+  if (leftSide >= EDGE) {
+    const top = vert();
+    return { top, left: leftSide, arrow: "right", arrowAt: arrowY(top) };
+  }
+  // Места нет нигде (телефон, цель на весь экран): низ окна, стрелка вверх.
+  const left = horiz();
+  const top = Math.max(EDGE, vh - tipH - EDGE);
+  return { top, left, arrow: "up", arrowAt: arrowX(left) };
+}
 
 export function Onboarding(props: CoachStep) {
-  const { stepKey, targetRef, title, body, primaryLabel, onPrimary, skipLabel, onSkip } = props;
+  const { stepKey, targetRef, title, body, primaryLabel, onPrimary, skipLabel, onSkip, progress } = props;
   const [rect, setRect] = useState<Rect | null>(null);
   const lastRect = useRef<Rect | null>(null);
   const tipRef = useRef<HTMLDivElement>(null);
+  // Настоящая высота подсказки. До первого замера — оценка: её хватает, чтобы
+  // решить сторону, а после замера длинный текст не уезжает за край окна.
+  const [tipH, setTipH] = useState(180);
+  useLayoutEffect(() => {
+    const h = tipRef.current?.offsetHeight;
+    if (h && Math.abs(h - tipH) > 1) setTipH(h);
+  });
 
   // Measure the spotlight target in viewport coords and keep it pinned as the
   // page settles: a phone re-lays-out under a coach-mark (e.g. the DealTracker
-  // grows a sparkline the moment the opponent's price first moves, nudging the
+  // grows a price-trail line the moment the opponent's price first moves, nudging the
   // element below it down). We track that via a ResizeObserver on the body, the
   // scroll/resize listeners, and a short settle loop after the (reduced-motion-
   // aware) scroll-into-view — so the hole never strands over a stale position.
@@ -91,19 +161,17 @@ export function Onboarding(props: CoachStep) {
   const PAD = 8;
   const hole = { top: rect.top - PAD, left: rect.left - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 };
 
-  // Tooltip placement: below the element if there's room, else above.
-  // Horizontally clamped to the viewport.
+  // Placement is a pure function (see placeTip): below, above, beside, or pinned
+  // to the bottom of the window — whichever keeps every word on screen.
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const TIP_W = Math.min(320, vw - 24);
-  const EST_H = 180; // enough headroom for the decision; exact height not needed
-  const below = hole.top + hole.height + 12;
-  const placeBelow = below + EST_H <= vh || hole.top < EST_H + 24;
-  const top = placeBelow ? below : Math.max(12, hole.top - 12 - EST_H);
-  const cx = hole.left + hole.width / 2;
-  const left = Math.max(12, Math.min(cx - TIP_W / 2, vw - TIP_W - 12));
-  const tipStyle: React.CSSProperties = { top, left, width: TIP_W };
-  const arrow: "up" | "down" = placeBelow ? "up" : "down";
+  const place = placeTip(hole, vw, vh, TIP_W, tipH);
+  const tipStyle = {
+    top: place.top, left: place.left, width: TIP_W,
+    "--onb-arrow-at": `${place.arrowAt}px`,
+  } as React.CSSProperties;
+  const arrow = place.arrow;
 
   // Portal to <body>: the game screen sets an (identity) transform for its
   // fade-in, which would otherwise become the containing block for our fixed
@@ -120,6 +188,7 @@ export function Onboarding(props: CoachStep) {
         <div className="onb-body">{body}</div>
 
         <div className="onb-foot">
+          {progress ? <span className="onb-step">{progress}</span> : null}
           <div className="onb-btns">
             <button className="onb-skip" onClick={onSkip}>{skipLabel}</button>
             <button className="onb-next" onClick={onPrimary}>{primaryLabel}</button>

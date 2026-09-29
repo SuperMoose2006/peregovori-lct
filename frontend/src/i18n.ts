@@ -29,7 +29,6 @@ export interface Strings {
   heroTitle: string; // may contain <em> for the accented word
   heroLead: string;
   heroCta: string; // mobile hero primary button → jump to the opponent picker
-  principles: string[]; // may contain <b>
   // "Why this teaches" — the proof-of-method scroll section under the hero.
   // Each panel grounds one principle in a concrete in-game micro-example; the
   // framing states the honesty guarantee (deterministic engine + scored debrief).
@@ -51,22 +50,45 @@ export interface Strings {
   metersShort: MeterLabels;
   // one-line explanations shown on meter hover/focus (accessible tooltips)
   meterInfo: MeterLabels;
-  // deal-tracker (price scale) labels
+  // deal-tracker (price scale) labels.
+  //
+  // КАЖДАЯ МЕТКА ШКАЛЫ НАЗВАНА ЧЬЯ ОНА. Раньше подписи были «цель», «красная
+  // линия», «старт», и новичок не мог понять, чьё это ограничение — своё или
+  // другой стороны. Теперь «ваша» и «их» стоят в каждом имени, а легенда под
+  // шкалой перечисляет ВСЁ, что на ней нарисовано.
   tracker: {
-    target: string;
-    redline: string;
-    theirOffer: string;
+    title: string;       // заголовок карточки
+    key: string;         // заголовок легенды: «что означают метки»
+    target: string;      // ваша цель
+    redline: string;     // ваша красная линия
+    redlineHint: string; // что она значит — в легенде рядом с именем
+    zone: string;        // ваш коридор: от цели до красной линии
+    theirOffer: string;  // их цена сейчас
     // headline label once the deal closes — the settled price, not their offer
     settled: string;
-    yourOffer: string;
-    opening: string;
-    history: string;
+    yourOffer: string;   // ваше последнее предложение
+    opening: string;     // их стартовая цена
+    better: string;      // край шкалы, выгодный вам
+    worse: string;       // край шкалы, выгодный им
+    hiddenFloor: string; // чего на шкале нет и почему — граница второй стороны
+    // Где их цена относительно ВАШИХ границ. Считает `priceStanding` — чистая
+    // функция от целей игрока и цены на столе; скрытый floor не участвует.
+    status: { beyond: string; zone: string; target: string; settled: string };
+    // Путь их цены по ходам — СТРОКОЙ, а не графиком. Прежняя линия без подписи
+    // «всё время снижалась», и что она значит, было не понять; строка с двумя
+    // числами и направлением однозначна.
+    history: string;      // «Их цена по ходам»
+    historyMoved: string; // «{from} → {to}: они уступают»
+    historyAway: string;  // «{from} → {to}: ушла от вашей цели»
+    historyFlat: string;  // «{from}: пока ни шагу навстречу»
   };
   // deal-terms panel (visible logrolling / the "package") — game screen + debrief
   terms: {
-    title: string; // panel heading
-    explainer: string; // one-line "what is logrolling" note
-    onTable: string; // suffix on a traded chip ("— на столе")
+    title: string; // panel heading — what the rows ARE, not the jargon
+    lead: string; // what to do with the rows, in plain words
+    example: string; // a sample line built from THIS table's first issue — {issue}
+    howMarked: string; // when a row gets ticked
+    onTable: string; // state of an offered issue
     notYet: string; // muted state for an untraded issue
     debriefLabel: string; // "Размен" line label in the debrief
     debriefNone: string; // gentle nudge when tradeable issues went unused
@@ -100,7 +122,11 @@ export interface Strings {
   // calling it "typing…" would be false, and naming the judge turns the wait into
   // the moment the product's differentiator is visible.
   judgingLabel: string;
+  // BATNA РАСШИФРОВАНА ПРИ ПЕРВОМ ПОЯВЛЕНИИ. Голая аббревиатура на столе
+  // вызывала один вопрос — «что это?». Имя несёт человеческие слова, а
+  // `batnaHint` — зачем это знать.
   batna: string;
+  batnaHint: string;
   // mobile: label for the collapsible briefing/BATNA section in the game side strip
   moreLabel: string;
   // retention (localStorage profile): streak chip, card best-grade, debrief record
@@ -175,6 +201,9 @@ export interface Strings {
     /** Что именно соберёт генератор и сколько это займёт. Замер бейк-оффа для
      *  дефолтной модели роли `reasoning` — 2.3 с (docs/model-bakeoff.md). */
     promise: string;
+    /** Чем «Своя сделка» отличается от «Редактора». Два режима собирают
+     *  переговоры, и без этой строки их путали: здесь играете вы сами. */
+    vsEditor: string;
     examplesHead: string;
     /** Три готовых описания: заголовок на кнопке, текст — в поле. Конфликты
      *  разного типа (срыв обязательств · доля · цена), чтобы пример не читался
@@ -244,15 +273,38 @@ export interface Strings {
   // The debrief's three beats. It used to be one 2750px document; now it is
   // Итог → Что вы упустили → Что сказал бы мастер, one action each.
   beats: { label: string; names: string[]; next: string; more: string; less: string };
-  // Виджеты правого рейла оболочки.
-  daily: { title: string };
-  goal: { title: string };
-  rank: { title: string; toNext: string };  // toNext: "{n} XP до «{rank}»"
-  method: { title: string };
+  // Виджеты правого рейла оболочки. У каждого, кроме имени, — строка «что это и
+  // что с этим делать»: одно имя («Цель дня 0/1») не отвечало ни на один вопрос.
+  daily: { title: string; lead: string; best: string };   // best: {grade} {score}
+  goal: { title: string; count: string; hint: string };  // count: {done} {target}
+  rank: { title: string; toNext: string; hint: string };  // toNext: "{n} XP до «{rank}»"
+  method: { title: string; lead: string; more: string };
+  // Две группы рейла и раздел «другие форматы» на главной.
+  rail: { progressHead: string; progressNote: string; formatsHead: string; formatsNote: string };
+  // Короткий обход главного экрана при первом заходе (components/HomeTour.tsx).
+  // Шаги — по ключам, а не списком: ключ совпадает с целью подсветки, и
+  // разъехаться между языками они не могут.
+  tour: {
+    stepOf: string;   // «Шаг {n} из {total}»
+    next: string;
+    done: string;
+    skip: string;
+    replay: string;   // кнопка «показать вводную ещё раз»
+    steps: Record<"intro" | "start" | "nav" | "progress", { title: string; body: string }>;
+  };
   // The optional modality layers: the pre-game setup screen, the in-log question
   // and its verdict. Reaction names double as the question's answer options.
   layers: {
     head: string;
+    /** Что это вообще такое — первой строкой в профиле. */
+    lead: string;
+    /** ГДЕ слои работают. Без этой строки тумблер в профиле выглядел мёртвым:
+     *  его включали, шли в кампанию — а там слои погашены всегда. */
+    where: string;
+    /** Что понадобится от браузера — вместо безликого «оценка та же». */
+    needs: Record<"voice" | "camera", string>;
+    /** Чего у лица собеседника НЕТ — и что это появится позже. */
+    avatarLater: string;
     what: string;            // "[i] что это"
     sameGrade: string;       // caption on every toggle — the honesty guarantee
     unavailable: string;     // badge on a layer the environment cannot deliver
@@ -321,6 +373,7 @@ export interface Strings {
    */
   streak: {
     title: string;
+    hint: string;     // что именно считается днём серии
     kept: string;     // день уже засчитан — {n} {form}
     waiting: string;  // серия жива, сегодня партии не было — {n} {form}
     shielded: string; // пропуск покроет заморозка — {n} в запасе
@@ -435,6 +488,8 @@ export interface Strings {
   // чтобы разбор упражнения говорил ровно то же, что чип под репликой.
   course: {
     title: string; lead: string; blocksDone: string; blockOf: string; toTable: string;
+    /** Что внутри курса — строкой на карточке главной. */
+    cardLead: string;
     /* Состояние узла — только для диктора: значок помечен aria-hidden. */
     blockDone: string; blockOpen: string; blockLocked: string;
     allBlocks: string; tasksN: string; taskForms: [string, string, string]; theory: string;
@@ -777,7 +832,7 @@ export interface Strings {
 
 export const I18N: Record<Lang, Strings> = {
   ru: {
-    tagline: "переговорный додзё",
+    tagline: "тренажёр переговоров",
     interruptedRun: "Страница была закрыта во время партии. Эта партия не восстановлена и не засчитана как завершённая. Начните новую тренировку.",
     sound: { mute: "Выключить звук", unmute: "Включить звук" },
     eyebrow: "Гарвардский метод · SPIN · BATNA",
@@ -785,12 +840,6 @@ export const I18N: Record<Lang, Strings> = {
     heroCta: "Начать переговоры",
     heroLead:
       "Живой диалог с ИИ-оппонентом, у которого есть скрытые интересы, красная линия и характер. Исход зависит от вашей стратегии, формулировок и аргументов — каждая реплика разбирается в реальном времени.",
-    principles: [
-      "<b>Позиции ≠ интересы</b> — вскрывайте вопросами",
-      "<b>Объективные критерии</b> вместо давления",
-      "<b>BATNA</b> как рычаг",
-      "<b>Размен</b> создаёт ценность",
-    ],
     teach: {
       head: "Почему это учит",
       title: "Не тренинг по слайдам — стол, где решает метод.",
@@ -828,7 +877,7 @@ export const I18N: Record<Lang, Strings> = {
         "Здесь не победить общими словами: исход считает детерминированный движок, а каждую реплику разбирают по смыслу — по стратегии, формулировке и аргументу. В конце вы получаете честную, воспроизводимую оценку с грейдом и разбором ключевых ходов.",
       demoCap: "Вскрыли интерес — их цена поехала к вашей цели.",
     },
-    pickHead: "Выберите оппонента за столом",
+    pickHead: "Все ситуации для тренировки",
     modes: {
       practice: { title: "Практика", desc: "Один сценарий из библиотеки. Подсказки включены." },
       campaign: { title: "Кампания", desc: "Сюжетная карьерная арка, последствия переносятся." },
@@ -843,22 +892,40 @@ export const I18N: Record<Lang, Strings> = {
       trust: "Доверие: растёт от эмпатии и честной аргументации, падает от давления и угроз.",
       tension: "Напряжение: растёт от давления, угроз и грубости; спадает, когда вы признаёте интересы.",
       info: "Информация: растёт, когда вы вскрываете скрытые интересы вопросами (SPIN).",
-      leverage: "Рычаг: растёт от BATNA и объективных критериев, а не от эмоций.",
+      leverage: "Рычаг: растёт, когда вы опираетесь на объективные критерии и на свой запасной вариант (BATNA), а не на эмоции.",
     },
     tracker: {
-      target: "цель",
-      redline: "красная линия",
-      theirOffer: "их цена",
-      settled: "сделка",
-      yourOffer: "ваша цена",
-      opening: "старт",
-      history: "динамика их цены",
+      title: "Цена сделки",
+      key: "Что означают метки",
+      target: "Ваша цель",
+      redline: "Ваша красная линия",
+      redlineHint: "хуже этой цены не соглашайтесь",
+      zone: "Ваш коридор: от цели до красной линии",
+      theirOffer: "Их цена сейчас",
+      settled: "Сделка",
+      yourOffer: "Ваше последнее предложение",
+      opening: "Их стартовая цена",
+      better: "выгоднее вам",
+      worse: "выгоднее им",
+      hiddenFloor: "Границу другой стороны вам не показывают — её выясняют в разговоре.",
+      status: {
+        beyond: "Их цена хуже вашей красной линии ({red}). На таких условиях соглашаться не стоит — добивайтесь уступок.",
+        zone: "Их цена уже в вашем коридоре: такая сделка вам выгодна. Можно дожимать к цели ({target}).",
+        target: "Их цена не хуже вашей цели ({target}) — можно закрывать сделку.",
+        settled: "Сделка закрыта по цене {deal}.",
+      },
+      history: "Их цена по ходам",
+      historyMoved: "{from} → {to}: они уступают, цена идёт к вашей цели.",
+      historyAway: "{from} → {to}: цена ушла дальше от вашей цели.",
+      historyFlat: "{from}: пока ни шагу вам навстречу.",
     },
     terms: {
-      title: "Условия сделки",
-      explainer: "Уступая то, что дёшево для вас, но ценно для них, вы двигаете цену — это размен (логроллинг).",
-      onTable: "на столе",
-      notYet: "ещё не предложено",
+      title: "Что можно предложить взамен",
+      lead: "Кроме цены, другой стороне важны и другие условия. Ниже — то, что вы можете им дать. Предложите что-то одно в обмен на уступку по цене: так цена двигается без давления.",
+      example: "Например: «Если мы согласимся на {issue}, вы подвинетесь по цене?»",
+      howMarked: "Строка отметится, когда вы сами предложите это в разговоре.",
+      onTable: "предложено",
+      notYet: "ещё не предлагали",
       debriefLabel: "Размен",
       debriefNone: "Вы не использовали размен — это упущенная ценность.",
     },
@@ -883,7 +950,8 @@ export const I18N: Record<Lang, Strings> = {
     judgeReject: "распознал шаблон, не смысл",
     typingLabel: "печатает…",
     judgingLabel: "ИИ-судья разбирает вашу реплику…",
-    batna: "BATNA",
+    batna: "Ваш запасной вариант (BATNA)",
+    batnaHint: "Что вы сделаете, если не договоритесь. Чем он лучше, тем спокойнее можно торговаться.",
     moreLabel: "Брифинг",
     streakLabel: "{n} дн. подряд",
     notPlayed: "не пройдено",
@@ -933,6 +1001,8 @@ export const I18N: Record<Lang, Strings> = {
         "Опишите вашу переговорную ситуацию… Например: «Я фрилансер, клиент просит скидку 20% на проект, а я не готов опускаться ниже своей ставки. Нужно сохранить контракт и не обесценить работу.»",
       promise:
         "По описанию ИИ соберёт оппонента: характер и манеру речи, красную линию, за которую он не пойдёт, зону возможного согласия и три скрытых интереса — их придётся вскрывать вопросами. Обычно занимает 2-3 секунды.",
+      vsEditor:
+        "«Своя сделка» — для вас: опишите свою настоящую ситуацию, и за стол сядете вы сами. Если нужно подготовить переговоры для других — учеников или команды — по готовым настройкам, для этого есть «Редактор».",
       examplesHead: "Не с чего начать? Возьмите пример — он подставится в поле:",
       examples: [
         {
@@ -999,7 +1069,7 @@ export const I18N: Record<Lang, Strings> = {
     route: {
       head: "Ваш следующий шаг",
       firstTitle: "Начните с «{table}»",
-      firstWhy: "Сложность {diff} из 5 — самый простой стол в каталоге. Одна цена, разговорчивый оппонент: метод виден целиком, и ошибиться нестрашно.",
+      firstWhy: "Сложность {diff} из 5 — самые простые переговоры в каталоге: торг только о цене, собеседник охотно идёт на контакт. Ошибиться нестрашно — партию можно переиграть.",
       firstCta: "Сесть за стол →",
       courseTitle: "Блок курса: «{block}»",
       courseWhy: "Приём начат и не закрыт. Доучите — и он ваш; в игре он засчитывается так же, как в задании.",
@@ -1011,7 +1081,7 @@ export const I18N: Record<Lang, Strings> = {
       campaignTitle: "«{campaign}»: акт {n} из {total}",
       campaignWhy: "Впереди «{act}». Репутация прошлых актов едет с вами: оппонент уже наслышан.",
       campaignCta: "Продолжить кампанию →",
-      dailyTitle: "Стол дня: «{table}»",
+      dailyTitle: "Переговоры дня: «{table}»",
       dailyWhy: "Курс сдан, кампании пройдены, слабых столов не осталось. Держите форму: сегодня — {mod}.",
       dailyCta: "Играть →",
     },
@@ -1022,14 +1092,68 @@ export const I18N: Record<Lang, Strings> = {
       more: "Подробный разбор ▾",
       less: "Свернуть подробности ▴",
     },
-    daily: { title: "Стол дня" },
-    goal: { title: "Цель дня" },
-    rank: { title: "Ваш ранг", toNext: "{n} XP до «{rank}»" },
-    method: { title: "Метод" },
+    daily: {
+      title: "Переговоры дня",
+      lead: "Одна ситуация для всех, завтра будет новая. Условие на сегодня:",
+      best: "Ваш лучший результат здесь: {grade}, {score} из 100.",
+    },
+    goal: {
+      title: "Цель на сегодня",
+      count: "{done} из {target}",
+      hint: "Сколько переговоров провести сегодня. Засчитывается любая законченная партия. Цель можно поменять: 1, 2 или 3.",
+    },
+    rank: {
+      title: "Ваш ранг",
+      toNext: "{n} XP до «{rank}»",
+      hint: "Растёт от опыта (XP). За законченную партию — столько XP, сколько баллов из 100 вы набрали, плюс бонус за сделку и за новый рекорд; задания курса тоже дают XP. На оценку партий ранг не влияет.",
+    },
+    method: {
+      title: "Четыре главных приёма",
+      lead: "На них держится оценка техники — 35% итоговой оценки партии. Нажмите на приём, чтобы увидеть пример.",
+      more: "Разобрать в курсе",
+    },
+    rail: {
+      progressHead: "Ваш прогресс",
+      progressNote: "Считается по вашим партиям и хранится в этом браузере. На оценку партий не влияет.",
+      formatsHead: "Другие форматы тренировки",
+      formatsNote: "Когда освоитесь с обычными переговорами — попробуйте иначе.",
+    },
+    tour: {
+      stepOf: "Шаг {n} из {total}",
+      next: "Дальше",
+      done: "Всё понятно",
+      skip: "Пропустить",
+      replay: "Как здесь всё устроено?",
+      steps: {
+        intro: {
+          title: "Это тренажёр переговоров",
+          body: "Вы ведёте переговоры с собеседником, которого играет ИИ: у него своя цена, граница, за которую он не пойдёт, и скрытые интересы. Задача — договориться выгодно и не испортить отношения. После партии — разбор ошибок и оценка от A до F.",
+        },
+        start: {
+          title: "Начните отсюда",
+          body: "Мы подобрали первые переговоры — самые простые. Нажмите зелёную кнопку в этой карточке. Ошибиться не страшно: партию можно переиграть. За столом подсказывает ворон Карл — ваш тренер.",
+        },
+        nav: {
+          title: "Разделы",
+          body: "Тренировка — любая ситуация из каталога. Кампания — серия переговоров, где репутация переходит дальше. Курс — короткие уроки с заданиями. Своя сделка — ИИ соберёт переговоры по вашему описанию. Экзамен — без подсказок, на оценку.",
+        },
+        progress: {
+          title: "Ваш прогресс",
+          body: "Цель на сегодня, серия дней и ранг считаются по вашим партиям. На оценку конкретной партии они не влияют. Слон Тихон хранит ваши рекорды — вы встретите его в разборе после партии.",
+        },
+      },
+    },
     layers: {
       head: "Слои",
+      lead: "Слои — необязательные добавки к партии: голос вместо клавиатуры, камера, выражение лица собеседника, вопросы о его реакции. Ни один не влияет на оценку.",
+      where: "Работают только в разделе «Тренировка». В кампании, курсе, экзамене и своей сделке слои всегда выключены — так оценки остаются сравнимыми. Выбор отсюда достанется следующей тренировке.",
+      needs: {
+        voice: "нужен микрофон — браузер спросит разрешение, когда начнётся партия",
+        camera: "нужна камера — браузер спросит разрешение, когда начнётся партия",
+      },
+      avatarLater: "Живое видео-лицо собеседника появится позже. Сейчас это нарисованные выражения лица.",
       what: "что это",
-      sameGrade: "оценка та же",
+      sameGrade: "на оценку не влияет",
       lockedMode: "В этой партии слои выключены — её грейд обязан быть сравним с остальными",
       lockedStarted: "Стол уже идёт: слои выбираются до первого хода",
       close: "Закрыть слои",
@@ -1044,13 +1168,13 @@ export const I18N: Record<Lang, Strings> = {
       presets: "Пресеты",
       start: "Начать переговоры",
       back: "к выбору оппонента",
-      names: { probe: "Читай лицо", voice: "Голосом", camera: "Камера", avatar: "Лицо оппонента",
+      names: { probe: "Читай лицо", voice: "Голосом", camera: "Камера", avatar: "Лицо собеседника",
                pokerface: "Покерфейс" },
       blurbs: {
-        probe: "Игра спросит, что чувствует оппонент",
+        probe: "После хода игра спросит, что сейчас чувствует собеседник",
         voice: "Говорите вслух — и слышите ответ. Можно перебивать",
         camera: "Сигналы присутствия: кто в кадре, куда смотрите",
-        avatar: "Оппонент меняется в лице по реакции движка",
+        avatar: "Выражение лица меняется на каждый ваш ход, с голосом — ещё и в такт речи. Без слоя лицо показывает только общее настроение",
         pokerface: "Считает, сколько раз лицо выдало вас",
       },
       needsCamera: "включите камеру — считать нечего без её кадров",
@@ -1059,7 +1183,7 @@ export const I18N: Record<Lang, Strings> = {
       tellsOf: "раз лицо себя выдало — из {n} просмотренных кадров",
       explainHead: "Что это даёт",
       explain: [
-        "Слои меняют состав разбора после партии, но никогда не влияют на грейд.",
+        "Слои меняют состав разбора после партии, но никогда не влияют на оценку.",
         "Любой сценарий проходится с выключенными слоями.",
         "В экзамене слои выключены, чтобы сертификаты были сравнимы.",
       ],
@@ -1083,7 +1207,8 @@ export const I18N: Record<Lang, Strings> = {
       },
     },
     streak: {
-      title: "Серия",
+      title: "Серия дней",
+      hint: "Дни подряд, в которые вы закончили партию на C или выше.",
       kept: "{n} {form} подряд. Сегодняшний день уже засчитан.",
       waiting: "{n} {form} подряд. Сегодня вы ещё не играли — партия продлит серию.",
       shielded: "Пропуск покроет заморозка: их в запасе {n}.",
@@ -1139,17 +1264,17 @@ export const I18N: Record<Lang, Strings> = {
       observation: "наблюдение · не влияет на оценку",
     },
     otherSide: {
-      title: "Обратная сторона стола",
-      cardLead: "Тот же стол, только вы садитесь за вторую сторону: своя красная линия, свои скрытые интересы, своё давление. Быстрее всего понимаешь, что человек напротив не упрямится, когда упрямишься сам — и знаешь почему.",
-      cardCta: "Сесть напротив",
-      scored: "партия · грейд считает тот же движок",
+      title: "Сыграть за другую сторону",
+      cardLead: "Те же переговоры, но вы — на месте собеседника: у вас его цена, его красная линия и его скрытые интересы. Лучший способ понять, почему человек напротив упирается, — упереться самому и знать почему.",
+      cardCta: "Выбрать переговоры",
+      scored: "обычная партия · оценивается как всегда",
       sheetLead: "Три стола из библиотеки, которые можно сыграть с другой стороны. Оценка та же: та же формула, те же слои выключены, тот же потолок техники.",
       youBecome: "Вы играете за: {name}",
       origin: "Тот же стол с этой стороны: «{title}»",
       defendTitle: "Что вы защищаете",
       defendLead: "Три причины, по которым вы будете держать цену. Человек напротив их не видит — как не видели вы, когда сидели там.",
       play: "За стол →",
-      debriefTitle: "Обратная сторона стола",
+      debriefTitle: "Вы играли за другую сторону",
       seat: "За этим столом вы были — {seat}.",
       blindTitle: "Чего не видел человек напротив",
       windowsTitle: "Где вопрос вскрыл бы это",
@@ -1158,11 +1283,11 @@ export const I18N: Record<Lang, Strings> = {
       close: "Закрыть выбор стола",
     },
     reading: {
-      title: "Чтение стола",
-      cardLead: "Чужая партия по ходам. Вы не за столом — вы рядом: на каждом ходу говорите, как ответит вторая сторона, и сразу видите ответ движка.",
-      cardProgress: "Прочитано партий: {n} из {total}",
-      cardCta: "Читать партию",
-      notScored: "упражнение · в грейд не входит",
+      title: "Разбор чужой партии",
+      cardLead: "Вы не играете, а смотрите готовые переговоры ход за ходом. На каждом ходу угадайте, как ответит собеседник, — и сразу увидите, правы ли вы и почему. Тренирует чутьё на реакцию.",
+      cardProgress: "Разобрано партий: {n} из {total}",
+      cardCta: "Разобрать партию",
+      notScored: "упражнение · на оценку не влияет",
       gameOf: "Партия {n} из {total}",
       turnOf: "Ход {n} из {total}",
       turnsN: "ходов: {n}",
@@ -1194,13 +1319,14 @@ export const I18N: Record<Lang, Strings> = {
       close: "Закрыть",
       tikhonTitle: "Тихон помнит",
       best: "Прошлый раз вы прочитали эту партию точно {n} из {total}.",
-      a11y: { close: "Закрыть чтение стола", table: "Стол глазами наблюдателя" },
+      a11y: { close: "Закрыть разбор чужой партии", table: "Стол глазами наблюдателя" },
     },
     nav: { admin: "Редактор", training: "Тренировка", campaign: "Кампания", custom: "Своя сделка",
            course: "Курс", exam: "Экзамен", progress: "Прогресс", profile: "Профиль" },
     course: {
-      title: "Курс приёмов",
+      title: "Курс переговоров",
       lead: "{n} блоков: от первого вопроса до сложной сделки. Короткие уроки, задания и переговоры, в которых вы сразу применяете новый приём.",
+      cardLead: "Короткие уроки с заданиями: как задавать вопросы, опираться на факты и меняться уступками. Каждый приём потом работает в партии.",
       blocksDone: "Сдано блоков: {n} из {total}",
       blockOf: "блок {n} из {total}",
       blockDone: "пройден",
@@ -1358,7 +1484,7 @@ export const I18N: Record<Lang, Strings> = {
       interests: "Вскрытие интересов",
       empathy: "Активное слушание",
       criteria: "Объективный критерий",
-      batna: "BATNA / рычаг",
+      batna: "Запасной вариант (BATNA)",
       tradeoff: "Размен",
       threat: "Давление",
       hostile: "Грубость",
@@ -1594,12 +1720,6 @@ export const I18N: Record<Lang, Strings> = {
     heroCta: "Start negotiating",
     heroLead:
       "A live dialogue with an AI counterpart who has hidden interests, a red line and a personality. The outcome depends on your strategy, wording and arguments — every line is analyzed in real time.",
-    principles: [
-      "<b>Positions ≠ interests</b> — surface them with questions",
-      "<b>Objective criteria</b> over pressure",
-      "<b>BATNA</b> as leverage",
-      "<b>Trade-offs</b> create value",
-    ],
     teach: {
       head: "Why this teaches",
       title: "Not a slide deck — a table where method decides.",
@@ -1637,7 +1757,7 @@ export const I18N: Record<Lang, Strings> = {
         "You can't win here with nice words: a deterministic engine owns the outcome and every line is analyzed on its merits — strategy, wording, argument. At the end you get an honest, reproducible score with a grade and a breakdown of your key moves.",
       demoCap: "Uncover an interest — their price slides toward your target.",
     },
-    pickHead: "Choose your counterpart",
+    pickHead: "All practice situations",
     modes: {
       practice: { title: "Practice", desc: "A single scenario from the library. Hints on." },
       campaign: { title: "Campaign", desc: "A narrative career arc; consequences carry over." },
@@ -1652,21 +1772,39 @@ export const I18N: Record<Lang, Strings> = {
       trust: "Trust: rises with empathy and fair arguments, falls under pressure and threats.",
       tension: "Tension: rises with pressure, threats and rudeness; eases when you acknowledge interests.",
       info: "Information: grows as you surface the counterpart's hidden interests with questions (SPIN).",
-      leverage: "Leverage: grows from BATNA and objective criteria, not from emotion.",
+      leverage: "Leverage: grows when you lean on objective criteria and on your fallback (BATNA), not on emotion.",
     },
     tracker: {
-      target: "target",
-      redline: "red line",
-      theirOffer: "their offer",
-      settled: "settled at",
-      yourOffer: "your offer",
-      opening: "opening",
-      history: "their price over time",
+      title: "The price",
+      key: "What the marks mean",
+      target: "Your target",
+      redline: "Your red line",
+      redlineHint: "don't agree to anything worse",
+      zone: "Your range: from target to red line",
+      theirOffer: "Their price now",
+      settled: "Settled at",
+      yourOffer: "Your last offer",
+      opening: "Their opening price",
+      better: "better for you",
+      worse: "better for them",
+      hiddenFloor: "The other side's limit is hidden from you — you find it out by talking.",
+      status: {
+        beyond: "Their price is worse than your red line ({red}). Don't agree on these terms — push for concessions.",
+        zone: "Their price is inside your range: this deal already works for you. You can push on toward your target ({target}).",
+        target: "Their price is at or better than your target ({target}) — you can close the deal.",
+        settled: "Deal closed at {deal}.",
+      },
+      history: "Their price, turn by turn",
+      historyMoved: "{from} → {to}: they are giving ground toward your target.",
+      historyAway: "{from} → {to}: the price has moved away from your target.",
+      historyFlat: "{from}: not a step toward you yet.",
     },
     terms: {
-      title: "Deal terms",
-      explainer: "Concede what's cheap for you but valuable to them and the price moves — that's a trade-off (logrolling).",
-      onTable: "on the table",
+      title: "What you can offer in return",
+      lead: "Beyond the price, other terms matter to the other side too. Below is what you can give them. Offer one of these in exchange for movement on price: that moves the price without pressure.",
+      example: "For example: “If we agree to {issue}, can you move on the price?”",
+      howMarked: "A row is ticked once you offer it in the conversation yourself.",
+      onTable: "offered",
       notYet: "not offered yet",
       debriefLabel: "Trade-offs",
       debriefNone: "You didn't use trade-offs — that's value left on the table.",
@@ -1688,7 +1826,8 @@ export const I18N: Record<Lang, Strings> = {
     judgeReject: "recognized a pattern, not meaning",
     typingLabel: "typing…",
     judgingLabel: "the AI judge is reading your line…",
-    batna: "BATNA",
+    batna: "Your fallback plan (BATNA)",
+    batnaHint: "What you will do if there's no deal. The better it is, the calmer you can bargain.",
     moreLabel: "Briefing",
     streakLabel: "{n}-day streak",
     notPlayed: "not played",
@@ -1738,6 +1877,8 @@ export const I18N: Record<Lang, Strings> = {
         "Describe your negotiation situation… e.g. “I'm a freelancer, a client wants a 20% discount on the project, but I can't go below my rate. I need to keep the contract without devaluing my work.”",
       promise:
         "From your description the AI builds a counterpart: character and voice, the red line they will not cross, the bargaining zone, and three hidden interests you'll have to surface with questions. Usually takes 2-3 seconds.",
+      vsEditor:
+        "“Your deal” is for you: describe your own real situation and you take the seat yourself. To prepare a negotiation for someone else — learners or your team — from ready-made settings, use the “Editor”.",
       examplesHead: "Not sure where to start? Take an example — it fills the box:",
       examples: [
         {
@@ -1804,7 +1945,7 @@ export const I18N: Record<Lang, Strings> = {
     route: {
       head: "Your next step",
       firstTitle: "Start with “{table}”",
-      firstWhy: "Difficulty {diff} of 5 — the easiest table in the catalogue. One price, a talkative counterpart: the whole method is visible and a misstep costs nothing.",
+      firstWhy: "Difficulty {diff} of 5 — the easiest negotiation in the catalogue: you bargain over price only, and the counterpart is happy to talk. A misstep costs nothing — you can replay it.",
       firstCta: "Take the table →",
       courseTitle: "Course block: “{block}”",
       courseWhy: "A technique you started and never closed. Finish it — and it is yours; the game counts it exactly as the drill does.",
@@ -1816,7 +1957,7 @@ export const I18N: Record<Lang, Strings> = {
       campaignTitle: "“{campaign}”: act {n} of {total}",
       campaignWhy: "Next up: “{act}”. The reputation from earlier acts travels with you — they have heard about you.",
       campaignCta: "Continue the campaign →",
-      dailyTitle: "Table of the day: “{table}”",
+      dailyTitle: "Today's negotiation: “{table}”",
       dailyWhy: "The course is passed, the campaigns are done, no weak tables are left. Keep in form: today it is {mod}.",
       dailyCta: "Play →",
     },
@@ -1827,14 +1968,68 @@ export const I18N: Record<Lang, Strings> = {
       more: "Full breakdown ▾",
       less: "Hide details ▴",
     },
-    daily: { title: "Table of the day" },
-    goal: { title: "Daily goal" },
-    rank: { title: "Your rank", toNext: "{n} XP to \u00ab{rank}\u00bb" },
-    method: { title: "Method" },
+    daily: {
+      title: "Today's negotiation",
+      lead: "The same situation for everyone; tomorrow brings a new one. Today's twist:",
+      best: "Your best here: {grade}, {score} out of 100.",
+    },
+    goal: {
+      title: "Today's goal",
+      count: "{done} of {target}",
+      hint: "How many negotiations to finish today. Any finished game counts. You can change the goal: 1, 2 or 3.",
+    },
+    rank: {
+      title: "Your rank",
+      toNext: "{n} XP to \u00ab{rank}\u00bb",
+      hint: "Grows with experience (XP). A finished game earns as much XP as its score out of 100, plus a bonus for a deal and for a new record; course exercises earn XP too. Your rank never affects how games are scored.",
+    },
+    method: {
+      title: "The four core techniques",
+      lead: "Your technique score rests on these \u2014 35% of each game's final score. Tap a technique to see an example.",
+      more: "Study them in the course",
+    },
+    rail: {
+      progressHead: "Your progress",
+      progressNote: "Counted from your games and kept in this browser. Does not affect how games are scored.",
+      formatsHead: "Other ways to practise",
+      formatsNote: "Once plain negotiations feel familiar, try a different angle.",
+    },
+    tour: {
+      stepOf: "Step {n} of {total}",
+      next: "Next",
+      done: "Got it",
+      skip: "Skip",
+      replay: "How does this work?",
+      steps: {
+        intro: {
+          title: "This is a negotiation trainer",
+          body: "You negotiate with a counterpart played by AI: they have their own price, a limit they won't go past, and hidden interests. Your job is to reach a good deal without damaging the relationship. After each game you get a breakdown of your moves and a grade from A to F.",
+        },
+        start: {
+          title: "Start here",
+          body: "We picked your first negotiation \u2014 the easiest one. Press the green button on this card. Mistakes are fine: you can replay any game. At the table, Karl the raven is your coach.",
+        },
+        nav: {
+          title: "Sections",
+          body: "Training \u2014 any situation from the catalogue. Campaign \u2014 a series of negotiations where your reputation carries over. Course \u2014 short lessons with exercises. Your deal \u2014 AI builds a negotiation from your description. Exam \u2014 no hints, graded.",
+        },
+        progress: {
+          title: "Your progress",
+          body: "Today's goal, your day streak and your rank are counted from your games. They never change how a game is scored. Tikhon the elephant keeps your records \u2014 you'll meet him in the breakdown after a game.",
+        },
+      },
+    },
     layers: {
       head: "Layers",
+      lead: "Layers are optional extras for a game: voice instead of typing, a camera, the counterpart's facial expressions, questions about how they react. None of them affects your grade.",
+      where: "They work only in \u201cTraining\u201d. In the campaign, course, exam and \u201cYour deal\u201d layers are always off, so grades stay comparable. What you choose here applies to your next training game.",
+      needs: {
+        voice: "needs a microphone \u2014 the browser will ask for permission when the game starts",
+        camera: "needs a camera \u2014 the browser will ask for permission when the game starts",
+      },
+      avatarLater: "A live video face for the counterpart is coming later. For now these are drawn expressions.",
       what: "what is this",
-      sameGrade: "same grading",
+      sameGrade: "does not affect your grade",
       lockedMode: "This table runs with layers off — its grade has to stay comparable to the rest",
       lockedStarted: "The table is already running: layers are chosen before the first move",
       close: "Close layers",
@@ -1849,13 +2044,13 @@ export const I18N: Record<Lang, Strings> = {
       presets: "Presets",
       start: "Start the negotiation",
       back: "back to opponents",
-      names: { probe: "Read the face", voice: "By voice", camera: "Camera", avatar: "Their face",
+      names: { probe: "Read the face", voice: "By voice", camera: "Camera", avatar: "Counterpart's face",
                pokerface: "Poker face" },
       blurbs: {
-        probe: "The game will ask what your counterpart feels",
+        probe: "After a move the game asks what your counterpart feels right now",
         voice: "Speak aloud — and hear the reply. You can cut in",
         camera: "Presence signals: who is in frame, where you look",
-        avatar: "Their expression follows the engine's reaction",
+        avatar: "Their expression changes with each of your moves, and with voice it also moves as they speak. Without it the face shows only the overall mood",
         pokerface: "Counts how often your face gave you away",
       },
       needsCamera: "turn the camera on — there are no frames to count without it",
@@ -1888,7 +2083,8 @@ export const I18N: Record<Lang, Strings> = {
       },
     },
     streak: {
-      title: "Streak",
+      title: "Day streak",
+      hint: "Days in a row on which you finished a game with a C or better.",
       kept: "{n} {form} in a row. Today is already counted.",
       waiting: "{n} {form} in a row. You have not played today — one session keeps it alive.",
       shielded: "A freeze will cover the gap — {n} left in reserve.",
@@ -1939,17 +2135,17 @@ export const I18N: Record<Lang, Strings> = {
       observation: "observation · does not affect the grade",
     },
     otherSide: {
-      title: "The other side of the table",
-      cardLead: "The same table, but you take the other chair: your own red line, your own hidden interests, your own pressure. Nothing teaches you that the other side is not being stubborn like being stubborn yourself — and knowing why.",
-      cardCta: "Take the other chair",
-      scored: "a real round · graded by the same engine",
+      title: "Play the other side",
+      cardLead: "The same negotiations, but you sit in the counterpart's chair: their price, their red line and their hidden interests are yours. The best way to see why the other side digs in is to dig in yourself — and know why.",
+      cardCta: "Pick a negotiation",
+      scored: "a regular game · scored as usual",
       sheetLead: "Three tables from the library you can play from the other side. The grade is the same: same formula, same layers off, same technique ceiling.",
       youBecome: "You play as: {name}",
       origin: "The same table from this side: “{title}”",
       defendTitle: "What you are defending",
       defendLead: "Three reasons you will hold your price. The person across the table cannot see them — just as you could not, when you sat there.",
       play: "Take a seat →",
-      debriefTitle: "The other side of the table",
+      debriefTitle: "You played the other side",
       seat: "At this table you were {seat}.",
       blindTitle: "What the person across the table never saw",
       windowsTitle: "Where a question would have opened it",
@@ -1958,11 +2154,11 @@ export const I18N: Record<Lang, Strings> = {
       close: "Close the table picker",
     },
     reading: {
-      title: "Reading the table",
-      cardLead: "Someone else's round, turn by turn. You are not at the table — you sit beside it: call how the other side will answer, then see what the engine answered.",
-      cardProgress: "Rounds read: {n} of {total}",
-      cardCta: "Read a round",
-      notScored: "practice · not part of your grade",
+      title: "Study someone else's game",
+      cardLead: "You don't play — you watch a finished negotiation move by move. At each move, guess how the counterpart will answer, and see straight away whether you were right and why. Trains your feel for reactions.",
+      cardProgress: "Games studied: {n} of {total}",
+      cardCta: "Study a game",
+      notScored: "exercise · does not affect your grade",
       gameOf: "Round {n} of {total}",
       turnOf: "Turn {n} of {total}",
       turnsN: "turns: {n}",
@@ -1994,13 +2190,14 @@ export const I18N: Record<Lang, Strings> = {
       close: "Close",
       tikhonTitle: "Tikhon remembers",
       best: "Last time you read this round exactly {n} of {total}.",
-      a11y: { close: "Close the table reading", table: "The table as an observer sees it" },
+      a11y: { close: "Close the game study", table: "The table as an observer sees it" },
     },
     nav: { admin: "Editor", training: "Training", campaign: "Campaign", custom: "Your deal",
            course: "Course", exam: "Exam", progress: "Progress", profile: "Profile" },
     course: {
-      title: "Technique course",
+      title: "Negotiation course",
       lead: "{n} blocks: from your first question to a complex deal. Short lessons, exercises and negotiations where you put each new skill into practice.",
+      cardLead: "Short lessons with exercises: how to ask questions, lean on facts and trade concessions. Every technique then works in real games.",
       blocksDone: "Blocks passed: {n} of {total}",
       blockOf: "block {n} of {total}",
       blockDone: "completed",
@@ -2152,7 +2349,7 @@ export const I18N: Record<Lang, Strings> = {
       interests: "Probing interests",
       empathy: "Active listening",
       criteria: "Objective criteria",
-      batna: "BATNA / leverage",
+      batna: "Fallback plan (BATNA)",
       tradeoff: "Trade-off",
       threat: "Pressure",
       hostile: "Hostile tone",

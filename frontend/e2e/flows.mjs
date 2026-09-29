@@ -33,20 +33,19 @@ import {
 // списка печатается со снимком, но прогон не краснеет (кроме --strict).
 // Починили — прибор сам скажет «больше не воспроизводится», и строку надо убрать.
 const KNOWN_BUGS = {
-  "layers-offline-offered":
-    "Офлайн (сервер без облака, cloud_ai=false) «Голосом» и «Камера» в профиле и в шторке " +
-    "выглядят доступными: переключатель активен, подпись «оценка та же». Честная причина " +
-    "появляется только ПОСЛЕ включения, когда стол перезапустился и сервер ответил. " +
-    "Клиент не смотрит в /api/health (cloud_ai, voice) до партии, а detectLayers знает только браузер.",
+  // ПОЧИНЕНЫ И УБРАНЫ: «layers-offline-offered» (голос и камера офлайн
+  // выглядели доступными до партии) и «voice-offline-claims-live» (офлайн
+  // «Голосом» горел включённым). Клиент теперь спрашивает /api/health при
+  // загрузке и запирает слой с причиной ДО партии (lib/layers.ts::withServer).
+  // Серверный корень второго — ParakeetASR.available() = «адрес настроен», а
+  // не «служба ответила» — остался: он проявится, если облако есть, а служба
+  // распознавания лежит. Тогда запись вернётся сюда с этим сценарием.
   "layer-off-wrong-advice":
     "Камеру отказал СЕРВЕР (нет облачного зрения), а строка за столом всё равно советует " +
     "«Разрешите доступ в браузере и начните заново» — совет, который не может помочь: " +
-    "Table.tsx дописывает t.live.offHow к любой причине отказа, серверной тоже.",
-  "voice-offline-claims-live":
-    "Офлайн (NEGO_AI=off, служба parakeet не поднята) с разрешённым микрофоном «Голосом» " +
-    "остаётся ВКЛЮЧЁННЫМ с подписью «оценка та же»: session.created шлёт microphone:true, " +
-    "потому что ParakeetASR.available() = «адрес настроен», а не «служба ответила», — " +
-    "при том что /api/health говорит voice: unavailable (NEGO_AI=off). Четвёртое состояние.",
+    "Table.tsx дописывает t.live.offHow к любой причине отказа, серверной тоже. " +
+    "Этим прогоном больше не вызывается: офлайн-шлюз заранее назвал камеру недоступной, и её " +
+    "не запрашивают; дефект остаётся для отказа, случившегося уже посреди партии.",
 };
 
 
@@ -195,7 +194,7 @@ async function offlineLayersHonest(f, scope, t, where, { click }) {
                (flipped ? ", клик переключил" : ""));
     }
   }
-  await f.known("layers-offline-offered", bad.length === 0,
+  f.check(bad.length === 0,
     `${where}: офлайн «Голосом» и «Камера» — «недоступно» с причиной и не переключаются`, bad.join("; "));
 }
 
@@ -285,40 +284,39 @@ await suite.flow("layers-drawer", async (f) => {
   await offlineLayersHonest(f, dlg, t, "шторка", { click: false });
   await pokerfaceNested(f, dlg, t, "шторка");
 
-  // Человек всё-таки просит камеру: сервер без зрения обязан сказать это словами.
+  // Человек всё-таки жмёт на камеру. Сервер без зрения сказал о себе в
+  // /api/health, поэтому тумблер заперт ЗАРАНЕЕ и причина серверная — стол
+  // не перезапускается ради слоя, который не поднимется. Жмём силой: запертый
+  // тумблер Playwright честно считает неактивным.
   const camLabel = t.layers.names.camera;
   const inits = p.proto.inits.length;
-  await dlg.getByRole("switch", { name: camLabel, exact: true }).click();
-  let cam = null;
-  await until(async () => {
-    cam = await switchState(p.getByRole("dialog", { name: t.layers.head }), camLabel);
-    return cam && cam.disabled && cam.note && cam.note !== t.layers.sameGrade;
-  }, 8000, "камера назвала причину").catch(() => {});
+  await dlg.getByRole("switch", { name: camLabel, exact: true }).click({ force: true });
+  await p.waitForTimeout(600);
+  const cam = await switchState(p.getByRole("dialog", { name: t.layers.head }), camLabel);
   await f.visit("drawer-camera-asked");
   f.check(cam && !cam.checked && cam.disabled && cam.note && cam.note !== t.layers.sameGrade,
-    "запрошенная офлайн камера: выключена, заперта и названа причина", JSON.stringify(cam));
-  if (p.proto.inits.length > inits) {
-    f.check(cam?.note?.includes(SERVER_SIDE_REASON.camera.ru), "причина камеры — серверная (нет облачного зрения)",
-      `«${cam?.note}»`);
-  }
+    "офлайн камера: выключена, заперта и названа причина", JSON.stringify(cam));
+  f.check(cam?.note?.includes(SERVER_SIDE_REASON.camera.ru), "причина камеры — серверная (нет облачного зрения)",
+    `«${cam?.note}»`);
+  f.check(p.proto.inits.length === inits, "ради недоступной камеры стол не перезапускался",
+    `session.init: ${inits} → ${p.proto.inits.length}`);
   const poker = await switchState(dlg, t.layers.names.pokerface);
   f.check(poker && poker.disabled && !poker.checked, "без камеры «Покерфейс» так и заперт", JSON.stringify(poker));
 
   // И голос. Микрофон браузер отдаёт (поддельное устройство, как у человека,
-  // нажавшего «Разрешить») — значит честность здесь целиком на сервере.
+  // нажавшего «Разрешить») — значит честность здесь целиком на сервере, и
+  // сервер уже сказал в /api/health, что распознавания нет.
   const voiceLabel = t.layers.names.voice;
   const created = p.proto.caps.length;
-  await dlg.getByRole("switch", { name: voiceLabel, exact: true }).click();
-  await until(() => p.proto.caps.length > created, 8000, "стол перезапустился со слоем голоса").catch(() => {});
-  await p.waitForTimeout(1500);
+  await dlg.getByRole("switch", { name: voiceLabel, exact: true }).click({ force: true });
+  await p.waitForTimeout(800);
   const voice = await switchState(dlg, voiceLabel);
-  const capsV = p.proto.caps.at(-1) ?? {};
   await f.visit("drawer-voice-asked");
-  await f.known("voice-offline-claims-live",
-    voice && !voice.checked && voice.disabled && voice.note && voice.note !== t.layers.sameGrade,
-    "офлайн «Голосом» после включения честно недоступен",
-    `aria-checked=${voice?.checked}, подпись «${voice?.note}», session.created.microphone=${capsV.microphone}, ` +
-    `/api/health voice=«${suite.health.voice}»`);
+  f.check(voice && !voice.checked && voice.disabled && voice.note && voice.note !== t.layers.sameGrade,
+    "офлайн «Голосом» честно недоступен ещё до включения",
+    `aria-checked=${voice?.checked}, подпись «${voice?.note}», /api/health voice=«${suite.health.voice}»`);
+  f.check(voice?.note?.includes(SERVER_SIDE_REASON.voice.ru), "причина голоса — серверная", `«${voice?.note}»`);
+  f.check(p.proto.caps.length === created, "ради недоступного голоса стол не перезапускался");
 
   await p.keyboard.press("Escape");
   await dlg.waitFor({ state: "detached", timeout: 3000 }).catch(() => {});
@@ -326,10 +324,11 @@ await suite.flow("layers-drawer", async (f) => {
   f.check(await p.evaluate((n) => document.activeElement?.textContent?.trim() === n, t.layers.head),
     "фокус вернулся на кнопку «Слои»", await describeFocus(p));
 
-  // Строка отказа на столе: причина серверная — совет «разрешите в браузере» лишний.
+  // Строки отказа на столе нет: ничего не запрашивали — нечему было отказать.
+  // Отказ, случившийся посреди партии, по-прежнему пишется строкой (Table.tsx).
   const off = p.getByRole("main").getByRole("status").filter({ hasText: SERVER_SIDE_REASON.camera.ru });
   const offText = (await off.count()) ? (await off.first().innerText()).replace(/\s+/g, " ") : "";
-  f.check(!!offText, "стол называет отказ камеры строкой статуса", "строки со серверной причиной нет");
+  f.check(!offText, "стол не рапортует отказ слоя, который не запрашивали", `«${offText}»`);
   if (offText) {
     await f.known("layer-off-wrong-advice", !offText.includes(t.live.offHow),
       "отказ сервера не советует разрешить доступ в браузере", `«${offText}»`);

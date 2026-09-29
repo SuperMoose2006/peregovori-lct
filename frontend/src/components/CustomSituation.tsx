@@ -32,6 +32,9 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
   return (
     <>
       <div className="section-head">{t.custom.head}</div>
+      {/* Зеркало такой же строки в «Редакторе»: два режима собирают
+          переговоры, и различаются они тем, КТО садится за стол. */}
+      <p className="cust-vs">{t.custom.vsEditor}</p>
       <div className="custom">
         {error ? (
           <div className="cust-err" role="alert">
