@@ -5,6 +5,7 @@ import type { CampaignView, Debrief as DebriefData, Lang, Mode, ScreenMode, Stat
 import { I18N } from "./i18n";
 import { DEFAULT_SCENARIO_CONTEXT } from "./lib/scenarioContext";
 import { useNegotiation } from "./api/useNegotiation";
+import type { ChatScrollPosition } from "./components/Chat";
 import { getCampaigns } from "./api/campaigns";
 import { ScenarioPicker } from "./components/ScenarioPicker";
 import { ScreenHeading } from "./components/ScreenHeading";
@@ -173,6 +174,7 @@ export default function App() {
    *  затирал ею выбор человека насовсем. */
   const [layerPrefs, setLayerPrefs] = useState<Layers>(() => pruneLayers(loadLayerPrefs(), layerStates));
   const [activeLayers, setActiveLayers] = useState<Layers>(NO_LAYERS);
+  const chatScrollPosition = useRef<ChatScrollPosition | null>(null);
   /** Дата «стола дня» этой партии — чтобы перезапуск (смена слоёв, переподключение)
    *  не потерял условие дня. */
   const [activeDaily, setActiveDaily] = useState<string | undefined>(undefined);
@@ -318,6 +320,7 @@ export default function App() {
   const replayTour = useCallback(() => { if (tourSection) setTour(tourSection); }, [tourSection]);
 
   const leaveSession = useCallback(() => {
+    chatScrollPosition.current = null;
     nego.reset();
     activeRunRef.current = null;
     setDrill(null);
@@ -624,6 +627,7 @@ export default function App() {
   const launch = useCallback(
     (scenarioId: string, m: Mode, opts?: LaunchOptions) => {
       activeRunRef.current = { scenarioId, mode: m, options: opts };
+      chatScrollPosition.current = null;
       setCurrentScenario(scenarioId);
       setDrill(opts?.drill ?? null);
       setDrillVerdict(null);
@@ -1250,6 +1254,7 @@ export default function App() {
             scenario={scenario}
             state={nego.state}
             log={nego.log}
+            chatScrollPosition={chatScrollPosition}
             busy={nego.busy}
             disconnected={nego.conn !== "online"}
             phase={nego.phase}

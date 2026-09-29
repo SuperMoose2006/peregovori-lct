@@ -2,7 +2,7 @@
 // сказать «недоступно», а не притвориться. Этот файл держит вторую половину.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { NO_LAYERS, PRESETS, pruneLayers, sessionLayers, detectLayers, SERVER_SIDE_REASON, type Layers } from "../src/lib/layers";
+import { NO_LAYERS, PRESETS, pruneLayers, sessionLayers, detectLayers, withServer, reasonText, SERVER_SIDE_REASON, type Layers } from "../src/lib/layers";
 import { visionTape, visionClock, VISION_TAPE_ROWS } from "../src/components/Debrief";
 import type { VisionNote } from "../src/types";
 import { I18N } from "../src/i18n";
@@ -57,6 +57,32 @@ test("ни один пресет не включает покерфейс без
 test("классика — это действительно ничего", () => {
   const classic = PRESETS.find((p) => p.id === "classic")!;
   assert.ok(Object.values(classic.layers).every((v) => v === false));
+});
+
+test("состав всех пресетов соответствует обещанным режимам", () => {
+  const enabled = Object.fromEntries(PRESETS.map(p => [p.id,
+    Object.entries(p.layers).filter(([, on]) => on).map(([id]) => id).sort()]));
+  assert.deepEqual(enabled, {
+    classic: [],
+    read: ["avatar", "probe"],
+    call: ["avatar", "voice"],
+    poker: ["avatar", "camera", "pokerface"],
+    full: ["avatar", "camera", "pokerface", "probe", "voice"],
+  });
+});
+
+test("Полный контакт поднимает пять слоёв, без камеры гасит камеру и покерфейс с причиной", () => {
+  const full = PRESETS.find(p => p.id === "full")!.layers;
+  const ready = Object.fromEntries(Object.keys(ON).map(id =>
+    [id, { id, available: true, reason: null }])) as ReturnType<typeof detectLayers>;
+  assert.deepEqual(sessionLayers("practice", full, ready), ON);
+  for (const unavailable of [noMedia(), withServer(ready, { cloud_ai: false, voice: "classic: parakeet" })]) {
+    const actual = sessionLayers("practice", full, unavailable);
+    for (const id of ["camera", "pokerface"] as const) {
+      assert.equal(actual[id], false);
+      assert.ok(reasonText(unavailable[id], "ru"));
+    }
+  }
 });
 
 // Экран подготовки перед партией убран: «НАЧАТЬ →» ведёт прямо за стол. Правило
