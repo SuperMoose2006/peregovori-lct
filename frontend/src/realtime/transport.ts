@@ -270,9 +270,6 @@ export class RealtimeTransport implements Transport {
    */
   private honourServerCapabilities(capabilities: Record<string, unknown>): void {
     this.microphoneAllowed = capabilities.microphone !== false;
-    if (this.voiceWanted && typeof capabilities.asr === "string") {
-      this.emit({ type: "notice", text: (this.lang === "ru" ? "Распознавание: " : "Speech recognition: ") + capabilities.asr });
-    }
     if (this.cameraWanted && capabilities.camera === false) {
       this.cameraWanted = false;
       this.emit({ type: "layer_failed", layer: "camera",

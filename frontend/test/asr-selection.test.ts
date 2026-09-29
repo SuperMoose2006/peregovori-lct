@@ -19,12 +19,12 @@ test("TTS failure is visible but cannot release a still-streaming turn", () => {
   assert.equal(reduce(before, messages[1], () => 2).busy, false);
 });
 
-test("ASR identity is visible; unavailable input does not disable TTS or record audio", async () => {
+test("ASR configuration stays out of the chat; unavailable input does not disable TTS or record audio", async () => {
   const events: any[] = [];
   const transport: any = new RealtimeTransport(e => events.push(e), () => {});
   transport.voiceWanted = true;
   transport.honourServerCapabilities({microphone: false, asr: "parakeet; fallback: text"});
-  assert.ok(events.some(e => e.type === "notice" && e.text.includes("parakeet")));
+  assert.ok(!events.some(e => e.type === "notice"), "internal ASR configuration is not a chat message");
   assert.ok(events.some(e => e.type === "layer_failed" && e.layer === "voice"));
   assert.equal(transport.voiceWanted, true);
   const supported = MediaProvider.supported, start = MediaProvider.prototype.start;

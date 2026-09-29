@@ -423,6 +423,20 @@ h1, h2, h3, .serif { font-family: var(--serif); font-weight: 800; }
   .appbody.playing .offers { padding: 10px; }
   .appbody.playing .karl-row img { width: 74px; height: 74px; }
   .appbody.playing .side-foot { gap: 8px; }
+
+  /* Keep a readable transcript when media controls and the waiting notice
+     share the card. On unusually short windows the card itself can scroll,
+     so the minimum never clips the composer or removes any controls. */
+  .appbody.playing .chat { min-height: 0; overflow-y: auto; }
+  .appbody.playing .chat > .log { min-height: clamp(320px, 45dvh, 400px); }
+  .appbody.playing .chat > :not(.log) { flex-shrink: 0; }
+  .appbody.playing .chat > .hud { padding-top: 8px; padding-bottom: 8px; }
+  .appbody.playing .chat > .ch { padding-top: 8px; padding-bottom: 8px; }
+  .appbody.playing .compose { padding-top: 10px; padding-bottom: 10px; }
+  .appbody.playing .livebar { margin-top: 5px; padding-top: 5px; }
+  .appbody.playing .lb-tr { max-height: 4.65em; overflow-y: auto; }
+  .appbody.playing .wait-status { margin: 2px 0; padding: 6px 16px; }
+  .appbody.playing .wait-status p { margin: 2px 0; }
 }
 .table > * { min-height: 0; }
 /* РЕЛЬС = ПРОКРУЧИВАЕМОЕ ТЕЛО + НЕПОДВИЖНЫЙ НИЗ, И ЭТО ДВА РАЗНЫХ ЭЛЕМЕНТА.
