@@ -226,10 +226,12 @@ test("профиль говорит, где слои работают, и пом
   const later = html.slice(html.indexOf("ly-later"));
   assert.ok(later.includes(ru.layers.avatarVideo), "про живое видео-лицо ничего не сказано");
   // Не «появится позже»: адаптер живого видео едет на стенд, и строка не врёт
-  // ни когда сервер его поднял, ни когда нет.
+  // ни когда сервер его поднял, ни когда нет. Условие называется словами
+  // человека — «если доступно», а не «если сервер поднял» (аудит 16.10).
   for (const lang of ["ru", "en"] as const) {
     assert.doesNotMatch(I18N[lang].layers.avatarVideo, /появится позже|coming later/);
-    assert.match(I18N[lang].layers.avatarVideo, /сервер|server/);
+    assert.match(I18N[lang].layers.avatarVideo, /если .*доступно|if .*available/i);
+    assert.doesNotMatch(I18N[lang].layers.avatarVideo, /сервер|server/);
   }
   const laterBlock = later.slice(0, later.indexOf("</div></div>") + 12);
   assert.doesNotMatch(laterBlock, /role="switch"/, "у того, чего нет, не бывает тумблера");
