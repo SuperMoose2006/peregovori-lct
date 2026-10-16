@@ -46,7 +46,7 @@ from app.providers.openrouter import chat as orchat
 from app.providers.routing import describe as describe_models
 from app.providers.tts.base import Voice
 from app.providers.tts.choose import make_tts
-from app.realtime import limits
+from app.realtime import admission, limits
 from app.realtime.events import InputAppend, SessionInit, error, session_closed
 from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
                                   RealtimeSession, keep_for_resume,
@@ -269,6 +269,17 @@ class _Work:
 
 
 async def realtime_ws(websocket: WebSocket) -> None:
+    socket_lease = admission.acquire()
+    if socket_lease is None:
+        await websocket.close(code=WS_RATE_LIMITED)
+        return
+    try:
+        await _serve_socket(websocket)
+    finally:
+        socket_lease.release()
+
+
+async def _serve_socket(websocket: WebSocket) -> None:
     await websocket.accept()
     mode = websocket.query_params.get("mode", "text")
     if mode not in ("text", "voice"):
@@ -285,6 +296,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
     vision: Optional[VisionSampler] = None
     writer: Optional[asyncio.Task] = None
     work = _Work()
+    init_deadline = asyncio.get_running_loop().time() + admission.INIT_TIMEOUT_S
     peer = websocket.client.host if websocket.client else ""
     lease: Optional[limits.Lease] = None
     owner: Optional[_Owner] = None
@@ -319,7 +331,14 @@ async def realtime_ws(websocket: WebSocket) -> None:
     try:
         while True:
             try:
-                message = await websocket.receive_json()
+                # Absolute deadline: invalid frames must not keep an idle socket alive.
+                async with asyncio.timeout_at(init_deadline if session is None else None):
+                    message = await websocket.receive_json()
+            except TimeoutError:
+                with contextlib.suppress(Exception):
+                    await websocket.send_json(error("init_timeout", admission.init_timeout_message("ru")))
+                    await websocket.close(code=4408)
+                return
             except WebSocketDisconnect:
                 raise
             except Exception:
