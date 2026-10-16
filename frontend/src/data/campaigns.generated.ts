@@ -69,7 +69,7 @@ export const CAMPAIGN_DEFS: CampaignDef[] = [
       "en": "The Climb"
     },
     "tagline": {
-      "ru": "Пройдите путь от junior до фаундера — четыре переговорки, и репутация тянется за вами.",
+      "ru": "Пройдите путь от junior до фаундера — четыре партии, и репутация тянется за вами.",
       "en": "From junior to founder — four negotiations, and your reputation follows you."
     },
     "stages": [
