@@ -1034,6 +1034,9 @@ async def _pump(websocket: WebSocket, session: RealtimeSession) -> None:
             if event.get("type") == "debrief":
                 _attach_vision_tape(event, session)
             await websocket.send_json(event)
+            if event.get("error", {}).get("code") == "output_overflow":
+                await websocket.close(code=1013)
+                return
     except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
         return
     except Exception:

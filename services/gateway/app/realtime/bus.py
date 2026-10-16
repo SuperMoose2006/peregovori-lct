@@ -33,6 +33,8 @@ import contextlib
 import itertools
 from typing import AsyncIterator
 
+from app.realtime.events import error
+
 # Потолок очереди. Аудио идёт чанками по ~20–40 мс, так что тысяча событий —
 # это порядка полуминуты речи в буфере. Если мы столько отстали, клиент всё
 # равно уже не слушает, и копить дальше вредно.
@@ -46,6 +48,7 @@ class EventBus:
         self._q: asyncio.Queue[dict] = asyncio.Queue(maxsize=_MAX_QUEUE)
         self._dead: set[str] = set()
         self._closed = False
+        self._overflowed = False
         self._dropped = 0  # для метрик: сколько хвостов погашенных поколений съедено
 
     # -- производители ------------------------------------------------------
@@ -54,14 +57,17 @@ class EventBus:
         """Положить событие. Никогда не блокирует и никогда не бросает.
 
         Производители — это корутины ИИ и TTS; уронить синтез из-за переполнения
-        очереди было бы худшим из возможных исходов, поэтому переполнение просто
-        теряет событие и увеличивает счётчик.
+        очереди нельзя: переполнение отмечает поток повреждённым. Писатель
+        сообщает об этом и закрывает сокет для восстановления через resume.
         """
-        if self._closed:
+        if self._closed or self._overflowed:
             return
         try:
             self._q.put_nowait(event)
         except asyncio.QueueFull:
+            # Missing engine.state/response.done is not recoverable in this stream.
+            # Let the writer disconnect so the client can resume authoritative state.
+            self._overflowed = True
             self._dropped += 1
 
     # -- отмена -------------------------------------------------------------
@@ -88,6 +94,9 @@ class EventBus:
         пропасть только потому, что клиент уже отсоединяется.
         """
         while True:
+            if self._overflowed:
+                yield error("output_overflow", "Connection fell behind. Reconnecting to restore the game.")
+                return
             event = await self._q.get()
             if event is _SENTINEL:
                 break
