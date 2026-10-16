@@ -291,8 +291,10 @@ for (let i = 0; i < lessons; i++) {
     await next.click();
     await p.waitForTimeout(300);
   }
-  // Экран «Урок пройден» уводит кнопкой ← <блок>; если его нет — кнопкой назад.
-  const doneBtn = p.locator(".wrap.lesson.done button.primary").first();
+  // Экран итога урока уводит кнопкой ← <блок>; если его нет — кнопкой назад.
+  // По стрелке, а не по стилю: при ошибках основной кнопкой стоит «Пройти
+  // задания ещё раз», а выход в блок — второй (CourseScreen, 16.10).
+  const doneBtn = p.locator(".wrap.lesson.done button").filter({ hasText: /^←/ }).first();
   if (await doneBtn.count()) { await doneBtn.click(); }
   else { const back = p.locator("button.back").first(); if (await back.count()) await back.click(); }
   await p.waitForTimeout(400);

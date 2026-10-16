@@ -76,7 +76,7 @@ live-video-check:              ## живое видео: настройки и �
 
 e2e:                           ## браузерная проверка (нужен поднятый gateway)
 	cd frontend && node e2e/smoke.mjs --out /tmp/dialog-e2e
-	cd frontend && node e2e/course.mjs --out /tmp/dialog-e2e
+	cd frontend && TSX_TSCONFIG_PATH=./tsconfig.app.json node --import tsx e2e/course.mjs --out /tmp/dialog-e2e
 	cd frontend && node e2e/improvements.mjs --out /tmp/dialog-e2e/improvements
 
 # Локально: `make gateway` и `make frontend` в двух терминалах.
