@@ -21,9 +21,11 @@ export function WaitStatus({stage, lang, onExit}: {stage: WaitStage; lang: Lang;
     <div role="status">{expired
       ? (ru ? "Ответ задерживается. Можно ждать дальше или выйти из этой партии и начать другую." : "The response is delayed. You can keep waiting or leave this negotiation and start another.")
       : labels[stage]}</div>
-    <p aria-live="off">{ru ? `Прошло ${elapsed} с.` : `${elapsed}s elapsed.`} {!expired && (ru
-      ? ` Через ${Math.max(0, limit - elapsed)} с предложим выход. Это не прогноз готовности ответа.`
-      : ` An exit will be offered in ${Math.max(0, limit - elapsed)}s. This is not a completion estimate.`)}</p>
+    {/* Только прошедшее время. Обратный отсчёт «через 34 с предложим выход.
+        Это не прогноз готовности ответа» честно оговаривал устройство, но
+        читался как техническая сноска (аудит 16.10); выход и так появляется
+        сам, когда срок вышел. */}
+    <p aria-live="off">{ru ? `Прошло ${elapsed} с.` : `${elapsed}s elapsed.`}</p>
     {expired && <button className="ghost" onClick={onExit}>{ru ? "Выйти и выбрать тренировку" : "Leave and choose a practice"}</button>}
   </aside>;
 }
