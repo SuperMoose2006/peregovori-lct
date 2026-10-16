@@ -268,6 +268,9 @@ h1, h2, h3, .serif { font-family: var(--serif); font-weight: 800; }
 }
 
 .section-head { font-size: 14px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); margin: 34px 0 14px; }
+/* Первым в колонке раздела (Кампания, Своя сделка) заголовок начинается там
+   же, где вступление Тренировки и Экзамена, — без полосы воздуха над ним. */
+.section-head:first-child { margin-top: 6px; }
 /* ---------- Scenario picker ---------- */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
 .card {
