@@ -1,16 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Диалог">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#c0883c"/>
-      <stop offset="1" stop-color="#8a5f22"/>
-    </linearGradient>
-  </defs>
-  <!-- Full-bleed brass field: safe for maskable (all meaningful marks sit inside
-       the central 60% so no mask crops them). -->
-  <rect width="512" height="512" fill="url(#g)"/>
-  <text x="256" y="270" font-family="Georgia, 'Times New Roman', 'Palatino Linotype', serif"
-        font-size="300" font-weight="700" fill="#f3eee3" text-anchor="middle"
-        dominant-baseline="central">Д</text>
-  <!-- The brand's brass dot, rendered dark to read as the «Диалог.» accent. -->
-  <circle cx="366" cy="332" r="26" fill="#14110d"/>
+  <!-- Поле во всю площадь (безопасно для maskable): всё значимое — в центральных
+       60 %. Цвет — фирменная заливка --brass #58cc02.
+       Буква нарисована штрихами, а не текстом: у значка вкладки нет шрифтов
+       страницы, и прежний <text> падал на антикву системы. -->
+  <rect width="512" height="512" fill="#58cc02"/>
+  <g fill="none" stroke="#ffffff" stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M188 322 L214 148 L314 148 L314 322"/>
+    <path d="M158 322 L344 322"/>
+    <path d="M158 322 L158 384"/>
+    <path d="M344 322 L344 384"/>
+  </g>
+  <circle cx="400" cy="358" r="27" fill="#ffffff"/>
 </svg>
