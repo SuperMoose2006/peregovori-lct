@@ -85,6 +85,14 @@ async def _drive(avatar, cfg: live_config.LiveVideoConfig, save: str | None,
         _say(f"✗ подключение не удалось: связь «{avatar.link}», отказы {avatar.stats.degrades}")
         return 1
     _say(f"✓ подключились за {time.monotonic() - started:.2f} с")
+    # Этапы подключения — где уходят секунды холодного старта. Драйвер пишет
+    # отметки монотонных часов (LiveAvatar: токен, start, сокет команд,
+    # connected, комната, дорожки); у заглушки их нет.
+    marks = getattr(getattr(avatar, "_driver", None), "marks", None) or {}
+    prev = started
+    for stage, at in sorted(marks.items(), key=lambda kv: kv[1]):
+        _say(f"  этап {stage:<14} +{(at - prev) * 1000:6.0f} мс  (от старта {(at - started) * 1000:6.0f} мс)")
+        prev = at
 
     await avatar.set_state("thinking")
     gen = "check:1"

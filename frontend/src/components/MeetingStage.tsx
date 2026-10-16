@@ -26,6 +26,8 @@ interface Props {
   avatarState: string | null;
   renderer: FaceRenderer;
   synthetic: boolean;
+  /** Видео сервиса ещё не дошло — подпись поверх портрета (lib/meeting.ts). */
+  videoPending?: boolean;
   status: MeetingStatus;
   /** Последняя реплика собеседника — субтитр. Доступный текст живёт в ленте. */
   subtitle: string | null;
@@ -43,7 +45,7 @@ interface Props {
 }
 
 export function MeetingStage({
-  t, speakingLabel, animationLabel, scenario, state, avatarState, renderer, synthetic, status, subtitle,
+  t, speakingLabel, animationLabel, scenario, state, avatarState, renderer, synthetic, videoPending = false, status, subtitle,
   oppSpeaking, micAvailable, micMuted, onToggleMic, onInterrupt, onTextMode, onEnd,
   getSpeechLevel, getVideoFrame, getAudioBlocked, onResumeAudio,
 }: Props) {
@@ -83,6 +85,7 @@ export function MeetingStage({
               ложиться на лицо. */}
           <span title={scenario.counterpart_persona}>{scenario.counterpart_persona}</span>
           {synthetic ? <span className="mt-test">{t.testStream}</span> : null}
+          {videoPending ? <span className="mt-pending" role="status">{t.videoConnecting}</span> : null}
         </div>
         {/* Одна живая строка на экран: что происходит во встрече. */}
         <span className={`mt-status ${status}`} role="status">

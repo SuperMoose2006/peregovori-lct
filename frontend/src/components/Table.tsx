@@ -78,6 +78,7 @@ interface Props {
   meeting?: boolean;
   /** Кадры синтетические — стенд обязан быть подписан. */
   syntheticFace?: boolean;
+  videoPending?: boolean;
   micAvailable?: boolean;
   micMuted?: boolean;
   onToggleMic?: () => void;
@@ -126,7 +127,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ chatScrollPosition, t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
+export function Table({ chatScrollPosition, t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, videoPending = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -676,6 +677,7 @@ export function Table({ chatScrollPosition, t, lang, mode, kind, scenario, state
                 avatarState={avatarState}
                 renderer={faceRenderer}
                 synthetic={syntheticFace}
+                videoPending={videoPending}
                 status={meetingStatus({ conn, oppSpeaking, userSpeaking, busy })}
                 subtitle={subtitle}
                 oppSpeaking={oppSpeaking}

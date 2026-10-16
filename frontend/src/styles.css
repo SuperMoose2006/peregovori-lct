@@ -4204,6 +4204,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   white-space: normal;
   background: #ffc800; color: #3c3c3c; font-size: 11px; font-weight: 900; letter-spacing: 0.04em;
   text-transform: uppercase; }
+/* Видео сервиса ещё подключается: спокойная плашка, не тревога — портрет
+   под ней тот же человек, и звук идёт как обычно. */
+.mt-who .mt-pending { margin-top: 6px; padding: 3px 8px; border-radius: 8px; opacity: 1; text-shadow: none;
+  white-space: normal; background: rgb(0 0 0 / 60%); color: #fff; font-size: 12px; font-weight: 800; }
 .mt-sub { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
   width: max-content; max-width: min(92%, 640px); margin: 0; padding: 8px 14px; border-radius: 12px;
   background: rgb(0 0 0 / 74%); color: #fff; font-size: 16px; font-weight: 700; line-height: 1.4; text-align: center;
@@ -4243,7 +4247,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   .mt-who .mt-test { font-size: 10px; padding: 2px 6px; }
   .mt-who b { font-size: 15px; }
   .mt-who { max-width: 46%; }
-  .mt-who > span:not(.mt-test) { display: none; }
+  .mt-who > span:not(.mt-test):not(.mt-pending) { display: none; }
   .mt-sub { font-size: 15px; }
   /* Четыре кнопки в 390 px: на экране значки, подписи — диктору. */
   .mt-btn { min-width: 48px; justify-content: center; padding: 8px 12px; }

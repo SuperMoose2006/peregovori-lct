@@ -369,6 +369,15 @@ export class RealtimeTransport implements Transport {
 
   // -- перевод событий -----------------------------------------------------
 
+  /** Подпись «видео подключается» — флаг в `capabilities.avatar.pending`. */
+  private markVideoPending(pending: boolean): void {
+    const avatar = this.session?.capabilities.avatar as Record<string, unknown> | undefined;
+    if (!this.session || !avatar || avatar.pending === pending) return;
+    if (!pending && avatar.lipsync_mode !== "video") return;
+    this.session.capabilities = { ...this.session.capabilities, avatar: { ...avatar, pending } };
+    this.options.onCapabilities?.(this.session.capabilities);
+  }
+
   private route(event: ServerEvent): void {
     switch (event.type) {
       case "session.created": {
@@ -530,6 +539,8 @@ export class RealtimeTransport implements Transport {
       }
 
       case "avatar.frame":
+        // Первый кадр — видео дошло: подпись «подключается» снимается.
+        this.markVideoPending(false);
         // Лицо сервиса между репликами: без поколения и места в звуке.
         if (event.idle === true) { this.faceFrames.pushIdle(event.jpeg); return; }
         if (event.generation_id === this.audioGeneration
@@ -541,9 +552,12 @@ export class RealtimeTransport implements Transport {
           this.faceFrames.reset();
           // `synthetic: false`: подпись «тестовый видеопоток» относится к
           // потоку, а потока больше нет — на экране рисованный портрет.
+          // `not_connected` — сервис ещё не на связи к началу реплики: видео
+          // придёт, а не сломалось. Любая другая причина — портрет надолго.
           this.session.capabilities = { ...this.session.capabilities,
             avatar: { ...(this.session.capabilities.avatar as object),
-              lipsync: true, lipsync_mode: "amplitude", transport: "local", synthetic: false } };
+              lipsync: true, lipsync_mode: "amplitude", transport: "local", synthetic: false,
+              pending: event.detail === "not_connected" } };
           this.options.onCapabilities?.(this.session.capabilities);
         } else if (this.session && event.lipsync_mode === "video" && event.transport === "jpeg") {
           // Сервис видео снова на связи (сервер переподключился между

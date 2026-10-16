@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { AvatarFrames } from "../src/lib/avatarFrames";
 import { faceRenderer, pickFaceSource } from "../src/lib/faceSource";
-import { syntheticFace } from "../src/lib/meeting";
+import { syntheticFace, videoPending } from "../src/lib/meeting";
 
 class Socket {
   static OPEN = 1;
@@ -92,6 +92,28 @@ test("сервис снова на связи: лицо возвращается
     assert.equal(avatar.synthetic, true, "заглушка остаётся подписанной и после возврата");
     socket.deliver({ type: "avatar.state", state: "warm", lipsync: true, lipsync_mode: "video", transport: "jpeg" });
     assert.equal(seen.length, before + 1, "повтор режима не перестраивает экран");
+  } finally { transport.close(); }
+});
+
+test("видео подключается: подпись держится до первого кадра и переживает портрет not_connected", async () => {
+  // Холодный старт сервиса ~10 с, приветствие звучит раньше (V-2, 16.10):
+  // портрет без подписи читался как «видео не работает».
+  const { transport, socket, seen } = await started({ avatar: { ...VIDEO, synthetic: false } });
+  try {
+    const pending = () => videoPending(seen[seen.length - 1] ?? null);
+    assert.equal(pending(), true, "с начала партии видео ещё не пришло");
+    socket.deliver({ type: "avatar.state", state: "speaking", lipsync: true, lipsync_mode: "amplitude",
+      transport: "local", reason: "provider_failed", detail: "not_connected" });
+    assert.equal(mode(seen), "amplitude");
+    assert.equal(pending(), true, "not_connected — видео в пути, а не сломалось");
+    socket.deliver({ type: "avatar.state", state: "thinking", lipsync: true, lipsync_mode: "video",
+      transport: "jpeg", reason: "provider_recovered" });
+    assert.equal(pending(), true, "режим вернулся, но кадра ещё нет");
+    socket.deliver({ type: "avatar.frame", idle: true, jpeg: "/9j/2Q==" });
+    assert.equal(pending(), false, "первый кадр снимает подпись");
+    socket.deliver({ type: "avatar.state", state: "listening", lipsync_mode: "amplitude",
+      transport: "local", reason: "provider_failed", detail: "closed" });
+    assert.equal(pending(), false, "отказ сервиса — не «подключается»");
   } finally { transport.close(); }
 });
 

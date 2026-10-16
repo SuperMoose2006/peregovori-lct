@@ -22,6 +22,21 @@ export function meetingMode(opts: {
   return opts.capabilities?.speech === true;
 }
 
+/**
+ * Видео собеседника ещё подключается. Подключение к сервису живого видео
+ * стартует вместе с партией, но холодный старт у сервиса — ~10 с (журнал
+ * стенда 16.10: сокет 00:36:29, «на связи» 00:36:40), и приветствие звучит
+ * раньше. Без этой подписи статичный портрет выглядел конечным состоянием —
+ * «видео не работает». Флаг ведёт транспорт: снят первым кадром, поднят
+ * портретом по причине `not_connected`.
+ */
+export function videoPending(capabilities: Record<string, unknown> | null | undefined): boolean {
+  const a = capabilities?.avatar as { lipsync_mode?: unknown; pending?: unknown } | undefined;
+  if (!a) return false;
+  if (a.pending === true) return true;
+  return a.lipsync_mode === "video" && a.pending === undefined;
+}
+
 /** Стенд обязан быть подписан как стенд. */
 export function syntheticFace(capabilities: Record<string, unknown> | null | undefined): boolean {
   return (capabilities?.avatar as { synthetic?: unknown } | undefined)?.synthetic === true;

@@ -405,6 +405,7 @@ export interface Strings {
     status: Record<"connecting" | "reconnecting" | "lost" | "speaking" | "hearing" | "thinking" | "listening", string>;
     /** Стенд подписан как стенд: `capabilities.avatar.synthetic`. */
     testStream: string;
+    videoConnecting: string;
     micOff: string; micOn: string; micMuted: string; noMic: string;
     interrupt: string; text: string; end: string;
     soundBlocked: string; soundOn: string;
@@ -1333,6 +1334,7 @@ export const I18N: Record<Lang, Strings> = {
         listening: "Слушает",
       },
       testStream: "Тестовый видеопоток — не видео собеседника",
+      videoConnecting: "Видео собеседника подключается…",
       micOff: "Выключить микрофон",
       micOn: "Включить микрофон",
       micMuted: "Микрофон выключен",
@@ -2312,6 +2314,7 @@ export const I18N: Record<Lang, Strings> = {
         listening: "Listening",
       },
       testStream: "Test video stream — not the counterpart's video",
+      videoConnecting: "Connecting the counterpart's video…",
       micOff: "Mute microphone",
       micOn: "Unmute microphone",
       micMuted: "Microphone off",

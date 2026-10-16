@@ -28,7 +28,7 @@ import { detectLayers, parseLayerPrefs, pruneLayers, sessionLayers, withServer, 
 import { fetchServerHealth } from "./api/health";
 import { checkDevice, dropFailedLayers, requestLayers, type DeviceChecks, type DeviceLayer } from "./lib/deviceCheck";
 import { faceRenderer } from "./lib/faceSource";
-import { meetingMode, syntheticFace } from "./lib/meeting";
+import { meetingMode, syntheticFace, videoPending } from "./lib/meeting";
 import { Karl } from "./components/Mascot";
 import { ReadingCard } from "./components/ReadingCard";
 import { OtherSideCard } from "./components/OtherSideCard";
@@ -1269,6 +1269,7 @@ export default function App() {
             faceRenderer={faceRenderer(nego.capabilities)}
             meeting={meeting}
             syntheticFace={syntheticFace(nego.capabilities)}
+            videoPending={videoPending(nego.capabilities)}
             micAvailable={micAvailable}
             micMuted={micMuted}
             onToggleMic={() => setMicMuted((m) => !m)}
