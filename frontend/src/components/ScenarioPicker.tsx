@@ -172,14 +172,12 @@ export function NextStepCard({ t, lang, pick, campaigns, onGo }: {
   );
 }
 
-// Best-grade chip in a card's difficulty-row: the letter + best score in brass
-// when the player has cleared it, a subtle "—" when they haven't. This is the
-// at-a-glance "beat your record" hook on the scenario shelf.
-function BestChip({ t, profile, id }: { t: Strings; profile: Profile; id: string }) {
+// Best-grade chip in a card's difficulty-row: the letter + best score when the
+// player has cleared it. Unplayed tables carry no chip: the old "—" stood on all
+// nine cards of a fresh profile, and its meaning lived only in a tooltip.
+function BestChip({ profile, id }: { profile: Profile; id: string }) {
   const r = getRecord(profile, id);
-  if (!r || !r.bestGrade) {
-    return <span className="best empty" title={t.notPlayed}>—</span>;
-  }
+  if (!r || !r.bestGrade) return null;
   return (
     <span className="best" style={{ color: GRADE_COLOR[r.bestGrade] || "var(--brass)" }}>
       {r.bestGrade} · {r.bestScore}
@@ -293,7 +291,7 @@ export function ScenarioPicker({
                 <div className="cf">
                   <div className="cf-l">
                     <DifficultyIndicator value={sc.difficulty} lang={lang} />
-                    <BestChip t={t} profile={profile} id={sc.id} />
+                    <BestChip profile={profile} id={sc.id} />
                   </div>
                   <div className="go">{lang === "ru" ? "Начать →" : "Start →"}</div>
                 </div>

@@ -1203,10 +1203,6 @@ textarea:focus { outline: none; border-color: var(--sel-line); background: var(-
   border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
   background: color-mix(in srgb, currentColor 12%, transparent);
 }
-.card .best.empty {
-  color: var(--ink-faint); border-color: var(--line-2); background: none;
-  font-family: var(--sans); font-weight: 600;
-}
 
 /* Debrief personal-record line */
 .pb {

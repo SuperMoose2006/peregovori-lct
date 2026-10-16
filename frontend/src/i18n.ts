@@ -132,7 +132,6 @@ export interface Strings {
   moreLabel: string;
   // retention (localStorage profile): streak chip, card best-grade, debrief record
   streakLabel: string; // "{n}-day streak" ({n} substituted)
-  notPlayed: string; // empty best-grade state on a scenario card
   personalBest: string; // debrief: "Personal best"
   newRecord: string; // debrief: "new record!" when the best is beaten
   placeholder: string;
@@ -984,7 +983,6 @@ export const I18N: Record<Lang, Strings> = {
     batnaHint: "Что вы сделаете, если не договоритесь. Чем он лучше, тем спокойнее можно торговаться.",
     moreLabel: "Брифинг",
     streakLabel: "{n} дн. подряд",
-    notPlayed: "не пройдено",
     personalBest: "Личный рекорд",
     newRecord: "новый рекорд!",
     placeholder: "Ваша реплика своими словами…",
@@ -1961,7 +1959,6 @@ export const I18N: Record<Lang, Strings> = {
     batnaHint: "What you will do if there's no deal. The better it is, the calmer you can bargain.",
     moreLabel: "Briefing",
     streakLabel: "{n}-day streak",
-    notPlayed: "not played",
     personalBest: "Personal best",
     newRecord: "new record!",
     placeholder: "Your line, in your own words…",
