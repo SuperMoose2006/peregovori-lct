@@ -72,6 +72,8 @@ _MAX_QUEUED_TURNS = 1
 
 # Advice has a deterministic fallback; a slow provider must not leave it pending.
 HINT_BUDGET_S = 6.0
+WS_SEND_TIMEOUT_S = 10.0
+WS_CLOSE_TIMEOUT_S = 1.0
 
 #: Короче этого «своя сделка» не генерируется. Не строгость ради строгости:
 #: описание уезжает в самую дорогую роль (`reasoning`), и из пустой строки она
@@ -1033,14 +1035,21 @@ async def _pump(websocket: WebSocket, session: RealtimeSession) -> None:
         async for event in session.bus.drain():
             if event.get("type") == "debrief":
                 _attach_vision_tape(event, session)
-            await websocket.send_json(event)
+            async with asyncio.timeout(WS_SEND_TIMEOUT_S):
+                await websocket.send_json(event)
             if event.get("error", {}).get("code") == "output_overflow":
-                await websocket.close(code=1013)
+                async with asyncio.timeout(WS_CLOSE_TIMEOUT_S):
+                    await websocket.close(code=1013)
                 return
-    except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
+    except (WebSocketDisconnect, asyncio.CancelledError):
         return
-    except Exception:
-        return
+    except Exception as exc:
+        # A dead writer must not leave a reader accepting turns nobody can see.
+        # Retryable close lets the normal reader finally retain the engine for resume.
+        _log.warning("websocket_write_failed error_type=%s", type(exc).__name__)
+        with contextlib.suppress(Exception):
+            async with asyncio.timeout(WS_CLOSE_TIMEOUT_S):
+                await websocket.close(code=1013)
 
 
 async def _send_hint(session: RealtimeSession) -> None:
