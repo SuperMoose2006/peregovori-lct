@@ -1,0 +1,32 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_stalled_hint_returns_offline_advice_within_budget ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7288c66c8e90>
+
+    @pytest.mark.asyncio
+    async def test_stalled_hint_returns_offline_advice_within_budget(monkeypatch):
+        session, problem = await endpoint._build_session(SessionInit(scenarioId="supplier"))
+        assert problem is None
+        monkeypatch.setattr(endpoint, "HINT_BUDGET_S", 0.01, raising=False)
+        monkeypatch.setattr(endpoint.orchat, "available", lambda: True)
+        cancelled = asyncio.Event()
+
+        async def stalled(*args, **kwargs):
+            try:
+                await asyncio.sleep(60)
+            finally:
+                cancelled.set()
+
+        monkeypatch.setattr(endpoint.orchat, "complete", stalled)
+        task = asyncio.create_task(endpoint._send_hint(session))
+        try:
+            done, _ = await asyncio.wait({task}, timeout=0.2)
+>           assert task in done, "coach.request never returned its offline fallback"
+E           AssertionError: coach.request never returned its offline fallback
+E           assert <Task pending name='Task-2' coro=<_send_hint() running at /root/work/wt-peregovori-lct-33051/services/gateway/app/realtime/endpoint.py:1056> wait_for=<Future pending cb=[Task.task_wakeup()]>> in set()
+
+services/gateway/tests/test_hint_timeout.py:27: AssertionError
+=========================== short test summary info ============================
+FAILED services/gateway/tests/test_hint_timeout.py::test_stalled_hint_returns_offline_advice_within_budget
+1 failed in 0.86s

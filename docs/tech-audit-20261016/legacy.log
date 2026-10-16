@@ -1,0 +1,26 @@
+
+> dialog-negotiation-simulator@1.0.0 test
+> node test/engine.test.js
+
+
+Technique classifier
+  ✓ detects SPIN problem question
+  ✓ detects objective criteria
+  ✓ detects BATNA
+  ✓ detects conditional trade-off
+  ✓ detects hostility and tanks arg quality
+  ✓ rewards rationale connectors in argumentation
+  ✓ detects English objective criteria
+
+Engine dynamics
+  ✓ empathy raises trust, lowers tension
+  ✓ threats raise tension, lower trust
+  ✓ SPIN questions uncover interests (info rises)
+  ✓ opponent never crosses their reservation floor
+
+Scoring / outcomes
+  ✓ principled play grades higher than aggressive play
+  ✓ higher-is-better scenario (salary) scores a good deal correctly
+  ✓ hostility drives a breakdown
+
+14 passed, 0 failed
