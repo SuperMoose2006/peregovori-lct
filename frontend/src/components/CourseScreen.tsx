@@ -419,7 +419,10 @@ function BlockView({ t, lang, profile, blockId, onLesson, onExam, onBack }: {
           <p>{t.course.examLead
             .replace("{n}", String(draw.items.length))
             .replace("{pass}", String(draw.passMark))
-            .replace("{total}", String(draw.total))}</p>
+            .replace("{total}", String(draw.total))}
+            {/* «11 заданий, порог 10 из 12» без этой фразы читалось как ошибка
+                счёта: капстоун-партия весит два очка (lib/course.ts::drawExam). */}
+            {draw.total > draw.items.length ? ` ${t.course.examDrillWeight}` : null}</p>
           {p.attempts > 0 ? (
             <p className="exam-best">{t.course.examBest
               .replace("{best}", String(p.examBest)).replace("{total}", String(p.examTotal || draw.total))}

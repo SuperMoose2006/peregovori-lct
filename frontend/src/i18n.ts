@@ -521,7 +521,7 @@ export interface Strings {
     /* Состояние узла — только для диктора: значок помечен aria-hidden. */
     blockDone: string; blockOpen: string; blockLocked: string;
     allBlocks: string; tasksN: string; taskForms: [string, string, string]; theory: string;
-    examTitle: string; examLead: string; examBest: string; examPassed: string;
+    examTitle: string; examLead: string; examDrillWeight: string; examBest: string; examPassed: string;
     examStart: string; examMode: string; examFinish: string; examPass: string;
     examFail: string; examResult: string;
     toTasks: string; lessonDone: string; lessonComplete: string; lessonScore: string;
@@ -1467,6 +1467,7 @@ export const I18N: Record<Lang, Strings> = {
       theory: "теория",
       examTitle: "Экзамен блока",
       examLead: "{n} заданий, порог {pass} из {total} очков. Подсказки выключены, разбор — после сдачи.",
+      examDrillWeight: "Партия в конце стоит два очка.",
       examBest: "Лучший результат: {best} из {total}",
       examPassed: "сдан",
       examStart: "Сдавать экзамен",
@@ -2438,6 +2439,7 @@ export const I18N: Record<Lang, Strings> = {
       theory: "theory",
       examTitle: "Block exam",
       examLead: "{n} tasks, pass mark {pass} of {total} points. Hints off, review after you finish.",
+      examDrillWeight: "The closing game is worth two points.",
       examBest: "Best result: {best} of {total}",
       examPassed: "passed",
       examStart: "Take the exam",
