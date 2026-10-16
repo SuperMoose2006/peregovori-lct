@@ -168,10 +168,6 @@ def test_offline_health_claims_no_cloud_layer_even_with_keys_configured(monkeypa
     assert set(body["models"]) == {"opponent", "judge", "vision", "reasoning", "asr"}
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "orchestrator/judge.py:67-70: NEGO_JUDGE=1 включает судью, не спрашивая сеть; "
-    "при NEGO_AI=off health и capabilities говорят judge=True, а каждый ход "
-    "шлёт judge.started и тут же judge.completed{semantic:false}"))
 def test_forcing_the_judge_on_does_not_make_it_claimed_without_network(monkeypatch):
     from app.orchestrator.judge import judge_enabled_for
 

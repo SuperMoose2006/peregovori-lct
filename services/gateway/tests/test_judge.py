@@ -20,6 +20,7 @@ def test_disabled_by_default(monkeypatch):
     assert judge_enabled() is False
     monkeypatch.setenv("NEGO_JUDGE", "off")
     assert judge_enabled() is False
+    monkeypatch.setenv("NEGO_AI", "on")
     for value in ("1", "on", "true", "yes"):
         monkeypatch.setenv("NEGO_JUDGE", value)
         assert judge_enabled() is True

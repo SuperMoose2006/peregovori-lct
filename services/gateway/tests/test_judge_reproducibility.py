@@ -54,6 +54,8 @@ def test_the_pinned_temperature_actually_reaches_the_provider(monkeypatch):
         seen.update(kw)
         return '{"arg_score": 60, "note": "ok", "techniques": []}'
 
+    # Simulate the judge gate only; actual provider calls remain offline/mocked.
+    monkeypatch.setattr(ojudge, "network_enabled", lambda: True)
     monkeypatch.setenv("NEGO_JUDGE", "1")
     monkeypatch.setattr(ojudge.orchat, "complete", fake_complete)
 
@@ -67,6 +69,8 @@ def test_the_pinned_temperature_actually_reaches_the_provider(monkeypatch):
 
 def test_exam_never_runs_the_judge_whatever_the_env_says(monkeypatch):
     """Явный `NEGO_JUDGE=1` включает судью везде, КРОМЕ экзамена."""
+    # Simulate the judge gate only; actual provider calls remain offline/mocked.
+    monkeypatch.setattr(ojudge, "network_enabled", lambda: True)
     monkeypatch.setenv("NEGO_JUDGE", "1")
     assert ojudge.judge_enabled() is True
     for mode in ("practice", "campaign", "custom", None, ""):
@@ -89,6 +93,8 @@ def test_exam_gate_is_on_the_server_not_in_the_orchestrators_head(monkeypatch):
         return {"arg_score": 99, "interest_targeted": 0, "secondary_conceded": None,
                 "criteria_legitimate": None, "tradeoff_real": None, "batna_real": None}
 
+    # Simulate the judge gate only; actual provider calls remain offline/mocked.
+    monkeypatch.setattr(ojudge, "network_enabled", lambda: True)
     monkeypatch.setenv("NEGO_JUDGE", "1")
     monkeypatch.setattr(negotiation, "judge_turn", trap)
 
@@ -108,6 +114,8 @@ def test_exam_capabilities_do_not_promise_a_judge(monkeypatch):
     На экзамене его нет, значит `session.created.capabilities.judge` обязан
     приехать `false` — иначе интерфейс пообещает слой, которого не существует.
     """
+    # Simulate the judge gate only; actual provider calls remain offline/mocked.
+    monkeypatch.setattr(ojudge, "network_enabled", lambda: True)
     monkeypatch.setenv("NEGO_JUDGE", "1")
     client = TestClient(app)
     for mode, expect in (("practice", True), ("exam", False)):
@@ -365,6 +373,8 @@ def _play_capstone(mode: str, moods: list[dict], monkeypatch) -> dict:
     async def wobbling_judge(*a, **kw):
         return queue.pop(0) if queue else dict(_MOOD_TRUSTS)
 
+    # Simulate the judge gate only; actual provider calls remain offline/mocked.
+    monkeypatch.setattr(ojudge, "network_enabled", lambda: True)
     monkeypatch.setenv("NEGO_JUDGE", "1")
     monkeypatch.setattr(negotiation, "judge_turn", wobbling_judge)
 
@@ -388,6 +398,8 @@ def test_the_gate_covers_every_mode_that_promises_reproducibility(monkeypatch):
     """
     from app.protocol import REPRODUCIBLE_MODES
 
+    # Simulate the judge gate only; actual provider calls remain offline/mocked.
+    monkeypatch.setattr(ojudge, "network_enabled", lambda: True)
     monkeypatch.setenv("NEGO_JUDGE", "1")
     assert ojudge.judge_enabled() is True
     assert "drill" in REPRODUCIBLE_MODES, "капстоун курса выпал из списка зачётных"
@@ -407,6 +419,8 @@ def test_the_capstone_never_calls_the_judge(monkeypatch):
         called.append(a)
         return dict(_MOOD_TRUSTS)
 
+    # Simulate the judge gate only; actual provider calls remain offline/mocked.
+    monkeypatch.setattr(ojudge, "network_enabled", lambda: True)
     monkeypatch.setenv("NEGO_JUDGE", "1")
     monkeypatch.setattr(negotiation, "judge_turn", trap)
 
@@ -485,6 +499,8 @@ def test_the_capstone_forces_layers_off_like_the_exam(monkeypatch):
 
 def test_capstone_capabilities_do_not_promise_a_judge(monkeypatch):
     """Второй принцип: бейдж «судит ИИ по смыслу» на капстоуне рисовать нечем."""
+    # Simulate the judge gate only; actual provider calls remain offline/mocked.
+    monkeypatch.setattr(ojudge, "network_enabled", lambda: True)
     monkeypatch.setenv("NEGO_JUDGE", "1")
     client = TestClient(app)
     with client.websocket_connect("/v1/realtime") as ws:
