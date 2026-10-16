@@ -329,8 +329,10 @@ export function Debrief({
                   <p>{t.exam.notAwarded}</p>
                 </div>
               ) : null}
+              {/* При срыве `deal_text` — «Сделка сорвалась»: вторая половина
+                  повторяла первую. Цифра нужна только там, где она есть. */}
               <div className="oc">
-                {t.outcome[d.status]} · <b>{d.deal_text}</b>
+                {t.outcome[d.status]}{d.status !== "breakdown" ? <> · <b>{d.deal_text}</b></> : null}
               </div>
               {record && record.record.bestGrade ? (
                 <div className={`pb${game?.celebrate ? " beat" : ""}`}>
