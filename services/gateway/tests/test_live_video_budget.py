@@ -14,9 +14,10 @@ def config(**extra):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("input_mode", ["audio", "text"])
 @pytest.mark.parametrize("budget,elapsed", [("idle_budget", 6), ("session_budget", 21)])
-async def test_video_budget_stops_driver_without_closing_game(budget, elapsed):
-    cfg = config()
+async def test_video_budget_stops_driver_without_closing_game(budget, elapsed, input_mode):
+    cfg = config(NEGO_LIVE_VIDEO_INPUT=input_mode)
     now = [100.0]
     persona = Persona("supplier")
     events = []
