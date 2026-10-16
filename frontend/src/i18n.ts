@@ -1316,7 +1316,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     streak: {
       title: "Серия дней",
-      hint: "Дни подряд, в которые вы закончили партию на C или выше.",
+      hint: "Дни подряд, в которые вы закончили партию на C или выше или прошли урок курса.",
       kept: "{n} {form} подряд. Сегодняшний день уже засчитан.",
       waiting: "{n} {form} подряд. Сегодня вы ещё не играли — партия продлит серию.",
       shielded: "Пропуск покроет заморозка: их в запасе {n}.",
@@ -2293,7 +2293,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     streak: {
       title: "Day streak",
-      hint: "Days in a row on which you finished a game with a C or better.",
+      hint: "Days in a row on which you finished a game with a C or better, or completed a course lesson.",
       kept: "{n} {form} in a row. Today is already counted.",
       waiting: "{n} {form} in a row. You have not played today — one session keeps it alive.",
       shielded: "A freeze will cover the gap — {n} left in reserve.",
