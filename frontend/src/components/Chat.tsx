@@ -1,7 +1,7 @@
 // Chat.tsx — the negotiation chat log: opponent/player bubbles, technique tag
 // badges + argumentation score on player lines, per-turn meter delta flashes,
 // streaming opponent text, hint bubbles.
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Analysis, Deltas } from "../types";
 import type { MeterLabels, Strings } from "../i18n";
@@ -84,6 +84,28 @@ export function logAnchor(opening: boolean, played: boolean): "top" | "bottom" {
 export interface ChatScrollPosition {
   top: number;
   atBottom: boolean;
+  /** Видимая высота ленты при последней записи. Нужна, чтобы отличить
+   *  «читатель прокрутил вверх» от «ленту сжало снизу». */
+  height?: number;
+}
+
+/**
+ * Остался ли читатель у низа после события прокрутки.
+ *
+ * ЛЕНТУ СЖИМАЕТ СОСЕД, А НЕ ЧИТАТЕЛЬ. Длинная реплика растит поле ввода, и
+ * видимая высота ленты падает на строку (замер: 536 → 507 px). Браузер шлёт
+ * `scroll` с зазором 25 px от низа — и прежняя проверка «зазор ≤ 2 px»
+ * записывала это как «читатель ушёл читать середину». Автопрокрутка
+ * выключалась до конца партии: следующий вопрос «Что происходит?» оказывался
+ * за кадром при заблокированном поле «Ответьте на вопрос». Поэтому: был у
+ * низа и изменилась высота окна — по-прежнему у низа.
+ */
+export function stillAtBottom(
+  saved: ChatScrollPosition | null,
+  now: { top: number; scrollHeight: number; clientHeight: number },
+): boolean {
+  if (saved?.atBottom && saved.height !== undefined && saved.height !== now.clientHeight) return true;
+  return now.scrollHeight - now.clientHeight - now.top <= 2;
 }
 
 export function Chat({ log, scrollPosition, metersShort, metersFull, deltaAria, logLabel, argLabel, argStrings, deltaNone, deltaRepeat, tagLabels, exam, coachLabel, dismissLabel, judgeActive, judgeBadge, judgeReject, typing, typingLabel, typingJudging, opening, hintPendingLabel, probeLabels, probeTally, registerProbe, onProbeAnswer, onUseLine, useLineLabel }: Props) {
@@ -130,17 +152,32 @@ export function Chat({ log, scrollPosition, metersShort, metersFull, deltaAria, 
     position.current = {
       top: el.scrollTop,
       atBottom: follow || (saved?.atBottom ?? el.scrollHeight - el.clientHeight - el.scrollTop <= 2),
+      height: el.clientHeight,
     };
     previous.current = { log, typing: !!typing, played };
   });
 
   const rememberPosition = () => {
     const el = ref.current;
-    if (el) position.current = {
-      top: el.scrollTop,
-      atBottom: el.scrollHeight - el.clientHeight - el.scrollTop <= 2,
-    };
+    if (!el) return;
+    const atBottom = stillAtBottom(position.current, {
+      top: el.scrollTop, scrollHeight: el.scrollHeight, clientHeight: el.clientHeight,
+    });
+    if (atBottom) el.scrollTop = el.scrollHeight;
+    position.current = { top: el.scrollTop, atBottom, height: el.clientHeight };
   };
+
+  // Сжатие окна ленты приходит не всегда со `scroll`: если браузеру нечего
+  // сдвигать, события нет, и низ просто уезжает под поле ввода. Наблюдатель
+  // размера держит читателя у низа и в этом случае.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => rememberPosition());
+    ro.observe(el);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     // The log is a polite live region: new opponent replies and coach lines are
