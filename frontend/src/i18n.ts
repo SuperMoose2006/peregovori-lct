@@ -524,7 +524,7 @@ export interface Strings {
     examTitle: string; examLead: string; examDrillWeight: string; examBest: string; examPassed: string;
     examStart: string; examMode: string; examFinish: string; examPass: string;
     examFail: string; examResult: string;
-    toTasks: string; lessonDone: string; lessonComplete: string; lessonScore: string;
+    toTasks: string; lessonDone: string; lessonComplete: string; lessonFinished: string; lessonRedo: string; lessonScore: string;
     /* Заголовок набора заданий — только для диктора: на экране его место
        занимают полоса прогресса и счётчик «задание N из M». */
     tasksTitle: string;
@@ -1479,6 +1479,8 @@ export const I18N: Record<Lang, Strings> = {
       toTasks: "К заданиям →",
       lessonDone: "Урок пройден",
       lessonComplete: "Урок пройден",
+      lessonFinished: "Урок завершён",
+      lessonRedo: "Пройти задания ещё раз",
       lessonScore: "Верно: {n} из {total}",
       tasksTitle: "Задания · {lesson}",
       stepOf: "задание {n} из {total}",
@@ -2451,6 +2453,8 @@ export const I18N: Record<Lang, Strings> = {
       toTasks: "To the tasks →",
       lessonDone: "Lesson done",
       lessonComplete: "Lesson complete",
+      lessonFinished: "Lesson finished",
+      lessonRedo: "Redo the tasks",
       lessonScore: "Correct: {n} of {total}",
       tasksTitle: "Tasks · {lesson}",
       stepOf: "task {n} of {total}",

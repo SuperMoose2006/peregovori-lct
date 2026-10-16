@@ -3300,6 +3300,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   color: var(--ink-faint); margin-bottom: 12px; display: flex; gap: 10px; align-items: center; }
 .exam-flag { color: var(--brass-ink); font-weight: 800; }
 .lesson-xp { font-weight: 800; color: var(--brass-ink); font-size: 18px; }
+.lesson-end-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 /* Сверху — тот же воздух, что у заголовков других разделов (≈26 px от шапки):
    без него кнопка садилась прямо на линию шапки и читалась обрезанной. */
 .btn.back { margin: 24px 0 10px; }

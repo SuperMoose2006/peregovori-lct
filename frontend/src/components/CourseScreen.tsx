@@ -489,13 +489,25 @@ function LessonRunner({ t, lang, profile, onProfile, blockId, lesson, onStartDri
     return (
       <section className="screen course">
         <div className="wrap lesson done">
-          <ScreenHeading key="done" as="h1">{t.course.lessonComplete}</ScreenHeading>
+          {/* «Урок пройден» при 0 из 3 хвалил за ноль верных (аудит 16.10).
+              Меньше половины — «завершён», и при любой ошибке есть путь
+              переиграть задания, не выходя в блок. */}
+          <ScreenHeading key="done" as="h1">
+            {right * 2 >= items.length ? t.course.lessonComplete : t.course.lessonFinished}
+          </ScreenHeading>
           <p className="lead">{t.course.lessonScore
             .replace("{n}", String(right)).replace("{total}", String(items.length))}</p>
           {gained ? <p className="lesson-xp">+{gained} XP</p> : null}
           <Karl state={right === items.length ? "celebrate" : "idle"}
                 line={right === items.length ? t.course.karlPerfect : t.course.karlOk} name={t.mascot.karl} />
-          <button className="btn primary" onClick={onBack}>← {block.title[lang]}</button>
+          <div className="lesson-end-actions">
+            {right < items.length ? (
+              <button className="btn primary" onClick={() => { setRight(0); setAnswered(false); setStep(0); }}>
+                {t.course.lessonRedo}
+              </button>
+            ) : null}
+            <button className={`btn ${right < items.length ? "ghost" : "primary"}`} onClick={onBack}>← {block.title[lang]}</button>
+          </div>
         </div>
       </section>
     );
