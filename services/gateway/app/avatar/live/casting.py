@@ -22,7 +22,6 @@ import logging
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 _log = logging.getLogger("dialog.live_video")
 

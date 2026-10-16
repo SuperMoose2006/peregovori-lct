@@ -173,14 +173,13 @@ def test_a_plain_string_answer_is_accepted_too(sidecar):
     assert _post(sidecar, np.zeros(1600, dtype=np.float32).tobytes()).json()["text"] == "Что важно?"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "server.py:88-95 проверяет только, что X-Sample-Rate — целое, и тело не "
-    "проверяет вовсе: частота 0 даёт ZeroDivisionError, отрицательная — "
-    "wave.Error, тело не кратное 4 байтам — ValueError из np.frombuffer; все три → 500"))
 @pytest.mark.parametrize(("rate", "body"), [
     ("0", np.zeros(160, dtype=np.float32).tobytes()),
     ("-16000", np.zeros(160, dtype=np.float32).tobytes()),
     ("16000", b"\x00\x00\x00"),
+    ("192001", np.zeros(160, dtype=np.float32).tobytes()),
+    ("16000", np.array([float("nan")], dtype="<f4").tobytes()),
+    ("16000", np.array([float("inf")], dtype="<f4").tobytes()),
 ])
 def test_malformed_audio_is_a_400_not_a_crash(loaded, rate, body):
     assert _post(loaded, body, rate).status_code == 400

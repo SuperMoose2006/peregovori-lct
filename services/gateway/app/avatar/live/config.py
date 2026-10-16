@@ -50,6 +50,8 @@ ENV_STALE = "NEGO_LIVE_VIDEO_STALE_MS"
 ENV_BACKGROUND = "NEGO_LIVE_VIDEO_BACKGROUND"
 ENV_IDLE_FPS = "NEGO_LIVE_VIDEO_IDLE_FPS"
 ENV_CASTING = "NEGO_LIVE_VIDEO_CASTING"
+ENV_IDLE_TIMEOUT = "NEGO_LIVE_VIDEO_IDLE_TIMEOUT_S"
+ENV_MAX_SESSION = "NEGO_LIVE_VIDEO_MAX_SESSION_S"
 ENV_LIPS_WAIT = "NEGO_LIVE_VIDEO_LIPS_WAIT_MS"
 ENV_STUB_FAIL = "NEGO_LIVE_VIDEO_STUB_FAIL_AFTER_S"
 ENV_STUB_LATENCY = "NEGO_LIVE_VIDEO_STUB_LATENCY_MS"
@@ -154,6 +156,8 @@ class LiveVideoConfig:
     #: Фон вместо зелёного экрана: `stage` · `#rrggbb` · путь к картинке · `off`.
     background: str = "stage"
     idle_fps: float = DEFAULT_IDLE_FPS
+    idle_timeout_s: float = 300.0
+    max_session_s: float = 1800.0
     #: Раскладка «персонаж → лицо» (`casting.py`). Пусто — встроенная.
     casting: str = ""
     #: Бесплатная песочница сервиса, если он её даёт (LiveAvatar: сессия
@@ -301,6 +305,8 @@ def load(env: Optional[Mapping[str, str]] = None) -> LiveVideoConfig:
         background=(env.get(ENV_BACKGROUND) or "stage").strip() or "stage",
         idle_fps=_number(env, ENV_IDLE_FPS, DEFAULT_IDLE_FPS, 0.0, 30.0, warnings, cast=float),
         casting=(env.get(ENV_CASTING) or "").strip(),
+        idle_timeout_s=_number(env, ENV_IDLE_TIMEOUT, 300.0, 1.0, 3600.0, warnings, cast=float),
+        max_session_s=_number(env, ENV_MAX_SESSION, 1800.0, 1.0, 14400.0, warnings, cast=float),
         errors=tuple(errors),
         warnings=tuple(warnings),
         missing_key=missing_key,

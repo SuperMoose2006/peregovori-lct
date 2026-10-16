@@ -23,8 +23,8 @@ import asyncio
 import base64
 import contextlib
 import logging
-import os
 from dataclasses import dataclass
+from functools import wraps
 from typing import Awaitable, Callable, Optional
 
 import numpy as np
@@ -46,7 +46,7 @@ from app.providers.openrouter import chat as orchat
 from app.providers.routing import describe as describe_models
 from app.providers.tts.base import Voice
 from app.providers.tts.choose import make_tts
-from app.realtime import limits
+from app.realtime import admission, limits
 from app.realtime.events import InputAppend, SessionInit, error, session_closed
 from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
                                   RealtimeSession, keep_for_resume,
@@ -68,6 +68,11 @@ WS_RATE_LIMITED = 4429   #: с этого адреса уже слишком м�
 #: очереди с оппонентом, а всё, что сверх, — либо дрожащий палец, либо тот, кто
 #: решил проверить, сколько платных ходов примет сокет за секунду.
 _MAX_QUEUED_TURNS = 1
+
+# Advice has a deterministic fallback; a slow provider must not leave it pending.
+HINT_BUDGET_S = 6.0
+WS_SEND_TIMEOUT_S = 10.0
+WS_CLOSE_TIMEOUT_S = 1.0
 
 #: Короче этого «своя сделка» не генерируется. Не строгость ради строгости:
 #: описание уезжает в самую дорогую роль (`reasoning`), и из пустой строки она
@@ -268,6 +273,21 @@ class _Work:
                 await task
 
 
+def _admitted(handler):
+    @wraps(handler)
+    async def admitted(websocket: WebSocket) -> None:
+        socket_lease = admission.acquire()
+        if socket_lease is None:
+            await websocket.close(code=WS_RATE_LIMITED)
+            return
+        try:
+            await handler(websocket)
+        finally:
+            socket_lease.release()
+    return admitted
+
+
+@_admitted
 async def realtime_ws(websocket: WebSocket) -> None:
     await websocket.accept()
     mode = websocket.query_params.get("mode", "text")
@@ -285,6 +305,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
     vision: Optional[VisionSampler] = None
     writer: Optional[asyncio.Task] = None
     work = _Work()
+    init_deadline = asyncio.get_running_loop().time() + admission.INIT_TIMEOUT_S
     peer = websocket.client.host if websocket.client else ""
     lease: Optional[limits.Lease] = None
     owner: Optional[_Owner] = None
@@ -319,7 +340,14 @@ async def realtime_ws(websocket: WebSocket) -> None:
     try:
         while True:
             try:
-                message = await websocket.receive_json()
+                # Absolute deadline: invalid frames must not keep an idle socket alive.
+                async with asyncio.timeout_at(init_deadline if session is None else None):
+                    message = await websocket.receive_json()
+            except TimeoutError:
+                with contextlib.suppress(Exception):
+                    await websocket.send_json(error("init_timeout", admission.init_timeout_message("ru")))
+                    await websocket.close(code=4408)
+                return
             except WebSocketDisconnect:
                 raise
             except Exception:
@@ -1006,11 +1034,21 @@ async def _pump(websocket: WebSocket, session: RealtimeSession) -> None:
         async for event in session.bus.drain():
             if event.get("type") == "debrief":
                 _attach_vision_tape(event, session)
-            await websocket.send_json(event)
-    except (WebSocketDisconnect, RuntimeError, asyncio.CancelledError):
+            async with asyncio.timeout(WS_SEND_TIMEOUT_S):
+                await websocket.send_json(event)
+            if event.get("error", {}).get("code") == "output_overflow":
+                async with asyncio.timeout(WS_CLOSE_TIMEOUT_S):
+                    await websocket.close(code=1013)
+                return
+    except (WebSocketDisconnect, asyncio.CancelledError):
         return
-    except Exception:
-        return
+    except Exception as exc:
+        # A dead writer must not leave a reader accepting turns nobody can see.
+        # Retryable close lets the normal reader finally retain the engine for resume.
+        _log.warning("websocket_write_failed error_type=%s", type(exc).__name__)
+        with contextlib.suppress(Exception):
+            async with asyncio.timeout(WS_CLOSE_TIMEOUT_S):
+                await websocket.close(code=1013)
 
 
 async def _send_hint(session: RealtimeSession) -> None:
@@ -1034,8 +1072,11 @@ async def _send_hint(session: RealtimeSession) -> None:
         facts["fallback_hint"] = base
         try:
             system, user = coach_prompts(facts, lang)
-            raw = await orchat.complete(system, user, role="opponent",
-                                        max_tokens=300, temperature=0.6, raw=True)
+            raw = await asyncio.wait_for(
+                orchat.complete(system, user, role="opponent",
+                                max_tokens=300, temperature=0.6, raw=True),
+                timeout=HINT_BUDGET_S,
+            )
             tip = coach_parse(raw or "", lang)
             if tip:
                 payload["text"] = tip.get("why") or base

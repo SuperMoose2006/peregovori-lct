@@ -53,6 +53,7 @@ from typing import Optional
 
 from app.ai.judge import build_prompts, parse_judgement
 from app.protocol import reproducible_run
+from app.providers import network_enabled
 from app.providers.openrouter import chat as orchat
 
 
@@ -64,6 +65,8 @@ def judge_enabled() -> bool:
     бэкенд всегда сетевой и быстрый, поэтому семантика по умолчанию включена —
     это и есть рекомендованный профиль.
     """
+    if not network_enabled():
+        return False
     v = os.environ.get("NEGO_JUDGE", "").strip().lower()
     if v in ("1", "on", "true", "yes"):
         return True

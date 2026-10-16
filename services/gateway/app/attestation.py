@@ -124,7 +124,8 @@ def document(identifier: str):
     title = "Свидетельство о результате экзамена" if ru else "Exam result certificate"
     text = ("Анонимная серверная попытка. Личность не удостоверена. Подтверждает результат одного экзамена тренажёра, не прохождение курса и не квалификацию."
             if ru else "Anonymous server attempt. Identity not verified. Certifies one simulator exam, not course completion or a qualification.")
-    esc = lambda value: html.escape(str(value), quote=True)
+    def esc(value):
+        return html.escape(str(value), quote=True)
     # Standalone printable server document; no client-controlled name or date.
     body = f'''<!doctype html><html lang="{esc(r['lang'])}"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width"><title>{title}</title>

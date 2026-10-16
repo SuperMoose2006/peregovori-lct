@@ -41,6 +41,7 @@ import base64
 from typing import Awaitable, Callable, Optional
 
 from app.providers.tts.base import TTSProvider, Voice
+from app.observability import ProviderCall
 from app.realtime.events import output_delta, error
 
 #: Метка конца фразы во внутренней очереди.
@@ -120,13 +121,15 @@ class TTSTaskManager:
         extra = ({"generation_id": generation_id}
                  if getattr(self._provider, "wants_generation", False) is True else {})
         try:
-            async with asyncio.timeout(timeout):
-                async for chunk in self._provider.stream(text, self._voice, **extra):
-                    if chunk:
-                        received = True
-                        await queue.put(chunk)
-            if not received:
-                raise RuntimeError("empty synthesis")
+            with ProviderCall("tts.synthesize", type(self._provider).__name__) as call:
+                async with asyncio.timeout(timeout):
+                    async for chunk in self._provider.stream(text, self._voice, **extra):
+                        if chunk:
+                            call.first_chunk()
+                            received = True
+                            await queue.put(chunk)
+                if not received:
+                    raise RuntimeError("empty synthesis")
         except asyncio.CancelledError:
             raise
         except Exception:

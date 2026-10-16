@@ -128,7 +128,7 @@ def _form(m: LessonMaterial) -> list[str]:
         for lang in LANGS:
             if not isinstance(loc.get(lang), str) or not loc[lang].strip():
                 out.append(f"строка №{i}: нет текста на {lang}")
-    lessons = {(b.id, l.idx) for b in BLOCKS for l in b.lessons}
+    lessons = {(b.id, lesson.idx) for b in BLOCKS for lesson in b.lessons}
     if m.key not in lessons:
         out.append(f"урока {m.key} нет в blocks.py")
     if by_id(m.scenario_id) is None:
@@ -261,7 +261,7 @@ def problems() -> list[str]:
 def missing() -> list[tuple[str, int]]:
     """Уроки программы, к которым материала ещё нет."""
     have = load_all()
-    return [(b.id, l.idx) for b in BLOCKS for l in b.lessons if (b.id, l.idx) not in have]
+    return [(b.id, lesson.idx) for b in BLOCKS for lesson in b.lessons if (b.id, lesson.idx) not in have]
 
 
 def _only(names: list[str]) -> int:

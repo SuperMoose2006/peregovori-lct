@@ -36,16 +36,15 @@ def _load_dotenv() -> None:
 
 _load_dotenv()
 
-from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import engine
-from app.session import store
 from app import views
-from app.protocol import CourseCoachMsg, ScenarioView, StateView, WhatIfMsg
+from app.protocol import CourseCoachMsg, WhatIfMsg
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
@@ -422,7 +421,6 @@ def health() -> dict:
     from app.orchestrator.judge import judge_enabled
     from app.providers.openrouter import chat as orchat
     from app.providers.routing import describe as describe_models
-    from app.providers.tts.edge import EdgeTTS
 
     return {
         "ok": True,

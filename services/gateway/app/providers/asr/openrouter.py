@@ -29,6 +29,7 @@ import numpy as np
 from app.providers.asr.base import ASRProvider, Transcript
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import model_for
+from app.observability import ProviderCall
 
 _PROMPT = {
     "ru": ("Ты — точная система распознавания речи. Верни ДОСЛОВНУЮ расшифровку "
@@ -81,15 +82,17 @@ class OpenRouterASR(ASRProvider):
             "temperature": 0.0,
             "max_tokens": 400,
         }
-        try:
-            r = await orchat._get_client().post("/chat/completions", json=payload)
-            r.raise_for_status()
-            text = (r.json()["choices"][0]["message"]["content"] or "").strip()
-        except Exception:
-            # Не распознали — ход не пропадает: клиент оставляет игроку
-            # возможность допечатать реплику руками.
-            return Transcript(text="", final=True)
+        with ProviderCall("asr.transcribe", "openrouter") as call:
+            try:
+                r = await orchat._get_client().post("/chat/completions", json=payload)
+                r.raise_for_status()
+                text = (r.json()["choices"][0]["message"]["content"] or "").strip()
+            except Exception as exc:
+                call.fail(exc)
+                # Не распознали — ход не пропадает: клиент оставляет игроку
+                # возможность допечатать реплику руками.
+                return Transcript(text="", final=True)
 
-        # Модель иногда оборачивает расшифровку в кавычки, несмотря на промпт.
-        text = text.strip().strip('"«»').strip()
-        return Transcript(text=text, final=True)
+            # Модель иногда оборачивает расшифровку в кавычки, несмотря на промпт.
+            text = text.strip().strip('"«»').strip()
+            return Transcript(text=text, final=True)

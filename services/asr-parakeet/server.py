@@ -27,7 +27,6 @@
 
 from __future__ import annotations
 
-import io
 import os
 import tempfile
 import time
@@ -89,7 +88,13 @@ async def transcribe(request: Request, x_sample_rate: str = Header(default="1600
     except ValueError:
         raise HTTPException(status_code=400, detail="X-Sample-Rate не число")
 
-    pcm = np.frombuffer(raw, dtype=np.float32)
+    if not 0 < rate <= 192000:
+        raise HTTPException(status_code=400, detail="X-Sample-Rate вне допустимого диапазона")
+    if len(raw) % 4:
+        raise HTTPException(status_code=400, detail="тело должно содержать PCM float32")
+    pcm = np.frombuffer(raw, dtype="<f4")
+    if not np.isfinite(pcm).all():
+        raise HTTPException(status_code=400, detail="PCM содержит нечисловые значения")
     if pcm.size == 0:
         return {"text": ""}
     if pcm.size / rate > MAX_SECONDS:

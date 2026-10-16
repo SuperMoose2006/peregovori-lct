@@ -5,6 +5,7 @@ import httpx
 import numpy as np
 
 from .base import ASRProvider, Transcript
+from app.observability import ProviderCall
 
 
 class ParakeetASR(ASRProvider):
@@ -23,15 +24,16 @@ class ParakeetASR(ASRProvider):
     async def transcribe(self, pcm: np.ndarray, sample_rate: int, lang: str) -> Transcript:
         if not pcm.size:
             return Transcript("")
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.post(
-                f"{self.url}/transcribe",
-                content=np.ascontiguousarray(pcm, dtype="<f4").tobytes(),
-                headers={"X-Sample-Rate": str(sample_rate),
-                         "Content-Type": "application/octet-stream"},
-            )
-            response.raise_for_status()
-            text = response.json()["text"]
-            if not isinstance(text, str):
-                raise ValueError("Invalid local ASR response")
-            return Transcript(text.strip())
+        with ProviderCall("asr.transcribe", "parakeet"):
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.url}/transcribe",
+                    content=np.ascontiguousarray(pcm, dtype="<f4").tobytes(),
+                    headers={"X-Sample-Rate": str(sample_rate),
+                             "Content-Type": "application/octet-stream"},
+                )
+                response.raise_for_status()
+                text = response.json()["text"]
+                if not isinstance(text, str):
+                    raise ValueError("Invalid local ASR response")
+                return Transcript(text.strip())

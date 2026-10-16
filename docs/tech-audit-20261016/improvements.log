@@ -1,0 +1,44 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+locator.selectOption: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator('.catalog-level select')
+    - locator resolved to <select>…</select>
+  - attempting select option action
+    2 × waiting for element to be visible and enabled
+      - did not find some options
+    - retrying select option action
+    - waiting 20ms
+    2 × waiting for element to be visible and enabled
+      - did not find some options
+    - retrying select option action
+      - waiting 100ms
+    59 × waiting for element to be visible and enabled
+       - did not find some options
+     - retrying select option action
+       - waiting 500ms
+
+    at /root/work/wt-peregovori-lct-33051/frontend/e2e/improvements.mjs:107:47 {
+  log: [
+    "  - waiting for locator('.catalog-level select')",
+    '    - locator resolved to <select>…</select>',
+    '  - attempting select option action',
+    '    2 × waiting for element to be visible and enabled',
+    '      - did not find some options',
+    '    - retrying select option action',
+    '    - waiting 20ms',
+    '    2 × waiting for element to be visible and enabled',
+    '      - did not find some options',
+    '    - retrying select option action',
+    '      - waiting 100ms',
+    '    59 × waiting for element to be visible and enabled',
+    '       - did not find some options',
+    '     - retrying select option action',
+    '       - waiting 500ms'
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v22.22.1

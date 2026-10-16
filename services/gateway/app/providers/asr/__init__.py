@@ -1,7 +1,7 @@
 """Explicit ASR selection. An outage must never change the audio recipient."""
 import os
 
-from .base import ASRProvider, Transcript
+from .base import ASRProvider, Transcript as Transcript
 from .openrouter import OpenRouterASR
 from .parakeet import ParakeetASR
 

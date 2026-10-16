@@ -1,0 +1,12 @@
+Base: 738d802
+Backend: 3059 passed, 162 skipped, 1 xfailed
+Frontend unit: 668 total, 663 pass, 0 fail, 5 todo
+Legacy: 14 pass
+Ruff baseline and final: {'F401': 13, 'E731': 2, 'E741': 2, 'E702': 21, 'E402': 16}
+Critical Ruff: pass
+TypeScript typecheck/build: pass
+Smoke/course: pass
+Flows strict: 5/5 pass, 93 checks
+UI strict: 4/5 pass, language aria state failure
+Improvements: fails selecting nonexistent challenge option
+Paid manual checks: 0
