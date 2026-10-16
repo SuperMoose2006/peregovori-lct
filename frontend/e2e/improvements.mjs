@@ -48,8 +48,18 @@ async function clearScrims(page) {
     await page.locator(".milestone-go").first().click();
   }
 }
+async function answerProbe(page) {
+  // Слои включены по умолчанию (lib/layers.ts), и вопрос «Что происходит с
+  // собеседником?» блокирует поле, пока на него не ответят — как у человека.
+  for (let i = 0; i < 3; i++) {
+    const open = page.locator(".probe:not(.right):not(.wrong) button");
+    if (!await open.count()) return;
+    await open.first().click();
+  }
+}
 async function turn(page, line) {
   await clearScrims(page);
+  await answerProbe(page);
   await page.locator(".msg.opp").first().waitFor();
   const before = await page.locator(".msg.opp").count();
   const budget = await page.locator(".turnbar i").getAttribute("style");
@@ -104,8 +114,11 @@ try {
   await page.locator(".catalog-empty").waitFor();
   await page.locator(".catalog-empty button").click();
   await page.locator(".catalog-topics button").filter({ hasText: /^Бизнес$/ }).click();
-  await page.locator(".catalog-level select").selectOption("challenge");
-  assert.equal(await page.locator("[data-scenario]").count(), 3);
+  // Режимы уступок — 1/3/5 (lib/difficulty.ts), старое «challenge» исчезло
+  // вместе с ними, и шаг молча ждал несуществующий пункт до таймаута.
+  await page.locator(".catalog-level select").selectOption("5");
+  const hardBusiness = await page.locator("[data-scenario]").count();
+  assert.ok(hardBusiness > 0 && hardBusiness < 9, `фильтры не сузили каталог: ${hardBusiness}`);
   await page.locator(".catalog-reset").click();
   checks.push("Catalog search, combined filters, empty state and reset");
 
@@ -114,9 +127,9 @@ try {
   await page.locator("#admin-topic").fill("Аренда помещения для новой команды");
   await page.locator("#admin-role").fill("Представитель собственника");
   await page.locator("#admin-tone").selectOption("firm");
-  await page.locator("#admin-difficulty").fill("4");
+  await page.locator("#admin-difficulty").selectOption("5");
   await page.getByRole("button", { name: "Сохранить черновик", exact: true }).click();
-  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("dialog.adminContext.v1")).difficulty), 4);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("dialog.adminContext.v1")).difficulty), 5);
   await page.getByRole("button", { name: "Посмотреть условия", exact: true }).click();
   await page.locator(".admin-launch").waitFor();
   assert.match(await page.locator(".admin-preview").innerText(), /Аренда помещения для новой команды/);
@@ -148,7 +161,12 @@ try {
   assert(repeatDebrief, `The completed server session must publish its report: ${serverEvents.join(",")}`);
   repeatDebrief();
   await page.waitForTimeout(300);
-  assert.deepEqual(await progression(), recorded, "Replayed completion must not award XP or append history twice");
+  const replayed = await progression();
+  const changedKeys = (a, b) => { const x = JSON.parse(a || "{}"), y = JSON.parse(b || "{}");
+    return [...new Set([...Object.keys(x), ...Object.keys(y)])].filter((k) => JSON.stringify(x[k]) !== JSON.stringify(y[k]))
+      .map((k) => `${k}: ${JSON.stringify(x[k]).slice(0, 120)} → ${JSON.stringify(y[k]).slice(0, 120)}`); };
+  assert.deepEqual(replayed, recorded, "Replayed completion must not award XP or append history twice: "
+    + JSON.stringify({ progress: changedKeys(recorded[0], replayed[0]), historyLen: [recorded[1], replayed[1]].map((h) => JSON.parse(h || "[]").length) }));
   checks.push("Replayed server debrief does not duplicate XP, attempts or history");
   const txtDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: "Скачать разбор", exact: true }).click();
