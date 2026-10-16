@@ -2740,6 +2740,8 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .st-c {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink);
+  /* «0 XP» — одно число с единицей: на 390 px оно рвалось на «0» и «XP». */
+  white-space: nowrap; flex-shrink: 0;
 }
 .st-c:nth-child(1) { color: var(--orange-ink); }
 .st-c:nth-child(2) { color: var(--info-ink); }
