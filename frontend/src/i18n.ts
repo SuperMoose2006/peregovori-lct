@@ -419,7 +419,7 @@ export interface Strings {
     offVoice: string; offCamera: string; offHow: string;
   };
   probe: {
-    ask: string;             // "Что с ним сейчас происходит?"
+    ask: string;             // "Что сейчас происходит с собеседником?"
     readFace: string;        // label above the enlarged portrait
     blocked: string;         // composer placeholder while the question is open
     tally: string;           // "прочитано {n} из {m}"
@@ -1360,7 +1360,7 @@ export const I18N: Record<Lang, Strings> = {
       offHow: "Партия продолжается текстом. Разрешите доступ в браузере и начните заново.",
     },
     probe: {
-      ask: "Что с ним сейчас происходит?",
+      ask: "Что сейчас происходит с собеседником?",
       readFace: "Читайте лицо",
       blocked: "Ответьте на вопрос, чтобы продолжить",
       tally: "прочитано {n} из {m}",
