@@ -4088,6 +4088,13 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
      «12345 XP» не помещаются рядом с кнопками языка, темы и звука на 390 px. */
   .sidenav { padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
   .sidenav ul { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scroll-padding-inline: 8px; }
+  .sidenav.more-left::before, .sidenav.more-right::after {
+    position: absolute; top: 0; bottom: env(safe-area-inset-bottom); width: 30px; z-index: 1;
+    display: grid; place-items: center; pointer-events: none;
+    font-size: 24px; font-weight: 900; color: var(--ink-dim);
+  }
+  .sidenav.more-right::after { content: "›"; right: 0; background: linear-gradient(to right, transparent, var(--panel) 55%); }
+  .sidenav.more-left::before { content: "‹"; left: 0; background: linear-gradient(to left, transparent, var(--panel) 55%); }
   .sidenav li { flex: 1 0 70px; }
   .sn-row { padding: 6px 4px; min-height: 52px; }
   :root .withrail { padding-top: 22px; gap: 24px; }

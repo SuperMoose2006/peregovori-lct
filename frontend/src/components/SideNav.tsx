@@ -3,6 +3,7 @@
 // Меню перечисляет ТОЛЬКО то, что в продукте есть на самом деле: ранний макет
 // придумал магазин и счётчик жизней, а реклама несуществующих возможностей —
 // ровно то, что жюри ловит первым.
+import { useEffect, useRef, useState } from "react";
 import type { Strings } from "../i18n";
 import type { ScreenMode } from "../types";
 import type { NavSection } from "../lib/navigation";
@@ -41,12 +42,30 @@ export function SideNav({ t, active, onMode, onProfile, onCourse, onAdmin }: Pro
     { key: "profile", label: t.nav.profile, go: onProfile },
     ...(onAdmin ? [{ key: "admin", label: t.nav.admin, go: onAdmin }] : []),
   ];
+  // На телефоне меню — полоса вкладок с прокруткой вбок, и на 390 px из семи
+  // видно пять: «Профиль» и «Редактор» прятались без намёка (аудит 16.10).
+  // У края, за которым есть ещё вкладки, стоит шеврон — классы ставит замер.
+  const listRef = useRef<HTMLUListElement>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const measure = () => {
+      const left = el.scrollLeft > 2;
+      const right = el.scrollWidth - el.clientWidth - el.scrollLeft > 2;
+      setMore((m) => (m.left === left && m.right === right ? m : { left, right }));
+    };
+    measure();
+    el.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => { el.removeEventListener("scroll", measure); window.removeEventListener("resize", measure); };
+  }, []);
   return (
-    <nav className="sidenav" aria-label={t.a11y.nav}>
+    <nav className={`sidenav${more.left ? " more-left" : ""}${more.right ? " more-right" : ""}`} aria-label={t.a11y.nav}>
       <div className="sn-brand">
         Диалог<span className="dot">.</span>
       </div>
-      <ul>
+      <ul ref={listRef}>
         {rows.map((r) => (
           <li key={r.key}>
             <button
