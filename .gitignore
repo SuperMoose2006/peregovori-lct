@@ -23,3 +23,6 @@ frontend/dist-mock
 frontend/dist-split
 frontend/dist-badge/
 services/gateway/certs/
+# Снимки аудита: в историю — только те, на которые ссылается бэклог
+# (добавляются `git add -f`), остальные остаются на машине аудита.
+artifacts/**/*.png
