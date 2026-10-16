@@ -28,6 +28,7 @@ from typing import AsyncIterator, Optional
 
 import httpx
 
+from app.observability import ProviderCall
 from app.ai.sanitize import sanitize  # проверенная санитизация — переиспользуем
 from app.providers import network_enabled
 from app.providers.routing import Role, model_for
@@ -104,19 +105,21 @@ async def complete(system: str, user: str, *, role: Role = "opponent",
     """
     if not available():
         return None
-    try:
-        r = await _get_client().post(
-            "/chat/completions",
-            json=_payload(system, user, role=role, stream=False,
-                          max_tokens=max_tokens, temperature=temperature, model=model),
-        )
-        r.raise_for_status()
-        text = (r.json()["choices"][0]["message"]["content"] or "").strip()
-    except Exception:
-        # Сеть, лимиты, кривой ответ — всё это штатные исходы. Игра продолжается
-        # на шаблонном фолбэке движка, а не падает.
-        return None
-    return text or None if raw else sanitize(text)
+    with ProviderCall("llm.complete", "openrouter", role) as call:
+        try:
+            r = await _get_client().post(
+                "/chat/completions",
+                json=_payload(system, user, role=role, stream=False,
+                              max_tokens=max_tokens, temperature=temperature, model=model),
+            )
+            r.raise_for_status()
+            text = (r.json()["choices"][0]["message"]["content"] or "").strip()
+        except Exception as exc:
+            call.fail(exc)
+            # Сеть, лимиты, кривой ответ — всё это штатные исходы. Игра продолжается
+            # на шаблонном фолбэке движка, а не падает.
+            return None
+        return text or None if raw else sanitize(text)
 
 
 async def stream(system: str, user: str, *, role: Role = "opponent",
@@ -131,29 +134,32 @@ async def stream(system: str, user: str, *, role: Role = "opponent",
     """
     if not available():
         return
-    try:
-        async with _get_client().stream(
-            "POST", "/chat/completions",
-            json=_payload(system, user, role=role, stream=True,
-                          max_tokens=max_tokens, temperature=temperature, model=model),
-        ) as r:
-            r.raise_for_status()
-            async for line in r.aiter_lines():
-                if not line.startswith("data: "):
-                    continue
-                data = line[6:].strip()
-                if data == "[DONE]":
-                    break
-                try:
-                    delta = json.loads(data)["choices"][0].get("delta", {})
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    # OpenRouter вставляет служебные комментарии в поток;
-                    # пропустить кадр правильнее, чем оборвать реплику.
-                    continue
-                chunk = delta.get("content")
-                if chunk:
-                    yield chunk
-    except Exception:
-        # Обрыв на середине — не катастрофа: оркестратор увидит короткий текст
-        # и достроит его шаблонным фолбэком.
-        return
+    with ProviderCall("llm.stream", "openrouter", role) as call:
+        try:
+            async with _get_client().stream(
+                "POST", "/chat/completions",
+                json=_payload(system, user, role=role, stream=True,
+                              max_tokens=max_tokens, temperature=temperature, model=model),
+            ) as r:
+                r.raise_for_status()
+                async for line in r.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        delta = json.loads(data)["choices"][0].get("delta", {})
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        # OpenRouter вставляет служебные комментарии в поток;
+                        # пропустить кадр правильнее, чем оборвать реплику.
+                        continue
+                    chunk = delta.get("content")
+                    if chunk:
+                        call.first_chunk()
+                        yield chunk
+        except Exception as exc:
+            call.fail(exc)
+            # Обрыв на середине — не катастрофа: оркестратор увидит короткий текст
+            # и достроит его шаблонным фолбэком.
+            return
