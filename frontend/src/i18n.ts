@@ -765,6 +765,7 @@ export interface Strings {
     tradeoffs: [string, string, string];
     threats: [string, string, string];
   };
+  footLeft: string;
   footRight: string;
   quickMoves: QuickMove[];
   // gamification (localStorage): XP/ranks, daily goal, skill mastery, achievements
@@ -1733,6 +1734,7 @@ export const I18N: Record<Lang, Strings> = {
       tradeoffs: ["размен", "размена", "разменов"],
       threats: ["угроза", "угрозы", "угроз"],
     },
+    footLeft: "Диалог · тренажёр переговоров",
     footRight: "исход зависит от вашей стратегии",
     gam: {
       rankLabel: "ранг",
@@ -2698,6 +2700,7 @@ export const I18N: Record<Lang, Strings> = {
       tradeoffs: ["trade-off", "trade-offs", "trade-offs"],
       threats: ["threat", "threats", "threats"],
     },
+    footLeft: "Диалог · Negotiation Skills Simulator",
     footRight: "the outcome depends on your strategy",
     gam: {
       rankLabel: "rank",

@@ -1539,7 +1539,7 @@ export default function App() {
       {lastGame ? <AchievementToasts t={t} lang={lang} ids={lastGame.newAchievements} /> : null}
 
       <div className="foot">
-        <span>Диалог · Negotiation Skills Simulator</span>
+        <span>{t.footLeft}</span>
         <span>{t.footRight}</span>
       </div>
       </div>
