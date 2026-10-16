@@ -1030,7 +1030,7 @@ export const I18N: Record<Lang, Strings> = {
       placeholder:
         "Опишите вашу переговорную ситуацию… Например: «Я фрилансер, клиент просит скидку 20% на проект, а я не готов опускаться ниже своей ставки. Нужно сохранить контракт и не обесценить работу.»",
       promise:
-        "По описанию ИИ соберёт оппонента: характер и манеру речи, красную линию, за которую он не пойдёт, зону возможного согласия и три скрытых интереса — их придётся вскрывать вопросами. Обычно занимает 2-3 секунды.",
+        "По описанию ИИ соберёт оппонента: характер и манеру речи, красную линию, за которую он не пойдёт, зону возможного согласия и три скрытых интереса — их придётся вскрывать вопросами. Обычно занимает 2–3 секунды.",
       vsEditor:
         "«Своя сделка» — для вас: опишите свою настоящую ситуацию, и за стол сядете вы сами. Если нужно подготовить переговоры для других — учеников или команды — по готовым настройкам, для этого есть «Редактор».",
       examplesHead: "Не с чего начать? Возьмите пример — он подставится в поле:",
@@ -2007,7 +2007,7 @@ export const I18N: Record<Lang, Strings> = {
       placeholder:
         "Describe your negotiation situation… e.g. “I'm a freelancer, a client wants a 20% discount on the project, but I can't go below my rate. I need to keep the contract without devaluing my work.”",
       promise:
-        "From your description the AI builds a counterpart: character and voice, the red line they will not cross, the bargaining zone, and three hidden interests you'll have to surface with questions. Usually takes 2-3 seconds.",
+        "From your description the AI builds a counterpart: character and voice, the red line they will not cross, the bargaining zone, and three hidden interests you'll have to surface with questions. Usually takes 2–3 seconds.",
       vsEditor:
         "“Your deal” is for you: describe your own real situation and you take the seat yourself. To prepare a negotiation for someone else — learners or your team — from ready-made settings, use the “Editor”.",
       examplesHead: "Not sure where to start? Take an example — it fills the box:",
