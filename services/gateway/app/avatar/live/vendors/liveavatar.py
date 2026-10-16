@@ -38,6 +38,7 @@ import asyncio
 import base64
 import contextlib
 import json
+import re
 import logging
 import time
 from typing import AsyncIterator, Optional
@@ -112,6 +113,10 @@ class LiveAvatarDriver(WebRtcDriver):
         self._connected = asyncio.Event()
         self._buffer = bytearray()
         self._sent_in_utterance = 0
+        self._last_audio_send_at: Optional[float] = None
+        self._last_chunk_audio_ms = 0.0
+        self._audio_chunks_sent = 0
+        self._warning_count = 0
         self._flush_handle: Optional[asyncio.TimerHandle] = None
         self._send_lock = asyncio.Lock()
         #: Потолок длины сессии у сервиса, сек. None — предел тарифа. Прибор
@@ -281,6 +286,9 @@ class LiveAvatarDriver(WebRtcDriver):
         chunk, self._buffer = bytes(self._buffer), bytearray()
         self._sent_in_utterance += len(chunk)
         await self._send({"type": "agent.speak", "audio": base64.b64encode(chunk).decode("ascii")})
+        self._last_audio_send_at = self._now()
+        self._last_chunk_audio_ms = len(chunk) / (24000 * 2) * 1000
+        self._audio_chunks_sent += 1
 
     def _flush_soon(self) -> None:
         if self._flush_handle is not None:
@@ -352,7 +360,20 @@ class LiveAvatarDriver(WebRtcDriver):
                     _log.warning("живое видео: liveavatar ошибка %s: %s", err.get("type"), err.get("message"))
                 elif kind == "warning":
                     warn = event.get("warning") or {}
-                    _log.info("живое видео: liveavatar предупреждение %s: %s", warn.get("type"), warn.get("message"))
+                    self._warning_count += 1
+                    gap = re.search(r"(\d+) frames missed \((\d+)ms gap\)", str(warn.get("message", "")))
+                    _log.warning(json.dumps({
+                        "event": "live_video_warning", "provider": "liveavatar",
+                        "warning_kind": "video_starvation" if warn.get("type") == "video_starvation" else "other",
+                        "warning_count": self._warning_count,
+                        "since_audio_send_ms": (round((self._now() - self._last_audio_send_at) * 1000, 3)
+                                                if self._last_audio_send_at is not None else None),
+                        "last_chunk_audio_ms": self._last_chunk_audio_ms,
+                        "audio_chunks_sent": self._audio_chunks_sent,
+                        "buffered_audio_ms": len(self._buffer) / (24000 * 2) * 1000,
+                        "frames_missed": int(gap[1]) if gap else None,
+                        "service_gap_ms": int(gap[2]) if gap else None,
+                    }, separators=(",", ":")))
         except asyncio.CancelledError:
             raise
         except Exception as exc:
