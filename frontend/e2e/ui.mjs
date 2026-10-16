@@ -21,17 +21,9 @@ import {
   escapeModals, nav, tabTo, until, focusIsVisible, describeFocus,
 } from "./harness.mjs";
 
-const KNOWN_BUGS = {
-  "lang-toggle-no-state":
-    "Кнопки RU/EN не сообщают, какая из них выбрана: состояние передаётся только классом " +
-    "`on` (App.tsx), без aria-pressed/aria-current. Диктор слышит две одинаковые кнопки. " +
-    "Соседняя кнопка темы это умеет (aria-pressed).",
-  "milestone-focus-to-body":
-    "Веха всплывает в момент конца партии; её «открывашкой» useModalShell запоминает поле реплики, " +
-    "которое к закрытию уже скрыто (`hidden` на финале). Esc → focus() на скрытый элемент молча " +
-    "не срабатывает, фокус падает на <body> до того, как через ~2 с смонтируется разбор. " +
-    "lib/modal.ts проверяет `document.contains(opener)`, но не то, что открывашка ещё фокусируема.",
-};
+// Пусто, и это результат: «кнопки языка без состояния» и «фокус после вехи
+// падает на body» починены (16.10). Новый известный дефект — сюда, с адресом.
+const KNOWN_BUGS = {};
 
 const NAV_LABEL = { practice: "training", campaign: "campaign", course: "course", custom: "custom",
                     exam: "exam", profile: "profile", admin: "admin" };
@@ -116,8 +108,8 @@ await suite.flow("language", async (f) => {
   const RU = p.getByRole("button", { name: "RU", exact: true });
   const EN = p.getByRole("button", { name: "EN", exact: true });
   const stateOf = async (b) => (await b.getAttribute("aria-pressed")) ?? (await b.getAttribute("aria-current"));
-  await f.known("lang-toggle-no-state", (await stateOf(RU)) === "true" || (await stateOf(RU)) === "page",
-    "кнопки языка сообщают выбранный (aria-pressed / aria-current)",
+  f.check((await stateOf(RU)) === "true" && (await stateOf(EN)) === "false",
+    "кнопки языка сообщают выбранный (aria-pressed)",
     `RU: aria-pressed=${await RU.getAttribute("aria-pressed")}, aria-current=${await RU.getAttribute("aria-current")}`);
 
   await EN.click();
@@ -338,7 +330,7 @@ await suite.flow("milestone", async (f) => {
   await p.keyboard.press("Escape");
   await until(async () => !(await card.count()), 3000, "веха закрылась").catch(() => {});
   f.check(!(await card.count()), "Esc закрывает веху");
-  await f.known("milestone-focus-to-body", await p.evaluate(() => document.activeElement !== document.body),
+  f.check(await p.evaluate(() => document.activeElement !== document.body),
     "после Esc по вехе фокус не падает на body", `фокус: ${await describeFocus(p)}`);
   await readDebrief(p, t);
   await until(() => p.evaluate(() => document.activeElement !== document.body), 3000, "фокус на разборе")

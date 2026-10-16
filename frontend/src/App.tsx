@@ -1034,10 +1034,12 @@ export default function App() {
             </button>
           ) : null}
           <div className="seg">
-            <button className={lang === "ru" ? "on" : ""} onClick={() => setLang("ru")}>
+            {/* Выбор языка — состояние, а не только цвет: класс `on` диктор не
+                слышит, и две кнопки звучали одинаково (e2e ui --strict). */}
+            <button className={lang === "ru" ? "on" : ""} aria-pressed={lang === "ru"} onClick={() => setLang("ru")}>
               RU
             </button>
-            <button className={lang === "en" ? "on" : ""} onClick={() => setLang("en")}>
+            <button className={lang === "en" ? "on" : ""} aria-pressed={lang === "en"} onClick={() => setLang("en")}>
               EN
             </button>
           </div>
