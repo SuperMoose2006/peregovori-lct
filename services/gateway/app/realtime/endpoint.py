@@ -25,6 +25,7 @@ import contextlib
 import logging
 import os
 from dataclasses import dataclass
+from functools import wraps
 from typing import Awaitable, Callable, Optional
 
 import numpy as np
@@ -271,18 +272,22 @@ class _Work:
                 await task
 
 
+def _admitted(handler):
+    @wraps(handler)
+    async def admitted(websocket: WebSocket) -> None:
+        socket_lease = admission.acquire()
+        if socket_lease is None:
+            await websocket.close(code=WS_RATE_LIMITED)
+            return
+        try:
+            await handler(websocket)
+        finally:
+            socket_lease.release()
+    return admitted
+
+
+@_admitted
 async def realtime_ws(websocket: WebSocket) -> None:
-    socket_lease = admission.acquire()
-    if socket_lease is None:
-        await websocket.close(code=WS_RATE_LIMITED)
-        return
-    try:
-        await _serve_socket(websocket)
-    finally:
-        socket_lease.release()
-
-
-async def _serve_socket(websocket: WebSocket) -> None:
     await websocket.accept()
     mode = websocket.query_params.get("mode", "text")
     if mode not in ("text", "voice"):

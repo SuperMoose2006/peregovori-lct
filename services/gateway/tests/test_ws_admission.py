@@ -41,13 +41,13 @@ async def test_idle_socket_expires_without_session_init(monkeypatch):
 def test_uninitialized_sockets_count_towards_global_cap(monkeypatch):
     monkeypatch.setattr(admission, "MAX_WEBSOCKETS", 1)
     before = admission.live_websockets()
-    with TestClient(app) as client:
-        with client.websocket_connect("/v1/realtime") as first:
-            assert first.receive_json()["type"] == "session.queue_done"
-            with pytest.raises(WebSocketDisconnect):
-                with client.websocket_connect("/v1/realtime") as second:
-                    second.receive_json()
-            assert admission.live_websockets() == before + 1
+    client = TestClient(app)
+    with client.websocket_connect("/v1/realtime") as first:
+        assert first.receive_json()["type"] == "session.queue_done"
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect("/v1/realtime") as second:
+                second.receive_json()
+        assert admission.live_websockets() == before + 1
     assert admission.live_websockets() == before
 
 
@@ -74,11 +74,11 @@ async def test_invalid_frames_do_not_extend_init_deadline(monkeypatch):
 def test_initialized_game_outlives_init_deadline(monkeypatch):
     import time
     monkeypatch.setattr(admission, "INIT_TIMEOUT_S", 0.1)
-    with TestClient(app) as client:
-        with client.websocket_connect("/v1/realtime") as ws:
-            ws.receive_json()
-            ws.send_json({"type": "session.init", "payload": {"scenarioId": "supplier"}})
-            assert ws.receive_json()["type"] == "session.created"
-            time.sleep(0.15)
-            ws.send_json({"type": "coach.request"})
-            assert ws.receive_json()["type"] == "turn.coach"
+    client = TestClient(app)
+    with client.websocket_connect("/v1/realtime") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "session.init", "payload": {"scenarioId": "supplier"}})
+        assert ws.receive_json()["type"] == "session.created"
+        time.sleep(0.15)
+        ws.send_json({"type": "coach.request"})
+        assert ws.receive_json()["type"] == "turn.coach"
