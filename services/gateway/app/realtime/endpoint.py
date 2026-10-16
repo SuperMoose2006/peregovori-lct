@@ -69,6 +69,9 @@ WS_RATE_LIMITED = 4429   #: с этого адреса уже слишком м�
 #: решил проверить, сколько платных ходов примет сокет за секунду.
 _MAX_QUEUED_TURNS = 1
 
+# Advice has a deterministic fallback; a slow provider must not leave it pending.
+HINT_BUDGET_S = 6.0
+
 #: Короче этого «своя сделка» не генерируется. Не строгость ради строгости:
 #: описание уезжает в самую дорогую роль (`reasoning`), и из пустой строки она
 #: вернёт либо ничего, либо выдумку — оплаченную в обоих случаях.
@@ -1053,8 +1056,11 @@ async def _send_hint(session: RealtimeSession) -> None:
         facts["fallback_hint"] = base
         try:
             system, user = coach_prompts(facts, lang)
-            raw = await orchat.complete(system, user, role="opponent",
-                                        max_tokens=300, temperature=0.6, raw=True)
+            raw = await asyncio.wait_for(
+                orchat.complete(system, user, role="opponent",
+                                max_tokens=300, temperature=0.6, raw=True),
+                timeout=HINT_BUDGET_S,
+            )
             tip = coach_parse(raw or "", lang)
             if tip:
                 payload["text"] = tip.get("why") or base
