@@ -325,6 +325,21 @@ test("разбор партии кладётся целиком и закрыв�
   assert.equal(s.busy, false);
 });
 
+test("переотправленный итог той же партии не заменяет принятый объект", () => {
+  // App записывает партию в профиль по ССЫЛКЕ на итог. Переотправка после
+  // восстановления сессии новым объектом начисляла XP и попытку второй раз
+  // (e2e improvements: XP 104 → 208).
+  const card = { grade: "A", overall: 89, status: "agreement", deal_text: "1050 ₽", economic: 90, relationship: 80, technique: 95 };
+  const first = { ...card, observations: [] } as never;
+  const again = { ...card } as never;
+  const s = run({ ...EMPTY, busy: true }, [{ type: "debrief", debrief: first }, { type: "debrief", debrief: again }]);
+  assert.equal(s.debrief, first, "тот же счёт — тот же объект, иначе профиль запишет партию дважды");
+  assert.equal(s.busy, false);
+  const other = { ...card, overall: 70, grade: "B" } as never;
+  const t = run({ ...EMPTY }, [{ type: "debrief", debrief: first }, { type: "debrief", debrief: other }]);
+  assert.equal(t.debrief, other, "другой счёт — другой итог, его не глотаем");
+});
+
 test("неизвестное событие возвращает то же состояние, а не копию", () => {
   // Копия на каждый шум провода — лишняя перерисовка всего стола.
   const start = { ...EMPTY, log: [me(1)] };

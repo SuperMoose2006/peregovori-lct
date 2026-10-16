@@ -319,6 +319,13 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
            getVideoFrame, getAudioBlocked, resumeAudio, setMicMuted, interrupt };
 }
 
+/** Тот же итог: совпали все числа и буквы, из которых складывается оценка. */
+export function sameScorecard(a: import("../types").Debrief, b: import("../types").Debrief): boolean {
+  return a.overall === b.overall && a.grade === b.grade && a.status === b.status
+    && a.deal_text === b.deal_text && a.economic === b.economic
+    && a.relationship === b.relationship && a.technique === b.technique;
+}
+
 // Pure reducer over the ServerMsg stream.
 //
 // Экспортируется ради прибора: `test/analysis-latency.test.ts` прогоняет через
@@ -419,6 +426,15 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
     }
 
     case "debrief":
+      // ПЕРЕОТПРАВЛЕННЫЙ ИТОГ — НЕ НОВАЯ ПАРТИЯ. После восстановления сессии
+      // сервер присылает тот же разбор ещё раз, а App записывает партию в
+      // профиль, историю, кампанию и капстоун по ССЫЛКЕ на объект итога.
+      // Новый объект с тем же счётом начислял всё второй раз (замер e2e:
+      // XP 104 → 208, попыток 1 → 2, цель дня 1 → 2). Тот же счёт той же
+      // партии — прежний объект; новая партия начинается с `debrief: null`.
+      if (prev.debrief && sameScorecard(prev.debrief, msg.debrief)) {
+        return prev.busy ? { ...prev, busy: false } : prev;
+      }
       // Разбор кладётся ЦЕЛИКОМ, включая ленту наблюдений камеры
       // (`observations` с ходами и временем): она посчитана там же, где шла
       // партия, и переживает обрыв связи, в отличие от накопленной здесь.
