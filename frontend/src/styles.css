@@ -2772,7 +2772,10 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 640px) {
   .hudstats { gap: 12px; }
-  .st-c { font-size: 13px; }
+  /* «0 XP» больше не переносится (nowrap выше), и место под него берётся из
+     значков и зазоров: иначе на 390 px шапка выходила за край на 7 px. */
+  .st-c { font-size: 13px; gap: 4px; }
+  .st-c b { font-size: 20px; }
   /* The chat header has no room for a bar beside the label and the mode chip,
      so it wraps onto its own full-width line rather than squeezing to 20px. */
   :root .ch { flex-wrap: wrap; row-gap: 9px; }
@@ -4076,7 +4079,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 860px) {
   :root .app { grid-template-columns: 1fr; }
   :root .wrap { padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
-  :root .top { padding: 12px 20px; min-height: 64px; }
+  :root .top { padding: 12px 20px; min-height: 64px; flex-wrap: wrap; row-gap: 8px; }
+  /* Шапка переносится, а не вылезает за край: у опытного игрока «123» дня и
+     «12345 XP» не помещаются рядом с кнопками языка, темы и звука на 390 px. */
   .sidenav { padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
   .sidenav ul { overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scroll-padding-inline: 8px; }
   .sidenav li { flex: 1 0 70px; }
@@ -4108,6 +4113,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   .route-card .route-cta { flex-basis: 100%; font-size: 13px; }
   .practice-promise { font-size: 11px; }
   :root .foot { padding: 18px 20px; font-size: 11px; }
+  /* Счётчики и четыре кнопки шапки в одну строку на 390 px: 16 px полей и
+     4 px зазора — ровно то, чего не хватало после nowrap у «0 XP». */
+  :root .top { padding-left: 16px; padding-right: 16px; column-gap: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { :root .card:hover { transform: none; } }
 @media (max-width: 380px) {
