@@ -432,6 +432,14 @@ h1, h2, h3, .serif { font-family: var(--serif); font-weight: 800; }
   .appbody.playing .chat > :not(.log) { flex-shrink: 0; }
   .appbody.playing .chat > .hud { padding-top: 8px; padding-bottom: 8px; }
   .appbody.playing .chat > .ch { padding-top: 8px; padding-bottom: 8px; }
+  /* ВО ВСТРЕЧЕ СЦЕНА НЕ УЕЗЖАЕТ. Сцена, шкалы, лента в 320 px и композер не
+     помещались в 900 px окна, карточка листалась, и первый же ответ текстом
+     уводил лицо собеседника за верх (аудит 16.10, стенд). Ленте во встрече
+     хватает меньшего минимума — главное здесь лицо и голос, — а сцена
+     прилипает к верху карточки на любом окне, как уже прилипала на узком. */
+  .appbody.playing .chat.with-meeting > .log { min-height: clamp(160px, 22dvh, 260px); }
+  .appbody.playing .chat.with-meeting .meeting { position: sticky; top: 0; z-index: 6; }
+  .appbody.playing .chat.with-meeting .mt-stage { height: clamp(220px, 30vh, 340px); }
   .appbody.playing .compose { padding-top: 10px; padding-bottom: 10px; }
   .appbody.playing .livebar { margin-top: 5px; padding-top: 5px; }
   .appbody.playing .lb-tr { max-height: 4.65em; overflow-y: auto; }
