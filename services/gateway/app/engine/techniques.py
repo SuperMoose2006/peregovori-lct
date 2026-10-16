@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 from app.engine.numbers import spell_to_digits
@@ -819,36 +819,55 @@ def analyze(raw_text: Optional[str]) -> Analysis:
     # SPIN detection (order = specificity)
     spin: Optional[str] = None
     if _has(t, LEX["spinNeedPayoff"]):
-        spin = "need-payoff"; add_move("spin_needpayoff"); add_tag("spin", "SPIN · Need-payoff")
+        spin = "need-payoff"
+        add_move("spin_needpayoff")
+        add_tag("spin", "SPIN · Need-payoff")
     elif _has(t, LEX["spinImplication"]):
-        spin = "implication"; add_move("spin_implication"); add_tag("spin", "SPIN · Implication")
+        spin = "implication"
+        add_move("spin_implication")
+        add_tag("spin", "SPIN · Implication")
     elif _has_unnegated(t, LEX["spinProblem"]):
-        spin = "problem"; add_move("spin_problem"); add_tag("spin", "SPIN · Problem")
+        spin = "problem"
+        add_move("spin_problem")
+        add_tag("spin", "SPIN · Problem")
     elif _has(t, LEX["spinSituation"]):
-        spin = "situation"; add_move("spin_situation"); add_tag("spin", "SPIN · Situation")
+        spin = "situation"
+        add_move("spin_situation")
+        add_tag("spin", "SPIN · Situation")
 
     if _has(t, LEX["interestsProbe"]):
-        add_move("interests_probe"); add_tag("interests", "Probing interests")
+        add_move("interests_probe")
+        add_tag("interests", "Probing interests")
     if _has(t, LEX["acknowledge"]):
-        add_move("acknowledge"); add_tag("empathy", "Active listening")
+        add_move("acknowledge")
+        add_tag("empathy", "Active listening")
     if _has(t, LEX["objectiveCriteria"]):
-        add_move("objective_criteria"); add_tag("criteria", "Objective criteria")
+        add_move("objective_criteria")
+        add_tag("criteria", "Objective criteria")
     if _has(t, LEX["batna"]):
-        add_move("batna"); add_tag("batna", "BATNA / leverage")
+        add_move("batna")
+        add_tag("batna", "BATNA / leverage")
     if _has(t, LEX["tradeoff"]):
-        add_move("tradeoff"); add_tag("tradeoff", "Trade-off (value creation)")
+        add_move("tradeoff")
+        add_tag("tradeoff", "Trade-off (value creation)")
     if _has(t, LEX["threat"]):
-        add_move("threat"); add_tag("threat", "Pressure / ultimatum")
+        add_move("threat")
+        add_tag("threat", "Pressure / ultimatum")
     if _has(t, LEX["hostile"]):
-        add_move("hostile"); add_tag("hostile", "Hostile tone")
+        add_move("hostile")
+        add_tag("hostile", "Hostile tone")
     if _has(t, LEX["concession"]):
-        add_move("concession"); add_tag("concession", "Concession")
+        add_move("concession")
+        add_tag("concession", "Concession")
     if _has(t, LEX["anchor"]):
-        add_move("anchor"); add_tag("anchor", "Anchoring")
+        add_move("anchor")
+        add_tag("anchor", "Anchoring")
     if _is_close(t) or _is_short_close(t):
-        add_move("accept"); add_tag("accept", "Closing / accept")
+        add_move("accept")
+        add_tag("accept", "Closing / accept")
     if _has(t, LEX["rapport"]):
-        add_move("rapport"); add_tag("rapport", "Rapport")
+        add_move("rapport")
+        add_tag("rapport", "Rapport")
 
     number = offer_number(t, moves)
     if number is not None and "accept" not in moves:
@@ -862,10 +881,12 @@ def analyze(raw_text: Optional[str]) -> Analysis:
         # вопросами. Отменяет оффер только вопрос БЕЗ формулы предложения —
         # «сколько из 100 у вас на складе?».
         if not is_question or _has(t, LEX["offerIntent"]):
-            add_move("offer"); add_tag("offer", "Offer / number")
+            add_move("offer")
+            add_tag("offer", "Offer / number")
 
     if is_question and spin is None and "interests_probe" not in moves:
-        add_move("open_question"); add_tag("question", "Open question")
+        add_move("open_question")
+        add_tag("question", "Open question")
 
     # Fallback: plain statement
     if not moves:

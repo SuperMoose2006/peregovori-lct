@@ -16,7 +16,7 @@ from app.engine.format import format_number
 from app.engine.difficulty import normalize_difficulty
 from app.protocol import (
     Analysis, Tag, Flags, Deltas, StateView, ScenarioView, SecondaryIssueView, Debrief,
-    CampaignView, CampaignStageView, DefendedInterest, OtherSide,
+    CampaignView, CampaignStageView, DefendedInterest,
 )
 
 
@@ -697,7 +697,8 @@ def _her_turn(entry: dict, style: str, lang: str, interests: list[str],
     reaction = entry.get("reaction")
     # `opened` — сколько интересов она открыла ДО этого хода: первое признание
     # звучит не так, как третье.
-    say = lambda case: _her_voice(case, style, lang, opened)
+    def say(case):
+        return _her_voice(case, style, lang, opened)
 
     if reaction == "walked_out" or entry.get("status") == "breakdown":
         return say("walked_out"), "bad"

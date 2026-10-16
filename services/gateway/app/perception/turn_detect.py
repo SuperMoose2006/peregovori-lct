@@ -42,7 +42,6 @@ from dataclasses import dataclass
 from enum import Enum
 
 from app.providers.openrouter import chat as orchat
-from app.providers.routing import model_for
 
 PUNCTUATION_PATTERN = re.compile(r"[,，.。!！?？:：;；、]")
 

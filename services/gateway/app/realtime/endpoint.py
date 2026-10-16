@@ -23,7 +23,6 @@ import asyncio
 import base64
 import contextlib
 import logging
-import os
 from dataclasses import dataclass
 from functools import wraps
 from typing import Awaitable, Callable, Optional

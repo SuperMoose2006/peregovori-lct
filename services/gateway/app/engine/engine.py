@@ -22,7 +22,7 @@ from typing import Optional
 from .format import format_deal, format_number
 from .difficulty import normalize_difficulty
 from .scenarios import Scenario, by_id
-from .techniques import Analysis, analyze, norm
+from .techniques import Analysis, analyze as analyze, norm
 # `_has` — то же сравнение «основа с начала слова», по которому работают все
 # словари приёмов. Тема обязана засчитываться ровно так же, как ключевое
 # слово, иначе на одном столе будут два разных правила совпадения.
