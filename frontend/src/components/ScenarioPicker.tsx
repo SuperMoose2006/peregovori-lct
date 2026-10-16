@@ -27,6 +27,7 @@ const BROWSE = {
     level: "Режим уступок", allLevels: "Любой режим уступок",
     count: "Показано {n} из {total}", empty: "Такой ситуации пока нет", emptyBody: "Попробуйте другое слово или снимите фильтры.", reset: "Сбросить фильтры",
     practice: "Можно ошибаться. Можно переиграть.",
+    examHead: "Выберите ситуацию для экзамена",
     examTitle: "Проверьте себя без подсказок", examBody: "Выберите знакомую или новую ситуацию. В конце — оценка ваших решений и сертификат за успешную партию.",
   },
   en: {
@@ -37,6 +38,7 @@ const BROWSE = {
     level: "Concession mode", allLevels: "Any concession mode",
     count: "Showing {n} of {total}", empty: "No matching situations yet", emptyBody: "Try another search or clear your filters.", reset: "Clear filters",
     practice: "Room to make mistakes. Room to try again.",
+    examHead: "Choose a situation for the exam",
     examTitle: "Put your skills to the test", examBody: "Choose a familiar situation or try a new one. Get feedback on your decisions and earn a certificate for a successful negotiation.",
   },
 } as const;
@@ -197,6 +199,9 @@ export function ScenarioPicker({
   const [topic, setTopic] = useState<CatalogTopic>("all");
   const [difficulty, setDifficulty] = useState<CatalogDifficulty>("all");
   const copy = BROWSE[lang];
+  // Экзамен — тот же каталог, но заголовок «для тренировки» над ним спорил с
+  // экраном: аудит 16.10.
+  const pickHead = mode === "exam" ? copy.examHead : t.pickHead;
   const allRows = catalog(lang);
   const rows = filterCatalog(allRows, query, topic, difficulty);
   const filtered = !!query.trim() || topic !== "all" || difficulty !== "all";
@@ -261,8 +266,8 @@ export function ScenarioPicker({
               />
             </div></>
           ) : null}
-          <section className="catalog-browser" aria-label={t.pickHead}>
-          <div className="catalog-heading"><h2>{t.pickHead}</h2><span role="status" aria-live="polite">{copy.count.replace("{n}", String(rows.length)).replace("{total}", String(allRows.length))}</span></div>
+          <section className="catalog-browser" aria-label={pickHead}>
+          <div className="catalog-heading"><h2>{pickHead}</h2><span role="status" aria-live="polite">{copy.count.replace("{n}", String(rows.length)).replace("{total}", String(allRows.length))}</span></div>
           <div className="catalog-toolbar">
             <label className="catalog-search"><span className="sr-only">{copy.search}</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4.5 4.5" /></svg><input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={copy.placeholder} maxLength={120} /></label>
             <label className="catalog-level"><span className="sr-only">{copy.level}</span><select value={difficulty} onChange={(e) => setDifficulty(e.target.value === "all" ? "all" : normalizeDifficulty(Number(e.target.value)))}><option value="all">{copy.allLevels}</option>{DIFFICULTY_MODES.map((value) => <option key={value} value={value}>{difficultyLabel(value, lang)}</option>)}</select></label>
