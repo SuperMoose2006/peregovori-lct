@@ -89,16 +89,25 @@ systemctl restart dialog
    Целевой каталог должен быть новым; скрипт исключает окружения и секреты.
 3. Упаковать каталог, сохранить SHA-256 архива, загрузить на сервер и сверить
    хеш перед распаковкой в новый `/opt/dialog/releases/ID`.
-4. На сервере создать окружение и установить зависимости:
+4. На сервере создать окружение и установить зависимости. `requirements.lock`
+   едет в релизе (`pack_backend.sh`): это те версии, на которых гоняется
+   `make test`. SDK живого видео ставится только пакетом включённого сервиса
+   (`NEGO_LIVE_VIDEO` в `/etc/dialog.env`; для `liveavatar` это `livekit`, строка
+   из `requirements-live-video.txt`) — весь файл с `-c` не ставится, см. его шапку.
+   Фактический состав окружения записывается в релиз: по нему восстанавливается
+   ровно то окружение, если сборку придётся поднимать заново.
 
    ```bash
-   UV_PYTHON_INSTALL_DIR=/opt/dialog/python /opt/dialog/tooling/bin/uv venv \
-     --python 3.13 /opt/dialog/releases/ID/services/gateway/.venv
-   /opt/dialog/tooling/bin/uv pip install \
-     --python /opt/dialog/releases/ID/services/gateway/.venv/bin/python \
-     -r /opt/dialog/releases/ID/services/gateway/requirements.txt \
-     -c /opt/dialog/releases/ID/services/gateway/requirements.lock
-   bash /opt/dialog/releases/ID/deploy/activate-release.sh /opt/dialog/releases/ID
+   R=/opt/dialog/releases/ID
+   UV=/opt/dialog/tooling/bin/uv
+   UV_PYTHON_INSTALL_DIR=/opt/dialog/python $UV venv --python 3.13 $R/services/gateway/.venv
+   $UV pip install --python $R/services/gateway/.venv/bin/python \
+     -r $R/services/gateway/requirements.txt -c $R/services/gateway/requirements.lock \
+     livekit==1.1.20
+   $UV pip freeze --python $R/services/gateway/.venv/bin/python > $R/services/gateway/requirements.freeze.txt
+   # Каталог, собранный под root с umask 077, служба от пользователя dialog не прочтёт.
+   chmod -R u=rwX,go=rX $R
+   bash $R/deploy/activate-release.sh $R
    ```
 
 5. Проверить публичный health и браузер. Скрипт активации переключает ссылку,
@@ -112,13 +121,15 @@ systemctl restart dialog
 
 ## Повторная проверка с ноутбука
 
-В текстовом режиме без облачных вызовов:
+В текстовом режиме без облачных вызовов. `check-public.py` — нагрузочная
+проверка и работает только на стенде с `cloud_ai=false`: на стенде с ключами
+он честно отказывается («Load checks require NEGO_AI=off»), это не сбой.
 
 ```bash
 services/gateway/.venv/bin/python deploy/check-public.py --out /tmp/dialog-check.json
 cd frontend
 node e2e/smoke.mjs --url https://dialog.2-26-49-28.nip.io --out /tmp/dialog-ui
-node e2e/course.mjs --url https://dialog.2-26-49-28.nip.io --out /tmp/dialog-course
+TSX_TSCONFIG_PATH=./tsconfig.app.json node --import tsx e2e/course.mjs --url https://dialog.2-26-49-28.nip.io --out /tmp/dialog-course
 node e2e/improvements.mjs --url https://dialog.2-26-49-28.nip.io --out /tmp/dialog-improvements
 ```
 

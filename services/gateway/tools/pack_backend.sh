@@ -13,6 +13,12 @@
 # ЧТО КОПИРУЕТСЯ И ПОЧЕМУ ИМЕННО ЭТО:
 #   services/gateway/app            сам шлюз: движок, курс, протокол, слои
 #   services/gateway/requirements.txt зависимости
+#   services/gateway/requirements.lock проверенные версии: на них гоняется
+#                                   `make test` (`make install` ставит с -c lock).
+#                                   Без него окружение сервера собиралось из
+#                                   свежих версий, которых тесты не видели, а
+#                                   инструкция в deploy/README.md падала на
+#                                   «File not found» (16.10.2026)
 #   services/gateway/requirements-live-video.txt SDK сервиса живого видео — ставятся
 #                                   на сервере ДО ключа, чтобы ключ был единственным шагом
 #   services/gateway/.env.example   образец файла секретов (сам .env НЕ копируется)
@@ -55,6 +61,7 @@ PATHS=(
   services/gateway/app
   services/gateway/tools
   services/gateway/requirements.txt
+  services/gateway/requirements.lock
   services/gateway/requirements-live-video.txt
   services/gateway/.env.example
   adapters
@@ -97,7 +104,8 @@ cat <<TXT
 
 дальше на целевой машине:
   python3 -m venv $DEST/services/gateway/.venv
-  $DEST/services/gateway/.venv/bin/pip install -r $DEST/services/gateway/requirements.txt
+  $DEST/services/gateway/.venv/bin/pip install -r $DEST/services/gateway/requirements.txt \\
+    -c $DEST/services/gateway/requirements.lock
   cp $DEST/services/gateway/.env.example $DEST/services/gateway/.env   # и вписать ключи
   cd $DEST/services/gateway && set -a && . ./.env && set +a && \\
     PYTHONPATH=$DEST ./.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8010
