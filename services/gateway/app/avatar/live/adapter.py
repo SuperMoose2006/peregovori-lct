@@ -56,6 +56,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
+from app.realtime.events import error
 from app.avatar.base import AVATAR_STATES, AvatarCapabilities, AvatarProvider
 from app.avatar.frames import avatar_frame, avatar_idle_frame
 from app.avatar.live.clock import PlaybackClock, frame_slot
@@ -138,6 +139,8 @@ class LiveVideoAvatar(AvatarProvider):
         self._make_driver = driver_factory
         self._cfg = cfg
         self._now = now
+        self._budget_started_at: Optional[float] = None
+        self._last_activity_at = now()
         self._driver: Optional[LiveVideoDriver] = None
         self._info = None
         probe = driver_factory()          # конструктор драйвера не ходит в сеть
@@ -199,6 +202,7 @@ class LiveVideoAvatar(AvatarProvider):
             loop = asyncio.get_running_loop()
         except RuntimeError:
             return
+        self._budget_started_at = self._last_activity_at = self._now()
         self._wake = asyncio.Event()
         self._to_driver = asyncio.Queue(maxsize=TO_DRIVER_MAX)
         self._supervisor = loop.create_task(self._supervise())
@@ -412,6 +416,8 @@ class LiveVideoAvatar(AvatarProvider):
 
     async def speak(self, pcm: bytes, *, generation_id: str) -> None:
         """Тот же PCM, что ушёл человеку. Только в очередь — сеть ждёт отправщик."""
+        if pcm:
+            self._last_activity_at = self._now()
         if generation_id != self._gen:
             self._begin(generation_id)
         if self.input != "audio" or self.mode != "video" or self.link != "ready":
@@ -754,6 +760,25 @@ class LiveVideoAvatar(AvatarProvider):
             self._release_audio(event)
 
     def _watchdog(self, now: float) -> None:
+        if self._budget_started_at is not None and self.link != "dead":
+            # Count the whole adapter lifetime, including reconnects/rotations.
+            # Playback is activity; idle portrait/video frames and mood updates are not.
+            if self._active():
+                self._last_activity_at = now
+            reason = None
+            if now - self._budget_started_at >= self._cfg.max_session_s:
+                reason = "session_budget"
+            elif now - self._last_activity_at >= self._cfg.idle_timeout_s:
+                reason = "idle_budget"
+            if reason:
+                self._degrade(reason, strike=False, fatal=True)
+                message = ("Живое видео отключено по лимиту времени. Переговоры можно продолжать."
+                           if self._persona.lang == "ru" else
+                           "Live video reached its time budget. You can continue the negotiation.")
+                self._publish(error("live_video_budget", message))
+                _log.info("live_video_budget reason=%s elapsed_s=%.1f", reason,
+                          now - self._budget_started_at)
+                return
         if self.mode != "video":
             return
         if self.input == "text" and self._utterances and self._voice_progress_at is not None:
