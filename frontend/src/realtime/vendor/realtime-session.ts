@@ -78,6 +78,10 @@ export interface RealtimeSessionOptions {
 export type ConnectionStatus = "idle" | "connecting" | "online" | "reconnecting" | "lost";
 
 const OPEN_TIMEOUT_MS = 4000;
+/** Тишина рукопожатия: столько ждём ЛЮБОГО события до `session.created`.
+ *  Генерация «Своей сделки» укладывается в 22 с (GEN_BUDGET_S), поэтому срок
+ *  с запасом, и он сбрасывается каждым событием сервера (очередь, дельты). */
+const HANDSHAKE_SILENCE_MS = 45000;
 const MAX_LOG = 200;
 
 /**
@@ -250,6 +254,18 @@ export class RealtimeSession {
   private handshake(socket: WebSocket, payload: SessionInitPayload): Promise<ServerEvent> {
     return new Promise((resolve, reject) => {
       let sent = false;
+      // ОБРЫВ ДО `session.created` ОБЯЗАН ПРОВАЛИТЬ ЗАПУСК. Обработчик закрытия
+      // из open() отвечает уже разрешённому промису, и отказ сервера (лимит
+      // приёма, перезапуск на выкладке) оставлял экран «Соединение…» навсегда,
+      // без ошибки и без выхода (аудит 16.10). То же — при долгой тишине.
+      let silence: ReturnType<typeof setTimeout> | undefined;
+      const fail = (why: string) => { clearTimeout(silence); reject(new Error(why)); };
+      const arm = () => {
+        clearTimeout(silence);
+        silence = setTimeout(() => fail("сервер не ответил на запуск партии"), HANDSHAKE_SILENCE_MS);
+      };
+      arm();
+      socket.onclose = () => fail("соединение закрылось до начала партии");
       const sendInit = () => {
         if (sent) return;
         sent = true;
@@ -260,13 +276,15 @@ export class RealtimeSession {
       socket.onmessage = (e) => {
         const message = JSON.parse(e.data as string) as ServerEvent;
         this.record("server", message.type, "");
+        arm();
         if (message.type === "session.queue_done") {
           sendInit();
         } else if (message.type === "session.created") {
+          clearTimeout(silence);
           resolve(message);
         } else if (message.type === "error") {
           const body = message.error as { message?: string } | undefined;
-          reject(new Error(body?.message ?? "не удалось начать партию"));
+          fail(body?.message ?? "не удалось начать партию");
         } else {
           this.onEvent(message);
         }
