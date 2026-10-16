@@ -1,0 +1,1252 @@
+[
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 10,
+      "row": 30
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/asr-parakeet/server.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 31
+          },
+          "location": {
+            "column": 1,
+            "row": 30
+          }
+        }
+      ],
+      "message": "Remove unused import: `io`"
+    },
+    "location": {
+      "column": 8,
+      "row": 30
+    },
+    "message": "`io` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 30,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E731",
+    "end_location": {
+      "column": 60,
+      "row": 127
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/attestation.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "def esc(value):\n        return html.escape(str(value), quote=True)",
+          "end_location": {
+            "column": 60,
+            "row": 127
+          },
+          "location": {
+            "column": 5,
+            "row": 127
+          }
+        }
+      ],
+      "message": "Rewrite `esc` as a `def`"
+    },
+    "location": {
+      "column": 5,
+      "row": 127
+    },
+    "message": "Do not assign a `lambda` expression, use a `def`",
+    "name": "lambda-assignment",
+    "noqa_row": 127,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/lambda-assignment"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 28,
+      "row": 25
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/avatar/live/casting.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 26
+          },
+          "location": {
+            "column": 1,
+            "row": 25
+          }
+        }
+      ],
+      "message": "Remove unused import: `typing.Optional`"
+    },
+    "location": {
+      "column": 20,
+      "row": 25
+    },
+    "message": "`typing.Optional` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 25,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E741",
+    "end_location": {
+      "column": 51,
+      "row": 131
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/course/lessons/_check.py",
+    "fix": null,
+    "location": {
+      "column": 50,
+      "row": 131
+    },
+    "message": "Ambiguous variable name: `l`",
+    "name": "ambiguous-variable-name",
+    "noqa_row": 131,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/ambiguous-variable-name"
+  },
+  {
+    "cell": null,
+    "code": "E741",
+    "end_location": {
+      "column": 48,
+      "row": 264
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/course/lessons/_check.py",
+    "fix": null,
+    "location": {
+      "column": 47,
+      "row": 264
+    },
+    "message": "Ambiguous variable name: `l`",
+    "name": "ambiguous-variable-name",
+    "noqa_row": 264,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/ambiguous-variable-name"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 42,
+      "row": 25
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/engine.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from .techniques import Analysis, norm",
+          "end_location": {
+            "column": 48,
+            "row": 25
+          },
+          "location": {
+            "column": 1,
+            "row": 25
+          }
+        }
+      ],
+      "message": "Remove unused import: `.techniques.analyze`"
+    },
+    "location": {
+      "column": 35,
+      "row": 25
+    },
+    "message": "`.techniques.analyze` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 25,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 41,
+      "row": 15
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from dataclasses import dataclass",
+          "end_location": {
+            "column": 41,
+            "row": 15
+          },
+          "location": {
+            "column": 1,
+            "row": 15
+          }
+        }
+      ],
+      "message": "Remove unused import: `dataclasses.field`"
+    },
+    "location": {
+      "column": 36,
+      "row": 15
+    },
+    "message": "`dataclasses.field` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 15,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 30,
+      "row": 822
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 29,
+      "row": 822
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 822,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 59,
+      "row": 822
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 58,
+      "row": 822
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 822,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 30,
+      "row": 824
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 29,
+      "row": 824
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 824,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 60,
+      "row": 824
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 59,
+      "row": 824
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 824,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 26,
+      "row": 826
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 25,
+      "row": 826
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 826,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 52,
+      "row": 826
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 51,
+      "row": 826
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 826,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 28,
+      "row": 828
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 27,
+      "row": 828
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 828,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 56,
+      "row": 828
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 55,
+      "row": 828
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 828,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 37,
+      "row": 831
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 36,
+      "row": 831
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 831,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 33,
+      "row": 833
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 32,
+      "row": 833
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 833,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 40,
+      "row": 835
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 39,
+      "row": 835
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 835,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 27,
+      "row": 837
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 26,
+      "row": 837
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 837,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 30,
+      "row": 839
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 29,
+      "row": 839
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 839,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 28,
+      "row": 841
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 27,
+      "row": 841
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 841,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 29,
+      "row": 843
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 28,
+      "row": 843
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 843,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 32,
+      "row": 845
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 31,
+      "row": 845
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 845,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 28,
+      "row": 847
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 27,
+      "row": 847
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 847,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 28,
+      "row": 849
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 27,
+      "row": 849
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 849,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 29,
+      "row": 851
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 28,
+      "row": 851
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 851,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 31,
+      "row": 865
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 30,
+      "row": 865
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 865,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E702",
+    "end_location": {
+      "column": 35,
+      "row": 868
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/engine/techniques.py",
+    "fix": null,
+    "location": {
+      "column": 34,
+      "row": 868
+    },
+    "message": "Multiple statements on one line (semicolon)",
+    "name": "multiple-statements-on-one-line-semicolon",
+    "noqa_row": 868,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/multiple-statements-on-one-line-semicolon"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 93,
+      "row": 39
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 39
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 39,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 93,
+      "row": 39
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket",
+          "end_location": {
+            "column": 93,
+            "row": 39
+          },
+          "location": {
+            "column": 1,
+            "row": 39
+          }
+        }
+      ],
+      "message": "Remove unused import: `fastapi.WebSocketDisconnect`"
+    },
+    "location": {
+      "column": 74,
+      "row": 39
+    },
+    "message": "`fastapi.WebSocketDisconnect` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 39,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 51,
+      "row": 40
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 40
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 40,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 54,
+      "row": 41
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 41
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 41,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 57,
+      "row": 42
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 42
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 42,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 44,
+      "row": 43
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 43
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 43,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 23,
+      "row": 45
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 45
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 45,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 30,
+      "row": 46
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 46
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 46,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 30,
+      "row": 46
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 47
+          },
+          "location": {
+            "column": 1,
+            "row": 46
+          }
+        }
+      ],
+      "message": "Remove unused import: `app.session.store`"
+    },
+    "location": {
+      "column": 25,
+      "row": 46
+    },
+    "message": "`app.session.store` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 46,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 22,
+      "row": 47
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 47
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 47,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 76,
+      "row": 48
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 48
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 48,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 54,
+      "row": 48
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from app.protocol import CourseCoachMsg, WhatIfMsg",
+          "end_location": {
+            "column": 76,
+            "row": 48
+          },
+          "location": {
+            "column": 1,
+            "row": 48
+          }
+        }
+      ],
+      "message": "Remove unused import"
+    },
+    "location": {
+      "column": 42,
+      "row": 48
+    },
+    "message": "`app.protocol.ScenarioView` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 48,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 65,
+      "row": 48
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from app.protocol import CourseCoachMsg, WhatIfMsg",
+          "end_location": {
+            "column": 76,
+            "row": 48
+          },
+          "location": {
+            "column": 1,
+            "row": 48
+          }
+        }
+      ],
+      "message": "Remove unused import"
+    },
+    "location": {
+      "column": 56,
+      "row": 48
+    },
+    "message": "`app.protocol.StateView` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 48,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 57,
+      "row": 102
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 102
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 102,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 61,
+      "row": 105
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 105
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 105,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 60,
+      "row": 123
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 123
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 123,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 47,
+      "row": 425
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 426
+          },
+          "location": {
+            "column": 1,
+            "row": 425
+          }
+        }
+      ],
+      "message": "Remove unused import: `app.providers.tts.edge.EdgeTTS`"
+    },
+    "location": {
+      "column": 40,
+      "row": 425
+    },
+    "message": "`app.providers.tts.edge.EdgeTTS` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 425,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 47,
+      "row": 505
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/main.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 505
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 505,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 44,
+      "row": 45
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/perception/turn_detect.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 46
+          },
+          "location": {
+            "column": 1,
+            "row": 45
+          }
+        }
+      ],
+      "message": "Remove unused import: `app.providers.routing.model_for`"
+    },
+    "location": {
+      "column": 35,
+      "row": 45
+    },
+    "message": "`app.providers.routing.model_for` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 45,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 42,
+      "row": 4
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/providers/asr/__init__.py",
+    "fix": null,
+    "location": {
+      "column": 32,
+      "row": 4
+    },
+    "message": "`.base.Transcript` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+    "name": "unused-import",
+    "noqa_row": 4,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 10,
+      "row": 26
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/realtime/endpoint.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "",
+          "end_location": {
+            "column": 1,
+            "row": 27
+          },
+          "location": {
+            "column": 1,
+            "row": 26
+          }
+        }
+      ],
+      "message": "Remove unused import: `os`"
+    },
+    "location": {
+      "column": 8,
+      "row": 26
+    },
+    "message": "`os` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 26,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 30,
+      "row": 31
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/vendor/olv/sentence_divider.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 31
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 31,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 22,
+      "row": 32
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/vendor/olv/sentence_divider.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 32
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 32,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "E402",
+    "end_location": {
+      "column": 34,
+      "row": 33
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/vendor/olv/sentence_divider.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 33
+    },
+    "message": "Module level import not at top of file",
+    "name": "module-import-not-at-top-of-file",
+    "noqa_row": 33,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+  },
+  {
+    "cell": null,
+    "code": "F401",
+    "end_location": {
+      "column": 65,
+      "row": 19
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/views.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": "from app.protocol import (\n    Analysis, Tag, Flags, Deltas, StateView, ScenarioView, SecondaryIssueView, Debrief,\n    CampaignView, CampaignStageView, DefendedInterest,\n)",
+          "end_location": {
+            "column": 2,
+            "row": 20
+          },
+          "location": {
+            "column": 1,
+            "row": 17
+          }
+        }
+      ],
+      "message": "Remove unused import: `app.protocol.OtherSide`"
+    },
+    "location": {
+      "column": 56,
+      "row": 19
+    },
+    "message": "`app.protocol.OtherSide` imported but unused",
+    "name": "unused-import",
+    "noqa_row": 19,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/unused-import"
+  },
+  {
+    "cell": null,
+    "code": "E731",
+    "end_location": {
+      "column": 61,
+      "row": 700
+    },
+    "filename": "/root/work/wt-peregovori-lct-33051/services/gateway/app/views.py",
+    "fix": {
+      "applicability": "unsafe",
+      "edits": [
+        {
+          "content": "def say(case):\n        return _her_voice(case, style, lang, opened)",
+          "end_location": {
+            "column": 61,
+            "row": 700
+          },
+          "location": {
+            "column": 5,
+            "row": 700
+          }
+        }
+      ],
+      "message": "Rewrite `say` as a `def`"
+    },
+    "location": {
+      "column": 5,
+      "row": 700
+    },
+    "message": "Do not assign a `lambda` expression, use a `def`",
+    "name": "lambda-assignment",
+    "noqa_row": 700,
+    "severity": "error",
+    "url": "https://docs.astral.sh/ruff/rules/lambda-assignment"
+  }
+]

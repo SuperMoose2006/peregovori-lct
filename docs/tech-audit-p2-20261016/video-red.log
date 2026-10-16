@@ -1,0 +1,74 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+______ test_video_budget_stops_driver_without_closing_game[idle_budget-6] ______
+
+budget = 'idle_budget', elapsed = 6
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("budget,elapsed", [("idle_budget", 6), ("session_budget", 21)])
+    async def test_video_budget_stops_driver_without_closing_game(budget, elapsed):
+        cfg = config()
+        now = [100.0]
+        persona = Persona("supplier")
+        events = []
+        driver = StubDriver(cfg, persona)
+        avatar = LiveVideoAvatar(persona, events.append, lambda: driver, cfg, now=lambda: now[0])
+        avatar.start()
+        try:
+            for _ in range(50):
+                if avatar.link == "ready": break
+                await asyncio.sleep(0.01)
+            assert avatar.link == "ready"
+            now[0] += elapsed
+            avatar._watchdog(now[0])
+>           assert avatar.link == "dead", "idle/total budget left the paid service connected"
+E           AssertionError: idle/total budget left the paid service connected
+E           assert 'ready' == 'dead'
+E
+E             - dead
+E             + ready
+
+services/gateway/tests/test_live_video_budget.py:33: AssertionError
+____ test_video_budget_stops_driver_without_closing_game[session_budget-21] ____
+
+budget = 'session_budget', elapsed = 21
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("budget,elapsed", [("idle_budget", 6), ("session_budget", 21)])
+    async def test_video_budget_stops_driver_without_closing_game(budget, elapsed):
+        cfg = config()
+        now = [100.0]
+        persona = Persona("supplier")
+        events = []
+        driver = StubDriver(cfg, persona)
+        avatar = LiveVideoAvatar(persona, events.append, lambda: driver, cfg, now=lambda: now[0])
+        avatar.start()
+        try:
+            for _ in range(50):
+                if avatar.link == "ready": break
+                await asyncio.sleep(0.01)
+            assert avatar.link == "ready"
+            now[0] += elapsed
+            avatar._watchdog(now[0])
+>           assert avatar.link == "dead", "idle/total budget left the paid service connected"
+E           AssertionError: idle/total budget left the paid service connected
+E           assert 'ready' == 'dead'
+E
+E             - dead
+E             + ready
+
+services/gateway/tests/test_live_video_budget.py:33: AssertionError
+____________ test_invalid_budget_settings_cannot_disable_the_limits ____________
+
+    def test_invalid_budget_settings_cannot_disable_the_limits():
+        cfg = config(NEGO_LIVE_VIDEO_IDLE_TIMEOUT_S="nan", NEGO_LIVE_VIDEO_MAX_SESSION_S="0")
+>       assert cfg.idle_timeout_s == 300
+               ^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'LiveVideoConfig' object has no attribute 'idle_timeout_s'
+
+services/gateway/tests/test_live_video_budget.py:48: AttributeError
+=========================== short test summary info ============================
+FAILED services/gateway/tests/test_live_video_budget.py::test_video_budget_stops_driver_without_closing_game[idle_budget-6]
+FAILED services/gateway/tests/test_live_video_budget.py::test_video_budget_stops_driver_without_closing_game[session_budget-21]
+FAILED services/gateway/tests/test_live_video_budget.py::test_invalid_budget_settings_cannot_disable_the_limits
+3 failed in 0.57s

@@ -1,0 +1,31 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_forcing_the_judge_on_does_not_make_it_claimed_without_network ______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7dd46bbd8510>
+
+    @pytest.mark.xfail(strict=True, reason=(
+        "orchestrator/judge.py:67-70: NEGO_JUDGE=1 включает судью, не спрашивая сеть; "
+        "при NEGO_AI=off health и capabilities говорят judge=True, а каждый ход "
+        "шлёт judge.started и тут же judge.completed{semantic:false}"))
+    def test_forcing_the_judge_on_does_not_make_it_claimed_without_network(monkeypatch):
+        from app.orchestrator.judge import judge_enabled_for
+
+        _env(monkeypatch, NEGO_AI="off", NEGO_JUDGE="1", OPENROUTER_API_KEY="configured")
+>       assert TestClient(main.app).get("/api/health").json()["judge"] is False
+E       assert True is False
+
+services/gateway/tests/test_health_honesty.py:179: AssertionError
+=============================== warnings summary ===============================
+services/gateway/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1
+  /root/work/wt-peregovori-lct-33051/services/gateway/.venv/lib/python3.14/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+services/gateway/.venv/lib/python3.14/site-packages/starlette/testclient.py:53
+  /root/work/wt-peregovori-lct-33051/services/gateway/.venv/lib/python3.14/site-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED services/gateway/tests/test_health_honesty.py::test_forcing_the_judge_on_does_not_make_it_claimed_without_network
+1 failed, 2 warnings in 1.43s

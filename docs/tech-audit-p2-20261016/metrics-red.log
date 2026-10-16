@@ -1,0 +1,315 @@
+FFFFFFFF                                                                 [100%]
+=================================== FAILURES ===================================
+__________ test_llm_logs_latency_status_and_cumulative_errors[False] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x73124ab16520>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a5d5160>
+failure = False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", [False, True])
+    async def test_llm_logs_latency_status_and_cumulative_errors(monkeypatch, caplog, failure):
+        caplog.set_level(logging.INFO, logger="dialog.providers")
+        monkeypatch.setattr(chat, "available", lambda: True)
+        def reply(request):
+            if failure: return httpx.Response(429, text="private provider response")
+            return httpx.Response(200, json={"choices": [{"message": {"content": "Готовы обсудить условия."}}]})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(reply), base_url="https://example.invalid") as client:
+            monkeypatch.setattr(chat, "_get_client", lambda: client)
+            for _ in range(2):
+                await chat.complete("private prompt", "private user", role="judge")
+>               event = records(caplog)
+                        ^^^^^^^^^^^^^^^
+
+services/gateway/tests/test_provider_observability.py:38:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a5d5160>
+
+    def records(caplog):
+        result = []
+        for record in caplog.records:
+            if record.name == "dialog.providers":
+                result = json.loads(record.getMessage())
+                assert result["event"] == "provider_call"
+>       assert result, "provider produced no structured timing/error record"
+E       AssertionError: provider produced no structured timing/error record
+E       assert []
+
+services/gateway/tests/test_provider_observability.py:21: AssertionError
+___________ test_llm_logs_latency_status_and_cumulative_errors[True] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x73124a5e2210>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a40dbd0>
+failure = True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", [False, True])
+    async def test_llm_logs_latency_status_and_cumulative_errors(monkeypatch, caplog, failure):
+        caplog.set_level(logging.INFO, logger="dialog.providers")
+        monkeypatch.setattr(chat, "available", lambda: True)
+        def reply(request):
+            if failure: return httpx.Response(429, text="private provider response")
+            return httpx.Response(200, json={"choices": [{"message": {"content": "Готовы обсудить условия."}}]})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(reply), base_url="https://example.invalid") as client:
+            monkeypatch.setattr(chat, "_get_client", lambda: client)
+            for _ in range(2):
+                await chat.complete("private prompt", "private user", role="judge")
+>               event = records(caplog)
+                        ^^^^^^^^^^^^^^^
+
+services/gateway/tests/test_provider_observability.py:38:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a40dbd0>
+
+    def records(caplog):
+        result = []
+        for record in caplog.records:
+            if record.name == "dialog.providers":
+                result = json.loads(record.getMessage())
+                assert result["event"] == "provider_call"
+>       assert result, "provider produced no structured timing/error record"
+E       AssertionError: provider produced no structured timing/error record
+E       assert []
+
+services/gateway/tests/test_provider_observability.py:21: AssertionError
+________ test_llm_stream_records_first_chunk_and_external_cancellation _________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x73124a3285a0>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a40e0d0>
+
+    @pytest.mark.asyncio
+    async def test_llm_stream_records_first_chunk_and_external_cancellation(monkeypatch, caplog):
+        caplog.set_level(logging.INFO, logger="dialog.providers")
+        monkeypatch.setattr(chat, "available", lambda: True)
+        class Body(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                yield b'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n'
+                await asyncio.sleep(60)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, stream=Body())), base_url="https://example.invalid") as client:
+            monkeypatch.setattr(chat, "_get_client", lambda: client)
+            async def read():
+                async for _ in chat.stream("secret", "secret"): pass
+            with pytest.raises(TimeoutError):
+                await asyncio.wait_for(read(), timeout=0.02)
+>           event = records(caplog)
+                    ^^^^^^^^^^^^^^^
+
+services/gateway/tests/test_provider_observability.py:63:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a40e0d0>
+
+    def records(caplog):
+        result = []
+        for record in caplog.records:
+            if record.name == "dialog.providers":
+                result = json.loads(record.getMessage())
+                assert result["event"] == "provider_call"
+>       assert result, "provider produced no structured timing/error record"
+E       AssertionError: provider produced no structured timing/error record
+E       assert []
+
+services/gateway/tests/test_provider_observability.py:21: AssertionError
+___________ test_local_asr_logs_latency_and_transport_failure[False] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x73124a403550>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a5e5f30>
+failure = False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", [False, True])
+    async def test_local_asr_logs_latency_and_transport_failure(monkeypatch, caplog, failure):
+        caplog.set_level(logging.INFO, logger="dialog.providers")
+        real_client = httpx.AsyncClient
+        def response(request):
+            if failure: raise httpx.ConnectError("private address")
+            return httpx.Response(200, json={"text": "private transcript"})
+        monkeypatch.setattr(parakeet.httpx, "AsyncClient", lambda **kwargs: real_client(transport=httpx.MockTransport(response), **kwargs))
+        provider = parakeet.ParakeetASR()
+        if failure:
+            with pytest.raises(httpx.ConnectError):
+                await provider.transcribe(np.zeros(10, dtype=np.float32), 16000, "ru")
+        else:
+            await provider.transcribe(np.zeros(10, dtype=np.float32), 16000, "ru")
+>       event = records(caplog)
+                ^^^^^^^^^^^^^^^
+
+services/gateway/tests/test_provider_observability.py:83:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a5e5f30>
+
+    def records(caplog):
+        result = []
+        for record in caplog.records:
+            if record.name == "dialog.providers":
+                result = json.loads(record.getMessage())
+                assert result["event"] == "provider_call"
+>       assert result, "provider produced no structured timing/error record"
+E       AssertionError: provider produced no structured timing/error record
+E       assert []
+
+services/gateway/tests/test_provider_observability.py:21: AssertionError
+___________ test_local_asr_logs_latency_and_transport_failure[True] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x73124a3228a0>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a5e7950>
+failure = True
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", [False, True])
+    async def test_local_asr_logs_latency_and_transport_failure(monkeypatch, caplog, failure):
+        caplog.set_level(logging.INFO, logger="dialog.providers")
+        real_client = httpx.AsyncClient
+        def response(request):
+            if failure: raise httpx.ConnectError("private address")
+            return httpx.Response(200, json={"text": "private transcript"})
+        monkeypatch.setattr(parakeet.httpx, "AsyncClient", lambda **kwargs: real_client(transport=httpx.MockTransport(response), **kwargs))
+        provider = parakeet.ParakeetASR()
+        if failure:
+            with pytest.raises(httpx.ConnectError):
+                await provider.transcribe(np.zeros(10, dtype=np.float32), 16000, "ru")
+        else:
+            await provider.transcribe(np.zeros(10, dtype=np.float32), 16000, "ru")
+>       event = records(caplog)
+                ^^^^^^^^^^^^^^^
+
+services/gateway/tests/test_provider_observability.py:83:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a5e7950>
+
+    def records(caplog):
+        result = []
+        for record in caplog.records:
+            if record.name == "dialog.providers":
+                result = json.loads(record.getMessage())
+                assert result["event"] == "provider_call"
+>       assert result, "provider produced no structured timing/error record"
+E       AssertionError: provider produced no structured timing/error record
+E       assert []
+
+services/gateway/tests/test_provider_observability.py:21: AssertionError
+___________ test_tts_logs_first_chunk_failures_and_timeout[success] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x73124a4cac10>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a314050>
+failure = 'success'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", ["success", "error", "timeout"])
+    async def test_tts_logs_first_chunk_failures_and_timeout(monkeypatch, caplog, failure):
+        caplog.set_level(logging.INFO, logger="dialog.providers")
+        monkeypatch.setattr(tts_manager, "SYNTHESIS_TIMEOUT_S", 0.01)
+        class Provider:
+            async def stream(self, *args, **kwargs):
+                if failure == "error": raise RuntimeError("private text")
+                if failure == "timeout": await asyncio.sleep(60)
+                yield b"pcm"
+        manager = tts_manager.TTSTaskManager(Provider(), lambda e: None, Voice("", "ru", True))
+        await manager._synth("private input", asyncio.Queue(), "generation")
+>       event = records(caplog)
+                ^^^^^^^^^^^^^^^
+
+services/gateway/tests/test_provider_observability.py:101:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a314050>
+
+    def records(caplog):
+        result = []
+        for record in caplog.records:
+            if record.name == "dialog.providers":
+                result = json.loads(record.getMessage())
+                assert result["event"] == "provider_call"
+>       assert result, "provider produced no structured timing/error record"
+E       AssertionError: provider produced no structured timing/error record
+E       assert []
+
+services/gateway/tests/test_provider_observability.py:21: AssertionError
+____________ test_tts_logs_first_chunk_failures_and_timeout[error] _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x73124a421190>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a32a030>
+failure = 'error'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", ["success", "error", "timeout"])
+    async def test_tts_logs_first_chunk_failures_and_timeout(monkeypatch, caplog, failure):
+        caplog.set_level(logging.INFO, logger="dialog.providers")
+        monkeypatch.setattr(tts_manager, "SYNTHESIS_TIMEOUT_S", 0.01)
+        class Provider:
+            async def stream(self, *args, **kwargs):
+                if failure == "error": raise RuntimeError("private text")
+                if failure == "timeout": await asyncio.sleep(60)
+                yield b"pcm"
+        manager = tts_manager.TTSTaskManager(Provider(), lambda e: None, Voice("", "ru", True))
+        await manager._synth("private input", asyncio.Queue(), "generation")
+>       event = records(caplog)
+                ^^^^^^^^^^^^^^^
+
+services/gateway/tests/test_provider_observability.py:101:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a32a030>
+
+    def records(caplog):
+        result = []
+        for record in caplog.records:
+            if record.name == "dialog.providers":
+                result = json.loads(record.getMessage())
+                assert result["event"] == "provider_call"
+>       assert result, "provider produced no structured timing/error record"
+E       AssertionError: provider produced no structured timing/error record
+E       assert []
+
+services/gateway/tests/test_provider_observability.py:21: AssertionError
+___________ test_tts_logs_first_chunk_failures_and_timeout[timeout] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x73124a3071d0>
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a32a360>
+failure = 'timeout'
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("failure", ["success", "error", "timeout"])
+    async def test_tts_logs_first_chunk_failures_and_timeout(monkeypatch, caplog, failure):
+        caplog.set_level(logging.INFO, logger="dialog.providers")
+        monkeypatch.setattr(tts_manager, "SYNTHESIS_TIMEOUT_S", 0.01)
+        class Provider:
+            async def stream(self, *args, **kwargs):
+                if failure == "error": raise RuntimeError("private text")
+                if failure == "timeout": await asyncio.sleep(60)
+                yield b"pcm"
+        manager = tts_manager.TTSTaskManager(Provider(), lambda e: None, Voice("", "ru", True))
+        await manager._synth("private input", asyncio.Queue(), "generation")
+>       event = records(caplog)
+                ^^^^^^^^^^^^^^^
+
+services/gateway/tests/test_provider_observability.py:101:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x73124a32a360>
+
+    def records(caplog):
+        result = []
+        for record in caplog.records:
+            if record.name == "dialog.providers":
+                result = json.loads(record.getMessage())
+                assert result["event"] == "provider_call"
+>       assert result, "provider produced no structured timing/error record"
+E       AssertionError: provider produced no structured timing/error record
+E       assert []
+
+services/gateway/tests/test_provider_observability.py:21: AssertionError
+=========================== short test summary info ============================
+FAILED services/gateway/tests/test_provider_observability.py::test_llm_logs_latency_status_and_cumulative_errors[False]
+FAILED services/gateway/tests/test_provider_observability.py::test_llm_logs_latency_status_and_cumulative_errors[True]
+FAILED services/gateway/tests/test_provider_observability.py::test_llm_stream_records_first_chunk_and_external_cancellation
+FAILED services/gateway/tests/test_provider_observability.py::test_local_asr_logs_latency_and_transport_failure[False]
+FAILED services/gateway/tests/test_provider_observability.py::test_local_asr_logs_latency_and_transport_failure[True]
+FAILED services/gateway/tests/test_provider_observability.py::test_tts_logs_first_chunk_failures_and_timeout[success]
+FAILED services/gateway/tests/test_provider_observability.py::test_tts_logs_first_chunk_failures_and_timeout[error]
+FAILED services/gateway/tests/test_provider_observability.py::test_tts_logs_first_chunk_failures_and_timeout[timeout]
+8 failed in 0.46s

@@ -1,0 +1,42 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_starvation_warning_reports_audio_supply_without_payloads _________
+
+caplog = <_pytest.logging.LogCaptureFixture object at 0x7d0d9ff46270>
+
+    @pytest.mark.asyncio
+    async def test_starvation_warning_reports_audio_supply_without_payloads(caplog):
+        caplog.set_level(logging.INFO, logger="dialog.live_video")
+        driver = LiveAvatarDriver(LiveVideoConfig(vendor="liveavatar"), Persona("supplier"))
+        now = [100.0]
+        driver._now = lambda: now[0]
+        sent = []
+
+        class Socket:
+            async def send(self, message): sent.append(json.loads(message))
+            async def __aiter__(self):
+                yield json.dumps({"type": "warning", "warning": {"type": "video_starvation", "message": "private provider detail"}})
+
+        driver._ws = Socket()
+        driver._buffer.extend(b"\0" * 19200)  # 400 ms of 24 kHz PCM16
+        await driver._flush()
+        now[0] = 100.16
+        await driver._read_ws()
+        events = []
+        for record in caplog.records:
+            try: value = json.loads(record.getMessage())
+            except json.JSONDecodeError: continue
+            if value.get("event") == "live_video_warning":
+                assert record.levelno == logging.WARNING
+                events.append(value)
+>       assert len(events) == 1, "starvation has no structured audio-supply diagnostics"
+E       AssertionError: starvation has no structured audio-supply diagnostics
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+services/gateway/tests/test_liveavatar_warning_metrics.py:36: AssertionError
+------------------------------ Captured log call -------------------------------
+INFO     dialog.live_video:liveavatar.py:355 живое видео: liveavatar предупреждение video_starvation: private provider detail
+=========================== short test summary info ============================
+FAILED services/gateway/tests/test_liveavatar_warning_metrics.py::test_starvation_warning_reports_audio_supply_without_payloads
+1 failed in 0.18s
