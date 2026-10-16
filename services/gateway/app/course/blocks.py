@@ -120,14 +120,14 @@ BLOCKS: list[Block] = [
                 "goes nowhere.",
             )),
             Lesson(3, T("Вопрос-открывашка", "The opener question"), T(
-                "Голое «почему?» звучит как допрос и почти ничего не вскрывает: движок засчитает его "
+                "Голое «почему?» звучит как допрос и почти ничего не вскрывает: тренажёр засчитает его "
                 "как открытый вопрос и не добавит информации.\n\n"
                 "Работает формулировка «что для вас важнее всего…», «что вас беспокоит…», «что стоит "
                 "за этой цифрой» — и обязательно с НАЗВАННОЙ темой: «чтобы квартира не пустовала», "
                 "«чтобы жилец был тихий». Она спрашивает про человека, а не про цифру, и потому "
                 "получает ответ про интерес: +24 к шкале «Информация». Формулировка без темы "
                 "вернётся переспросом и даст только 5 — почему, разбирает урок 5.",
-                "A bare “why?” sounds like an interrogation and surfaces almost nothing: the engine "
+                "A bare “why?” sounds like an interrogation and surfaces almost nothing: the simulator "
                 "records an open question and adds no information.\n\n"
                 "What works is “what matters most to you…”, “what concerns you…”, “what sits behind "
                 "that number” — and always with a NAMED topic: “so the flat is not sitting empty”, "
@@ -146,7 +146,7 @@ BLOCKS: list[Block] = [
                 "penalty — it is a reminder: while you are talking, you are learning nothing.",
             )),
             Lesson(5, T("Интерес открывается на доверии", "An interest opens on trust"), T(
-                "Самое контринтуитивное правило движка: идеальный вопрос на холодном столе не "
+                "Самое контринтуитивное правило тренажёра: идеальный вопрос на холодном столе не "
                 "вскрывает ничего. Интерес открывается, только если доверие ВЫШЕ порога: 26 в режиме "
                 "«Больше уступок», 34 в режиме «Умеренные уступки» и 39 в режиме «Меньше уступок». "
                 "У поставщика, зарплаты и конфликта порог 34, у инвестора — 39. "
@@ -162,7 +162,7 @@ BLOCKS: list[Block] = [
                 "интереса — не совпало со словами интереса, значит не вскрыли. Лечится одинаково: "
                 "сначала отражение чувства (доверие +8, напряжение −10) или пара тёплых фраз, потом "
                 "конкретный вопрос про конкретную вещь.",
-                "The engine's most counter-intuitive rule: a perfect question at a cold table opens "
+                "The simulator's most counter-intuitive rule: a perfect question at a cold table opens "
                 "nothing. An interest opens only when trust is ABOVE the gate: 26 in More "
                 "concessions, 34 in Moderate concessions and 39 in Fewer concessions. The supplier, "
                 "salary and conflict tables use 34; the investor uses 39. "
@@ -214,11 +214,11 @@ BLOCKS: list[Block] = [
             )),
             Lesson(3, T("I — самая дорогая ступень", "I — the most valuable rung"), T(
                 "Вопрос о последствиях переводит проблему в цифру потерь: «сколько вы теряете, если "
-                "линия стоит месяц». Движок оценивает его дороже остальных: +22 против +14.\n\n"
+                "линия стоит месяц». Тренажёр оценивает его дороже остальных: +22 против +14.\n\n"
                 "Причина простая: пока проблема не измерена, она не стоит денег. После I-вопроса ваше "
                 "предложение сравнивается не с нулём, а с ценой бездействия.",
                 "An implication question turns a problem into a number: “what does it cost you when "
-                "the line sits idle for a month”. The engine prices it above the rest: +22 versus +14.\n\n"
+                "the line sits idle for a month”. The simulator prices it above the rest: +22 versus +14.\n\n"
                 "The reason is simple: an unmeasured problem is worth no money. After an I-question "
                 "your proposal is compared not with zero, but with the price of doing nothing.",
             )),
@@ -233,11 +233,11 @@ BLOCKS: list[Block] = [
                 "of the fourth rung.",
             )),
             Lesson(5, T("Частая ошибка: сразу N", "The common error: straight to N"), T(
-                "Формально движок засчитает N-вопрос на первом ходу и даже даст +22. Но собеседник "
+                "Формально тренажёр засчитает N-вопрос на первом ходу и даже даст +22. Но собеседник "
                 "ещё не признал никакой боли, поэтому вопрос читается как заготовка продавца.\n\n"
                 "Лестница SPIN — про порядок, а не про набор. Пропущенная ступень не ускоряет "
                 "разговор, она делает следующий вопрос неуместным.",
-                "Formally the engine will score an N-question on turn one and even grant +22. But the "
+                "Formally the simulator will score an N-question on turn one and even grant +22. But the "
                 "other side has admitted no pain yet, so the question reads as a sales script.\n\n"
                 "The SPIN ladder is about sequence, not about a checklist. A skipped rung does not "
                 "speed the conversation up — it makes the next question land wrong.",
@@ -257,11 +257,11 @@ BLOCKS: list[Block] = [
             Lesson(1, T("Назвать чувство, не соглашаясь", "Name the feeling without agreeing"), T(
                 "«Я вижу, что на вас давит руководство» — это не признание вины. Вы называете то, "
                 "что и так очевидно обоим, и человек перестаёт доказывать, что ему тяжело.\n\n"
-                "Движок за такой ход даёт доверие +8 и напряжение −10. Это самый дешёвый способ "
+                "Тренажёр за такой ход даёт доверие +8 и напряжение −10. Это самый дешёвый способ "
                 "вернуть разговор в рабочее русло: он ничего вам не стоит.",
                 "“I can see leadership is pressing you” is not an admission of fault. You name what "
                 "is already obvious to both, and the other side stops proving that it is hard.\n\n"
-                "The engine grants trust +8 and tension −10 for that move. It is the cheapest way "
+                "The simulator grants trust +8 and tension −10 for that move. It is the cheapest way "
                 "back to a working conversation: it costs you nothing.",
             )),
             Lesson(2, T("Отражение смысла", "Reflecting the meaning"), T(
@@ -326,15 +326,15 @@ BLOCKS: list[Block] = [
             Lesson(2, T("Что считается критерием", "What counts as a criterion"), T(
                 "Критерий — внешний, проверяемый источник с цифрой: обзор зарплат, рыночная медиана, "
                 "прайс сопоставимых объявлений, отраслевой регламент.\n\n"
-                "«Я стою больше», «это несправедливо», «у всех знакомых выше» — не критерии. Движок "
-                "читает их как обычное заявление: качество аргумента 20, рычаг +0. А судья обязан "
+                "«Я стою больше», «это несправедливо», «у всех знакомых выше» — не критерии. Тренажёр "
+                "читает их как обычное заявление: качество аргумента 20, рычаг +0. А ИИ-оценка обязана "
                 "поставить ≥55 везде, где есть конкретное число или источник, — и читает как спам "
                 "(0–20) те же слова без цифр.",
                 "A criterion is an external, checkable source with a number: a salary survey, a "
                 "market median, comparable listings, an industry regulation.\n\n"
                 "“I am worth more”, “this is unfair”, “everyone I know earns more” are not criteria. "
-                "The engine reads them as plain statements: argument quality 20, leverage +0. And the "
-                "judge must score ≥55 wherever a concrete number or source is present — while "
+                "The simulator reads them as plain statements: argument quality 20, leverage +0. And the "
+                "AI must score ≥55 wherever a concrete number or source is present — while "
                 "reading the same words with no figures as spam (0–20).",
             )),
             Lesson(3, T("Критерий как броня для уступки", "A criterion as armour for a concession"), T(
@@ -393,11 +393,11 @@ BLOCKS: list[Block] = [
             Lesson(3, T("Назвать альтернативу, не пригрозив", "Name the alternative without threatening"), T(
                 "«У меня есть предложение на 210, но ваш проект мне интереснее — давайте искать "
                 "решение здесь» — это факт плюс намерение договориться.\n\n"
-                "«Или 230, или я ухожу» — тот же факт, превращённый в ультиматум. Разница в движке: "
+                "«Или 230, или я ухожу» — тот же факт, превращённый в ультиматум. Разница в тренажёре: "
                 "первое даёт рычаг +18 при напряжении +4, второе — доверие −14 и напряжение +22.",
                 "“I have an offer at 210, but your project interests me more — let us find a solution "
                 "here” is a fact plus an intention to agree.\n\n"
-                "“Either 230 or I walk” is the same fact turned into an ultimatum. In the engine: the "
+                "“Either 230 or I walk” is the same fact turned into an ultimatum. In the simulator: the "
                 "first gives leverage +18 at tension +4, the second gives trust −14 and tension +22.",
             )),
             Lesson(4, T("Цена жёсткой BATNA", "The price of a hard BATNA"), T(
@@ -437,7 +437,7 @@ BLOCKS: list[Block] = [
             Lesson(2, T("Ставить якорь: только с критерием", "Anchor only with a criterion"), T(
                 "Голая цифра — это заявка на упрямство, и она приглашает такую же в ответ. Цифра, "
                 "выведенная из внешнего источника, делает вашу систему координат общей.\n\n"
-                "В движке разница видна: голый контр-якорь даёт качество аргумента 26, тот же якорь "
+                "В тренажёре разница видна: голый контр-якорь даёт качество аргумента 26, тот же якорь "
                 "с критерием — реакцию «принимает довод» и рычаг +16.\n\n"
                 "И у первого слова есть цена. Оппонент за столом здоровается, но своей цифры не "
                 "называет — он предлагает начать вам. Обоснованный якорь, поставленный ДО его "
@@ -449,7 +449,7 @@ BLOCKS: list[Block] = [
                 "обоснованности, а первое слово тратится один раз за партию.",
                 "A bare number is a bid for stubbornness, and it invites the same in return. A number "
                 "derived from an outside source makes your frame the shared one.\n\n"
-                "The engine shows the gap: a bare counter-anchor scores argument quality 26; the same "
+                "The simulator shows the gap: a bare counter-anchor scores argument quality 26; the same "
                 "anchor with a criterion yields “persuaded by data” and leverage +16.\n\n"
                 "And the first word costs them something. Your counterpart opens with a greeting but "
                 "no figure — they invite you to start. A grounded anchor placed BEFORE their number "
@@ -514,11 +514,11 @@ BLOCKS: list[Block] = [
                 "first spends all the goodwill halfway.",
             )),
             Lesson(3, T("Формула пакета", "The package formula"), T(
-                "Вклад размена в шкалу «Приёмы» движок считает как 10·ценность_для_них − "
+                "Вклад размена в шкалу «Приёмы» тренажёр считает как 10·ценность_для_них − "
                 "6·стоимость_для_вас за каждый вопрос, с потолком +16 на всю партию.\n\n"
                 "Потолок стоит там намеренно: даже идеальный пакет не заменяет вопросы, критерии и "
                 "слушание. Размен — часть техники, а не её обход.",
-                "The engine scores a trade's contribution to Technique as 10·value_to_them − "
+                "The simulator scores a trade's contribution to Technique as 10·value_to_them − "
                 "6·cost_to_you per issue, capped at +16 for the whole session.\n\n"
                 "The cap is deliberate: even a perfect package does not replace questions, criteria "
                 "and listening. Logrolling is part of the technique, not a way around it.",
@@ -526,11 +526,11 @@ BLOCKS: list[Block] = [
             Lesson(4, T("Связывать, а не раздавать", "Link it, do not give it away"), T(
                 "«Если мы дадим годовой контракт, сможете ли вы подвинуться до 88?» — размен: "
                 "доверие +6, напряжение −4, и цена двигается сильнее всего в игре.\n\n"
-                "«Хорошо, давайте годовой контракт» без связки — уступка. Движок засчитает её как "
+                "«Хорошо, давайте годовой контракт» без связки — уступка. Тренажёр засчитает её как "
                 "уступку и ничего не даст: вы отдали фишку, не купив на неё ничего.",
                 "“If we commit for a year, can you move to 88?” is a trade: trust +6, tension −4, and "
                 "the price moves more than from anything else in the game.\n\n"
-                "“Fine, let us do the annual contract” with no link is a concession. The engine scores "
+                "“Fine, let us do the annual contract” with no link is a concession. The simulator scores "
                 "it as one and grants nothing: you spent the chip and bought nothing with it.",
             )),
         ],
@@ -579,11 +579,11 @@ BLOCKS: list[Block] = [
             )),
             Lesson(4, T("Анти-гейминг", "Anti-gaming"), T(
                 "Повтор той же реплики опускает качество аргумента до 12 и режет уступку до 15%. "
-                "Настойчивость не равна аргументу — движок различает их специально.\n\n"
+                "Настойчивость не равна аргументу — тренажёр различает их специально.\n\n"
                 "Если вас не услышали, меняйте не громкость, а тип хода: вопрос вместо заявления, "
                 "критерий вместо цифры, размен вместо просьбы.",
                 "Repeating the same line drops argument quality to 12 and cuts the concession to 15%. "
-                "Persistence is not argument — the engine tells them apart on purpose.\n\n"
+                "Persistence is not argument — the simulator tells them apart on purpose.\n\n"
                 "If you were not heard, change the kind of move, not the volume: a question instead "
                 "of a statement, a criterion instead of a number, a trade instead of a request.",
             )),
@@ -612,15 +612,15 @@ BLOCKS: list[Block] = [
             Lesson(2, T("Пол оппонента непробиваем", "Their floor does not move"), T(
                 "Ниже своей красной линии оппонент не пойдёт ни при каком доверии и ни при каком "
                 "давлении. Предложение ниже пола даёт реакцию «пока нет», а не сделку.\n\n"
-                "Это первый инвариант тренажёра. Он же — главная причина, почему давление в "
+                "Это главное правило тренажёра. Он же — главная причина, почему давление в "
                 "переговорах переоценено: за полом ничего нет.",
                 "Below their red line the other side will not go, at any level of trust or pressure. "
                 "An offer under the floor yields “not yet”, not a deal.\n\n"
-                "That is the trainer's first invariant. It is also the main reason pressure is "
+                "That is the trainer's first rule. It is also the main reason pressure is "
                 "overrated: there is nothing behind the floor.",
             )),
             Lesson(3, T("Закрывать с цифрой", "Close with a number"), T(
-                "Закрытие без числа движок фиксирует на ЕЁ последнем номере — вы дарите весь "
+                "Закрытие без числа тренажёр фиксирует на ЕЁ последнем номере — вы дарите весь "
                 "остаток зоны просто потому, что не назвали цифру в закрывающей реплике.\n\n"
                 "Правильное закрытие короткое и полное: число, условие пакета, вопрос-подтверждение. "
                 "«Фиксируем: 88 при годовом контракте. По рукам?»",
@@ -672,7 +672,7 @@ BLOCKS: list[Block] = [
             )),
             Lesson(2, T("Что стиль удорожает и что удешевляет",
                         "What a style makes cheap, and what it makes expensive"), T(
-                "Три надбавки, и все три — настоящие числа движка.\n\n"
+                "Три надбавки, и все три — настоящие числа тренажёра.\n\n"
                 "Аналитику объективный критерий даёт рычаг не +16, а +22: те же данные с ним стоят "
                 "дороже. «Отношенцу» названная альтернатива добавляет напряжение +6 сверх обычного: "
                 "обоснованная BATNA поднимает напряжение не на 4, а на 10, необоснованная — не на 14, "
@@ -680,7 +680,7 @@ BLOCKS: list[Block] = [
                 "минус 14 доверия и отката цены на второй угрозе.\n\n"
                 "Заметьте, чего в списке нет: скидки за стиль. Стиль делает приём дороже там, где он "
                 "не к месту, и не делает дешевле там, где он к месту.",
-                "Three modifiers, and all three are real engine numbers.\n\n"
+                "Three modifiers, and all three are real simulator numbers.\n\n"
                 "With the analytical counterpart an objective criterion gives leverage +22 rather than "
                 "+16: the same data is worth more to them. With the relationship one, naming your "
                 "alternative adds +6 tension on top: a grounded BATNA raises tension by 10 instead of "
@@ -698,7 +698,7 @@ BLOCKS: list[Block] = [
                 "на +6 напряжения дороже, а на тёплом столе цена и так поедет от размена. С жёстким ультиматум "
                 "не работает никогда — работает встречный объективный критерий и спокойное "
                 "«пока нет».\n\n"
-                "Проверить себя просто: если приём поднимает напряжение выше 55, движок режет "
+                "Проверить себя просто: если приём поднимает напряжение выше 55, тренажёр режет "
                 "уступку до 60 %, а выше 75 — до 25 %. Стиль — самый быстрый способ туда попасть, "
                 "не заметив этого.",
                 "Adapting does not mean becoming someone else. What changes is the order of moves.\n\n"
@@ -707,7 +707,7 @@ BLOCKS: list[Block] = [
                 "the package is built: it costs 6 more tension, and at a warm table the price moves "
                 "from the trade anyway. With the tough one an ultimatum never works — a counter "
                 "criterion and a calm “not yet” do.\n\n"
-                "The self-check is simple: once a technique pushes tension above 55 the engine cuts "
+                "The self-check is simple: once a technique pushes tension above 55 the simulator cuts "
                 "any concession to 60 %, and above 75 to 25 %. Style is the fastest way to get there "
                 "without noticing.",
             )),
@@ -830,7 +830,7 @@ BLOCKS: list[Block] = [
                 "Оппонент здоровается, но цифры не называет: первое слово ваше, и решение, взять его "
                 "или отдать, принимается до стола.\n\n"
                 "Берут его так: цифра и критерий, на котором она стоит, в одной первой реплике. "
-                "Тогда движок засчитывает право первого слова — рамка стола едет к вам ещё до всякой "
+                "Тогда тренажёр засчитывает право первого слова — рамка стола едет к вам ещё до всякой "
                 "уступки. Здесь первый ход «230, потому что медиана независимых обзоров» двигает "
                 "позицию работодателя со 180 сразу на 205, тогда как та же реплика вторым ходом "
                 "даёт 200. Пять тысяч — это и есть цена первого слова, и платится она один раз; "
@@ -842,7 +842,7 @@ BLOCKS: list[Block] = [
                 "The counterpart greets you without naming a figure: the first word is yours, and "
                 "whether to take it or hand it over is decided before the table.\n\n"
                 "You take it like this: the number and the criterion it stands on, in one opening "
-                "line. The engine then counts the first word — the frame of the table moves your way "
+                "line. The simulator then counts the first word — the frame of the table moves your way "
                 "before any concession. Here an opening “230, because that is the median of the "
                 "independent surveys” moves the employer's position from 180 straight to 205, while "
                 "the same line played second gets 200. Five thousand is the price of the first word, "
@@ -858,25 +858,25 @@ BLOCKS: list[Block] = [
                 "два числа: сколько она стоит ВАМ и сколько она стоит ИМ. Здесь пересмотр по KPI "
                 "через полгода стоит вам 0.25 и ценится в 0.75; подписной бонус вместо оклада — "
                 "0.45 и 0.55.\n\n"
-                "Разницу считает движок, а не автор урока. В «Приёмы» фишка приносит 10 × ценность − "
+                "Разницу считает тренажёр, а не автор урока. В «Приёмы» фишка приносит 10 × ценность − "
                 "6 × стоимость: 6.0 у пересмотра против 2.8 у бонуса. Цену она двигает на "
                 "0.10 + 0.30 × ценность: 0.325 против 0.265. Доверие поднимает на 3 + 4 × ценность: "
                 "6 против 5.2.\n\n"
                 "Поэтому лист заканчивается порядком: сначала то, где разрыв «дёшево мне / дорого "
                 "им» шире. И фишку надо НАЗВАТЬ вслух — «пересмотр по KPI», а не «пойдём "
-                "навстречу»: движок платит за названное условие, а безымянная доброжелательность "
+                "навстречу»: тренажёр платит за названное условие, а безымянная доброжелательность "
                 "остаётся уступкой, за которую не платят ничего.",
                 "The last line of the sheet is the trade. Every table has two secondary chips, and "
                 "each carries two numbers: what it costs YOU and what it is worth to THEM. Here a "
                 "six-month KPI review costs you 0.25 and is worth 0.75; a signing bonus instead of "
                 "base costs 0.45 and is worth 0.55.\n\n"
-                "The difference is computed by the engine, not by the author of the lesson. On "
+                "The difference is computed by the simulator, not by the author of the lesson. On "
                 "Technique a chip pays 10 × value − 6 × cost: 6.0 for the review against 2.8 for the "
                 "bonus. It moves the price by 0.10 + 0.30 × value: 0.325 against 0.265. It lifts "
                 "trust by 3 + 4 × value: 6 against 5.2.\n\n"
                 "So the sheet ends with an order: the widest cheap-to-me / dear-to-them gap goes "
                 "first. And the chip has to be NAMED out loud — “a KPI review”, not “we can be "
-                "flexible”: the engine pays for a named term, while nameless goodwill stays a "
+                "flexible”: the simulator pays for a named term, while nameless goodwill stays a "
                 "concession, and a concession buys nothing.",
             )),
         ],

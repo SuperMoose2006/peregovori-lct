@@ -90,8 +90,8 @@ export const COURSE_BANK: Exercise[] = [
     "answer": 1,
     "fault_key": "position_no_interest",
     "explain": {
-      "ru": "Движок видит здесь только предложение цены — ни вопроса, ни критерия, ни эмпатии. Реакция нейтральная, шкалы не двигаются. «Дорого» — это про вас, а не про неё.",
-      "en": "The engine sees only a price offer — no question, no criterion, no empathy. The reaction is neutral and the meters do not move. “Expensive” is about you, not about her."
+      "ru": "Тренажёр видит здесь только предложение цены — ни вопроса, ни критерия, ни эмпатии. Реакция нейтральная, шкалы не двигаются. «Дорого» — это про вас, а не про неё.",
+      "en": "The simulator sees only a price offer — no question, no criterion, no empathy. The reaction is neutral and the meters do not move. “Expensive” is about you, not about her."
     }
   },
   {
@@ -166,7 +166,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "Natalia, what matters most to you — avoiding vacancy between tenants, or a quiet tenant with no hassle?"
     },
     "explain": {
-      "ru": "Условий два. Формулировка «что для вас важно» — голое «почему?» движок засчитает как обычный открытый вопрос, ноль к Информации. И названная ТЕМА: вопрос обязан попасть в слова ещё не вскрытого интереса — простой, тишина, оплата в срок. Не попал — Наталья переспросит, а Информация вырастет на 5 вместо 24.",
+      "ru": "Условий два. Формулировка «что для вас важно» — голое «почему?» тренажёр засчитает как обычный открытый вопрос, ноль к Информации. И названная ТЕМА: вопрос обязан попасть в слова ещё не вскрытого интереса — простой, тишина, оплата в срок. Не попал — Наталья переспросит, а Информация вырастет на 5 вместо 24.",
       "en": "Two conditions. The wording — “what matters to you”; a bare “why?” classifies as a plain open question, zero Information. And a named TOPIC: the question has to land on the words of an interest that is still hidden — vacancy, quiet, payment on time. Miss it, and Natalia asks back while Information rises by 5 instead of 24."
     }
   },
@@ -359,8 +359,8 @@ export const COURSE_BANK: Exercise[] = [
       "acknowledge"
     ],
     "explain": {
-      "ru": "Повторить вопрос — получить тот же переспрос: под порогом доверия он не вскрывает ничего, а движок ещё и режет прибавку к Информации до 5. Сначала доверие: отражение чувства даёт +8 и снимает 10 напряжения — и только потом тот же самый вопрос.",
-      "en": "Repeat the question and you get the same query back: below the trust gate it opens nothing, and the engine caps the Information gain at 5. Trust first: naming the feeling adds 8 and takes 10 off tension — and only then the very same question."
+      "ru": "Повторить вопрос — получить тот же переспрос: под порогом доверия он не вскрывает ничего, а тренажёр ещё и режет прибавку к Информации до 5. Сначала доверие: отражение чувства даёт +8 и снимает 10 напряжения — и только потом тот же самый вопрос.",
+      "en": "Repeat the question and you get the same query back: below the trust gate it opens nothing, and the simulator caps the Information gain at 5. Trust first: naming the feeling adds 8 and takes 10 off tension — and only then the very same question."
     }
   },
   {
@@ -394,8 +394,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "I understand you, Natalia: an empty flat is real lost income, and after your last tenants that caution is completely natural."
     },
     "explain": {
-      "ru": "Узнать этот ход мало — под порогом доверия его надо ПРОИЗВЕСТИ, и здесь видно, из чего он состоит. Отражение положения даёт доверие +8 (18 → 26) и снимает 10 напряжения, реакция «теплеет»; порог 30 нужно ПЕРЕЙТИ, поэтому дверь откроет следующая такая же реплика. Предикат запрещает цену и уступку не для строгости: «понимаю, давайте 60» — это оффер, а не доверие, и цена от него не поедет — движок двигает её только за событием (вскрытый интерес, критерий, размен).",
-      "en": "Recognising the move is not enough — below the gate you have to PRODUCE it, and here you see what it is made of. Reflecting her position adds trust +8 (18 → 26) and takes 10 off tension, reaction “warmed”; the gate of 30 has to be CROSSED, so one more line like this opens the door. The predicate forbids a price and a concession for a reason: “I understand, let us say 60” is an offer, not trust, and it moves no price — the engine moves it only for an event (an interest uncovered, a criterion, a trade)."
+      "ru": "Узнать этот ход мало — под порогом доверия его надо ПРОИЗВЕСТИ, и здесь видно, из чего он состоит. Отражение положения даёт доверие +8 (18 → 26) и снимает 10 напряжения, реакция «теплеет»; порог 30 нужно ПЕРЕЙТИ, поэтому дверь откроет следующая такая же реплика. Условие задания запрещает цену и уступку не для строгости: «понимаю, давайте 60» — это оффер, а не доверие, и цена от него не поедет — тренажёр двигает её только за событием (вскрытый интерес, критерий, размен).",
+      "en": "Recognising the move is not enough — below the gate you have to PRODUCE it, and here you see what it is made of. Reflecting her position adds trust +8 (18 → 26) and takes 10 off tension, reaction “warmed”; the gate of 30 has to be CROSSED, so one more line like this opens the door. The task's check forbids a price and a concession for a reason: “I understand, let us say 60” is an offer, not trust, and it moves no price — the simulator moves it only for an event (an interest uncovered, a criterion, a trade)."
     }
   },
   {
@@ -417,8 +417,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "How will Natalia react?"
     },
     "explain": {
-      "ru": "Никак — и это ответ. Позиция без интереса и без обоснования не двигает ни одной шкалы: ни вопроса, ни критерия, ни эмпатии движок здесь не видит. Нейтральная реакция — не «пронесло», а потерянный ход.",
-      "en": "She does not — and that is the answer. A position with no interest and no grounding moves no meter at all: the engine sees no question, no criterion, no empathy. A neutral reaction is not “got away with it”, it is a turn spent on nothing."
+      "ru": "Никак — и это ответ. Позиция без интереса и без обоснования не двигает ни одной шкалы: ни вопроса, ни критерия, ни эмпатии тренажёр здесь не видит. Нейтральная реакция — не «пронесло», а потерянный ход.",
+      "en": "She does not — and that is the answer. A position with no interest and no grounding moves no meter at all: the simulator sees no question, no criterion, no empathy. A neutral reaction is not “got away with it”, it is a turn spent on nothing."
     }
   },
   {
@@ -500,8 +500,8 @@ export const COURSE_BANK: Exercise[] = [
       "spin_implication"
     ],
     "explain": {
-      "ru": "I-вопрос переводит проблему в цифру потерь. В движке он дороже остальных: +22 к Информации против +14 у ситуации и проблемы.",
-      "en": "An I-question turns a problem into a number. The engine prices it higher: +22 Information versus +14 for situation and problem."
+      "ru": "I-вопрос переводит проблему в цифру потерь. В тренажёре он дороже остальных: +22 к Информации против +14 у ситуации и проблемы.",
+      "en": "An I-question turns a problem into a number. The simulator prices it higher: +22 Information versus +14 for situation and problem."
     }
   },
   {
@@ -532,8 +532,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "What happens if the line sits idle for a month?"
     },
     "explain": {
-      "ru": "Движок ловит I по маркерам «к чему это приводит / сколько вы теряете / чем это грозит». «Это плохо?» — не I, это просто открытый вопрос.",
-      "en": "The engine detects I from markers like “what happens if / what does that cost / how does that affect”. “Is that bad?” is not I — it is a plain open question."
+      "ru": "Тренажёр ловит I по маркерам «к чему это приводит / сколько вы теряете / чем это грозит». «Это плохо?» — не I, это просто открытый вопрос.",
+      "en": "The simulator detects I from markers like “what happens if / what does that cost / how does that affect”. “Is that bad?” is not I — it is a plain open question."
     }
   },
   {
@@ -604,8 +604,8 @@ export const COURSE_BANK: Exercise[] = [
     "answer": 2,
     "fault_key": "spin_out_of_order",
     "explain": {
-      "ru": "Формально движок засчитает need-payoff и даст +22. Но на первом ходу Ирина ещё не признала боль, поэтому вопрос читается как заготовка продавца. Лестница SPIN — про порядок, а не про набор.",
-      "en": "Formally the engine scores need-payoff and grants +22. But on turn one Irina has not admitted the pain, so the question reads as a sales script. The SPIN ladder is about sequence, not a checklist."
+      "ru": "Формально тренажёр засчитает need-payoff и даст +22. Но на первом ходу Ирина ещё не признала боль, поэтому вопрос читается как заготовка продавца. Лестница SPIN — про порядок, а не про набор.",
+      "en": "Formally the simulator scores need-payoff and grants +22. But on turn one Irina has not admitted the pain, so the question reads as a sales script. The SPIN ladder is about sequence, not a checklist."
     }
   },
   {
@@ -710,8 +710,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "How valuable would it be for you to lock in factory utilization for a full year and remove the idle weeks?"
     },
     "explain": {
-      "ru": "Опознать ступень N в списке — не то же самое, что её задать. Заданная, она платит как ступень I: Информация +22 против +14 у ситуации и проблемы, реакция «приоткрывается», интерес вскрыт. И платит только по теме: «насколько важно было бы?» без слова про загрузку — это переспрос и +5. Поэтому предикат требует не только ступень, но и двенадцать слов с качеством довода 42: голый оборот их не набирает.",
-      "en": "Spotting the N rung in a list is not the same as asking it. Asked, it pays like the I rung: Information +22 against +14 for situation and problem, reaction “opened up”, the interest is out. And it pays only on topic: “how valuable would it be?” with no word about utilization comes back as a query and gives 5. Hence the predicate asks for more than the rung — twelve words at argument quality 42, which the bare phrase never reaches."
+      "ru": "Опознать ступень N в списке — не то же самое, что её задать. Заданная, она платит как ступень I: Информация +22 против +14 у ситуации и проблемы, реакция «приоткрывается», интерес вскрыт. И платит только по теме: «насколько важно было бы?» без слова про загрузку — это переспрос и +5. Поэтому условие задания требует не только ступень, но и двенадцать слов с качеством довода 42: голый оборот их не набирает.",
+      "en": "Spotting the N rung in a list is not the same as asking it. Asked, it pays like the I rung: Information +22 against +14 for situation and problem, reaction “opened up”, the interest is out. And it pays only on topic: “how valuable would it be?” with no word about utilization comes back as a query and gives 5. Hence the task's check asks for more than the rung — twelve words at argument quality 42, which the bare phrase never reaches."
     }
   },
   {
@@ -743,8 +743,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "Tell me how factory utilization works today: how do you plan shipments, and how often do you ship?"
     },
     "explain": {
-      "ru": "S — единственная ступень, которую движок оценивает скромно (+14 к Информации) и которую всё равно нельзя пропустить: без фактов следующий вопрос про боль звучит как догадка. Цифра в первой реплике превращает вопрос в предложение — поэтому она запрещена.",
-      "en": "S is the one rung the engine pays modestly for (+14 Information) and still cannot be skipped: with no facts, the next question about pain sounds like a guess. A number in the opening line turns the question into an offer — which is why it is forbidden here."
+      "ru": "S — единственная ступень, которую тренажёр оценивает скромно (+14 к Информации) и которую всё равно нельзя пропустить: без фактов следующий вопрос про боль звучит как догадка. Цифра в первой реплике превращает вопрос в предложение — поэтому она запрещена.",
+      "en": "S is the one rung the simulator pays modestly for (+14 Information) and still cannot be skipped: with no facts, the next question about pain sounds like a guess. A number in the opening line turns the question into an offer — which is why it is forbidden here."
     }
   },
   {
@@ -863,8 +863,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "Alexey, I hear you: leadership is pressing you, and it is you who has to face the director. Let us look at what we can do about it."
     },
     "explain": {
-      "ru": "Назвать чувство — не признать вину: движок видит активное слушание и больше ничего. Доверие +8, напряжение −10, реакция «теплеет», и ни одна цифра на столе не сдвинулась. Ровно за этим предикат запрещает уступку и согласие: «понимаю, мы виноваты, готовы уступить» несёт то же самое активное слушание — и добавляет уступку, за которую движок не платит ничего, потому что цена ходит только за событием.",
-      "en": "Naming the feeling is not admitting fault: the engine sees active listening and nothing else. Trust +8, tension −10, reaction “warmed”, and not a single number on the table moved. That is exactly why the predicate forbids a concession and an agreement: “I understand, it is our fault, we can come down” carries the very same active listening — plus a concession the engine pays nothing for, because the price moves only for an event."
+      "ru": "Назвать чувство — не признать вину: тренажёр видит активное слушание и больше ничего. Доверие +8, напряжение −10, реакция «теплеет», и ни одна цифра на столе не сдвинулась. Ровно за этим условие задания запрещает уступку и согласие: «понимаю, мы виноваты, готовы уступить» несёт то же самое активное слушание — и добавляет уступку, за которую тренажёр не платит ничего, потому что цена ходит только за событием.",
+      "en": "Naming the feeling is not admitting fault: the simulator sees active listening and nothing else. Trust +8, tension −10, reaction “warmed”, and not a single number on the table moved. That is exactly why the task's check forbids a concession and an agreement: “I understand, it is our fault, we can come down” carries the very same active listening — plus a concession the simulator pays nothing for, because the price moves only for an event."
     }
   },
   {
@@ -899,8 +899,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "I understand you must not look at fault to leadership. What matters more to you — the dates, or how this is framed upwards?"
     },
     "explain": {
-      "ru": "Два приёма в одной реплике: активное слушание (напряжение −10) плюс вскрытие интереса (Информация +24). Реакция при этом не «теплеет», а «приоткрывается»: вскрытие в движке старше теплоты и перезаписывает её — секрет важнее комплимента.",
-      "en": "Two moves in one line: active listening (tension −10) plus an interest probe (Information +24). The reaction is not “warmed” but “opened up”: in the engine a reveal outranks warmth and overwrites it — the secret matters more than the compliment."
+      "ru": "Два приёма в одной реплике: активное слушание (напряжение −10) плюс вскрытие интереса (Информация +24). Реакция при этом не «теплеет», а «приоткрывается»: вскрытие в тренажёре старше теплоты и перезаписывает её — секрет важнее комплимента.",
+      "en": "Two moves in one line: active listening (tension −10) plus an interest probe (Information +24). The reaction is not “warmed” but “opened up”: in the simulator a reveal outranks warmth and overwrites it — the secret matters more than the compliment."
     }
   },
   {
@@ -938,8 +938,8 @@ export const COURSE_BANK: Exercise[] = [
     "difficulty": 2,
     "xp": 15,
     "prompt": {
-      "ru": "Соедините ход игрока с реакцией, которую даст движок.",
-      "en": "Match each player move to the reaction the engine returns."
+      "ru": "Соедините ход игрока с реакцией, которую даст тренажёр.",
+      "en": "Match each player move to the reaction the simulator returns."
     },
     "left": [
       {
@@ -1003,8 +1003,8 @@ export const COURSE_BANK: Exercise[] = [
       "threat": "hardened"
     },
     "explain": {
-      "ru": "Это буквальная карта движка. Важно: если в одной реплике и критерий, и альтернатива — победит «под давлением», потому что блок альтернативы перезаписывает реакцию позже.",
-      "en": "This is the literal map inside the engine. Note: if one line carries both a criterion and an alternative, “pressured” wins — the alternative block overwrites the reaction later."
+      "ru": "Это буквальная карта тренажёра. Важно: если в одной реплике и критерий, и альтернатива — победит «под давлением», потому что блок альтернативы перезаписывает реакцию позже.",
+      "en": "This is the literal map inside the simulator. Note: if one line carries both a criterion and an alternative, “pressured” wins — the alternative block overwrites the reaction later."
     }
   },
   {
@@ -1081,8 +1081,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "Which meter moves the most?"
     },
     "explain": {
-      "ru": "Приветствие — единственный ход, за который движок платит, ничего не требуя взамен: доверие +5, напряжение −4. Мало, но бесплатно, и на первом ходу это всё, что у вас есть. Отражение чувства (+8 / −10) сильнее — но ему нужно чувство, которое уже названо.",
-      "en": "A greeting is the one move the engine pays for while asking nothing in return: trust +5, tension −4. Little, but free — and on turn one it is all you have. Reflecting a feeling (+8 / −10) is stronger, but it needs a feeling that has already been voiced."
+      "ru": "Приветствие — единственный ход, за который тренажёр платит, ничего не требуя взамен: доверие +5, напряжение −4. Мало, но бесплатно, и на первом ходу это всё, что у вас есть. Отражение чувства (+8 / −10) сильнее — но ему нужно чувство, которое уже названо.",
+      "en": "A greeting is the one move the simulator pays for while asking nothing in return: trust +5, tension −4. Little, but free — and on turn one it is all you have. Reflecting a feeling (+8 / −10) is stronger, but it needs a feeling that has already been voiced."
     }
   },
   {
@@ -1187,7 +1187,7 @@ export const COURSE_BANK: Exercise[] = [
       "objective_criteria"
     ],
     "explain": {
-      "ru": "Критерий — это внешний, проверяемый источник с цифрой. Остальные три движок читает как обычные заявления: рычаг +0. Критерий даёт рычаг +16, а Дмитрий аналитик — ещё +6.",
+      "ru": "Критерий — это внешний, проверяемый источник с цифрой. Остальные три тренажёр читает как обычные заявления: рычаг +0. Критерий даёт рычаг +16, а Дмитрий аналитик — ещё +6.",
       "en": "A criterion is an external, checkable source with a number. The other three read as plain statements: leverage +0. A criterion gives leverage +16 — and Dmitry is analytical, so another +6."
     }
   },
@@ -1220,8 +1220,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "The market rate for this role is 225–235k — here is independent benchmark data from three surveys."
     },
     "explain": {
-      "ru": "Судья ставит высокий балл только там, где есть конкретное число или источник; без них «рынок» и «стандарт индустрии» — это спам, а не аргумент. Офлайновая проверка требует того же: критерий плюс число.",
-      "en": "The judge scores high only where a concrete number or source is present; without them “market” and “industry standard” are spam, not argument. The offline check demands the same: a criterion plus a number."
+      "ru": "ИИ-оценка ставит высокий балл только там, где есть конкретное число или источник; без них «рынок» и «стандарт индустрии» — это спам, а не аргумент. Проверка без ИИ требует того же: критерий плюс число.",
+      "en": "The AI scores high only where a concrete number or source is present; without them “market” and “industry standard” are spam, not argument. The check without AI demands the same: a criterion plus a number."
     }
   },
   {
@@ -1265,7 +1265,7 @@ export const COURSE_BANK: Exercise[] = [
     "answer": 1,
     "fault_key": "claim_without_criteria",
     "explain": {
-      "ru": "Павел — аналитик, он убеждается цифрами. «Большой опыт» движок читает как предложение без критерия: рычаг +0. Замените на «отраслевой стандарт для сеньора на этом стеке — 19k, вот данные двух обзоров» → рычаг +16.",
+      "ru": "Павел — аналитик, он убеждается цифрами. «Большой опыт» тренажёр читает как предложение без критерия: рычаг +0. Замените на «отраслевой стандарт для сеньора на этом стеке — 19k, вот данные двух обзоров» → рычаг +16.",
       "en": "Pavel is analytical — he is convinced by numbers. “A lot of experience” reads as an offer with no criterion: leverage +0. Swap it for “industry standard for a senior on this stack is 19k, here is data from two surveys” → leverage +16."
     }
   },
@@ -1308,8 +1308,8 @@ export const COURSE_BANK: Exercise[] = [
     "xp": 15,
     "scenario_id": "salary",
     "prompt": {
-      "ru": "Ваша цель 230k, красная линия 195k. Вы закрылись на 213k. Какой экономический балл поставит движок?",
-      "en": "Your target is 230k, your red line 195k. You closed at 213k. What economic score does the engine give?"
+      "ru": "Ваша цель 230k, красная линия 195k. Вы закрылись на 213k. Какой экономический балл поставит тренажёр?",
+      "en": "Your target is 230k, your red line 195k. You closed at 213k. What economic score does the simulator give?"
     },
     "answer": {
       "value": 51,
@@ -1421,8 +1421,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "How will Dmitry react?"
     },
     "explain": {
-      "ru": "«Принимает довод» — единственная реакция, которую нельзя получить нажимом: её даёт только объективный критерий. Рычаг +22 (шестнадцать плюс шесть за аналитический стиль), напряжение не растёт вовсе. Ключевое здесь «потому что»: без опоры движок читает «рынок» как слово, а не как критерий.",
-      "en": "“Persuaded” is the one reaction pressure cannot buy: only an objective criterion produces it. Leverage +22 (sixteen plus six for the analytical style), and tension does not rise at all. The load-bearing word is “because”: with no grounding the engine reads “the market” as a word, not as a criterion."
+      "ru": "«Принимает довод» — единственная реакция, которую нельзя получить нажимом: её даёт только объективный критерий. Рычаг +22 (шестнадцать плюс шесть за аналитический стиль), напряжение не растёт вовсе. Ключевое здесь «потому что»: без опоры тренажёр читает «рынок» как слово, а не как критерий.",
+      "en": "“Persuaded” is the one reaction pressure cannot buy: only an objective criterion produces it. Leverage +22 (sixteen plus six for the analytical style), and tension does not rise at all. The load-bearing word is “because”: with no grounding the simulator reads “the market” as a word, not as a criterion."
     }
   },
   {
@@ -1586,8 +1586,8 @@ export const COURSE_BANK: Exercise[] = [
     "answer": 1,
     "fault_key": "batna_as_club",
     "explain": {
-      "ru": "Движок здесь видит и альтернативу, и угрозу разом: доверие вниз, напряжение вверх. Тот же факт, сказанный без ультиматума, дал бы рычаг и почти не поднял напряжение.",
-      "en": "The engine sees both an alternative and a threat at once: trust down, tension up. The same fact stated without the ultimatum would give leverage and barely raise tension."
+      "ru": "Тренажёр здесь видит и альтернативу, и угрозу разом: доверие вниз, напряжение вверх. Тот же факт, сказанный без ультиматума, дал бы рычаг и почти не поднял напряжение.",
+      "en": "The simulator sees both an alternative and a threat at once: trust down, tension up. The same fact stated without the ultimatum would give leverage and barely raise tension."
     }
   },
   {
@@ -1978,8 +1978,8 @@ export const COURSE_BANK: Exercise[] = [
       "objective_criteria"
     ],
     "explain": {
-      "ru": "Якорь без обоснования — просто цифра, и защищаться от него учат в следующем уроке. Якорь с критерием движок читает КАК критерий: рычаг +16 и реакция «убеждён». А ещё он сказан ПЕРВЫМ — и потому двигает саму рамку стола: Сергей сходит с 1200 на 1170 ещё до уступки, и дальше торг идёт уже от этой цифры. Первый вариант — цифра без единого основания, да ещё ультиматумом: доверие −14 и напряжение +30, потому что Сергей жёсткий и его стиль добавляет к ультиматуму ещё +8. Третий и четвёртый отдают первое слово ему.",
-      "en": "An anchor with no grounding is just a number, and the next lesson teaches how to defuse one. An anchor with a criterion is read by the engine AS a criterion: leverage +16 and the reaction “persuaded”. And it is said FIRST, so it moves the frame itself: Sergey drops from 1200 to 1170 before any concession, and the haggling starts from there. Option one is a bare number with an ultimatum on top: trust −14 and tension +30, because Sergey is a tough type and his style adds 8 more to an ultimatum. Options three and four hand him the first word."
+      "ru": "Якорь без обоснования — просто цифра, и защищаться от него учат в следующем уроке. Якорь с критерием тренажёр читает КАК критерий: рычаг +16 и реакция «убеждён». А ещё он сказан ПЕРВЫМ — и потому двигает саму рамку стола: Сергей сходит с 1200 на 1170 ещё до уступки, и дальше торг идёт уже от этой цифры. Первый вариант — цифра без единого основания, да ещё ультиматумом: доверие −14 и напряжение +30, потому что Сергей жёсткий и его стиль добавляет к ультиматуму ещё +8. Третий и четвёртый отдают первое слово ему.",
+      "en": "An anchor with no grounding is just a number, and the next lesson teaches how to defuse one. An anchor with a criterion is read by the simulator AS a criterion: leverage +16 and the reaction “persuaded”. And it is said FIRST, so it moves the frame itself: Sergey drops from 1200 to 1170 before any concession, and the haggling starts from there. Option one is a bare number with an ultimatum on top: trust −14 and tension +30, because Sergey is a tough type and his style adds 8 more to an ultimatum. Options three and four hand him the first word."
     }
   },
   {
@@ -2013,8 +2013,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "We propose 1080: comparable listings for the same model at this mileage put the market median exactly there."
     },
     "explain": {
-      "ru": "Якорь с критерием движок читает КАК критерий: рычаг +16, доверие +3, реакция «убеждён данными» — и Сергей в тот же ход сходит с 1200 до 1130. Семьдесят тысяч складываются из двух разных вещей: тридцать — сдвиг РАМКИ, потому что цифру первым назвали вы, и сорок — обычная уступка за критерий. Тот же ответ на втором ходу, после его «1200», даёт только сорок: право первого слова тратится один раз. Предикат требует все три части, и число среди них не для красоты: «по рынку это дороговато» тоже читается как критерий, но качество довода падает до 20 — ниже порога 35, на котором засчитывается событие «критерий». Рычаг вырастет, а цена не сдвинется вовсе.",
-      "en": "An anchor with a criterion is read by the engine AS a criterion: leverage +16, trust +3, reaction “persuaded” — and Sergey moves from 1200 to 1130 on the same turn. Those seventy thousand are two different things: thirty is the FRAME moving, because you named the figure first, and forty is the ordinary concession for a criterion. The same answer on turn two, after his “1200”, earns only the forty: the first word is spent once. The predicate wants all three parts, and the number is not decoration: “the market says that is steep” also reads as a criterion, but argument quality drops to 20 — below the 35 at which the “criterion” event counts. Leverage rises and the price does not move at all."
+      "ru": "Якорь с критерием тренажёр читает КАК критерий: рычаг +16, доверие +3, реакция «убеждён данными» — и Сергей в тот же ход сходит с 1200 до 1130. Семьдесят тысяч складываются из двух разных вещей: тридцать — сдвиг РАМКИ, потому что цифру первым назвали вы, и сорок — обычная уступка за критерий. Тот же ответ на втором ходу, после его «1200», даёт только сорок: право первого слова тратится один раз. Условие задания требует все три части, и число среди них не для красоты: «по рынку это дороговато» тоже читается как критерий, но качество довода падает до 20 — ниже порога 35, на котором засчитывается событие «критерий». Рычаг вырастет, а цена не сдвинется вовсе.",
+      "en": "An anchor with a criterion is read by the simulator AS a criterion: leverage +16, trust +3, reaction “persuaded” — and Sergey moves from 1200 to 1130 on the same turn. Those seventy thousand are two different things: thirty is the FRAME moving, because you named the figure first, and forty is the ordinary concession for a criterion. The same answer on turn two, after his “1200”, earns only the forty: the first word is spent once. The task's check wants all three parts, and the number is not decoration: “the market says that is steep” also reads as a criterion, but argument quality drops to 20 — below the 35 at which the “criterion” event counts. Leverage rises and the price does not move at all."
     }
   },
   {
@@ -2168,8 +2168,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "If we renew for three years with a phased SLA, can you move on uptime to 99.8% from Q2?"
     },
     "explain": {
-      "ru": "Ключ — связка «если … то». Без неё движок увидит уступку (вы просто отдали), а не размен (вы обменяли). Размен даёт доверие +6, напряжение −4 и открывает вторую ось движения.",
-      "en": "The key is the “if … then” link. Without it the engine sees a concession (you gave it away) rather than a trade (you exchanged it). A trade gives trust +6, tension −4 and opens a second axis of movement."
+      "ru": "Ключ — связка «если … то». Без неё тренажёр увидит уступку (вы просто отдали), а не размен (вы обменяли). Размен даёт доверие +6, напряжение −4 и открывает вторую ось движения.",
+      "en": "The key is the “if … then” link. Without it the simulator sees a concession (you gave it away) rather than a trade (you exchanged it). A trade gives trust +6, tension −4 and opens a second axis of movement."
     }
   },
   {
@@ -2326,8 +2326,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "If we commit to an annual volume commitment for the whole year, can you move down on the price per unit?"
     },
     "explain": {
-      "ru": "Движок считает пакет по НАЗВАННОМУ условию: годовой контракт стоит ей 0.85, то есть добавляет к уступке 0.10 + 0.30·0.85 = 0.355. Безымянное «пойдём навстречу» — уступка (`concession`), а не размен: вы отдали, ничего не получив, и второй оси не появилось.",
-      "en": "The engine scores the package by the term you NAME: the annual commitment is worth 0.85 to her, i.e. it adds 0.10 + 0.30·0.85 = 0.355 to the concession. A nameless “we will meet you halfway” is a `concession`, not a trade: you gave something away for nothing, and no second axis appeared."
+      "ru": "Тренажёр считает пакет по НАЗВАННОМУ условию: годовой контракт стоит ей 0.85, то есть добавляет к уступке 0.10 + 0.30·0.85 = 0.355. Безымянное «пойдём навстречу» — уступка, а не размен: вы отдали, ничего не получив, и второй оси не появилось.",
+      "en": "The simulator scores the package by the term you NAME: the annual commitment is worth 0.85 to her, i.e. it adds 0.10 + 0.30·0.85 = 0.355 to the concession. A nameless “we will meet you halfway” is a concession, not a trade: you gave something away for nothing, and no second axis appeared."
     }
   },
   {
@@ -2507,8 +2507,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "I understand the penalties your operations team cannot sustain are a real risk. What matters more to you here — the size of the penalties, or the room your ops team has to run it?"
     },
     "explain": {
-      "ru": "Первый из трёх ответов на ультиматум — произнесённый, а не опознанный. Реплика не спорит с потолком: активное слушание снимает 10 напряжения, вопрос по теме штрафов вскрывает интерес — Информация +24, доверие +12, напряжение −13, реакция «приоткрывается». Предикат запрещает цифру, согласие и уступку: ответить на ультиматум цифрой значит принять его рамку, а согласиться — оплатить его.",
-      "en": "The first of the three answers to an ultimatum — spoken, not recognised. The line does not argue with the ceiling: active listening takes 10 off tension, and a question on the penalties topic opens the interest — Information +24, trust +12, tension −13, reaction “opened up”. The predicate forbids a number, an agreement and a concession: answering an ultimatum with a number accepts its frame, and agreeing pays for it."
+      "ru": "Первый из трёх ответов на ультиматум — произнесённый, а не опознанный. Реплика не спорит с потолком: активное слушание снимает 10 напряжения, вопрос по теме штрафов вскрывает интерес — Информация +24, доверие +12, напряжение −13, реакция «приоткрывается». Условие задания запрещает цифру, согласие и уступку: ответить на ультиматум цифрой значит принять его рамку, а согласиться — оплатить его.",
+      "en": "The first of the three answers to an ultimatum — spoken, not recognised. The line does not argue with the ceiling: active listening takes 10 off tension, and a question on the penalties topic opens the interest — Information +24, trust +12, tension −13, reaction “opened up”. The task's check forbids a number, an agreement and a concession: answering an ultimatum with a number accepts its frame, and agreeing pays for it."
     }
   },
   {
@@ -2531,8 +2531,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "fraction"
     },
     "explain": {
-      "ru": "При напряжении выше 75 движок умножает уступку на 0.25: 0.40 × 0.25 = 0.10. Между 55 и 75 — на 0.6. Это цена давления в чистом виде: вы получаете рычаг и замораживаете возможность им воспользоваться.",
-      "en": "Above 75 tension the engine multiplies the concession by 0.25: 0.40 × 0.25 = 0.10. Between 55 and 75 it is 0.6. This is the price of pressure in its purest form: you gain leverage and freeze your ability to use it."
+      "ru": "При напряжении выше 75 тренажёр умножает уступку на 0.25: 0.40 × 0.25 = 0.10. Между 55 и 75 — на 0.6. Это цена давления в чистом виде: вы получаете рычаг и замораживаете возможность им воспользоваться.",
+      "en": "Above 75 tension the simulator multiplies the concession by 0.25: 0.40 × 0.25 = 0.10. Between 55 and 75 it is 0.6. This is the price of pressure in its purest form: you gain leverage and freeze your ability to use it."
     }
   },
   {
@@ -2559,8 +2559,8 @@ export const COURSE_BANK: Exercise[] = [
       },
       {
         "key": "repeat_same_line",
-        "ru": "Дословный повтор: движок опускает качество аргумента до 12 и режет уступку до 15% — настойчивость не равна аргументу",
-        "en": "A verbatim repeat: the engine drops argument quality to 12 and cuts the concession to 15% — persistence is not argument"
+        "ru": "Дословный повтор: тренажёр опускает качество аргумента до 12 и режет уступку до 15% — настойчивость не равна аргументу",
+        "en": "A verbatim repeat: the simulator drops argument quality to 12 and cuts the concession to 15% — persistence is not argument"
       },
       {
         "key": "threat",
@@ -2576,8 +2576,8 @@ export const COURSE_BANK: Exercise[] = [
     "answer": 1,
     "fault_key": "repeat_same_line",
     "explain": {
-      "ru": "Первый раз эта реплика даёт «принимает довод» и рычаг +16. Второй — качество аргумента ≤12 и уступка ×0.15. Анти-гейминг встроен в движок: одно и то же, сказанное громче, не работает.",
-      "en": "The first send yields “persuaded” and leverage +16. The second: argument quality ≤12 and concession ×0.15. Anti-gaming is built into the engine: the same thing said louder does not work."
+      "ru": "Первый раз эта реплика даёт «принимает довод» и рычаг +16. Второй — качество аргумента ≤12 и уступка ×0.15. Анти-гейминг встроен в тренажёр: одно и то же, сказанное громче, не работает.",
+      "en": "The first send yields “persuaded” and leverage +16. The second: argument quality ≤12 and concession ×0.15. Anti-gaming is built into the simulator: the same thing said louder does not work."
     }
   },
   {
@@ -2621,8 +2621,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "What does this face mean, and why does the negotiation end here?"
     },
     "explain": {
-      "ru": "Он встал из-за стола. Движок закрывает партию, когда напряжение доходит до предела или доверие падает почти до нуля: за этой точкой переговоров уже нет — ни при какой аргументации.",
-      "en": "He has got up to leave. The engine ends the session when tension hits the ceiling or trust falls to almost nothing: past that point there is no negotiation left, whatever the argument."
+      "ru": "Он встал из-за стола. Тренажёр закрывает партию, когда напряжение доходит до предела или доверие падает почти до нуля: за этой точкой переговоров уже нет — ни при какой аргументации.",
+      "en": "He has got up to leave. The simulator ends the session when tension hits the ceiling or trust falls to almost nothing: past that point there is no negotiation left, whatever the argument."
     }
   },
   {
@@ -2726,8 +2726,8 @@ export const COURSE_BANK: Exercise[] = [
     ],
     "answer": 2,
     "explain": {
-      "ru": "Первый инвариант движка: оппонент НИКОГДА не переходит своё дно. Точка встречи ниже 84 отклоняется, статус остаётся активным, реакция — «пока нет».",
-      "en": "Engine invariant one: the opponent NEVER crosses their floor. A meeting point below 84 is rejected, the status stays active, the reaction is “not yet”."
+      "ru": "Главное правило тренажёра: оппонент НИКОГДА не переходит своё дно. Точка встречи ниже 84 отклоняется, статус остаётся активным, реакция — «пока нет».",
+      "en": "The simulator's first rule: the opponent NEVER crosses their floor. A meeting point below 84 is rejected, the status stays active, the reaction is “not yet”."
     }
   },
   {
@@ -2758,7 +2758,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "Then we have a deal at 88 per unit with an annual volume commitment."
     },
     "explain": {
-      "ru": "Закрытие без цифры движок закроет на ЕЁ последнем номере — вы подарите весь остаток зоны. Цифра в закрывающей реплике стоит реальных денег.",
+      "ru": "Закрытие без цифры тренажёр закроет на ЕЁ последнем номере — вы подарите весь остаток зоны. Цифра в закрывающей реплике стоит реальных денег.",
       "en": "A close with no number settles at HER last number — you hand over the whole remaining zone. The figure in a closing line is worth real money."
     }
   },
@@ -2873,8 +2873,8 @@ export const COURSE_BANK: Exercise[] = [
     "difficulty": 3,
     "xp": 15,
     "prompt": {
-      "ru": "Соедините стиль с надбавкой, которую он даёт в шкалах движка.",
-      "en": "Match each style to the modifier it applies on the engine's meters."
+      "ru": "Соедините стиль с надбавкой, которую он даёт в шкалах тренажёра.",
+      "en": "Match each style to the modifier it applies on the simulator's meters."
     },
     "left": [
       {
@@ -2916,8 +2916,8 @@ export const COURSE_BANK: Exercise[] = [
       "tough": "m_threat"
     },
     "explain": {
-      "ru": "Три надбавки — и все три штрафные, кроме первой: аналитику те же данные стоят дороже в вашу пользу, «отношенцу» альтернатива обходится на +6 напряжения дороже (10 вместо 4 с опорой, 20 вместо 14 без), жёсткому ультиматум даёт 30 напряжения вместо 22. Скидки за стиль в движке нет ни одной.",
-      "en": "Three modifiers, and all but the first are penalties: with the analyst the same data is worth more in your favour; with the relationship type an alternative costs 6 more tension (10 instead of 4 when grounded, 20 instead of 14 when not); with the tough one an ultimatum means 30 tension instead of 22. The engine has no style discounts at all."
+      "ru": "Три надбавки — и все три штрафные, кроме первой: аналитику те же данные стоят дороже в вашу пользу, «отношенцу» альтернатива обходится на +6 напряжения дороже (10 вместо 4 с опорой, 20 вместо 14 без), жёсткому ультиматум даёт 30 напряжения вместо 22. Скидки за стиль в тренажёре нет ни одной.",
+      "en": "Three modifiers, and all but the first are penalties: with the analyst the same data is worth more in your favour; with the relationship type an alternative costs 6 more tension (10 instead of 4 when grounded, 20 instead of 14 when not); with the tough one an ultimatum means 30 tension instead of 22. The simulator has no style discounts at all."
     }
   },
   {
@@ -2939,8 +2939,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "A tough-style table. How will Alexey react?"
     },
     "explain": {
-      "ru": "«Закрывается». Ультиматум и так стоит 22 напряжения и −14 доверия, а жёсткий стиль добавляет ещё +8: тридцать за один ход. Выше 55 движок режет уступку до 60 %, выше 75 — до 25 %, так что рычаг +6 вы получили и тут же заморозили. Вторая угроза подряд отматывает цену назад.",
-      "en": "“Hardened”. An ultimatum already costs 22 tension and −14 trust, and the tough style adds 8 more: thirty in a single turn. Above 55 the engine cuts concessions to 60 %, above 75 to 25 % — so the +6 leverage you bought is frozen the moment you buy it. A second threat walks the price back."
+      "ru": "«Закрывается». Ультиматум и так стоит 22 напряжения и −14 доверия, а жёсткий стиль добавляет ещё +8: тридцать за один ход. Выше 55 тренажёр режет уступку до 60 %, выше 75 — до 25 %, так что рычаг +6 вы получили и тут же заморозили. Вторая угроза подряд отматывает цену назад.",
+      "en": "“Hardened”. An ultimatum already costs 22 tension and −14 trust, and the tough style adds 8 more: thirty in a single turn. Above 55 the simulator cuts concessions to 60 %, above 75 to 25 % — so the +6 leverage you bought is frozen the moment you buy it. A second threat walks the price back."
     }
   },
   {
@@ -2978,8 +2978,8 @@ export const COURSE_BANK: Exercise[] = [
       "objective_criteria"
     ],
     "explain": {
-      "ru": "С аналитиком критерий идёт РАНЬШЕ размена и тем более раньше давления: рычаг +22 вместо +16 и реакция «принимает довод». Ощущение несправедливости для него не аргумент, а «посередине» — уступка без повода: движок не начислит за неё ничего.",
-      "en": "With an analyst the criterion comes BEFORE the trade, and long before any pressure: leverage +22 instead of +16 and the reaction “persuaded”. A sense of unfairness is not an argument to him, and “let us split it” is a concession with no reason — the engine grants nothing for it."
+      "ru": "С аналитиком критерий идёт РАНЬШЕ размена и тем более раньше давления: рычаг +22 вместо +16 и реакция «принимает довод». Ощущение несправедливости для него не аргумент, а «посередине» — уступка без повода: тренажёр не начислит за неё ничего.",
+      "en": "With an analyst the criterion comes BEFORE the trade, and long before any pressure: leverage +22 instead of +16 and the reaction “persuaded”. A sense of unfairness is not an argument to him, and “let us split it” is a concession with no reason — the simulator grants nothing for it."
     }
   },
   {
@@ -3013,8 +3013,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "By the median round at this stage the investor's share is 20%, and here are three independent market surveys it rests on."
     },
     "explain": {
-      "ru": "Подстройка — это порядок, а не маска, и произносится она вот так. С аналитиком критерий стоит дороже: рычаг +22 вместо обычных +16 — стиль добавляет шесть, — реакция «принимает довод», и доля в тот же ход поехала с 30% до 26.5%. Размен предикат запрещает не потому, что он плох: надбавку стиля даёт именно критерий, и разменивать имеет смысл после того, как ваша цифра стала законной.",
-      "en": "Adapting is an order of moves, not a mask — and this is how it sounds. With an analyst a criterion is worth more: leverage +22 instead of the usual +16, six of it from the style, reaction “persuaded”, and the share moved from 30% to 26.5% on the same turn. The predicate forbids a trade not because trading is bad: the style bonus goes to the criterion, and trading makes sense once your number is legitimate."
+      "ru": "Подстройка — это порядок, а не маска, и произносится она вот так. С аналитиком критерий стоит дороже: рычаг +22 вместо обычных +16 — стиль добавляет шесть, — реакция «принимает довод», и доля в тот же ход поехала с 30% до 26.5%. Размен условие задания запрещает не потому, что он плох: надбавку стиля даёт именно критерий, и разменивать имеет смысл после того, как ваша цифра стала законной.",
+      "en": "Adapting is an order of moves, not a mask — and this is how it sounds. With an analyst a criterion is worth more: leverage +22 instead of the usual +16, six of it from the style, reaction “persuaded”, and the share moved from 30% to 26.5% on the same turn. The task's check forbids a trade not because trading is bad: the style bonus goes to the criterion, and trading makes sense once your number is legitimate."
     }
   },
   {
@@ -3230,8 +3230,8 @@ export const COURSE_BANK: Exercise[] = [
     "answer": 1,
     "fault_key": "red_line_as_target",
     "explain": {
-      "ru": "Движок видит здесь заявление: реакция нейтральная, ни одна шкала не двигается — то есть ход не стоит ничего ещё до того, как счёт увидит цифру. А цифра даст 0 очков экономики из ста: (195 − 195) / (230 − 195) = 0. Красную линию назначают до стола ровно для того, чтобы за столом её не предлагать.",
-      "en": "The engine sees a statement: the reaction is neutral and not one meter moves — the turn costs nothing before the score even looks at the number. And the number scores 0 out of 100 on economics: (195 − 195) / (230 − 195) = 0. A red line is set before the table precisely so that it is never offered at it."
+      "ru": "Тренажёр видит здесь заявление: реакция нейтральная, ни одна шкала не двигается — то есть ход не стоит ничего ещё до того, как счёт увидит цифру. А цифра даст 0 очков экономики из ста: (195 − 195) / (230 − 195) = 0. Красную линию назначают до стола ровно для того, чтобы за столом её не предлагать.",
+      "en": "The simulator sees a statement: the reaction is neutral and not one meter moves — the turn costs nothing before the score even looks at the number. And the number scores 0 out of 100 on economics: (195 − 195) / (230 − 195) = 0. A red line is set before the table precisely so that it is never offered at it."
     }
   },
   {
@@ -3244,8 +3244,8 @@ export const COURSE_BANK: Exercise[] = [
     "scenario_id": "salary",
     "derive": "batna_leverage",
     "prompt": {
-      "ru": "Сила вашей альтернативы на этом столе — 60 из 100, и стартовый рычаг движок считает как 0.4 × сила. С каким рычагом вы садитесь за стол, не сказав ещё ни слова?",
-      "en": "Your alternative here has strength 60 out of 100, and the engine sets starting leverage at 0.4 × strength. What leverage do you sit down with, before saying a word?"
+      "ru": "Сила вашей альтернативы на этом столе — 60 из 100, и стартовый рычаг тренажёр считает как 0.4 × сила. С каким рычагом вы садитесь за стол, не сказав ещё ни слова?",
+      "en": "Your alternative here has strength 60 out of 100, and the simulator sets starting leverage at 0.4 × strength. What leverage do you sit down with, before saying a word?"
     },
     "answer": {
       "value": 24,
@@ -3359,7 +3359,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "What matters most to you when you justify the salary band to finance?"
     },
     "explain": {
-      "ru": "Два условия, и оба готовятся заранее. Формулировка «что для вас важнее всего» — голое «почему?» движок засчитает обычным открытым вопросом. И слова ТЕМЫ: попали в «обосновать вилку перед финансами» — Информация +24; не попали — переспрос и 5. Запрет на цифру не декоративен: названное число делает ход офертой, и вместо ответа про интерес начинается торг.",
+      "ru": "Два условия, и оба готовятся заранее. Формулировка «что для вас важнее всего» — голое «почему?» тренажёр засчитает обычным открытым вопросом. И слова ТЕМЫ: попали в «обосновать вилку перед финансами» — Информация +24; не попали — переспрос и 5. Запрет на цифру не декоративен: названное число делает ход офертой, и вместо ответа про интерес начинается торг.",
       "en": "Two conditions, both prepared in advance. The wording — “what matters most to you”; a bare “why?” classifies as a plain open question. And the words of the TOPIC: land on “justify the band to finance” and Information rises 24; miss, and you get a query back and 5. The ban on numbers is not decorative: a figure turns the turn into an offer, and instead of an answer about an interest you get haggling."
     }
   },
@@ -3433,8 +3433,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "My position is a base of 230k, because independent salary surveys put the median for this role exactly there."
     },
     "explain": {
-      "ru": "Предикат требует ровно те три части, по которым движок считает право первого слова, и число среди них не для красоты: «по рынку это заметно больше» тоже читается как критерий, но качество довода падает ниже порога 35 — рычаг вырастет, а рамка не сдвинется. Критерий — единственная часть, которую нельзя придумать за столом: обзор зарплат читают до него.",
-      "en": "The predicate asks for exactly the three parts the engine counts the first word by, and the number is not there for looks: “the market pays noticeably more” also reads as a criterion, but the argument quality falls below the threshold of 35 — leverage grows and the frame does not move. The criterion is the one part you cannot invent at the table: you read the salary survey before it."
+      "ru": "Условие задания требует ровно те три части, по которым тренажёр считает право первого слова, и число среди них не для красоты: «по рынку это заметно больше» тоже читается как критерий, но качество довода падает ниже порога 35 — рычаг вырастет, а рамка не сдвинется. Критерий — единственная часть, которую нельзя придумать за столом: обзор зарплат читают до него.",
+      "en": "The task's check asks for exactly the three parts the simulator counts the first word by, and the number is not there for looks: “the market pays noticeably more” also reads as a criterion, but the argument quality falls below the threshold of 35 — leverage grows and the frame does not move. The criterion is the one part you cannot invent at the table: you read the salary survey before it."
     }
   },
   {
@@ -3447,8 +3447,8 @@ export const COURSE_BANK: Exercise[] = [
     "scenario_id": "salary",
     "derive": "best_chip_package",
     "prompt": {
-      "ru": "Пересмотр по KPI стоит вам 0.25 и ценится оппонентом в 0.75. Вклад фишки в шкалу «Приёмы» движок считает как 10 × ценность − 6 × стоимость. Сколько очков даст эта фишка?",
-      "en": "A KPI review costs you 0.25 and is worth 0.75 to the other side. The engine scores a chip's contribution to Technique as 10 × value − 6 × cost. How many points does this chip pay?"
+      "ru": "Пересмотр по KPI стоит вам 0.25 и ценится оппонентом в 0.75. Вклад фишки в шкалу «Приёмы» тренажёр считает как 10 × ценность − 6 × стоимость. Сколько очков даст эта фишка?",
+      "en": "A KPI review costs you 0.25 and is worth 0.75 to the other side. The simulator scores a chip's contribution to Technique as 10 × value − 6 × cost. How many points does this chip pay?"
     },
     "answer": {
       "value": 6,
@@ -3493,8 +3493,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "If we tie this to a KPI review in six months, can you move to 230?"
     },
     "explain": {
-      "ru": "Предикат требует НАЗВАННУЮ фишку, а не «разменяем что-нибудь»: движок платит за конкретное условие. Названный пересмотр по KPI даёт доверие +6 сверх +6 за сам размен, добавляет 0.325 к уступке и 6.0 к технике. «Пойдём навстречу» той же длины — это уступка: цена не двигается вовсе, потому что цена ходит только за событием.",
-      "en": "The predicate asks for a NAMED chip, not for “let us trade something”: the engine pays for a concrete term. A named KPI review gives trust +6 on top of the +6 for the trade itself, adds 0.325 to the concession and 6.0 to Technique. “We can be flexible”, at the same length, is a concession: the price does not move at all, because price only moves behind an event."
+      "ru": "Условие задания требует НАЗВАННУЮ фишку, а не «разменяем что-нибудь»: тренажёр платит за конкретное условие. Названный пересмотр по KPI даёт доверие +6 сверх +6 за сам размен, добавляет 0.325 к уступке и 6.0 к технике. «Пойдём навстречу» той же длины — это уступка: цена не двигается вовсе, потому что цена ходит только за событием.",
+      "en": "The task's check asks for a NAMED chip, not for “let us trade something”: the simulator pays for a concrete term. A named KPI review gives trust +6 on top of the +6 for the trade itself, adds 0.325 to the concession and 6.0 to Technique. “We can be flexible”, at the same length, is a concession: the price does not move at all, because price only moves behind an event."
     }
   },
   {
@@ -3542,8 +3542,8 @@ export const COURSE_BANK: Exercise[] = [
       }
     ],
     "explain": {
-      "ru": "Здесь проверяется лист целиком, строка за строкой. Цель — это 230, а не «сколько дадут»: на 230 экономика равна ста. Три гипотезы — три вопроса, каждый в слова своей темы. Пакет — названная фишка, чей след виден в доверии: +3 + 4 × ценность за названное условие. И ни одно из условий не берётся давлением: выше 55 напряжения движок режет любую уступку до 60 %.",
-      "en": "This checks the whole sheet, line by line. The target is 230, not “whatever they offer”: at 230 economics is already 100. Three hypotheses means three questions, each landing on the words of its own topic. The package is a named chip, and its trace shows up in trust: +3 + 4 × value for a named term. And none of the conditions can be taken by pressure: above 55 tension the engine cuts every concession to 60 %."
+      "ru": "Здесь проверяется лист целиком, строка за строкой. Цель — это 230, а не «сколько дадут»: на 230 экономика равна ста. Три гипотезы — три вопроса, каждый в слова своей темы. Пакет — названная фишка, чей след виден в доверии: +3 + 4 × ценность за названное условие. И ни одно из условий не берётся давлением: выше 55 напряжения тренажёр режет любую уступку до 60 %.",
+      "en": "This checks the whole sheet, line by line. The target is 230, not “whatever they offer”: at 230 economics is already 100. Three hypotheses means three questions, each landing on the words of its own topic. The package is a named chip, and its trace shows up in trust: +3 + 4 × value for a named term. And none of the conditions can be taken by pressure: above 55 tension the simulator cuts every concession to 60 %."
     }
   }
 ];
