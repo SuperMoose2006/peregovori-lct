@@ -3301,7 +3301,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
   color: var(--ink-faint); margin-bottom: 12px; display: flex; gap: 10px; align-items: center; }
 .exam-flag { color: var(--brass-ink); font-weight: 800; }
 .lesson-xp { font-weight: 800; color: var(--brass-ink); font-size: 18px; }
-.btn.back { margin-bottom: 10px; }
+/* Сверху — тот же воздух, что у заголовков других разделов (≈26 px от шапки):
+   без него кнопка садилась прямо на линию шапки и читалась обрезанной. */
+.btn.back { margin: 24px 0 10px; }
 
 /* ---- упражнение ---- */
 .ex { background: var(--panel); border: 2px solid var(--line); border-radius: var(--r);
