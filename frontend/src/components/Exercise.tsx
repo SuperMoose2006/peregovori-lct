@@ -128,8 +128,19 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
   // слушает список: односимвольная горячая клавиша, активная только пока фокус
   // внутри компонента, — прямое исключение WCAG 2.1.4. Цифра ещё и переводит
   // фокус на выбранный вариант, иначе следующий Enter выбрал бы не то.
+  //
+  // ENTER НА ВЫБРАННОМ ВАРИАНТЕ — ПРОВЕРИТЬ. Подсказка обещала «Enter
+  // подтверждает», а Enter на кнопке варианта просто выбирал его ещё раз;
+  // подтвердить можно было, только дойдя Tab до «Проверить» (аудит 17.10).
+  // Первый Enter на НЕвыбранном варианте по-прежнему выбирает его (обычный
+  // onClick), поэтому ловушки «второй Enter отправил первый вариант» нет.
   const onOptsKey = (e: React.KeyboardEvent<HTMLUListElement>) => {
     if (locked) return;
+    if (e.key === "Enter" && picked !== null && optRefs.current[picked] === e.target && ready()) {
+      e.preventDefault();
+      submit();
+      return;
+    }
     const n = Number(e.key);
     if (!(n >= 1 && n <= opts.options.length)) return;
     setPicked(n - 1);

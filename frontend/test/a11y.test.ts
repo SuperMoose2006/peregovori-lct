@@ -236,3 +236,14 @@ test("две кнопки «Проверить сейчас» различимы
     assert.ok(a.voice && a.camera && a.voice !== a.camera, lang);
   }
 });
+
+test("Enter на выбранном варианте проверяет ответ, как обещает подсказка", () => {
+  // Аудит 17.10: «Клавиши 1–4 / Enter не сработали». Цифры живут на списке
+  // (WCAG 2.1.4 — односимвольные клавиши только при фокусе внутри), а Enter на
+  // кнопке варианта лишь выбирал его ещё раз. Теперь Enter на выбранном
+  // варианте проверяет, а подсказка говорит, что сначала — Tab к вариантам.
+  const src = readFileSync(new URL("../src/components/Exercise.tsx", import.meta.url), "utf8");
+  assert.match(src, /e\.key === "Enter" && picked !== null && optRefs\.current\[picked\] === e\.target && ready\(\)/);
+  assert.doesNotMatch(src, /window\.addEventListener\("keydown"/, "горячие клавиши снова висят на окне");
+  for (const lang of ["ru", "en"] as const) assert.match(I18N[lang].course.optKeys, /Tab/);
+});
