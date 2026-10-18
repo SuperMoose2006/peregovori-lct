@@ -42,7 +42,7 @@ import { isMirrorTable } from "./lib/mirrorIds";
 // ради карты кампании на домашнем экране, и отдельным файлом он бы не стал —
 // была бы граница загрузки, за которой всегда уже всё загружено.
 import { CampaignComplete } from "./components/CampaignScreen";
-import { applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDailyGoalTarget,
+import { PROFILE_KEY, applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDailyGoalTarget, updateProfile,
          activeCampaignId, chooseNextStep, emptyCampaign, getCampaignProgress,
          recordCampaignStage, resetCampaign,
          type GameResult, type Grade, type NextStepPick, type PastRun, type Profile } from "./lib/progress";
@@ -219,6 +219,27 @@ export default function App() {
     saveProfile(next);
     setProfile(next);
   }, []);
+  // Изменение поверх СВЕЖЕГО профиля из хранилища, а не поверх копии этой
+  // вкладки: копия могла устареть, пока в другой вкладке шёл урок (F02).
+  const changeProfile = useCallback((change: (p: Profile) => Profile): Profile => {
+    const next = updateProfile(change, profileRef.current);
+    profileRef.current = next;
+    setProfile(next);
+    return next;
+  }, []);
+  // Другая вкладка записала прогресс — шапка, курс и профиль этой вкладки
+  // показывают его сразу, а не после перезагрузки. `key === null` — хранилище
+  // очищено целиком.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== PROFILE_KEY && e.key !== null) return;
+      const next = loadProfile(profileRef.current);
+      profileRef.current = next;
+      setProfile(next);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   const [lastGame, setLastGame] = useState<GameResult | null>(null);
   // Капстоун курса: настоящая партия, запущенная из урока или экзамена блока.
   // Она идёт по обычному пути (движок судит, слои выключены), а курс узнаёт
@@ -373,14 +394,18 @@ export default function App() {
     if (recordedProgress.current === nego.debrief) return;
     recordedProgress.current = nego.debrief;
     const scenarioId = nego.scenario?.id ?? currentScenario ?? "custom";
-    const res = applyDebrief(profileRef.current, scenarioId, nego.debrief);
-    commitProfile(res.profile);
+    const debrief = nego.debrief;
+    let res!: GameResult;
+    changeProfile((p) => {
+      res = applyDebrief(p, scenarioId, debrief);
+      return res.profile;
+    });
     setLastGame(res);
     // Тем же разбором, из которого получился грейд, — и ОТДЕЛЬНО от профиля:
     // запись истории не имеет права ни изменить оценку, ни уронить партию, если
     // хранилище закрыто (внутри всё best-effort).
     appendHistory(scenarioId, nego.debrief);
-  }, [nego.debrief, nego.scenario, currentScenario, commitProfile]);
+  }, [nego.debrief, nego.scenario, currentScenario, changeProfile]);
 
   // След идущей партии: одно состояние на ход. Дедупликация по НОМЕРУ хода, а не
   // по ссылке: каждое сообщение сервера приносит новый объект состояния, и без
@@ -514,8 +539,8 @@ export default function App() {
     const total = campaign.stages.length;
     // Свёртка чистая и живёт в lib/progress; здесь остаётся только запись в
     // профиль. Этот эффект идёт ПОСЛЕ записи XP и кладёт акт поверх неё.
-    commitProfile(recordCampaignStage(profileRef.current, campaignId, total, d.grade, d.overall));
-  }, [mode, nego.debrief, campaign, campaignId, commitProfile]);
+    changeProfile((p) => recordCampaignStage(p, campaignId, total, d.grade, d.overall));
+  }, [mode, nego.debrief, campaign, campaignId, changeProfile]);
 
   // Итог капстоуна снимается с ТОГО ЖЕ состояния, что и грейд: предикат смотрит
   // только в поля движка, поэтому «сдал» здесь значит ровно то же, что в партии.
@@ -541,21 +566,21 @@ export default function App() {
       // (CourseScreen.ExamRunner). Отсюда уходит только результат партии:
       // счёт, разбор промахов и урок восстановления живут там, где их видно.
       if (ex.exam) noteCapstone(ex.ex.id, verdict.ok);
-      let next = ex.exam
-        ? profileRef.current
-        : recordExercise(profileRef.current, ex.blockId, ex.ex.id, ex.ex.xp, verdict.ok).profile;
-      // Экзамен мастера считается по числу СДАННЫХ партий: две из трёх и он
-      // закрыт. Отдельной попытки не заводим — переигрывать можно любую.
-      if (ex.blockId === MASTER_ID) {
-        const solved = next.course[MASTER_ID]?.solved.length ?? 0;
-        if (solved >= MASTER_PASS_MARK && !next.course[MASTER_ID]?.passed) {
-          next = recordExam(next, MASTER_ID, solved, COURSE_MASTER.length, MASTER_PASS_MARK).profile;
+      changeProfile((p) => {
+        let next = ex.exam ? p : recordExercise(p, ex.blockId, ex.ex.id, ex.ex.xp, verdict.ok).profile;
+        // Экзамен мастера считается по числу СДАННЫХ партий: две из трёх и он
+        // закрыт. Отдельной попытки не заводим — переигрывать можно любую.
+        if (ex.blockId === MASTER_ID) {
+          const solved = next.course[MASTER_ID]?.solved.length ?? 0;
+          if (solved >= MASTER_PASS_MARK && !next.course[MASTER_ID]?.passed) {
+            next = recordExam(next, MASTER_ID, solved, COURSE_MASTER.length, MASTER_PASS_MARK).profile;
+          }
         }
-      }
-      commitProfile(next);
+        return next;
+      });
     });
     return () => { alive = false; };
-  }, [drill, nego.debrief, nego.state, commitProfile]);
+  }, [drill, nego.debrief, nego.state, changeProfile]);
 
   // Куда именно ведёт кнопка курса: первый незакрытый урок, а не «в курс».
   const courseNext = useMemo(
@@ -893,13 +918,13 @@ export default function App() {
   const replayCampaign = useCallback(() => {
     // Обнуляется ОДНА кампания: вторая — отдельная история с отдельным прогрессом.
     if (campaignId) {
-      commitProfile(resetCampaign(profileRef.current, campaignId));
+      changeProfile((p) => resetCampaign(p, campaignId));
     }
     recordedDebrief.current = null;
     leaveSession();
     setScreen("home");
     scrollTop();
-  }, [leaveSession, campaignId, commitProfile]);
+  }, [leaveSession, campaignId, changeProfile]);
 
   // Switching modes clears a stale generation error from the custom view.
   const selectMode = useCallback(
@@ -941,8 +966,8 @@ export default function App() {
 
   // Customizable daily goal: use the latest profile including unrendered writes.
   const setGoalTarget = useCallback((target: number) => {
-    commitProfile(setDailyGoalTarget(profileRef.current, target));
-  }, [commitProfile]);
+    changeProfile((p) => setDailyGoalTarget(p, target));
+  }, [changeProfile]);
 
   // Mobile hero CTA: bring the opponent picker into view (it sits just below the
   // hero on the same home screen). Reduced-motion callers still land there.

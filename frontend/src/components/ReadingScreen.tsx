@@ -118,7 +118,9 @@ export function ReadingScreen({ t, lang, onClose }: Props) {
     setPicked(null);
     setStep(next);
     if (next >= total) {
-      const updated = recordReading(log, gameId, tally);
+      // Свежий журнал, а не снятый при открытии: другая вкладка могла
+      // дочитать свою партию, пока шла эта (аудит 17.10, F02).
+      const updated = recordReading(loadReading(), gameId, tally);
       setLog(updated);
       saveReading(updated);
     }

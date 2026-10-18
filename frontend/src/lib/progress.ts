@@ -102,6 +102,8 @@ export function emptyBlockProgress(): BlockProgress {
 
 const VERSION = 5;
 const KEY = "dialog.progress.v1";
+/** Ключ профиля — для слушателя `storage`: другая вкладка записала прогресс. */
+export const PROFILE_KEY = KEY;
 // If a quota/permission error leaves an older blob on disk, keep this tab's
 // latest progress usable until a later write succeeds. It is not durable.
 let unsavedProfile: Profile | null = null;
@@ -615,6 +617,25 @@ export function saveProfile(p: Profile): void {
     // storage full / disabled / private mode — progress is best-effort, not load-bearing.
     unsavedProfile = p;
   }
+}
+
+/** Прочитать СВЕЖИЙ профиль, применить изменение и сразу записать.
+ *
+ * Профиль — один объект в хранилище, и запись кладёт его целиком. Итог партии
+ * записывался из копии, снятой при открытии вкладки, и стирал то, что за это
+ * время сделала другая вкладка: урок и 20 XP пропадали после партии в соседней
+ * (аудит 17.10, F02: 20 + 102 + 30 давало 132, и галочка первого урока
+ * исчезала). Каждый писатель здесь — чистая функция «профиль → профиль»,
+ * поэтому применить её к свежей копии и есть всё слияние: множества уроков и
+ * достижений растут объединением сами.
+ *
+ * Чтение и запись идут подряд, без await между ними; гонку двух вкладок в одну
+ * миллисекунду это не закрывает (у localStorage нет межвкладочного замка),
+ * а устаревший снимок — закрывает. */
+export function updateProfile(change: (p: Profile) => Profile, fallback?: Profile): Profile {
+  const next = change(loadProfile(fallback));
+  saveProfile(next);
+  return next;
 }
 
 export function getRecord(profile: Profile, scenarioId: string): ScenarioRecord | null {
