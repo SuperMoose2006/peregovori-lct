@@ -18,7 +18,7 @@ import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { repliesByMove } from "./lib/whatif";
 import { LayersPanel } from "./components/Setup";
-import { ProgressCards, MethodCard, RailCard, RailGroup, DailyCard, StreakCard } from "./components/Rail";
+import { ProgressCards, MethodCard, RailCard, RailGroup, DailyCard, StreakCard, useDayKey } from "./components/Rail";
 import { SectionTour } from "./components/SectionTour";
 import { TourPrefsPanel } from "./components/TourPrefs";
 import { loadTourPrefs, markSeenThisSession, saveTourPrefs, seenThisSession, setSectionOff, shouldAutoRunTour,
@@ -623,13 +623,19 @@ export default function App() {
    * Всё, что нужно App, — подать ей каталог, кампании и стол дня и увести клик
    * туда, куда она показала. Считается офлайн, из localStorage (инвариант 5).
    */
+  // Местный день — состояние: в полночь при открытой вкладке перерисовываются
+  // все карточки (стол дня, серия, маршрут). Прежде его слушал один виджет, и
+  // «Стол дня», нарисованный до полуночи, после неё запускал вчерашний стол
+  // обычной партией — без обещанного условия (найдено после аудита 17.10).
+  const liveDay = useDayKey();
   const route = useMemo(
     () => chooseNextStep(profile, {
       tables: SCENARIOS.map((sc) => ({ id: sc.id, difficulty: sc.diff })),
       campaigns: campaigns.map((c) => ({ id: c.id, stages: c.stages.length })),
       dailyScenarioId: dailyTable().scenarioId,
     }),
-    [profile, campaigns],
+    // liveDay в зависимостях не читается внутри: новый день — новый стол дня.
+    [profile, campaigns, liveDay],
   );
 
   // Прогрев экранов — после первой отрисовки и только на простое: домашний

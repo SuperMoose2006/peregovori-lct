@@ -261,3 +261,17 @@ test("маршрут · своя сделка и стол редактора в 
   const onlyGenerated = played(played(emptyProfile(), "custom_mock", "F", 12), "salary", "B", 75);
   assert.notEqual(chooseNextStep(onlyGenerated, INPUT).kind, "rematch");
 });
+
+test("маршрут и карточки пересчитываются в полночь при открытой вкладке", async () => {
+  // Найдено после аудита 17.10: «Стол дня», нарисованный до полуночи, после
+  // неё запускал вчерашний стол обычной партией — startDaily сверяет стол с
+  // dailyTable() в момент клика, а карточки и маршрут не перерисовывались.
+  const { readFileSync } = await import("node:fs");
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(app, /const liveDay = useDayKey\(\);/);
+  const deps = app.match(/const route = useMemo\([\s\S]*?\}\),[\s\S]*?\[([^\]]*)\],\s*\);/);
+  assert.ok(deps && /liveDay/.test(deps[1]), `маршрут не зависит от дня: [${deps?.[1]}]`);
+  // Сама ловушка: стол, показанный в 23:59, в 00:01 уже не стол дня.
+  const { dailyTable } = await import("../src/lib/daily");
+  assert.notEqual(dailyTable(new Date(2026, 9, 18, 23, 59)).scenarioId, dailyTable(new Date(2026, 9, 19, 0, 1)).scenarioId);
+});
