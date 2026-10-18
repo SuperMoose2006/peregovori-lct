@@ -137,6 +137,8 @@ export function Icon({ name, title, className = "" }: {
 /** Значок по строке из данных: сценарии и блоки курса хранят ИМЯ, а не символ.
  *  Неизвестное имя не должно ронять экран — вместо него нейтральная метка. */
 export function DataIcon({ name, className }: { name: string; className?: string }) {
-  const known = name in PATHS ? (name as IconName) : "target";
+  // Собственное свойство, а не `in`: `in` видит цепочку прототипов, и имя
+  // «constructor» рисовало пустой значок, а «__proto__» роняло экран.
+  const known = Object.prototype.hasOwnProperty.call(PATHS, name) ? (name as IconName) : "target";
   return <Icon name={known} className={className} />;
 }

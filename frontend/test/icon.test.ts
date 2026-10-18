@@ -112,11 +112,7 @@ test("неизвестное имя из данных даёт нейтраль�
   }
 });
 
-test("имя из данных, совпавшее со свойством объекта, тоже даёт нейтральную метку", {
-  todo: "components/Icon.tsx:140 проверяет `name in PATHS`, а `in` видит цепочку прототипов: " +
-        "«constructor»/«toString» рисуют пустой <svg>, «__proto__» роняет рендер " +
-        "(Objects are not valid as a React child); нужен Object.hasOwn",
-}, () => {
+test("имя из данных, совпавшее со свойством объекта, тоже даёт нейтральную метку", () => {
   const fallback = render("target");
   for (const name of ["constructor", "toString", "hasOwnProperty", "__proto__"]) {
     let markup = "";
