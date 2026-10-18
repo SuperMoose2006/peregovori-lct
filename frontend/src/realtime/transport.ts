@@ -412,8 +412,8 @@ export class RealtimeTransport implements Transport {
             ? "Предыдущая попытка недоступна. Начата новая попытка; прошлый результат не восстановлен."
             : "The previous attempt is unavailable. A new attempt has started; the previous result was not restored.")
           : (this.lang === "ru"
-            ? "Связь восстановлена. Состояние стола получено с сервера; последний ответ мог прерваться."
-            : "Connection restored. The table state was received from the server; the last reply may have been interrupted.") });
+            ? "Связь восстановлена, партия продолжается с того же места; последний ответ мог прерваться."
+            : "Connection restored; the game continues where it was; the last reply may have been interrupted.") });
         return;
       }
 

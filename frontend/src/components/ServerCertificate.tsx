@@ -32,8 +32,8 @@ export function ServerCertificate({ evidence, lang, enabled }: {
   const current = verified?.record.id === id ? verified : null;
   return <section className="cert-server" aria-live="polite">
     <p>{lang === "ru"
-      ? "Серверная аттестация: одна анонимная экзаменационная попытка. Личность не удостоверена."
-      : "Server attestation: one anonymous exam attempt. Identity is not verified."}</p>
+      ? "Проверка результата: одна анонимная экзаменационная попытка. Личность не удостоверена."
+      : "Result verification: one anonymous exam attempt. Identity is not verified."}</p>
     {current ? <>
       <p>{current.record.grade} · {current.record.overall}/100 · <time>{current.record.issued_at}</time></p>
       <p>ID: <code>{current.record.id}</code></p>
@@ -46,7 +46,7 @@ export function ServerCertificate({ evidence, lang, enabled }: {
       ? "В этой версии тренажёра свидетельства не выдаются. Учебный результат сохранён отдельно."
       : "Certificates are not issued in this version of the trainer. The practice result is recorded separately."}</p>
     : <p>{lang === "ru"
-      ? "Подписанное свидетельство не подтверждено серверным реестром. Учебный результат сохранён отдельно."
-      : "A signed certificate has not been confirmed by the server registry. The practice result is recorded separately."}</p>}
+      ? "Подписанное свидетельство не подтверждено проверкой. Учебный результат сохранён отдельно."
+      : "A signed certificate has not been confirmed by verification. The practice result is recorded separately."}</p>}
   </section>;
 }

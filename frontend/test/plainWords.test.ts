@@ -55,3 +55,39 @@ test("курс: в объяснениях и теории нет техниче�
     .map(([p, ru, en]) => `${p}: ${COURSE_BANNED.ru.test(ru) ? ru : en}`.slice(0, 160));
   assert.deepEqual(bad, []);
 });
+
+// Строки, зашитые в компоненты и модули мимо I18N, этот сторож не видел:
+// «Проверьте подключение к серверу» (редактор), «Серверная аттестация»,
+// «на сервере нет облачного зрения» (слои), «получено с сервера»
+// (переподключение) — найдено после аудита 17.10. Смотрим фразы в кавычках:
+// с кириллицей — по русскому списку, из трёх и больше слов с заглавной — по
+// английскому. Комментарии вырезаются: там эти слова законны.
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+function sources(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) { if (name !== "vendor") sources(p, out); }
+    else if (/\.(ts|tsx)$/.test(name) && !/i18n\.ts$|\.generated\.ts$|vite-env/.test(name)) out.push(p);
+  }
+  return out;
+}
+
+test("в строках, зашитых в компоненты мимо словаря, нет технических слов", () => {
+  const src = new URL("../src", import.meta.url).pathname;
+  const bad: string[] = [];
+  for (const file of sources(src)) {
+    const code = readFileSync(file, "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|\s)\/\/.*$/gm, "$1")
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+    for (const m of code.matchAll(/"([^"\n]{12,})"|`([^`\n]{12,})`/g)) {
+      const s = m[1] ?? m[2];
+      const ru = /[а-яё]/i.test(s);
+      const en = !ru && /^[A-Z][^ ]* \S+ \S+/.test(s);
+      if ((ru && BANNED.ru.test(s)) || (en && BANNED.en.test(s))) bad.push(`${file.slice(src.length + 1)}: ${s.slice(0, 90)}`);
+    }
+  }
+  assert.deepEqual(bad, []);
+});

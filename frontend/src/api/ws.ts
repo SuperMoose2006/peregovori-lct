@@ -115,8 +115,8 @@ export function createTransport(
       transport.close();
       early.length = 0;
       onMessage({ type: "error", message: adminStart.lang === "en"
-        ? "This scenario needs the server. Reconnect or return to the editor."
-        : "Для этого сценария нужен сервер. Восстановите связь или вернитесь в редактор." });
+        ? "This scenario only works online. Reconnect or return to the editor."
+        : "Этот сценарий работает только онлайн. Восстановите связь или вернитесь в редактор." });
       status("lost");
       return;
     }

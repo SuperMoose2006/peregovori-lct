@@ -49,14 +49,14 @@ const TEXT = {
   ru: {
     loading: "Открываем экран…",
     failTitle: "Экран не догрузился",
-    failBody: "Файл этого экрана не приехал — связь пропала или сервер не отдал его. Всё, что уже открыто, работает: можно вернуться на главную или обновить страницу целиком.",
+    failBody: "Файл этого экрана не приехал — связь пропала или файл не загрузился. Всё, что уже открыто, работает: можно вернуться на главную или обновить страницу целиком.",
     retry: "Обновить страницу",
     home: "На главную",
   },
   en: {
     loading: "Opening the screen…",
     failTitle: "This screen did not load",
-    failBody: "Its file never arrived — the connection dropped, or the server did not serve it. Everything already open still works: go back home, or reload the whole page.",
+    failBody: "Its file never arrived — the connection dropped, or the file did not load. Everything already open still works: go back home, or reload the whole page.",
     retry: "Reload the page",
     home: "Home",
   },

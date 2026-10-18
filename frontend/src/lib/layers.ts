@@ -183,20 +183,20 @@ export function reasonText(s: LayerState, lang: Lang): string {
  */
 export const SERVER_SIDE_REASON: Record<"camera" | "voice", { ru: string; en: string }> = {
   camera: {
-    ru: "на сервере нет облачного зрения — смотреть на кадры некому, поэтому камера не включалась",
-    en: "the server has no cloud vision — nobody would look at the frames, so the camera was not opened",
+    ru: "зрение ИИ сейчас не подключено — смотреть на кадры некому, поэтому камера не включалась",
+    en: "AI vision is not connected right now — nobody would look at the frames, so the camera was not opened",
   },
   voice: {
-    ru: "на сервере не поднялось распознавание речи — ход голосом не уедет, печатайте; оппонента при этом слышно",
-    en: "speech recognition did not come up on the server — a spoken turn will not go through, so type; you can still hear the opponent",
+    ru: "распознавание речи сейчас недоступно — ход голосом не уйдёт, печатайте; оппонента при этом слышно",
+    en: "speech recognition is unavailable right now — a spoken turn will not go through, so type; you can still hear the opponent",
   },
 };
 
 /** Сервера нет вовсе — партия идёт офлайн-ядром в браузере, и ни голоса, ни
  *  камеры, ни реакций лица от сервера там не будет. */
 export const NO_SERVER_REASON: { ru: string; en: string } = {
-  ru: "нет связи с сервером — это работает только через него; партия идёт офлайн, текстом",
-  en: "no connection to the server — this only works through it; the game runs offline, in text",
+  ru: "нет связи — это работает только онлайн; партия идёт офлайн, текстом",
+  en: "no connection — this only works online; the game runs offline, in text",
 };
 
 /** Что сервер сказал о себе в `/api/health` — ровно те поля, что решают слои. */
