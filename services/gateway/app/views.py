@@ -230,6 +230,12 @@ def build_facts(sess: "engine.Session", result: "engine.MoveResult") -> dict:
         "revealed_interests": revealed,
         "transcript": _transcript(sess, lang),  # memory: the opponent remembers the dialogue
         "player_text": _last_player_text(sess),
+        # Для проверки реплики по столу (sanitize.contradicts): модель не имеет
+        # права обещать условия, которых движок не дал.
+        "scenario_id": sess.scenario_id,
+        "deal": sess.state.deal,
+        "offer_history": sorted({sc.opponent_open, *(e["offer_before"] for e in sess.ledger),
+                                 *(e["offer_after"] for e in sess.ledger)}),
     }
 
 

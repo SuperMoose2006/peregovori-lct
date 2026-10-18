@@ -52,7 +52,7 @@ def _style_flavor(style: str | None, lang: str) -> str:
                          "говоришь мягко и по-человечески. Обращаешься к чувствам, зовёшь решать «вместе», "
                          "«по-хорошему»; на грубость реагируешь обидой, а не встречной агрессией."),
         "tough": ("Ты жёсткий и прямой: рубишь коротко, давишь, не терпишь пустых слов и торопишь. "
-                  "Твоя присказка — «цифры есть цифры», «не тянем», «по рукам». Фразы рубленые, без реверансов."),
+                  "Твоя присказка — «цифры есть цифры», «не тянем», «ближе к делу». Фразы рубленые, без реверансов."),
         "analytical": ("Ты аналитик: сух, точен, уважаешь цифры, данные и логику, эмоции держишь в стороне. "
                        "Часто начинаешь с «если посмотреть на факты», ссылаешься на расчёт и критерии, "
                        "а не на настроение."),
@@ -62,7 +62,7 @@ def _style_flavor(style: str | None, lang: str) -> str:
                          "softly, like a person. You name feelings, invite solving it \"together\" and \"the good "
                          "way\"; to rudeness you react with hurt, not counter-aggression."),
         "tough": ("You are tough and blunt: clipped, you press, have no patience for fluff and you rush things. "
-                  "Your tics are \"numbers are numbers\", \"let's not drag this\", \"shake on it\". Short, no frills."),
+                  "Your tics are \"numbers are numbers\", \"let's not drag this\", \"get to the point\". Short, no frills."),
         "analytical": ("You are analytical: dry, precise, you respect numbers, data and logic, and keep emotion "
                        "aside. You often open with \"looking at the facts\", cite the math and criteria rather "
                        "than mood."),
@@ -131,6 +131,10 @@ def build_system(facts: dict) -> str:
     revealed = facts.get("revealed_interests") or []
 
     obs = _observation_block(facts, lang)
+    # Аудит 17.10, F05: жёсткий персонаж с присказкой «по рукам» отвечал «Дам
+    # 99,7% … по рукам» на столе, где движок дал 99,2, — эхом числа игрока.
+    # Правило в промпте снижает частоту; гарантию даёт sanitize.contradicts.
+    agreed = facts.get("status") == "agreement"
 
     if lang == "ru":
         rev = ("- Игрок уже вывел эти твои интересы — можешь на них ссылаться: "
@@ -146,7 +150,11 @@ def build_system(facts: dict) -> str:
             f"- Статус сделки: {status}.\n"
             f"{rev}"
             f"{obs}"
-            "Не раскрывай ОСТАЛЬНЫЕ скрытые интересы, если игрок не вывел их вопросами.\n"
+            f"Своими условиями называй ТОЛЬКО {offer}{unit}: не обещай и не принимай другую цифру, "
+            "даже если её назвал игрок.\n"
+            + ("" if agreed else
+               "Сделка ещё НЕ заключена: не говори «по рукам», «договорились», «идёт» и не объявляй её итог.\n")
+            + "Не раскрывай ОСТАЛЬНЫЕ скрытые интересы, если игрок не вывел их вопросами.\n"
             # Cheap models read the persona name in the transcript ("Ты: Я Ирина…")
             # and start using it as a vocative to the player. Say it outright.
             f"ВАЖНО: {name} — это ТЫ. Никогда не обращайся так к собеседнику; "
@@ -167,7 +175,11 @@ def build_system(facts: dict) -> str:
         f"- Deal status: {status}.\n"
         f"{rev}"
         f"{obs}"
-        "Do not reveal your OTHER hidden interests unless the player drew them out with questions.\n"
+        f"The ONLY terms you state as yours are {offer}{unit}: never promise or accept another figure, "
+        "even one the player named.\n"
+        + ("" if agreed else
+           "There is NO deal yet: never say \"deal\", \"agreed\" or \"shake on it\", and never announce an outcome.\n")
+        + "Do not reveal your OTHER hidden interests unless the player drew them out with questions.\n"
         f"IMPORTANT: {name} is YOU. Never address the other person by that name; address the player as "
         "\"you\", with no name. Never repeat your earlier lines word for word — fresh wording every time.\n"
         "You NEVER break character, never mention being an AI or assistant, and never offer help. Output ONLY the character's line."

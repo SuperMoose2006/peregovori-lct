@@ -286,7 +286,7 @@ BSD-3-Clause, © Mozilla / Jean-Marc Valin / Xiph.Org / Mark Borgerding).
 | **Победитель** | Open-LLM-VTuber |
 | **Исходник** | `src/open_llm_vtuber/utils/sentence_divider.py` (608 строк) |
 | **Куда** | `services/gateway/app/vendor/olv/sentence_divider.py` — **перенесён целиком** |
-| **Что изменено** | Только `loguru` → стандартный `logging`. Больше ничего |
+| **Что изменено** | `loguru` → стандартный `logging`; число не режется по десятичной запятой или точке (`_clause_comma`, `_DECIMAL_TAIL_RE`): «Дам 99,7%» звучало как «Дам 99,» и «7%» — аудит 17.10 |
 | **Конкурент** | TEN `main_python/helper.py::parse_sentences` — 20 строк, split по `.!?` |
 | **Почему победил** | pysbd с поддержкой русского, обработка сокращений, запятая как аварийная граница длинного куска и разбор тегов `[emotion]` прямо из потока. `faster_first_response` режет первую фразу по запятой — первый звук уходит раньше |
 | **Лицензия** | MIT, © 2025 Yi-Ting Chiu — прочитано в `.upstream/Open-LLM-VTuber/LICENSE`. Шапка файла несёт источник, лицензию, копирайт и полный коммит: **эталон оформления для этого репозитория** |

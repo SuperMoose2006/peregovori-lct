@@ -179,7 +179,11 @@ def test_the_hint_never_spoils_what_the_player_must_discover(sc, lang: str) -> N
 COACH_KEYS = {"lang", "role", "persona_name", "persona_desc", "offer_opp", "unit",
               "trust", "tension", "info", "revealed_interests", "transcript"}
 OPPONENT_KEYS = {"lang", "persona_name", "persona_desc", "style", "offer_opp", "unit",
-                 "mood", "status", "revealed_interests", "transcript", "player_text"}
+                 "mood", "status", "revealed_interests", "transcript", "player_text",
+                 # Для проверки реплики по столу (sanitize.contradicts), в текст
+                 # промпта не идут. Ответов в них нет: стол игрок выбрал сам,
+                 # сделку видит на экране, прежние цифры оппонента звучали в чате.
+                 "scenario_id", "deal", "offer_history"}
 
 #: Ключи, которых в этих словарях не должно быть НИКОГДА, как бы они ни
 #: назывались. Красная линия, цель и полный список интересов — это ответы.

@@ -306,7 +306,7 @@ class NegotiationOrchestrator:
                                                   turn_id=turn_id, text=chunk))
                     yield chunk
 
-        from app.ai.sanitize import rejected, sanitize, speakable
+        from app.ai.sanitize import contradicts, rejected, sanitize, speakable
 
         collected: list[str] = []
         #: Прозвучало ли хоть что-то. Нужно для случая, когда отвергнуты ВСЕ
@@ -315,6 +315,8 @@ class NegotiationOrchestrator:
         spoken_any = False
         #: Реплика уже испорчена — дальше не озвучиваем ничего.
         tainted = False
+        #: Реплика спорит с движком (sanitize.contradicts) — в итог идёт шаблон.
+        contradicted = False
         try:
             async for sentence in divider.process_stream(token_stream()):
                 phrase = (sentence.text or "").strip()
@@ -340,6 +342,11 @@ class NegotiationOrchestrator:
                 # уже испорчена.
                 if rejected(phrase):
                     tainted = True
+                # Обещание, которого движок не дал, — та же порча: прозвучав,
+                # оно уже обмануло. Проверяется НАКОПЛЕННЫЙ текст: делитель
+                # рвёт поток и по запятой (см. contradicts).
+                if not contradicted and contradicts(" ".join(collected), facts):
+                    contradicted = tainted = True
                 say = None if tainted else speakable(phrase)
                 if self.tts and say:
                     self.tts.speak(say, generation_id=generation_id, turn_id=turn_id)
@@ -353,7 +360,7 @@ class NegotiationOrchestrator:
 
         # Авторитетный итог. Дельты были сырыми; санитайзер судит реплику
         # целиком и может её отвергнуть — тогда остаётся шаблон движка.
-        final = sanitize(" ".join(collected)) or templated
+        final = (None if contradicted else sanitize(" ".join(collected))) or templated
         # Не прозвучало НИЧЕГО — значит отвергнуты все фразы (или модель
         # промолчала). Озвучиваем итог: он либо очищенная реплика, либо шаблон
         # движка, и то и другое в характере. Иначе ход прошёл бы в тишине.

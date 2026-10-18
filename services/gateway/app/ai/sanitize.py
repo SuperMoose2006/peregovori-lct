@@ -128,6 +128,83 @@ def speakable(phrase: Optional[str]) -> Optional[str]:
     return s
 
 
+#: Конец предложения: знак и пробел. Точка внутри «99.7» предложение не рвёт.
+_SENTENCE_END_RE = re.compile(r"(?<=[.!?…])\s+")
+
+
+def contradicts(text: Optional[str], facts: dict) -> bool:
+    """Реплика обещает то, чего движок не дал? True → реплика отвергается целиком.
+
+    Четвёртая вещь, которую ловит этот модуль, и единственная, которой нужны
+    факты стола. Аудит 17.10, F05: на SLA движок сдвинулся 99 → 99,2, а модель
+    ответила «Дам 99,7% … по рукам» — эхом числа игрока. Игрок соглашался на
+    99,7, движок честно отказывал (он сравнивает со СВОИМ числом), напряжение
+    росло: текст реплики и состояние партии расходились, а прав всегда движок
+    (первый принцип). Промпт это запрещает, но промпт — не гарантия.
+
+    Два признака:
+
+    1. **Число лучше для игрока, чем лежит на столе** — больше, чем на допуск
+       закрытия движка (2% хода цены): это обещание, которого движок не
+       выполнит. Число своей шкалы ищется как в `_pick_offer`: проценты на
+       денежном столе, деньги на процентном и границы диапазона — не условия.
+       Число игрока или своё прежнее предложение назвать можно — но только в
+       реплике, где названо и нынешнее («ваши 86 — нереально, могу 95»).
+       Числа ХУЖЕ для игрока не трогаются: согласие на них движок принимает,
+       и обещание не ломается.
+    2. **Объявленная сделка, которой нет**: закрывающая фраза не вопросом,
+       пока статус не «agreement». «По рукам?» — предложение, а не итог.
+
+    Закрытие судится по ПРЕДЛОЖЕНИЯМ: вопросительный знак обязан стоять в том
+    же предложении, а не где-то в реплике. Вызывающий проверяет поток
+    НАКОПЛЕННЫМ текстом: делитель режет его и по запятой, а число и его
+    оправдание могут прийти разными кусками.
+    """
+    if not text or not facts.get("scenario_id"):
+        return False
+    from app.engine.engine import _plausible_offer, by_id
+    from app.engine.techniques import _is_close, _is_short_close, norm, number_mentions
+
+    sc = by_id(facts["scenario_id"])
+    status = facts.get("status", "active")
+    text = _strip_invisible(text)
+    if status != "agreement":
+        for sentence in _SENTENCE_END_RE.split(text):
+            st = norm(sentence)
+            if st and "?" not in st and (_is_close(st) or _is_short_close(st)):
+                return True
+    t = norm(text)
+
+    ref = facts.get("deal") if status == "agreement" and facts.get("deal") is not None else facts.get("offer_opp")
+    if ref is None:
+        return False
+    lower_better = sc.headline.dir == "lower_is_better"
+    near = 0.02 * abs(sc.opponent_open - sc.opponent_reservation)
+    foreign = "money" if "%" in sc.headline.unit["ru"] else "pct"
+
+    def priced(source: str) -> list[float]:
+        out = []
+        for m in number_mentions(source):
+            if m.ranged or m.kind == foreign:
+                continue
+            p = _plausible_offer(sc, m.value)
+            if p is not None:
+                out.append(p)
+        return out
+
+    said = priced(t)
+    names_ref = any(abs(v - ref) <= near for v in said)
+    recorded = priced(norm(facts.get("player_text") or "")) + list(facts.get("offer_history") or [])
+    for v in said:
+        better = (v < ref - near) if lower_better else (v > ref + near)
+        if not better:
+            continue
+        if names_ref and any(abs(v - r) <= near for r in recorded):
+            continue
+        return True
+    return False
+
+
 def sanitize(text: Optional[str]) -> Optional[str]:
     """Очистить реплику или отвергнуть её. None → вызывающий берёт шаблон движка."""
     if not text:

@@ -5,7 +5,8 @@
 ║ Источник: Open-LLM-VTuber, MIT License, Copyright (c) 2025 Yi-Ting Chiu   ║
 ║ Коммит:   992309c0aa19845960228f880013d4685fde93b5                       ║
 ║ Файл:     src/open_llm_vtuber/utils/sentence_divider.py                  ║
-║ Изменено: loguru → стандартный logging (не тащим зависимость ради debug)  ║
+║ Изменено: loguru → стандартный logging (не тащим зависимость ради debug); ║
+║           число не режется по десятичной запятой/точке (_clause_comma)    ║
 ║ Полный провенанс: docs/upstream-code-map.md                              ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 
@@ -145,6 +146,30 @@ def contains_comma(text: str) -> bool:
     return any(comma in text for comma in COMMAS)
 
 
+_COMMA_SET = frozenset(COMMAS)
+#: Хвост буфера «…99.» — следующая лексема может оказаться «7%».
+_DECIMAL_TAIL_RE = re.compile(r"\d\.$")
+
+
+def _clause_comma(text: str) -> int:
+    """Индекс первой запятой — границы фразы, либо -1. ПРАВКА ПЕРЕНОСА.
+
+    Upstream резал первую фразу по ЛЮБОЙ запятой, в том числе по десятичной:
+    «Дам 99,7% аптайма» уходило в синтез как «Дам 99,» и «7% аптайма» —
+    человек слышал «девяносто девять» и отдельно «семь процентов», а реплика
+    склеивалась в «99, 7%». Запятая между цифрами — часть числа. Запятая сразу
+    после цифры в КОНЦЕ буфера ещё не решена: модель отдаёт «99», «,», «7»
+    отдельными лексемами, — ждём следующую.
+    """
+    for i, ch in enumerate(text):
+        if ch not in _COMMA_SET:
+            continue
+        if i > 0 and text[i - 1].isdigit() and (i + 1 == len(text) or text[i + 1].isdigit()):
+            continue
+        return i
+    return -1
+
+
 def comma_splitter(text: str) -> Tuple[str, str]:
     """
     Process text and split it at the first comma.
@@ -159,12 +184,10 @@ def comma_splitter(text: str) -> Tuple[str, str]:
     if not text:
         return [], ""
 
-    for comma in COMMAS:
-        if comma in text:
-            split_text = text.split(comma, 1)
-            # Return first part with the comma
-            return split_text[0].strip() + comma, split_text[1].strip()
-    return text, ""
+    i = _clause_comma(text)
+    if i < 0:
+        return text, ""
+    return text[:i].strip() + text[i], text[i + 1:].strip()
 
 
 def has_punctuation(text: str) -> bool:
@@ -519,7 +542,7 @@ class SentenceDivider:
                 if (
                     self._is_first_sentence
                     and self.faster_first_response
-                    and contains_comma(self._buffer)
+                    and _clause_comma(self._buffer) >= 0
                 ):
                     sentence, remaining = comma_splitter(self._buffer)
                     if sentence.strip():
@@ -532,8 +555,11 @@ class SentenceDivider:
                         processed_something = True
                         continue  # Restart processing loop
 
-                # Process normal sentences based on end punctuation
-                if contains_end_punctuation(self._buffer):
+                # Process normal sentences based on end punctuation.
+                # «…99.» в конце буфера — не конец предложения, пока не пришла
+                # следующая лексема (правка переноса, см. _clause_comma); в
+                # конце потока хвост отдаёт _flush_buffer целиком.
+                if contains_end_punctuation(self._buffer) and not _DECIMAL_TAIL_RE.search(self._buffer):
                     sentences, remaining = self._segment_text(self._buffer)
                     if sentences:  # Only process if segmentation yielded sentences
                         self._buffer = remaining
