@@ -326,3 +326,14 @@ test("на экзамене нет заготовок реплик — ни «И
     assert.ok(practice.includes(q.label));
   }
 });
+
+test("стол без тем интересов не обещает «темы в панели»", () => {
+  // Аудит 17.10, CE-02: у сгенерированной сделки панель «0 / 3» без тем, а
+  // подсказка стола говорила, что темы перечислены в панели.
+  assert.match(readFileSync(join(SRC, "components", "Table.tsx"), "utf8"),
+    /interestSlots\.some\(\(x\) => !!x\.topic\) \? t\.opening\.hint : t\.opening\.hintNoTopics/);
+  for (const lang of ["ru", "en"] as const) {
+    const o = I18N[lang].opening;
+    assert.ok(o.hintNoTopics && !/панел|panel/i.test(o.hintNoTopics), `${lang}: подсказка без тем ссылается на панель`);
+  }
+});

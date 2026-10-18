@@ -44,6 +44,8 @@ def _sys_prompt(lang: str) -> str:
             '"player_reservation": число,\n'
             ' "batna_strength": 0-100, "batna_note": str,\n'
             ' "hidden_interests": [три скрытых интереса второй стороны],\n'
+            ' "interest_topics": [три темы в ТОМ ЖЕ порядке, 1-3 слова: ОБЛАСТЬ интереса, а не он сам — '
+            '«сроки», «репутация», а не «боится сорвать сроки»],\n'
             ' "tradeoffs": [два-три предмета для размена],\n'
             ' "briefing": "краткая вводная для игрока: цель, красная линия, подсказка"}\n'
             "dir — с точки зрения ИГРОКА: lower_is_better, если игрок хочет ЧИСЛО ПОМЕНЬШЕ "
@@ -66,6 +68,8 @@ def _sys_prompt(lang: str) -> str:
         '"player_reservation": number,\n'
         ' "batna_strength": 0-100, "batna_note": str,\n'
         ' "hidden_interests": [three hidden interests of the counterpart],\n'
+        ' "interest_topics": [three topics in the SAME order, 1-3 words: the AREA of each interest, not the '
+        'interest itself — "timing", "reputation", not "afraid of missing the deadline"],\n'
         ' "tradeoffs": [two-three tradeable items],\n'
         ' "briefing": "short player briefing: goal, red line, a hint"}\n'
         "dir is from the PLAYER's point of view: lower_is_better if the player wants a SMALLER number "
@@ -209,6 +213,14 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
     interests = [str(x) for x in (d.get("hidden_interests") or [])][:3]
     while len(interests) < 3:
         interests.append({"ru": "Скрытый интерес", "en": "A hidden interest"}[lang])
+    # Темы интересов: панель «Скрытые интересы» и брифинг обещают их игроку, а
+    # сгенерированный стол приходил без них — «0 / 3» и ни одной темы (аудит
+    # 17.10, CE-02). Без тем и без ключевых слов вскрыть интерес было нечем,
+    # кроме судьи. Тема — ОБЛАСТЬ, а не секрет; неполный набор не берётся:
+    # три темы на два интереса сдвинули бы вскрытие на чужой интерес.
+    topics = [str(x).strip()[:40] for x in (d.get("interest_topics") or []) if str(x).strip()][:3]
+    if len(topics) != len(interests):
+        topics = []
     tradeoffs = [str(x) for x in (d.get("tradeoffs") or [])][:3]
     while len(tradeoffs) < 2:
         tradeoffs.append({"ru": "уступка по срокам", "en": "a timing concession"}[lang])
@@ -258,6 +270,7 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
             note=_dual(d.get("batna_note") or ""),
         ),
         hidden_interests=_dual_list(interests),
+        interest_topics=_dual_list(topics) if topics else {},
         tradeoffs=_dual_list(tradeoffs),
         briefing=_dual(d.get("briefing") or ""),
     )

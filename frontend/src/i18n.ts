@@ -577,6 +577,7 @@ export interface Strings {
     // template must not prefix it with another "Вы —".
     scene: string;
     hint: string;   // one line on what a strong opening does
+    hintNoTopics: string; // the same, for a table whose interests have no listed topics
     lines: { icon: IconName; tag: string; text: string }[];
   };
   // Подсветка одного элемента на столе (только практика и только первый раз).
@@ -1586,6 +1587,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "Стол накрыт",
       scene: "{role} Напротив — {name}. Условия собеседника: {offer}. Ваша цель: {target}, красная линия: {red}.",
       hint: "У второй стороны три скрытых интереса. Темы, в которых они лежат, перечислены в панели «Скрытые интересы» — спросите ПО ТЕМЕ, и интерес откроется. Пока не вскрыли — спор идёт только о цене, а там выигрывает тот, кто сильнее давит.",
+      hintNoTopics: "У второй стороны три скрытых интереса. Спрашивайте, что для собеседника важно и почему, — точный вопрос по сути открывает интерес. Пока не вскрыли — спор идёт только о цене, а там выигрывает тот, кто сильнее давит.",
       // ЗАЧАТКИ, а не готовые реплики — как чипы композера ниже. Готовая строка
       // не может знать стол: «что для вас важнее всего в этой сделке» по
       // построению не называет ни одной темы, а движок (правильно) требует
@@ -2568,6 +2570,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "The table is set",
       scene: "{role} Across from you: {name}. Their terms: {offer}. Your target: {target}, red line: {red}.",
       hint: "They have three hidden interests. The topics they sit in are listed in the \u201cHidden interests\u201d panel — ask ABOUT A TOPIC and the interest opens. Until you surface them the argument is only about price — and there the harder pusher wins.",
+      hintNoTopics: "They have three hidden interests. Ask what matters to them and why — a precise question about the substance opens an interest. Until you surface them the argument is only about price — and there the harder pusher wins.",
       lines: [
         { icon: "target", tag: "Interest", text: "What matters to you in " },
         { icon: "chart", tag: "Criterion", text: "Let's anchor on objective data: " },

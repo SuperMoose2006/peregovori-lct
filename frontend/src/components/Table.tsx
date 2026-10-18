@@ -217,7 +217,10 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
           .replace("{target}", formatDeal(scenario.target, unit, lang))
           .replace("{red}", formatDeal(scenario.reservation, unit, lang))}
       </p>
-      <p className="op-hint">{t.opening.hint}</p>
+      {/* Подсказка не обещает тем, которых нет: у сгенерированного стола их
+          может не быть, и «перечислены в панели» над пустой панелью было
+          заявлением того, чего нет (аудит 17.10, CE-02). */}
+      <p className="op-hint">{interestSlots.some((x) => !!x.topic) ? t.opening.hint : t.opening.hintNoTopics}</p>
       <div className="op-lines">
         {t.opening.lines.map((l, i) => (
           <button
