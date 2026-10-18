@@ -177,3 +177,15 @@ test("a judged real move against an unjudged alternative never claims «better»
   assert.match(src, /const better = !approx &&/);
   assert.match(src, /approx \? <p className="wi-approx">\{w\.approxNote\}<\/p>/);
 });
+
+test("a judged game never falls back to the offline replay", async () => {
+  // Ревью: при отказе сервера офлайн-расчёт шёл без вердиктов судьи и
+  // сравнивал «Как было» из записи с альтернативой от другого старта.
+  const { whatIf } = await import("../src/api/whatif");
+  const req = { scenarioId: "supplier", lang: "ru" as const, moves: F03_MOVES, turnIndex: 0, altText: "Хорошо." };
+  const judge = { arg_score: 70, interest_targeted: 0, criteria_legitimate: null, tradeoff_real: null,
+                  batna_real: null, secondary_conceded: null };
+  // Бэкенда в тесте нет: удалённый вызов падает.
+  assert.equal(await whatIf("ws", { ...req, judges: [judge, null, null] }), null);
+  assert.ok(await whatIf("ws", req), "без судьи офлайн-расчёт честен и остаётся");
+});

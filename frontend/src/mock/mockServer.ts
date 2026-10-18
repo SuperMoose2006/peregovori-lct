@@ -33,7 +33,7 @@ export class MockServer implements Transport {
   private timers = new Set<ReturnType<typeof setTimeout>>();
   // Per-turn record of the player's own words + their meter swing, so the debrief
   // can quote the moves that mattered (stand-in for the backend's turning_points).
-  private turns: Array<{ turn: number; text: string; primary: string; deltas: Deltas }> = [];
+  private turns: Array<{ turn: number; text: string; primary: string; deltas: Deltas; reply?: string }> = [];
   /** Which optional layers this session runs with. Only `probe` is honoured — the
    *  others report themselves unavailable and never reach here. */
   private layers: { probe?: boolean } | null = null;
@@ -165,6 +165,7 @@ export class MockServer implements Transport {
         : "We're out of time for today. We couldn't reach agreement.";
     }
 
+    this.turns[this.turns.length - 1].reply = reply;
     // Stream the opponent reply in a few chunks (exercises opponent_delta),
     await this.delay(220);
     const chunks = chunkText(reply);
@@ -198,6 +199,8 @@ export class MockServer implements Transport {
       await this.delay(650);
       const debrief = scoreSession(s);
       debrief.turning_points = synthTurningPoints(this.turns, s.lang);
+      // Ответ на каждый ход — в хронику, как это делает views.turn_log.
+      debrief.turn_log?.forEach((r, i) => { r.reply = this.turns[i]?.reply ?? null; });
       // Реестра свидетельств офлайн нет: экзамен честно говорит «не включена».
       debrief.attestation_enabled = false;
       this.emit({ type: "debrief", debrief });

@@ -239,3 +239,17 @@ def test_too_many_judges_are_refused():
     res = client.post("/api/whatif", json={"scenarioId": "supplier", "lang": "ru", "moves": ["a"], "turnIndex": 0,
                                            "altText": "b", "judges": [None] * 25})
     assert res.status_code == 422
+
+
+def test_the_turn_log_carries_each_line_and_the_reply_after_it():
+    """Ход и ответ — по журналу сервера: голосом лента клиента может нести
+    лишнюю реплику, и счёт по ней съезжал с записей ходов (ревью)."""
+    from app import views
+
+    sess = _judged_game(JUDGED_MOVES, JUDGES)
+    first = next(i for i, e in enumerate(sess.log) if e.get("role") == "player")
+    sess.log.insert(first + 1, {"role": "opp", "text": "Здравствуйте!"})  # ответ на ход 1
+    sess.log.append({"role": "opp", "text": "Пока 100.", "interrupted": True})
+    log = views.debrief_view(sess).model_dump()["turn_log"]
+    assert [r["text"] for r in log] == JUDGED_MOVES
+    assert [r["reply"] for r in log] == ["Здравствуйте!", "Пока 100."]

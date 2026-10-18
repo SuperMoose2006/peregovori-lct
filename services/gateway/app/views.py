@@ -125,13 +125,25 @@ JUDGE_REPLAY_KEYS = ("arg_score", "interest_targeted", "criteria_legitimate",
 def turn_log(sess: "engine.Session") -> list[dict]:
     """Хроника партии для «Как было»: дельты, цена после хода, вскрытые интересы
     и вердикт судьи — ровно то, что было, а не пересчёт (F03)."""
-    judges = [e.get("judge") for e in sess.log if e.get("role") == "player"]
+    # Ответ оппонента — запись `opp` после хода игрока в журнале партии. Брать
+    # его здесь, а не из ленты клиента: голосом лента может нести лишнюю
+    # реплику игрока (распознавание до решения «ход окончен», отказ «занято»),
+    # и счёт по ленте съезжал на ход (ревью F03).
+    judges, replies = [], []
+    for e in sess.log:
+        if e.get("role") == "player":
+            judges.append(e.get("judge"))
+            replies.append(None)
+        elif e.get("role") == "opp" and replies and replies[-1] is None:
+            replies[-1] = e.get("text")
     out, found = [], 0
     for i, e in enumerate(sess.ledger):
         if e.get("revealed") is not None:
             found += 1
         j = judges[i] if i < len(judges) and isinstance(judges[i], dict) else None
         out.append({
+            "text": e.get("text") or "",
+            "reply": replies[i] if i < len(replies) else None,
             "deltas": dict(e["deltas"]),
             "offer_after": e["offer_after"],
             "interests_found": found,

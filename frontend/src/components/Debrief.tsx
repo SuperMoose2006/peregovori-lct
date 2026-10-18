@@ -364,7 +364,9 @@ export function Debrief({
             </div>
           </div>
 
-          {passed ? <div className="cert-certifies">{t.exam.certifies}</div> : null}
+          {passed ? <div className="cert-certifies">
+            {d.attestation_enabled === false ? t.exam.certifiesNoRegistry : t.exam.certifies}
+          </div> : null}
           {exam ? <ServerCertificate evidence={d.attestation} enabled={d.attestation_enabled} lang={lang} /> : null}
 
           <div className="export-actions" role="group" aria-label={exportCopy.group}>
@@ -1036,12 +1038,14 @@ function Divergence({
 
   // The one-line proof, built only from what's actually true.
   const bits: string[] = [];
-  if (a.deltas.tension !== o.deltas.tension) {
+  // Сравнение не на равных (см. approx) — без выводов «вскрыли бы», «доверие
+  // выше»: подпись под колонками уже говорит, что оно приблизительное.
+  if (!approx && a.deltas.tension !== o.deltas.tension) {
     bits.push(`${w.meters.tension.toLowerCase()} ${fmtDelta(a.deltas.tension)} ${w.insteadOf} ${fmtDelta(o.deltas.tension)}`);
   }
-  if (uncovered) bits.push(w.uncovered);
-  else if (trustHigher) bits.push(w.trustHigher);
-  if (priceBetter) bits.push(w.priceFurther);
+  if (!approx && uncovered) bits.push(w.uncovered);
+  else if (!approx && trustHigher) bits.push(w.trustHigher);
+  if (!approx && priceBetter) bits.push(w.priceFurther);
 
   return (
     <div className="wi-diverge" ref={innerRef} tabIndex={-1} role="status">

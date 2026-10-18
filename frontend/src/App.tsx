@@ -234,7 +234,9 @@ export default function App() {
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== PROFILE_KEY && e.key !== null) return;
-      const next = loadProfile(profileRef.current);
+      // Профиль удалили в другой вкладке — пустой профиль, а не своя копия:
+      // иначе следующая запись этой вкладки вернула бы стёртый прогресс.
+      const next = e.key === null || e.newValue === null ? loadProfile() : loadProfile(profileRef.current);
       profileRef.current = next;
       setProfile(next);
     };
@@ -1409,10 +1411,16 @@ export default function App() {
           // появляется: ровно то же, что «развилку посчитать нечем».
           runWhatIf={(req) =>
             import("./api/whatif").then((m) => m.whatIf(nego.kind, req)).catch(() => null)}
-          whatIfMoves={nego.log.filter((e) => e.kind === "me").map((e) => e.text)}
+          // Ходы и ответы — из хроники сервера, если она есть: голосом лента
+          // может нести лишнюю реплику, и счёт по ней съезжал с записей ходов.
+          whatIfMoves={nego.debrief?.turn_log?.length
+            ? nego.debrief.turn_log.map((r) => r.text)
+            : nego.log.filter((e) => e.kind === "me").map((e) => e.text)}
           // «Как было» — настоящий ответ оппонента и стартовые условия партии,
           // а не пересчёт с нуля (аудит 17.10, F03).
-          whatIfReplies={repliesByMove(nego.log)}
+          whatIfReplies={nego.debrief?.turn_log?.length
+            ? nego.debrief.turn_log.map((r) => r.reply ?? "")
+            : repliesByMove(nego.log)}
           whatIfStart={{ reputation: activeRunRef.current?.options?.reputation, daily: activeRunRef.current?.options?.daily }}
           whatIfScenarioId={nego.scenario?.id ?? currentScenario ?? undefined}
           whatIfUnit={nego.scenario?.headline_unit}

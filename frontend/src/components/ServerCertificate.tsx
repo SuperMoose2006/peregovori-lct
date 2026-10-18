@@ -43,8 +43,8 @@ export function ServerCertificate({ evidence, lang, enabled }: {
     </> : enabled === false ? <p>{lang === "ru"
       // Не «не подтверждено»: проверять тут нечего — свидетельства на этом
       // сервере не выдают. Принцип 2: слой, которого нет, так и говорит.
-      ? "На этом сервере выдача свидетельств не включена. Учебный результат сохранён отдельно."
-      : "Certificates are not issued on this server. The practice result is recorded separately."}</p>
+      ? "В этой версии тренажёра свидетельства не выдаются. Учебный результат сохранён отдельно."
+      : "Certificates are not issued in this version of the trainer. The practice result is recorded separately."}</p>
     : <p>{lang === "ru"
       ? "Подписанное свидетельство не подтверждено серверным реестром. Учебный результат сохранён отдельно."
       : "A signed certificate has not been confirmed by the server registry. The practice result is recorded separately."}</p>}

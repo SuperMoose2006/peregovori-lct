@@ -337,3 +337,24 @@ test("the deal tracker headline switches to the settled price on agreement", asy
   const headline = v.status === "agreement" && v.deal != null ? v.deal : v.offer_opp;
   assert.equal(headline, 86.27);
 });
+
+test("offline debrief: each turn record carries the line and the reply the player read", async () => {
+  // Ревью ветки аудита 17.10: «Как было» сопоставлялось по ленте клиента, а
+  // голосом лента может нести лишнюю реплику. Ход и ответ — из хроники.
+  const { server, messages, waitFor } = harness();
+  server.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice" });
+  await waitFor((m) => m.type === "greeting");
+  const lines = ["Добрый день! Что для вас важно в загрузке производства?", "Договорились."];
+  for (const text of lines) {
+    const before = messages.filter((m) => m.type === "opponent").length;
+    server.send({ type: "turn", text });
+    await waitFor(() => messages.filter((m) => m.type === "opponent").length > before);
+  }
+  const deb = await waitFor((m) => m.type === "debrief");
+  server.close();
+  assert.equal(deb.type, "debrief");
+  if (deb.type !== "debrief") return;
+  const replies = messages.filter((m) => m.type === "opponent").map((m) => (m.type === "opponent" ? m.text : ""));
+  assert.deepEqual(deb.debrief.turn_log?.map((r) => r.text), lines);
+  assert.deepEqual(deb.debrief.turn_log?.map((r) => r.reply), replies);
+});

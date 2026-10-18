@@ -59,5 +59,10 @@ export function whatIfLocal(req: WhatIfRequest): WhatIfResponse | null {
 export async function whatIf(kind: TransportKind | null, req: WhatIfRequest): Promise<WhatIfResponse | null> {
   if (kind === "mock") return whatIfLocal(req);
   const remote = await whatIfRemote(req);
-  return remote ?? whatIfLocal(req);
+  if (remote) return remote;
+  // Ходы этой партии оценивал судья, а офлайн его нет: запасной расчёт
+  // сравнивал бы «Как было» из записи с альтернативой от другого старта.
+  // Лучше не показать развилку, чем показать неверную (принцип 2).
+  if (req.judges?.some(Boolean)) return null;
+  return whatIfLocal(req);
 }

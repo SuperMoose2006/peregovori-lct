@@ -230,6 +230,8 @@ export interface Strings {
     dateLabel: string; // "Дата" — precedes the (browser-side) date
     download: string; // "Скачать / Печать" — triggers window.print()
     certifies: string; // one-line credibility caption on the certificate
+    // То же, когда свидетельств не выдают вовсе: «подлинность проверяется отдельно» там неправда.
+    certifiesNoRegistry: string;
     /** Экзамен не сдан: сертификата нет, но результат записан. Говорит Тихон —
      *  он и есть память, а тренера на экзамене не бывает. */
     notAwarded: string;
@@ -323,7 +325,8 @@ export interface Strings {
     avatarVideo: string;
     /** Кнопка «Проверить сейчас» у голоса и камеры, включённых умолчанием. */
     checkNow: string;
-    /** Доступное имя той же кнопки: две «Проверить сейчас» подряд диктор различал только по порядку. */
+    /** Доступное имя той же кнопки: две «Проверить сейчас» подряд диктор различал только по порядку.
+     *  Начинается с видимой подписи — WCAG 2.5.3, голосовое «нажми Проверить сейчас». */
     checkNowAria: { voice: string; camera: string };
     what: string;            // "[i] что это"
     sameGrade: string;       // caption on every toggle — the honesty guarantee
@@ -1075,6 +1078,7 @@ export const I18N: Record<Lang, Strings> = {
       dateLabel: "Дата просмотра",
       download: "Печать учебного результата",
       certifies: "Учебный результат тренажёра. Подлинность результата проверяется отдельно; квалификация и личность не удостоверены.",
+      certifiesNoRegistry: "Учебный результат тренажёра; квалификация и личность не удостоверены.",
       notAwarded: "Проходной грейд — C. Результат записан — эта попытка не последняя.",
     },
     campaign: {
@@ -1270,7 +1274,7 @@ export const I18N: Record<Lang, Strings> = {
       },
       avatarVideo: "Если живое видео доступно, собеседник говорит с видео-лицом; если нет — лицо показано нарисованными выражениями. На партию и оценку это не влияет.",
       checkNow: "Проверить сейчас",
-      checkNowAria: { voice: "Проверить микрофон сейчас", camera: "Проверить камеру сейчас" },
+      checkNowAria: { voice: "Проверить сейчас: микрофон", camera: "Проверить сейчас: камера" },
       what: "что это",
       sameGrade: "на оценку не влияет",
       lockedMode: "В этой партии слои выключены — её грейд обязан быть сравним с остальными",
@@ -2066,6 +2070,7 @@ export const I18N: Record<Lang, Strings> = {
       dateLabel: "Viewing date",
       download: "Print practice result",
       certifies: "Simulator practice result. Authenticity is verified separately; neither qualification nor identity is certified.",
+      certifiesNoRegistry: "Simulator practice result; neither qualification nor identity is certified.",
       notAwarded: "The passing grade is C. The result is recorded — this attempt is not your last.",
     },
     campaign: {
@@ -2259,7 +2264,7 @@ export const I18N: Record<Lang, Strings> = {
       },
       avatarVideo: "If live video is available, the counterpart talks with a video face; if not, the face is shown as drawn expressions. It never affects the game or the grade.",
       checkNow: "Check now",
-      checkNowAria: { voice: "Check the microphone now", camera: "Check the camera now" },
+      checkNowAria: { voice: "Check now: microphone", camera: "Check now: camera" },
       what: "what is this",
       sameGrade: "does not affect your grade",
       lockedMode: "This table runs with layers off — its grade has to stay comparable to the rest",

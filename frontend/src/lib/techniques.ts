@@ -157,10 +157,14 @@ export function isShortClose(t: string): boolean {
 // регулярка требовала разделитель, и «300000» читалось как 300.
 // Зеркало: services/gateway/app/engine/techniques.py::MONEY_RE.
 const MONEY = /(?:^|[^\d])(\d{1,3}(?:[ .,]\d{3})+|\d+(?:[.,]\d+)?)/;
+// Разбор числа СТРОГИЙ, как float() на сервере: «1.500.000» там не число, а
+// parseFloat читал из него 1.5 — и одна реплика давала оффер офлайн и пустоту
+// онлайн (инвариант 8; найдено ревью ветки аудита 17.10).
+const strictNumber = (raw: string): number => Number(raw.replace(/ /g, "").replace(",", "."));
 export function extractNum(t: string): number | null {
   const m = t.match(MONEY);
   if (!m) return null;
-  const v = parseFloat(m[1].replace(/ /g, "").replace(",", "."));
+  const v = strictNumber(m[1]);
   return isFinite(v) ? v : null;
 }
 
@@ -186,7 +190,7 @@ const MONEY_SUFFIX = /^\s*(%|руб|rub|k(?![\p{L}\p{N}_])|к(?![\p{L}\p{N}_])|�
 export function offerNumber(t: string, moves: Iterable<string>): number | null {
   const m = t.match(MONEY);
   if (!m) return null;
-  const v = parseFloat(m[1].replace(/ /g, "").replace(",", "."));
+  const v = strictNumber(m[1]);
   if (!isFinite(v)) return null;
 
   const tail = t.slice((m.index ?? 0) + m[0].length);
@@ -252,7 +256,7 @@ export function numberMentions(t: string): NumberMention[] {
   for (const m of t.matchAll(MONEY_ALL)) {
     const start = (m.index ?? 0) + (/^\d/.test(m[0]) ? 0 : 1);
     const end = start + m[1].length;
-    const value = parseFloat(m[1].replace(/ /g, "").replace(",", "."));
+    const value = strictNumber(m[1]);
     if (!isFinite(value)) continue;
     const tail = t.slice(end);
     const trimmed = tail.trim();

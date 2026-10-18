@@ -206,6 +206,10 @@ export interface TurnJudge {
 // Сыгранный ход так, как его посчитал движок, — «Как было» берётся отсюда, а
 // не пересчитывается. Зеркало protocol.py::TurnRecord.
 export interface TurnRecord {
+  // Реплика игрока и ответ оппонента — по журналу сервера, а не по ленте:
+  // голосом лента может нести лишнюю реплику, и счёт съезжал на ход.
+  text: string;
+  reply: string | null;
   deltas: Deltas;
   offer_after: number;
   interests_found: number; // вскрыто ПОСЛЕ этого хода

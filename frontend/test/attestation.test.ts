@@ -24,7 +24,7 @@ test("a server without attestation says so instead of «not confirmed»", () => 
     const html = renderToStaticMarkup(createElement(ServerCertificate, {lang, enabled: false, evidence: {
       record: {id: "att_" + "a".repeat(32), grade: "A", overall: 100, issued_at: "2099-01-01"}, signature: "forged",
     }}));
-    assert.match(html, lang === "ru" ? /не включена/ : /not issued on this server/);
+    assert.match(html, lang === "ru" ? /не выдаются/ : /not issued in this version/);
     assert.doesNotMatch(html, /не подтверждено|not been confirmed|<a |2099/);
   }
 });

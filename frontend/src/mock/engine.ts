@@ -1267,7 +1267,8 @@ function turnLog(s: Session): TurnRecord[] {
   return s.ledger.map((e) => {
     if (e.revealed !== null && e.revealed !== undefined) found += 1;
     const { trust, tension, info, leverage } = e.deltas;
-    return { deltas: { trust, tension, info, leverage }, offer_after: e.offerAfter, interests_found: found, judge: null };
+    // Ответ оппонента приклеивает MockServer: движок реплик не хранит.
+    return { text: e.text, reply: null, deltas: { trust, tension, info, leverage }, offer_after: e.offerAfter, interests_found: found, judge: null };
   });
 }
 

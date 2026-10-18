@@ -25,7 +25,10 @@ self.addEventListener("install", (event) => {
       // the shell and the app code are all-or-nothing…
       .then((c) => c.addAll([...new Set([...SHELL, ...PRECACHE])])
         // …the media is best-effort.
-        .then(() => Promise.allSettled(PRECACHE_MEDIA.map((url) => c.add(url)))))
+        // Не скачалось — берём копию из прежнего кэша: активация удалит его, и
+        // офлайн-игрок потерял бы портрет сразу после обновления.
+        .then(() => Promise.allSettled(PRECACHE_MEDIA.map((url) => c.add(url).catch(() =>
+          caches.match(url).then((old) => (old ? c.put(url, old) : undefined)))))))
       .then(() => self.skipWaiting()),
   );
 });
