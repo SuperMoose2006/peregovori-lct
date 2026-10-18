@@ -594,9 +594,16 @@ export default function App() {
   const [courseStart, setCourseStart] = useState<{ blockId: string; lesson: number | null } | null>(null);
   // Разминка перед актом кампании: блок курса, из которого берутся задания.
   const [warmupBlock, setWarmupBlock] = useState<string | null>(null);
+  // Каждый вход в курс — новый экран курса. Свой вид (карта, блок, урок,
+  // итог урока) CourseScreen держит сам и читает `startAt` только при
+  // монтировании, а при `screen === "course"` повторный вход его не
+  // пересоздавал: «Курс» в меню на итоге урока не делал НИЧЕГО (аудит 17.10,
+  // F04), выбраться можно было только через другой раздел.
+  const [courseKey, setCourseKey] = useState(0);
   const openCourse = useCallback((at: { blockId: string; lesson: number | null } | null) => {
     leaveSession();
     setCourseStart(at);
+    setCourseKey((k) => k + 1);
     setScreen("course");
     scrollTop();
   }, [leaveSession]);
@@ -1506,6 +1513,7 @@ export default function App() {
       {screen === "course" && (
         <LazyScreen lang={lang} load={loadCourse} onHome={goHome} render={(CourseScreen) => (
         <CourseScreen
+          key={courseKey}
           t={t}
           lang={lang}
           profile={profile}
