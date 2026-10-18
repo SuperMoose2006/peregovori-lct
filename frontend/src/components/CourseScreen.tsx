@@ -16,7 +16,7 @@ import type { Lang } from "../types";
 import type { Exercise as Ex } from "../lib/courseTypes";
 import {
   COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, drawExam,
-  exercisesOf, exercisesOfLesson, masterUnlocked, type ExamDraw,
+  exercisesOf, exercisesOfLesson, masterUnlocked, redoable, type ExamDraw,
 } from "../lib/course";
 import {
   MASTER_ID, blockCompletion, getBlockProgress, loadProfile, markLessonDone, missedExercises, recordExam,
@@ -159,7 +159,7 @@ function CourseMap({ t, lang, profile, onOpen, onMaster, onRedo, onExit }: {
   t: Strings; lang: Lang; profile: Profile; onOpen: (id: string) => void;
   onMaster: () => void; onRedo: () => void; onExit: () => void;
 }) {
-  const missed = missedExercises(profile);
+  const missed = redoable(missedExercises(profile));
   // Блок открыт, если предыдущий сдан ИЛИ хотя бы наполовину пройден: жёсткая
   // блокировка на демо злит быстрее, чем учит, а совсем без порядка курс
   // перестаёт быть лестницей.
@@ -275,7 +275,7 @@ function RedoRunner({ t, lang, profile, onProfile, onBack }: {
 }) {
   // Список фиксируется на входе: если брать его из профиля на каждом шаге,
   // исправленная ошибка исчезнет из-под ног и прогон «сам себя» перепрыгнет.
-  const [queue] = useState(() => missedExercises(profile).slice(0, REDO_MAX));
+  const [queue] = useState(() => redoable(missedExercises(profile)).slice(0, REDO_MAX));
   const [step, setStep] = useState(0);
   const [answered, setAnswered] = useState(false);
   const [fixed, setFixed] = useState(0);

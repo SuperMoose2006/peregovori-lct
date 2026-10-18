@@ -182,3 +182,19 @@ test("«прочитай лицо»: картинка есть, ответ ср�
     }
   }
 });
+
+test("работа над ошибками предлагает только то, что умеет переиграть", async () => {
+  // Найдено после аудита 17.10: проигранный капстоун урока и партия экзамена
+  // мастера ложатся в «ошибки», а RedoRunner партию не запускает — капстоун
+  // зависал без «Дальше», партия мастера сразу давала «готово».
+  const { redoable, COURSE_BANK, COURSE_MASTER } = await import("../src/lib/course");
+  const { MASTER_ID, emptyProfile, missedExercises, recordExercise } = await import("../src/lib/progress");
+  const drill = COURSE_BANK.find((x) => x.type === "drill")!;
+  const task = COURSE_BANK.find((x) => x.type === "choice")!;
+  let p = emptyProfile();
+  p = recordExercise(p, drill.block, drill.id, drill.xp, false).profile;
+  p = recordExercise(p, MASTER_ID, COURSE_MASTER[0].id, 50, false).profile;
+  p = recordExercise(p, task.block, task.id, task.xp, false).profile;
+  assert.equal(missedExercises(p).length, 3);
+  assert.deepEqual(redoable(missedExercises(p)).map((m) => m.id), [task.id]);
+});

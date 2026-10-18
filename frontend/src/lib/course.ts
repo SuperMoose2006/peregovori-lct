@@ -27,6 +27,18 @@ export type { Exercise } from "./courseTypes";
 /** Экзамен мастера открыт, когда сданы все девять блоков. Не раньше: три партии
  *  подряд на незнакомых столах — это проверка навыка, а не разминка. */
 export const exercisesOf = (blockId: string) => COURSE_BANK.filter((x) => x.block === blockId);
+
+/** Ошибки, которые «Работа над ошибками» умеет переиграть: задания банка, но не
+ *  партии. Проигранный капстоун урока и партия экзамена мастера тоже ложатся в
+ *  `missed`, но RedoRunner партию не запускает: капстоун зависал без кнопки
+ *  «Дальше», а партия мастера (её нет в банке) сразу давала «готово» и обрывала
+ *  очередь — карточка же продолжала их считать (найдено после аудита 17.10). */
+export function redoable(missed: { blockId: string; id: string }[]): { blockId: string; id: string }[] {
+  return missed.filter((m) => {
+    const ex = COURSE_BANK.find((x) => x.id === m.id);
+    return !!ex && ex.type !== "drill";
+  });
+}
 export const exercisesOfLesson = (blockId: string, lesson: number) =>
   COURSE_BANK.filter((x) => x.block === blockId && x.lesson === lesson);
 
