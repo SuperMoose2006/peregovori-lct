@@ -408,3 +408,27 @@ test("отложенный экран прогревается на просто
   assert.match(src, /requestIdleCallback/, "прогрева на простое нет");
   assert.match(src, /loadReadingScreen\(\)\.catch/, "прогрев обязан глушить отказ молча");
 });
+
+test("ход, которым сделка закрылась, подписан закрытием, а не нейтралитетом", () => {
+  // Аудит 17.10, OB-01: партия 2 «Контракт с поставщиком», ход 5
+  // «Договорились» — оппонент «По рукам… Работаем», а под ходом «Держит
+  // нейтралитет» и «ход прошёл мимо». Реакция движка остаётся прежней (её
+  // сверяет тест выше); вопроса-прогноза на закрытии нет.
+  const ru = I18N.ru, en = I18N.en;
+  assert.ok(ru.probe.reactions.agreed && en.probe.reactions.agreed && ru.probe.why.agreed && en.probe.why.agreed);
+  let closings = 0;
+  for (const lang of LANGS) {
+    for (const game of readingGamesFor(lang)) {
+      const r = buildReading(game.id, lang)!;
+      const s = play(game.scenario, game.lines, lang);
+      r.turns.forEach((t, i) => {
+        const closed = s.ledger[i].closed && s.ledger[i].status === "agreement";
+        assert.equal(t.closedDeal, closed, `${game.id}/${lang}, ход ${t.turn}`);
+        if (closed) { closings += 1; assert.equal(t.ask, null, `${game.id}/${lang}: вопрос на закрытии`); }
+      });
+    }
+  }
+  assert.ok(closings > 0, "в каталоге нет ни одной закрытой сделки — тест ничего не проверяет");
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "src", "components", "ReadingScreen.tsx"), "utf8");
+  assert.match(src, /p\.closedDeal \? "agreed" : p\.reaction/);
+});

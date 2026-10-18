@@ -48,6 +48,9 @@ export interface ReadingTurn {
   quote: string;
   /** Что ответил движок. Правильный ответ вопроса — он и есть. */
   reaction: string;
+  /** Этим ходом сделка закрылась. Реакция движка на нём — «нейтралитет»
+   *  (закрытие счётчиков не двигает), а подпись — «сделка закрыта» (OB-01). */
+  closedDeal: boolean;
   /** Вопрос этого хода. `null` — ход проигрывается сам, см. `planAsks`. */
   ask: Probe | null;
   /** Улики: приёмы, которые движок нашёл в реплике. */
@@ -182,11 +185,19 @@ export function buildReading(id: string, lang: Lang): Reading | null {
 
   const her = herSide(s);
   const topics = sc.interestTopics[lang] ?? [];
-  const asks = planAsks(s.ledger.map((e) => e.reaction));
+  // Ход, которым сделка ЗАКРЫЛАСЬ, движок помечает реакцией по умолчанию
+  // («нейтралитет»): в хронике это верно — закрытие не двигает счётчиков, —
+  // а на экране «Договорились» с ответом «По рукам» под подписью «Держит
+  // нейтралитет» и «ход прошёл мимо» читается как ошибка (аудит 17.10, OB-01).
+  // Реакция остаётся движковой (её сверяет тест), а экран по `closedDeal`
+  // подписывает ход «сделка закрыта»; спрашивать прогноз на нём нечего.
+  const closedDeal = s.ledger.map((e) => e.closed && e.status === "agreement");
+  const asks = planAsks(s.ledger.map((e, i) => (closedDeal[i] ? "agreed" : e.reaction)));
   const turns: ReadingTurn[] = s.ledger.map((e, i) => ({
     turn: e.turn,
     quote: e.text,
     reaction: e.reaction,
+    closedDeal: closedDeal[i],
     ask: asks[i] ? buildProbe(e.reaction, e.turn) : null,
     tags: tags[i] ?? [],
     analysis: analyses[i],

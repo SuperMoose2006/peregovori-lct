@@ -166,7 +166,7 @@ export function ReadingScreen({ t, lang, onClose }: Props) {
           <ol className="rd-log">
             {reading.turns.slice(0, step).map((p) => (
               <li key={p.turn} className={`rd-past rd-${p.tone}`}>
-                <b>{p.turn}</b> <span>{t.probe.reactions[p.reaction] ?? p.reaction}</span>
+                <b>{p.turn}</b> <span>{reactionLabel(t, p)}</span>
               </li>
             ))}
           </ol>
@@ -242,10 +242,10 @@ function ReadingReveal({ t, turn, name, verdict, mine, innerRef }: {
         {mine && mine !== turn.reaction ? (
           <span className="rd-mine">{t.reading.yourAnswer}: <s>{t.probe.reactions[mine] ?? mine}</s> · </span>
         ) : null}
-        {t.reading.engineSaid}: <b>{t.probe.reactions[turn.reaction] ?? turn.reaction}</b>
+        {t.reading.engineSaid}: <b>{reactionLabel(t, turn)}</b>
       </p>
       <Karl state={karlState({ deltas: turn.deltas })} compact
-            line={t.probe.why[turn.reaction] ?? null}
+            line={t.probe.why[turn.closedDeal ? "agreed" : turn.reaction] ?? null}
             name={t.mascot.karl} alt={t.mascot.alt} />
 
       <h2 className="rd-h">{t.reading.evidence}</h2>
@@ -337,3 +337,10 @@ function ReadingResult({ t, reading, tally, previous, onAgain, onNext, onClose }
 }
 
 export default ReadingScreen;
+
+/** Подпись хода: закрытие сделки — «Соглашается — сделка закрыта», а не
+ *  движковый «нейтралитет» (аудит 17.10, OB-01). */
+function reactionLabel(t: Strings, p: { reaction: string; closedDeal: boolean }): string {
+  const key = p.closedDeal ? "agreed" : p.reaction;
+  return t.probe.reactions[key] ?? p.reaction;
+}

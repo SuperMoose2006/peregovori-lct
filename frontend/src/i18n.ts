@@ -1379,6 +1379,8 @@ export const I18N: Record<Lang, Strings> = {
         pressured: "Под давлением",
         hardened: "Закрывается", offended: "Принимает на свой счёт",
         walked_out: "Встаёт из-за стола",
+        // Не реакция движка, а подпись хода, которым сделка закрылась (OB-01).
+        agreed: "Соглашается — сделка закрыта",
       },
       why: {
         warmed: "Доверие выросло — вы попали в интерес второй стороны.",
@@ -1392,6 +1394,7 @@ export const I18N: Record<Lang, Strings> = {
         hardened: "Напряжение выросло, доверие упало — вторая сторона закрылась.",
         offended: "Доверие обвалилось: резкий тон бьёт сильнее аргумента.",
         walked_out: "Оппонент встаёт из-за стола — напряжение дошло до предела.",
+        agreed: "Этим ходом сделка закрылась: условия на столе приняты обеими сторонами.",
       },
       debriefHead: "Как вы читали оппонента",
       observation: "наблюдение · не влияет на оценку",
@@ -2355,6 +2358,7 @@ export const I18N: Record<Lang, Strings> = {
         not_yet: "Not ready yet", probe_vague: "Asks you to be specific",
         pressured: "Under pressure",
         hardened: "Closed off", offended: "Offended", walked_out: "Leaving the table",
+        agreed: "Agrees — the deal is closed",
       },
       why: {
         warmed: "Trust rose — you hit their actual interest.",
@@ -2368,6 +2372,7 @@ export const I18N: Record<Lang, Strings> = {
         hardened: "Tension rose and trust fell — they closed off.",
         offended: "Trust collapsed: a harsh tone hits harder than any argument.",
         walked_out: "They are getting up — tension hit its limit.",
+        agreed: "This move closed the deal: both sides accepted the terms on the table.",
       },
       debriefHead: "How well you read them",
       observation: "observation · does not affect the grade",
