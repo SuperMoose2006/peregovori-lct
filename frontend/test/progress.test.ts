@@ -23,6 +23,7 @@ import {
   skillViews,
   strongestWeakest,
   streakView,
+  touchStreak,
   updateStreak,
   xpForDebrief,
   type Profile,
@@ -765,4 +766,22 @@ test("запись в переполненное хранилище не рон�
   } finally {
     (globalThis as { localStorage?: unknown }).localStorage = prev;
   }
+});
+
+test("местный день «назад» (перелёт на запад, поправка часов) не обнуляет серию", () => {
+  // Найдено после аудита 17.10: партия в 00:30 по Москве 19-го (серия 10),
+  // перелёт в Нью-Йорк, где ещё 18-е, — следующая партия ставила серию 1 и
+  // откатывала последний день на 18-е, а карточка называла серию потерянной.
+  assert.equal(updateStreak({ streak: 10, freezes: 2 }, "2026-10-19", "2026-10-18").streak, 10);
+  assert.equal(updateStreak({ streak: 10, freezes: 2 }, "2026-10-19", "2026-10-18").freezeUsed, false);
+  assert.equal(nextStreak(10, "2026-10-19", "2026-10-18"), 10);
+  const p: Profile = { ...emptyProfile(), streak: 10, freezes: 2, lastStreakDay: "2026-10-19" };
+  const deb = { overall: 60, grade: "C", economic: 60, relationship: 60, technique: 60, deal_text: "",
+    status: "agreement", interests_found: 0, interests_total: 3, spin_stages: 0, objective_criteria: 0,
+    empathy: 0, threats: 0, tradeoffs: 0, avg_arg: 50, tips: [] } as Debrief;
+  const r = applyDebrief(p, "supplier", deb, new Date(2026, 9, 18, 18, 0));
+  assert.equal(r.profile.streak, 10);
+  assert.equal(r.profile.lastStreakDay, "2026-10-19");
+  assert.equal(streakView(p, "2026-10-18")!.mood, "kept");
+  assert.equal(touchStreak(p, new Date(2026, 9, 18, 18, 0)), p, "урок «вчера» серию не трогает");
 });

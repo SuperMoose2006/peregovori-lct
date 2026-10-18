@@ -194,6 +194,12 @@ export function msUntilNextDay(now: Date = new Date()): number {
   return Math.max(1000, next.getTime() - now.getTime());
 }
 
+/** Более поздний из двух ключей дня: последний засчитанный день серии назад не
+ *  уезжает, даже если местные часы ушли назад. */
+function laterDay(a: string, b: string): string {
+  return a && a > b ? a : b;
+}
+
 // Pure streak transition. today is a day key (see dayKey).
 //  - first ever finish           → 1
 //  - another finish same day     → unchanged (already counted today)
@@ -201,7 +207,7 @@ export function msUntilNextDay(now: Date = new Date()): number {
 //  - a gap (or anything odd)      → reset to 1
 export function nextStreak(prevStreak: number, lastDay: string, today: string): number {
   if (!lastDay) return 1;
-  if (lastDay === today) return Math.max(1, prevStreak);
+  if (lastDay === today || today < lastDay) return Math.max(1, prevStreak);
   const gap = daysBetween(lastDay, today);
   if (gap === 1) return Math.max(1, prevStreak) + 1;
   return 1;
@@ -236,7 +242,12 @@ export function updateStreak(prev: StreakState, lastDay: string, today: string):
   if (!lastDay) {
     return { streak: 1, freezes: earn(1, f0), freezeUsed: false };
   }
-  if (lastDay === today) {
+  // Местный «сегодня» РАНЬШЕ последнего засчитанного дня — перелёт на запад
+  // или поправленные часы. Разрыва нет, этот день уже засчитан: прежде
+  // отрицательный разрыв уходил в ветку сброса, и серия из десяти дней
+  // становилась единицей (найдено после аудита 17.10). Ключи дня YYYY-MM-DD
+  // сравниваются строкой.
+  if (lastDay === today || today < lastDay) {
     return { streak: Math.max(1, s0), freezes: f0, freezeUsed: false };
   }
   const gap = daysBetween(lastDay, today);
@@ -305,7 +316,7 @@ export function streakView(profile: Profile, today: string = dayKey()): StreakVi
   // нулевой серией и непустым последним днём (такие приезжают из старых
   // сохранений) любая партия «увеличивает» серию, и проверка по числу назвала
   // бы прерванную серию живой.
-  if (last === today) return { ...view, mood: "kept" };
+  if (last === today || today < last) return { ...view, mood: "kept" };
   if (awayDays === 1) return { ...view, mood: "waiting" };
   if (next.freezeUsed) return { ...view, mood: "shielded" };
   return { ...view, mood: awayDays >= AWAY_DAYS ? "away" : "lost" };
@@ -434,7 +445,7 @@ export function recordDebrief(
     version: VERSION,
     scenarios: { ...profile.scenarios, [scenarioId]: record },
     streak,
-    lastStreakDay: today,
+    lastStreakDay: laterDay(profile.lastStreakDay, today),
     // Gamification fields are owned by applyDebrief; recordDebrief only advances
     // the record + streak, so it passes them through untouched.
     xp: profile.xp,
@@ -924,7 +935,7 @@ export function applyDebrief(
   const streakCounted = passing && !failed;
   const su = updateStreak({ streak: profile.streak, freezes: profile.freezes }, profile.lastStreakDay, today);
   const streakOut = streakCounted
-    ? { streak: su.streak, freezes: su.freezes, lastStreakDay: today, freezeUsed: su.freezeUsed }
+    ? { streak: su.streak, freezes: su.freezes, lastStreakDay: laterDay(profile.lastStreakDay, today), freezeUsed: su.freezeUsed }
     : { streak: profile.streak, freezes: profile.freezes, lastStreakDay: profile.lastStreakDay, freezeUsed: false };
 
   const xpGain = xpForDebrief(d.overall, d.status, celebrate);
@@ -1011,7 +1022,7 @@ export function getBlockProgress(profile: Profile, blockId: string): BlockProgre
  */
 export function touchStreak(profile: Profile, now: Date = new Date()): Profile {
   const today = dayKey(now);
-  if (profile.lastStreakDay === today) return profile;
+  if (profile.lastStreakDay === today || today < profile.lastStreakDay) return profile;
   const next = updateStreak(
     { streak: profile.streak, freezes: profile.freezes }, profile.lastStreakDay, today);
   return { ...profile, streak: next.streak, freezes: next.freezes, lastStreakDay: today };
