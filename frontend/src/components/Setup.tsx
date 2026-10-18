@@ -193,7 +193,10 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
                   <span className="ly-req">
                     {t.layers.check[id].pending}
                     {onCheckNow ? (
-                      <>{" "}<button type="button" className="ly-checknow" onClick={() => onCheckNow(id)}>{t.layers.checkNow}</button></>
+                      <>{" "}<button type="button" className="ly-checknow" onClick={() => onCheckNow(id)}
+                        // Две кнопки «Проверить сейчас» подряд — у голоса и у
+                        // камеры — диктор различал только по порядку (аудит 17.10).
+                        aria-label={t.layers.checkNowAria[id]}>{t.layers.checkNow}</button></>
                     ) : null}
                   </span>
                 ) : null}

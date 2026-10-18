@@ -19,6 +19,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, relative } from "node:path";
+import { I18N } from "../src/i18n";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
 
@@ -223,4 +224,15 @@ test("просьбу не анимировать гасит одно прави�
   assert.ok(global, "нет общего правила `* { animation: none !important }` под prefers-reduced-motion");
   assert.match(global!, /transition:\s*none\s*!important/, "общее правило гасит анимации, но не переходы");
   assert.match(global!, /scroll-behavior:\s*auto\s*!important/, "общее правило не гасит плавную прокрутку");
+});
+
+test("две кнопки «Проверить сейчас» различимы для диктора", () => {
+  // Аудит 17.10: у голоса и у камеры одинаковое доступное имя «Проверить
+  // сейчас» — экранный диктор различал их только по порядку.
+  const src = readFileSync(new URL("../src/components/Setup.tsx", import.meta.url), "utf8");
+  assert.match(src, /aria-label=\{t\.layers\.checkNowAria\[id\]\}/);
+  for (const lang of ["ru", "en"] as const) {
+    const a = I18N[lang].layers.checkNowAria;
+    assert.ok(a.voice && a.camera && a.voice !== a.camera, lang);
+  }
 });

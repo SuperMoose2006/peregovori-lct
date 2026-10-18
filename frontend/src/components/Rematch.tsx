@@ -177,7 +177,10 @@ export function RematchRail(props: RematchRailProps) {
         <div className="rm-col then">
           <span className="rm-collab">{r.then}</span>
           <blockquote className="rm-q">
-            {thenPoint ? `«${thenPoint.text}»` : r.pastEnded}
+            {/* До первого хода прошлой реплики «на этом ходу» нет — но это не
+                значит, что та партия кончилась: «Тогда партия здесь уже
+                кончилась» на нулевом ходу был ложным итогом (аудит 17.10, RP-01). */}
+            {thenPoint ? `«${thenPoint.text}»` : turn === 0 ? r.pastNotStarted : r.pastEnded}
           </blockquote>
         </div>
         <div className="rm-col now">

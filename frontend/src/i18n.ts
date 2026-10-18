@@ -323,6 +323,8 @@ export interface Strings {
     avatarVideo: string;
     /** Кнопка «Проверить сейчас» у голоса и камеры, включённых умолчанием. */
     checkNow: string;
+    /** Доступное имя той же кнопки: две «Проверить сейчас» подряд диктор различал только по порядку. */
+    checkNowAria: { voice: string; camera: string };
     what: string;            // "[i] что это"
     sameGrade: string;       // caption on every toggle — the honesty guarantee
     unavailable: string;     // badge on a layer the environment cannot deliver
@@ -724,6 +726,7 @@ export interface Strings {
     nextThen: string;    // «Тогда следующим ходом вы сказали»
     noMoveYet: string;   // ход ещё не сделан
     pastEnded: string;   // прошлая партия здесь уже кончилась
+    pastNotStarted: string; // до первого хода: сравнивать ещё нечего (RP-01)
     price: string;
     ahead: string;       // «лучше, чем тогда»
     behind: string;      // «хуже, чем тогда»
@@ -1264,6 +1267,7 @@ export const I18N: Record<Lang, Strings> = {
       },
       avatarVideo: "Если живое видео доступно, собеседник говорит с видео-лицом; если нет — лицо показано нарисованными выражениями. На партию и оценку это не влияет.",
       checkNow: "Проверить сейчас",
+      checkNowAria: { voice: "Проверить микрофон сейчас", camera: "Проверить камеру сейчас" },
       what: "что это",
       sameGrade: "на оценку не влияет",
       lockedMode: "В этой партии слои выключены — её грейд обязан быть сравним с остальными",
@@ -1406,7 +1410,7 @@ export const I18N: Record<Lang, Strings> = {
       cardLead: "Те же переговоры, но вы — на месте собеседника: у вас его цена, его красная линия и его скрытые интересы. Лучший способ понять, почему человек напротив упирается, — упереться самому и знать почему.",
       cardCta: "Выбрать переговоры",
       scored: "обычная партия · оценивается как всегда",
-      sheetLead: "Три стола из библиотеки, которые можно сыграть с другой стороны. Оценка та же: та же формула, те же слои выключены, тот же потолок техники.",
+      sheetLead: "Столы из библиотеки, которые можно сыграть с другой стороны. Оценка та же: та же формула, те же слои выключены, тот же потолок техники.",
       youBecome: "Вы играете за: {name}",
       origin: "Тот же стол с этой стороны: «{title}»",
       defendTitle: "Что вы защищаете",
@@ -1580,7 +1584,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     opening: {
       title: "Стол накрыт",
-      scene: "{role} Напротив — {name}. Её цена: {offer}. Ваша цель: {target}, красная линия: {red}.",
+      scene: "{role} Напротив — {name}. Условия собеседника: {offer}. Ваша цель: {target}, красная линия: {red}.",
       hint: "У второй стороны три скрытых интереса. Темы, в которых они лежат, перечислены в панели «Скрытые интересы» — спросите ПО ТЕМЕ, и интерес откроется. Пока не вскрыли — спор идёт только о цене, а там выигрывает тот, кто сильнее давит.",
       // ЗАЧАТКИ, а не готовые реплики — как чипы композера ниже. Готовая строка
       // не может знать стол: «что для вас важнее всего в этой сделке» по
@@ -1707,6 +1711,7 @@ export const I18N: Record<Lang, Strings> = {
       nextThen: "Тогда следующим ходом вы сказали",
       noMoveYet: "Ход за вами",
       pastEnded: "Тогда партия здесь уже кончилась",
+      pastNotStarted: "Партия ещё не началась",
       price: "Цена",
       ahead: "лучше, чем тогда",
       behind: "хуже, чем тогда",
@@ -2250,6 +2255,7 @@ export const I18N: Record<Lang, Strings> = {
       },
       avatarVideo: "If live video is available, the counterpart talks with a video face; if not, the face is shown as drawn expressions. It never affects the game or the grade.",
       checkNow: "Check now",
+      checkNowAria: { voice: "Check the microphone now", camera: "Check the camera now" },
       what: "what is this",
       sameGrade: "does not affect your grade",
       lockedMode: "This table runs with layers off — its grade has to stay comparable to the rest",
@@ -2386,7 +2392,7 @@ export const I18N: Record<Lang, Strings> = {
       cardLead: "The same negotiations, but you sit in the counterpart's chair: their price, their red line and their hidden interests are yours. The best way to see why the other side digs in is to dig in yourself — and know why.",
       cardCta: "Pick a negotiation",
       scored: "a regular game · scored as usual",
-      sheetLead: "Three tables from the library you can play from the other side. The grade is the same: same formula, same layers off, same technique ceiling.",
+      sheetLead: "Tables from the library you can play from the other side. The grade is the same: same formula, same layers off, same technique ceiling.",
       youBecome: "You play as: {name}",
       origin: "The same table from this side: “{title}”",
       defendTitle: "What you are defending",
@@ -2560,7 +2566,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     opening: {
       title: "The table is set",
-      scene: "{role} Across from you: {name}. Their price: {offer}. Your target: {target}, red line: {red}.",
+      scene: "{role} Across from you: {name}. Their terms: {offer}. Your target: {target}, red line: {red}.",
       hint: "They have three hidden interests. The topics they sit in are listed in the \u201cHidden interests\u201d panel — ask ABOUT A TOPIC and the interest opens. Until you surface them the argument is only about price — and there the harder pusher wins.",
       lines: [
         { icon: "target", tag: "Interest", text: "What matters to you in " },
@@ -2681,6 +2687,7 @@ export const I18N: Record<Lang, Strings> = {
       nextThen: "Back then your next line was",
       noMoveYet: "Your move",
       pastEnded: "Back then the game ended here",
+      pastNotStarted: "The game has not started yet",
       price: "Price",
       ahead: "better than then",
       behind: "worse than then",

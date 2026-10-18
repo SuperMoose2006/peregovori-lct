@@ -328,3 +328,21 @@ test("«А что если…» осталось при своём: один х�
     .replace(/\/\/[^\n]*/g, "");
   assert.doesNotMatch(lib, /whatIf/i, "переигровка полезла в развилку одного хода");
 });
+
+test("до первого хода колонка «тогда» не объявляет прошлую партию законченной", async () => {
+  // Аудит 17.10, RP-01: на нулевом ходу панель говорила «Тогда партия здесь
+  // уже кончилась», хотя в сохранённой партии следующая реплика есть.
+  const { createElement } = await import("react");
+  const { renderToStaticMarkup } = await import("react-dom/server");
+  const { RematchRail } = await import("../src/components/Rematch");
+  const { I18N } = await import("../src/i18n");
+  const past = run();
+  const trail = replayRun(past)!;
+  for (const lang of ["ru", "en"] as const) {
+    const t = I18N[lang];
+    const props = { t, lang, past, pastTrail: trail, nowOpening: null, unit: " ₽", lowerBetter: true };
+    const start = renderToStaticMarkup(createElement(RematchRail, { ...props, nowTrail: [], nowMoves: [] }));
+    assert.ok(start.includes(t.rematch.pastNotStarted), `${lang}: нет нейтрального старта`);
+    assert.ok(!start.includes(t.rematch.pastEnded), `${lang}: ложный итог на нулевом ходу`);
+  }
+});
