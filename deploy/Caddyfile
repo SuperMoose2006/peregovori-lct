@@ -26,6 +26,14 @@ dialog.2-26-49-28.nip.io {
         X-Frame-Options DENY
         Referrer-Policy strict-origin-when-cross-origin
         Permissions-Policy "camera=(self), microphone=(self), geolocation=()"
+        # CSP — пока ТОЛЬКО ОТЧЁТ (аудит 17.10, R03): ничего не блокирует,
+        # нарушения видны в консоли браузера. Перевести в
+        # Content-Security-Policy — после того, как живой стенд (голос, видео
+        # собеседника, офлайн) неделю не даёт отчётов. Клиент ходит только в
+        # свой домен (видео собеседника — через сокет шлюза). blob: в
+        # script-src — модуль AudioWorklet микрофона (vendor/media-provider.ts);
+        # хеш — встроенный скрипт check.html, сверяет tests/test_csp_report_only.py.
+        Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'sha256-n1KwpcX57YRV+gMYf8HcarketomXFh2gO5mdn6Kfjf0=' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self' wss://dialog.2-26-49-28.nip.io; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         -Server
     }
     @entry path / /index.html /sw.js
