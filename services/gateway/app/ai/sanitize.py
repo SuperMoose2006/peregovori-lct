@@ -131,9 +131,35 @@ def speakable(phrase: Optional[str]) -> Optional[str]:
 #: Конец предложения: знак и пробел. Точка внутри «99.7» предложение не рвёт.
 _SENTENCE_END_RE = re.compile(r"(?<=[.!?…])\s+")
 
+#: Фразы, которыми ОППОНЕНТ объявляет сделку (нормализованный текст). Узкий
+#: список, а не игроцкий `accept`: «принимаю», «мы согласны», «меня устраивает»
+#: в устах оппонента — обычная речь («мы согласны, что сроки важны, но 95»).
+_DEAL_CLAIM_RE = re.compile(
+    r"по рукам|договорились|сделка заключена|заключаем сделку"
+    r"|it s a deal|its a deal|we have a deal|deal is done|shake on it|\bagreed\b"
+)
+#: Отрицание вплотную перед фразой: «не договорились», «no deal».
+_DEAL_NEGATED_RE = re.compile(r"(?:\bне|\bnot|\bno|\bnever)\s*$")
+#: Условие или рассказ раньше в том же предложении: «если пойдёте на 90, по
+#: рукам», «рад, что договорились», «if you take the volume, we have a deal».
+_DEAL_FRAMED_RE = re.compile(r"\b(?:если|когда|что|if|when|that)\b")
+#: Слова своего предложения: число рядом с ними — обещание, а не цитата.
+_OWN_OFFER = ["дам", "даю", "могу", "готов", "предлагаю", "отдам", "уступлю", "соглашусь",
+              "сойдемся", "i can", "i ll", "i will", "give you", "we can", "we ll", "let you have"]
 
-def contradicts(text: Optional[str], facts: dict) -> bool:
-    """Реплика обещает то, чего движок не дал? True → реплика отвергается целиком.
+
+def _deal_claim(sentence: str) -> bool:
+    for m in _DEAL_CLAIM_RE.finditer(sentence):
+        before = sentence[:m.start()]
+        if _DEAL_NEGATED_RE.search(before) or _DEAL_FRAMED_RE.search(before):
+            continue
+        return True
+    return False
+
+
+def reply_verdict(text: Optional[str], facts: dict, final: bool = True) -> str:
+    """Спорит ли реплика с движком: "ok", "hold" (не озвучивать, пока не
+    договорит) или "bad" (реплика отвергается целиком).
 
     Четвёртая вещь, которую ловит этот модуль, и единственная, которой нужны
     факты стола. Аудит 17.10, F05: на SLA движок сдвинулся 99 → 99,2, а модель
@@ -144,40 +170,48 @@ def contradicts(text: Optional[str], facts: dict) -> bool:
 
     Два признака:
 
-    1. **Число лучше для игрока, чем лежит на столе** — больше, чем на допуск
-       закрытия движка (2% хода цены): это обещание, которого движок не
-       выполнит. Число своей шкалы ищется как в `_pick_offer`: проценты на
-       денежном столе, деньги на процентном и границы диапазона — не условия.
-       Число игрока или своё прежнее предложение назвать можно — но только в
-       реплике, где названо и нынешнее («ваши 86 — нереально, могу 95»).
-       Числа ХУЖЕ для игрока не трогаются: согласие на них движок принимает,
-       и обещание не ломается.
-    2. **Объявленная сделка, которой нет**: закрывающая фраза не вопросом,
-       пока статус не «agreement». «По рукам?» — предложение, а не итог.
+    1. **Обещание условий лучше стола.** Число своей шкалы (как в `_pick_offer`:
+       проценты на денежном столе, деньги на процентном и границы диапазона —
+       не условия) лучше для игрока, чем лежит на столе, больше чем на допуск
+       закрытия движка (2% хода цены). Числа ЗА целью игрока — рынок,
+       минимальная партия, «100% доступность» — обещанием считаются только
+       рядом со словом своего предложения («дам», «могу»). Число игрока или
+       своё прежнее — цитата, пока его не обещают («ваши 86 — нереально»);
+       рядом с нынешним предложением цитировать можно всегда.
+    2. **Объявленная сделка, которой нет**: «по рукам», «договорились» в
+       законченном предложении не вопросом, без отрицания и без «если».
 
-    Закрытие судится по ПРЕДЛОЖЕНИЯМ: вопросительный знак обязан стоять в том
-    же предложении, а не где-то в реплике. Вызывающий проверяет поток
-    НАКОПЛЕННЫМ текстом: делитель режет его и по запятой, а число и его
-    оправдание могут прийти разными кусками.
+    ПОТОК (`final=False`). Делитель режет первую фразу по запятой, поэтому
+    кусок судится накопленным текстом, а сомнительное ПРИДЕРЖИВАЕТСЯ, а не
+    отвергается: «Ваши 86 — нереально,» ещё может закончиться «могу 95», а
+    «Договорились,» — вопросом. Придержанное звучит, когда реплика сошлась, и
+    не звучит никогда, если она отвергнута: «Дам 99,7%» не должно прозвучать.
     """
     if not text or not facts.get("scenario_id"):
-        return False
+        return "ok"
     from app.engine.engine import _plausible_offer, by_id
-    from app.engine.techniques import _is_close, _is_short_close, norm, number_mentions
+    from app.engine.techniques import _has, norm, number_mentions
 
     sc = by_id(facts["scenario_id"])
     status = facts.get("status", "active")
     text = _strip_invisible(text)
+    verdict = "ok"
     if status != "agreement":
         for sentence in _SENTENCE_END_RE.split(text):
             st = norm(sentence)
-            if st and "?" not in st and (_is_close(st) or _is_short_close(st)):
-                return True
-    t = norm(text)
+            if not st or not _deal_claim(st):
+                continue
+            finished = final or sentence.rstrip().endswith((".", "!", "…"))
+            if "?" in st:
+                continue
+            if finished:
+                return "bad"
+            verdict = "hold"
 
     ref = facts.get("deal") if status == "agreement" and facts.get("deal") is not None else facts.get("offer_opp")
     if ref is None:
-        return False
+        return verdict
+    t = norm(text)
     lower_better = sc.headline.dir == "lower_is_better"
     near = 0.02 * abs(sc.opponent_open - sc.opponent_reservation)
     foreign = "money" if "%" in sc.headline.unit["ru"] else "pct"
@@ -192,17 +226,32 @@ def contradicts(text: Optional[str], facts: dict) -> bool:
                 out.append(p)
         return out
 
+    def beyond(v: float, mark: float) -> bool:
+        return (v < mark - near) if lower_better else (v > mark + near)
+
     said = priced(t)
     names_ref = any(abs(v - ref) <= near for v in said)
+    own_offer = _has(t, _OWN_OFFER)
     recorded = priced(norm(facts.get("player_text") or "")) + list(facts.get("offer_history") or [])
     for v in said:
-        better = (v < ref - near) if lower_better else (v > ref + near)
-        if not better:
+        if not beyond(v, ref):
+            continue                                   # не лучше стола — не обещание
+        if beyond(v, sc.player_target) and not own_offer:
+            continue                                   # рынок, минимум партии, «100%»
+        if any(abs(v - r) <= near for r in recorded):
+            if names_ref or not own_offer:
+                continue                               # цитата, а не обещание
+            if final:
+                return "bad"
+            verdict = "hold"                           # «могу 95» может ещё прийти
             continue
-        if names_ref and any(abs(v - r) <= near for r in recorded):
-            continue
-        return True
-    return False
+        return "bad"
+    return verdict
+
+
+def contradicts(text: Optional[str], facts: dict) -> bool:
+    """Реплика целиком спорит с движком? True → в итог идёт шаблон движка."""
+    return reply_verdict(text, facts, final=True) == "bad"
 
 
 def sanitize(text: Optional[str]) -> Optional[str]:

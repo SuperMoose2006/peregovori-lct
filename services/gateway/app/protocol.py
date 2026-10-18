@@ -275,7 +275,7 @@ class TurnJudge(BaseModel):
     criteria_legitimate: Optional[bool] = None
     tradeoff_real: Optional[bool] = None
     batna_real: Optional[bool] = None
-    secondary_conceded: Optional[str] = None
+    secondary_conceded: Optional[str] = Field(default=None, max_length=64)
 
 
 class TurnRecord(BaseModel):
@@ -365,6 +365,6 @@ class WhatIfMsg(BaseModel):
     # считается из того состояния, в котором игрок на самом деле был (F03).
     # Брать их с клиента безопасно: «что если» ничего не сохраняет и в
     # score_session не заходит.
-    judges: list[Optional[TurnJudge]] = Field(default_factory=list)
+    judges: list[Optional[TurnJudge]] = Field(default_factory=list, max_length=24)
     reputation: Optional[float] = None
     daily: Optional[str] = None

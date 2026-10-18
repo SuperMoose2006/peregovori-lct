@@ -306,7 +306,7 @@ class NegotiationOrchestrator:
                                                   turn_id=turn_id, text=chunk))
                     yield chunk
 
-        from app.ai.sanitize import contradicts, rejected, sanitize, speakable
+        from app.ai.sanitize import contradicts, rejected, reply_verdict, sanitize, speakable
 
         collected: list[str] = []
         #: Прозвучало ли хоть что-то. Нужно для случая, когда отвергнуты ВСЕ
@@ -315,8 +315,11 @@ class NegotiationOrchestrator:
         spoken_any = False
         #: Реплика уже испорчена — дальше не озвучиваем ничего.
         tainted = False
-        #: Реплика спорит с движком (sanitize.contradicts) — в итог идёт шаблон.
+        #: Реплика спорит с движком (sanitize.reply_verdict) — в итог идёт шаблон.
         contradicted = False
+        #: Фразы, которые ещё нельзя озвучить: реплика может закончиться и
+        #: оправданием («…, могу 95»), и обещанием («…, и по рукам»).
+        held: list[str] = []
         try:
             async for sentence in divider.process_stream(token_stream()):
                 phrase = (sentence.text or "").strip()
@@ -343,14 +346,22 @@ class NegotiationOrchestrator:
                 if rejected(phrase):
                     tainted = True
                 # Обещание, которого движок не дал, — та же порча: прозвучав,
-                # оно уже обмануло. Проверяется НАКОПЛЕННЫЙ текст: делитель
-                # рвёт поток и по запятой (см. contradicts).
-                if not contradicted and contradicts(" ".join(collected), facts):
+                # оно уже обмануло. Судится НАКОПЛЕННЫЙ текст (делитель рвёт
+                # поток и по запятой), а сомнительное придерживается до конца
+                # реплики (см. reply_verdict).
+                verdict = "ok" if contradicted else reply_verdict(" ".join(collected), facts, final=False)
+                if verdict == "bad":
                     contradicted = tainted = True
+                    held = []
+                    sess.reply_rejected = True
                 say = None if tainted else speakable(phrase)
-                if self.tts and say:
-                    self.tts.speak(say, generation_id=generation_id, turn_id=turn_id)
-                    spoken_any = True
+                if say:
+                    held.append(say)
+                if self.tts and verdict == "ok" and not tainted:
+                    for part in held:
+                        self.tts.speak(part, generation_id=generation_id, turn_id=turn_id)
+                        spoken_any = True
+                    held = []
         except asyncio.CancelledError:
             # Перебили. `interrupt()` уже дописал услышанное в историю и погасил
             # поколение на шине — здесь просто выходим.
@@ -360,7 +371,15 @@ class NegotiationOrchestrator:
 
         # Авторитетный итог. Дельты были сырыми; санитайзер судит реплику
         # целиком и может её отвергнуть — тогда остаётся шаблон движка.
+        if not contradicted and contradicts(" ".join(collected), facts):
+            contradicted = tainted = True
+            sess.reply_rejected = True
         final = (None if contradicted else sanitize(" ".join(collected))) or templated
+        # Придержанное звучит, только если реплика сошлась целиком.
+        if self.tts and held and not tainted:
+            for part in held:
+                self.tts.speak(part, generation_id=generation_id, turn_id=turn_id)
+                spoken_any = True
         # Не прозвучало НИЧЕГО — значит отвергнуты все фразы (или модель
         # промолчала). Озвучиваем итог: он либо очищенная реплика, либо шаблон
         # движка, и то и другое в характере. Иначе ход прошёл бы в тишине.

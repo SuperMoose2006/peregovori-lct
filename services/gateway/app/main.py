@@ -764,7 +764,11 @@ if SERVES_SPA:
     # HEAD — тем же маршрутом: мониторинг и кэши спрашивают HEAD, а портреты и
     # маскоты отвечали на него 405 при рабочем GET (аудит 17.10, R04).
     @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
-    def spa(full_path: str):  # SPA fallback for client-side routes
+    def spa(full_path: str, request: Request):  # SPA fallback for client-side routes
+        # HEAD на адрес API (`/api/health`, POST-ручки) раньше отвечал 405, и
+        # общий маршрут не вправе подменить это страницей приложения.
+        if request.method == "HEAD" and full_path.startswith(("api/", "v1/")):
+            raise HTTPException(status_code=405, detail="Method Not Allowed")
         # ПУТЬ ОБЯЗАН ОСТАТЬСЯ ВНУТРИ dist. `full_path` приходит с улицы, и
         # `os.path.join(_DIST, "../../services/gateway/.env")` — это настоящий
         # файл: гейтвей раздавал наружу ключ OpenRouter (и `/etc/passwd` тем же

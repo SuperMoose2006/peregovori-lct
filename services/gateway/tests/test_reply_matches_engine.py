@@ -31,7 +31,8 @@ SUPPLIER = {"scenario_id": "supplier", "status": "active", "offer_opp": 95.0, "d
     (SLA, "Дам 99,7% аптайма."),                       # обещание без закрытия
     (SLA, "Договорились. Что скажете?"),               # вопрос в ДРУГОМ предложении
     (SUPPLIER, "Ладно, 90 рублей."),
-    (SUPPLIER, "Ваши 86 — нереально."),                # число игрока без своего
+    (SUPPLIER, "Ладно, дам 86."),                       # число игрока, но обещанное
+    (SUPPLIER, "Не вопрос, договорились."),
     ({**SUPPLIER, "status": "agreement", "deal": 92.0}, "По рукам, 88 за штуку."),
 ])
 def test_a_line_promising_what_the_engine_did_not_give_is_rejected(facts, line):
@@ -47,6 +48,12 @@ def test_a_line_promising_what_the_engine_did_not_give_is_rejected(facts, line):
     (SUPPLIER, "Предоплата 50% нам интересна, но 95 пока держу."),  # процент — не цена
     (SUPPLIER, "Рынок 88-92, а у меня 95."),           # диапазон — ориентир
     (SUPPLIER, "Сто рублей — это моя цена была на старте."),         # хуже для игрока
+    (SUPPLIER, "Ваши 86 — нереально."),                # цитата игрока, не обещание
+    (SUPPLIER, "Минимальная партия 50 коробок, цена 95."),          # за целью и без «дам»
+    (SUPPLIER, "Мы согласны, что сроки важны, но цена 95."),        # не объявление сделки
+    (SUPPLIER, "Если пойдёте на объём, по рукам на 95."),          # условие
+    (SUPPLIER, "Мы ещё не договорились."),
+    (SLA, "100% доступность каналов мы не обещаем, держим 99,2%."),
     ({**SUPPLIER, "status": "agreement", "deal": 92.0}, "По рукам, 92 за штуку."),
 ])
 def test_a_line_that_agrees_with_the_table_passes(facts, line):
@@ -113,6 +120,45 @@ def test_a_reply_true_to_the_table_streams_as_is(monkeypatch):
     assert "Шаблон движка." not in said
 
 
+@pytest.mark.parametrize("facts,chunks", [
+    # Делитель режет первую фразу по запятой: свой номер приходит ВТОРЫМ куском.
+    (SUPPLIER, ["Ваши 86 — нереально,", " могу 95."]),
+    (SLA, ["99,7% — это вы загнули,", " могу 99,2%."]),
+    # «Договорились,» ещё может оказаться вопросом.
+    (SUPPLIER, ["Договорились,", " если берёте объём на год?"]),
+])
+def test_a_reply_justified_later_in_the_stream_is_kept_whole(monkeypatch, facts, chunks):
+    """Ревью: накопленный текст судился с первого куска, и законная реплика
+    отвергалась раньше, чем в ней появлялось собственное число оппонента."""
+    said, final = _run(monkeypatch, chunks, facts)
+    whole = "".join(chunks).strip()
+    assert final == whole
+    assert " ".join(said) == whole.replace(",  ", ", "), said
+
+
+def test_a_promise_is_held_back_until_the_reply_is_judged(monkeypatch):
+    """«Дам 99,7% аптайма,» не звучит, пока реплика не договорена, — и не
+    звучит вовсе, когда она кончается «и по рукам»."""
+    said, final = _run(monkeypatch, ["Дам 99,7% аптайма,", " и по рукам."], SLA)
+    assert said == ["Шаблон движка."] and final == "Шаблон движка."
+
+
+def test_an_interrupted_rejected_reply_is_not_logged_as_said():
+    """Ревью: перебивание писало в журнал сырое «Дам 99,7% … по рукам» —
+    санитайзер фактов стола не знает, — и модель видела его в стенограмме."""
+    from app import engine
+    from app.realtime.session import RealtimeSession
+
+    sess = RealtimeSession(session_id="s", engine_session=engine.create_session("sla_renewal", "ru"), lang="ru")
+    sess.begin_generation()
+    sess.spoken_so_far = "Дам 99,7% аптайма, и по рукам"
+    sess.reply_rejected = True
+    sess.interrupt()
+    assert not any(e.get("interrupted") for e in sess.engine_session.log)
+    sess.begin_generation()
+    assert sess.reply_rejected is False
+
+
 # ---- Промпт -----------------------------------------------------------------
 
 def _tough(lang: str, status: str = "active") -> str:
@@ -130,6 +176,8 @@ def test_the_prompt_forbids_other_terms_and_a_deal_that_is_not_there():
     assert "ТОЛЬКО 99.2% аптайм" in ru and "НЕ заключена" in ru
     assert "ONLY terms you state as yours are 99.2% аптайм" in en and "NO deal yet" in en
     assert "НЕ заключена" not in _tough("ru", "agreement")
+    # Сорванные переговоры: обещать «цифра ещё сдвинется» нечего.
+    assert "пределом" not in _tough("ru", "breakdown") and "НЕ заключена" not in _tough("ru", "breakdown")
     # «Превысить этот лимит я не могу» про 190 — и 224 следующим ходом (кампания).
     assert "пределом или последним словом" in ru and "limit or your final word" in en
 
@@ -170,3 +218,11 @@ def test_the_divider_keeps_decimal_numbers_whole(chunks, want):
         return [s.text async for s in d.process_stream(gen())]
 
     assert asyncio.run(run()) == want
+
+
+def test_after_agreement_the_prompt_names_the_deal_not_the_last_offer():
+    """Ревью: при сделке на 93 промпт говорил «твои условия — только 95» —
+    движок сходится и на числе игрока, а offer_opp при этом не меняет."""
+    ru = build_system({"lang": "ru", "persona_name": "Ирина", "persona_desc": "x", "style": "tough",
+                       "offer_opp": 95, "deal": 93.2, "unit": " ₽", "mood": "m", "status": "agreement"})
+    assert "ТОЛЬКО 93.2 ₽" in ru and "95" not in ru

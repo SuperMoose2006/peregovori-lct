@@ -161,6 +161,11 @@ class RealtimeSession:
     #: Приём взят из Open-LLM-VTuber `conversation_handler.py:112`
     #: (`heard_response` → `[Interrupted by user]`).
     spoken_so_far: str = ""
+    #: Текущую реплику оркестратор отверг как спорящую с движком
+    #: (sanitize.reply_verdict). Перебивание тогда не пишет услышанное в
+    #: журнал: санитайзер фактов стола не знает, и «Дам 99,7% … по рукам»
+    #: ушло бы в стенограмму следующего хода как собственные слова оппонента.
+    reply_rejected: bool = False
 
     #: Наблюдения камеры за сессию. Идут в контекст оппонента и в разбор,
     #: НО НИКОГДА в счёт. Хранятся здесь, а не в engine.Session, именно чтобы
@@ -254,6 +259,7 @@ class RealtimeSession:
         """Открыть новое поколение ответа оппонента."""
         self.generation_id = new_generation_id(self.session_id, self.turn_id)
         self.spoken_so_far = ""
+        self.reply_rejected = False
         return self.generation_id
 
     def interrupt(self, reason: str = "barge_in") -> Optional[str]:
@@ -284,7 +290,7 @@ class RealtimeSession:
         # Отвергнутый кусок не пишется НИКАК: потерять метку «его перебили»
         # дешевле, чем показать человеку служебную строку и научить модель
         # повторять испорченную реплику.
-        heard = sanitize(self.spoken_so_far)
+        heard = None if self.reply_rejected else sanitize(self.spoken_so_far)
         if heard:
             # Ровно та формулировка, что у Open-LLM-VTuber: оппонент видит в
             # истории собственную оборванную реплику и метку, что его прервали.

@@ -151,6 +151,10 @@ def replay_judge(sc: "engine.Scenario", lang: str, j: Optional[dict]) -> Optiona
     idx = d["interest_targeted"]
     if idx is not None and not (0 <= idx < len(sc.hidden_interests[lang])):
         d["interest_targeted"] = None
+    # Чужой id предмета живой судья не возвращает никогда (`_validate`), а
+    # движок на нём пропустил бы и поиск по ключевым словам.
+    if d["secondary_conceded"] not in {iss.id for iss in (sc.secondary_issues or [])}:
+        d["secondary_conceded"] = None
     return d
 
 

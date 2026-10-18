@@ -123,7 +123,11 @@ def build_system(facts: dict) -> str:
     lang = facts.get("lang", "ru")
     name = facts.get("persona_name", "")
     desc = facts.get("persona_desc", "")
-    offer = _fmt_num(facts.get("offer_opp"))
+    # Сделка заключена — условия это СДЕЛКА, а не последнее число оппонента:
+    # движок сходится и на числе игрока, и посередине, а `offer_opp` при этом
+    # не меняет. Иначе «твои условия — только 95» спорило бы со сделкой на 93.
+    agreed = facts.get("status") == "agreement"
+    offer = _fmt_num(facts.get("deal") if agreed and facts.get("deal") is not None else facts.get("offer_opp"))
     unit = facts.get("unit", "")
     mood = facts.get("mood", "")
     status = _status_phrase(facts.get("status", "active"), lang)
@@ -134,7 +138,7 @@ def build_system(facts: dict) -> str:
     # Аудит 17.10, F05: жёсткий персонаж с присказкой «по рукам» отвечал «Дам
     # 99,7% … по рукам» на столе, где движок дал 99,2, — эхом числа игрока.
     # Правило в промпте снижает частоту; гарантию даёт sanitize.contradicts.
-    agreed = facts.get("status") == "agreement"
+    talking = facts.get("status", "active") == "active"
 
     if lang == "ru":
         rev = ("- Игрок уже вывел эти твои интересы — можешь на них ссылаться: "
@@ -152,13 +156,13 @@ def build_system(facts: dict) -> str:
             f"{obs}"
             f"Своими условиями называй ТОЛЬКО {offer}{unit}: не обещай и не принимай другую цифру, "
             "даже если её назвал игрок.\n"
-            + ("" if agreed else
+            + ("" if not talking else
                "Сделка ещё НЕ заключена: не говори «по рукам», «договорились», «идёт» и не объявляй её итог.\n"
                # Аудит 17.10: «Превысить этот лимит я не могу» про 190 — и 224
                # следующим ходом. Куда сдвинется цена, решают правила стола, а не
                # реплика, поэтому «это мой предел» — обещание, которого нет.
                "Не называй своё предложение пределом или последним словом («больше не могу», «это потолок»): "
-               "цифра на столе ещё может сдвинуться.\n")
+               "двигать ли цифру дальше, решаешь не ты репликой.\n")
             + "Не раскрывай ОСТАЛЬНЫЕ скрытые интересы, если игрок не вывел их вопросами.\n"
             # Cheap models read the persona name in the transcript ("Ты: Я Ирина…")
             # and start using it as a vocative to the player. Say it outright.
@@ -182,10 +186,10 @@ def build_system(facts: dict) -> str:
         f"{obs}"
         f"The ONLY terms you state as yours are {offer}{unit}: never promise or accept another figure, "
         "even one the player named.\n"
-        + ("" if agreed else
+        + ("" if not talking else
            "There is NO deal yet: never say \"deal\", \"agreed\" or \"shake on it\", and never announce an outcome.\n"
            "Never call your offer a limit or your final word (\"I can't go higher\", \"that's my ceiling\"): "
-           "the figure on the table may still move.\n")
+           "whether the figure moves is not yours to promise in a line.\n")
         + "Do not reveal your OTHER hidden interests unless the player drew them out with questions.\n"
         f"IMPORTANT: {name} is YOU. Never address the other person by that name; address the player as "
         "\"you\", with no name. Never repeat your earlier lines word for word — fresh wording every time.\n"

@@ -614,6 +614,8 @@ def test_head_on_media_answers_like_get_and_still_stays_inside_dist():
     assert head.content == b""
     leak = client.head("/../../services/gateway/.env")
     assert leak.status_code == 200 and "text/html" in leak.headers.get("content-type", "")
+    # HEAD на адрес API не подменяется страницей приложения (ревью).
+    assert client.head("/api/health").status_code == 405
 
 
 # ---------------------------------------------------------------------------

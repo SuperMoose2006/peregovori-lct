@@ -222,3 +222,20 @@ def test_a_foreign_judge_index_is_dropped_not_crashing():
         "altText": "Хорошо.", "judges": [{"arg_score": 900, "interest_targeted": 99}, None],
     })
     assert res.status_code == 200
+
+
+def test_a_foreign_secondary_issue_id_is_dropped():
+    """Чужой id предмета живой судья не возвращает никогда; движок на нём
+    пропустил бы поиск по ключевым словам (ревью)."""
+    from app import views
+
+    sc = engine.by_id("supplier")
+    assert views.replay_judge(sc, "ru", {"arg_score": 50, "secondary_conceded": "no-such-issue"})["secondary_conceded"] is None
+    real = sc.secondary_issues[0].id
+    assert views.replay_judge(sc, "ru", {"arg_score": 50, "secondary_conceded": real})["secondary_conceded"] == real
+
+
+def test_too_many_judges_are_refused():
+    res = client.post("/api/whatif", json={"scenarioId": "supplier", "lang": "ru", "moves": ["a"], "turnIndex": 0,
+                                           "altText": "b", "judges": [None] * 25})
+    assert res.status_code == 422

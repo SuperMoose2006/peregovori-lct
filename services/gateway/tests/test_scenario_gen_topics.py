@@ -59,3 +59,8 @@ def test_an_incomplete_topic_list_is_not_used(monkeypatch):
 def test_the_prompt_asks_for_topics_in_both_languages():
     for lang in ("ru", "en"):
         assert '"interest_topics"' in gen._sys_prompt(lang)
+
+
+def test_topics_given_as_one_string_are_not_split_into_letters(monkeypatch):
+    sc = _generate(monkeypatch, _reply(interest_topics="Сроки, Портфолио, Оплата"))
+    assert sc is not None and not sc.interest_topics

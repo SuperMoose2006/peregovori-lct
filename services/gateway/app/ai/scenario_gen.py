@@ -218,7 +218,9 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
     # 17.10, CE-02). Без тем и без ключевых слов вскрыть интерес было нечем,
     # кроме судьи. Тема — ОБЛАСТЬ, а не секрет; неполный набор не берётся:
     # три темы на два интереса сдвинули бы вскрытие на чужой интерес.
-    topics = [str(x).strip()[:40] for x in (d.get("interest_topics") or []) if str(x).strip()][:3]
+    raw_topics = d.get("interest_topics")
+    topics = ([str(x).strip()[:40] for x in raw_topics if str(x).strip()][:3]
+              if isinstance(raw_topics, list) else [])
     if len(topics) != len(interests):
         topics = []
     tradeoffs = [str(x) for x in (d.get("tradeoffs") or [])][:3]
