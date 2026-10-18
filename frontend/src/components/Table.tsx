@@ -801,7 +801,9 @@ export function Table({ chatScrollPosition, t, lang, mode, kind, scenario, state
                 disabled={disconnected || busy || finished || probeOpen || !st}
                 blocked={probeOpen}
                 placeholder={probeOpen ? t.probe.blocked : placeholder}
-                quickMoves={t.quickMoves}
+                // Заготовки реплик («Интерес», «SPIN»…) — та же подсказка, что
+                // лампочка: на экзамене их нет (аудит 17.10, F06).
+                quickMoves={exam ? [] : t.quickMoves}
                 onSend={onSend}
                 onHint={onHint}
                 hintEnabled={!exam}

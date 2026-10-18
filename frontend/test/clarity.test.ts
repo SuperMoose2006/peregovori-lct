@@ -17,6 +17,7 @@ import { DealTerms, termsExample } from "../src/components/DealTerms";
 import { ProgressCards, DailyCard, MethodCard } from "../src/components/Rail";
 import { LayersPanel } from "../src/components/Setup";
 import { CustomSituation } from "../src/components/CustomSituation";
+import { Composer } from "../src/components/Composer";
 import { emptyProfile } from "../src/lib/progress";
 import { dailyTable } from "../src/lib/daily";
 import type { LayerId, LayerState } from "../src/lib/layers";
@@ -305,4 +306,23 @@ test("на экзамене строка-совет под шапкой граф
   assert.equal(html.includes("dt-status"), false);
   assert.ok(html.includes(ru.tracker.redline));
   assert.match(readFileSync(join(SRC, "components", "Table.tsx"), "utf8"), /coaching=\{!exam\}/);
+});
+
+test("на экзамене нет заготовок реплик — ни «Интереса», ни «SPIN»", () => {
+  // Аудит 17.10, F06: «Интерес» вставлял «Почему для вас важно именно », а
+  // кнопки SPIN/Интерес/Критерий/Эмпатия/Размен были активны в режиме оценки.
+  // Лампочка подсказки там уже гасла — заготовки та же подсказка.
+  assert.match(readFileSync(join(SRC, "components", "Table.tsx"), "utf8"),
+    /quickMoves=\{exam \? \[\] : t\.quickMoves\}/);
+  const props = {
+    disabled: false, blocked: false, placeholder: "", onSend: () => true, onHint: () => {},
+    hintEnabled: false, hintLabel: "", sendLabel: "", showChips: false,
+    limitNote: ru.composerLimit, charForms: ru.forms.chars,
+  };
+  const exam = renderToStaticMarkup(createElement(Composer, { ...props, quickMoves: [] }));
+  const practice = renderToStaticMarkup(createElement(Composer, { ...props, quickMoves: ru.quickMoves }));
+  for (const q of ru.quickMoves) {
+    assert.equal(exam.includes(q.label), false, `на экзамене есть заготовка «${q.label}»`);
+    assert.ok(practice.includes(q.label));
+  }
 });
