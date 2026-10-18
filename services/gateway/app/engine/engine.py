@@ -489,6 +489,27 @@ def _plausible_offer(sc: Scenario, number: float) -> Optional[float]:
     return None
 
 
+def _pick_offer(sc: Scenario, analysis: Analysis) -> Optional[float]:
+    """Какое из чисел реплики — цена этого стола.
+
+    Первое число реплики ценой быть не обязано: «предоплату 50% в обмен на цену
+    90 рублей» на поставщике давало оффер 50, потому что процент проходил
+    коридор масштаба. Отбор по ЕДИНИЦЕ СТОЛА: на столе в процентах (SLA,
+    доля инвестора) не цена — деньги, на остальных — проценты. Границы
+    диапазона («рынок 88-92») берутся последними: это ориентир, а не оффер.
+    Порядок слов в реплике на итог не влияет.
+    """
+    if not analysis.mentions:
+        return None if analysis.number is None else _plausible_offer(sc, analysis.number)
+    foreign = "money" if "%" in sc.headline.unit["ru"] else "pct"
+    pool = [m for m in analysis.mentions if m.kind != foreign]
+    for mention in [m for m in pool if not m.ranged] + [m for m in pool if m.ranged]:
+        priced = _plausible_offer(sc, mention.value)
+        if priced is not None:
+            return priced
+    return None
+
+
 def _acceptable(sess: Session, number: float) -> bool:
     """Is a proposed number acceptable to the opponent given their floor?"""
     sc = by_id(sess.scenario_id)
@@ -836,7 +857,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     if analysis.number is not None and (
         has("offer") or has("anchor") or has("concession") or has("accept") or has("tradeoff")
     ):
-        priced = _plausible_offer(sc, analysis.number)
+        priced = _pick_offer(sc, analysis)
         if priced is not None:
             s.offer_player = priced
             # Показанное игроку число обязано совпасть с тем, по которому

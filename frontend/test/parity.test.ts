@@ -188,6 +188,7 @@ test("классификатор в браузере отвечает ровно
   for (const c of fixtures.cases as {
     text: string; moves: string[]; arg: number;
     number: number | null; spin: string | null; primary: string;
+    mentions: [number, string, boolean][];
   }[]) {
     const a = analyze(c.text);
     if (JSON.stringify([...a.moves].sort()) !== JSON.stringify([...c.moves].sort())) {
@@ -196,6 +197,9 @@ test("классификатор в браузере отвечает ровно
       bad.push(`«${c.text}» аргумент: ${a.arg} ≠ ${c.arg}`);
     } else if (a.number !== c.number) {
       bad.push(`«${c.text}» число: ${a.number} ≠ ${c.number}`);
+    } else if (JSON.stringify((a.mentions ?? []).map((m) => [m.value, m.kind, m.ranged])) !== JSON.stringify(c.mentions)) {
+      // Из этого списка движок выбирает цену по единице стола (аудит 17.10, F01).
+      bad.push(`«${c.text}» числа: ${JSON.stringify(a.mentions)} ≠ ${JSON.stringify(c.mentions)}`);
     } else if ((a.spin ?? null) !== (c.spin ?? null)) {
       bad.push(`«${c.text}» SPIN: ${a.spin} ≠ ${c.spin}`);
     } else if (a.primary !== c.primary) {
@@ -232,4 +236,34 @@ test("«70 тысяч» на столе, который считает тыся�
   assert.ok(s.offerPlayer !== null, "число не стало ценой вовсе");
   assert.ok(s.offerPlayer! > 40 && s.offerPlayer! < 150,
     `цена вне шкалы стола: ${s.offerPlayer}`);
+});
+
+test("процент предоплаты и рыночный диапазон не становятся ценой поставщика", () => {
+  // Аудит 17.10, F01: «Ваше последнее предложение — 50 руб./шт» после реплики
+  // с ценой 90 рублей и предоплатой 50%. Порядок слов переставлен нарочно.
+  // Зеркало tests/test_engine.py::test_percent_and_range_never_become_the_supplier_price.
+  for (const line of [
+    "Готовы зафиксировать ежемесячный объём на год и предоплату 50% в обмен на цену 90 рублей. Это соответствует рыночным предложениям 88-92 рубля",
+    "Цену 90 рублей готовы дать в обмен на предоплату 50%, рынок 88-92 рубля",
+    "Рынок 88-92 рубля, предоплата 50%, цена 90 рублей в обмен на объём",
+    "Рынок 88–92, предлагаем 90 в обмен на предоплату 50%",
+  ]) {
+    const s = newSession(SCENARIO_MAP["supplier"], "ru");
+    s.turn = 2;
+    applyMove(s, analyze(line), line);
+    assert.equal(s.offerPlayer, 90, line);
+  }
+});
+
+test("на столе в процентах процент остаётся ценой, а деньги рядом — нет", () => {
+  for (const [sid, line, want] of [
+    ["sla_renewal", "Предлагаю 99,7% аптайма в обмен на продление на 500 тысяч.", 99.7],
+    ["investor", "Даю 10 млн за 20% доли в обмен на место в совете.", 20],
+    ["investor", "20% доли в обмен на 10 млн.", 20],
+  ] as const) {
+    const s = newSession(SCENARIO_MAP[sid], "ru");
+    s.turn = 2;
+    applyMove(s, analyze(line), line);
+    assert.equal(s.offerPlayer, want, `${sid}: ${line}`);
+  }
 });

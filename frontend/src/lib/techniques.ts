@@ -207,6 +207,54 @@ export function offerNumber(t: string, moves: Iterable<string>): number | null {
   return null;
 }
 
+/** Одно число реплики вместе с тем, КАК оно записано: какое из чисел цена,
+ * решает движок по единице стола (mock/engine.ts::pickOffer). «Предоплата 50%
+ * в обмен на цену 90 рублей» на поставщике читалась как оффер на 50.
+ * Зеркало techniques.py::NumberMention — менять синхронно (инвариант 8). */
+export interface NumberMention {
+  value: number;
+  /** "pct" — «50%»; "money" — валюта или масштаб; "plain" — голое число. */
+  kind: "pct" | "money" | "plain";
+  /** Граница диапазона «88-92»: ориентир, а не оффер. */
+  ranged: boolean;
+}
+
+// Суффикс вплотную к числу съедается вместе с ним, как в MONEY_RE на сервере:
+// иначе обход всех чисел начинал бы следующий поиск с другой позиции.
+const MONEY_ALL = new RegExp(MONEY.source + "(?:\\s*(?:%|руб|k|к|тыс|тысяч|млн|usd|\\$|€|eur))?", "gi");
+const PCT_WORDS = ["процент", "percent"];
+// Между двумя числами только пробел и, может быть, дефис — диапазон «88-92».
+const RANGE_GAP = /^\s*-?\s*$/;
+
+/** Все числа нормализованной реплики по порядку, кроме счёта («5 лет»).
+ * Зеркало techniques.py::number_mentions. */
+export function numberMentions(t: string): NumberMention[] {
+  const found: { start: number; end: number; value: number; kind: NumberMention["kind"]; counted: boolean }[] = [];
+  for (const m of t.matchAll(MONEY_ALL)) {
+    const start = (m.index ?? 0) + (/^\d/.test(m[0]) ? 0 : 1);
+    const end = start + m[1].length;
+    const value = parseFloat(m[1].replace(/ /g, "").replace(",", "."));
+    if (!isFinite(value)) continue;
+    const tail = t.slice(end);
+    const trimmed = tail.trim();
+    const after = trimmed ? trimmed.split(" ")[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
+    const counted = !!after && LEX.nonPriceUnits.some((u) => after.startsWith(u));
+    const kind: NumberMention["kind"] =
+      tail.trimStart().startsWith("%") || PCT_WORDS.some((w) => after.startsWith(w)) ? "pct"
+        : MONEY_SUFFIX.test(tail) ? "money" : "plain";
+    found.push({ start, end, value, kind, counted });
+  }
+  const out: NumberMention[] = [];
+  found.forEach((f, i) => {
+    if (f.counted) return;
+    const ranged =
+      (i > 0 && RANGE_GAP.test(t.slice(found[i - 1].end, f.start))) ||
+      (i + 1 < found.length && RANGE_GAP.test(t.slice(f.end, found[i + 1].start)));
+    out.push({ value: f.value, kind: f.kind, ranged });
+  });
+  return out;
+}
+
 // Lightweight, client-side preview chips shown live while the player types.
 // (Independent of the engine so it works even against the real backend.)
 export interface PreviewChip {

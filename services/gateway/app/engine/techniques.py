@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from app.engine.numbers import spell_to_digits
@@ -790,6 +790,68 @@ def offer_number(t: str, moves: list[str]) -> Optional[float]:
     return None
 
 
+#: Слово сразу после числа, которое делает его процентом: «50 процентов».
+_PCT_WORDS = ("процент", "percent")
+#: Между двумя числами только пробел и, может быть, дефис — это диапазон
+#: «88-92». Длинное тире `norm` уже превратил в пробел.
+_RANGE_GAP_RE = re.compile(r"^\s*-?\s*$")
+
+
+@dataclass(frozen=True)
+class NumberMention:
+    """Одно число реплики вместе с тем, КАК оно записано.
+
+    `offer_number` отвечает на вопрос «есть ли в реплике цена» и смотрит на
+    первое число. Какое из чисел цена — решает движок: только он знает единицу
+    стола. «Предоплата 50% в обмен на цену 90 рублей» на поставщике (₽/шт)
+    читалась как оффер на 50 — процент проходил коридор масштаба (45–181) и
+    молча становился ценой. На SLA и у инвестора процент, наоборот, и есть цена,
+    поэтому правило «процент — не цена» здесь не годится; годится «единица числа
+    совпадает с единицей стола» (engine._pick_offer).
+    """
+    value: float
+    #: "pct" — «50%», «50 процентов»; "money" — валюта или масштаб («90 руб»,
+    #: «64k», «70 тысяч»); "plain" — голое число.
+    kind: str
+    #: Граница диапазона «88-92»: рыночный ориентир, а не оффер. Берётся, только
+    #: если ничего, кроме диапазона, в реплике нет.
+    ranged: bool
+
+
+def number_mentions(t: str) -> list[NumberMention]:
+    """Все числа нормализованной реплики по порядку, кроме счёта («5 лет»)."""
+    found: list[tuple[int, int, float, str, bool]] = []
+    for m in MONEY_RE.finditer(t):
+        raw = m.group(1).replace(" ", "").replace(",", ".", 1)
+        try:
+            val = float(raw)
+        except ValueError:
+            continue
+        if not math.isfinite(val):
+            continue
+        tail = t[m.end(1):]
+        after = tail.strip().split(" ")[0].strip(".,?!-") if tail.strip() else ""
+        counted = bool(after) and any(after.startswith(u) for u in LEX["nonPriceUnits"])
+        if tail.lstrip().startswith("%") or after.startswith(_PCT_WORDS):
+            kind = "pct"
+        elif _MONEY_SUFFIX_RE.match(tail):
+            kind = "money"
+        else:
+            kind = "plain"
+        found.append((m.start(1), m.end(1), val, kind, counted))
+
+    out: list[NumberMention] = []
+    for i, (start, end, val, kind, counted) in enumerate(found):
+        if counted:
+            continue
+        ranged = (
+            (i > 0 and _RANGE_GAP_RE.match(t[found[i - 1][1]:start]) is not None)
+            or (i + 1 < len(found) and _RANGE_GAP_RE.match(t[end:found[i + 1][0]]) is not None)
+        )
+        out.append(NumberMention(value=val, kind=kind, ranged=ranged))
+    return out
+
+
 @dataclass
 class Analysis:
     moves: list[str]
@@ -800,6 +862,8 @@ class Analysis:
     tags: list[dict[str, str]]
     flags: dict[str, bool]
     words: int
+    #: Все числа реплики — из них движок выбирает цену по единице стола.
+    mentions: list[NumberMention] = field(default_factory=list)
 
 
 def analyze(raw_text: Optional[str]) -> Analysis:
@@ -950,4 +1014,5 @@ def analyze(raw_text: Optional[str]) -> Analysis:
             "question": is_question,
         },
         words=words,
+        mentions=number_mentions(t) if number is not None else [],
     )

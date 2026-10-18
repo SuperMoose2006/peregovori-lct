@@ -447,3 +447,45 @@ def test_offer_outside_the_scale_is_not_a_price() -> None:
     weird = "Предлагаю 987654321 за месяц."
     apply_move(sess2, analyze(weird), weird)
     assert to_state_view(sess2)["offer_player"] is None
+
+
+#: Аудит 17.10, F01: одна реплика — три числа разного рода. Порядок слов
+#: переставлен нарочно: цена обязана быть той же при любом.
+SUPPLIER_MIXED = [
+    "Готовы зафиксировать ежемесячный объём на год и предоплату 50% в обмен на "
+    "цену 90 рублей. Это соответствует рыночным предложениям 88-92 рубля",
+    "Цену 90 рублей готовы дать в обмен на предоплату 50%, рынок 88-92 рубля",
+    "Рынок 88-92 рубля, предоплата 50%, цена 90 рублей в обмен на объём",
+    "Рынок 88–92, предлагаем 90 в обмен на предоплату 50%",
+]
+
+
+def test_percent_and_range_never_become_the_supplier_price():
+    """«Предоплата 50% в обмен на цену 90 рублей» — оффер на 90, а не на 50.
+
+    Процент проходил коридор масштаба поставщика (45–181) и молча становился
+    ценой: в панели сделки «Ваше последнее предложение — 50 руб./шт».
+    """
+    from app.engine.engine import apply_move, create_session, to_state_view
+
+    for line in SUPPLIER_MIXED:
+        sess = create_session("supplier", "ru")
+        sess.turn = 2
+        apply_move(sess, analyze(line), line)
+        assert to_state_view(sess)["offer_player"] == 90, line
+
+
+def test_percent_stays_the_price_where_the_table_counts_in_percent():
+    """Обратная сторона той же правки: на SLA и у инвестора процент — цена,
+    а деньги рядом с ним — нет."""
+    from app.engine.engine import apply_move, create_session, to_state_view
+
+    for sid, line, want in [
+        ("sla_renewal", "Предлагаю 99,7% аптайма в обмен на продление на 500 тысяч.", 99.7),
+        ("investor", "Даю 10 млн за 20% доли в обмен на место в совете.", 20),
+        ("investor", "20% доли в обмен на 10 млн.", 20),
+    ]:
+        sess = create_session(sid, "ru")
+        sess.turn = 2
+        apply_move(sess, analyze(line), line)
+        assert to_state_view(sess)["offer_player"] == want, (sid, line)

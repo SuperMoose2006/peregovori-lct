@@ -5,7 +5,8 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, WhatIfBranch } from "../types";
-import { LEX, cnt, has, hasUnnegated, isClose, isShortClose, norm, offerNumber } from "../lib/techniques"; // has/norm reused for secondary-issue detection
+import { LEX, cnt, has, hasUnnegated, isClose, isShortClose, norm, numberMentions, offerNumber } from "../lib/techniques";
+import type { NumberMention } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import { normalizeDifficulty } from "../lib/difficulty";
 import type { CounterpartStyle, ScenarioDef } from "../data/scenarios";
@@ -23,6 +24,8 @@ export interface RawAnalysis {
   arg: number;
   spin: string | null;
   tags: Tag[];
+  /** Все числа реплики — из них движок выбирает цену по единице стола. */
+  mentions?: NumberMention[];
 }
 
 export function analyze(raw: string): RawAnalysis {
@@ -92,7 +95,7 @@ export function analyze(raw: string): RawAnalysis {
     "concession", "offer", "anchor", "open_question", "rapport", "statement",
   ];
   const primary = pr.find((p) => moves.has(p)) || "statement";
-  return { moves: [...moves], primary, number, arg, spin, tags };
+  return { moves: [...moves], primary, number, arg, spin, tags, mentions: number !== null ? numberMentions(t) : [] };
 }
 
 // Convert internal RawAnalysis into the protocol Analysis object.
@@ -318,6 +321,20 @@ function plausibleOffer(sc: ScenarioDef, n: number): number | null {
   // человек назвал ту же величину в другой записи, а не другое число.
   for (const c of [n * 1000, n / 1000]) {
     if (c >= lo && c <= hi) return Math.round(c * 100) / 100;
+  }
+  return null;
+}
+
+/** Какое из чисел реплики — цена этого стола: на столе в процентах не цена —
+ *  деньги, на остальных — проценты; границы диапазона идут последними.
+ *  Зеркало engine.py::_pick_offer. */
+function pickOffer(sc: ScenarioDef, a: RawAnalysis): number | null {
+  if (!a.mentions || a.mentions.length === 0) return a.number === null ? null : plausibleOffer(sc, a.number);
+  const foreign = sc.unit.ru.includes("%") ? "money" : "pct";
+  const pool = a.mentions.filter((m) => m.kind !== foreign);
+  for (const m of [...pool.filter((x) => !x.ranged), ...pool.filter((x) => x.ranged)]) {
+    const priced = plausibleOffer(sc, m.value);
+    if (priced !== null) return priced;
   }
   return null;
 }
@@ -595,7 +612,7 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   // обязано попасть в коридор масштаба сценария (зеркало backend).
   let priced: number | null = null;
   if (a.number !== null && (H("offer") || H("anchor") || H("concession") || H("accept") || H("tradeoff"))) {
-    priced = plausibleOffer(sc, a.number);
+    priced = pickOffer(sc, a);
     if (priced !== null) {
       s.offerPlayer = priced;
       // Показанное число обязано совпасть с тем, по которому считал движок.
