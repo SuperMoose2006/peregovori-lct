@@ -5,7 +5,7 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, WhatIfBranch } from "../types";
-import { LEX, cnt, has, hasUnnegated, isClose, isShortClose, norm, numberMentions, offerNumber } from "../lib/techniques";
+import { LEX, cnt, has, hasUnnegated, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
 import type { NumberMention } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import { normalizeDifficulty } from "../lib/difficulty";
@@ -62,7 +62,8 @@ export function analyze(raw: string): RawAnalysis {
   // Вопросительная форма оффер НЕ отменяет, если реплика несёт формулу
   // предложения цены: «How about 120?», «А если 86?» — это контроффер.
   // Зеркало techniques.py::analyze.
-  if (number !== null && !moves.has("accept") && (!q || has(t, LEX.offerIntent))) {
+  // Вопросом считается предложение с ЭТИМ числом, а не вся реплика (F05).
+  if (number !== null && !moves.has("accept") && (!numberInQuestion(t) || has(t, LEX.offerIntent))) {
     moves.add("offer"); addT("offer", "Оффер / число");
   }
   if (q && !spin && !moves.has("interests_probe")) { moves.add("open_question"); addT("spin", "Открытый вопрос"); }

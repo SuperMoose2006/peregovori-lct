@@ -207,6 +207,25 @@ export function offerNumber(t: string, moves: Iterable<string>): number | null {
   return null;
 }
 
+/** Стоит ли ПЕРВОЕ число реплики в вопросительном предложении. Вопрос
+ * отменяет оффер, но вопрос должен быть про ЭТО число: «Предлагаю 99,7%
+ * аптайма. Что для вас важно?» раньше не клала цену на стол (аудит 17.10, F05).
+ * Граница предложения — «.!?» и пробел; без lookbehind в регулярке: старый
+ * Safari её не разбирает. Зеркало techniques.py::_number_in_question. */
+export function numberInQuestion(t: string): boolean {
+  const m = t.match(MONEY);
+  if (!m) return t.includes("?");
+  const at = (m.index ?? 0) + (/^\d/.test(m[0]) ? 0 : 1);
+  let start = 0;
+  for (let i = 0; i + 1 < t.length; i++) {
+    if (".!?".includes(t[i]) && /\s/.test(t[i + 1])) {
+      if (at <= i) return t.slice(start, i + 1).includes("?");
+      start = i + 1;
+    }
+  }
+  return t.slice(start).includes("?");
+}
+
 /** Одно число реплики вместе с тем, КАК оно записано: какое из чисел цена,
  * решает движок по единице стола (mock/engine.ts::pickOffer). «Предоплата 50%
  * в обмен на цену 90 рублей» на поставщике читалась как оффер на 50.

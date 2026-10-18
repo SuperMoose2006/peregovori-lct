@@ -489,3 +489,18 @@ def test_percent_stays_the_price_where_the_table_counts_in_percent():
         sess.turn = 2
         apply_move(sess, analyze(line), line)
         assert to_state_view(sess)["offer_player"] == want, (sid, line)
+
+
+def test_a_question_in_another_sentence_does_not_cancel_the_offer():
+    """Аудит 17.10, F05: «Предлагаю 99,7% аптайма. … Что для вас важно?» не
+    клала цену на стол — знак вопроса искался во всей реплике. Вопрос про
+    само число по-прежнему не оффер."""
+    from app.engine.engine import apply_move, create_session, to_state_view
+
+    sess = create_session("sla_renewal", "ru")
+    sess.turn = 1
+    line = ("Предлагаю 99,7% аптайма. По отраслевым данным это стандарт для нашей "
+            "нагрузки. Что для вас важно в продлении и выручке?")
+    apply_move(sess, analyze(line), line)
+    assert to_state_view(sess)["offer_player"] == 99.7
+    assert "offer" not in analyze("Сколько из 100 у вас на складе? Цена важна.").moves

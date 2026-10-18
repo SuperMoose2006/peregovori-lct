@@ -2056,6 +2056,18 @@
    "spin": null
   },
   {
+   "text": "We can do 86. What do you think?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "We can do 90 per unit in exchange for a 50% prepayment, the market is 88-92",
    "moves": [
     "tradeoff",
@@ -3711,6 +3723,26 @@
    "spin": null
   },
   {
+   "text": "Наша цена 86. Что скажете?",
+   "moves": [
+    "anchor",
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 5,
+   "number": 86.0,
+   "mentions": [
+    [
+     86.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
    "text": "Не вопрос, договорились.",
    "moves": [
     "accept"
@@ -4236,6 +4268,26 @@
    "spin": null
   },
   {
+   "text": "Предлагаю 99,7% аптайма. По отраслевым данным это стандарт для нашей нагрузки. Что для вас важно в продлении и выручке?",
+   "moves": [
+    "interests_probe",
+    "objective_criteria",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 64,
+   "words": 19,
+   "number": 99.7,
+   "mentions": [
+    [
+     99.7,
+     "pct",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
    "text": "Предоплату — она проще в исполнении",
    "moves": [
     "statement"
@@ -4590,6 +4642,24 @@
    "spin": "situation"
   },
   {
+   "text": "Сколько из 100 у вас на складе? Цена важна.",
+   "moves": [
+    "spin_situation"
+   ],
+   "primary": "spin_situation",
+   "arg": 40,
+   "words": 9,
+   "number": 100.0,
+   "mentions": [
+    [
+     100.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": "situation"
+  },
+  {
    "text": "Сколько ты теряешь на простое?",
    "moves": [
     "spin_implication"
@@ -4716,6 +4786,24 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "У вас 99.5%? Что для вас важно?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 38,
+   "words": 7,
+   "number": 99.5,
+   "mentions": [
+    [
+     99.5,
+     "pct",
+     false
+    ]
+   ],
    "spin": null
   },
   {

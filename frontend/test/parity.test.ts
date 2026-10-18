@@ -267,3 +267,13 @@ test("на столе в процентах процент остаётся це
     assert.equal(s.offerPlayer, want, `${sid}: ${line}`);
   }
 });
+
+test("вопрос в другом предложении не отменяет оффер", () => {
+  // Аудит 17.10, F05. Зеркало tests/test_engine.py::test_a_question_in_another_sentence_does_not_cancel_the_offer.
+  const s = newSession(SCENARIO_MAP["sla_renewal"], "ru");
+  s.turn = 1;
+  const line = "Предлагаю 99,7% аптайма. По отраслевым данным это стандарт для нашей нагрузки. Что для вас важно в продлении и выручке?";
+  applyMove(s, analyze(line), line);
+  assert.equal(s.offerPlayer, 99.7);
+  assert.ok(!analyze("Сколько из 100 у вас на складе? Цена важна.").moves.includes("offer"));
+});

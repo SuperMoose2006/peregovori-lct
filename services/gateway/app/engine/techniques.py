@@ -852,6 +852,33 @@ def number_mentions(t: str) -> list[NumberMention]:
     return out
 
 
+#: Конец предложения в нормализованной реплике: знак и пробел. Точка внутри
+#: «99.7» предложение не рвёт.
+_SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+")
+
+
+def _number_in_question(t: str) -> bool:
+    """Стоит ли ПЕРВОЕ число реплики в вопросительном предложении.
+
+    Вопрос отменяет оффер («сколько из 100 у вас на складе?»), но вопрос
+    должен быть про ЭТО число. «Предлагаю 99,7% аптайма. Что для вас важно в
+    продлении?» несёт цену утверждением и отдельный вопрос об интересах — и
+    раньше не клала цену на стол вовсе: знак вопроса искался во всей реплике
+    (аудит 17.10, F05).
+    """
+    m = MONEY_RE.search(t)
+    if not m:
+        return "?" in t
+    pos = 0
+    for sentence in _SENTENCE_END_RE.split(t):
+        start = t.find(sentence, pos)
+        end = start + len(sentence)
+        if start <= m.start(1) < end:
+            return "?" in sentence
+        pos = end
+    return "?" in t
+
+
 @dataclass
 class Analysis:
     moves: list[str]
@@ -944,7 +971,7 @@ def analyze(raw_text: Optional[str]) -> Analysis:
         # 1149 из 3239 пропущенных офферов чужого корпуса (35.5%) были именно
         # вопросами. Отменяет оффер только вопрос БЕЗ формулы предложения —
         # «сколько из 100 у вас на складе?».
-        if not is_question or _has(t, LEX["offerIntent"]):
+        if not _number_in_question(t) or _has(t, LEX["offerIntent"]):
             add_move("offer")
             add_tag("offer", "Offer / number")
 
