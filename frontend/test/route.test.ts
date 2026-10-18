@@ -246,3 +246,18 @@ test("маршрут · экзамен на сертификат и экзаме
     assert.notEqual(pick.blockId, "master", "экзамен мастера не маршрут");
   }
 });
+
+test("маршрут · своя сделка и стол редактора в «отыграйтесь» не попадают", () => {
+  // Найдено после аудита 17.10: карточка «Ваш следующий шаг» звала
+  // «Replay “custom_mock”» — служебным id вместо названия и к столу, который
+  // генерируется заново и переиграть который нельзя.
+  let p = emptyProfile();
+  p = played(p, "custom_mock", "F", 12);
+  p = played(p, "admin_ab12cd34", "D", 30);
+  p = played(p, "supplier", "D", 46);
+  const pick = chooseNextStep(p, INPUT);
+  assert.equal(pick.kind, "rematch");
+  assert.equal(pick.scenarioId, "supplier");
+  const onlyGenerated = played(played(emptyProfile(), "custom_mock", "F", 12), "salary", "B", 75);
+  assert.notEqual(chooseNextStep(onlyGenerated, INPUT).kind, "rematch");
+});

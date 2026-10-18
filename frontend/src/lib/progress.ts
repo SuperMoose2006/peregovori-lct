@@ -1480,8 +1480,13 @@ export function chooseNextStep(profile: Profile, input: RouteInput): NextStepPic
 
   // 3. Стол, который вас обыграл. Слабый рекорд — это D или F: тот же порог,
   //    по которому движок считает партию непройденной (см. applyDebrief).
+  //    Только столы библиотеки: своя сделка и стол редактора генерируются
+  //    заново, переиграть «тот же» нельзя — а карточка звала «Отыграйтесь в
+  //    “custom_mock”», служебным id вместо названия (найдено после аудита 17.10).
+  const replayable = new Set(input.tables.map((t) => t.id));
   let weak: { id: string; rec: ScenarioRecord } | null = null;
   for (const [id, rec] of Object.entries(profile.scenarios)) {
+    if (!replayable.has(id)) continue;
     if (rec.bestGrade !== "D" && rec.bestGrade !== "F") continue;
     if (!weak || GRADE_RANK[rec.bestGrade] < GRADE_RANK[weak.rec.bestGrade as Grade]
         || (GRADE_RANK[rec.bestGrade] === GRADE_RANK[weak.rec.bestGrade as Grade]
