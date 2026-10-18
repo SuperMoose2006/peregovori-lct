@@ -64,3 +64,11 @@ def test_the_prompt_asks_for_topics_in_both_languages():
 def test_topics_given_as_one_string_are_not_split_into_letters(monkeypatch):
     sc = _generate(monkeypatch, _reply(interest_topics="Сроки, Портфолио, Оплата"))
     assert sc is not None and not sc.interest_topics
+
+
+def test_the_prompt_derives_table_numbers_from_the_description():
+    """Аудит 17.10, CE-01: «остаток 500 000, компенсация 50 000» — цель 470 000
+    при 50 000 в брифинге. Промпт велит выводить числа из описания и называть
+    их в брифинге теми же, что в полях. Гарантии это не даёт — снижает частоту."""
+    assert "ВЫВОДИ ИЗ НИХ" in gen._sys_prompt("ru") and "450 000" in gen._sys_prompt("ru")
+    assert "DERIVE the table numbers" in gen._sys_prompt("en")

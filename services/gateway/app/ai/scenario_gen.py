@@ -54,6 +54,12 @@ def _sys_prompt(lang: str) -> str:
             "кто получает — больше.\n"
             "opponent_open — стартовая позиция оппонента, самая невыгодная игроку; player_target — цель игрока; "
             "все четыре числа должны образовывать реалистичную зону торга. Всё на русском.\n"
+            # Аудит 17.10, CE-01: «остаток 500 000, компенсация 50 000» дало цель
+            # 470 000 при 50 000 в брифинге — числа стола разошлись с описанием.
+            "Если в описании есть суммы, сроки или проценты, числа стола ВЫВОДИ ИЗ НИХ и не придумывай "
+            "другие: например, «остаток 500 000, хочу компенсацию 50 000» — цель игрока 450 000. "
+            "В briefing назови цель и красную линию теми же числами, что в полях player_target и "
+            "player_reservation.\n"
             "icon — РОВНО ОДНО слово из списка, без эмодзи: " + ", ".join(sorted(ICON_NAMES)) + "."
         )
     return (
@@ -77,6 +83,10 @@ def _sys_prompt(lang: str) -> str:
         "sale price, budget, equity, volume). Sanity check: whoever pays wants less, whoever receives wants more.\n"
         "opponent_open is the counterpart's opening position, the worst one for the player; player_target is the "
         "player's goal; all four numbers must form a realistic bargaining zone. All text in English.\n"
+        "If the description gives amounts, dates or percentages, DERIVE the table numbers from them and do not "
+        "invent others: e.g. \"500,000 left to pay, I want 50,000 compensation\" means a player target of 450,000. "
+        "In the briefing, state the target and red line with the same numbers as player_target and "
+        "player_reservation.\n"
         "icon is EXACTLY ONE word from this list, never an emoji: " + ", ".join(sorted(ICON_NAMES)) + "."
     )
 
