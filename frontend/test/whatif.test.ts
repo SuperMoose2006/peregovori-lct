@@ -189,3 +189,12 @@ test("a judged game never falls back to the offline replay", async () => {
   assert.equal(await whatIf("ws", { ...req, judges: [judge, null, null] }), null);
   assert.ok(await whatIf("ws", req), "без судьи офлайн-расчёт честен и остаётся");
 });
+
+test("offline, a table the browser core does not know gets no what-if card", () => {
+  // Своя сделка и зеркальный стол офлайн: карточка предлагала выбрать реплику
+  // и лишь по нажатию говорила «посчитать не удалось». Карточки, которую
+  // нечем посчитать, нет вовсе.
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(app, /runWhatIf=\{nego\.kind === "mock" && !SCENARIO_MAP\[nego\.scenario\?\.id \?\? currentScenario \?\? ""\]\s*\? undefined/);
+  assert.equal(whatIfLocal({ scenarioId: "custom_ab12cd34", lang: "ru", moves: ["a"], turnIndex: 0, altText: "b" }), null);
+});
