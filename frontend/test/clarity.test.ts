@@ -337,3 +337,15 @@ test("стол без тем интересов не обещает «темы �
     assert.ok(o.hintNoTopics && !/панел|panel/i.test(o.hintNoTopics), `${lang}: подсказка без тем ссылается на панель`);
   }
 });
+
+test("пристыкованная переигровка сокращает подписи шкал, а не слепляет их", () => {
+  // Аудит 17.10: при раскрытой панели «вы тогда · вы сейчас» на 1440 лента
+  // становится шириной окна в 1092 px, и подписи слипались в
+  // «НАПРЯЖЕНИЕИНФОРМАЦИЯ». Тот же обрубок, что у узкого окна (861–1279).
+  const css = readFileSync(join(SRC, "styles.css"), "utf8");
+  const block = css.match(/@media \(min-width: 861px\) and \(max-width: 1627px\) \{[^]*?\n\}/);
+  assert.ok(block, "правила для пристыкованной панели нет");
+  assert.match(block[0], /body\.rm-docked \.hud-full \{ display: none; \}/);
+  assert.match(block[0], /body\.rm-docked \.hud-abbr \{ display: inline; \}/);
+  assert.match(css, /body\.rm-docked \.appbody \{ padding-right: 348px; \}/, "ширина панели разошлась с границей 1627 = 1279 + 348");
+});

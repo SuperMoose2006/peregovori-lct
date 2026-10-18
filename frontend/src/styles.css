@@ -3818,6 +3818,17 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (min-width: 861px) {
   body.rm-docked .appbody { padding-right: 348px; }
 }
+/* Те же 348 px уходят у ленты: на 1440 она становится шириной окна в 1092 px,
+   и полные подписи шкал слипались в «НАПРЯЖЕНИЕИНФОРМАЦИЯ» (аудит 17.10).
+   Обрубок в строку к дорожке — ровно как у узкого окна выше (861–1279). */
+@media (min-width: 861px) and (max-width: 1627px) {
+  body.rm-docked .hud-full { display: none; }
+  body.rm-docked .hud-abbr { display: inline; }
+  body.rm-docked .hud-m {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "label bar value";
+  }
+}
 
 @media (max-width: 860px) {
   /* На телефоне панель уезжает вниз: стол занимает верх экрана, и колонка
