@@ -390,11 +390,7 @@ test("закрытый стол не отправляет поздний ход 
 // 5. Инвариант 4: всё, что транспорт говорит человеку, — на языке партии
 // ---------------------------------------------------------------------------
 
-test("причина невставшего слоя в английской партии написана по-английски", {
-  todo: "realtime/transport.ts:252-253 шлёт `layer_failed` с причиной «нужен https или localhost» " +
-        "на любом языке партии — английский игрок видит русскую строку (инвариант 4); " +
-        "готовая пара строк уже есть в lib/layers.ts::detectLayers",
-}, async () => {
+test("причина невставшего слоя в английской партии написана по-английски", async () => {
   const { AudioPlayer } = await import("../src/realtime/vendor/audio-player");
   const init = AudioPlayer.prototype.init;
   AudioPlayer.prototype.init = () => {};             // в node нет AudioContext

@@ -13,7 +13,7 @@
 import type { Analysis, ClientMsg, Deltas, Lang, ScenarioView, StateView } from "../types";
 import type { ConnStatus, ServerMsgHandler, Transport } from "../api/transport";
 import { I18N } from "../i18n";
-import { SERVER_SIDE_REASON } from "../lib/layers";
+import { INSECURE_REASON, SERVER_SIDE_REASON } from "../lib/layers";
 import { normalizeDifficulty } from "../lib/difficulty";
 import { AudioPlayer } from "./vendor/audio-player";
 import { AvatarFrames } from "../lib/avatarFrames";
@@ -300,8 +300,9 @@ export class RealtimeTransport implements Transport {
     }
 
     if (!MediaProvider.supported()) {
-      if (this.voiceWanted) this.emit({ type: "layer_failed", layer: "voice", reason: "нужен https или localhost" });
-      if (this.cameraWanted) this.emit({ type: "layer_failed", layer: "camera", reason: "нужен https или localhost" });
+      // На языке партии, а не всегда по-русски (инвариант 4).
+      if (this.voiceWanted) this.emit({ type: "layer_failed", layer: "voice", reason: INSECURE_REASON[this.lang] });
+      if (this.cameraWanted) this.emit({ type: "layer_failed", layer: "camera", reason: INSECURE_REASON[this.lang] });
       return;
     }
     this.media = new MediaProvider({

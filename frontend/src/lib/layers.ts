@@ -95,12 +95,17 @@ function mediaAllowed(): boolean {
   return typeof window === "undefined" || window.isSecureContext !== false;
 }
 
+/** Почему микрофона и камеры нет вовсе: страница не на https/localhost. Одна
+ *  пара строк на проверку слоёв и на транспорт — иначе транспорт говорил
+ *  английскому игроку по-русски (инвариант 4). */
+export const INSECURE_REASON = {
+  ru: "нужен https или localhost — браузер не даёт микрофон и камеру иначе",
+  en: "needs https or localhost — the browser withholds mic and camera otherwise",
+} as const;
+
 export function detectLayers(): Record<LayerId, LayerState> {
   const media = mediaAllowed();
-  const insecure = {
-    ru: "нужен https или localhost — браузер не даёт микрофон и камеру иначе",
-    en: "needs https or localhost — the browser withholds mic and camera otherwise",
-  };
+  const insecure = INSECURE_REASON;
 
   return {
     // Полностью настоящий и офлайновый: движок и так считает реакцию каждый
