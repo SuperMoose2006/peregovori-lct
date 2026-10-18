@@ -160,9 +160,11 @@ export class MockServer implements Transport {
 
     let reply = renderLine(s, result.reaction, result.closed);
     if (timeout) {
+      // Слово в слово как views.py::timeout_line: офлайн и онлайн закрывают
+      // стол одной репликой (инвариант 8).
       reply = s.lang === "ru"
-        ? "У нас вышло время на сегодня. Договориться так и не удалось."
-        : "We're out of time for today. We couldn't reach agreement.";
+        ? "У нас вышло время на сегодня. Предлагаю вернуться позже — договориться так и не удалось."
+        : "We're out of time for today. Let's revisit later — we couldn't reach agreement.";
     }
 
     this.turns[this.turns.length - 1].reply = reply;

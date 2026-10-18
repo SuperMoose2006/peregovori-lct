@@ -114,11 +114,7 @@ test("двенадцатый ход закрывает стол срывом, и
   assert.equal(debrief.debrief.status, "breakdown");
 });
 
-test("реплика по истечении времени та же, что у сервера", {
-  todo: "mock/mockServer.ts:199-201 говорит «У нас вышло время на сегодня. Договориться так и не " +
-        "удалось.», а views.py::timeout_line — «…Предлагаю вернуться позже — договориться так и " +
-        "не удалось.» (и по-английски так же): офлайн и онлайн закрывают стол разными словами",
-}, async (t) => {
+test("реплика по истечении времени та же, что у сервера", async (t) => {
   const want = VIEWS.match(/def timeout_line[\s\S]*?return "([^"]+)"[\s\S]*?return "([^"]+)"/);
   assert.ok(want, "не нашёл views.timeout_line — разбор исходника сломан");
   const last = await playToLimit(t);
