@@ -973,6 +973,7 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
               является. */}
           <input
             className="wi-input"
+            name="whatif-line"
             type="text"
             value={custom}
             placeholder={w.customPlaceholder}

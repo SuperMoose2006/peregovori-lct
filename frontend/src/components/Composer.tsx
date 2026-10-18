@@ -94,8 +94,13 @@ export function Composer({
         </div>
       ) : null}
       <div className="crow">
+        {/* name — браузер и менеджер паролей различают поле (без него Chrome
+            помечает форму предупреждением «нет id или name»), автозаполнение —
+            выключено: реплика не адрес и не логин. */}
         <textarea
           ref={taRef}
+          name="reply"
+          autoComplete="off"
           rows={2}
           value={text}
           maxLength={MAX_INPUT}

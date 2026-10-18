@@ -342,6 +342,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       {ex.type === "numeric" ? (
         <div className="ex-num">
           <input
+            name="answer"
             inputMode="decimal"
             value={num}
             onChange={(e) => setNum(e.target.value)}
@@ -359,6 +360,7 @@ export function Exercise({ t, lang, ex, exam, onDone, onStartDrill }: Props) {
       {ex.type === "freeform" ? (
         <div className="ex-free">
           <textarea
+            name="answer"
             value={text}
             onChange={(e) => setText(e.target.value)}
             // Ctrl/⌘+Enter — как в композере партии: обычный Enter в свободном

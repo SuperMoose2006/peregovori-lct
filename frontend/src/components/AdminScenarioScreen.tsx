@@ -117,7 +117,7 @@ export function AdminScenarioScreen({ lang, onExit, onLaunch }: AdminScenarioScr
           <label htmlFor="admin-tone">{t.tone}<select id="admin-tone" value={draft.tone} onChange={e => change({ tone: e.target.value as AdminTone })}>{TONES.map(tone => <option value={tone} key={tone}>{labels.tones[tone]}</option>)}</select></label>
           <label htmlFor="admin-difficulty">{t.difficulty}<DifficultySelect id="admin-difficulty" lang={lang} value={draft.difficulty} onChange={difficulty => change({ difficulty })} /></label>
           <fieldset className="admin-goals"><legend>{t.goals}</legend><p id="admin-goals-help">{t.goalsHelp}</p>
-            {GOALS.map(goal => <label className="admin-check" key={goal}><input type="checkbox" checked={draft.opponentGoals.includes(goal)} aria-describedby="admin-goals-help" onChange={() => toggleGoal(goal)}/><span>{labels.goals[goal]}</span></label>)}
+            {GOALS.map(goal => <label className="admin-check" key={goal}><input type="checkbox" name={`goal-${goal}`} checked={draft.opponentGoals.includes(goal)} aria-describedby="admin-goals-help" onChange={() => toggleGoal(goal)}/><span>{labels.goals[goal]}</span></label>)}
           </fieldset>
           <div className="admin-actions"><button type="submit" className="primary" disabled={!validAdminDraft(draft)}>{busy ? t.waiting : t.preview}</button>
             <button type="button" disabled={!validAdminDraft(draft)} onClick={() => setStatus(saveAdminDraft(draft, browserStorage()) ? t.saved : t.saveError)}>{t.save}</button><button type="button" onClick={reset}>{t.reset}</button></div>

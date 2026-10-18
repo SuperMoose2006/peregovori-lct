@@ -191,7 +191,7 @@ export function Onboarding(props: CoachStep) {
         <div className="onb-body">{body}</div>
         {optOut ? (
           <label className="onb-opt">
-            <input type="checkbox" checked={optOut.checked}
+            <input type="checkbox" name="tour-opt-out" checked={optOut.checked}
                    onChange={(e) => optOut.onChange(e.currentTarget.checked)} />
             <span>{optOut.label}</span>
           </label>

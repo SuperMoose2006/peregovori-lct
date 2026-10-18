@@ -80,7 +80,7 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
                 .map(([field, limit]) => (
                   <label key={field}>
                     <span>{t.custom.context[field]}</span>
-                    <input value={context[field]} maxLength={limit}
+                    <input name={`context-${field}`} value={context[field]} maxLength={limit}
                       onChange={(e) => onContextChange({ ...context, [field]: e.target.value })} />
                   </label>
                 ))}
@@ -91,7 +91,7 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
               </label>
               <label>
                 <span>{t.custom.context.style}</span>
-                <select value={context.style}
+                <select name="context-style" value={context.style}
                   onChange={(e) => onContextChange({ ...context, style: e.target.value as ScenarioContext['style'] })}>
                   {(['analytical', 'relationship', 'tough'] as const).map((style) => (
                     <option key={style} value={style}>{t.custom.context.styles[style]}</option>

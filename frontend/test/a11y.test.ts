@@ -247,3 +247,27 @@ test("Enter на выбранном варианте проверяет отве
   assert.doesNotMatch(src, /window\.addEventListener\("keydown"/, "горячие клавиши снова висят на окне");
   for (const lang of ["ru", "en"] as const) assert.match(I18N[lang].course.optKeys, /Tab/);
 });
+
+test("у каждого поля ввода есть name или id", () => {
+  // Chrome помечал форму предупреждением «A form field element should have an
+  // id or name attribute» (поиск каталога, уровень, поле реплики…): без имени
+  // браузер и менеджер паролей не различают поля (найдено после аудита 17.10).
+  const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "src", "components");
+  const bad: string[] = [];
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".tsx"))) {
+    const src = readFileSync(join(dir, f), "utf8");
+    for (const m of src.matchAll(/<(input|textarea|select)\b/g)) {
+      // Конец открывающего тега: «>» вне фигурных скобок и не стрелка «=>».
+      let depth = 0, i = (m.index ?? 0) + m[0].length;
+      for (; i < src.length; i++) {
+        const c = src[i];
+        if (c === "{") depth++;
+        else if (c === "}") depth--;
+        else if (c === ">" && depth === 0 && src[i - 1] !== "=") break;
+      }
+      const tag = src.slice(m.index, i);
+      if (!/\b(name|id)=/.test(tag)) bad.push(`${f}: ${tag.replace(/\s+/g, " ").slice(0, 80)}`);
+    }
+  }
+  assert.deepEqual(bad, []);
+});
