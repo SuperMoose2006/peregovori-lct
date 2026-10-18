@@ -1287,8 +1287,11 @@ export function applyStartConditions(s: Session, def: ScenarioDef, reputation?: 
   // Условие «стола дня» — тем же способом и по той же причине: это вход
   // партии, а не правило подсчёта. Ложится, ТОЛЬКО если стол того дня и правда
   // этот, и никогда в партии НА ЗАЧЁТ — ни на экзамене, ни на капстоуне курса.
-  if (daily && !reproducibleRun(mode)) {
-    const table = dailyTable(new Date(daily + "T00:00:00"));
+  // Неразборчивую дату сервер молча игнорирует (ValueError в
+  // views.apply_start_conditions), а здесь она роняла ядро: NaN дня → нет стола.
+  const day = daily ? new Date(daily + "T00:00:00") : null;
+  if (day && !Number.isNaN(day.getTime()) && !reproducibleRun(mode)) {
+    const table = dailyTable(day);
     if (table.scenarioId === def.id) {
       const m = table.modifier;
       if (m.maxTurns !== null) s.maxTurns = m.maxTurns;

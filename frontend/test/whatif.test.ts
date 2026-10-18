@@ -198,3 +198,11 @@ test("offline, a table the browser core does not know gets no what-if card", () 
   assert.match(app, /runWhatIf=\{nego\.kind === "mock" && !SCENARIO_MAP\[nego\.scenario\?\.id \?\? currentScenario \?\? ""\]\s*\? undefined/);
   assert.equal(whatIfLocal({ scenarioId: "custom_ab12cd34", lang: "ru", moves: ["a"], turnIndex: 0, altText: "b" }), null);
 });
+
+test("неразборчивая дата стола дня не роняет офлайн-ядро — как и сервер, она игнорируется", () => {
+  const def = SCENARIO_MAP["supplier"];
+  const s = newSession(def, "ru");
+  const before = { trust: s.trust, tension: s.tension, maxTurns: s.maxTurns };
+  assert.doesNotThrow(() => applyStartConditions(s, def, null, "garbage"));
+  assert.deepEqual({ trust: s.trust, tension: s.tension, maxTurns: s.maxTurns }, before);
+});
