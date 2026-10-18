@@ -52,3 +52,20 @@ def test_active_listening_explanation_matches_the_actual_question(lang):
     # текст, который обещал обратное при зелёном тесте largest_delta.
     assert ('Информация +24' if lang == 'ru' else 'Information +24') in explanation
     assert ('интерес вскрыт' if lang == 'ru' else 'interest is uncovered') in explanation
+
+
+def test_secondary_issue_matches_from_word_start_like_offline_core():
+    """Найдено после аудита 17.10: сервер искал ключ условия подстрокой, и
+    «годов» находилось в «полугодовой контракт» — годовой контракт засчитывался
+    на сервере и не засчитывался офлайн (`has`, с начала слова). Инвариант 8."""
+    from app.engine.engine import _match_secondary_issues
+    from app.engine.scenarios import by_id
+    from app.engine.techniques import _has, norm
+
+    sc = by_id("supplier")
+    for line in ["Если подпишем полугодовой контракт, сможете подвинуться по цене за штуку?",
+                 "Если дадим годовой контракт, сможете подвинуться по цене за штуку?"]:
+        t = norm(line)
+        server = [i.id for i in _match_secondary_issues(sc, t, "ru", None)]
+        offline = [i.id for i in sc.secondary_issues if _has(t, i.keywords["ru"])]
+        assert server == offline, line

@@ -15,7 +15,7 @@
 // Зеркало: services/gateway/app/course/check.py. Менять синхронно.
 import { SCENARIO_MAP } from "../data/scenarios";
 import { analyze, applyMove, newSession } from "../mock/engine";
-import { norm } from "./techniques";
+import { has, norm } from "./techniques";
 import type { Exercise } from "./courseTypes";
 import type { Lang, StateView } from "../types";
 import {
@@ -43,8 +43,10 @@ export function checkFreeform(ex: Exercise, text: string, lang: Lang): Verdict {
   if (spec.require_secondary && ex.scenario_id) {
     const def = SCENARIO_MAP[ex.scenario_id];
     const issue = def?.secondaryIssues?.find((s) => s.id === spec.require_secondary);
-    const t = text.toLowerCase();
-    const hit = issue?.keywords[lang]?.some((k) => t.includes(k.toLowerCase()));
+    // По нормализованной реплике и с начала слова — как движок (has): ключи
+    // хранятся нормализованными («гарантию объем»), и сырое «объёма» не
+    // совпадало, а «полугодовой» совпадал с «годов» (найдено после аудита 17.10).
+    const hit = !!issue && has(norm(text), issue.keywords[lang] ?? []);
     if (!hit) reasons.push(`missing_term:${spec.require_secondary}`);
   }
 

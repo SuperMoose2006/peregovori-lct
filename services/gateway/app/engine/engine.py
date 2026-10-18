@@ -595,10 +595,13 @@ def _match_secondary_issues(sc: Scenario, cur_norm: str, lang: str,
                 if iss.id == jid:
                     return [iss]
             return []  # judge spoke and named nothing valid → trust it, no keyword guess
+    # С начала слова, как в офлайн-ядре (`has`): подстрока «годов» находилась
+    # в «полугодовой контракт», и сервер засчитывал годовой контракт там, где
+    # офлайн-ядро — нет (инвариант 8; найдено после аудита 17.10).
     out = []
     for iss in sc.secondary_issues:
         kws = iss.keywords.get(lang, [])
-        if any(k in cur_norm for k in kws):
+        if _has(cur_norm, kws):
             out.append(iss)
     return out
 

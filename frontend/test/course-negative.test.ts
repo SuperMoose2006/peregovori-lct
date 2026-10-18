@@ -27,3 +27,16 @@ for(const lang of ['ru','en'] as const)for(const type of new Set([...COURSE_BANK
     }
   });
 }
+
+test("«назови условие» судится по нормализованной реплике и с начала слова, как движок", async () => {
+  // Найдено после аудита 17.10: проверка курса смотрела в сырой текст, а ключи
+  // хранятся нормализованными — «гарантию объёма» (через ё) не засчитывалась,
+  // хотя движок её засчитывает; «полугодовой» засчитывался как «годовой».
+  const { COURSE_BANK } = await import("../src/lib/course");
+  const { checkFreeform } = await import("../src/lib/courseCheck");
+  const ex = COURSE_BANK.find((x) => x.id === "lr-07")!;
+  const yo = "Если мы дадим гарантию объёма, сможете подвинуться по цене за штуку?";
+  assert.deepEqual(checkFreeform(ex, yo, "ru").reasons, checkFreeform(ex, yo.replace(/ё/g, "е"), "ru").reasons);
+  assert.ok(checkFreeform(ex, "Если подпишем полугодовой контракт, сможете подвинуться по цене за штуку?", "ru")
+    .reasons.some((r) => r.startsWith("missing_term")), "«полугодовой» засчитан как годовой контракт");
+});
