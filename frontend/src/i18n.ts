@@ -197,6 +197,8 @@ export interface Strings {
       styles: { analytical: string; relationship: string; tough: string };
     };
     head: string;
+    // Описание слишком короткое для генерации (аудит 17.10, CE-05).
+    tooShort: string;
     placeholder: string;
     /** Что именно соберёт генератор и сколько это займёт. Замер бейк-оффа для
      *  дефолтной модели роли `reasoning` — 2.3 с (docs/model-bakeoff.md). */
@@ -1038,6 +1040,7 @@ export const I18N: Record<Lang, Strings> = {
         styles: { analytical: "Деловой, по фактам", relationship: "Ориентирован на отношения", tough: "Жёсткий" },
       },
       head: "Опишите вашу ситуацию",
+      tooShort: "Опишите чуть подробнее — хотя бы три слова: кто напротив, о чём договариваетесь, какие есть цифры.",
       placeholder:
         "Опишите вашу переговорную ситуацию… Например: «Я фрилансер, клиент просит скидку 20% на проект, а я не готов опускаться ниже своей ставки. Нужно сохранить контракт и не обесценить работу.»",
       promise:
@@ -2023,6 +2026,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     custom: {
       head: "Describe your situation",
+      tooShort: "Say a little more — at least three words: who is across the table, what you are negotiating, any numbers.",
       context: {
         head: "For facilitators: scenario settings",
         help: "Set the learning context. Difficulty and tone apply to the scenario; offline mode uses standard bargaining terms.",

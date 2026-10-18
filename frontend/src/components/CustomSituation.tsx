@@ -24,9 +24,17 @@ interface Props {
   onContextChange?: (context: ScenarioContext) => void;
 }
 
+/** Сколько слов нужно описанию своей сделки, чтобы её было из чего собрать. */
+export const MIN_SITUATION_WORDS = 3;
+
 export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
                                   context, onContextChange }: Props) {
-  const canGo = value.trim().length > 0;
+  // Одна буква запускала генерацию (аудит 17.10, CE-05): модель
+  // придумывала сделку «из ничего», а человек не понимал, откуда она. Три
+  // слова — минимум, из которого видно, кто напротив и о чём торг.
+  const words = value.trim().split(/\s+/).filter((w) => /\p{L}{2,}/u.test(w)).length;
+  const canGo = words >= MIN_SITUATION_WORDS;
+  const tooShort = value.trim().length > 0 && !canGo;
   const submit = () => {
     if (canGo) onGenerate();
   };
@@ -59,7 +67,9 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
             }
           }}
           rows={6}
+          aria-describedby={tooShort ? "custom-too-short" : undefined}
         />
+        {tooShort ? <p id="custom-too-short" className="cust-short">{t.custom.tooShort}</p> : null}
 
         {context && onContextChange ? (
           <details className="cust-context">

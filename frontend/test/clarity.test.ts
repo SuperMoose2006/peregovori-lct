@@ -349,3 +349,17 @@ test("пристыкованная переигровка сокращает п�
   assert.match(block[0], /body\.rm-docked \.hud-abbr \{ display: inline; \}/);
   assert.match(css, /body\.rm-docked \.appbody \{ padding-right: 348px; \}/, "ширина панели разошлась с границей 1627 = 1279 + 348");
 });
+
+test("своя сделка не генерируется по одной букве и объясняет, чего не хватает", () => {
+  // Аудит 17.10, CE-05: «Ввод из одного символа допускает генерацию».
+  const render = (value: string) => renderToStaticMarkup(createElement(CustomSituation, {
+    t: ru, lang: "ru" as const, value, error: null, onChange: () => {}, onGenerate: () => {},
+  }));
+  const one = render("ы");
+  assert.match(one, /<button[^>]*class="primary cust-go"[^>]*disabled=""/);
+  assert.ok(one.includes(ru.custom.tooShort));
+  const three = render("подрядчик сорвал сроки");
+  assert.doesNotMatch(three, /<button[^>]*class="primary cust-go"[^>]*disabled=""/);
+  assert.ok(!three.includes(ru.custom.tooShort));
+  assert.ok(!render("").includes(ru.custom.tooShort), "пустое поле не ругают — его ещё не заполняли");
+});

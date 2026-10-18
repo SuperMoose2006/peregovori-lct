@@ -173,6 +173,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    брали цвет у браузера. `opacity: 1` обязателен — Firefox гасит плейсхолдер
    собственной прозрачностью поверх цвета. */
 input::placeholder, textarea::placeholder { color: var(--ink-faint); opacity: 1; }
+/* Описание короче трёх слов: объясняем, чего не хватает (CE-05). */
+.cust-short { margin: 6px 0 0; font-size: 13px; color: var(--ink-dim); }
 h1, h2, h3, .serif { font-family: var(--serif); font-weight: 800; }
 /* Значки — толще штрих: у Duolingo рисунок сочный, тонкая линия там чужая. */
 .ico { stroke-width: 2.1; }
