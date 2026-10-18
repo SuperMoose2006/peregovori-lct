@@ -12,23 +12,28 @@ async function filesUnder(directory: string, prefix = ""): Promise<string[]> {
   return files.flat().sort();
 }
 
+/** Портреты и маскоты: кэшируются, но не обязательны для установки (R01). */
+export const isMedia = (file: string): boolean => file.startsWith("avatars/") || file.startsWith("mascots/");
+
 /** The initial visit caches the complete built app, including its entry JS/CSS. */
 export async function writeOfflineWorker(directory: string): Promise<string[]> {
   const source = await readFile(join(directory, "sw.js"), "utf8");
   // A missed placeholder would ship a constant cache name: old caches never retire.
-  for (const marker of ['"dialog-dev-shell"', "/* BUILD_PRECACHE */ []"]) {
+  for (const marker of ['"dialog-dev-shell"', "/* BUILD_PRECACHE */ []", "/* BUILD_PRECACHE_MEDIA */ []"]) {
     if (!source.includes(marker)) throw new Error(`sw.js lost its build placeholder ${marker}`);
   }
   const files = (await filesUnder(directory)).filter((file) =>
     file !== "sw.js" && file !== "check.html" && !file.endsWith(".map"));
   const digest = createHash("sha256").update(source);
   for (const file of files) digest.update(file).update(await readFile(join(directory, file)));
-  const precache = files.map((file) => `/${file}`);
+  const precache = files.filter((f) => !isMedia(f)).map((file) => `/${file}`);
+  const media = files.filter(isMedia).map((file) => `/${file}`);
   const worker = source
     .replace('"dialog-dev-shell"', JSON.stringify(`dialog-build-${digest.digest("hex").slice(0, 20)}`))
-    .replace('/* BUILD_PRECACHE */ []', JSON.stringify(precache));
+    .replace('/* BUILD_PRECACHE */ []', JSON.stringify(precache))
+    .replace('/* BUILD_PRECACHE_MEDIA */ []', JSON.stringify(media));
   await writeFile(join(directory, "sw.js"), worker);
-  return precache;
+  return [...precache, ...media];
 }
 
 export function offlinePlugin(): Plugin {

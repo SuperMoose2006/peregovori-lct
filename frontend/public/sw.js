@@ -11,13 +11,21 @@
 // the live backend (or the in-page mock), never a stale reply.
 const CACHE_VERSION = "dialog-dev-shell";
 const PRECACHE = /* BUILD_PRECACHE */ [];
+// Портреты собеседников и маскоты — 344 файла из 381 (аудит 17.10, R01). Они
+// кэшируются по одному и НЕ имеют права сорвать установку: один оборванный
+// портрет оставлял человека вообще без офлайн-режима. Не докачанный здесь
+// файл ляжет в кэш при первом показе (ветка cache-first ниже).
+const PRECACHE_MEDIA = /* BUILD_PRECACHE_MEDIA */ [];
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION)
-      .then((c) => c.addAll([...new Set([...SHELL, ...PRECACHE])]))
-      // An incomplete install never replaces the last working offline version.
+      // An incomplete install never replaces the last working offline version:
+      // the shell and the app code are all-or-nothing…
+      .then((c) => c.addAll([...new Set([...SHELL, ...PRECACHE])])
+        // …the media is best-effort.
+        .then(() => Promise.allSettled(PRECACHE_MEDIA.map((url) => c.add(url)))))
       .then(() => self.skipWaiting()),
   );
 });

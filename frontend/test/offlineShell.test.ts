@@ -14,8 +14,9 @@ async function fixture() {
     "index.html": '<html><script type="module" src="/assets/entry.js"></script></html>',
     "assets/entry.js": 'import("./table.js")', "assets/table.js": "export const ready = true;",
     "assets/main.css": "body {color: black}", "manifest.webmanifest": "{}", "icon.svg": "<svg/>",
+    "avatars/supplier/neutral.webp": "face", "mascots/karl/idle.webp": "karl",
   };
-  await mkdir(join(directory, "assets"));
+  for (const dir of ["assets", "avatars", "avatars/supplier", "mascots", "mascots/karl"]) await mkdir(join(directory, dir));
   await writeFile(join(directory, "sw.js"), template);
   for (const [name, value] of Object.entries(files)) await writeFile(join(directory, name), value);
   await writeOfflineWorker(directory);
@@ -39,6 +40,7 @@ function browser(worker: string, files: Record<string, string>) {
       const store = stores.get(key)!;
       return {
         async addAll(urls: string[]) { for (const url of urls) store.set(path(url), await fetch(url)); },
+        async add(url: string) { store.set(path(url), await fetch(url)); },
         async put(key: Request | string, value: Response) { store.set(path(key), value); },
       };
     },
@@ -110,5 +112,30 @@ test("changing an asset changes the worker cache version", async () => {
     await writeOfflineWorker(directory);
     const updated = await readFile(join(directory, "sw.js"), "utf8");
     assert.notEqual(worker.match(/dialog-build-[a-f0-9]+/)?.[0], updated.match(/dialog-build-[a-f0-9]+/)?.[0]);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("one broken portrait does not cost the player the offline mode", async () => {
+  // Аудит 17.10, R01: все 381 файл шли одним addAll — 285 портретов и 59
+  // маскотов наравне с кодом, и один оборванный файл срывал установку целиком.
+  const { directory, files, worker } = await fixture();
+  try {
+    delete files["avatars/supplier/neutral.webp"];
+    const page = browser(worker, files);
+    await page.event("install");
+    assert.equal(page.activated(), true);
+    page.offline();
+    assert.equal(await (await page.request("/mascots/karl/idle.webp"))!.text(), "karl");
+    assert.equal(await (await page.request("/assets/table.js"))!.text(), files["assets/table.js"]);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
+
+test("the build keeps media out of the all-or-nothing list", async () => {
+  const { directory, worker } = await fixture();
+  try {
+    const core = JSON.parse(worker.match(/const PRECACHE = (\[[^\]]*\]);/)![1]) as string[];
+    const media = JSON.parse(worker.match(/const PRECACHE_MEDIA = (\[[^\]]*\]);/)![1]) as string[];
+    assert.ok(core.includes("/assets/entry.js") && !core.some((u) => /^\/(avatars|mascots)\//.test(u)));
+    assert.deepEqual(media.sort(), ["/avatars/supplier/neutral.webp", "/mascots/karl/idle.webp"]);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
