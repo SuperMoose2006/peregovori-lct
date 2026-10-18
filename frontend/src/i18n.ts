@@ -550,6 +550,8 @@ export interface Strings {
     warmupKarl: string; warmupCta: string;
     redoTitle: string; redoDone: string; redoKarl: string; trainThis: string;
     drillStart: string; drillNote: string; drillPass: string; drillFail: string;
+    // Полоска над столом капстоуна: условия и срок задания (аудит 17.10, CE-EX).
+    drillAtTable: string; drillOverdue: string;
     backToCourse: string;
     karlTheory: string; karlPerfect: string; karlOk: string;
     karlExamPass: string; karlExamFail: string;
@@ -1535,6 +1537,8 @@ export const I18N: Record<Lang, Strings> = {
       redoKarl: "Исправленная ошибка стоит половину XP — и всё равно это лучшая сделка в продукте.",
       trainThis: "Потренировать это",
       drillStart: "Начать мини-переговоры",
+      drillAtTable: "Задание курса: {goal} · срок — {n} {form}",
+      drillOverdue: "Срок задания — {n} {form} — вышел: партию можно доиграть, но задание не засчитается.",
       drillNote: "Настоящая партия на {n} {form}. Оценка — по тем же правилам, что всегда.",
       drillPass: "Капстоун сдан",
       drillFail: "Капстоун не сдан",
@@ -2513,6 +2517,8 @@ export const I18N: Record<Lang, Strings> = {
       redoKarl: "A fixed mistake is worth half the XP — and it is still the best deal in this product.",
       trainThis: "Train this",
       drillStart: "Start the mini-negotiation",
+      drillAtTable: "Course task: {goal} · deadline — {n} {form}",
+      drillOverdue: "The task's deadline — {n} {form} — has passed: you can finish the game, but the task will not count.",
       drillNote: "A real negotiation of {n} {form}. Scored by the same rules, as always.",
       drillPass: "Capstone passed",
       drillFail: "Capstone not passed",

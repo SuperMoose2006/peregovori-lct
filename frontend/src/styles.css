@@ -679,6 +679,10 @@ h1, h2, h3, .serif { font-family: var(--serif); font-weight: 800; }
 .chat { background: var(--panel); border: 2px solid var(--line); border-radius: var(--r); display: flex; flex-direction: column; min-height: 480px; height: 100%; overflow: hidden; }
 .chat .ch { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border-bottom: 1px solid var(--line); }
 .turn { font-size: 12.5px; color: var(--ink-dim); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Условия капстоуна над столом (CE-EX). Текст — только -ink-пары: правило двух слоёв цвета. */
+.drill-goal { flex: none; margin: 8px 12px 0; padding: 6px 10px; border: 2px solid var(--line); border-radius: 12px;
+  font-size: 12.5px; font-weight: 700; line-height: 1.4; color: var(--info-ink); }
+.drill-goal.over { color: var(--tension-ink); }
 .conn { font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 8px; margin-left: 8px; }
 .conn.mock { color: var(--trust-ink); border-color: color-mix(in srgb, var(--brass) 40%, transparent); }
 /* «Реплики по шаблону» — предупреждение, а не ошибка: партия идёт и считается

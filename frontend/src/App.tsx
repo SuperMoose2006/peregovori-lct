@@ -1329,6 +1329,7 @@ export default function App() {
             onProbeAnswer={activeLayers.probe ? nego.answerProbe : undefined}
             onSeeDebrief={() => setScreen("debrief")}
             tourActive={tour === "table"}
+            drillGoal={drill ? { goal: drill.ex.goal?.[lang] ?? "", maxTurns: drill.ex.max_turns ?? 6 } : null}
           />
           )} /> : null}
           {/* Панель «вы тогда · вы сейчас». Портал в <body> по той же причине,

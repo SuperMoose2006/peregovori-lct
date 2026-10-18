@@ -14,6 +14,7 @@
 // падает, когда экран снова становится недостижим.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CourseScreen } from "../src/components/CourseScreen";
@@ -186,5 +187,24 @@ test("final course block does not promise a nonexistent next block", () => {
       saveExamRun({ ...runFor(BLOCK, true), capstoneOk: true });
       assert.ok(render(lang).includes(I18N[lang].course.karlExamPass), "ordinary block still announces progression");
     } finally { clearExamRun(); }
+  }
+});
+
+test("за столом капстоуна видны условия и срок задания", () => {
+  // Аудит 17.10, CE-EX: условия финальной партии — не больше 6 ходов, аренда
+  // ≤68k и два интереса, — а за столом «из 12» и ни слова о задании. Стол
+  // по-прежнему выдаёт свои ходы (срок — часть задания, его проверяет
+  // checkDrill), поэтому полоска называет именно срок, а после него честно
+  // говорит, что задание уже не засчитается.
+  const src = readFileSync(new URL("../src/components/Table.tsx", import.meta.url), "utf8");
+  assert.match(src, /className=\{`drill-goal/);
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(app, /drillGoal=\{drill \? \{ goal: drill\.ex\.goal\?\.\[lang\] \?\? "", maxTurns: drill\.ex\.max_turns \?\? 6 \} : null\}/);
+  for (const lang of ["ru", "en"] as const) {
+    const c = I18N[lang].course;
+    for (const k of ["drillAtTable", "drillOverdue"] as const) {
+      assert.ok(c[k].includes("{n}") && c[k].includes("{form}"), `${lang}.${k}: нет срока`);
+    }
+    assert.ok(c.drillAtTable.includes("{goal}"), `${lang}: нет условий`);
   }
 });

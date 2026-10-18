@@ -8,7 +8,7 @@ import type { ConnStatus, TransportKind } from "../api/transport";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Strings } from "../i18n";
 import { hasPlayed, isTutorialDone, loadProfile, markTutorialDone, shouldRunTutorial } from "../lib/progress";
-import { teachingPlaceholder, formatDeal } from "../lib/format";
+import { plural, teachingPlaceholder, formatDeal } from "../lib/format";
 import { haptic, play } from "../lib/sound";
 import { WaitStatus } from "./WaitStatus";
 import { OpponentFace } from "./OpponentFace";
@@ -32,6 +32,9 @@ interface Props {
   t: Strings;
   lang: Lang;
   mode: Mode;
+  /** Капстоун курса: условия и срок задания. Стол выдаёт свои ходы, а срок —
+   *  часть задания (checkDrill), поэтому он должен быть виден за столом. */
+  drillGoal?: { goal: string; maxTurns: number } | null;
   kind: TransportKind | null;
   conn?: ConnStatus;
   scenario: ScenarioView;
@@ -127,7 +130,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ chatScrollPosition, t, lang, mode, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, videoPending = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
+export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, videoPending = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -736,6 +739,17 @@ export function Table({ chatScrollPosition, t, lang, mode, kind, scenario, state
                 {kind === null ? <span className="conn">{t.connecting}</span> : null}
               </div>
             </div>
+            {drillGoal ? (
+              // Условия финальной партии курса — за столом, а не только в
+              // карточке задания: «≤ 6 ходов» рядом со счётчиком «из 12» без
+              // напоминания читалось как противоречие (аудит 17.10, CE-EX).
+              <p className={`drill-goal${(st?.turn ?? 0) > drillGoal.maxTurns ? " over" : ""}`} role="note">
+                {((st?.turn ?? 0) > drillGoal.maxTurns ? t.course.drillOverdue : t.course.drillAtTable)
+                  .replace("{goal}", drillGoal.goal)
+                  .replace("{n}", String(drillGoal.maxTurns))
+                  .replace("{form}", plural(drillGoal.maxTurns, t.forms.turns))}
+              </p>
+            ) : null}
             <Chat
               scrollPosition={chatScrollPosition}
               onUseLine={(text) => setPrefill({ text, nonce: prefillNonce.current++ })}
