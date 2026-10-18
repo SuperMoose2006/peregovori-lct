@@ -38,7 +38,10 @@ export const ADMIN_LABELS = {
 };
 const PRESETS: Record<AdminDomain, { ru: [string, string]; en: [string, string]; difficulty: number; tone: AdminTone; goals: AdminGoal[] }> = {
   procurement: { ru: ["Цена поставки на следующий квартал", "Руководитель отдела продаж"], en: ["Supply price for the next quarter", "Head of Sales"], difficulty: 2, tone: "collaborative", goals: ["price", "certainty"] },
-  career: { ru: ["Пересмотр зарплаты после успешного проекта", "Руководитель команды"], en: ["Salary review after a successful project", "Team Manager"], difficulty: 3, tone: "analytical", goals: ["price"] },
+  // Тема — из того же стола, что и роль игрока (`salary`: у вас оффер, торгуетесь
+  // о компенсации). «Пересмотр зарплаты после успешного проекта» с «руководителем
+  // команды» смешивал повышение на текущем месте с наймом (аудит 17.10, CE-04).
+  career: { ru: ["Зарплата в оффере на новую должность", "Директор по найму"], en: ["Salary in an offer for a new role", "Hiring Director"], difficulty: 3, tone: "analytical", goals: ["price"] },
   property: { ru: ["Условия аренды на новый год", "Собственник помещения"], en: ["Rental terms for the next year", "Property Owner"], difficulty: 2, tone: "collaborative", goals: ["certainty"] },
   investment: { ru: ["Инвестиции для следующего этапа роста", "Инвестор"], en: ["Funding the next stage of growth", "Investor"], difficulty: 4, tone: "analytical", goals: ["price", "certainty"] },
   team: { ru: ["Сроки совместного проекта", "Руководитель смежной команды"], en: ["A shared project deadline", "Partner Team Lead"], difficulty: 3, tone: "firm", goals: ["timing"] },

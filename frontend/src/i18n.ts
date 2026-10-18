@@ -1078,11 +1078,13 @@ export const I18N: Record<Lang, Strings> = {
       notAwarded: "Проходной грейд — C. Результат записан — эта попытка не последняя.",
     },
     campaign: {
-      overviewHead: "Ваша карьерная арка",
-      begin: "Начать восхождение →",
-      continue: "Продолжить восхождение →",
+      overviewHead: "Ваша кампания",
+      // Кнопки общие для всех кампаний: «восхождение» было словом карьерной и
+      // стояло на «Своём деле» тоже (аудит 17.10).
+      begin: "Начать кампанию →",
+      continue: "Продолжить кампанию →",
       nextAct: "Следующий акт →",
-      seeResults: "Итоги восхождения →",
+      seeResults: "Итоги кампании →",
       locked: "закрыто",
       current: "сейчас",
       done: "пройдено",
@@ -2067,11 +2069,11 @@ export const I18N: Record<Lang, Strings> = {
       notAwarded: "The passing grade is C. The result is recorded — this attempt is not your last.",
     },
     campaign: {
-      overviewHead: "Your career arc",
-      begin: "Begin the climb →",
-      continue: "Continue the climb →",
+      overviewHead: "Your campaign",
+      begin: "Begin the campaign →",
+      continue: "Continue the campaign →",
       nextAct: "Next act →",
-      seeResults: "See the summit →",
+      seeResults: "Campaign results →",
       locked: "locked",
       current: "now",
       done: "cleared",
