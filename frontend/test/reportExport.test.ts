@@ -33,3 +33,16 @@ test("JSON export copies only public report fields and never carries unknown tra
   snapshot.result.tips.push("New");
   assert.equal(input.debrief.tips.length, 1);
 });
+
+test("слово наставника в файле целиком, как на экране", () => {
+  // Найдено после аудита 17.10: экран показывает вердикт, «что сработало» и
+  // «что изменить», а TXT и JSON несли только вердикт.
+  const d = { ...input.debrief, ai_verdict: "VERDICT-1", ai_strength: "STRENGTH-1", ai_growth: "GROWTH-1" };
+  const text = reportText({ ...input, debrief: d });
+  assert.match(text, /VERDICT-1/);
+  assert.match(text, /STRENGTH-1/);
+  assert.match(text, /GROWTH-1/);
+  const json = JSON.stringify(reportSnapshot({ ...input, debrief: d }));
+  assert.match(json, /STRENGTH-1/);
+  assert.match(json, /GROWTH-1/);
+});

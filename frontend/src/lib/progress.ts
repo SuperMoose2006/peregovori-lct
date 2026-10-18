@@ -816,6 +816,10 @@ export function strongestWeakest(profile: Profile): { strong: SkillId | null; we
     if (s.mastery > strong.mastery) strong = s;
     if (s.mastery < weak.mastery) weak = s;
   }
+  // Разброса нет — назвать сильный и слабый честно нельзя: после срыва со всеми
+  // сигналами по нулю профиль писал «Силён в: Вопросы · Подтяни: Вопросы»
+  // (найдено после аудита 17.10).
+  if (strong.mastery === weak.mastery) return { strong: null, weak: null };
   return { strong: strong.id, weak: played.length > 1 ? weak.id : null };
 }
 
@@ -852,13 +856,16 @@ export function getAchievement(id: string): Achievement | undefined {
 
 // The full set of achievement ids that SHOULD be unlocked given the profile
 // (already folded with this run) and the just-finished debrief. Pure/deterministic.
-export function earnedAchievements(profile: Profile, d: Debrief): string[] {
+export function earnedAchievements(profile: Profile, d: Debrief, streakCounted = true): string[] {
   const out: string[] = [];
   // A collapsed negotiation earns no skill/success badge — you can't "win" a table
   // you blew up. Only participation badges (streak, breadth) survive a breakdown.
   const failed = d.status === "breakdown";
   if (!failed && d.grade === "A") out.push("first_a");
-  if (profile.streak >= 3) out.push("streak_3");
+  // Серия — только от партии, которая её засчитала: на D после двух недель
+  // отсутствия profile.streak хранит старое число (серию из уроков), и значок
+  // выдавался за прерванную серию (найдено после аудита 17.10).
+  if (streakCounted && profile.streak >= 3) out.push("streak_3");
   if (!failed && d.interests_total > 0 && d.interests_found >= d.interests_total) out.push("all_interests");
   if (d.status === "agreement" && d.threats === 0) out.push("no_threat_deal");
   if (!failed && d.objective_criteria > 0 && d.tradeoffs > 0) out.push("criteria_tradeoff");
@@ -965,13 +972,14 @@ export function applyDebrief(
     dailyDoneDay: today,
     dailyDoneCount: dailyDone,
   };
-  const earned = earnedAchievements(nextProfile, d);
+  const earned = earnedAchievements(nextProfile, d, streakCounted);
   const newAchievements = earned.filter((a) => !profile.achievements.includes(a));
   nextProfile.achievements = Array.from(new Set([...profile.achievements, ...earned]));
 
   // Milestones: real, once each, never on a collapse. Filter against what's already
   // been celebrated, then mark the newly-shown ones so a card can never repeat.
-  const hits = failed ? [] : milestonesForGame(rankBefore, rankAfter, streakOut.streak);
+  // Карточка «N дней подряд» — тоже только от засчитанной партии.
+  const hits = failed ? [] : milestonesForGame(rankBefore, rankAfter, streakCounted ? streakOut.streak : 0);
   const newMilestones = hits.filter((h) => !profile.celebratedMilestones.includes(h.id));
   nextProfile.celebratedMilestones = Array.from(
     new Set([...profile.celebratedMilestones, ...newMilestones.map((h) => h.id)]),

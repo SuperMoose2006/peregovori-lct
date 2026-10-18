@@ -11,8 +11,8 @@ export interface ReportInput {
 }
 
 const LABELS = {
-  ru: { title: "Диалог · Разбор переговоров", scenario: "Ситуация", player: "Участник", date: "Дата", mode: "Режим", modes: { practice: "Практика", exam: "Экзамен", campaign: "Кампания", custom: "Своя ситуация", drill: "Практика курса" }, score: "Итог", economic: "Экономика", relationship: "Отношения", technique: "Техника", deal: "Результат", interests: "Раскрытые интересы", spin: "Этапы SPIN", criteria: "Объективные критерии", empathy: "Эмпатия", tradeoffs: "Обмен уступками", threats: "Угрозы", tips: "Что попробовать в следующий раз", turning: "Поворотные моменты", moves: "Ваши реплики", mentor: "Комментарий наставника" },
-  en: { title: "Dialog · Negotiation report", scenario: "Situation", player: "Participant", date: "Date", mode: "Mode", modes: { practice: "Practice", exam: "Exam", campaign: "Campaign", custom: "Custom situation", drill: "Course practice" }, score: "Overall", economic: "Economics", relationship: "Relationship", technique: "Technique", deal: "Outcome", interests: "Interests uncovered", spin: "SPIN stages", criteria: "Objective criteria", empathy: "Empathy", tradeoffs: "Trade-offs", threats: "Threats", tips: "Try next time", turning: "Turning points", moves: "Your lines", mentor: "Mentor's comment" },
+  ru: { title: "Диалог · Разбор переговоров", scenario: "Ситуация", player: "Участник", date: "Дата", mode: "Режим", modes: { practice: "Практика", exam: "Экзамен", campaign: "Кампания", custom: "Своя ситуация", drill: "Практика курса" }, score: "Итог", economic: "Экономика", relationship: "Отношения", technique: "Техника", deal: "Результат", interests: "Раскрытые интересы", spin: "Этапы SPIN", criteria: "Объективные критерии", empathy: "Эмпатия", tradeoffs: "Обмен уступками", threats: "Угрозы", tips: "Что попробовать в следующий раз", turning: "Поворотные моменты", moves: "Ваши реплики", mentor: "Комментарий наставника", mentorStrength: "Что сработало", mentorGrowth: "Что изменить в следующий раз" },
+  en: { title: "Dialog · Negotiation report", scenario: "Situation", player: "Participant", date: "Date", mode: "Mode", modes: { practice: "Practice", exam: "Exam", campaign: "Campaign", custom: "Custom situation", drill: "Course practice" }, score: "Overall", economic: "Economics", relationship: "Relationship", technique: "Technique", deal: "Outcome", interests: "Interests uncovered", spin: "SPIN stages", criteria: "Objective criteria", empathy: "Empathy", tradeoffs: "Trade-offs", threats: "Threats", tips: "Try next time", turning: "Turning points", moves: "Your lines", mentor: "Mentor's comment", mentorStrength: "What worked", mentorGrowth: "What to change next time" },
 };
 
 /** Deliberate public fields: no session tokens, raw transport objects or camera data. */
@@ -34,7 +34,11 @@ export function reportSnapshot(input: ReportInput) {
       empathy: d.empathy, tradeoffs: d.tradeoffs, threats: d.threats,
       tips: [...d.tips],
       turning_points: (d.turning_points ?? []).map(({ turn, quote, what, coach }) => ({ turn, quote, what, ...(coach ? { coach } : {}) })),
+      // Слово наставника — целиком, как на экране: «что сработало» и «что
+      // изменить» терялись в файле (найдено после аудита 17.10).
       ...(d.ai_verdict ? { mentor: d.ai_verdict } : {}),
+      ...(d.ai_strength ? { mentor_strength: d.ai_strength } : {}),
+      ...(d.ai_growth ? { mentor_growth: d.ai_growth } : {}),
     },
     player_moves: [...(input.playerMoves ?? [])],
   };
@@ -51,6 +55,8 @@ export function reportText(input: ReportInput): string {
   if (d.tips.length) lines.push("", l.tips, ...d.tips.map((tip, i) => `${i + 1}. ${tip}`));
   if (d.turning_points.length) lines.push("", l.turning, ...d.turning_points.map((p) => `${p.turn}. «${p.quote}»\n   ${p.what}${p.coach ? `\n   ${p.coach}` : ""}`));
   if (d.mentor) lines.push("", l.mentor, d.mentor);
+  if (d.mentor_strength) lines.push("", `${l.mentorStrength}: ${d.mentor_strength}`);
+  if (d.mentor_growth) lines.push("", `${l.mentorGrowth}: ${d.mentor_growth}`);
   if (r.player_moves.length) lines.push("", l.moves, ...r.player_moves.map((move, i) => `${i + 1}. ${move}`));
   return lines.join("\n") + "\n";
 }

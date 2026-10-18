@@ -400,7 +400,7 @@ export interface Strings {
     title: string;
     hint: string;     // что именно считается днём серии
     kept: string;     // день уже засчитан — {n} {form}
-    waiting: string;  // серия жива, сегодня партии не было — {n} {form}
+    waiting: string;  // серия жива, сегодняшний день ещё не засчитан — {n} {form}
     shielded: string; // пропуск покроет заморозка — {n} в запасе
     lost: string;     // серия прервана
     away: string;     // прервана, и перерыв длинный — {n} {form}
@@ -1337,7 +1337,8 @@ export const I18N: Record<Lang, Strings> = {
       title: "Серия дней",
       hint: "Дни подряд, в которые вы закончили партию на C или выше или прошли урок курса.",
       kept: "{n} {form} подряд. Сегодняшний день уже засчитан.",
-      waiting: "{n} {form} подряд. Сегодня вы ещё не играли — партия продлит серию.",
+      // Не «вы ещё не играли»: после партии на D это неправда — день просто не засчитан.
+      waiting: "{n} {form} подряд. Сегодня день ещё не засчитан — урок курса или партия на C и выше продлят серию.",
       shielded: "Пропуск покроет заморозка: их в запасе {n}.",
       lost: "Серия прервана. Сегодняшняя партия начнёт новую.",
       away: "Вас не было {n} {form}. Стол на месте.",
@@ -2328,7 +2329,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "Day streak",
       hint: "Days in a row on which you finished a game with a C or better, or completed a course lesson.",
       kept: "{n} {form} in a row. Today is already counted.",
-      waiting: "{n} {form} in a row. You have not played today — one session keeps it alive.",
+      waiting: "{n} {form} in a row. Today is not counted yet — a course lesson or a game at C or better keeps it alive.",
       shielded: "A freeze will cover the gap — {n} left in reserve.",
       lost: "The streak is broken. Today's session starts a new one.",
       away: "You have been away {n} {form}. The table is still here.",
