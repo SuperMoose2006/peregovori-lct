@@ -363,3 +363,13 @@ test("своя сделка не генерируется по одной бук
   assert.ok(!three.includes(ru.custom.tooShort));
   assert.ok(!render("").includes(ru.custom.tooShort), "пустое поле не ругают — его ещё не заполняли");
 });
+
+test("редактор не обещает передачу тренировки, которой нет", () => {
+  // Аудит 17.10, CE-03: «Посмотрите условия, затем передайте участнику готовую
+  // тренировку» — а ссылки, экспорта или назначения нет. Аудит принимает
+  // «ясное ограничение одним устройством» — оно и сказано.
+  const src = readFileSync(join(SRC, "components", "AdminScenarioScreen.tsx"), "utf8");
+  assert.doesNotMatch(src, /передайте участнику/);
+  assert.match(src, /на этом устройстве/);
+  assert.match(src, /on this device/);
+});

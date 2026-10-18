@@ -11,9 +11,12 @@ import { ScreenHeading } from "./ScreenHeading";
 import { DataIcon, Icon } from "./Icon";
 import { DifficultySelect } from "./DifficultySelect";
 
+// «Передайте участнику готовую тренировку» обещало передачу, которой нет:
+// сценарий живёт в этом браузере и запускается здесь (аудит 17.10, CE-03 —
+// «нужен способ передачи либо ясное ограничение одним устройством»).
 const COPY = {
   ru: {
-    eyebrow: "Для преподавателя и руководителя", title: "Подготовьте переговоры", intro: "Задайте ситуацию и собеседника. Посмотрите условия, затем передайте участнику готовую тренировку.",
+    eyebrow: "Для преподавателя и руководителя", title: "Подготовьте переговоры", intro: "Задайте ситуацию и собеседника. Посмотрите условия и запустите тренировку на этом устройстве — участник садится за него сам: ссылки и экспорта сценария пока нет.",
     vsCustom: "Чем это отличается от «Своей сделки»: там вы описываете СВОЮ ситуацию своими словами и садитесь за стол сами. Здесь вы собираете переговоры для другого человека из готовых настроек — сфера, роль и тон собеседника, сложность, его цели, — видите заранее, что он получит, и запускаете.",
     back: "← К практике", presets: "Начать с примера", configure: "1. Настройка ситуации", domain: "Сфера", topic: "Тема встречи", role: "Роль собеседника", tone: "Тон собеседника", difficulty: "Сложность", easy: "Больше уступок", hard: "Выше требования", goals: "Заявленные цели собеседника", goalsHelp: "Выберите от одной до трёх. Они меняют его позицию и ценность ваших уступок.",
     preview: "Посмотреть условия", waiting: "Готовим тренировку…", save: "Сохранить черновик", reset: "Сбросить", saved: "Черновик сохранён в этом браузере.", saveError: "Браузер не сохранил черновик. Вы можете продолжить без сохранения.", resetDone: "Восстановлен пример закупок.",
@@ -21,7 +24,7 @@ const COPY = {
     errors: { rate: "Слишком много предпросмотров. Подождите секунду и попробуйте снова.", auth: "Нужен вход на стенд. Обновите страницу и введите пароль доступа.", invalid: "Проверьте тему, роль и выбранные цели.", server: "Не удалось подготовить тренировку. Проверьте подключение к интернету и повторите попытку." },
   },
   en: {
-    eyebrow: "For educators and team leads", title: "Set up a negotiation", intro: "Choose a situation and a counterpart. Review the terms, then let your learner begin the practice.",
+    eyebrow: "For educators and team leads", title: "Set up a negotiation", intro: "Choose a situation and a counterpart. Review the terms and start the practice on this device — the learner takes the seat here: there is no share link or export yet.",
     vsCustom: "How this differs from “Your deal”: there you describe YOUR own situation in your own words and take the seat yourself. Here you build a negotiation for someone else from ready-made settings — the counterpart's field, role and tone, the difficulty and their goals — see in advance what the learner will get, and launch it.",
     back: "← Back to practice", presets: "Start from an example", configure: "1. Configure the situation", domain: "Context", topic: "Meeting topic", role: "Counterpart role", tone: "Counterpart tone", difficulty: "Difficulty", easy: "More concessions", hard: "Higher expectations", goals: "Counterpart’s stated objectives", goalsHelp: "Choose one to three. These change their position and the value of your concessions.",
     preview: "Preview the terms", waiting: "Preparing practice…", save: "Save draft", reset: "Reset", saved: "Draft saved in this browser.", saveError: "The browser could not save your draft. You can continue without saving.", resetDone: "Procurement example restored.",
