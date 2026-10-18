@@ -18,6 +18,7 @@ import re
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Optional
 
 
 def _load_dotenv() -> None:
@@ -557,21 +558,33 @@ MAX_WHATIF_MOVES = 24     # cap replay length (a game is <= 12 turns anyway)
 MAX_WHATIF_TEXT = 800
 
 
-def _whatif_branch(scenario_id: str, lang: str, prefix: list[str], branch_text: str) -> dict:
+def _whatif_branch(scenario_id: str, lang: str, prefix: list[str], branch_text: str,
+                   judges: list[Optional[dict]] | None = None, reputation: Optional[float] = None,
+                   daily: Optional[str] = None, branch_judge: Optional[dict] = None) -> dict:
     """Replay `prefix` on a FRESH session, then apply one `branch_text` move and
     capture the outcome. Replaying from scratch per branch guarantees the two
     branches share no state — determinism by construction.
 
     The per-turn sequence mirrors the WS loop exactly (increment turn → analyze →
     apply_move) so a branch that re-uses the original text reproduces the real
-    play bit-for-bit, including render_line's turn-seeded line pick."""
+    play bit-for-bit, including render_line's turn-seeded line pick.
+
+    «Бит в бит» — только с тем, что было у партии на входе: стартовые условия
+    (репутация кампании, условие дня) и вердикты судьи по прежним ходам.
+    Без них переигровка считала ходы одними ключевыми словами с нулевого старта,
+    и «Как было» расходилось с сыгранным ходом (аудит 17.10, F03)."""
+    sc = engine.by_id(scenario_id)
     sess = engine.create_session(scenario_id, lang)
-    for t in prefix:
+    views.apply_start_conditions(sess, scenario_id, reputation, daily, None)
+    judges = judges or []
+    for i, t in enumerate(prefix):
         sess.turn += 1
-        engine.apply_move(sess, engine.analyze(t), t)
+        j = views.replay_judge(sc, lang, judges[i] if i < len(judges) else None)
+        engine.apply_move(sess, engine.analyze(t), t, judge=j)
     sess.turn += 1
     analysis = engine.analyze(branch_text)
-    result = engine.apply_move(sess, analysis, branch_text)
+    result = engine.apply_move(sess, analysis, branch_text,
+                               judge=views.replay_judge(sc, lang, branch_judge))
     line = engine.render_line(sess, result.reaction, result.closed)
     return {
         "text": branch_text,
@@ -579,6 +592,9 @@ def _whatif_branch(scenario_id: str, lang: str, prefix: list[str], branch_text: 
         "deltas": views.deltas_view(result).model_dump(),
         "state": views.state_view(sess).model_dump(),
         "opponent_line": line,
+        # Посчитан ли ЭТОТ ход судьёй. Альтернативу судья не видел: экран
+        # обязан это сказать, а не сравнивать молча (принцип 2).
+        "judged": branch_judge is not None,
     }
 
 
@@ -651,8 +667,12 @@ def whatif(body: WhatIfMsg) -> dict:
         raise HTTPException(status_code=400, detail="turnIndex out of range")
 
     prefix = moves[: body.turnIndex]          # moves 0..turnIndex-1 (shared pre-turn state)
-    original = _whatif_branch(body.scenarioId, lang, prefix, moves[body.turnIndex])
-    alternative = _whatif_branch(body.scenarioId, lang, prefix, alt_text)
+    judges = [j.model_dump() if j is not None else None for j in body.judges][:MAX_WHATIF_MOVES]
+    start = {"judges": judges, "reputation": body.reputation, "daily": body.daily}
+    own = judges[body.turnIndex] if body.turnIndex < len(judges) else None
+    original = _whatif_branch(body.scenarioId, lang, prefix, moves[body.turnIndex],
+                              branch_judge=own, **start)
+    alternative = _whatif_branch(body.scenarioId, lang, prefix, alt_text, **start)
     return {"turnIndex": body.turnIndex, "original": original, "alternative": alternative}
 
 

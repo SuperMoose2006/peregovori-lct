@@ -6,7 +6,7 @@
 // they come from two independent backends (FastAPI views.turning_points and the
 // mock's synthTurningPoints) with different wording — so we detect damage by the
 // direction cues both encode ("tension spiked", "trust fell", "against you", …).
-import type { TurningPoint } from "../types";
+import type { TurnRecord, TurningPoint, WhatIfBranch } from "../types";
 
 // Bilingual cues that mark a move as harmful. Matched case-insensitively as
 // substrings, so both backends' phrasings are covered without coupling to either.
@@ -48,4 +48,31 @@ export function pivotalTurnIndex(tp: TurningPoint | null, movesLen: number): num
   if (!tp) return null;
   const idx = tp.turn - 1;
   return idx >= 0 && idx < movesLen ? idx : null;
+}
+
+/** Настоящий ответ оппонента на каждый ход игрока — по ленте партии.
+ *  «Как было» показывает то, что игрок прочитал, а не реплику, собранную при
+ *  пересчёте (аудит 17.10, F03). Ход без ответа (обрыв, перебивание) — "". */
+export function repliesByMove(log: { kind: string; text?: string }[]): string[] {
+  const out: string[] = [];
+  let waiting = false;
+  for (const e of log) {
+    if (e.kind === "me") { out.push(""); waiting = true; }
+    else if (e.kind === "opp" && waiting) { out[out.length - 1] = e.text ?? ""; waiting = false; }
+  }
+  return out;
+}
+
+/** Ветка «Как было» из хроники партии: цифры — как их посчитали в игре,
+ *  ответ — тот, что игрок прочитал. Пересчёт без судьи и без стартовых условий
+ *  давал другой ход: доверие +5 вместо +9, цена 100 вместо 97 (F03). */
+export function recordedBranch(replayed: WhatIfBranch, rec: TurnRecord | undefined, reply: string | undefined): WhatIfBranch {
+  if (!rec) return replayed;
+  return {
+    ...replayed,
+    deltas: rec.deltas,
+    state: { ...replayed.state, offer_opp: rec.offer_after, interests_found: rec.interests_found },
+    opponent_line: reply || replayed.opponent_line,
+    judged: rec.judge !== null,
+  };
 }

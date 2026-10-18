@@ -692,26 +692,10 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
         # последним.
         return None, f"unknown scenario: {scenario_id[:64]}"
 
-    if payload.reputation is not None:
-        views.apply_reputation(engine_session, payload.reputation)
-
-    # УСЛОВИЕ ДНЯ. Накладывается той же схемой, что репутация кампании: это вход
-    # партии (длина, стартовые шкалы), а не правило подсчёта — `score_session`
-    # о нём не знает. Дату присылает клиент; сверяем, что стол ТОГО дня и правда
-    # этот, иначе «короткий стол» можно было бы выпросить на любом сценарии.
-    daily_mod = None
-    # В зачётной партии условия дня нет вовсе: капстоун со срезанным лимитом
-    # ходов — уже не тот капстоун, который доказан прогоном движка.
-    if payload.daily and not reproducible_run(payload.gameMode):
-        from datetime import date as _date
-        from app.engine.daily import apply_modifier, daily_table
-        try:
-            table = daily_table(_date.fromisoformat(payload.daily))
-        except ValueError:
-            table = None
-        if table is not None and table.scenario_id == scenario_id:
-            apply_modifier(engine_session, table.modifier)
-            daily_mod = table.modifier.id
+    # Репутация кампании и условие дня — общей функцией с «А что если»:
+    # переигровка обязана стартовать из того же состояния (views.apply_start_conditions).
+    daily_mod = views.apply_start_conditions(engine_session, scenario_id, payload.reputation,
+                                             payload.daily, payload.gameMode)
 
     session_id = store.new_id()
     from app.engine.scenarios import SCENARIOS

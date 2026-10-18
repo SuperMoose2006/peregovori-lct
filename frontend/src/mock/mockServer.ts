@@ -11,12 +11,10 @@ import { SCENARIO_MAP, toScenarioView, type ScenarioDef } from "../data/scenario
 import { MIRROR_MAP } from "../data/mirrors";
 import { synthCustomScenario } from "./customScenario";
 import {
-  analyze, applyMove, greetingText, hintLine, hintText, newSession, renderLine,
+  analyze, applyMove, applyStartConditions, greetingText, hintLine, hintText, newSession, renderLine,
   scoreSession, stateView, toAnalysis, type Session,
 } from "./engine";
 import { NO_PROBES, nextProbe, type ProbeMemory } from "../lib/probe";
-import { dailyTable } from "../lib/daily";
-import { reproducibleRun } from "../lib/modes";
 import { EPILOGUE_BANDS, REPUTATION_LINES } from "../data/campaigns.generated";
 
 /** Зеркало views.reputation_intro. Пороги и текст — из одной таблицы с эпилогом. */
@@ -104,30 +102,10 @@ export class MockServer implements Transport {
     }
 
     const s = newSession(def, lang);
-    // Campaign reputation carries into this stage as a starting-trust nudge
-    // (mirrors backend views.apply_reputation: ±15 max, initial condition only —
-    // never scoring). Lets the offline demo show the carry-over take effect.
-    if (typeof msg.reputation === "number") {
-      const nudge = Math.max(-15, Math.min(15, msg.reputation * 0.12));
-      s.trust = Math.max(0, Math.min(100, s.trust + nudge));
-    }
-    // Условие «стола дня» — тем же способом и по той же причине: это вход
-    // партии, а не правило подсчёта. Без этой ветки карточка обещала бы
-    // «короткий стол», а офлайн-партия шла бы двенадцать ходов — то самое
-    // четвёртое состояние, которого в продукте не бывает.
-    // Зеркало app/realtime/endpoint.py: условие ложится, ТОЛЬКО если стол того
-    // дня и правда этот, и никогда в партии НА ЗАЧЁТ — ни на экзамене, ни на
-    // капстоуне курса. Капстоун со срезанным лимитом ходов это уже не тот
-    // капстоун, который доказан прогоном движка.
-    if (msg.daily && !reproducibleRun(msg.mode)) {
-      const table = dailyTable(new Date(msg.daily + "T00:00:00"));
-      if (table.scenarioId === def.id) {
-        const m = table.modifier;
-        if (m.maxTurns !== null) s.maxTurns = m.maxTurns;
-        if (m.trust) s.trust = Math.max(0, Math.min(100, s.trust + m.trust));
-        if (m.tension) s.tension = Math.max(0, Math.min(100, s.tension + m.tension));
-      }
-    }
+    // Репутация кампании и условие дня — общей функцией с «А что если»:
+    // переигровка обязана стартовать из того же состояния. Зеркало
+    // app/realtime/endpoint.py → views.apply_start_conditions.
+    applyStartConditions(s, def, msg.reputation, msg.daily, msg.mode);
     this.session = s;
     this.turns = [];
     await this.delay(genDelay);

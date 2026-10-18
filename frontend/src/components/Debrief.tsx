@@ -1,11 +1,11 @@
 // Debrief.tsx — post-negotiation report: grade ring (A–F), three score bars
 // (economic / relationship / technique), stat cells, coaching tips, retry/home.
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, VisionNote, WhatIfBranch, WhatIfRequest, WhatIfResponse } from "../types";
+import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, TurnRecord, VisionNote, WhatIfBranch, WhatIfRequest, WhatIfResponse } from "../types";
 import type { Strings } from "../i18n";
 import { skillSignals, type GameResult, type RecordResult } from "../lib/progress";
 import { blockById, blockForWeakest } from "../lib/course";
-import { pickPivotalTurn, pivotalTurnIndex } from "../lib/whatif";
+import { pickPivotalTurn, pivotalTurnIndex, recordedBranch } from "../lib/whatif";
 import { LOOKED_IN_SILENCE } from "../lib/layers";
 import { formatDeal, plural } from "../lib/format";
 import { play } from "../lib/sound";
@@ -109,6 +109,10 @@ interface Props {
   whatIfScenarioId?: string;
   whatIfUnit?: string;
   whatIfLowerBetter?: boolean;
+  /** Настоящий ответ оппонента на каждый ход — «Как было» показывает его. */
+  whatIfReplies?: string[];
+  /** Стартовые условия сыгранной партии: альтернатива считается из них (F03). */
+  whatIfStart?: { reputation?: number; daily?: string };
   // Visible logrolling recap: the scenario's tradeable secondary issues and the
   // ids actually traded (the final terms_conceded). Both engine-owned — the line
   // reinforces that trading created value, or gently flags the missed chance.
@@ -127,7 +131,7 @@ interface Props {
 
 export function Debrief({
   t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, observations, tells, onRetry, onHome, onNext, nextLabel,
-  runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter,
+  runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter, whatIfReplies, whatIfStart,
   secondaryIssues, termsConceded, onCourse, rematch,
 }: Props) {
   const [exportStatus, setExportStatus] = useState("");
@@ -407,6 +411,9 @@ export function Debrief({
                 originalQuote={pivotal.quote}
                 unit={whatIfUnit}
                 lowerBetter={whatIfLowerBetter}
+                turnLog={d.turn_log ?? undefined}
+                reply={whatIfReplies?.[pivotIdx]}
+                start={whatIfStart}
               />
             </div>
           ) : null}
@@ -865,9 +872,13 @@ interface WhatIfCardProps {
   originalQuote: string;
   unit?: string;
   lowerBetter?: boolean;
+  /** Хроника партии: «Как было» — отсюда, а не из пересчёта (F03). */
+  turnLog?: TurnRecord[];
+  reply?: string;
+  start?: { reputation?: number; daily?: string };
 }
 
-function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote, unit, lowerBetter }: WhatIfCardProps) {
+function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote, unit, lowerBetter, turnLog, reply, start }: WhatIfCardProps) {
   const w = t.whatIf;
   // Alt choice: two presets (0|1) or free text ("custom"). Default to the first
   // preset — a strong interest probe, the canonical "ask why" move.
@@ -886,13 +897,20 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
     if (loading || !altText) return;
     setLoading(true);
     setFailed(false);
-    const out = await run({ scenarioId, lang, moves, turnIndex, altText });
+    // Альтернатива — из того состояния, в котором игрок на самом деле был:
+    // вердикты судьи по прежним ходам и стартовые условия партии (F03).
+    const out = await run({
+      scenarioId, lang, moves, turnIndex, altText,
+      judges: turnLog?.map((r) => r.judge),
+      reputation: start?.reputation ?? null,
+      daily: start?.daily ?? null,
+    });
     setLoading(false);
     if (!out) {
       setFailed(true);
       return;
     }
-    setRes(out);
+    setRes({ ...out, original: recordedBranch(out.original, turnLog?.[turnIndex], reply) });
     setGrown(false);
     raf.current = requestAnimationFrame(() => setGrown(true));
   };
@@ -1011,7 +1029,10 @@ function Divergence({
   const uncovered = a.state.interests_found > o.state.interests_found;
   const trustHigher = a.deltas.trust > o.deltas.trust;
   const cooler = a.deltas.tension < o.deltas.tension;
-  const better = cooler && (uncovered || trustHigher || priceBetter);
+  // Сыгранный ход оценивал ИИ по смыслу, а альтернативу — нет: «так было бы
+  // лучше» на таком сравнении было бы заявлением, которого нет (принцип 2).
+  const approx = !!o.judged && !a.judged;
+  const better = !approx && cooler && (uncovered || trustHigher || priceBetter);
 
   // The one-line proof, built only from what's actually true.
   const bits: string[] = [];
@@ -1033,6 +1054,7 @@ function Divergence({
         <Branch t={t} lang={lang} label={w.wasLabel} b={o} grown={grown} unit={unit} alt={false} />
         <Branch t={t} lang={lang} label={w.couldLabel} b={a} grown={grown} unit={unit} alt />
       </div>
+      {approx ? <p className="wi-approx">{w.approxNote}</p> : null}
 
       <button className="wi-reveal ghost" type="button" onClick={onReset}>
         ↺ {w.again}

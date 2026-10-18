@@ -262,6 +262,35 @@ class OtherSide(BaseModel):
     windows: list[str] = Field(default_factory=list)
 
 
+class TurnJudge(BaseModel):
+    """Вердикт смыслового судьи по ходу — ровно те поля, что читает `apply_move`.
+
+    Едет в разборе и возвращается в «А что если»: без него переигровка считала
+    ход одними ключевыми словами, и «Как было» расходилось с сыгранной партией
+    (аудит 17.10, F03: доверие +5 вместо +9, информация 0 вместо +14). Заметка
+    и чипы приёмов сюда не входят — движок их не читает.
+    """
+    arg_score: Optional[int] = None
+    interest_targeted: Optional[int] = None
+    criteria_legitimate: Optional[bool] = None
+    tradeoff_real: Optional[bool] = None
+    batna_real: Optional[bool] = None
+    secondary_conceded: Optional[str] = None
+
+
+class TurnRecord(BaseModel):
+    """Сыгранный ход так, как его посчитал движок, — «Как было» в «А что если».
+
+    Берётся из хроники партии, а не пересчитывается: пересчёт без судьи и без
+    стартовых условий (репутация кампании, условие дня) давал другую партию.
+    """
+    deltas: Deltas
+    offer_after: float
+    #: Сколько интересов вскрыто ПОСЛЕ этого хода.
+    interests_found: int
+    judge: Optional[TurnJudge] = None
+
+
 class Debrief(BaseModel):
     overall: int
     grade: str  # A|B|C|D|F
@@ -294,6 +323,8 @@ class Debrief(BaseModel):
     #: Итог зеркального стола. Ключа нет на обычных столах — карточка режима,
     #: которого не было, не рисуется вовсе (принцип 2).
     other_side: Optional[OtherSide] = None
+    #: Ход за ходом, как посчитал движок. Ключа нет у партии без ходов.
+    turn_log: Optional[list[TurnRecord]] = None
 
 
 # ---- client -> server -------------------------------------------------------
@@ -330,3 +361,10 @@ class WhatIfMsg(BaseModel):
     moves: list[str] = Field(default_factory=list)  # player's actual lines, in order
     turnIndex: int                                   # 0-based move to replace
     altText: str                                     # the "what if I'd said…" line
+    # Стартовые условия и вердикты судьи СЫГРАННОЙ партии: альтернатива
+    # считается из того состояния, в котором игрок на самом деле был (F03).
+    # Брать их с клиента безопасно: «что если» ничего не сохраняет и в
+    # score_session не заходит.
+    judges: list[Optional[TurnJudge]] = Field(default_factory=list)
+    reputation: Optional[float] = None
+    daily: Optional[str] = None

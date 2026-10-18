@@ -3,8 +3,8 @@
 // Ported from legacy-node/public/demo.html; outputs are shaped to the protocol
 // (types.ts): Analysis, Deltas, StateView, Debrief. This lets the MockServer
 // behave like the real backend so the full UI works with no server running.
-import type { Lang } from "../types";
-import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, WhatIfBranch } from "../types";
+import type { Lang, Mode } from "../types";
+import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, TurnRecord, WhatIfBranch } from "../types";
 import { LEX, cnt, has, hasUnnegated, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
 import type { NumberMention } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
@@ -13,6 +13,8 @@ import type { CounterpartStyle, ScenarioDef } from "../data/scenarios";
 // Зеркальный стол сажает игрока в кресло персоны ОРИГИНАЛЬНОГО стола, и три
 // вещи, которые он там защищает, берутся оттуда целиком (см. otherSide ниже).
 import { SCENARIO_MAP, defendedInterests } from "../data/scenarios";
+import { dailyTable } from "../lib/daily";
+import { reproducibleRun } from "../lib/modes";
 
 const clamp = (v: number, lo = 0, hi = 100): number => Math.max(lo, Math.min(hi, v));
 
@@ -1254,7 +1256,45 @@ export function scoreSession(s: Session): Debrief {
     // Карточка зеркального стола — там же и по той же причине. На обычном
     // столе ключа нет вовсе (принцип 2).
     other_side: otherSide(s),
+    // Ход за ходом, как посчитал движок, — «Как было» в «А что если». Судьи
+    // офлайн нет. Зеркало views.py::turn_log.
+    ...(s.ledger.length ? { turn_log: turnLog(s) } : {}),
   };
+}
+
+function turnLog(s: Session): TurnRecord[] {
+  let found = 0;
+  return s.ledger.map((e) => {
+    if (e.revealed !== null && e.revealed !== undefined) found += 1;
+    const { trust, tension, info, leverage } = e.deltas;
+    return { deltas: { trust, tension, info, leverage }, offer_after: e.offerAfter, interests_found: found, judge: null };
+  });
+}
+
+/** Стартовые условия партии: репутация кампании и условие «стола дня». Одна
+ *  функция для офлайн-партии и для «А что если»: переигровка без них считала
+ *  другую партию (F03). Зеркало views.py::apply_start_conditions. */
+export function applyStartConditions(s: Session, def: ScenarioDef, reputation?: number | null,
+                                     daily?: string | null, mode?: Mode): void {
+  // Campaign reputation carries into this stage as a starting-trust nudge
+  // (mirrors backend views.apply_reputation: ±15 max, initial condition only —
+  // never scoring). Lets the offline demo show the carry-over take effect.
+  if (typeof reputation === "number") {
+    const nudge = Math.max(-15, Math.min(15, reputation * 0.12));
+    s.trust = Math.max(0, Math.min(100, s.trust + nudge));
+  }
+  // Условие «стола дня» — тем же способом и по той же причине: это вход
+  // партии, а не правило подсчёта. Ложится, ТОЛЬКО если стол того дня и правда
+  // этот, и никогда в партии НА ЗАЧЁТ — ни на экзамене, ни на капстоуне курса.
+  if (daily && !reproducibleRun(mode)) {
+    const table = dailyTable(new Date(daily + "T00:00:00"));
+    if (table.scenarioId === def.id) {
+      const m = table.modifier;
+      if (m.maxTurns !== null) s.maxTurns = m.maxTurns;
+      if (m.trust) s.trust = Math.max(0, Math.min(100, s.trust + m.trust));
+      if (m.tension) s.tension = Math.max(0, Math.min(100, s.tension + m.tension));
+    }
+  }
 }
 
 // ---------- «Обратная сторона стола» (зеркало views.py::other_side) ----------
@@ -1872,8 +1912,10 @@ export function herSide(s: Session): HerSide | null {
 // state — determinism by construction. The per-turn sequence (increment turn →
 // analyze → applyMove → renderLine) mirrors the MockServer loop exactly, so a
 // branch re-using the original text reproduces the real play bit-for-bit.
-export function whatIfBranch(def: ScenarioDef, lang: Lang, prefix: string[], branchText: string): WhatIfBranch {
+export function whatIfBranch(def: ScenarioDef, lang: Lang, prefix: string[], branchText: string,
+                             start?: { reputation?: number | null; daily?: string | null }): WhatIfBranch {
   const s = newSession(def, lang);
+  applyStartConditions(s, def, start?.reputation, start?.daily);
   for (const tx of prefix) {
     s.turn += 1;
     applyMove(s, analyze(tx), tx);
@@ -1888,6 +1930,8 @@ export function whatIfBranch(def: ScenarioDef, lang: Lang, prefix: string[], bra
     deltas: result.deltas,
     state: stateView(s),
     opponent_line: line,
+    // Судьи офлайн нет ни у одной ветки.
+    judged: false,
   };
 }
 

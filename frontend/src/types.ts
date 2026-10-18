@@ -191,6 +191,27 @@ export interface OtherSide {
   windows: string[];   // ходы, на которых вопрос по закрытой теме сработал бы
 }
 
+// Вердикт смыслового судьи по ходу — ровно те поля, что читает движок.
+// Едет в разборе и возвращается в «А что если»: без него переигровка считала
+// ход одними ключевыми словами (аудит 17.10, F03). Зеркало protocol.py::TurnJudge.
+export interface TurnJudge {
+  arg_score: number | null;
+  interest_targeted: number | null;
+  criteria_legitimate: boolean | null;
+  tradeoff_real: boolean | null;
+  batna_real: boolean | null;
+  secondary_conceded: string | null;
+}
+
+// Сыгранный ход так, как его посчитал движок, — «Как было» берётся отсюда, а
+// не пересчитывается. Зеркало protocol.py::TurnRecord.
+export interface TurnRecord {
+  deltas: Deltas;
+  offer_after: number;
+  interests_found: number; // вскрыто ПОСЛЕ этого хода
+  judge: TurnJudge | null;
+}
+
 export interface Debrief {
   attestation?: import("./components/ServerCertificate").Attestation | null;
   overall: number;
@@ -238,6 +259,8 @@ export interface Debrief {
   // Карточка зеркального стола. Ключа НЕТ на обычном столе — режима, которого
   // не было, на экране не бывает (принцип 2).
   other_side?: OtherSide | null;
+  // Ход за ходом, как посчитал движок. Ключа нет у партии без ходов.
+  turn_log?: TurnRecord[] | null;
 }
 
 // "А что если…" — the deterministic what-if replay. Because the engine is a pure
@@ -250,6 +273,11 @@ export interface WhatIfRequest {
   moves: string[]; // the player's own lines, in order
   turnIndex: number; // 0-based index into `moves` — the pivotal turn
   altText: string; // the stronger line to replay instead
+  // Стартовые условия и вердикты судьи СЫГРАННОЙ партии: альтернатива
+  // считается из того состояния, в котором игрок на самом деле был (F03).
+  judges?: (TurnJudge | null)[];
+  reputation?: number | null;
+  daily?: string | null;
 }
 
 // One replayed branch: the move's classification, meter swing, resulting state,
@@ -261,6 +289,9 @@ export interface WhatIfBranch {
   deltas: Deltas;
   state: StateView;
   opponent_line: string;
+  // Посчитан ли ход судьёй. Альтернативу судья не видел — экран обязан это
+  // сказать, а не сравнивать молча (принцип 2).
+  judged?: boolean;
 }
 
 export interface WhatIfResponse {

@@ -43,10 +43,13 @@ export function whatIfLocal(req: WhatIfRequest): WhatIfResponse | null {
   const moves = req.moves.slice(0, MAX_MOVES);
   if (req.turnIndex < 0 || req.turnIndex >= moves.length) return null;
   const prefix = moves.slice(0, req.turnIndex);
+  // Судьи офлайн нет, а стартовые условия партии есть: без них ветка считала
+  // бы другую партию (F03). «Как было» экран берёт из хроники разбора.
+  const start = { reputation: req.reputation, daily: req.daily };
   return {
     turnIndex: req.turnIndex,
-    original: whatIfBranch(def, req.lang, prefix, moves[req.turnIndex]),
-    alternative: whatIfBranch(def, req.lang, prefix, req.altText),
+    original: whatIfBranch(def, req.lang, prefix, moves[req.turnIndex], start),
+    alternative: whatIfBranch(def, req.lang, prefix, req.altText, start),
   };
 }
 

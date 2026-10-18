@@ -16,6 +16,7 @@ import {
 } from "./lib/courseMap";
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
+import { repliesByMove } from "./lib/whatif";
 import { LayersPanel } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard, RailGroup, DailyCard, StreakCard } from "./components/Rail";
 import { SectionTour } from "./components/SectionTour";
@@ -1401,6 +1402,10 @@ export default function App() {
           runWhatIf={(req) =>
             import("./api/whatif").then((m) => m.whatIf(nego.kind, req)).catch(() => null)}
           whatIfMoves={nego.log.filter((e) => e.kind === "me").map((e) => e.text)}
+          // «Как было» — настоящий ответ оппонента и стартовые условия партии,
+          // а не пересчёт с нуля (аудит 17.10, F03).
+          whatIfReplies={repliesByMove(nego.log)}
+          whatIfStart={{ reputation: activeRunRef.current?.options?.reputation, daily: activeRunRef.current?.options?.daily }}
           whatIfScenarioId={nego.scenario?.id ?? currentScenario ?? undefined}
           whatIfUnit={nego.scenario?.headline_unit}
           // Direction: target below reservation = the player wants a LOWER number.

@@ -136,3 +136,89 @@ def test_unknown_scenario_returns_400():
         "turnIndex": 2, "altText": "x",
     })
     assert r.status_code == 400
+
+
+# ---- Аудит 17.10, F03: «Как было» обязано совпасть с сыгранным ходом ----------
+
+def _judged_game(moves, judges, reputation=None):
+    """Партия, как её ведёт оркестратор: судья → apply_move → журнал."""
+    from app import views
+
+    sess = engine.create_session("supplier", "ru")
+    if reputation is not None:
+        views.apply_reputation(sess, reputation)
+    for text, judge in zip(moves, judges):
+        sess.turn += 1
+        result = engine.apply_move(sess, engine.analyze(text), text, judge=judge)
+        sess.log.append({"role": "player", "text": text, "judge": judge,
+                         "turn": sess.turn, "deltas": result.deltas})
+    return sess
+
+
+#: Первый ход с вердиктом судьи даёт ровно цифры аудита: доверие +9,
+#: напряжение −7, информация +14, цена 97. Без вердикта — +5/−4/0 и «Ок,
+#: слышу. Пока что 100 руб./шт» — то самое «Как было» из отчёта.
+JUDGED_MOVES = [
+    "Добрый день, рад знакомству!",
+    "А что для вас важнее всего в этой сделке?",
+]
+JUDGES = [{"arg_score": 70, "interest_targeted": 0, "note": "n", "techniques": []}, None]
+
+
+def test_the_debrief_carries_the_turns_as_they_were_played():
+    from app import views
+
+    sess = _judged_game(JUDGED_MOVES, JUDGES)
+    log = views.debrief_view(sess).model_dump()["turn_log"]
+    assert len(log) == 2
+    assert log[0]["deltas"] == {k: sess.ledger[0]["deltas"][k]
+                                for k in ("trust", "tension", "info", "leverage")}
+    assert (log[0]["deltas"]["trust"], log[0]["deltas"]["tension"], log[0]["deltas"]["info"]) == (9, -7, 14)
+    assert log[0]["offer_after"] == sess.ledger[0]["offer_after"]
+    # Заметка и чипы в разбор не едут — движок их не читает.
+    assert set(log[0]["judge"]) == set(views.JUDGE_REPLAY_KEYS)
+    assert log[1]["judge"] is None
+
+
+def test_the_original_branch_reproduces_a_judged_turn_exactly():
+    """Без вердикта судьи переигровка давала другой ход — та самая ошибка
+    аудита (доверие +5 вместо +9, информация 0 вместо +14, цена 100 вместо 97)."""
+    from app import views
+
+    sess = _judged_game(JUDGED_MOVES, JUDGES)
+    log = views.debrief_view(sess).model_dump()["turn_log"]
+    body = {"scenarioId": "supplier", "lang": "ru", "moves": JUDGED_MOVES, "turnIndex": 0,
+            "altText": "Давайте обсудим цену."}
+
+    blind = client.post("/api/whatif", json=body).json()["original"]
+    assert (blind["deltas"], blind["state"]["offer_opp"]) != (log[0]["deltas"], log[0]["offer_after"]), (
+        "сценарий теста не воспроизводит расхождение — судья ничего не менял")
+
+    res = client.post("/api/whatif", json={**body, "judges": [e["judge"] for e in log]}).json()
+    assert res["original"]["deltas"] == log[0]["deltas"]
+    assert res["original"]["state"]["offer_opp"] == log[0]["offer_after"]
+    assert res["original"]["state"]["interests_found"] == log[0]["interests_found"]
+    assert res["original"]["judged"] is True and res["alternative"]["judged"] is False
+
+
+def test_the_alternative_starts_from_the_real_pre_turn_state():
+    """Ход 2 переигрывается поверх ПЕРВОГО хода с его вердиктом и с репутацией
+    кампании: тем же текстом альтернатива обязана дать ровно сыгранный ход."""
+    from app import views
+
+    sess = _judged_game(JUDGED_MOVES, JUDGES, reputation=60)
+    log = views.debrief_view(sess).model_dump()["turn_log"]
+    res = client.post("/api/whatif", json={
+        "scenarioId": "supplier", "lang": "ru", "moves": JUDGED_MOVES, "turnIndex": 1,
+        "altText": JUDGED_MOVES[1], "judges": [e["judge"] for e in log], "reputation": 60,
+    }).json()
+    assert res["alternative"]["deltas"] == log[1]["deltas"]
+    assert res["alternative"]["state"]["offer_opp"] == log[1]["offer_after"]
+
+
+def test_a_foreign_judge_index_is_dropped_not_crashing():
+    res = client.post("/api/whatif", json={
+        "scenarioId": "supplier", "lang": "ru", "moves": JUDGED_MOVES, "turnIndex": 1,
+        "altText": "Хорошо.", "judges": [{"arg_score": 900, "interest_targeted": 99}, None],
+    })
+    assert res.status_code == 200

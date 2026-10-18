@@ -14,9 +14,11 @@ from app.engine.campaigns import Campaign
 from app.engine.engine import REPEAT_HARD, _js_round
 from app.engine.format import format_number
 from app.engine.difficulty import normalize_difficulty
+from typing import Optional
+
 from app.protocol import (
     Analysis, Tag, Flags, Deltas, StateView, ScenarioView, SecondaryIssueView, Debrief,
-    CampaignView, CampaignStageView, DefendedInterest,
+    CampaignView, CampaignStageView, DefendedInterest, reproducible_run,
 )
 
 
@@ -108,7 +110,76 @@ def debrief_view(sess: "engine.Session") -> Debrief:
     other = other_side(sess)
     if other is not None:
         d["other_side"] = other
+    log = turn_log(sess)
+    if log:
+        d["turn_log"] = log
     return Debrief(**d)
+
+
+#: Поля вердикта судьи, которые читает движок (`apply_move`). Остальное —
+#: заметка и чипы — к пересчёту хода отношения не имеет.
+JUDGE_REPLAY_KEYS = ("arg_score", "interest_targeted", "criteria_legitimate",
+                     "tradeoff_real", "batna_real", "secondary_conceded")
+
+
+def turn_log(sess: "engine.Session") -> list[dict]:
+    """Хроника партии для «Как было»: дельты, цена после хода, вскрытые интересы
+    и вердикт судьи — ровно то, что было, а не пересчёт (F03)."""
+    judges = [e.get("judge") for e in sess.log if e.get("role") == "player"]
+    out, found = [], 0
+    for i, e in enumerate(sess.ledger):
+        if e.get("revealed") is not None:
+            found += 1
+        j = judges[i] if i < len(judges) and isinstance(judges[i], dict) else None
+        out.append({
+            "deltas": dict(e["deltas"]),
+            "offer_after": e["offer_after"],
+            "interests_found": found,
+            "judge": {k: j.get(k) for k in JUDGE_REPLAY_KEYS} if j else None,
+        })
+    return out
+
+
+def replay_judge(sc: "engine.Scenario", lang: str, j: Optional[dict]) -> Optional[dict]:
+    """Вердикт с клиента — в те же границы, в какие судью ставит `_validate`:
+    индекс интереса чужого стола уронил бы движок, а балл вне 0..100 — шкалу."""
+    if not j:
+        return None
+    d = {k: j.get(k) for k in JUDGE_REPLAY_KEYS}
+    if d["arg_score"] is not None:
+        d["arg_score"] = max(0, min(100, int(d["arg_score"])))
+    idx = d["interest_targeted"]
+    if idx is not None and not (0 <= idx < len(sc.hidden_interests[lang])):
+        d["interest_targeted"] = None
+    return d
+
+
+def apply_start_conditions(sess: "engine.Session", scenario_id: str, reputation: Optional[float],
+                           daily: Optional[str], game_mode: Optional[str]) -> Optional[str]:
+    """Стартовые условия партии: репутация кампании и условие «стола дня».
+
+    Одна функция для живой партии и для «А что если»: переигровка без них
+    считала другую партию (F03). Возвращает id условия дня, если оно легло.
+    """
+    if reputation is not None:
+        apply_reputation(sess, reputation)
+    # УСЛОВИЕ ДНЯ. Накладывается той же схемой, что репутация кампании: это вход
+    # партии (длина, стартовые шкалы), а не правило подсчёта — `score_session`
+    # о нём не знает. Дату присылает клиент; сверяем, что стол ТОГО дня и правда
+    # этот, иначе «короткий стол» можно было бы выпросить на любом сценарии.
+    # В зачётной партии условия дня нет вовсе: капстоун со срезанным лимитом
+    # ходов — уже не тот капстоун, который доказан прогоном движка.
+    if daily and not reproducible_run(game_mode):
+        from datetime import date as _date
+        from app.engine.daily import apply_modifier, daily_table
+        try:
+            table = daily_table(_date.fromisoformat(daily))
+        except ValueError:
+            table = None
+        if table is not None and table.scenario_id == scenario_id:
+            apply_modifier(sess, table.modifier)
+            return table.modifier.id
+    return None
 
 
 # ---- AI facts ---------------------------------------------------------------

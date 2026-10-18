@@ -692,6 +692,9 @@ export interface Strings {
     meters: { trust: string; tension: string; info: string };
     betterBanner: string; // shown when the alt is genuinely better
     neutralBanner: string; // honest fallback when it isn't clearly better
+    // Альтернативу ИИ по смыслу не оценивал, а сыгранный ход — оценивал:
+    // сравнение не на равных, и экран обязан это сказать (принцип 2).
+    approxNote: string;
     insteadOf: string; // "вместо" — "tension −3 instead of +22"
     uncovered: string; // "вы бы вскрыли интерес"
     trustHigher: string; // "доверие выше"
@@ -1670,6 +1673,7 @@ export const I18N: Record<Lang, Strings> = {
       meters: { trust: "Доверие", tension: "Напряжение", info: "Информация" },
       betterBanner: "Так было бы лучше",
       neutralBanner: "Сравните исходы",
+      approxNote: "Эта реплика посчитана только по правилам, без оценки ИИ по смыслу, — а ваш ход ИИ оценивал. Сравнение приблизительное.",
       insteadOf: "вместо",
       uncovered: "вы бы вскрыли интерес",
       trustHigher: "доверие выше",
@@ -2639,6 +2643,7 @@ export const I18N: Record<Lang, Strings> = {
       meters: { trust: "Trust", tension: "Tension", info: "Info" },
       betterBanner: "This would have gone better",
       neutralBanner: "Compare the outcomes",
+      approxNote: "This line was counted by the rules only, without the AI reading its meaning — your real move had that. The comparison is approximate.",
       insteadOf: "instead of",
       uncovered: "you'd have uncovered an interest",
       trustHigher: "trust higher",
