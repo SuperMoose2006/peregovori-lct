@@ -599,6 +599,23 @@ def test_spa_fallback_never_serves_files_outside_dist(path):
     assert body.lstrip().lower().startswith("<!doctype html>")
 
 
+def test_head_on_media_answers_like_get_and_still_stays_inside_dist():
+    """Аудит 17.10, R04: HEAD на портрет или маскот давал 405 при рабочем GET
+    — мониторинг и кэши видели «нет такого метода». Замок пути — тот же."""
+    from app.main import _DIST
+
+    if not os.path.isdir(os.path.join(_DIST, "mascots")):
+        pytest.skip("frontend/dist не собран — маршрута нет")
+    name = sorted(os.listdir(os.path.join(_DIST, "mascots", "karl")))[0]
+    head = client.head(f"/mascots/karl/{name}")
+    get = client.get(f"/mascots/karl/{name}")
+    assert head.status_code == 200 and get.status_code == 200
+    assert head.headers.get("content-length") == get.headers.get("content-length")
+    assert head.content == b""
+    leak = client.head("/../../services/gateway/.env")
+    assert leak.status_code == 200 and "text/html" in leak.headers.get("content-type", "")
+
+
 # ---------------------------------------------------------------------------
 # 8. Голосовой ход: звук приходит с улицы тем же сокетом
 # ---------------------------------------------------------------------------

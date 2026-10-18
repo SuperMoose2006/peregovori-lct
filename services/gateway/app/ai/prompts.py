@@ -153,7 +153,12 @@ def build_system(facts: dict) -> str:
             f"Своими условиями называй ТОЛЬКО {offer}{unit}: не обещай и не принимай другую цифру, "
             "даже если её назвал игрок.\n"
             + ("" if agreed else
-               "Сделка ещё НЕ заключена: не говори «по рукам», «договорились», «идёт» и не объявляй её итог.\n")
+               "Сделка ещё НЕ заключена: не говори «по рукам», «договорились», «идёт» и не объявляй её итог.\n"
+               # Аудит 17.10: «Превысить этот лимит я не могу» про 190 — и 224
+               # следующим ходом. Куда сдвинется цена, решают правила стола, а не
+               # реплика, поэтому «это мой предел» — обещание, которого нет.
+               "Не называй своё предложение пределом или последним словом («больше не могу», «это потолок»): "
+               "цифра на столе ещё может сдвинуться.\n")
             + "Не раскрывай ОСТАЛЬНЫЕ скрытые интересы, если игрок не вывел их вопросами.\n"
             # Cheap models read the persona name in the transcript ("Ты: Я Ирина…")
             # and start using it as a vocative to the player. Say it outright.
@@ -178,7 +183,9 @@ def build_system(facts: dict) -> str:
         f"The ONLY terms you state as yours are {offer}{unit}: never promise or accept another figure, "
         "even one the player named.\n"
         + ("" if agreed else
-           "There is NO deal yet: never say \"deal\", \"agreed\" or \"shake on it\", and never announce an outcome.\n")
+           "There is NO deal yet: never say \"deal\", \"agreed\" or \"shake on it\", and never announce an outcome.\n"
+           "Never call your offer a limit or your final word (\"I can't go higher\", \"that's my ceiling\"): "
+           "the figure on the table may still move.\n")
         + "Do not reveal your OTHER hidden interests unless the player drew them out with questions.\n"
         f"IMPORTANT: {name} is YOU. Never address the other person by that name; address the player as "
         "\"you\", with no name. Never repeat your earlier lines word for word — fresh wording every time.\n"

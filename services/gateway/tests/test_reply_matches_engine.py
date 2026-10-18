@@ -130,6 +130,8 @@ def test_the_prompt_forbids_other_terms_and_a_deal_that_is_not_there():
     assert "ТОЛЬКО 99.2% аптайм" in ru and "НЕ заключена" in ru
     assert "ONLY terms you state as yours are 99.2% аптайм" in en and "NO deal yet" in en
     assert "НЕ заключена" not in _tough("ru", "agreement")
+    # «Превысить этот лимит я не могу» про 190 — и 224 следующим ходом (кампания).
+    assert "пределом или последним словом" in ru and "limit or your final word" in en
 
 
 def test_facts_carry_the_table_for_the_check():

@@ -761,7 +761,9 @@ if SERVES_SPA:
         # падает ПРИ ИМПОРТЕ, то есть недособранный фронтенд уносил бы и API.
         app.mount("/assets", StaticFiles(directory=_ASSETS), name="assets")
 
-    @app.get("/{full_path:path}")
+    # HEAD — тем же маршрутом: мониторинг и кэши спрашивают HEAD, а портреты и
+    # маскоты отвечали на него 405 при рабочем GET (аудит 17.10, R04).
+    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
     def spa(full_path: str):  # SPA fallback for client-side routes
         # ПУТЬ ОБЯЗАН ОСТАТЬСЯ ВНУТРИ dist. `full_path` приходит с улицы, и
         # `os.path.join(_DIST, "../../services/gateway/.env")` — это настоящий
