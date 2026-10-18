@@ -326,6 +326,21 @@ export function sameScorecard(a: import("../types").Debrief, b: import("../types
     && a.relationship === b.relationship && a.technique === b.technique;
 }
 
+/** Пузырь оппонента, который ещё печатается в ЭТОМ ходе, — или -1.
+ *  Ищется назад до последней реплики игрока, а не только в последней записи:
+ *  посреди потока в ленту встаёт уведомление (синтез речи упал — notice c
+ *  keepBusy) или заглушка подсказки, и хвост реплики уходил в новый пузырь, а
+ *  первый навсегда оставался «печатающимся» с сырым текстом. До реплики
+ *  игрока — чтобы не дописать в пузырь прошлого хода. */
+function streamingOpp(log: ChatEntry[]): number {
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i];
+    if (e.kind === "opp" && e.streaming) return i;
+    if (e.kind === "me") return -1;
+  }
+  return -1;
+}
+
 // Pure reducer over the ServerMsg stream.
 //
 // Экспортируется ради прибора: `test/analysis-latency.test.ts` прогоняет через
@@ -351,9 +366,10 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
 
     case "opponent_delta": {
       const log = [...prev.log];
-      const last = log[log.length - 1];
-      if (last && last.kind === "opp" && last.streaming) {
-        log[log.length - 1] = { ...last, text: last.text + msg.chunk };
+      const at = streamingOpp(log);
+      const open = at >= 0 ? log[at] : null;
+      if (open && open.kind === "opp") {
+        log[at] = { ...open, text: open.text + msg.chunk };
       } else {
         log.push({ id: nextId(), kind: "opp", text: msg.chunk, streaming: true });
       }
@@ -406,9 +422,9 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
         break;
       }
       // Finalize (or add) the opponent bubble with the authoritative text.
-      const last = log[log.length - 1];
-      if (last && last.kind === "opp" && last.streaming) {
-        log[log.length - 1] = { id: last.id, kind: "opp", text: msg.text };
+      const at = streamingOpp(log);
+      if (at >= 0) {
+        log[at] = { id: log[at].id, kind: "opp", text: msg.text };
       } else {
         log.push({ id: nextId(), kind: "opp", text: msg.text });
       }
