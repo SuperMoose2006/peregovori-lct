@@ -1512,11 +1512,16 @@ export function chooseNextStep(profile: Profile, input: RouteInput): NextStepPic
 
   // 4. Начатая, но не пройденная кампания — следующий акт. Непочатую сюда не
   //    тащим: «начать кампанию» это выбор истории, а не следующий шаг.
-  for (const c of input.campaigns) {
-    const p = profile.campaigns[c.id];
-    if (!p || !p.updatedAt) continue;
-    if (p.stageIndex >= c.stages) continue;
-    return { ...NO_STEP, kind: "campaign", campaignId: c.id, stageIndex: p.stageIndex };
+  //    Из двух начатых — та, что играли последней, как и список кампаний на
+  //    главной (activeCampaignId): по порядку каталога карточка звала в
+  //    «Восхождение», а список под ней открывал «Своё дело» (после аудита 17.10).
+  const resumable = input.campaigns
+    .map((c) => ({ c, p: profile.campaigns[c.id] }))
+    .filter(({ c, p }) => !!p && !!p.updatedAt && p.stageIndex < c.stages)
+    .sort((a, b) => (b.p!.updatedAt > a.p!.updatedAt ? 1 : b.p!.updatedAt < a.p!.updatedAt ? -1 : 0));
+  if (resumable.length) {
+    const { c, p } = resumable[0];
+    return { ...NO_STEP, kind: "campaign", campaignId: c.id, stageIndex: p!.stageIndex };
   }
 
   // 5. Первый ещё не открытый блок курса.

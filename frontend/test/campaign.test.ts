@@ -9,7 +9,6 @@ import { synthCampaigns } from "../src/data/campaigns";
 import { EPILOGUE_BANDS } from "../src/data/campaigns.generated";
 import { epilogueKey } from "../src/components/CampaignScreen";
 import { SCENARIO_MAP } from "../src/data/scenarios";
-import { SCENARIO_MAP } from "../src/data/scenarios";
 import type { ServerMsg } from "../src/types";
 
 function harness() {
@@ -218,4 +217,31 @@ test("офлайн оппонент кампании тоже ссылается
 
   const warmEn = await greet(80, "en");
   assert.ok(warmEn && !/[а-яё]/i.test(warmEn), `кириллица в английском: ${warmEn}`);
+});
+
+test("итог кампании не называет чужую кампанию", async () => {
+  // После аудита 17.10: экран итога общий, а говорил «Восхождение · итог» /
+  // "The Climb · summary" и "Climb again" — и на «Своём деле».
+  const { I18N } = await import("../src/i18n");
+  for (const lang of ["ru", "en"] as const) {
+    const c = I18N[lang].campaign;
+    for (const s of [c.completeEyebrow, c.completeTitle, c.replay]) {
+      assert.ok(!/восхожд|climb/i.test(s), `${lang}: «${s}» показывается и на «Своём деле»`);
+    }
+  }
+});
+
+test("офлайн: репутация вне кампании молчит, как на сервере", async () => {
+  // Сервер добавляет реплику о репутации только при game_mode == "campaign";
+  // офлайн-ядро — при любом присланном числе (инвариант 8).
+  for (const [mode, heard] of [["practice", false], ["campaign", true]] as const) {
+    let text: string | null = null;
+    const srv = new MockServer((m: ServerMsg) => { if (m.type === "greeting") text = m.text; });
+    srv.send({ type: "start", scenarioId: "salary", lang: "ru", mode, reputation: 80 } as never);
+    for (let i = 0; i < 100 && text === null; i++) await new Promise((r) => setTimeout(r, 10));
+    srv.close();
+    const intro = Object.values((await import("../src/data/campaigns.generated")).REPUTATION_LINES)
+      .some((line) => !!(line as { ru: string })?.ru && String(text).includes((line as { ru: string }).ru));
+    assert.equal(intro, heard, `${mode}: «${text}»`);
+  }
 });

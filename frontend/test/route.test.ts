@@ -275,3 +275,17 @@ test("маршрут и карточки пересчитываются в по�
   const { dailyTable } = await import("../src/lib/daily");
   assert.notEqual(dailyTable(new Date(2026, 9, 18, 23, 59)).scenarioId, dailyTable(new Date(2026, 9, 19, 0, 1)).scenarioId);
 });
+
+test("маршрут · две начатые кампании → та, что играли последней", () => {
+  // После аудита 17.10: по порядку каталога карточка звала в «Восхождение»,
+  // а список кампаний под ней открывал «Своё дело», сыгранное позже.
+  let p = played(emptyProfile(), "supplier", "A", 92);
+  p = recordCampaignStage(p, "career", 4, "B", 74, new Date("2026-03-01T09:00:00Z"));
+  p = recordCampaignStage(p, "own_shop", 4, "B", 74, new Date("2026-03-05T09:00:00Z"));
+  p = recordCampaignStage(p, "own_shop", 4, "B", 74, new Date("2026-03-06T09:00:00Z"));
+  assert.equal(activeCampaignId(p, ["career", "own_shop"]), "own_shop");
+  const pick = chooseNextStep(p, INPUT);
+  assert.equal(pick.kind, "campaign");
+  assert.equal(pick.campaignId, "own_shop");
+  assert.equal(pick.stageIndex, 2);
+});
