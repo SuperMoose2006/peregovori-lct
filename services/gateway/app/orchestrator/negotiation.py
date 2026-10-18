@@ -440,7 +440,8 @@ class NegotiationOrchestrator:
         sess = self.session
         deb = views.debrief_view(sess.engine_session).model_dump()
         if sess.game_mode == "exam":
-            from app.attestation import issue
+            from app.attestation import enabled, issue
+            deb["attestation_enabled"] = enabled()
             try:
                 deb["attestation"] = await asyncio.to_thread(issue, sess)
             except Exception:

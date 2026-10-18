@@ -214,6 +214,9 @@ export interface TurnRecord {
 
 export interface Debrief {
   attestation?: import("./components/ServerCertificate").Attestation | null;
+  // Включена ли серверная аттестация вообще. `false` — на этом сервере её нет
+  // (или партия офлайн): экран говорит «не включена», а не «не подтверждено».
+  attestation_enabled?: boolean;
   overall: number;
   grade: string; // A|B|C|D|F
   economic: number;

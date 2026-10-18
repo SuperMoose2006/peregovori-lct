@@ -198,6 +198,8 @@ export class MockServer implements Transport {
       await this.delay(650);
       const debrief = scoreSession(s);
       debrief.turning_points = synthTurningPoints(this.turns, s.lang);
+      // Реестра свидетельств офлайн нет: экзамен честно говорит «не включена».
+      debrief.attestation_enabled = false;
       this.emit({ type: "debrief", debrief });
     }
   }

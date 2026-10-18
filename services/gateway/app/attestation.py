@@ -36,6 +36,18 @@ def _config() -> tuple[bytes, Path] | None:
     return bytes.fromhex(key), path
 
 
+def enabled() -> bool:
+    """Включена ли аттестация на этом сервере вообще.
+
+    Разбор экзамена несёт этот признак рядом со свидетельством: `None` у
+    свидетельства значит и «выключено», и «попытка не подходит», и «реестр
+    отказал», а экран писал на всё «не подтверждено серверным реестром» —
+    в том числе на стенде, где аттестацию не включали (аудит 17.10, F07).
+    Слой, которого нет, говорит «не включено» (принцип 2).
+    """
+    return _config() is not None
+
+
 def _canonical(record: dict) -> str:
     return json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
 

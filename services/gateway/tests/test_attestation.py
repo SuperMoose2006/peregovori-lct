@@ -147,3 +147,23 @@ def test_full_websocket_exam_delivers_evidence_or_safe_failure(registry, monkeyp
             signed = deb["attestation"]
             assert signed["record"]["overall"] == deb["overall"]
             assert attestation.lookup(signed["record"]["id"]) == signed
+
+
+def test_the_switch_reports_whether_the_server_attests_at_all(registry, monkeypatch):
+    """Аудит 17.10, F07: на стенде без ключа экран писал «не подтверждено
+    серверным реестром». Разбор экзамена теперь несёт признак, включена ли
+    аттестация вообще, — и экран говорит «не включена»."""
+    assert attestation.enabled() is True
+    monkeypatch.delenv("NEGO_ATTESTATION_KEY")
+    assert attestation.enabled() is False
+    monkeypatch.setenv("NEGO_ATTESTATION_KEY", "ab" * 32)
+    monkeypatch.setenv("NEGO_ATTESTATION_DB", "relative/path.sqlite")
+    assert attestation.enabled() is False
+
+
+def test_the_exam_debrief_carries_the_switch(monkeypatch):
+    import inspect
+    from app.orchestrator import negotiation
+
+    src = inspect.getsource(negotiation.NegotiationOrchestrator._send_debrief)
+    assert 'deb["attestation_enabled"] = enabled()' in src

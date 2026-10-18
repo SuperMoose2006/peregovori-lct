@@ -365,7 +365,7 @@ export function Debrief({
           </div>
 
           {passed ? <div className="cert-certifies">{t.exam.certifies}</div> : null}
-          {exam ? <ServerCertificate evidence={d.attestation} lang={lang} /> : null}
+          {exam ? <ServerCertificate evidence={d.attestation} enabled={d.attestation_enabled} lang={lang} /> : null}
 
           <div className="export-actions" role="group" aria-label={exportCopy.group}>
             <button className="btn ghost" type="button" onClick={() => saveReport("txt")}><span aria-hidden="true">↓</span> {exportCopy.text}</button>

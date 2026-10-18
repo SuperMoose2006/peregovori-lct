@@ -7,9 +7,13 @@ export interface Attestation {
   signature: string;
 }
 
-export function ServerCertificate({ evidence, lang }: { evidence?: Attestation | null; lang: Lang }) {
+export function ServerCertificate({ evidence, lang, enabled }: {
+  evidence?: Attestation | null; lang: Lang;
+  /** `false` — аттестации на этом сервере нет вовсе (аудит 17.10, F07). */
+  enabled?: boolean;
+}) {
   const [verified, setVerified] = useState<Attestation | null>(null);
-  const id = evidence?.record?.id;
+  const id = enabled === false ? undefined : evidence?.record?.id;
   useEffect(() => {
     setVerified(null);
     if (!id || !/^att_[0-9a-f]{32}$/.test(id)) return;
@@ -36,7 +40,12 @@ export function ServerCertificate({ evidence, lang }: { evidence?: Attestation |
       <a href={apiUrl(`/api/attestations/${current.record.id}/document`)} target="_blank" rel="noreferrer">
         {lang === "ru" ? "Открыть проверенное свидетельство для печати" : "Open verified certificate for printing"}
       </a>
-    </> : <p>{lang === "ru"
+    </> : enabled === false ? <p>{lang === "ru"
+      // Не «не подтверждено»: проверять тут нечего — свидетельства на этом
+      // сервере не выдают. Принцип 2: слой, которого нет, так и говорит.
+      ? "На этом сервере выдача свидетельств не включена. Учебный результат сохранён отдельно."
+      : "Certificates are not issued on this server. The practice result is recorded separately."}</p>
+    : <p>{lang === "ru"
       ? "Подписанное свидетельство не подтверждено серверным реестром. Учебный результат сохранён отдельно."
       : "A signed certificate has not been confirmed by the server registry. The practice result is recorded separately."}</p>}
   </section>;
