@@ -240,3 +240,16 @@ test("камеру, которой нет в звонке, поднимают т
   const at = up.indexOf(I18N.ru.call.camOff);
   assert.doesNotMatch(up.slice(up.lastIndexOf("<button", at), up.indexOf(">", up.lastIndexOf("<button", at))), /disabled/);
 });
+
+test("тосты не прячутся под звонком", async () => {
+  // Найдено ревью: тост вскрытого интереса стоял в разметке РАНЬШЕ звонка при
+  // том же z-index и рисовался под ним; тосты достижений — слоем ниже звонка.
+  const { readFileSync } = await import("node:fs");
+  const table = readFileSync(new URL("../src/components/Table.tsx", import.meta.url), "utf8");
+  const call = table.slice(table.indexOf("if (call) {"), table.indexOf("return (\n    <section className=\"screen\">"));
+  assert.ok(call.indexOf("<CallView") < call.indexOf('className="toast"'), "тост интереса снова под звонком");
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  const z = (sel: RegExp) => Number(css.match(sel)?.[1]);
+  assert.ok(z(/\.app\.in-call \.ach-toasts \{ z-index: (\d+)/) > z(/\.call \{[^}]*z-index: (\d+)/),
+    "достижения под звонком");
+});

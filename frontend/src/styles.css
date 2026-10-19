@@ -4132,6 +4132,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    Меню и шапка под звонком прячутся `visibility`, а не `display`: так они
    уходят и из обхода клавиатурой, и из дерева доступности, а раскладка под
    звонком не перестраивается — после «Завершить» стол стоит, где стоял. */
+/* Достижения могут прийти, пока звонок ещё на экране (итог партии держится
+   паузой), — их слой выше звонка, иначе праздник шёл бы под ним. */
+.app.in-call .ach-toasts { z-index: 61; }
 .app.in-call > .skip, .app.in-call > .sidenav,
 .app.in-call .appbody > .top, .app.in-call .appbody > .foot { visibility: hidden; }
 .call { position: fixed; inset: 0; z-index: 60; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;

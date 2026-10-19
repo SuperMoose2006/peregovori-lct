@@ -575,11 +575,6 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
   if (call) {
     return (
       <>
-        {toast ? (
-          <div className="toast" role="status">
-            <Icon name="target" /> {t.interestToast}
-          </div>
-        ) : null}
         <CallView
           t={t}
           lang={lang}
@@ -624,6 +619,14 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
           hangupPending={hangupPending}
           outcome={outcomeEl}
         />
+        {/* ПОСЛЕ звонка, а не до: у обоих один слой (z-index 60), и тост,
+            стоявший раньше в разметке, рисовался ПОД звонком — вскрытый
+            интерес праздновался невидимо (найдено ревью). */}
+        {toast ? (
+          <div className="toast" role="status">
+            <Icon name="target" /> {t.interestToast}
+          </div>
+        ) : null}
       </>
     );
   }
