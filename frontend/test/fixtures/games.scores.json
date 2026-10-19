@@ -33,9 +33,9 @@
   },
   {
    "value": 6.5,
-   "unit": "дней сдвига",
-   "ru": "6,5дней сдвига",
-   "en": "6.5дней сдвига"
+   "unit": " дн. сдвига",
+   "ru": "6,5 дн. сдвига",
+   "en": "6.5 дн. сдвига"
   },
   {
    "value": 230,
@@ -861,7 +861,7 @@
    "economic": 83,
    "relationship": 98,
    "technique": 66,
-   "deal_text": "7 дней сдвига",
+   "deal_text": "7 дн. сдвига",
    "status": "agreement",
    "interests_found": 3,
    "offer_opp": 7.0,
@@ -1576,7 +1576,7 @@
    "economic": 100,
    "relationship": 100,
    "technique": 79,
-   "deal_text": "11,5 дней сдвига",
+   "deal_text": "11,5 дн. сдвига",
    "status": "agreement",
    "interests_found": 3,
    "offer_opp": 11.5,
