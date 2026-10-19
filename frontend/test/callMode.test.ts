@@ -336,3 +336,25 @@ test("«видеть себя в созвоне» — переключатель
   assert.ok(call(false).includes(I18N.ru.call.showSelf));
   assert.doesNotMatch(call(true), /class="call-self hidden/);
 });
+
+test("пока звонок подключается, микрофон и камера «ждём», а не «включено»", async () => {
+  // Третье ревью: до приёма сокета устройства ещё не спрашивались (`off`),
+  // а камера, обещанная звонку, рисовалась «Выключить камеру» над пустой
+  // плиткой; сведения о микрофоне были ещё от чата.
+  const { CallView } = await import("../src/components/CallView");
+  const c = I18N.ru.call;
+  const html = renderToStaticMarkup(createElement(CallView, {
+    t: I18N.ru, lang: "ru", scenario: { id: "supplier", counterpart_name: "Марина", counterpart_persona: "",
+      headline_unit: "₽" } as never,
+    state: null, status: "connecting", avatarState: null, renderer: "portrait", synthetic: false,
+    videoPending: false, oppSpeaking: false, speech: null, subtitle: null, transcript: null,
+    micAvailable: false, devices: { mic: "off", camera: "off" }, micFail: null, micMuted: false, onToggleMic: () => {},
+    camera: { up: true, off: false, reason: null }, onToggleCamera: () => {},
+    hud: null, turnLabel: "", feed: null, hint: null, hintEnabled: true, hintDisabled: false,
+    onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: null,
+  }));
+  assert.ok(!html.includes(c.camOff), "«Выключить камеру» над камерой, которой ещё нет");
+  assert.ok(html.includes(c.camWaiting) && html.includes(c.micWaiting));
+  assert.ok(!html.includes(I18N.ru.meeting.noMic), "«Микрофона нет» — сведения ещё от чата");
+  assert.doesNotMatch(html, /class="call-self[^"]*live/);
+});
