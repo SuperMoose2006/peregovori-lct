@@ -425,6 +425,20 @@ def test_a_million_and_thousands_are_one_number():
     assert s.state.offer_player == 1200
 
 
+@pytest.mark.parametrize("line", ["Договорились на 1 млн 200 тыс.", "Договорились на 1 млн. 200 тысяч."])
+def test_an_abbreviated_million_and_thousands_are_one_number(line):
+    """Найдено после аудита 17.10 (лежало в «не исправлено»): сокращениями
+    «1 млн 200 тыс» читалось двумя числами — на столе в тысячах оферта 1000
+    вместо 1200, то есть ХУЖЕ названной. Теперь — как словами: одно число."""
+    from app.engine.numbers import spell_to_digits
+    assert spell_to_digits("1 млн 200 тыс") == "1200000"
+    assert spell_to_digits("11,5 млн") == "11,5 млн"           # одиночное — как было
+    s = engine.create_session("used_car", "ru")
+    s.turn = 1
+    engine.apply_move(s, engine.analyze(line), line)
+    assert s.state.offer_player == 1200
+
+
 def test_a_walk_back_stays_on_the_price_grid():
     """Найдено после аудита 17.10: откат за грубость оставлял цену вне сетки
     шага — «94,4 ₽/шт» на столе с шагом 0,5, ровно те копейки, ради которых

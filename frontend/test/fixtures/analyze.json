@@ -2999,6 +2999,25 @@
    "spin": null
   },
   {
+   "text": "Готов на 11,5 млн.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 4,
+   "number": 11.5,
+   "mentions": [
+    [
+     11.5,
+     "money",
+     false,
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
    "text": "Готов на 90.",
    "moves": [
     "offer"
@@ -3210,6 +3229,25 @@
   },
   {
    "text": "Договорились на 1 миллион 200 тысяч.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 11,
+   "words": 3,
+   "number": 1200000.0,
+   "mentions": [
+    [
+     1200000.0,
+     "plain",
+     false,
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "Договорились на 1 млн 200 тыс.",
    "moves": [
     "accept"
    ],
@@ -5028,6 +5066,25 @@
     [
      1200000.0,
      "plain",
+     false,
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "Предлагаю 2 млн 350 тыс рублей.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 2350000.0,
+   "mentions": [
+    [
+     2350000.0,
+     "money",
      false,
      false
     ]

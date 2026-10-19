@@ -96,12 +96,18 @@ const fmt = (v: number): string => (Number.isInteger(v) ? String(v) : String(v))
 /** Чистое число без хвостов — им может оказаться предыдущий выведенный токен. */
 const DIGITS = /^\d+(?:[.,]\d+)?$/;
 
+// «1 млн 200 тыс» сокращениями — одно число, как словами (найдено после
+// аудита 17.10). Одиночное «11,5 млн» не трогается. Зеркало
+// numbers.py::_ABBR_MLN_TYS_RE.
+const ABBR_MLN_TYS = /(?<![0-9.,])([0-9]+)\s*млн\.?\s+([0-9]{1,3})\s*тыс(?:яч[аи]?|\.)?(?![а-яa-z])/g;
+
 export function spellToDigits(text: string): string {
   if (!text) return text;
   // Разделители групп внутри числа схлопываются: «300 000» → «300000». Иначе
   // одна и та же цена даёт РАЗНОЕ число слов, а от него зависит балл
   // аргументации — паритет ломается на ровном месте.
-  const collapsed = text.replace(GROUP_SEP, "");
+  const collapsed = text.replace(GROUP_SEP, "")
+    .replace(ABBR_MLN_TYS, (_m, a: string, b: string) => String(Number(a) * 1_000_000 + Number(b) * 1000));
   const tokens = collapsed.split(" ");
   // Пунктуация примыкает к слову («тысячи.»), и без её отделения множитель
   // не находится, а число остаётся словами.
