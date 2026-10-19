@@ -183,10 +183,22 @@ function undoneAfter(t: string, at: number): boolean {
   const tail = t.slice(wordEnd);
   const words = tail.split(/\s+/).filter(Boolean);
   const first = words.length ? words[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
-  if (!",.?!".includes(tail.slice(0, 1) || "x") && (NEGATORS.has(first) || CLOSE_UNDO.has(first))) return true;
+  if (!",.?!".includes(tail.slice(0, 1) || "x") && (NEGATORS.has(first) || CLOSE_UNDO.has(first))) {
+    // «Договорились НЕ ЗАТЯГИВАТЬ» — о чём договорились, а не отказ.
+    const next = words.length > 1 ? words[1].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
+    if (!(NEGATORS.has(first) && isInfinitive(next))) return true;
+  }
   if (LEX.closeNotDeal.some((x) => tail.trimStart().startsWith(x))) return true;
   const m = tail.match(OBJECT_THEN_CONTRAST);
-  return !!m && !/\d/.test(m[1]) && CONTRAST.has(m[2]);
+  if (!(m && !/\d/.test(m[1]) && CONTRAST.has(m[2]))) return false;
+  // Дополнение — сама сделка («ваше предложение, но…»): сделка с условием.
+  const obj = m[1].split(/\s+/).filter(Boolean);
+  return !(obj.length <= 3 && LEX.closeDealObjects.some((d) => obj[obj.length - 1].startsWith(d)));
+}
+
+/** Инфинитив после «не»: «не затягивать», "not to delay". Зеркало techniques.py::_infinitive. */
+function isInfinitive(w: string): boolean {
+  return w === "to" || /(ть|ться|ти|чь)$/.test(w);
 }
 
 export function isClose(t: string): boolean {

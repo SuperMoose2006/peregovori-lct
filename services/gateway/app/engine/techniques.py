@@ -275,12 +275,22 @@ def _undone_after(t: str, at: int) -> bool:
     words = tail.split()
     first = words[0].strip(".,?!-") if words else ""
     if tail[:1] not in ",.?!" and (first in _NEGATORS or first in _CLOSE_UNDO):
-        return True
+        # «Договорились НЕ ЗАТЯГИВАТЬ» — о чём договорились, а не отказ.
+        nxt = words[1].strip(".,?!-") if len(words) > 1 else ""
+        if not (first in _NEGATORS and _infinitive(nxt)):
+            return True
     if any(tail.lstrip().startswith(x) for x in LEX["closeNotDeal"]):
         return True
     m = _OBJECT_THEN_CONTRAST_RE.match(tail)
-    return bool(m and not any(ch.isdigit() for ch in m.group(1))
-                and m.group(2) in _CONTRAST)
+    if not (m and not any(ch.isdigit() for ch in m.group(1)) and m.group(2) in _CONTRAST):
+        return False
+    obj = m.group(1).split()
+    return not (len(obj) <= 3 and any(obj[-1].startswith(d) for d in LEX["closeDealObjects"]))
+
+
+def _infinitive(w: str) -> bool:
+    """Инфинитив после «не»: «не затягивать», «не тянуть», "not to delay"."""
+    return w == "to" or w.endswith(("ть", "ться", "ти", "чь"))
 
 
 def _is_close(t: str) -> bool:
@@ -777,6 +787,11 @@ LEX: dict[str, list[str]] = {
     "closeNotDeal": ["к сведению"],
     # Противительный союз: «устраивает ЭТО, но…» — согласие с частью.
     "contrast": ["но", "однако", "but", "however"],
+    # Дополнение, которое и есть СДЕЛКА: «принимаю ваше предложение, но прошу
+    # оплату по факту» — сделка с условием, а не согласие с частью (ревью ветки).
+    # Засчитывается, только если основа — последнее слово короткого дополнения.
+    "closeDealObjects": ["предложени", "услови", "договор", "сделк", "вариант",
+                         "offer", "terms", "deal", "proposal"],
     # Уступительная клауза: число в ней — сказанное о прошлом, а не новая
     # оферта. «Хорошо, 95 — по рукам, хотя я рассчитывал на 90» уводило
     # оферту в 90 (найдено ревью ветки). Основы: слово клаузы НАЧИНАЕТСЯ с них.

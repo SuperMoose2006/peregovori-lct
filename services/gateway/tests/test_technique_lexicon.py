@@ -560,9 +560,23 @@ def test_a_hedged_yes_does_not_close_the_deal(line):
     "Договорились на 90, но оплата по факту.", "Договорились, не будем тянуть.",
     "That works for us, but let's sign tomorrow.", "Принимаю ваше предложение.",
     "Не вопрос, договорились.",
+    # Найдено ревью ветки: согласие с САМОЙ сделкой и затем «но» — сделка с
+    # условием, а не согласие с частью; «не» перед инфинитивом — о чём
+    # договорились, а не отказ.
+    "Принимаю ваше предложение, но прошу оплату по факту.",
+    "Меня устраивает ваше предложение, но давайте зафиксируем сроки.",
+    "Подписываем договор, но оплата по факту.",
+    "I accept your offer, but let's put the timeline in writing.",
+    "Договорились не затягивать с подписанием.",
 ])
 def test_a_deal_with_a_condition_is_still_a_deal(line):
     assert "accept" in analyze(line).moves
+
+
+def test_a_partial_yes_about_the_offer_is_still_partial():
+    """Сделка-объект снимает «согласие с частью» только как ВСЁ дополнение:
+    «ваше предложение по срокам, но…» — по-прежнему согласие с частью."""
+    assert "accept" not in analyze("Меня устраивает ваше предложение по срокам, но не по цене.").moves
 
 
 def test_a_negated_condition_is_pressure_not_a_tradeoff():

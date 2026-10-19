@@ -806,6 +806,18 @@
    "spin": "need-payoff"
   },
   {
+   "text": "I accept your offer, but let's put the timeline in writing.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 28,
+   "words": 12,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "I accept your point, but 100 is too much.",
    "moves": [
     "statement"
@@ -3186,6 +3198,18 @@
    "spin": null
   },
   {
+   "text": "Договорились не затягивать с подписанием.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Договорились, не будем тянуть.",
    "moves": [
     "accept"
@@ -3805,6 +3829,18 @@
      false
     ]
    ],
+   "spin": null
+  },
+  {
+   "text": "Меня устраивает ваше предложение по срокам, но не по цене.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 10,
+   "number": null,
+   "mentions": [],
    "spin": null
   },
   {
@@ -4713,6 +4749,18 @@
    "spin": null
   },
   {
+   "text": "Подписываем договор, но оплата по факту.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 6,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Покажите расчёт — на чём основана ваша цифра?",
    "moves": [
     "open_question"
@@ -4962,6 +5010,18 @@
    "primary": "statement",
    "arg": 20,
    "words": 5,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Принимаю ваше предложение, но прошу оплату по факту.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 8,
    "number": null,
    "mentions": [],
    "spin": null
