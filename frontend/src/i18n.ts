@@ -435,6 +435,32 @@ export interface Strings {
     interrupt: string; text: string; end: string;
     soundBlocked: string; soundOn: string;
   };
+  /** Созвон — отдельный режим партии (lib/meeting.ts, lib/layers.ts::callLayers). */
+  call: {
+    title: string;
+    /** Кнопка в композере и её пояснение. */
+    start: string; startHint: string;
+    /** «Созвон недоступен: {reason}». */
+    unavailable: string;
+    end: string; endHint: string;
+    /** Ход в полёте — созвон закроется, как только придёт ответ. */
+    ending: string;
+    camOn: string; camOff: string;
+    /** Короткие подписи недоступных кнопок; причина — в подсказке. */
+    mic: string; camera: string;
+    /** Камера в этой партии не поднята — кнопка её поднимает. */
+    camStart: string;
+    camNa: string;
+    cameraOffTile: string; you: string; hideSelf: string; showSelf: string;
+    cc: string; hint: string; feed: string; feedClose: string; controls: string;
+    theirOffer: string; yourOffer: string;
+    noSpeech: string;
+    /** Микрофон не встал: «{reason}». */
+    noMic: string;
+    youSaid: string; hintSay: string; dismiss: string;
+    /** Строки в ленте на границе режимов. */
+    started: string; ended: string;
+  };
   live: {
     micOn: string; hearing: string; interrupt: string;
     inFrame: string; outFrame: string; peekNote: string; peekOpen: string;
@@ -1287,13 +1313,13 @@ export const I18N: Record<Lang, Strings> = {
         rank: { title: "Ранг и опыт", body: "Ранг растёт от опыта за партии и задания курса. На оценку партий он не влияет." },
         skills: { title: "Навыки", body: "Шесть навыков переговорщика — средняя по всем партиям. Видно, в чём вы сильны и что подтянуть." },
         growth: { title: "Как вы растёте", body: "История ваших партий. О тенденции здесь говорят с шести партий: по двум точкам линия показала бы уверенность, которой нет." },
-        layers: { title: "Слои", body: "Голос, камера, выражение лица собеседника. Работают только в «Тренировке» и на оценку не влияют." },
+        layers: { title: "Слои", body: "Камера в созвоне, выражение лица собеседника, вопросы о его реакции. Работают только в «Тренировке» и на оценку не влияют." },
         tips: { title: "Подсказки", body: "Здесь подсказки разделов выключаются везде — и сюда же возвращаются отключённые галочкой." },
       },
     },
     layers: {
       head: "Слои",
-      lead: "Слои — необязательные добавки к партии: голос вместо клавиатуры, камера, выражение лица собеседника, вопросы о его реакции. Ни один не влияет на оценку.",
+      lead: "Слои — необязательные добавки к партии: камера в созвоне, выражение лица собеседника, вопросы о его реакции. Ни один не влияет на оценку. Голосом партия идёт в созвоне — кнопка «Созвон» рядом с полем ввода.",
       where: "Работают только в разделе «Тренировка». В кампании, курсе, экзамене и своей сделке слои всегда выключены — так оценки остаются сравнимыми. Выбор отсюда достанется следующей тренировке.",
       needs: {
         voice: "нужен микрофон — браузер спросит разрешение, как только вы включите слой",
@@ -1310,9 +1336,9 @@ export const I18N: Record<Lang, Strings> = {
           failed: "Микрофон не включился. Попробуйте ещё раз или перезагрузите страницу.",
         },
         camera: {
-          pending: "Включено. Доступ к камере браузер спросит в начале партии.",
+          pending: "Включено. Доступ к камере браузер спросит при входе в созвон.",
           checking: "Спрашиваем доступ к камере — ответьте в окне браузера.",
-          granted: "Камера работает. Мы её сразу выключили — она включится, когда начнётся партия.",
+          granted: "Камера работает. Мы её сразу выключили — она включится в созвоне.",
           denied: "Доступ к камере запрещён. Разрешите его в настройках сайта (значок слева от адреса) и включите слой снова.",
           missing: "Камера не найдена. Подключите её и включите слой снова.",
           busy: "Камера занята другой программой — например, видеозвонком. Закройте её там и включите слой снова.",
@@ -1343,12 +1369,12 @@ export const I18N: Record<Lang, Strings> = {
       blurbs: {
         probe: "После хода игра спросит, что сейчас чувствует собеседник",
         voice: "Говорите вслух — и слышите ответ. Можно перебивать",
-        camera: "Сигналы присутствия: кто в кадре, куда смотрите",
+        camera: "В созвоне: сигналы присутствия — кто в кадре, куда смотрите",
         avatar: "Выражение лица меняется на каждый ваш ход, с голосом — ещё и в такт речи. Без слоя лицо показывает только общее настроение",
         pokerface: "Считает, сколько раз лицо выдало вас",
       },
       needsCamera: "включите камеру — считать нечего без её кадров",
-      presetNames: { classic: "Классика", read: "Читай лицо", call: "Видеозвонок",
+      presetNames: { classic: "Классика", read: "Читай лицо",
                      poker: "Покерфейс", full: "Полный контакт" },
       tellsOf: "{form} лицо себя выдало — кадров просмотрено: {n}",
       timesForms: ["раз", "раза", "раз"],
@@ -1409,6 +1435,39 @@ export const I18N: Record<Lang, Strings> = {
       end: "Завершить",
       soundBlocked: "Браузер не включил звук",
       soundOn: "Включить звук",
+    },
+    call: {
+      title: "Созвон",
+      start: "Созвон",
+      startHint: "Перейти в голосовой созвон — партия продолжится с этого хода",
+      unavailable: "Созвон недоступен: {reason}",
+      end: "Завершить",
+      endHint: "Завершить созвон и вернуться в чат — партия продолжится",
+      ending: "Завершим, как только собеседник ответит…",
+      camOn: "Включить камеру",
+      camOff: "Выключить камеру",
+      mic: "Микрофон",
+      camera: "Камера",
+      camStart: "Включить камеру — ИИ будет видеть вас",
+      camNa: "Камера недоступна: {reason}",
+      cameraOffTile: "Камера выключена",
+      you: "Вы",
+      hideSelf: "Скрыть себя",
+      showSelf: "Показать себя",
+      cc: "Субтитры",
+      hint: "Подсказка",
+      feed: "Ход переговоров",
+      feedClose: "Закрыть ход переговоров",
+      controls: "Управление созвоном",
+      theirOffer: "Их цена",
+      yourOffer: "Ваша",
+      noSpeech: "Голос собеседника сейчас недоступен — его слова идут субтитрами",
+      noMic: "Микрофон не включился: {reason}. Завершите созвон и отвечайте в чате.",
+      youSaid: "Вы:",
+      hintSay: "Скажите:",
+      dismiss: "Скрыть",
+      started: "Созвон начался",
+      ended: "Созвон завершён — партия продолжается в чате",
     },
     live: {
       micOn: "микрофон активен",
@@ -2309,13 +2368,13 @@ export const I18N: Record<Lang, Strings> = {
         rank: { title: "Rank and experience", body: "Your rank grows with experience from games and course exercises. It never changes how games are scored." },
         skills: { title: "Skills", body: "Six negotiator skills — the average across all your games. You can see what you're strong at and what to work on." },
         growth: { title: "How you're growing", body: "The history of your games. Trends are shown from six games on: with two points a line would suggest a certainty that isn't there." },
-        layers: { title: "Layers", body: "Voice, camera, the counterpart's expressions. They only work in “Training” and never affect your grade." },
+        layers: { title: "Layers", body: "The camera in a call, the counterpart's expressions, questions about how they react. They only work in “Training” and never affect your grade." },
         tips: { title: "Tips", body: "Turn section tips off everywhere here — and bring back the ones you turned off with the checkbox." },
       },
     },
     layers: {
       head: "Layers",
-      lead: "Layers are optional extras for a game: voice instead of typing, a camera, the counterpart's facial expressions, questions about how they react. None of them affects your grade.",
+      lead: "Layers are optional extras for a game: the camera in a call, the counterpart's facial expressions, questions about how they react. None of them affects your grade. A game goes by voice in a call — the “Call” button next to the input.",
       where: "They work only in \u201cTraining\u201d. In the campaign, course, exam and \u201cYour deal\u201d layers are always off, so grades stay comparable. What you choose here applies to your next training game.",
       needs: {
         voice: "needs a microphone \u2014 the browser asks for permission as soon as you turn the layer on",
@@ -2332,9 +2391,9 @@ export const I18N: Record<Lang, Strings> = {
           failed: "The microphone didn't start. Try again or reload the page.",
         },
         camera: {
-          pending: "On. The browser will ask for the camera when the game starts.",
+          pending: "On. The browser will ask for the camera when you join a call.",
           checking: "Asking for the camera \u2014 answer the browser prompt.",
-          granted: "The camera works. We switched it off right away \u2014 it turns on when the game starts.",
+          granted: "The camera works. We switched it off right away \u2014 it turns on in a call.",
           denied: "Camera access is blocked. Allow it in the site settings (the icon left of the address) and turn the layer on again.",
           missing: "No camera found. Connect one and turn the layer on again.",
           busy: "The camera is busy in another app \u2014 a video call, say. Close it there and turn the layer on again.",
@@ -2365,12 +2424,12 @@ export const I18N: Record<Lang, Strings> = {
       blurbs: {
         probe: "After a move the game asks what your counterpart feels right now",
         voice: "Speak aloud — and hear the reply. You can cut in",
-        camera: "Presence signals: who is in frame, where you look",
+        camera: "In a call: presence signals — who is in frame, where you look",
         avatar: "Their expression changes with each of your moves, and with voice it also moves as they speak. Without it the face shows only the overall mood",
         pokerface: "Counts how often your face gave you away",
       },
       needsCamera: "turn the camera on — there are no frames to count without it",
-      presetNames: { classic: "Classic", read: "Read the face", call: "Video call",
+      presetNames: { classic: "Classic", read: "Read the face",
                      poker: "Poker face", full: "Full contact" },
       tellsOf: "{form} your face gave you away — frames seen: {n}",
       timesForms: ["time", "times", "times"],
@@ -2430,6 +2489,39 @@ export const I18N: Record<Lang, Strings> = {
       end: "End",
       soundBlocked: "The browser has not enabled sound",
       soundOn: "Turn sound on",
+    },
+    call: {
+      title: "Call",
+      start: "Call",
+      startHint: "Switch to a voice call — the game continues from this turn",
+      unavailable: "Call unavailable: {reason}",
+      end: "End",
+      endHint: "End the call and return to the chat — the game continues",
+      ending: "Ending as soon as the counterpart replies…",
+      camOn: "Turn camera on",
+      camOff: "Turn camera off",
+      mic: "Microphone",
+      camera: "Camera",
+      camStart: "Turn camera on — the AI will see you",
+      camNa: "Camera unavailable: {reason}",
+      cameraOffTile: "Camera off",
+      you: "You",
+      hideSelf: "Hide self view",
+      showSelf: "Show self view",
+      cc: "Captions",
+      hint: "Hint",
+      feed: "Negotiation log",
+      feedClose: "Close the negotiation log",
+      controls: "Call controls",
+      theirOffer: "Their price",
+      yourOffer: "Yours",
+      noSpeech: "The counterpart's voice is unavailable right now — their words come as captions",
+      noMic: "The microphone did not start: {reason}. End the call and reply in the chat.",
+      youSaid: "You:",
+      hintSay: "Say:",
+      dismiss: "Dismiss",
+      started: "Call started",
+      ended: "Call ended — the game continues in the chat",
     },
     live: {
       micOn: "microphone live",

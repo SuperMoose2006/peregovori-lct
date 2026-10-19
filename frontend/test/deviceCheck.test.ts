@@ -123,7 +123,7 @@ test("ответ устройства написан рядом с тумбле�
   assert.ok(denied.includes(ru.layers.check.camera.denied));
   assert.match(ru.layers.check.camera.denied, /настройках сайта/);
   assert.match(denied, /class="ly-check denied" role="status"/);
-  assert.ok(panel({ voice: "granted" }, { ...NO_LAYERS, voice: true }).includes(ru.layers.check.voice.granted));
+  assert.ok(panel({ camera: "granted" }, { ...NO_LAYERS, camera: true }).includes(ru.layers.check.camera.granted));
   assert.ok(panel({ camera: "busy" }).includes(ru.layers.check.camera.busy));
   assert.ok(panel({ camera: "missing" }).includes(ru.layers.check.camera.missing));
 });
@@ -149,8 +149,8 @@ test("подпись под тумблером обещает проверку �
 
 // ---- Умолчание: все слои включены у нового профиля --------------------------------
 
-test("новый профиль получает все пять слоёв включёнными", () => {
-  assert.deepEqual(parseLayerPrefs(null), { probe: true, voice: true, camera: true, avatar: true, pokerface: true });
+test("новый профиль получает все слои включёнными — кроме голоса: голос это созвон, а не слой", () => {
+  assert.deepEqual(parseLayerPrefs(null), { probe: true, voice: false, camera: true, avatar: true, pokerface: true });
   assert.deepEqual(DEFAULT_LAYERS, parseLayerPrefs(null));
 });
 
@@ -183,7 +183,8 @@ test("умолчание не выпрашивает устройство: вк�
     onCheckNow: () => {},
   }));
   assert.ok(html.includes(ru.layers.check.camera.pending));
-  assert.ok(html.includes(ru.layers.check.voice.pending));
+  // Голоса в шторке нет: он включается кнопкой «Созвон» за столом.
+  assert.ok(!html.includes(ru.layers.check.voice.pending), "голос снова стал тумблером в слоях");
   assert.ok(html.includes(ru.layers.checkNow));
   // Ни одного вызова устройства при загрузке: App спрашивает только из
   // chooseLayers (нажатие) и checkLayerNow (кнопка).

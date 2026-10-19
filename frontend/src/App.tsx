@@ -27,11 +27,11 @@ import { loadTourPrefs, markSeenThisSession, saveTourPrefs, seenThisSession, set
          type TourPrefs, type TourSection } from "./lib/tours";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
-import { detectLayers, parseLayerPrefs, pruneLayers, sessionLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
+import { callLayers, detectLayers, layersAllowed, parseLayerPrefs, pruneLayers, reasonText, startLayers, textLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
 import { fetchServerHealth } from "./api/health";
 import { checkDevice, dropFailedLayers, requestLayers, type DeviceChecks, type DeviceLayer } from "./lib/deviceCheck";
 import { faceRenderer } from "./lib/faceSource";
-import { meetingMode, syntheticFace, videoPending } from "./lib/meeting";
+import { callOffer, hangUpAction, syntheticFace, videoPending } from "./lib/meeting";
 import { Karl } from "./components/Mascot";
 import { ReadingCard } from "./components/ReadingCard";
 import { OtherSideCard } from "./components/OtherSideCard";
@@ -303,6 +303,14 @@ export default function App() {
   const [micMuted, setMicMuted] = useState(false);
   useEffect(() => { setMicMuted(false); }, [nego.scenario?.id]);
   useEffect(() => { nego.setMicMuted(micMuted); }, [micMuted, nego.capabilities, nego.setMicMuted]);
+  // Камера в созвоне выключается так же — кадры не уходят, слой жив.
+  const [cameraOff, setCameraOff] = useState(false);
+  useEffect(() => { setCameraOff(false); }, [nego.scenario?.id]);
+  useEffect(() => { nego.setCameraOff(cameraOff); }, [cameraOff, nego.capabilities, nego.setCameraOff]);
+  // Стол закрыт — ходов больше не будет: микрофон и камера гаснут сразу, а не
+  // горят индикатором записи над разбором. Звук прощальной реплики доигрывает.
+  const tableClosed = !!nego.state && nego.state.status !== "active";
+  useEffect(() => { if (tableClosed) nego.stopCapture(); }, [tableClosed, nego.stopCapture]);
   // A reload cannot restore this in-memory UI session. Never silently imply it did.
   const [interruptedRun, setInterruptedRun] = useState(() => {
     try { return sessionStorage.getItem("dialog.active-run") === "1"; }
@@ -704,7 +712,8 @@ export default function App() {
       setDrill(opts?.drill ?? null);
       setDrillVerdict(null);
       recordedDrill.current = null;
-      const use = sessionLayers(m, layerPrefs, layerStates, opts?.fixedOff);
+      // Партия начинается ЧАТОМ: голос — это созвон, в него входят кнопкой.
+      const use = startLayers(m, layerPrefs, layerStates, opts?.fixedOff);
       setActiveLayers(use);
       setActiveDaily(opts?.daily);
       // Соперник этой партии снимается со стола ОДИН раз, при заходе: иначе
@@ -857,7 +866,10 @@ export default function App() {
     }
     if (screen !== "game" || !currentScenario) return;
     if ((nego.state?.turn ?? 0) > 0 || nego.debrief) return;
-    const useNow = sessionLayers(mode, use, layerStates, !!activeRunRef.current?.options?.fixedOff);
+    // Шторка меняет слои, а не режим: в созвоне партия в нём и остаётся.
+    const fixedOff = !!activeRunRef.current?.options?.fixedOff;
+    const base = startLayers(mode, use, layerStates, fixedOff);
+    const useNow = activeLayers.voice ? callLayers(mode, base, use, layerStates, fixedOff) ?? base : base;
     const same = (Object.keys(useNow) as LayerId[]).every((k) => useNow[k] === activeLayers[k]);
     if (same) return; // нечего менять — и незачем рвать сессию
     setActiveLayers(useNow);
@@ -868,6 +880,63 @@ export default function App() {
   }, [layerStates, screen, currentScenario, nego, mode, drill, activeLayers, activeDaily]);
   const applyLayersRef = useRef(applyLayers);
   applyLayersRef.current = applyLayers;
+
+  /**
+   * СОЗВОН — режим той же партии, а не новая партия.
+   *
+   * «Созвон» в композере поднимает голос (и камеру, если она включена в
+   * слоях), «Завершить» возвращает в чат. Транспорт меняет сокет и входит в ту
+   * же партию по `resume` (realtime/transport.ts::relayer): ход, шкалы и лента
+   * остаются. Правило партии на оценку то же, что у всех слоёв: созвона там нет
+   * (`callLayers` → null).
+   */
+  const [hangupPending, setHangupPending] = useState(false);
+  useEffect(() => { setHangupPending(false); }, [nego.scenario?.id]);
+  const runCall = useCallback((want: Layers): Layers | null => {
+    const run = activeRunRef.current;
+    if (!run) return null;
+    return callLayers(run.mode, activeLayers, want, layerStates, !!run.options?.fixedOff);
+  }, [activeLayers, layerStates]);
+  const enterCall = useCallback(() => {
+    const next = runCall(layerPrefs);
+    if (!next || !nego.relayer(next, t.call.started)) return;
+    setMicMuted(false);
+    setCameraOff(false);
+    setActiveLayers(next);
+  }, [runCall, layerPrefs, nego, t]);
+  const hangUp = hangUpAction({
+    open: !!nego.state && nego.state.status === "active" && !nego.debrief,
+    busy: nego.busy, switching: nego.switching, conn: nego.conn,
+  });
+  const leaveCall = useCallback(() => {
+    const next = textLayers(activeLayers);
+    // Ход в полёте или связь не готова — созвон закроется, как только она
+    // настанет (эффект ниже; lib/meeting.ts::hangUpAction).
+    if (hangUp === "wait") { setHangupPending(true); return; }
+    if (hangUp === "switch" && nego.relayer(next, t.call.ended)) {
+      setHangupPending(false);
+      setActiveLayers(next);
+      return;
+    }
+    nego.stopCapture();
+    setHangupPending(false);
+    setActiveLayers(next);
+  }, [activeLayers, hangUp, nego, t]);
+  useEffect(() => {
+    if (hangupPending && hangUp !== "wait") leaveCall();
+  }, [hangupPending, hangUp, leaveCall]);
+  /** Камера в созвоне: поднята — выключается, как в любом звонке; не поднята —
+   *  поднимается той же сменой слоёв, и выбор запоминается в профиле. */
+  const toggleCamera = useCallback(() => {
+    if (activeLayers.camera) { setCameraOff((v) => !v); return; }
+    const want = { ...layerPrefs, camera: true };
+    const next = runCall(want);
+    if (!next?.camera || !nego.relayer(next)) return;
+    setCameraOff(false);
+    setActiveLayers(next);
+    setLayerPrefs(want);
+    try { localStorage.setItem(LAYERS_KEY, JSON.stringify(want)); } catch { /* приватный режим */ }
+  }, [activeLayers, layerPrefs, runCall, nego]);
 
   /**
    * Нажатие тумблера слоя — из профиля или из шторки за столом.
@@ -1078,19 +1147,28 @@ export default function App() {
   const scenario = nego.scenario;
   const debrief = nego.debrief;
 
-  // ВСТРЕЧА. Только тренировка с поднятым голосом и настоящим синтезом
-  // (lib/meeting.ts); правила партии от неё не зависят.
-  const meeting = meetingMode({ mode, layers: activeLayers, capabilities: nego.capabilities });
+  // СОЗВОН — голос поднят в этой партии. Правила партии от него не зависят.
+  const inCall = screen === "game" && activeLayers.voice;
+  const offer = callOffer({
+    allowed: layersAllowed(activeRunRef.current?.mode ?? mode, !!activeRunRef.current?.options?.fixedOff),
+    voice: layerStates.voice,
+    offline: nego.kind === "mock",
+    lang,
+  });
   const micAvailable = nego.capabilities?.microphone === true && !nego.layerFail.voice;
+  const cameraReason = !layerStates.camera.available ? reasonText(layerStates.camera, lang)
+    : nego.layerFail.camera ?? null;
 
   const showRival =
-    screen === "game" && mode === "practice" && !drill &&
+    screen === "game" && mode === "practice" && !drill && !inCall &&
     !!rival && !!rivalTrail && rivalTrail.length > 0 &&
     rival.scenarioId === nego.scenario?.id && rival.lang === lang;
 
   return (
     // Двухколоночная оболочка приложения: слева меню, справа тело.
-    <div className="app">
+    // В созвоне экран звонка закрывает всё окно, и меню с шапкой под ним
+    // прячутся целиком — из обхода тоже (styles.css, `.app.in-call`).
+    <div className={`app${inCall ? " in-call" : ""}`}>
       {/* «К содержимому» — первая остановка Tab на любом экране. Слева стоит
           навигатор на семь пунктов, и без этой ссылки каждый вход на экран
           стоил семи нажатий до первой строки содержимого. Видна только
@@ -1327,7 +1405,9 @@ export default function App() {
               reconnects to the backend, or continues on the offline demo) or home.
               Progress/profile are already persisted, so neither loses the player's
               standing — only the in-flight server session. */}
-          {scenario && (nego.conn === "reconnecting" || nego.conn === "connecting") ? (
+          {/* Смена режима (чат ↔ созвон) — тоже новый сокет, но её нажал сам
+              человек: «связь прервалась» там было бы неправдой. */}
+          {scenario && !nego.switching && (nego.conn === "reconnecting" || nego.conn === "connecting") ? (
             <div className="conn-banner" role="status">
               <span className="conn-spin" aria-hidden="true" />
               <span>{t.conn.reconnecting}</span>
@@ -1359,13 +1439,15 @@ export default function App() {
             lang={lang}
             mode={mode}
             kind={nego.kind}
-            conn={nego.conn}
+            // Смена режима — та же «связь подключается» для экрана: ход и
+            // подсказка ждут, строка звонка говорит «Подключение…».
+            conn={nego.switching ? "connecting" : nego.conn}
             scenario={scenario}
             state={nego.state}
             log={nego.log}
             chatScrollPosition={chatScrollPosition}
             busy={nego.busy}
-            disconnected={nego.conn !== "online"}
+            disconnected={nego.switching || nego.conn !== "online"}
             phase={nego.phase}
             judgeActive={nego.judgeActive}
             cloudAi={typeof nego.capabilities?.cloud_ai === "boolean" ? nego.capabilities.cloud_ai : null}
@@ -1374,7 +1456,15 @@ export default function App() {
             getSpeechLevel={nego.getSpeechLevel}
             getVideoFrame={nego.getVideoFrame}
             faceRenderer={faceRenderer(nego.capabilities)}
-            meeting={meeting}
+            call={inCall}
+            callOffer={offer}
+            onCall={enterCall}
+            onHangUp={leaveCall}
+            hangupPending={hangupPending}
+            callCamera={{ up: activeLayers.camera && !nego.layerFail.camera, off: cameraOff,
+                          reason: activeLayers.camera ? nego.layerFail.camera ?? null : cameraReason }}
+            onToggleCamera={toggleCamera}
+            speech={typeof nego.capabilities?.speech === "boolean" ? nego.capabilities.speech : null}
             syntheticFace={syntheticFace(nego.capabilities)}
             videoPending={videoPending(nego.capabilities)}
             micAvailable={micAvailable}
@@ -1382,11 +1472,9 @@ export default function App() {
             onToggleMic={() => setMicMuted((m) => !m)}
             getAudioBlocked={nego.getAudioBlocked}
             onResumeAudio={nego.resumeAudio}
-            layers={activeLayers}
             onOpenLayers={() => setLayersOpen(true)}
             layersOpen={layersOpen}
             layerFail={nego.layerFail}
-            framesSent={nego.framesSent}
             observations={nego.observations}
             userSpeaking={nego.userSpeaking}
             transcript={nego.transcript}

@@ -1,25 +1,60 @@
-// meeting.ts — когда стол превращается во встречу с крупным собеседником.
+// meeting.ts — созвон: когда в него можно войти и что показывает его экран.
 //
-// Встреча строится вокруг ЗВУЧАЩЕГО собеседника. Поэтому она включается только
-// там, где звук действительно будет, и только там, где слои вообще разрешены:
-//   • режим «тренировка» — единственный, где слои включаются (`sessionLayers`);
-//   • слой голоса поднят в этой партии;
-//   • сервер ответил `capabilities.speech === true` — синтез есть. Голос,
-//     которого просили, но который не зазвучит (офлайн, нет ключа), — это
-//     большая немая картинка, то самое «выглядит настоящим, а внутри пусто»;
-//   • не экзамен и не капстоун: там слои погашены сервером, и лицо нейтрально.
-// Правила партии, шкалы и оценка от встречи не зависят никак.
-import type { Mode } from "../types";
-import type { Layers } from "./layers";
+// Созвон — отдельный режим партии, а не чат с микрофоном (lib/layers.ts,
+// `textLayers`). Партия начинается чатом; кнопка «Созвон» уводит её на экран
+// звонка, «Завершить» возвращает в чат с тем же ходом. Правила партии, шкалы
+// и оценка от режима не зависят никак: голос и клавиатура дают один и тот же
+// ход (инвариант 7).
+import type { Lang } from "../types";
+import { NO_SERVER_REASON, reasonText, type LayerState } from "./layers";
 
-export function meetingMode(opts: {
-  mode: Mode;
-  layers: Layers | null | undefined;
-  capabilities: Record<string, unknown> | null | undefined;
-}): boolean {
-  if (opts.mode !== "practice") return false;
-  if (!opts.layers?.voice) return false;
-  return opts.capabilities?.speech === true;
+/** Кнопка «Созвон»: спрятана, доступна или видна с причиной отказа. */
+export type CallOffer = { show: false } | { show: true; reason: string | null };
+
+/**
+ * Предлагать ли созвон за этим столом.
+ *
+ *   • партия на зачёт (экзамен, капстоун, акт кампании, своя сделка) — кнопки
+ *     нет вовсе: слоёв там не бывает, и запрет читается шторкой слоёв;
+ *   • тренировка, а голос в этом окружении не поднимется (нет https, сервер
+ *     без распознавания, офлайн-ядро) — кнопка видна и называет причину, а не
+ *     исчезает молча: иначе человек не узнает, что созвон вообще бывает;
+ *   • иначе — можно звонить.
+ */
+export function callOffer(opts: {
+  /** `callLayers(...) !== null` без учёта окружения — правило партии. */
+  allowed: boolean;
+  voice: LayerState;
+  /** Партия идёт офлайн-ядром: созвона там нет, что бы ни сказал браузер. */
+  offline: boolean;
+  lang: Lang;
+}): CallOffer {
+  if (!opts.allowed) return { show: false };
+  if (opts.offline) return { show: true, reason: NO_SERVER_REASON[opts.lang] };
+  return { show: true, reason: opts.voice.available ? null : reasonText(opts.voice, opts.lang) };
+}
+
+/**
+ * Что делает «Завершить» прямо сейчас.
+ *
+ *   switch — сменить сокет: та же партия уходит в чат (`relayer`);
+ *   wait   — подождать: ход в полёте, звонок ещё подключается или связь
+ *            возвращается. Сокет меняется только на спокойной связи и между
+ *            ходами: уйти в чат сразу значило бы оставить партию в голосовом
+ *            сокете под текстовым экраном;
+ *   local  — менять сокет незачем (стол закрыт, связь потеряна насовсем):
+ *            устройства гаснут, экран возвращается в чат.
+ */
+export type HangUp = "switch" | "wait" | "local";
+export function hangUpAction(s: {
+  open: boolean;
+  busy: boolean;
+  switching: boolean;
+  conn: "connecting" | "online" | "reconnecting" | "lost";
+}): HangUp {
+  if (!s.open || s.conn === "lost") return "local";
+  if (s.busy || s.switching || s.conn !== "online") return "wait";
+  return "switch";
 }
 
 /**

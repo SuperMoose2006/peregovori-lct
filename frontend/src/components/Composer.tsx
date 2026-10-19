@@ -41,10 +41,13 @@ interface Props {
   // Keyed by a nonce, not by the text, so tapping the same suggestion twice
   // still re-fills after the player has edited or cleared it.
   prefill?: { text: string; nonce: number };
+  /** Кнопка «Созвон» — как вход в голосовой режим у ChatGPT: рядом с полем,
+   *  а не в настройках. Нет — партия голосом не бывает (зачёт, офлайн). */
+  call?: { label: string; title: string; disabled: boolean; onCall: () => void };
 }
 
 export function Composer({
-  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, hintLabel, sendLabel, showChips, limitNote, charForms, prefill,
+  disabled, blocked, placeholder, quickMoves, onSend, onHint, hintEnabled, hintLabel, sendLabel, showChips, limitNote, charForms, prefill, call,
 }: Props) {
   const [text, setText] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -115,6 +118,16 @@ export function Composer({
             }
           }}
         />
+        {/* `aria-disabled`, а не `disabled`, и причина в подсказке: созвон,
+            недоступный в этом окружении, обязан сказать почему, а родная
+            выключенная кнопка не получает ни фокуса, ни наведения. */}
+        {call ? (
+          <button type="button" className="call-go" title={call.title}
+            aria-disabled={call.disabled || undefined}
+            onClick={() => (call.disabled ? undefined : call.onCall())}>
+            <Icon name="phone" /> <span>{call.label}</span>
+          </button>
+        ) : null}
         <button className="send" onClick={submit} disabled={disabled || blocked || !text.trim()} aria-label={sendLabel}>
           ➤
         </button>

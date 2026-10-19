@@ -244,7 +244,7 @@ export function Chat({ log, scrollPosition, metersShort, metersFull, deltaAria, 
             </div>
           );
         }
-        if (e.kind === "sys") return <div className="sys" key={e.id}>{e.text}</div>;
+        if (e.kind === "sys") return <div className={`sys${e.calm ? " calm" : ""}`} key={e.id}>{e.text}</div>;
         if (e.kind === "probe") {
           // Deliberately inline rather than a modal: the answer is read off the
           // avatar's expression and the meters, and a modal would cover both.
@@ -354,7 +354,7 @@ export function Chat({ log, scrollPosition, metersShort, metersFull, deltaAria, 
  *
  *  После ответа группа остаётся в обходе одной остановкой: варианты помечены
  *  `aria-disabled`, а не `disabled`, чтобы фокус под курсором не исчез. */
-function ProbeCard({ entry, probeLabels, probeTally, registerProbe, onProbeAnswer }: {
+export function ProbeCard({ entry, probeLabels, probeTally, registerProbe, onProbeAnswer }: {
   entry: Extract<ChatEntry, { kind: "probe" }>;
   probeLabels: Strings["probe"];
   probeTally?: string;

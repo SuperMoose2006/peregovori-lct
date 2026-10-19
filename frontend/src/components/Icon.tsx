@@ -31,7 +31,7 @@ export type IconName =
   | "climb" | "ladder" | "chart" | "anchor" | "bricks" | "factory" | "briefcase"
   | "bank" | "laptop" | "building" | "worried" | "angry" | "key" | "box" | "rocket"
   | "house" | "car" | "satellite" | "pen" | "belt" | "question" | "map" | "check"
-  | "warning" | "chat" | "clock";
+  | "warning" | "chat" | "clock" | "phone" | "micoff" | "camoff" | "cc";
 
 /** Геометрия каждого значка. Только обводка — заливку задаёт отдельный список. */
 const PATHS: Record<IconName, ReactNode> = {
@@ -101,6 +101,10 @@ const PATHS: Record<IconName, ReactNode> = {
   check: <path d="m4 13 5 5L20 6" />,
   warning: <path d="M12 3 2 20h20L12 3Zm0 6v6m0 3h.01" />,
   chat: <path d="M4 5h16v11H9l-5 4V5Zm4 4h8m-8 4h5" />,
+  phone: <path d="M5 3h3.5l2 5-2.5 1.5a11 11 0 0 0 6.5 6.5L16 13.5l5 2V19a2 2 0 0 1-2 2A17 17 0 0 1 3 5a2 2 0 0 1 2-2Z" />,
+  micoff: <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4m-3 0h6M3 3l18 18" /></>,
+  camoff: <><rect x="2" y="7" width="20" height="13" rx="2" /><circle cx="12" cy="13.5" r="3.5" /><path d="M8 7l1.5-3h5L16 7M3 3l18 18" /></>,
+  cc: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M10.5 10a2.5 2.5 0 1 0 0 4M17.5 10a2.5 2.5 0 1 0 0 4" /></>,
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></>,
 };
 

@@ -442,12 +442,7 @@ h1, h2, h3, .serif { font-family: var(--serif); font-weight: 800; }
      уводил лицо собеседника за верх (аудит 16.10, стенд). Ленте во встрече
      хватает меньшего минимума — главное здесь лицо и голос, — а сцена
      прилипает к верху карточки на любом окне, как уже прилипала на узком. */
-  .appbody.playing .chat.with-meeting > .log { min-height: clamp(160px, 22dvh, 260px); }
-  .appbody.playing .chat.with-meeting .meeting { position: sticky; top: 0; z-index: 6; }
-  .appbody.playing .chat.with-meeting .mt-stage { height: clamp(220px, 30vh, 340px); }
   .appbody.playing .compose { padding-top: 10px; padding-bottom: 10px; }
-  .appbody.playing .livebar { margin-top: 5px; padding-top: 5px; }
-  .appbody.playing .lb-tr { max-height: 4.65em; overflow-y: auto; }
   .appbody.playing .wait-status { margin: 2px 0; padding: 6px 16px; }
   .appbody.playing .wait-status p { margin: 2px 0; }
 }
@@ -807,6 +802,7 @@ h1, h2, h3, .serif { font-family: var(--serif); font-weight: 800; }
 .hintline-use:hover { filter: brightness(1.08); }
 .hintline-use:active { transform: translateY(1px); }
 .sys { align-self: center; font-size: 12px; color: var(--tension-ink); }
+.sys.calm { color: var(--ink-faint); font-weight: 700; }
 
 .compose { border-top: 2px solid var(--line); padding: 14px 16px; background: var(--panel); }
 .live { min-height: 0; display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 7px; }
@@ -3189,80 +3185,6 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 /* ============================================================
-   Полоса живых слоёв: микрофон, камера, расшифровка
-   ------------------------------------------------------------
-   Выключенные слои не оставляют следов — компонент не рендерится вовсе,
-   и под него не резервируется место. Это тот же инвариант раскладки,
-   что и у всего остального.
-   ============================================================ */
-.livebar {
-  display: flex; align-items: center; gap: 11px; flex-wrap: wrap;
-  margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--line);
-  position: relative;
-}
-:root .livebar { border-top-width: 2px; }
-.lb-dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
-
-.lb-mic {
-  display: inline-flex; align-items: center; gap: 7px;
-  font-size: 12px; font-weight: 700; color: var(--ink-dim);
-}
-.lb-mic.hot { color: var(--brass-ink); }
-.lb-bars { display: inline-flex; align-items: flex-end; gap: 3px; height: 18px; }
-.lb-bars i {
-  width: 3px; border-radius: 2px; background: var(--line-2); display: block;
-  transition: height 0.08s linear;
-}
-.lb-mic.hot .lb-bars i { background: var(--trust); }
-
-.lb-cam {
-  display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700;
-  color: var(--ink-dim); border: 1px solid var(--line-2); border-radius: 999px;
-  padding: 4px 11px; min-height: 30px;
-}
-:root .lb-cam { border-width: 2px; }
-.lb-cam .lb-dot { background: var(--trust); }
-.lb-cam.out { color: var(--tension-ink); border-color: color-mix(in srgb, var(--tension) 45%, transparent); }
-.lb-cam.out .lb-dot { background: var(--tension); }
-.lb-cam:hover { border-color: var(--brass); }
-
-.lb-cut {
-  font-size: 12px; font-weight: 800; color: var(--tension-ink);
-  border: 1px solid color-mix(in srgb, var(--tension) 50%, transparent);
-  border-radius: 999px; padding: 4px 12px; min-height: 30px;
-}
-:root .lb-cut { border-width: 2px; }
-.lb-tr { font-size: 12.5px; color: var(--ink-faint); font-style: italic; min-width: 0; }
-
-/* Самопревью. Всплывает по клику и закрывается тем же кликом — оно для
-   проверки света перед стартом, а не для сопровождения партии:
-   человек, видящий себя, начинает следить за собой. */
-.lb-peek {
-  position: absolute; right: 0; bottom: calc(100% + 8px); width: 208px;
-  background: var(--panel); border: 1px solid var(--line-2); border-radius: 13px;
-  padding: 8px; box-shadow: var(--shadow); z-index: 6;
-  opacity: 0; visibility: hidden; transform: translateY(6px);
-  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
-}
-:root .lb-peek { border-width: 2px; }
-.lb-peek.on { opacity: 1; visibility: visible; transform: none; }
-.lb-peek video {
-  width: 100%; height: 100px; object-fit: cover; border-radius: 9px;
-  background: var(--panel-2); display: block; transform: scaleX(-1);
-}
-.lb-peek-n {
-  display: block; margin-top: 6px; text-align: center;
-  font-size: 10.5px; font-weight: 700; color: var(--ink-faint);
-}
-/* Слова модели зрения. Картинка доказывает, что камера отдаёт поток БРАУЗЕРУ;
-   что он дошёл до модели — доказывают только они. */
-.lb-peek-obs {
-  display: block; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line-2);
-  font-size: 11px; line-height: 1.4; color: var(--ink-dim);
-}
-.lb-peek-obs b { color: var(--ink-faint); font-weight: 700; }
-
-/* ============================================================
    Курс приёмов: карта блоков, урок, упражнение, экзамен
    ------------------------------------------------------------
    Форма повторяет путь кампании намеренно: игрок уже научился читать
@@ -4201,34 +4123,52 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    держит прежний кегль — иначе вся вёрстка вокруг съедет. */
 .ly-ic .ico, .cp-ic .ico, .camp-ic .ico, .ach-ic .ico, .badge-ic .ico { width: 1em; height: 1em; }
 
-/* ---------- Встреча с крупным собеседником (MeetingStage) ----------
-   Тренировка с голосом: собеседник крупно, над шкалами и лентой. Сцена тёмная
-   В ОБЕИХ темах — это окно разговора, как у видеозвонка: белый текст на ней
-   читается с запасом, а лицо не спорит с интерфейсом вокруг. Всё прочее на
-   столе остаётся где было — шкалы, цена, лента, композер. */
-.meeting { display: flex; flex-direction: column; gap: 10px; padding: 12px 12px 10px;
-  border-bottom: 2px solid var(--line); background: var(--panel); }
-.mt-stage { position: relative; display: grid; place-items: center; overflow: hidden;
-  height: clamp(240px, 36vh, 380px); border-radius: var(--r);
+/* ---------- Созвон (CallView) ----------
+   Голосовой режим партии — экран звонка во всё окно, как видеовстреча.
+   Сцена тёмная В ОБЕИХ темах: это окно разговора, белый текст на ней читается
+   с запасом, а лицо не спорит с интерфейсом вокруг. Сверху тонкая полоса
+   шкал и цены (светлая — та же, что в чате), снизу панель звонка.
+
+   Меню и шапка под звонком прячутся `visibility`, а не `display`: так они
+   уходят и из обхода клавиатурой, и из дерева доступности, а раскладка под
+   звонком не перестраивается — после «Завершить» стол стоит, где стоял. */
+.app.in-call > .skip, .app.in-call > .sidenav,
+.app.in-call .appbody > .top, .app.in-call .appbody > .foot { visibility: hidden; }
+.call { position: fixed; inset: 0; z-index: 60; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  background: #10171b; color: #fff; }
+.call-top { display: flex; align-items: center; gap: 16px; padding: 6px 16px;
+  padding-top: calc(6px + env(safe-area-inset-top)); background: var(--panel); color: var(--ink);
+  border-bottom: 2px solid var(--line); }
+:root .call-top .hud { flex: 1 1 auto; min-width: 0; padding: 4px 0; border-bottom: 0; background: transparent; gap: 4px 16px; }
+.call-price { display: flex; align-items: baseline; gap: 6px; flex: 0 0 auto; font-size: 12px; font-weight: 800;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; }
+.call-price b { margin-right: 10px; font-family: var(--serif); font-size: 17px; letter-spacing: 0; text-transform: none;
+  font-variant-numeric: tabular-nums; color: var(--ink); }
+.call-turn { flex: 0 0 auto; font-size: 12px; font-weight: 800; color: var(--ink-dim); white-space: nowrap; }
+
+.call-body { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; }
+.call-body.with-feed { grid-template-columns: minmax(0, 1fr) min(420px, 38vw); }
+.call-stage { position: relative; display: grid; place-items: center; min-width: 0; min-height: 0; overflow: hidden;
   background: radial-gradient(120% 90% at 50% 18%, #3b4b53 0%, #1b262b 72%); }
 /* `min-width: 0` — не украшение: картинка состояния 512 px, и без него
-   элемент сетки растягивался по её собственной ширине, а не по высоте сцены
-   (ролик 256 px и кадры 256 px этого не показывали). */
-.mt-face { height: calc(100% - 24px); aspect-ratio: 1; min-width: 0; min-height: 0; }
-.mt-face .face { width: 100%; height: 100%; border-radius: 16px; overflow: hidden; background: #26333a; }
-/* Рисованный портрет получает размер инлайном (Avatar.tsx) — во встрече его
-   задаёт сцена, иначе он застывал бы на 280 px при любой высоте окна. */
-.mt-face .face .av-svg { width: 100% !important; height: 100% !important; }
-.mt-face .face__img { width: 100%; height: 100%; object-fit: cover; }
-.meeting[data-status="reconnecting"] .mt-face,
-.meeting[data-status="lost"] .mt-face { filter: grayscale(1) brightness(0.6); }
-.mt-who { position: absolute; left: 14px; top: 12px; display: flex; flex-direction: column; align-items: flex-start;
-  gap: 2px; max-width: calc(50% - 24px - min(18vh, 170px)); color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / 55%); }
-.mt-who b { font-size: 17px; font-weight: 900; line-height: 1.2; }
+   элемент сетки растягивался по её собственной ширине, а не по высоте сцены. */
+.call-face { height: min(74%, 600px); max-width: 84%; aspect-ratio: 1; min-width: 0; min-height: 0; }
+.call-face .face { width: 100%; height: 100%; border-radius: 22px; overflow: hidden; background: #26333a; }
+/* Рисованный портрет получает размер инлайном (Avatar.tsx) — в созвоне его
+   задаёт сцена, иначе он застывал бы на 320 px при любой высоте окна. */
+.call-face .face .av-svg { width: 100% !important; height: 100% !important; }
+.call-face .face__img { width: 100%; height: 100%; object-fit: cover; }
+.call[data-status="reconnecting"] .call-face,
+.call[data-status="lost"] .call-face { filter: grayscale(1) brightness(0.6); }
+
+/* Имя собеседника и строка состояния — поверх сцены, по углам. */
+.mt-who { position: absolute; left: 16px; top: 14px; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 2px; max-width: min(34%, 360px); color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / 55%); }
+.mt-who b { font-size: 18px; font-weight: 900; line-height: 1.2; }
 .mt-who span { max-width: 100%; font-size: 13px; font-weight: 700; opacity: 0.9;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mt-status { position: absolute; right: 12px; top: 12px; display: inline-flex; align-items: center; gap: 8px;
-  max-width: 50%; padding: 6px 12px; border-radius: 999px; background: rgb(0 0 0 / 60%); color: #fff;
+.mt-status { position: absolute; right: 14px; top: 14px; display: inline-flex; align-items: center; gap: 8px;
+  max-width: 46%; padding: 6px 12px; border-radius: 999px; background: rgb(0 0 0 / 60%); color: #fff;
   font-size: 13px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
 .mt-status i { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #afafaf; }
 .mt-status.speaking i { background: #58cc02; animation: mtpulse 1.2s ease-in-out infinite; }
@@ -4245,48 +4185,145 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    под ней тот же человек, и звук идёт как обычно. */
 .mt-who .mt-pending { margin-top: 6px; padding: 3px 8px; border-radius: 8px; opacity: 1; text-shadow: none;
   white-space: normal; background: rgb(0 0 0 / 60%); color: #fff; font-size: 12px; font-weight: 800; }
-.mt-sub { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
-  width: max-content; max-width: min(92%, 640px); margin: 0; padding: 8px 14px; border-radius: 12px;
-  background: rgb(0 0 0 / 74%); color: #fff; font-size: 16px; font-weight: 700; line-height: 1.4; text-align: center;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.mt-sound { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+.mt-sound { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4;
   display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 12px 20px;
   border-radius: 16px; background: var(--brass); color: var(--on-brass); border-bottom: 4px solid var(--edge);
   font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; }
-.mt-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.mt-btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 14px;
-  border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 14px; background: var(--panel);
-  color: var(--ink); font-size: 14px; font-weight: 800; transition: background-color 0.15s; }
-.mt-btn .ico { font-size: 18px; }
-.mt-btn:hover:not(:disabled) { background: var(--panel-2); }
-.mt-btn:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
-.mt-btn:disabled { opacity: 0.5; cursor: default; }
-.mt-btn.off { background: var(--bad-bg); border-color: var(--red); color: var(--bad-ink); }
-.mt-btn.cut { background: var(--sel-bg); border-color: var(--sel-line); color: var(--sel-ink); }
-.mt-btn.end { color: var(--tension-ink); }
-.mt-nomic { align-self: center; font-size: 13px; color: var(--ink-dim); }
-.opp-card.in-meeting { padding: 12px 14px; }
 
-/* На узком экране листается СТРАНИЦА, и фокус в поле ввода уводил сцену за
-   верхний край — человек отвечал собеседнику, которого не видел. Сцена
-   прилипает к верху, пока лента и композер уезжают под неё. Обрезка у
-   карточки чата снимается: иначе она стала бы опорой прилипания. */
+/* Плитка «Вы». Скрытая — не размонтируется (поток привязан к <video> один
+   раз), а сжимается до подписи с кнопкой «Показать себя». */
+.call-self { position: absolute; right: 16px; bottom: 16px; z-index: 2; display: grid; place-items: center;
+  width: clamp(150px, 17vw, 240px); aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden;
+  background: #26333a; border: 2px solid rgb(255 255 255 / 16%); box-shadow: 0 8px 24px rgb(0 0 0 / 35%); }
+.call-self video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.call-self:not(.live) video { visibility: hidden; }
+.call-self .cs-off { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800;
+  color: rgb(255 255 255 / 78%); }
+.call-self .cs-name { position: absolute; left: 8px; bottom: 6px; display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 8px; background: rgb(0 0 0 / 60%); font-size: 12px; font-weight: 800; }
+.call-self .cs-name .ico { color: #ff8a8a; }
+/* Слова модели зрения — доказательство, что кадры дошли не только до браузера. */
+.call-self .cs-seen { position: absolute; left: 6px; right: 6px; top: 30px; padding: 3px 6px; border-radius: 6px;
+  background: rgb(0 0 0 / 62%); font-size: 11px; line-height: 1.3; font-weight: 700;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.call-self .cs-seen b { color: #8fd0ff; }
+.call-self.hidden .cs-seen { display: none; }
+.call-self .cs-hide { position: absolute; right: 6px; top: 6px; padding: 4px 8px; border-radius: 8px;
+  background: rgb(0 0 0 / 62%); color: #fff; font-size: 11px; font-weight: 800; opacity: 0; transition: opacity 0.15s; }
+.call-self:hover .cs-hide, .call-self .cs-hide:focus-visible { opacity: 1; }
+@media (hover: none) { .call-self .cs-hide { opacity: 1; } }
+.call-self.hidden { width: auto; aspect-ratio: auto; display: flex; align-items: center; gap: 8px; padding: 6px 8px; }
+.call-self.hidden video, .call-self.hidden .cs-off { visibility: hidden; }
+.call-self.hidden .cs-off { position: absolute; }
+.call-self.hidden .cs-name, .call-self.hidden .cs-hide { position: static; opacity: 1; }
+
+/* Субтитры — снизу по центру, как в любом звонке; ваша фраза — второй строкой. */
+.call-cc { position: absolute; left: 50%; bottom: 18px; z-index: 1; transform: translateX(-50%);
+  width: max-content; max-width: min(calc(100% - 2 * clamp(150px, 17vw, 240px) - 64px), 760px);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+.call-cc p { margin: 0; padding: 8px 14px; border-radius: 12px; background: rgb(0 0 0 / 74%); color: #fff;
+  font-size: 17px; font-weight: 700; line-height: 1.4; text-align: center;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.call-cc p.mine { font-size: 15px; color: #d6ecff; }
+.call-cc p.mine b { color: #8fd0ff; }
+
+.call-over { display: contents; }
+.call-notes { position: absolute; left: 50%; top: 58px; z-index: 2; transform: translateX(-50%);
+  width: max-content; max-width: min(90%, 560px); display: flex; flex-direction: column; gap: 6px; }
+.call-notes p { margin: 0; padding: 8px 12px; border-radius: 10px; background: rgb(0 0 0 / 72%);
+  font-size: 13px; font-weight: 700; line-height: 1.4; text-align: center; }
+
+/* Подсказка и вопрос о реакции — карточками слева от лица: ответ на вопрос
+   читается с него, и закрывать его нельзя. */
+.call-cards { position: absolute; left: 16px; top: 50%; z-index: 2; transform: translateY(-50%);
+  width: min(360px, calc(50% - 32px)); display: flex; flex-direction: column; gap: 10px; }
+.call-cards:empty { display: none; }
+.call-hint { position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 12px 38px 12px 12px;
+  border-radius: 14px; background: var(--panel); color: var(--ink); font-size: 14px; line-height: 1.45;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%); animation: pop 0.3s ease both; }
+.call-hint > .ico { flex: 0 0 auto; margin-top: 2px; font-size: 18px; color: var(--brass); }
+.call-hint.pending { color: var(--ink-dim); }
+.call-hint .ch-x { position: absolute; right: 6px; top: 6px; width: 28px; height: 28px; border-radius: 8px;
+  color: var(--ink-dim); font-size: 18px; line-height: 1; }
+.call-hint .ch-x:hover { background: var(--panel-2); }
+.call-cards .probe { box-shadow: 0 8px 24px rgb(0 0 0 / 30%); }
+/* Лента открыта — подсказка уже стоит в ней; вопрос о реакции остаётся у лица. */
+.call-body.with-feed .call-hint { display: none; }
+
+/* Итог партии — поверх сцены, а не полосой под лентой: ленты здесь нет. */
+.call-stage .outcome { position: absolute; left: 50%; top: 50%; z-index: 3; transform: translate(-50%, -50%);
+  width: min(92%, 460px); flex-direction: column; align-items: stretch; border-radius: 18px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 40%); }
+
+/* «Ход переговоров» — та же лента, что в чате, панелью справа. */
+.call-feed { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--panel);
+  color: var(--ink); border-left: 2px solid var(--line); }
+.call-feed .cf-head { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 14px; border-bottom: 2px solid var(--line); }
+.call-feed .cf-x { width: 36px; height: 36px; border-radius: 10px; font-size: 22px; line-height: 1; color: var(--ink-dim); }
+.call-feed .cf-x:hover { background: var(--panel-2); }
+.call-feed .log { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+/* Панель звонка. Значок крупно, подпись под ним; красная — «Завершить». */
+.call-bar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px;
+  padding: 10px 16px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); background: #0b1114; }
+.call-bar .cb { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-width: 76px; min-height: 58px; padding: 8px 10px; border-radius: 14px; background: rgb(255 255 255 / 9%);
+  color: #fff; font-size: 12px; font-weight: 800; line-height: 1.2; transition: background-color 0.15s; }
+.call-bar .cb { position: relative; }
+.call-bar .cb .ico { font-size: 22px; }
+/* «Вас слышно» — полоска уровня под значком микрофона. */
+.call-bar .cb-level { position: absolute; left: 12px; right: 12px; bottom: 5px; height: 3px; border-radius: 2px;
+  background: #58cc02; transform-origin: left center; transition: transform 0.08s linear; }
+.call-bar .cb:hover:not(:disabled) { background: rgb(255 255 255 / 17%); }
+.call-bar .cb:disabled { opacity: 0.45; cursor: default; }
+.call-bar .cb.off { background: rgb(255 75 75 / 22%); color: #ffc2c2; }
+.call-bar .cb[aria-pressed="true"], .call-bar .cb[aria-expanded="true"] { background: rgb(255 255 255 / 24%); }
+.call-bar .cb.cut { background: #ffc800; color: #3c3c3c; }
+.call-bar .cb.end { min-width: 104px; background: var(--red); color: #fff; }
+.call-bar .cb.end .ico { transform: rotate(135deg); }
+.call-bar .cb.end:hover:not(:disabled) { background: var(--red-edge); }
+.call-bar .cb:focus-visible { outline: 3px solid #8fd0ff; outline-offset: 2px; }
+
+/* Вход в созвон — рядом с полем ввода, как голосовой режим у ChatGPT. */
+.crow .call-go { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 52px; padding: 0 14px;
+  border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 16px; background: var(--panel);
+  color: var(--ink); font-size: 14px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+.crow .call-go .ico { font-size: 18px; color: var(--brass-ink, var(--brass)); }
+.crow .call-go:hover:not([aria-disabled="true"]) { background: var(--panel-2); }
+.crow .call-go:active:not([aria-disabled="true"]) { transform: translateY(2px); border-bottom-width: 2px; }
+.crow .call-go[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+
 @media (max-width: 860px) {
-  /* `min-width: 0` обязателен: без обрезки элемент сетки берёт ширину по
-     самому широкому ребёнку (полоса быстрых приёмов не переносится), и
-     страница уезжает вбок. Обрезка раньше делала это молча. */
-  .chat.with-meeting { overflow: visible; min-width: 0; }
-  .chat.with-meeting .meeting { position: sticky; top: 0; z-index: 6; border-radius: var(--r) var(--r) 0 0; }
+  .call-body.with-feed { grid-template-columns: minmax(0, 1fr); }
+  .call-feed { position: absolute; inset: 0; z-index: 5; border-left: 0; }
 }
 @media (max-width: 640px) {
-  .meeting { padding: 8px; gap: 8px; }
-  .mt-stage { height: 30vh; min-height: 200px; }
-  .mt-who .mt-test { font-size: 10px; padding: 2px 6px; }
+  .call-top { flex-wrap: wrap; gap: 4px 12px; padding: 4px 10px; }
+  :root .call-top .hud { flex-basis: 100%; gap: 2px 10px; }
+  :root .call-top .hud-full { display: none; }
+  :root .call-top .hud-abbr { display: inline; }
+  .call-face { height: auto; width: 86%; max-width: 86%; }
+  .mt-who { left: 10px; top: 10px; max-width: 48%; }
   .mt-who b { font-size: 15px; }
-  .mt-who { max-width: 46%; }
   .mt-who > span:not(.mt-test):not(.mt-pending) { display: none; }
-  .mt-sub { font-size: 15px; }
-  /* Четыре кнопки в 390 px: на экране значки, подписи — диктору. */
-  .mt-btn { min-width: 48px; justify-content: center; padding: 8px 12px; }
-  .mt-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .mt-status { right: 10px; top: 10px; font-size: 11px; padding: 5px 10px; }
+  .call-self { width: 96px; right: 10px; bottom: 10px; border-radius: 10px; }
+  /* В плитке 96 px подпись «Камера выключена» не помещается — остаётся
+     значок; слово читает диктор из подписи кнопки камеры. */
+  .call-self .cs-off { font-size: 0; }
+  .call-self .cs-off .ico { width: 20px; height: 20px; }
+  .call-self .cs-name { font-size: 11px; left: 4px; bottom: 4px; padding: 1px 6px; }
+  .call-self .cs-seen { display: none; }
+  .call-cc { left: 10px; right: 116px; bottom: 10px; transform: none; width: auto; max-width: none; align-items: flex-start; }
+  .call-cc p { font-size: 15px; text-align: left; }
+  .call-over { position: absolute; z-index: 2; left: 10px; right: 10px; top: 46px; display: flex; flex-direction: column; gap: 8px; }
+  .call-over > .call-notes, .call-over > .call-cards { position: static; transform: none; width: auto; max-width: none; }
+  .call-bar { gap: 8px; padding: 8px; }
+  /* Семь кнопок в 390 px: на экране значки, подписи — диктору. */
+  .call-bar .cb { min-width: 48px; min-height: 48px; padding: 8px; }
+  .call-bar .cb.end { min-width: 64px; }
+  .call-bar .cb span, .crow .call-go span { position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap; }
+  .crow .call-go { padding: 0 14px; }
 }

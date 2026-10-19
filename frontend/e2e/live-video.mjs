@@ -17,9 +17,12 @@
 //          Кадр речи и кадр простоя в DOM неотличимы, поэтому они узнаются по
 //          содержимому: отпечаток JPEG из сокета против `src` картинки на экране.
 //
-// Шлюз поднимается отдельно (см. docs/INTEGRATION_LIVE_VIDEO.md, «Проверка»):
+// Шлюз поднимается отдельно (см. docs/INTEGRATION_LIVE_VIDEO.md, «Проверка»).
+// Без `NEGO_AI=off`: голос живёт в созвоне, а без сети health говорит «голос
+// недоступен», и кнопка «Созвон» заперта. Ход в звонке уходит текстом в его
+// сокет — у стенда нет распознавания (call-helpers.mjs).
 //   cd frontend && npx vite build --outDir /tmp/lv-dist
-//   cd services/gateway && NEGO_AI=off NEGO_TTS=testtone NEGO_FRONTEND_DIST=/tmp/lv-dist \
+//   cd services/gateway && NEGO_TTS=testtone NEGO_FRONTEND_DIST=/tmp/lv-dist \
 //     .venv/bin/uvicorn app.main:app --port 8041                         # off
 //   ... NEGO_LIVE_VIDEO=stub NEGO_LIVE_VIDEO_STUB_FAIL_AFTER_S=12 ...    # stub
 //   node e2e/live-video.mjs --url http://127.0.0.1:8041 --expect off --out /tmp/e2e-lv
@@ -29,6 +32,7 @@
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright-core";
 import { browserExecutable } from "./browser.mjs";
+import { enterCall, routeRealtime } from "./call-helpers.mjs";
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -57,7 +61,7 @@ const browser = await chromium.launch({
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ["microphone"] });
 const page = await ctx.newPage();
 const errors = [];
-const wire = { frames: 0, states: [], speech: new Set(), idle: new Set() };
+const wire = { frames: 0, replies: 0, states: [], speech: new Set(), idle: new Set() };
 // Отпечаток кадра: длина, середина и хвост. Один хвост не годится — у
 // синтетических кадров заглушки концы JPEG совпадают, и простой узнавался бы как речь.
 const tail = (jpeg) => {
@@ -66,8 +70,9 @@ const tail = (jpeg) => {
 };
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("console", (m) => { if (m.type() === "error" && !/404|501/.test(m.text())) errors.push(m.text()); });
-page.on("websocket", (ws) => ws.on("framereceived", ({ payload }) => {
+const realtime = await routeRealtime(page, (payload) => {
   if (typeof payload !== "string") return;
+  if (payload.includes('"response.done"')) wire.replies++;
   if (payload.includes('"avatar.frame"')) {
     wire.frames++;
     if (EXPECT !== "off") {
@@ -78,28 +83,24 @@ page.on("websocket", (ws) => ws.on("framereceived", ({ payload }) => {
     try { const e = JSON.parse(payload); wire.states.push({ mode: e.lipsync_mode, reason: e.reason ?? null }); }
     catch { /* не событие */ }
   }
-}));
+});
 await page.addInitScript(() => {
   localStorage.setItem("dialog.tutorialDone.v1", "1");
   localStorage.setItem("dialog.lang.v1", "ru");
-  localStorage.setItem("dialog.layers.v1", JSON.stringify({ voice: true, avatar: true }));
+  localStorage.setItem("dialog.layers.v1", JSON.stringify({ avatar: true }));
 });
 await page.goto(URL, { waitUntil: "networkidle" });
 
 const face = () => page.evaluate(() => {
-  const el = document.querySelector(".mt-face .face");
+  const el = document.querySelector(".call-face .face");
   const img = el?.querySelector("img.face__img");
   return { source: el?.getAttribute("data-source") ?? null, renderer: el?.getAttribute("data-renderer") ?? null,
            image: img ? img.getAttribute("src") : null,
-           status: document.querySelector(".meeting")?.getAttribute("data-status") ?? null,
-           replies: document.querySelectorAll(".msg.opp:not(.typing-msg)").length,
+           status: document.querySelector(".call")?.getAttribute("data-status") ?? null,
            test: document.querySelector(".mt-test")?.textContent ?? null };
 });
-async function say(text) {
-  const box = page.locator("textarea:visible").first();
-  await box.fill(text);
-  await box.press("Enter");
-}
+// Реплики считает провод (`response.done`): ленты в созвоне на экране нет.
+const say = (text) => realtime.say(text);
 // Что на экране: кадр речи, кадр простоя, рисованный портрет или иное.
 const kind = (f) => {
   if (f.source !== "frame") return f.source ?? "none";
@@ -121,8 +122,9 @@ const share = (seen, what) => seen.length ? seen.filter((k) => k === what).lengt
 
 await page.locator('[data-scenario="supplier"]').first().click();
 await page.waitForSelector("textarea", { timeout: 15000 });
-check(await page.locator(".meeting").count() === 1, "встреча построена (тренировка с голосом)");
-const start = await face();
+await enterCall(page);
+check(await page.locator(".call").count() === 1, "созвон построен");
+const start = { ...(await face()), replies: wire.replies };
 await page.screenshot({ path: `${OUT}/${EXPECT}-01-start.png` });
 
 if (EXPECT === "off") {
@@ -140,10 +142,10 @@ if (EXPECT === "off") {
   check(wire.frames === 0, "без кредов ни одного avatar.frame по сокету", String(wire.frames));
   check(wire.states.every((s) => s.mode === "amplitude"), "все состояния лица — прежний режим amplitude",
     JSON.stringify(wire.states.slice(0, 3)));
-  const answered = (await face()).replies;
+  const answered = wire.replies;
   check(answered > greeted, "реплика оппонента пришла", `${greeted} → ${answered}`);
-  await page.locator("textarea:visible").first().fill("Второй ход");
-  check(await page.locator("button.send").first().isEnabled(), "ход закрыт — можно ходить дальше");
+  await page.waitForTimeout(1500);
+  check((await face()).status === "listening", "ход закрыт — собеседник снова слушает", String((await face()).status));
 } else if (EXPECT === "live") {
   check(start.renderer === "video", "с ключом лицо в режиме видео", String(start.renderer));
   check(start.test === null, "настоящий сервис не подписан как тестовый поток", String(start.test));
@@ -173,7 +175,7 @@ if (EXPECT === "off") {
     if (after !== "idle") await page.waitForTimeout(100);
   }
   check(after === "idle", "после реплики лицо снова слушает (кадры простоя)", String(after));
-  const answered = (await face()).replies;
+  const answered = wire.replies;
   check(answered > greeted, "реплика оппонента пришла", `${greeted} → ${answered}`);
   await say("Давайте опираться на рыночные данные: медиана независимых прайсов — 87.");
   let second = await watch(4000);
@@ -211,16 +213,15 @@ if (EXPECT === "off") {
     "после отказа — рисованный портрет", `${after.renderer}/${after.source}`);
   check(after.test === null, "после отказа подпись «тестовый поток» снята — потока нет", String(after.test));
   await page.screenshot({ path: `${OUT}/stub-03-portrait.png` });
-  const before = after.replies;
+  const before = wire.replies;
   await say("Давайте опираться на рыночные данные: медиана независимых прайсов — 87.");
   const second = await watch(7000);
-  const later = await face();
-  check(later.replies > before, "партия продолжается: следующая реплика пришла", `${before} → ${later.replies}`);
+  check(wire.replies > before, "партия продолжается: следующая реплика пришла", `${before} → ${wire.replies}`);
   check(second.statuses.has("speaking"), "следующая реплика звучит", list(second.statuses));
-  // Не «поле доступно» — печатать вперёд можно и во время хода. Ход закрыт,
-  // только когда кнопка отправки снова активна.
-  await page.locator("textarea:visible").first().fill("Третий ход");
-  check(await page.locator("button.send").first().isEnabled(), "следующий ход разрешён");
+  // Ход закрыт, когда собеседник снова слушает: поля ввода в созвоне нет.
+  await page.waitForTimeout(1500);
+  check((await face()).status === "listening", "следующий ход разрешён — собеседник слушает",
+    String((await face()).status));
   const recovered = wire.states.some((s) => s.reason === "provider_recovered");
   passed.push(`справка: связь восстановлена и видео вернулось между репликами — ${recovered ? "да" : "нет"}`);
   await page.screenshot({ path: `${OUT}/stub-04-continued.png` });

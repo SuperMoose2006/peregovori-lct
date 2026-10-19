@@ -35,7 +35,9 @@ export const NO_LAYERS: Layers = {
 };
 
 /**
- * УМОЛЧАНИЕ ДЛЯ НОВОГО ПРОФИЛЯ — ВСЕ СЛОИ ВКЛЮЧЕНЫ. Человек, зашедший впервые
+ * УМОЛЧАНИЕ ДЛЯ НОВОГО ПРОФИЛЯ — ВСЕ СЛОИ ВКЛЮЧЕНЫ, кроме голоса. Голос больше
+ * не слой из профиля, а режим партии: созвон включается кнопкой за столом
+ * (`callLayers`), и выбор «голосом» в профиле ничего бы не значил. Человек, зашедший впервые
  * (жюри — с чистым профилем), с выключенными слоями не увидел бы ни голоса, ни
  * лица, ни вопросов о реакции — половины продукта. Три оговорки держат это
  * честным:
@@ -48,7 +50,7 @@ export const NO_LAYERS: Layers = {
  *      нажатие), а отказ гасит слой (lib/deviceCheck.ts::dropFailedLayers).
  */
 export const DEFAULT_LAYERS: Layers = {
-  probe: true, voice: true, camera: true, avatar: true, pokerface: true,
+  probe: true, voice: false, camera: true, avatar: true, pokerface: true,
 };
 
 /** Сохранённый выбор слоёв. Нет записи — выбора не было, действует умолчание.
@@ -73,14 +75,12 @@ export const PRESETS: { id: string; label: { ru: string; en: string }; layers: L
   { id: "classic", label: { ru: "Классика", en: "Classic" }, layers: NO_LAYERS },
   { id: "read", label: { ru: "Читай лицо", en: "Read the face" },
     layers: { ...NO_LAYERS, probe: true, avatar: true } },
-  { id: "call", label: { ru: "Видеозвонок", en: "Video call" },
-    layers: { ...NO_LAYERS, voice: true, avatar: true } },
   // «Покерфейс» — единственный пресет, где камера включена ради ИГРОКА, а не
   // ради оппонента: она считает, сколько раз лицо выдало себя явным выражением.
   { id: "poker", label: { ru: "Покерфейс", en: "Poker face" },
     layers: { ...NO_LAYERS, camera: true, avatar: true, pokerface: true } },
   { id: "full", label: { ru: "Полный контакт", en: "Full contact" },
-    layers: { probe: true, voice: true, camera: true, avatar: true, pokerface: true } },
+    layers: { probe: true, voice: false, camera: true, avatar: true, pokerface: true } },
 ];
 
 /**
@@ -158,8 +158,60 @@ export function sessionLayers(
   have: Record<LayerId, LayerState>,
   fixedOff = false,
 ): Layers {
-  if (fixedOff || mode !== "practice") return NO_LAYERS;
+  if (!layersAllowed(mode, fixedOff)) return NO_LAYERS;
   return pruneLayers(want, have);
+}
+
+/** Разрешены ли слои этой партии вообще — по правилу, а не по окружению. */
+export function layersAllowed(mode: Mode, fixedOff = false): boolean {
+  return !fixedOff && mode === "practice";
+}
+
+/**
+ * ТЕКСТ И ГОЛОС — РАЗНЫЕ РЕЖИМЫ, А НЕ ДВА ВХОДА В ОДНОМ ОКНЕ.
+ *
+ * Раньше слой голоса включался в профиле, и партия шла «чатом с микрофоном»:
+ * поле ввода, лента и живая расшифровка одновременно, а писать и говорить
+ * можно было в одну и ту же секунду. Теперь партия всегда начинается чатом,
+ * а голос — это созвон: отдельный экран, куда входят кнопкой и откуда
+ * выходят, не теряя ни хода (транспорт возвращается в ту же партию по
+ * `resume`). Камера и «покерфейс» живут в созвоне: в чате на экране нет
+ * ничего, что их показывало бы, и открытая под чатом камера была бы ровно
+ * тем лишним, от чего режимы разводили.
+ */
+export function textLayers(layers: Layers): Layers {
+  return { ...layers, voice: false, camera: false, pokerface: false };
+}
+
+/** Слои, с которыми партия НАЧИНАЕТСЯ: правило партии на оценку
+ *  (`sessionLayers`) плюс текстовый режим. */
+export function startLayers(
+  mode: Mode,
+  want: Layers,
+  have: Record<LayerId, LayerState>,
+  fixedOff = false,
+): Layers {
+  return textLayers(sessionLayers(mode, want, have, fixedOff));
+}
+
+/**
+ * Слои СОЗВОНА — или null, если позвонить нельзя.
+ *
+ * Правило то же, что у всех слоёв: созвон бывает только там, где слои
+ * разрешены вообще (`sessionLayers` — тренировка, не зачёт), и только если
+ * окружение способно на голос. Остальные слои партии сохраняются как есть,
+ * камера и «покерфейс» берутся из выбора человека.
+ */
+export function callLayers(
+  mode: Mode,
+  active: Layers,
+  want: Layers,
+  have: Record<LayerId, LayerState>,
+  fixedOff = false,
+): Layers | null {
+  const allowed = sessionLayers(mode, { ...want, voice: true }, have, fixedOff);
+  if (!allowed.voice) return null;
+  return { ...active, voice: true, camera: allowed.camera, pokerface: allowed.pokerface };
 }
 
 export function reasonText(s: LayerState, lang: Lang): string {
@@ -187,8 +239,10 @@ export const SERVER_SIDE_REASON: Record<"camera" | "voice", { ru: string; en: st
     en: "AI vision is not connected right now — nobody would look at the frames, so the camera was not opened",
   },
   voice: {
-    ru: "распознавание речи сейчас недоступно — ход голосом не уйдёт, печатайте; оппонента при этом слышно",
-    en: "speech recognition is unavailable right now — a spoken turn will not go through, so type; you can still hear the opponent",
+    // Без «печатайте»: строка звучит и на кнопке «Созвон», и в самом звонке, где
+    // поля ввода нет, — куда идти, говорит уже само место (`call.noMic`).
+    ru: "распознавание речи сейчас недоступно — ход голосом не уйдёт; оппонента при этом слышно",
+    en: "speech recognition is unavailable right now — a spoken turn will not go through; you can still hear the opponent",
   },
 };
 
@@ -239,10 +293,22 @@ export function withServer(
     deny("camera", SERVER_SIDE_REASON.camera);
     deny("pokerface", SERVER_SIDE_REASON.camera);
   }
-  if (typeof server.voice === "string" && server.voice.startsWith("unavailable")) {
+  if (typeof server.voice === "string" && voiceOff(server.voice)) {
     deny("voice", SERVER_SIDE_REASON.voice);
   }
   return out;
+}
+
+/**
+ * Голос на сервере не поднимется. Health говорит это тремя способами: нет
+ * сети (`unavailable …`), голос выключен настройкой (`disabled (check
+ * NEGO_VOICE) …`), выключен распознаватель классического голоса (`classic:
+ * disabled (check NEGO_ASR …)`). Раньше узнавался только первый, и кнопка
+ * «Созвон» на шлюзе без распознавания вела в звонок, где микрофон не встаёт.
+ */
+function voiceOff(describe: string): boolean {
+  return describe.startsWith("unavailable") || describe.startsWith("disabled")
+    || describe.startsWith("classic: disabled");
 }
 
 /**

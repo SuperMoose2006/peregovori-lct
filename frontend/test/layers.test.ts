@@ -65,17 +65,18 @@ test("состав всех пресетов соответствует обещ
   assert.deepEqual(enabled, {
     classic: [],
     read: ["avatar", "probe"],
-    call: ["avatar", "voice"],
+    // «Видеозвонка» среди пресетов больше нет: голос — это созвон, режим
+    // партии, а не слой профиля (callMode.test.ts).
     poker: ["avatar", "camera", "pokerface"],
-    full: ["avatar", "camera", "pokerface", "probe", "voice"],
+    full: ["avatar", "camera", "pokerface", "probe"],
   });
 });
 
-test("Полный контакт поднимает пять слоёв, без камеры гасит камеру и покерфейс с причиной", () => {
+test("Полный контакт поднимает четыре слоя, без камеры гасит камеру и покерфейс с причиной", () => {
   const full = PRESETS.find(p => p.id === "full")!.layers;
   const ready = Object.fromEntries(Object.keys(ON).map(id =>
     [id, { id, available: true, reason: null }])) as ReturnType<typeof detectLayers>;
-  assert.deepEqual(sessionLayers("practice", full, ready), ON);
+  assert.deepEqual(sessionLayers("practice", full, ready), { ...ON, voice: false });
   for (const unavailable of [noMedia(), withServer(ready, { cloud_ai: false, voice: "classic: parakeet" })]) {
     const actual = sessionLayers("practice", full, unavailable);
     for (const id of ["camera", "pokerface"] as const) {

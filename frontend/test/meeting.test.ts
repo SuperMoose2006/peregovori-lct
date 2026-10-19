@@ -1,26 +1,9 @@
 // meeting.test.ts — когда включается встреча и что рисует лицо.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { meetingMode, meetingStatus, syntheticFace } from "../src/lib/meeting";
+// Когда созвон вообще предлагается — в callMode.test.ts (callOffer, callLayers).
+import { meetingStatus, syntheticFace } from "../src/lib/meeting";
 import { faceRenderer, pickFaceSource, type FaceInputs } from "../src/lib/faceSource";
-import { NO_LAYERS } from "../src/lib/layers";
-import type { Mode } from "../src/types";
-
-const voice = { ...NO_LAYERS, voice: true, avatar: true };
-const speech = { speech: true };
-
-test("встреча — только тренировка с голосом и настоящим синтезом", () => {
-  assert.equal(meetingMode({ mode: "practice", layers: voice, capabilities: speech }), true);
-  for (const mode of ["exam", "drill", "campaign", "custom"] as Mode[]) {
-    assert.equal(meetingMode({ mode, layers: voice, capabilities: speech }), false,
-      `${mode}: слои здесь погашены — встречи быть не может`);
-  }
-  assert.equal(meetingMode({ mode: "practice", layers: NO_LAYERS, capabilities: speech }), false);
-  // Голос просили, а синтеза нет: большая немая картинка — запрещённое состояние.
-  assert.equal(meetingMode({ mode: "practice", layers: voice, capabilities: { speech: false } }), false);
-  assert.equal(meetingMode({ mode: "practice", layers: voice, capabilities: {} }), false);
-  assert.equal(meetingMode({ mode: "practice", layers: voice, capabilities: null }), false);
-});
 
 test("стенд узнаётся только по явному флагу сервера", () => {
   assert.equal(syntheticFace({ avatar: { synthetic: true } }), true);

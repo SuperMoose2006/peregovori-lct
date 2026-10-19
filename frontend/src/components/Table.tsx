@@ -13,19 +13,17 @@ import { haptic, play } from "../lib/sound";
 import { WaitStatus } from "./WaitStatus";
 import { OpponentFace } from "./OpponentFace";
 import type { FaceRenderer } from "../lib/faceSource";
-import { MeetingStage } from "./MeetingStage";
-import { meetingStatus } from "../lib/meeting";
+import { CallView } from "./CallView";
+import { meetingStatus, type CallOffer } from "../lib/meeting";
 import { ScreenHeading } from "./ScreenHeading";
 import { scrollTo } from "../lib/motion";
 import { Meters } from "./Meters";
 import { Chat, type ChatScrollPosition } from "./Chat";
 import { Composer } from "./Composer";
-import { LiveBar } from "./LiveBar";
 import { Karl, karlState } from "./Mascot";
 import { DealTracker } from "./DealTracker";
 import { DealTerms } from "./DealTerms";
 import { Onboarding, type CoachStep } from "./Onboarding";
-import type { Layers } from "../lib/layers";
 import { Icon } from "./Icon";
 import { CustomConfirm } from "./CustomConfirm";
 
@@ -80,8 +78,19 @@ interface Props {
   getVideoFrame?: () => string | null;
   /** Чем сервер рисует лицо — см. lib/faceSource.ts. */
   faceRenderer?: FaceRenderer;
-  /** Встреча с крупным собеседником (lib/meeting.ts решает, когда). */
-  meeting?: boolean;
+  /** Идёт созвон: стол отдаёт экран звонку (CallView), поля ввода нет. */
+  call?: boolean;
+  /** Кнопка «Созвон» в композере (lib/meeting.ts::callOffer). */
+  callOffer?: CallOffer;
+  onCall?: () => void;
+  onHangUp?: () => void;
+  /** «Завершить» нажато, пока ход в полёте. */
+  hangupPending?: boolean;
+  /** Камера созвона: поднята ли, выключена ли кнопкой, почему недоступна. */
+  callCamera?: { up: boolean; off: boolean; reason: string | null };
+  onToggleCamera?: () => void;
+  /** `capabilities.speech` — будет ли у собеседника голос. */
+  speech?: boolean | null;
   /** Кадры синтетические — стенд обязан быть подписан. */
   syntheticFace?: boolean;
   videoPending?: boolean;
@@ -90,8 +99,6 @@ interface Props {
   onToggleMic?: () => void;
   getAudioBlocked?: () => boolean;
   onResumeAudio?: () => void;
-  /** Какие слои подняты В ЭТОЙ партии. Выключенные не оставляют следов на экране. */
-  layers?: Layers;
   /** Открыть шторку слоёв. Полноэкранный экран подготовки перед партией убран —
    *  слои выбираются отсюда, изнутри стола. Саму шторку рисует App: смена слоя
    *  до первого хода перезапускает сессию, а Table на это время размонтируется
@@ -101,8 +108,7 @@ interface Props {
   /** Слой просили, но устройство не встало. Ключ есть — слой мёртв, и об этом
    *  обязана быть строка на экране, а не пустой чип живого слоя. */
   layerFail?: { voice?: string; camera?: string };
-  /** Сколько кадров камеры реально ушло, и что на них разглядела модель. */
-  framesSent?: number;
+  /** Что разглядела модель зрения — строкой на плитке «Вы» в созвоне. */
   observations?: string[];
   /** Игрок говорит прямо сейчас — по VAD сервера. */
   userSpeaking?: boolean;
@@ -133,7 +139,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, videoPending = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
+export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", call = false, callOffer, onCall, onHangUp, hangupPending = false, callCamera, onToggleCamera, speech = null, syntheticFace = false, videoPending = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", onOpenLayers, layersOpen = false, layerFail, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -190,10 +196,17 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
   const exam = mode === "exam";
   // На зачёт идут экзамен и капстоун курса (protocol.REPRODUCIBLE_MODES).
   const graded = exam || drillGoal !== null;
-  // Субтитр встречи — последняя реплика собеседника, пока она звучит или ещё
+  // Субтитр созвона — последняя реплика собеседника, пока она звучит или ещё
   // печатается. Когда он замолчал, субтитр уходит: лента хранит всё целиком.
-  const lastOpp = meeting ? [...log].reverse().find((e) => e.kind === "opp") : undefined;
+  const lastOpp = call ? [...log].reverse().find((e) => e.kind === "opp") : undefined;
   const subtitle = lastOpp && lastOpp.kind === "opp" && (oppSpeaking || lastOpp.streaming) ? lastOpp.text : null;
+  // Подсказка и вопрос о реакции ЭТОГО хода — те, что пришли после последней
+  // реплики игрока. В созвоне они стоят на сцене; следующий ход их уносит.
+  let lastMe = -1;
+  for (let i = log.length - 1; i >= 0; i--) if (log[i].kind === "me") { lastMe = i; break; }
+  const sinceMove = log.slice(lastMe + 1);
+  const callHint = [...sinceMove].reverse().find((e): e is Extract<ChatEntry, { kind: "hint" }> => e.kind === "hint") ?? null;
+  const callProbe = [...sinceMove].reverse().find((e): e is Extract<ChatEntry, { kind: "probe" }> => e.kind === "probe") ?? null;
   // Первая партия человека: практика и флаг «вводную ещё не видел». Больше
   // ничего от неё не зависит — ни движок, ни оценка.
   const newcomer = useRef(shouldRunTutorial(mode, isTutorialDone()));
@@ -478,6 +491,143 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
     };
   }
 
+  // ОДНА ЛЕНТА НА ОБА РЕЖИМА. В чате она — главное на экране, в созвоне — та
+  // же лента в панели «Ход переговоров». Карточка «Стол накрыт» и «вставить
+  // реплику» живут только в чате: они заполняют поле ввода, а его в созвоне нет.
+  const feed = (inCall: boolean) => (
+    <Chat
+      scrollPosition={chatScrollPosition}
+      onUseLine={inCall ? undefined : (text) => setPrefill({ text, nonce: prefillNonce.current++ })}
+      useLineLabel={t.useLine}
+      log={log}
+      metersShort={t.metersShort}
+      metersFull={t.meters}
+      deltaAria={t.a11y.delta}
+      logLabel={t.a11y.chatLog}
+      argLabel={t.argLabel}
+      argStrings={t.arg}
+      deltaNone={t.deltaNone}
+      deltaRepeat={t.deltaRepeat}
+      exam={exam}
+      coachLabel={t.coachLabel}
+      dismissLabel={t.a11y.dismiss}
+      judgeActive={judgeActive}
+      judgeBadge={t.judgeBadge}
+      judgeReject={t.judgeReject}
+      typing={typing}
+      tagLabels={t.tagLabels}
+      typingLabel={phase === "judging" ? t.judgingLabel : t.typingLabel}
+      typingJudging={phase === "judging"}
+      opening={showOpening && !inCall ? openingCard : undefined}
+      hintPendingLabel={t.hintPending}
+      probeLabels={t.probe}
+      probeTally={probeTally}
+      // В созвоне вопрос стоит на сцене, и фокус идёт туда.
+      registerProbe={inCall ? undefined : registerProbe}
+      onProbeAnswer={onProbeAnswer}
+    />
+  );
+  // Единственная панель шкал в игре: полные подписи, объяснение в подсказке,
+  // обрубки только там, где полное слово не влезает. В созвоне — она же,
+  // тонкой полосой над сценой.
+  const hud = st && !exam ? (
+    <Meters
+      state={st}
+      // Под ключом `leverage` в состоянии — гибкость, а не сырой рычаг
+      // чипов: подпись обязана говорить то же, что показывает полоса.
+      labels={{ ...t.meters, leverage: t.flexMeter.full }}
+      short={{ ...t.metersShort, leverage: t.flexMeter.short }}
+      info={{ ...t.meterInfo, leverage: t.flexMeter.info }}
+      groupLabel={t.a11y.hud}
+      deltas={lastDeltas}
+    />
+  ) : null;
+  // Итог партии: в чате — полосой под лентой, в созвоне — поверх сцены.
+  const outcomeEl = finished && onSeeDebrief ? (
+    <div className={`outcome ${st!.status}`} role="status" ref={outcomeRef}>
+      <div className="oc-stamp">
+        <span className="oc-mark" aria-hidden="true">
+          <Icon name={st!.status === "agreement" ? "handshake" : "door"} />
+        </span>
+        <span className="oc-title">
+          {st!.status === "agreement" ? t.outcome.agreement : t.outcome.breakdown}
+        </span>
+        {/* The settled price, never `offer_opp` — the deal closes at
+            the meeting point, so offer_opp would contradict the
+            opponent's own closing line by a rouble or two. */}
+        {st!.status === "agreement" && st!.deal != null ? (
+          <span className="oc-price">
+            {/* Тем же форматом, что трекер и разбор: «85,9 ₽», а не
+                «85.9 ₽» (найдено после аудита 17.10). */}
+            {formatDeal(st!.deal, scenario.headline_unit, lang)}
+          </span>
+        ) : null}
+      </div>
+      <button className="primary oc-go" onClick={onSeeDebrief} disabled={!debriefReady}>
+        {debriefReady ? t.outcome.see : t.outcome.preparing}
+      </button>
+    </div>
+  ) : null;
+  const turnLabel = (st?.turn ?? 0) < 1
+    ? t.turnBudget.replace("{n}", String(st?.max_turns ?? 12))
+    : t.turnOf.replace("{n}", String(st?.turn ?? 0)).replace("{max}", String(st?.max_turns ?? 12));
+
+  if (call) {
+    return (
+      <>
+        {toast ? (
+          <div className="toast" role="status">
+            <Icon name="target" /> {t.interestToast}
+          </div>
+        ) : null}
+        <CallView
+          t={t}
+          lang={lang}
+          scenario={scenario}
+          state={st}
+          status={meetingStatus({ conn, oppSpeaking, userSpeaking, busy })}
+          avatarState={avatarState}
+          renderer={faceRenderer}
+          synthetic={syntheticFace}
+          videoPending={videoPending}
+          oppSpeaking={oppSpeaking}
+          getSpeechLevel={getSpeechLevel}
+          getVideoFrame={getVideoFrame}
+          getAudioBlocked={getAudioBlocked}
+          onResumeAudio={onResumeAudio}
+          speech={speech}
+          subtitle={subtitle}
+          transcript={transcript}
+          micAvailable={micAvailable}
+          micFail={layerFail?.voice ?? null}
+          micMuted={micMuted}
+          onToggleMic={onToggleMic ?? (() => {})}
+          getMicLevel={getMicLevel}
+          observation={observations?.length ? observations[observations.length - 1] : null}
+          camera={callCamera ?? { up: false, off: false, reason: null }}
+          onToggleCamera={onToggleCamera ?? (() => {})}
+          videoRef={videoRef}
+          canvasRef={canvasRef}
+          hud={hud}
+          turnLabel={turnLabel}
+          feed={feed(true)}
+          hint={callHint}
+          hintEnabled={!graded}
+          hintDisabled={disconnected || busy || finished}
+          onHint={onHint}
+          probe={callProbe}
+          probeTally={probeTally}
+          registerProbe={registerProbe}
+          onProbeAnswer={onProbeAnswer}
+          onInterrupt={onInterrupt}
+          onHangUp={onHangUp ?? handleQuit}
+          hangupPending={hangupPending}
+          outcome={outcomeEl}
+        />
+      </>
+    );
+  }
+
   return (
     <section className="screen">
       {toast ? (
@@ -505,11 +655,9 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
             {/* While a "read her face" question is open the portrait becomes the
                 main object on screen — this is the one beat that justifies the
                 parametric expressions, which otherwise work almost unnoticed. */}
-            <div className={`opp-card${probeOpen && !meeting ? " reading" : ""}${meeting ? " in-meeting" : ""}`}>
-              {probeOpen && !meeting ? <div className="opp-cue">{t.probe.readFace}</div> : null}
-              {/* Во встрече лицо уже крупно на сцене — второе, маленькое, здесь
-                  было бы тем же человеком дважды. */}
-              {meeting ? null : <OpponentFace
+            <div className={`opp-card${probeOpen ? " reading" : ""}`}>
+              {probeOpen ? <div className="opp-cue">{t.probe.readFace}</div> : null}
+              <OpponentFace
                 scenarioId={scenario.id}
                 avatarState={avatarState}
                 state={st}
@@ -521,7 +669,7 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                 animationLabel={t.a11y.amplitudeAnimation}
                 speakingLabel={t.a11y.speaking}
                 label={scenario.counterpart_name}
-              />}
+              />
               <div>
                 <div className="nm">{scenario.counterpart_name}</div>
                 <div className="ps">{scenario.counterpart_persona}</div>
@@ -679,47 +827,10 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
               двух на странице не бывает. Имени у раздела нет намеренно: свою
               живую область лента уже называет сама, и второй ориентир с тем же
               именем — лишний пункт в списке, а не помощь. */}
-          <section className={`chat${meeting ? " with-meeting" : ""}`}>
-            {meeting ? (
-              <MeetingStage
-                t={t.meeting}
-                speakingLabel={t.a11y.speaking}
-                animationLabel={t.a11y.amplitudeAnimation}
-                scenario={scenario}
-                state={st}
-                avatarState={avatarState}
-                renderer={faceRenderer}
-                synthetic={syntheticFace}
-                videoPending={videoPending}
-                status={meetingStatus({ conn, oppSpeaking, userSpeaking, busy })}
-                subtitle={subtitle}
-                oppSpeaking={oppSpeaking}
-                micAvailable={micAvailable}
-                micMuted={micMuted}
-                onToggleMic={onToggleMic}
-                onInterrupt={onInterrupt}
-                onTextMode={() => composeRef.current?.querySelector("textarea")?.focus()}
-                onEnd={onQuit}
-                getSpeechLevel={getSpeechLevel}
-                getVideoFrame={getVideoFrame}
-                getAudioBlocked={getAudioBlocked}
-                onResumeAudio={onResumeAudio}
-              />
-            ) : null}
+          <section className="chat">
             {/* Единственная панель шкал в игре: полные подписи, объяснение в
                 подсказке, обрубки только там, где полное слово не влезает. */}
-            {st && !exam ? (
-              <Meters
-                state={st}
-                // Под ключом `leverage` в состоянии — гибкость, а не сырой рычаг
-                // чипов: подпись обязана говорить то же, что показывает полоса.
-                labels={{ ...t.meters, leverage: t.flexMeter.full }}
-                short={{ ...t.metersShort, leverage: t.flexMeter.short }}
-                info={{ ...t.meterInfo, leverage: t.flexMeter.info }}
-                groupLabel={t.a11y.hud}
-                deltas={lastDeltas}
-              />
-            ) : null}
+            {hud}
             <div className="ch">
               {/* The game skin turns the turn counter into a spent-budget bar:
                   the same honest framing (budget, not countdown), but visible at
@@ -733,11 +844,7 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                 {/* Budget, not a countdown: before the first move show the turn
                     BUDGET ("12 ходов"); once play starts show "ход {n} из {max}"
                     — never "ход 0/12", which reads like a countdown-to-failure. */}
-                {(st?.turn ?? 0) < 1
-                  ? t.turnBudget.replace("{n}", String(st?.max_turns ?? 12))
-                  : t.turnOf
-                      .replace("{n}", String(st?.turn ?? 0))
-                      .replace("{max}", String(st?.max_turns ?? 12))}
+                {turnLabel}
                 {kind === "mock" ? <span className="conn mock">{t.usingMock}</span> : null}
                 {/* ДВА РАЗНЫХ СОСТОЯНИЯ, ДВА РАЗНЫХ БЕЙДЖА. Соседний говорит
                     «сервера нет вовсе»; этот — «сервер есть, ключа модели нет»,
@@ -769,65 +876,12 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                   .replace("{form}", plural(drillGoal.maxTurns, t.forms.turns))}
               </p>
             ) : null}
-            <Chat
-              scrollPosition={chatScrollPosition}
-              onUseLine={(text) => setPrefill({ text, nonce: prefillNonce.current++ })}
-              useLineLabel={t.useLine}
-              log={log}
-              metersShort={t.metersShort}
-              metersFull={t.meters}
-              deltaAria={t.a11y.delta}
-              logLabel={t.a11y.chatLog}
-              argLabel={t.argLabel}
-              argStrings={t.arg}
-              deltaNone={t.deltaNone}
-              deltaRepeat={t.deltaRepeat}
-              exam={exam}
-              coachLabel={t.coachLabel}
-              dismissLabel={t.a11y.dismiss}
-              judgeActive={judgeActive}
-              judgeBadge={t.judgeBadge}
-              judgeReject={t.judgeReject}
-              typing={typing}
-              tagLabels={t.tagLabels}
-              typingLabel={phase === "judging" ? t.judgingLabel : t.typingLabel}
-              typingJudging={phase === "judging"}
-              opening={showOpening ? openingCard : undefined}
-              hintPendingLabel={t.hintPending}
-              probeLabels={t.probe}
-              probeTally={probeTally}
-              registerProbe={registerProbe}
-              onProbeAnswer={onProbeAnswer}
-            />
+            {feed(false)}
             {!disconnected && ((finished && !debriefReady) || busy) && !debriefReady ? (
               <WaitStatus key={finished ? "debrief" : `turn-${st?.turn ?? 0}`}
                 stage={finished ? "debrief" : phase ?? "receiving"} lang={lang} onExit={onQuit} />
             ) : null}
-            {finished && onSeeDebrief ? (
-              <div className={`outcome ${st!.status}`} role="status" ref={outcomeRef}>
-                <div className="oc-stamp">
-                  <span className="oc-mark" aria-hidden="true">
-                    <Icon name={st!.status === "agreement" ? "handshake" : "door"} />
-                  </span>
-                  <span className="oc-title">
-                    {st!.status === "agreement" ? t.outcome.agreement : t.outcome.breakdown}
-                  </span>
-                  {/* The settled price, never `offer_opp` — the deal closes at
-                      the meeting point, so offer_opp would contradict the
-                      opponent's own closing line by a rouble or two. */}
-                  {st!.status === "agreement" && st!.deal != null ? (
-                    <span className="oc-price">
-                      {/* Тем же форматом, что трекер и разбор: «85,9 ₽», а не
-                          «85.9 ₽» (найдено после аудита 17.10). */}
-                      {formatDeal(st!.deal, scenario.headline_unit, lang)}
-                    </span>
-                  ) : null}
-                </div>
-                <button className="primary oc-go" onClick={onSeeDebrief} disabled={!debriefReady}>
-                  {debriefReady ? t.outcome.see : t.outcome.preparing}
-                </button>
-              </div>
-            ) : null}
+            {outcomeEl}
             <div ref={composeRef} className="onb-anchor" hidden={finished && !!onSeeDebrief}>
               <Composer
                 hintLabel={t.hint}
@@ -847,6 +901,14 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                 limitNote={t.composerLimit}
                 charForms={t.forms.chars}
                 prefill={prefill}
+                call={callOffer?.show && onCall ? {
+                  label: t.call.start,
+                  title: callOffer.reason ? t.call.unavailable.replace("{reason}", callOffer.reason) : t.call.startHint,
+                  // Ход в полёте или вопрос открыт — смена режима подождёт:
+                  // сокет меняется только между ходами.
+                  disabled: !!callOffer.reason || disconnected || busy || finished || probeOpen || !st,
+                  onCall,
+                } : undefined}
               />
               {/* Слой рисуется живым, ТОЛЬКО если устройство действительно
                   поднялось. Иначе чип «микрофон активен» стоял бы над мёртвым
@@ -869,24 +931,6 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                     {t.live.offHow}
                   </p>
                 </div>
-              ) : null}
-              {videoRef && canvasRef && getMicLevel ? (
-                <LiveBar
-                  voice={!!layers?.voice && !layerFail?.voice}
-                  camera={!!layers?.camera && !layerFail?.camera}
-                  frames={framesSent}
-                  observation={observations?.length ? observations[observations.length - 1] : null}
-                  userSpeaking={userSpeaking}
-                  oppSpeaking={oppSpeaking}
-                  transcript={transcript}
-                  getMicLevel={getMicLevel}
-                  // Во встрече «перебить» стоит на сцене — вторая кнопка рядом
-                  // с полем ввода была бы той же кнопкой дважды.
-                  onInterrupt={meeting ? undefined : onInterrupt}
-                  videoRef={videoRef}
-                  canvasRef={canvasRef}
-                  labels={t.live}
-                />
               ) : null}
             </div>
           </section>
