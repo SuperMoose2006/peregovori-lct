@@ -2311,6 +2311,62 @@
    "spin": null
   },
   {
+   "text": "We can do 90, may 15 work for delivery?",
+   "moves": [
+    "offer",
+    "open_question"
+   ],
+   "primary": "offer",
+   "arg": 26,
+   "words": 9,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false,
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "We have a deal, delivery on the 1st of March.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 10,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "We have a deal, we sign on May 15.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "We have a deal, we sign on the 15th.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "We have an alternative offer at a lower equity — but we would rather close with you, so let us find a structure.",
    "moves": [
     "batna"

@@ -277,11 +277,16 @@ const MONEY_SUFFIX = /^\s*(%|руб|rub|k(?![\p{L}\p{N}_])|к(?![\p{L}\p{N}_])|�
  * синхронно (инвариант 8). */
 const MONEY_EACH = new RegExp(MONEY.source, "g");
 
-/** Число на этой позиции — счёт чего-то («7 лет», «1000 штук»), а не цена. */
-function countedAt(t: string, end: number): boolean {
-  const trimmed = t.slice(end).trim();
+/** Число `t[start:end]` — счёт («7 лет») или дата («15 мая», "May 15",
+ *  "the 15th"), а не цена. Зеркало techniques.py::_not_a_price. */
+function countedAt(t: string, start: number, end: number): boolean {
+  const tail = t.slice(end);
+  const trimmed = tail.trim();
   const after = trimmed ? trimmed.split(" ")[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
-  return !!after && LEX.nonPriceUnits.some((u) => after.startsWith(u));
+  if (after && LEX.nonPriceUnits.some((u) => after.startsWith(u))) return true;
+  if (/^(?:st|nd|rd|th)\b/.test(tail)) return true;
+  const prev = t.slice(0, start).split(/\s+/).filter(Boolean);
+  return prev.length > 0 && LEX.monthsBefore.includes(prev[prev.length - 1].replace(/^[.,?!-]+|[.,?!-]+$/g, ""));
 }
 
 /** Первое число реплики, которое НЕ счёт. Счёт впереди цены раньше гасил цену
@@ -290,7 +295,8 @@ function countedAt(t: string, end: number): boolean {
  *  techniques.py::_first_price_match. */
 function firstPriceMatch(t: string): RegExpMatchArray | null {
   for (const m of t.matchAll(MONEY_EACH)) {
-    if (!countedAt(t, (m.index ?? 0) + m[0].length)) return m;
+    const start = (m.index ?? 0) + (/^\d/.test(m[0]) ? 0 : 1);
+    if (!countedAt(t, start, start + m[1].length)) return m;
   }
   return null;
 }
@@ -403,7 +409,7 @@ export function numberMentions(t: string): NumberMention[] {
     const tail = t.slice(end);
     const trimmed = tail.trim();
     const after = trimmed ? trimmed.split(" ")[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
-    const counted = !!after && LEX.nonPriceUnits.some((u) => after.startsWith(u));
+    const counted = countedAt(t, start, end);
     const kind: NumberMention["kind"] =
       tail.trimStart().startsWith("%") || PCT_WORDS.some((w) => after.startsWith(w)) ? "pct"
         : MONEY_SUFFIX.test(tail) ? "money" : "plain";

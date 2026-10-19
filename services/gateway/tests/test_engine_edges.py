@@ -392,11 +392,17 @@ def test_agreeing_to_the_table_number_closes_on_it(table, line):
     assert s.state.deal == table, line
 
 
-@pytest.mark.parametrize("line", ["Договорились, подписываем 15 числа.", "По рукам, отгрузка 1 марта."])
-def test_a_date_in_a_yes_is_not_an_offer(line):
+@pytest.mark.parametrize("lang,line", [
+    ("ru", "Договорились, подписываем 15 числа."), ("ru", "По рукам, отгрузка 1 марта."),
+    # Английские даты (ревью ветки; инвариант 4): месяц перед числом и
+    # порядковое окончание вплотную.
+    ("en", "We have a deal, we sign on the 15th."), ("en", "We have a deal, we sign on May 15."),
+    ("en", "We have a deal, delivery on the 1st of March."),
+])
+def test_a_date_in_a_yes_is_not_an_offer(lang, line):
     """Найдено после аудита 17.10: число даты читалось офертой вне коридора, и
     согласие отклонялось («пока не соглашается», напряжение +8)."""
-    s = engine.create_session("supplier", "ru")
+    s = engine.create_session("supplier", lang)
     s.turn = 1
     a = engine.analyze(line)
     engine.apply_move(s, a, line)

@@ -144,6 +144,12 @@ export const LEX: Record<string, string[]> = {
     "декабр", "years", "year", "people", "person", "engineer", "employee", "week", "month",
     "day", "hour", "minute", "times", "items", "points", "options",
   ],
+  monthsBefore: [
+    "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь",
+    "октябрь", "ноябрь", "декабрь", "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december", "jan", "feb", "mar",
+    "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
+  ],
   offerIntent: [
     "как насчет", "как вам", "а если", "могу дать", "могу отдать", "могу сделать",
     "могу пойти на", "могу предложить", "могу за", "с меня", "скину до", "скинуть до",

@@ -670,6 +670,16 @@ LEX: dict[str, list[str]] = {
         "years", "year", "people", "person", "engineer", "employee", "week",
         "month", "day", "hour", "minute", "times", "items", "points", "options",
     ],
+    # Месяц ПЕРЕД числом — дата: "we sign on May 15", «март 2027» (ревью
+    # ветки, инвариант 4: русский месяц в родительном падеже стоит после числа
+    # и лежит выше). Целым словом, а не основой: "mar" не должно ловить "market".
+    "monthsBefore": [
+        "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август",
+        "сентябрь", "октябрь", "ноябрь", "декабрь",
+        "january", "february", "march", "april", "may", "june", "july", "august",
+        "september", "october", "november", "december",
+        "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
+    ],
     # НАМЕРЕНИЕ НАЗВАТЬ ЦЕНУ. Читает этот список ТОЛЬКО `offer_number` — ни
     # одного тега приёма отсюда не берётся, и это главное свойство ключа.
     #
@@ -908,11 +918,26 @@ def extract_number(text: str) -> Optional[float]:
     return val if math.isfinite(val) else None
 
 
-def _counted_at(t: str, m: "re.Match[str]") -> bool:
-    """Число на позиции `m` — счёт чего-то («7 лет», «1000 штук»), а не цена."""
-    tail = t[m.end(1):]
+#: Порядковое окончание вплотную к числу: "the 15th", "1st" — дата или номер.
+_ORDINAL_TAIL_RE = re.compile(r"(?:st|nd|rd|th)\b")
+
+
+def _not_a_price(t: str, start: int, end: int) -> bool:
+    """Число `t[start:end]` — счёт («7 лет», «1000 штук») или дата («15 мая»,
+    "May 15", "the 15th"), а не цена."""
+    tail = t[end:]
     after = tail.strip().split(" ")[0].strip(".,?!-") if tail.strip() else ""
-    return bool(after) and any(after.startswith(u) for u in LEX["nonPriceUnits"])
+    if after and any(after.startswith(u) for u in LEX["nonPriceUnits"]):
+        return True
+    if _ORDINAL_TAIL_RE.match(tail):
+        return True
+    prev = t[:start].split()
+    return bool(prev) and prev[-1].strip(".,?!-") in LEX["monthsBefore"]
+
+
+def _counted_at(t: str, m: "re.Match[str]") -> bool:
+    """Число на позиции `m` — счёт чего-то или дата, а не цена."""
+    return _not_a_price(t, m.start(1), m.end(1))
 
 
 def _first_price_match(t: str) -> "Optional[re.Match[str]]":
@@ -1043,7 +1068,7 @@ def number_mentions(t: str) -> list[NumberMention]:
             continue
         tail = t[m.end(1):]
         after = tail.strip().split(" ")[0].strip(".,?!-") if tail.strip() else ""
-        counted = bool(after) and any(after.startswith(u) for u in LEX["nonPriceUnits"])
+        counted = _not_a_price(t, m.start(1), m.end(1))
         if tail.lstrip().startswith("%") or after.startswith(_PCT_WORDS):
             kind = "pct"
         elif _MONEY_SUFFIX_RE.match(tail):
