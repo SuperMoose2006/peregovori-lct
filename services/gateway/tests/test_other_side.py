@@ -249,6 +249,23 @@ def test_the_card_names_the_turn_a_question_would_have_worked(lang: str) -> None
     assert card["seat"] == engine.by_id("supplier").counterpart.name[lang]
 
 
+@pytest.mark.parametrize("lang", LANGS)
+def test_the_card_counts_what_stayed_hidden_without_a_gendered_pronoun(lang: str) -> None:
+    """Найдено после аудита 17.10: «Столько же причин осталось при нём» при
+    одной вскрытой из трёх утверждало, что скрытой осталась ОДНА, — а их две.
+    И «при нём» про собеседницу (investor_mirror, freelance_mirror) — ошибка.
+    """
+    line = {"ru": "Ваша цена — просто грабёж.", "en": "Your price is robbery."}[lang]
+    sess, _ = play("supplier_mirror", [line], lang)
+    sess.state.interests_found = [0]  # одна вскрыта, две скрыты
+    card = views.other_side(sess)
+    assert card is not None
+    assert (card["asked"], card["total"]) == (1, 3)
+    assert ("2 из 3" if lang == "ru" else "2 of 3") in card["blind"], card["blind"]
+    for word in ("при нём", "при ней", " him ", " her "):
+        assert word not in card["blind"], card["blind"]
+
+
 def test_the_card_says_nothing_before_the_first_move() -> None:
     """Пустая карточка — это четвёртое состояние «выглядит настоящим, а внутри
     пусто». Его не бывает."""
@@ -357,3 +374,4 @@ def test_an_ordinary_table_carries_no_card_over_the_wire() -> None:
         created = ws.receive_json()
         assert created["scenario"]["mirror_of"] == ""
         assert created["scenario"]["defending"] == []
+

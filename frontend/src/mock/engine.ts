@@ -1335,8 +1335,8 @@ const OS_MIRROR_ALL: Record<Lang, string> = {
   en: "Across the table you uncovered all three of three. Here you did exactly what you would have wanted from the other side.",
 };
 const OS_MIRROR_SOME: Record<Lang, string> = {
-  ru: "А напротив вы вскрыли {n} из {total}. Столько же причин осталось при нём — как ваши три остались при вас.",
-  en: "Across the table you uncovered {n} of {total}. That many reasons stayed with him — the way your three stayed with you.",
+  ru: "А напротив вы вскрыли {n} из {total}. Остальные ({rest} из {total}) остались у собеседника — как ваши три остались при вас.",
+  en: "Across the table you uncovered {n} of {total}. The rest ({rest} of {total}) stayed with the other side — the way your three stayed with you.",
 };
 const OS_WINDOW: Record<Lang, string> = {
   ru: "Ход {turn}: доверие {trust} при пороге {gate} — вопрос про «{topic}» открыл бы это прямо там.",
@@ -1379,7 +1379,8 @@ export function otherSide(s: Session): OtherSide | null {
   const asked = s.interests.length;
   const mirror = asked >= total
     ? OS_MIRROR_ALL[lang]
-    : OS_MIRROR_SOME[lang].replace("{n}", String(asked)).replace("{total}", String(total));
+    : OS_MIRROR_SOME[lang].replace("{n}", String(asked)).replace(/\{total\}/g, String(total))
+      .replace("{rest}", String(total - asked));
   return {
     seat: origin.cp.nm[lang],
     origin_id: origin.id,

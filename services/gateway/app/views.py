@@ -931,8 +931,8 @@ _MIRROR_ALL = {
     "en": "Across the table you uncovered all three of three. Here you did exactly what you would have wanted from the other side.",
 }
 _MIRROR_SOME = {
-    "ru": "А напротив вы вскрыли {n} из {total}. Столько же причин осталось при нём — как ваши три остались при вас.",
-    "en": "Across the table you uncovered {n} of {total}. That many reasons stayed with him — the way your three stayed with you.",
+    "ru": "А напротив вы вскрыли {n} из {total}. Остальные ({rest} из {total}) остались у собеседника — как ваши три остались при вас.",
+    "en": "Across the table you uncovered {n} of {total}. The rest ({rest} of {total}) stayed with the other side — the way your three stayed with you.",
 }
 _WINDOW = {
     "ru": "Ход {turn}: доверие {trust} при пороге {gate} — вопрос про «{topic}» открыл бы это прямо там.",
@@ -1006,7 +1006,7 @@ def other_side(sess: "engine.Session") -> dict | None:
 
     asked = len(found)
     mirror = (_MIRROR_ALL[lang] if asked >= total
-              else _MIRROR_SOME[lang].format(n=asked, total=total))
+              else _MIRROR_SOME[lang].format(n=asked, total=total, rest=total - asked))
     return {
         "seat": origin.counterpart.name[lang],
         "origin_id": origin.id,
