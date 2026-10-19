@@ -383,3 +383,14 @@ test("reducer не мутирует прежнее состояние ни на 
     assert.doesNotThrow(() => reduce(base(), msg, () => 99), `${msg.type} мутирует prev`);
   }
 });
+
+test("реплика, погашенная до первого слова, закрывает ход без пустого пузыря", () => {
+  // Найдено после аудита 17.10: транспорт теперь доводит такой ход пустым
+  // текстом — стол обязан освободиться, а пустого пузыря быть не должно.
+  const s = run({ ...EMPTY, busy: true, phase: "replying", log: [me(1)] }, [
+    { type: "opponent", text: "", analysis: ANALYSIS, deltas: DELTAS, state: STATE },
+  ]);
+  assert.equal(s.busy, false);
+  assert.equal(s.log.filter((e) => e.kind === "opp").length, 0);
+  assert.deepEqual((s.log[0] as { deltas?: unknown }).deltas, DELTAS, "дельты хода обязаны лечь под реплику игрока");
+});

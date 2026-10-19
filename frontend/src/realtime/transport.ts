@@ -87,6 +87,8 @@ export class RealtimeTransport implements Transport {
   private generationText = "";
   /** Ход этого поколения уже собран (`response.done` или отмена) — второй раз нельзя. */
   private generationFlushed = false;
+  /** Ход применён (`engine.state` пришёл), а его реплика ещё не собрана. */
+  private awaitingReply = false;
   private serverSessionId = "";
   private readonly emit: ServerMsgHandler;
   private readonly onConn: (status: ConnStatus) => void;
@@ -396,6 +398,7 @@ export class RealtimeTransport implements Transport {
         this.audioGeneration = "";
         this.generationText = "";
         this.generationFlushed = true;
+        this.awaitingReply = false;
         this.faceFrames.clear();
         this.faceFrames.setStaleMs(((event.capabilities as Record<string, unknown> | undefined)
           ?.avatar as Record<string, unknown> | undefined)?.stale_ms);
@@ -431,6 +434,7 @@ export class RealtimeTransport implements Transport {
 
       case "engine.state": {
         this.pendingState = event.state as StateView;
+        this.awaitingReply = true;
         this.pendingDeltas = event.deltas as Deltas;
         // Авторитетное качество аргумента: судья уже высказался, штраф за
         // повтор уже наложен. Черновик из `turn.analysis` заменяем и здесь,
@@ -518,7 +522,14 @@ export class RealtimeTransport implements Transport {
         if (id && id !== this.audioGeneration) {
           // Отмена чужого поколения — старого или ещё не пришедшего — текущее
           // не трогает: только запоминаем, чтобы его хвост не прошёл.
+          const unseen = !this.retiredGenerations.has(id);
           this.retireGeneration(id);
+          // НО НЕВИДАННОЕ ПОКОЛЕНИЕ ПРИ ХОДЕ В ОЖИДАНИИ — ЭТО ЕГО РЕПЛИКА,
+          // погашенная до первого слова (перебили раньше первого токена).
+          // `done` у неё не будет, а ход движок уже применил: без этого
+          // композер висел занятым, а закрытый стол не закрывался (найдено
+          // после аудита 17.10).
+          if (unseen && this.awaitingReply) this.flushTurn("");
           return;
         }
         this.markOppAudio(false);
@@ -641,6 +652,7 @@ export class RealtimeTransport implements Transport {
   /** Собрать старый `opponent` из накопленных частей хода. */
   private flushTurn(text: string): void {
     if (!this.pendingState) return;
+    this.awaitingReply = false;
     this.emit({
       type: "opponent",
       text,

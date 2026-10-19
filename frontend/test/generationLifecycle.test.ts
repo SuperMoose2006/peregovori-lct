@@ -201,3 +201,35 @@ test("переподключение: поколение прежнего сок
     assert.deepEqual(t.player.calls, ["stop", "begin", "play:B1"]);
   } finally { t.transport.close(); }
 });
+
+test("ответ, погашенный до первого слова, ход всё равно доводит", async () => {
+  // Найдено после аудита 17.10: перебивание раньше первого токена модели
+  // присылает отмену поколения, которого клиент ещё не видел. Отмена шла как
+  // «чужая», ход не собирался — композер висел занятым, а состояние из
+  // `engine.state` (в том числе закрытый стол) так и не применялось.
+  const t = await table();
+  try {
+    t.state(1);
+    t.socket.deliver({ type: "generation.cancelled", generation_id: "g1", reason: "barge_in" });
+    const done = opponents(t.received);
+    assert.equal(done.length, 1);
+    assert.equal((done[0] as { text: string }).text, "");
+    // Хвост погашенного поколения ничего не добавляет и не звучит.
+    t.player.calls.length = 0;
+    t.say("g1", "audio", "LATE");
+    t.socket.deliver({ type: "response.done", generation_id: "g1", text: "Поздно." });
+    assert.equal(opponents(t.received).length, 1);
+    assert.deepEqual(t.player.calls, []);
+  } finally { t.transport.close(); }
+});
+
+test("отмена невиданного поколения без хода в ожидании хода не собирает", async () => {
+  const t = await table();
+  try {
+    t.state(1);
+    t.say("g1", "text", "Давайте обсудим.");
+    t.socket.deliver({ type: "response.done", generation_id: "g1", text: "Давайте обсудим." });
+    t.socket.deliver({ type: "generation.cancelled", generation_id: "g9", reason: "taken_over" });
+    assert.equal(opponents(t.received).length, 1);
+  } finally { t.transport.close(); }
+});

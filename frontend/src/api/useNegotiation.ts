@@ -423,7 +423,11 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
       }
       // Finalize (or add) the opponent bubble with the authoritative text.
       const at = streamingOpp(log);
-      if (at >= 0) {
+      if (!msg.text.trim()) {
+        // Реплику погасили до первого слова: ход закрыт, а пустого пузыря
+        // нет — показывать нечего.
+        if (at >= 0) log.splice(at, 1);
+      } else if (at >= 0) {
         log[at] = { id: log[at].id, kind: "opp", text: msg.text };
       } else {
         log.push({ id: nextId(), kind: "opp", text: msg.text });
