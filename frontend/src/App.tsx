@@ -808,8 +808,14 @@ export default function App() {
    *  so it needs no extra state and survives a re-render. */
   /** Same counts, shaped for the debrief card. Undefined when nothing was asked,
    *  so the card is absent rather than showing a hollow "0 / 0". */
+  // Считаются только ОТВЕЧЕННЫЕ вопросы: неотвеченный — не промах. Голосом
+  // следующий ход идёт поверх открытой карточки, и два пропущенных вопроса
+  // рисовались в разборе «0 / 2», двумя красными; «прочитано 0 из 1» стояло
+  // и до ответа (найдено после аудита 17.10).
+  const answeredProbes = (log: typeof nego.log) =>
+    log.filter((e) => e.kind === "probe" && e.picked !== undefined);
   const probeStats = useMemo(() => {
-    const asked = nego.log.filter((e) => e.kind === "probe");
+    const asked = answeredProbes(nego.log);
     if (!asked.length) return undefined;
     return {
       asked: asked.length,
@@ -818,7 +824,7 @@ export default function App() {
   }, [nego.log]);
 
   const probeTally = useMemo(() => {
-    const asked = nego.log.filter((e) => e.kind === "probe");
+    const asked = answeredProbes(nego.log);
     if (!asked.length) return undefined;
     const right = asked.filter((e) => e.kind === "probe" && e.picked === e.answer).length;
     return t.probe.tally.replace("{n}", String(right)).replace("{m}", String(asked.length));

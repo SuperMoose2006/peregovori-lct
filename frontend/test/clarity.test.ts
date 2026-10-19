@@ -442,3 +442,12 @@ test("«теплеет» не обещает вскрытого интереса
     assert.doesNotMatch(why, lang === "ru" ? /интерес/ : /interest/, why);
   }
 });
+
+test("неотвеченный вопрос-прогноз — не промах", () => {
+  // Найдено после аудита 17.10: счёт брал все карточки, и пропущенные голосом
+  // вопросы рисовались красными точками промахов.
+  const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+  assert.match(app, /e\.kind === "probe" && e\.picked !== undefined/);
+  assert.match(app, /const probeStats = useMemo\(\(\) => \{\s*const asked = answeredProbes\(nego\.log\);/);
+  assert.match(app, /const probeTally = useMemo\(\(\) => \{\s*const asked = answeredProbes\(nego\.log\);/);
+});
