@@ -920,9 +920,16 @@ export default function App() {
     // Ход в полёте или связь не готова — созвон закроется, как только она
     // настанет (эффект ниже; lib/meeting.ts::hangUpAction).
     if (hangUp === "wait") { setHangupPending(true); return; }
-    if (hangUp === "switch" && nego.relayer(next, t.call.ended)) {
-      setHangupPending(false);
-      setActiveLayers(next);
+    if (hangUp === "switch") {
+      if (nego.relayer(next, t.call.ended)) {
+        setHangupPending(false);
+        setActiveLayers(next);
+        return;
+      }
+      // Хук отказал, хотя кадр назад всё было спокойно (ход ушёл в эту же
+      // миллисекунду): партия жива — ждём, а не уходим в чат поверх
+      // голосового сокета (найдено ревью).
+      setHangupPending(true);
       return;
     }
     nego.stopCapture();

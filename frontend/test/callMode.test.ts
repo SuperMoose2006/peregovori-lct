@@ -201,3 +201,14 @@ test("разбор видит камеру и «покерфейс» звонк�
   assert.match(app, /observations=\{runLayers\.camera \?/, "разбор снова смотрит на текущий режим");
   assert.match(app, /tells=\{runLayers\.pokerface &&/);
 });
+
+test("«Завершить»: отказ смены в последний момент — ждать, а не уходить в чат", async () => {
+  // Найдено ревью: `hangUpAction` сказал «switch», а хук отказал (ход ушёл в
+  // ту же миллисекунду) — и выход шёл «местным» путём: чат на экране поверх
+  // ГОЛОСОВОГО сокета живой партии, ровно то, что `hangUpAction` запрещает.
+  const { readFileSync } = await import("node:fs");
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const body = app.slice(app.indexOf("const leaveCall = useCallback"), app.indexOf("}, [activeLayers, hangUp, nego, t]);"));
+  const sw = body.slice(body.indexOf('if (hangUp === "switch")'), body.indexOf("nego.stopCapture();"));
+  assert.match(sw, /setHangupPending\(true\);\s*return;\s*\}\s*$/, "отказ хука ведёт в «местный» выход");
+});
