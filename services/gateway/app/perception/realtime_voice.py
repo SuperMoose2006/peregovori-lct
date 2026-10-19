@@ -165,13 +165,8 @@ class RealtimeVoicePipeline:
                  on_turn: Callable[[str], Awaitable[None]],
                  on_interrupt: Callable[[], Awaitable[None]],
                  publish: Callable[[dict], None],
-                 on_turn_ending: Optional[Callable[[str], object]] = None,
-                 context: str = "") -> None:
+                 on_turn_ending: Optional[Callable[[str], object]] = None) -> None:
         self._lang = lang
-        #: Подсказка распознаванию: о чём разговор и с кем. Модель угадывает
-        #: созвучное слово по теме («аренда», «неустойка», имя собеседника),
-        #: а без темы слышит бытовое.
-        self._context = context
         self._on_turn = on_turn
         self._on_interrupt = on_interrupt
         self._publish = publish
@@ -377,9 +372,10 @@ class RealtimeVoicePipeline:
                     # Микрофон у лица, а не в комнате: шум и эхо собеседника
                     # из колонок иначе становятся «словами» в расшифровке.
                     "noise_reduction": {"type": "near_field"},
-                    "transcription": {"model": MODEL, "language": self._lang,
-                                      **({"prompt": self._context[:600]}
-                                         if self._context else {})},
+                    # Подсказки (`prompt`) здесь нет НАМЕРЕННО. Замер на стенде
+                    # 19.10: на коротком шумовом куске gpt-4o-transcribe вернул
+                    # саму подсказку «Деловые переговоры: …» как слова игрока.
+                    "transcription": {"model": MODEL, "language": self._lang},
                     "turn_detection": {
                         "type": "server_vad", "threshold": 0.5,
                         "prefix_padding_ms": 300,

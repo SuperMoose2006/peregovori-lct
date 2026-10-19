@@ -941,7 +941,6 @@ def _wire(session: RealtimeSession, *, work: Optional["_Work"] = None) -> tuple[
             # Человек договорил — собеседник коротко отзывается сразу, пока
             # готовит ответ (решение владельца 19.10).
             on_turn_ending=orchestrator.backchannel,
-            context=_asr_context(scenario, session.lang),
         ) if want_realtime else None
         if voice_mode() == "classic":
             pipeline = VoicePipeline(
@@ -1047,20 +1046,6 @@ _MALE_NAMES_ENDING_IN_A = frozenset({
     "никита", "илья", "кузьма", "лука", "фома", "савва", "данила", "гаврила",
     "добрыня", "мина", "сила",
 })
-
-
-def _asr_context(scenario, lang: str) -> str:
-    """Тема и собеседник — подсказка распознаванию, а не правило игры."""
-    try:
-        title = scenario.title.get(lang) or ""
-        name = scenario.counterpart.name.get(lang) or ""
-    except Exception:
-        return ""
-    if lang == "ru":
-        return (f"Деловые переговоры: «{title}». Собеседник — {name}. "
-                "Живая речь: цена, суммы, проценты, сроки, условия сделки.")
-    return (f"Business negotiation: \"{title}\". Counterpart: {name}. "
-            "Spoken: price, amounts, percentages, terms, deal conditions.")
 
 
 def _persona_is_female(scenario) -> bool:
