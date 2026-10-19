@@ -38,8 +38,9 @@
 этом файле, — она живёт в `RealtimeSession`.
 
 Чтобы собеседнику было на что реагировать, у взгляда есть третий повод —
-РЕАКЦИЯ: после того как собеседник договорил (`response.done`), ближайший кадр
-через `_REACTION_DELAY_S` досматривается, даже если почти не изменился, — вскинутые
+РЕАКЦИЯ: после того как собеседник договорил (`response.done`, а в созвоне —
+конец его звука), ближайший кадр через `_REACTION_DELAY_S` досматривается, даже
+если почти не изменился, — вскинутые
 брови меняют восемь процентов решётки редко. Не чаще раза за ход и не чаще
 `_REACTION_MIN_INTERVAL_S` после прошлого взгляда.
 
@@ -78,6 +79,7 @@ from typing import Callable, Optional
 
 from app.providers.openrouter import chat as orchat
 from app.providers.routing import model_for
+from app.providers.tts.base import OUTPUT_SAMPLE_RATE
 # Единственная связь perception → realtime, и она к схеме, а не к транспорту:
 # `events.py` не импортирует ничего из приложения, поэтому цикла нет. Отказ слоя
 # обязан выглядеть для клиента так же, как любой другой отказ, — значит и
@@ -353,6 +355,11 @@ class VisionSampler:
         #: Когда собеседник договорил (монотонные часы) — повод посмотреть на
         #: реакцию. 0 — повода нет.
         self._reaction_at = 0.0
+        #: До какого момента у клиента ещё звучит голос собеседника — по звуку,
+        #: который ушёл в сокет. `response.done` значит «текст дописан», а звук
+        #: играет секунды дольше (правило 3 протокола): реакция на слова — после
+        #: слов, а не посреди них (ревью 19.10).
+        self._voice_until = 0.0
         self.stats = VisionStats()
 
     def available(self) -> bool:
@@ -383,10 +390,11 @@ class VisionSampler:
         if change is not None:
             self._last_size = len(frame)
         due = (now - self._last_call) >= self._min_interval
-        if self._reaction_at and now - self._reaction_at > _REACTION_WINDOW_S:
+        ready_at = max(self._reaction_at, self._voice_until) + _REACTION_DELAY_S
+        if self._reaction_at and now - ready_at > _REACTION_WINDOW_S:
             self._reaction_at = 0.0             # кадра под реакцию не дождались
         reaction = (bool(self._reaction_at)
-                    and now - self._reaction_at >= _REACTION_DELAY_S
+                    and now >= ready_at
                     and now - self._last_call >= _REACTION_MIN_INTERVAL_S)
 
         if not (first_ever or (due and changed) or reaction):
@@ -412,8 +420,19 @@ class VisionSampler:
 
     def on_event(self, event: dict) -> None:
         """Наблюдатель исходящих событий партии (`endpoint.py::_pump`)."""
-        if event.get("type") == "response.done":
+        kind = event.get("type")
+        if kind == "response.done":
             self.expect_reaction()
+        elif kind == "response.output.delta" and event.get("kind") == "audio":
+            # Клиент играет куски подряд: конец звука — это «сейчас или конец
+            # прежнего куска» плюс длина нового. Формат провода —
+            # float32 PCM 24 кГц моно (`providers/tts/base.py`).
+            seconds = len(event.get("audio") or "") * 3 / 4 / 4 / OUTPUT_SAMPLE_RATE
+            now = time.monotonic()
+            self._voice_until = max(self._voice_until, now) + seconds
+        elif kind == "generation.cancelled":
+            # Перебили — клиент глушит звук сразу.
+            self._voice_until = min(self._voice_until, time.monotonic())
 
     def _changed(self, size: int) -> bool:
         previous, self._last_size = self._last_size, size

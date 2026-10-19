@@ -243,7 +243,9 @@ def test_a_reaction_nobody_framed_expires(clocked):
     _offer(sampler)
     clock.t += 1.0
     sampler.on_event({"type": "response.done"})
-    clock.t += vision_module._REACTION_WINDOW_S + 1   # кадров не было: камеру выключали
+    # Кадров не было (камеру выключали) дольше окна, отсчитанного от момента,
+    # когда смотреть стало можно.
+    clock.t += vision_module._REACTION_DELAY_S + vision_module._REACTION_WINDOW_S + 1
     _offer(sampler, turn=2)
     assert looks == [0], "повод истёк и не датирует чужую реакцию этим ходом"
 
@@ -300,3 +302,39 @@ def test_a_calm_face_seen_later_replaces_an_earlier_frown():
     assert sess.fresh_cues(2) == [], "последний взгляд спокоен — «прямо сейчас» гримасы нет"
     _look(sampler, "человек в кадре", turn=1)          # про мимику модель промолчала
     assert sess.fresh_cues(2) == [], "молчание модели не возвращает прошлую гримасу"
+
+
+def test_in_a_call_the_reaction_is_looked_at_after_the_voice_ends(clocked):
+    """Ревью 19.10: `response.done` значит «текст дописан», а звук играет ещё
+    секунды (правило 3 протокола) — «реакция после реплики» снималась посреди
+    неё. В созвоне повод отсчитывается от конца ЗВУКА, который ушёл клиенту."""
+    import base64
+    from app.providers.tts.base import OUTPUT_SAMPLE_RATE
+    clock, sampler, looks = clocked
+    _offer(sampler)
+    clock.t += 5.0
+    three_seconds = base64.b64encode(b"\0" * (OUTPUT_SAMPLE_RATE * 4 * 3)).decode()
+    sampler.on_event({"type": "response.output.delta", "kind": "audio", "audio": three_seconds})
+    sampler.on_event({"type": "response.done"})
+    clock.t += 1.5
+    _offer(sampler, turn=1)
+    assert looks == [0], "собеседник ещё говорит — реакции на его слова пока нет"
+    clock.t += 3.0                                   # звук кончился 1,7 с назад
+    _offer(sampler, turn=1)
+    assert looks == [0, 1]
+
+
+def test_a_barge_in_ends_the_voice_for_the_reaction_clock(clocked):
+    import base64
+    from app.providers.tts.base import OUTPUT_SAMPLE_RATE
+    clock, sampler, looks = clocked
+    _offer(sampler)
+    clock.t += 5.0
+    ten_seconds = base64.b64encode(b"\0" * (OUTPUT_SAMPLE_RATE * 4 * 10)).decode()
+    sampler.on_event({"type": "response.output.delta", "kind": "audio", "audio": ten_seconds})
+    sampler.on_event({"type": "response.done"})
+    clock.t += 1.0
+    sampler.on_event({"type": "generation.cancelled"})   # человек перебил
+    clock.t += 1.5
+    _offer(sampler, turn=1)
+    assert looks == [0, 1], "перебитый собеседник замолчал сразу — реакция смотрится как обычно"
