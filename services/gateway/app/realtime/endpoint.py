@@ -277,12 +277,18 @@ class _Work:
     def reviewing(self) -> bool:
         return self._review is not None and not self._review.done()
 
-    def start_review(self, session: "RealtimeSession") -> None:
+    def start_review(self, session: "RealtimeSession", lease=None) -> None:
         """«Глубокий разбор» — задачей: десятки секунд и два десятка вызовов,
-        читатель на них стоять не должен (`session.close` обязан доходить)."""
+        читатель на них стоять не должен (`session.close` обязан доходить).
+        `lease` — место адреса под разбор; отпускается, когда задача кончилась
+        любым способом, включая отмену при обрыве."""
         if self.reviewing():
+            if lease is not None:
+                lease.release()
             return
         self._review = asyncio.create_task(_run_review(session))
+        if lease is not None:
+            self._review.add_done_callback(lambda _task: lease.release())
 
     async def aclose(self) -> None:
         """Сокет ушёл — платить за его ход больше не за что."""
@@ -667,11 +673,16 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         await websocket.send_json(error("review_busy", _REVIEW_TEXT["busy"][
                             session.lang], "review"))
                         continue
-                    if not limits.paid_slot(peer):
+                    # Один разбор на адрес разом и цена по числу вызовов, а не
+                    # «один токен»: разбор — два десятка обращений к моделям.
+                    review_lease = limits.review_slot(peer)
+                    if review_lease is None or not limits.paid_slot(peer, limits.REVIEW_COST):
+                        if review_lease is not None:
+                            review_lease.release()
                         await websocket.send_json(error("review_rate_limited", _REVIEW_TEXT[
                             "rate_limited"][session.lang], "rate_limited"))
                         continue
-                    work.start_review(session)
+                    work.start_review(session, review_lease)
                     continue
 
                 # ---- session.close ---------------------------------------------
@@ -1224,7 +1235,8 @@ async def _run_review(session: RealtimeSession) -> None:
     lang = session.lang if session.lang in ("ru", "en") else "ru"
     try:
         facts = views.review_facts(session.engine_session, lang)
-        report = await run_review(facts, tape, progress=session.bus.publish)
+        report = await run_review(facts, tape, progress=session.bus.publish,
+                                  vision_budget=lambda: limits.vision_allowed(session.client_host))
     except asyncio.CancelledError:
         raise
     except Exception:

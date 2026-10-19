@@ -274,3 +274,21 @@ def test_speech_belongs_to_the_turn_it_became_not_to_the_counter_at_its_start(mo
     report, _ = _run(facts, tape)
     assert [v["turn"] for v in report["voice"]["turns"]] == [1, 2], \
         "у каждого хода — своя речь"
+
+
+def test_face_batches_spend_the_address_vision_budget(fake_model):
+    """Пачка кадров — тот же платный взгляд, что и в партии: разбор не обходит
+    ведро взглядов адреса (ревью 19.10)."""
+    asked: list[int] = []
+
+    def budget() -> bool:
+        asked.append(1)
+        return False
+
+    facts = _facts()
+    facts.pop("_engine")
+    report, _ = _run(facts, _tape(), vision_budget=budget)
+    assert asked, "разбор не спросил ведро взглядов"
+    assert "мимика" not in fake_model, "ведро пусто — модель зрения не вызывалась"
+    face = next(a for a in report["agents"] if a["id"] == "face")
+    assert face["ok"] is False and face["reason"] == "rate_limited"

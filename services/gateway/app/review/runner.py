@@ -60,7 +60,11 @@ def _pick(items: list, limit: int) -> list:
 
 
 async def run_review(facts: dict, tape: Optional[Tape], *, progress: Progress,
-                     deadline_s: float = DEADLINE_S) -> dict:
+                     deadline_s: float = DEADLINE_S,
+                     vision_budget: Optional[Callable[[], bool]] = None) -> dict:
+    """`vision_budget` — ведро взглядов адреса (`limits.vision_allowed`): пачка
+    кадров — тот же платный взгляд модели зрения, что и в партии, и обходить
+    его предел разбором нельзя. Нет функции — предела нет (тесты)."""
     lang = facts.get("lang", "ru")
     started = time.monotonic()
     player_turns = sorted({ln["turn"] for ln in facts.get("lines") or [] if ln["role"] == "player"})
@@ -204,7 +208,13 @@ async def run_review(facts: dict, tape: Optional[Tape], *, progress: Progress,
                    for i in range(0, len(frames), FACE_BATCH)]
         system = agents.face_prompt(lang)
 
+        limited = False
+
         async def one(batch: list[int]) -> bool:
+            nonlocal limited
+            if vision_budget is not None and not vision_budget():
+                limited = True
+                return False
             parts: list[dict] = []
             for n, idx in enumerate(batch, 1):
                 fr = frames[idx]
@@ -227,7 +237,7 @@ async def run_review(facts: dict, tape: Optional[Tape], *, progress: Progress,
         oks = await asyncio.gather(*(one(b) for b in batches))
         statuses.append({"id": "face", "channel": "video", "ok": any(oks),
                          "calls": len(batches), "calls_ok": sum(oks),
-                         **({} if any(oks) else {"reason": "failed"})})
+                         **({} if any(oks) else {"reason": "rate_limited" if limited else "failed"})})
         tick("face")
         return cues
 

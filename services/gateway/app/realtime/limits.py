@@ -260,8 +260,12 @@ def turn_delay(host: str) -> float:
     return max(0.0, -tokens) / TURNS_PER_S
 
 
-def paid_slot(host: str) -> bool:
-    """Место под ОДИН платный вызов вне хода. False — бюджет адреса исчерпан.
+def paid_slot(host: str, cost: float = 1.0) -> bool:
+    """Место под платный вызов вне хода. False — бюджет адреса исчерпан.
+
+    `cost` — сколько токенов ведра стоит просьба. Подсказка — один вызов, а
+    «Глубокий разбор» — два десятка (`REVIEW_COST`), и списывать за него один
+    токен значило бы продавать оптом то, что поштучно запрещено.
 
     ЗАЧЕМ ОТДЕЛЬНАЯ ФУНКЦИЯ, ЕСЛИ ВЕДРО ТО ЖЕ. Ход придерживают, а не
     отказывают: клиент ждёт `response.done`, и отказ оставил бы человека перед
@@ -287,11 +291,53 @@ def paid_slot(host: str) -> bool:
     _reap_turns(now)
     tokens, last = _turns.get(host, (TURN_BURST, now))
     tokens = min(TURN_BURST, tokens + (now - last) * TURNS_PER_S)
-    if tokens < 1.0:
+    if tokens < cost:
         _turns[host] = (tokens, now)
         return False
-    _turns[host] = (tokens - 1.0, now)
+    _turns[host] = (tokens - cost, now)
     return True
+
+
+#: Сколько токенов ведра стоит «Глубокий разбор»: восемь агентов смысла, до
+#: двенадцати кусков речи и восьми пачек кадров. Половина ведра — разбор
+#: доступен сразу после партии, но два подряд с одного адреса уже ждут.
+REVIEW_COST = float(os.getenv("NEGO_REVIEW_COST", "8") or 8)
+
+#: Разборов с одного адреса одновременно. Каждый — два десятка вызовов разом,
+#: и адрес с несколькими сыгранными партиями иначе запускал бы их все сразу.
+MAX_REVIEWS_PER_HOST = 1
+
+_reviews: dict[str, int] = {}
+
+
+class ReviewLease:
+    """Идущий разбор адреса. Отпускается ровно один раз — как и `Lease`."""
+
+    __slots__ = ("host", "_released")
+
+    def __init__(self, host: str) -> None:
+        self.host = host
+        self._released = False
+
+    def release(self) -> None:
+        if self._released or not self.host:
+            return
+        self._released = True
+        left = _reviews.get(self.host, 1) - 1
+        if left > 0:
+            _reviews[self.host] = left
+        else:
+            _reviews.pop(self.host, None)
+
+
+def review_slot(host: str) -> Optional[ReviewLease]:
+    """Место под один идущий разбор адреса — или None, если оно занято."""
+    if exempt(host):
+        return ReviewLease("")
+    if _reviews.get(host, 0) >= MAX_REVIEWS_PER_HOST:
+        return None
+    _reviews[host] = _reviews.get(host, 0) + 1
+    return ReviewLease(host)
 
 
 # ------------------------------------------------------------- сообщения

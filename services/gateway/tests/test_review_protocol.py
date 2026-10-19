@@ -69,8 +69,12 @@ def _until(ws, kind: str, limit: int = 40) -> list[dict]:
     for _ in range(limit):
         event = ws.receive_json()
         seen.append(event)
-        if event["type"] == kind or (event["type"] == "error" and kind == "error"):
+        if event["type"] == kind:
             return seen
+        if event["type"] == "error":
+            # Ошибка вместо ожидаемого — провал сразу, а не вечное ожидание
+            # события, которое уже не придёт.
+            raise AssertionError(f"вместо {kind} пришла ошибка: {event['error']}")
     raise AssertionError(f"не дождались {kind}: {[e['type'] for e in seen]}")
 
 
@@ -198,7 +202,7 @@ def test_the_wallet_is_asked_first(live, monkeypatch):
         _open(ws)
         _finish(ws)
         monkeypatch.setattr(orchat, "available", lambda: True)
-        monkeypatch.setattr(limits, "paid_slot", lambda host: False)
+        monkeypatch.setattr(limits, "paid_slot", lambda host, cost=1.0: False)
         ws.send_json({"type": "review.request"})
         err = _until(ws, "error")[-1]["error"]
         assert err["code"] == "review_rate_limited" and err["type"] == "rate_limited"
@@ -242,3 +246,46 @@ def test_capabilities_offer_the_review_when_models_are_there(live, monkeypatch):
         assert created["capabilities"]["review"] is True
         assert "review_reason" not in created["capabilities"]
         ws.send_json({"type": "session.close", "reason": "test"})
+
+
+def test_a_review_costs_more_than_a_hint_and_one_runs_per_address(live, monkeypatch):
+    """Ревью 19.10: один токен ведра покупал до 28 вызовов моделей, а адрес с
+    несколькими сыгранными партиями мог запустить разборы все разом."""
+    client, built = live
+    gate = threading.Event()
+    _fake_review(monkeypatch, gate=gate)
+    costs: list[float] = []
+    real_slot = limits.paid_slot
+
+    def slot(host, cost=1.0):
+        costs.append(cost)
+        return real_slot(host, cost)
+
+    monkeypatch.setattr(limits, "paid_slot", slot)
+    monkeypatch.setattr(limits, "exempt", lambda host: False)
+    with client.websocket_connect("/v1/realtime?mode=text") as one, \
+            client.websocket_connect("/v1/realtime?mode=text") as two:
+        _open(one)
+        _finish(one)
+        _open(two)
+        _finish(two)
+        monkeypatch.setattr(orchat, "available", lambda: True)
+        one.send_json({"type": "review.request"})
+        assert _until(one, "review.progress")[-1]["done"] == 1
+        two.send_json({"type": "review.request"})
+        answer = None
+        for _ in range(20):
+            event = two.receive_json()
+            if event["type"] in ("error", "review.progress", "review.done"):
+                answer = event
+                break
+        assert answer is not None and answer["type"] == "error" \
+            and answer["error"]["code"] == "review_rate_limited", \
+            "второй разбор с того же адреса ждёт первого"
+        gate.set()
+        _until(one, "review.done")
+        two.send_json({"type": "review.request"})
+        _until(two, "review.done")
+        one.send_json({"type": "session.close", "reason": "test"})
+        two.send_json({"type": "session.close", "reason": "test"})
+    assert costs and all(c >= 4 for c in costs), "разбор — десятки вызовов, а не один"
