@@ -131,3 +131,26 @@ def test_a_failing_session_build_returns_the_game_slot(monkeypatch):
             ws.send_json({"type": "session.init", "payload": {"scenarioId": "supplier"}})
             assert ws.receive_json()["error"]["code"] == "server_error"
             assert limits.live_sessions(host) == before
+
+
+def test_refusals_carry_their_close_code_to_the_browser(monkeypatch):
+    """Найдено третьим ревью созвона. Отказ ДО `accept` уходил отказом
+    рукопожатия (HTTP 403): браузер видел обрыв 1006 без кода и шёл
+    переподключаться — на неверный пароль и на лимит сокетов с адреса ещё
+    четыре раза. Сокет теперь принимается и закрывается С КОДОМ, и клиент
+    (`NO_RETURN_CLOSE_CODES`) отказ не повторяет."""
+    import app.main as main_module
+
+    client = TestClient(app)
+    monkeypatch.setattr(admission, "MAX_WEBSOCKETS", 0)
+    with client.websocket_connect("/v1/realtime") as ws:          # принят, а не сорван
+        with pytest.raises(WebSocketDisconnect) as exc:
+            ws.receive_json()
+        assert exc.value.code == 4429
+    monkeypatch.setattr(admission, "MAX_WEBSOCKETS", 128)
+
+    monkeypatch.setattr(main_module, "_HTTP_PASSWORD", "секрет-стенда")
+    with client.websocket_connect("/v1/realtime") as ws:
+        with pytest.raises(WebSocketDisconnect) as exc:
+            ws.receive_json()
+        assert exc.value.code == 4401

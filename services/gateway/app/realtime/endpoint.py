@@ -299,12 +299,28 @@ def _voice_publisher(session: "RealtimeSession"):
     return publish
 
 
+async def refuse(websocket: WebSocket, code: int, reason: str) -> None:
+    """Отказать С КОДОМ: принять сокет и сразу закрыть.
+
+    Закрытие ДО `accept` сервер отдаёт отказом рукопожатия (HTTP 403), и
+    браузер видит лишь обрыв 1006 — код отказа до клиента не доезжает. А
+    клиент на 1006 честно идёт переподключаться: на неверный пароль (4401) и
+    на лимит сокетов с адреса (4429) — ещё четыре раза, ровно когда его
+    просили не давить (найдено третьим ревью созвона). Принятый и тут же
+    закрытый сокет несёт код, и клиент отказ не повторяет
+    (`realtime-session.ts::NO_RETURN_CLOSE_CODES`).
+    """
+    with contextlib.suppress(Exception):
+        await websocket.accept()
+        await websocket.close(code=code, reason=reason)
+
+
 def _admitted(handler):
     @wraps(handler)
     async def admitted(websocket: WebSocket) -> None:
         socket_lease = admission.acquire(websocket.client.host if websocket.client else "")
         if socket_lease is None:
-            await websocket.close(code=WS_RATE_LIMITED)
+            await refuse(websocket, WS_RATE_LIMITED, "too_many_sockets")
             return
         try:
             await handler(websocket)

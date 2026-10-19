@@ -731,10 +731,12 @@ except Exception as _exc:  # адаптер опционален: без нег�
 
 @app.websocket("/v1/realtime")
 async def realtime(websocket: WebSocket) -> None:
+    from app.realtime.endpoint import realtime_ws, refuse
     if not ws_allowed(websocket):
-        await websocket.close(code=4401)   # 4401: «назовите пароль на странице»
+        # 4401: «назовите пароль на странице». С кодом, а не обрывом —
+        # см. `refuse`: иначе клиент повторял неверный пароль ещё четыре раза.
+        await refuse(websocket, 4401, "password")
         return
-    from app.realtime.endpoint import realtime_ws
     await realtime_ws(websocket)
 
 
