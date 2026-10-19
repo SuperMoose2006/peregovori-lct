@@ -28,3 +28,28 @@ def test_the_days_tables_read_right_at_any_offer():
         for v in (2, 3, 4, 5, 21, 2.5, 18.5):
             text = format_deal(v, sc.headline.unit["ru"], "ru")
             assert "дней" not in text and "дня" not in text, (sc.id, text)
+
+
+def test_russian_table_text_writes_decimals_with_a_comma():
+    """Шкала цены печатает «99,8%» (format_deal по языку), а задание стола и
+    заметка об альтернативе писали «99.8%» — одно число двумя способами на
+    одном экране (найдено после аудита 17.10)."""
+    import dataclasses
+
+    def walk(o, ru, out):
+        if isinstance(o, str):
+            if ru and re.search(r"\d\.\d", o):
+                out.append(o)
+        elif dataclasses.is_dataclass(o):
+            for f in dataclasses.fields(o):
+                walk(getattr(o, f.name), ru, out)
+        elif isinstance(o, dict):
+            for k, v in o.items():
+                walk(v, ru or k == "ru", out)
+        elif isinstance(o, (list, tuple)):
+            for v in o:
+                walk(v, ru, out)
+        return out
+
+    for sc in [*SCENARIOS, *MIRRORS]:
+        assert walk(sc, False, []) == [], sc.id

@@ -839,7 +839,7 @@ SCENARIOS: list[Scenario] = [
         player_batna=Batna(
             strength=60,
             note={
-                "ru": "Конкурирующий провайдер даёт 99.7%, но миграция — это риск и время.",
+                "ru": "Конкурирующий провайдер даёт 99,7%, но миграция — это риск и время.",
                 "en": "A rival provider offers 99.7%, but migration is risk and time.",
             },
         ),
@@ -917,7 +917,7 @@ SCENARIOS: list[Scenario] = [
             ),
         ],
         briefing={
-            "ru": "Цель: ≥ 99.8%. Красная линия: 99.4%. Он бережёт маржу и боится штрафов — давите объективными критериями (отраслевые SLA, ваши потери от простоя) и снижайте его риск ступенчатым внедрением и длинным контрактом.",
+            "ru": "Цель: ≥ 99,8%. Красная линия: 99,4%. Он бережёт маржу и боится штрафов — давите объективными критериями (отраслевые SLA, ваши потери от простоя) и снижайте его риск ступенчатым внедрением и длинным контрактом.",
             "en": "Goal: ≥ 99.8%. Red line: 99.4%. He guards his margin and fears penalties — press with objective criteria (industry SLAs, your downtime cost) and lower his risk with a phased rollout and a longer term.",
         },
     ),

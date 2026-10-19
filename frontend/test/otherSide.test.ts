@@ -242,3 +242,15 @@ test("зеркало печатает цену в тех же единицах, 
     assert.deepEqual(m.unit, origin.unit, m.id);
   }
 });
+
+test("русский текст столов пишет дробь через запятую, как шкала цены", () => {
+  // Найдено после аудита 17.10: «99.8%» в задании при «99,8%» на шкале.
+  const bad: string[] = [];
+  const walk = (o: unknown, ru: boolean) => {
+    if (typeof o === "string") { if (ru && /\d\.\d/.test(o)) bad.push(o); return; }
+    if (Array.isArray(o)) { o.forEach((v) => walk(v, ru)); return; }
+    if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) walk(v, ru || k === "ru");
+  };
+  for (const sc of [...SCENARIOS, ...MIRRORS]) walk(sc, false);
+  assert.deepEqual(bad, []);
+});

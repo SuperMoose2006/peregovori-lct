@@ -559,7 +559,7 @@ export const SCENARIOS: ScenarioDef[] = [
       style: "tough",
     },
     unit: { ru: "%", en: "%" }, open: 99.0, floor: 99.9, target: 99.8, resv: 99.4, batnaStrength: 60,
-    batna: { ru: "Конкурент даёт 99.7%, но миграция — риск и время.", en: "A rival provider offers 99.7%, but migration is risk and time." },
+    batna: { ru: "Конкурент даёт 99,7%, но миграция — риск и время.", en: "A rival provider offers 99.7%, but migration is risk and time." },
     interests: {
       ru: ["Удержать клиента и многолетнюю выручку", "Не брать штрафы, которые не вытянет команда", "Показать руководству рост контракта"],
       en: ["Retain the account and years of revenue", "Avoid penalties his ops team can't sustain", "Show his leadership the contract grew"],
@@ -611,7 +611,7 @@ export const SCENARIOS: ScenarioDef[] = [
       },
     ],
     brief: {
-      ru: "Цель: ≥99.8%. Красная линия: 99.4%. Он бережёт маржу и боится штрафов — давите критериями и снижайте его риск длинным контрактом.",
+      ru: "Цель: ≥99,8%. Красная линия: 99,4%. Он бережёт маржу и боится штрафов — давите критериями и снижайте его риск длинным контрактом.",
       en: "Goal ≥99.8%. Red line 99.4%. He guards his margin and fears penalties — press with criteria and lower his risk with a longer term.",
     },
   },
