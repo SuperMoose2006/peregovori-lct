@@ -66,7 +66,12 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          if (res.ok && (res.headers.get("content-type") || "").includes("text/html")) {
+          // Оболочкой становится только ПРИЛОЖЕНИЕ: маршрут без расширения или
+          // сам index.html. Любая другая страница («/check.html», проверка
+          // оборудования) раньше ложилась на место оболочки, и офлайн вместо
+          // игры открывалась она (инвариант 5; найдено после аудита 17.10).
+          const appRoute = url.pathname === "/index.html" || !/\.[a-z0-9]+$/i.test(url.pathname);
+          if (appRoute && res.ok && (res.headers.get("content-type") || "").includes("text/html")) {
             const copy = res.clone();
             caches.open(CACHE_VERSION).then((c) => c.put("/index.html", copy)).catch(() => {});
           }

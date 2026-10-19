@@ -139,3 +139,19 @@ test("the build keeps media out of the all-or-nothing list", async () => {
     assert.deepEqual(media.sort(), ["/avatars/supplier/neutral.webp", "/mascots/karl/idle.webp"]);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+test("открытая страница проверки не подменяет оболочку приложения офлайн", async () => {
+  // Найдено после аудита 17.10: любая HTML-навигация ложилась в кэш как
+  // /index.html — после /check.html офлайн открывалась проверка, а не игра.
+  const { directory, files, worker } = await fixture();
+  try {
+    files["check.html"] = "<html>equipment check</html>";
+    const page = browser(worker, files);
+    await page.event("install");
+    await page.event("activate");
+    await (await page.request("/check.html", "navigate"))!.text();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    page.offline();
+    assert.match(await (await page.request("/", "navigate"))!.text(), /entry.js/);
+  } finally { await rm(directory, { recursive: true, force: true }); }
+});
