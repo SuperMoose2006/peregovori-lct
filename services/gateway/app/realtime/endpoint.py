@@ -481,7 +481,10 @@ async def realtime_ws(websocket: WebSocket) -> None:
                     session.client_host = peer
 
                     orchestrator, voice, vision = _wire(session, work=work)
-                    writer = asyncio.create_task(_pump(websocket, session))
+                    # Зрение слушает конец реплики собеседника: это повод
+                    # посмотреть на реакцию (`vision.py`, «МИМИКА»).
+                    observers = (vision.on_event,) if vision is not None else ()
+                    writer = asyncio.create_task(_pump(websocket, session, observers))
                     # Владельцем записываемся ПОСЛЕ того, как всё поднято:
                     # вытесняющий зовёт `quiesce`, и гасить полусобранное было
                     # бы гонкой на ровном месте.
@@ -1113,10 +1116,21 @@ def _attach_vision_tape(event: dict, session: RealtimeSession) -> None:
         deb.pop("observation_looks", None)
 
 
-async def _pump(websocket: WebSocket, session: RealtimeSession) -> None:
-    """Писатель: шина → сокет. Хвосты погашенных поколений отсеивает `drain()`."""
+async def _pump(websocket: WebSocket, session: RealtimeSession,
+                observers: tuple[Callable[[dict], None], ...] = ()) -> None:
+    """Писатель: шина → сокет. Хвосты погашенных поколений отсеивает `drain()`.
+
+    `observers` видят каждое событие, которое УХОДИТ клиенту, — то есть уже
+    без хвостов погашенных поколений: им нужна правда разговора, а не черновик.
+    Наблюдатель не может уронить писателя: его сбой — его беда.
+    """
     try:
         async for event in session.bus.drain():
+            for observe in observers:
+                try:
+                    observe(event)
+                except Exception:
+                    _log.exception("realtime: наблюдатель событий упал")
             if event.get("type") == "debrief":
                 _attach_vision_tape(event, session)
             async with asyncio.timeout(WS_SEND_TIMEOUT_S):

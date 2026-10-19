@@ -28,6 +28,21 @@
 Тридцать кадров в секунду в облако — это не «более внимательное зрение», это
 счёт за электричество и секунда задержки на ровном месте.
 
+МИМИКА — ТОЖЕ НАБЛЮДЕНИЕ, А НЕ ВЫВОД (решение владельца 19.10). Каждый взгляд
+заканчивается строкой «МИМИКА: …» — кодами из закрытого списка `CUES`: брови
+нахмурены, гримаса, улыбка, поджатые губы, взгляд в сторону и т.п. Это то, что
+увидел бы человек на видеозвонке, и собеседнику это отдаётся так же, как живому
+человеку: он может спросить «Вижу, вас это смутило?» (`ai/prompts.py::_face_block`).
+Выводов — «неуверен», «врёт», «нервничает» — нет и здесь: код описывает лицо, а
+не того, кто за ним. В счёт мимика не входит по той же причине, что и всё в
+этом файле, — она живёт в `RealtimeSession`.
+
+Чтобы собеседнику было на что реагировать, у взгляда есть третий повод —
+РЕАКЦИЯ: после того как собеседник договорил (`response.done`), ближайший кадр
+через `_REACTION_DELAY_S` досматривается, даже если почти не изменился, — вскинутые
+брови меняют восемь процентов решётки редко. Не чаще раза за ход и не чаще
+`_REACTION_MIN_INTERVAL_S` после прошлого взгляда.
+
 «ПОКЕРФЕЙС» — И ПОЧЕМУ ЭТО НЕ ПРОТИВОРЕЧИТ ПЕРВОМУ АБЗАЦУ. Слой `pokerface`
 просит модель ответить на наблюдаемый вопрос: видно ли на лице ЯВНОЕ выражение
 (улыбка, нахмуренные брови, поджатые губы) вместо нейтрального. Это не вывод о
@@ -82,6 +97,47 @@ _CHANGE_RATIO = 0.18
 #: порог по яркости (12 из 255) шум отсекает раньше.
 _CHANGE_PIXELS = 0.08
 
+#: Через сколько секунд после конца реплики собеседника смотреть на лицо. Сразу
+#: — рано: в текстовом виде человек ещё читает, в созвоне ещё слушает.
+_REACTION_DELAY_S = 1.2
+
+#: Реакционный взгляд — не чаще, чем через столько секунд после прошлого. Он
+#: короче общего интервала намеренно: ответ на предложение случается один раз
+#: и длится секунду, а восьмисекундный такт его почти всегда пропускает.
+_REACTION_MIN_INTERVAL_S = 3.0
+
+#: Сколько ждать кадр под реакцию. Камеру выключили или кадров нет — повод
+#: истекает, а не висит до следующего хода, датируя чужую реакцию этим.
+_REACTION_WINDOW_S = 10.0
+
+#: Закрытый список того, что модель может назвать на лице. Коды, а не свободный
+#: текст: собеседнику они уходят подписями (`cue_labels`), разбору — как есть,
+#: и ни одна строка из-за границы доверия не доезжает до промпта сырой. Подписи
+#: — существительными, без рода: пол игрока неизвестен (правило промпта).
+CUES: dict[str, dict[str, str]] = {
+    "frown": {"ru": "нахмуренные брови", "en": "furrowed brows"},
+    "wince": {"ru": "гримаса", "en": "a wince"},
+    "smile": {"ru": "улыбка", "en": "a smile"},
+    "lip_press": {"ru": "поджатые губы", "en": "pressed lips"},
+    "raised_brows": {"ru": "поднятые брови", "en": "raised eyebrows"},
+    "eye_roll": {"ru": "закатывание глаз", "en": "an eye roll"},
+    "gaze_away": {"ru": "взгляд в сторону", "en": "looking away"},
+    "head_shake": {"ru": "покачивание головой", "en": "a head shake"},
+    "nod": {"ru": "кивок", "en": "a nod"},
+    "hand_to_face": {"ru": "рука у лица", "en": "a hand to the face"},
+}
+
+
+def cue_labels(cues, lang: str) -> list[str]:
+    """Коды → подписи на языке партии. Незнакомый код молча выпадает."""
+    out: list[str] = []
+    for code in cues or ():
+        label = CUES.get(code, {}).get(lang) or CUES.get(code, {}).get("en")
+        if label and label not in out:
+            out.append(label)
+    return out
+
+
 #: Свой потолок ожидания у взгляда, а не общий читательский (60 с у клиента
 #: OpenRouter). Наблюдение отвечает на вопрос «что происходит СЕЙЧАС»: ответ,
 #: пришедший через минуту, описывает кадр из другой эпохи партии, а всё это
@@ -113,17 +169,25 @@ _SYSTEM = {
            "присутствию и обстановке: есть ли человек в кадре, сколько людей, "
            "смотрит ли он в камеру или в бумаги, показывает ли что-то, изменилась "
            "ли обстановка.\n"
-           "НЕ описывай внешность, НЕ оценивай эмоции, настроение или уверенность — "
+           "НЕ описывай внешность, НЕ оценивай чувства, настроение или уверенность — "
            "этого по кадру не видно, и это не твоя задача.\n"
-           "Если ничего примечательного нет, ответь одним словом: нет."),
+           "Если ничего примечательного нет, ответь одним словом: нет.\n"
+           "ПОСЛЕДНЕЙ строкой всегда пиши «МИМИКА: » и через запятую коды того, что "
+           "ЯВНО видно на лице или в жесте прямо сейчас, только из списка: "
+           + ", ".join(CUES) + ". Если ничего из этого не видно или лица не видно — "
+           "«МИМИКА: нет». Только коды, без пояснений."),
     "en": ("You are looking at a webcam frame of a participant in a business "
            "negotiation.\n"
            "Describe in ONE short sentence only what relates to presence and "
            "setting: is a person in frame, how many people, are they looking at the "
            "camera or at papers, are they showing something, did the setting change.\n"
-           "Do NOT describe appearance, do NOT judge emotion, mood or confidence — "
+           "Do NOT describe appearance, do NOT judge feelings, mood or confidence — "
            "a frame does not show that, and it is not your job.\n"
-           "If nothing is notable, answer with one word: no."),
+           "If nothing is notable, answer with one word: no.\n"
+           "ALWAYS end with a line \"CUES: \" followed by comma-separated codes of what "
+           "is CLEARLY visible on the face or in a gesture right now, only from this list: "
+           + ", ".join(CUES) + ". If none of these is visible or no face is visible — "
+           "\"CUES: none\". Codes only, no explanations."),
 }
 
 
@@ -166,6 +230,36 @@ def split_tell(raw: str) -> tuple[str, Optional[bool]]:
         else:
             kept.append(line)
     return " ".join(" ".join(kept).split()), tell
+
+
+_CUES_RE = None
+
+
+def split_cues(raw: str) -> tuple[str, Optional[list[str]]]:
+    """Отделить строку «МИМИКА: …» от остального ответа.
+
+    `(остальное, коды | None)`. `None` — модель строки не прислала: это не
+    «лицо спокойно», а «про лицо ничего не сказано», и выдумывать за неё нельзя.
+    Пустой список — модель ответила «нет». Незнакомые коды выпадают: список
+    закрытый, и всё, что сверх него, — текст из-за границы доверия.
+    """
+    global _CUES_RE
+    if _CUES_RE is None:
+        import re
+        _CUES_RE = re.compile(r"^\s*(?:МИМИКА|CUES)\s*[:\-]\s*(.*)$", re.IGNORECASE)
+    kept, cues = [], None
+    for line in (raw or "").splitlines():
+        m = _CUES_RE.match(line)
+        if not m:
+            kept.append(line)
+            continue
+        found: list[str] = []
+        for part in m.group(1).replace(";", ",").split(","):
+            code = part.strip().strip(".«»\"'`").lower().replace(" ", "_").replace("-", "_")
+            if code in CUES and code not in found:
+                found.append(code)
+        cues = found
+    return "\n".join(kept), cues
 
 
 #: Промпт калибровки. Отдельный, потому что вопрос другой: не «что происходит»,
@@ -256,6 +350,9 @@ class VisionSampler:
         self._last_call = 0.0
         self._last_size = 0
         self._task: Optional[asyncio.Task] = None
+        #: Когда собеседник договорил (монотонные часы) — повод посмотреть на
+        #: реакцию. 0 — повода нет.
+        self._reaction_at = 0.0
         self.stats = VisionStats()
 
     def available(self) -> bool:
@@ -286,8 +383,13 @@ class VisionSampler:
         if change is not None:
             self._last_size = len(frame)
         due = (now - self._last_call) >= self._min_interval
+        if self._reaction_at and now - self._reaction_at > _REACTION_WINDOW_S:
+            self._reaction_at = 0.0             # кадра под реакцию не дождались
+        reaction = (bool(self._reaction_at)
+                    and now - self._reaction_at >= _REACTION_DELAY_S
+                    and now - self._last_call >= _REACTION_MIN_INTERVAL_S)
 
-        if not (first_ever or (due and changed)):
+        if not (first_ever or (due and changed) or reaction):
             return
         if self._task and not self._task.done():
             return                              # предыдущий взгляд ещё не вернулся
@@ -299,7 +401,19 @@ class VisionSampler:
             return
 
         self._last_call = now
+        # Любой состоявшийся взгляд снимает повод: лицо после реплики уже
+        # досмотрено, второй раз за тот же ход за ним не ходят.
+        self._reaction_at = 0.0
         self._task = asyncio.create_task(self._look(frame, turn))
+
+    def expect_reaction(self) -> None:
+        """Собеседник договорил — ближайший кадр досмотреть ради реакции."""
+        self._reaction_at = time.monotonic()
+
+    def on_event(self, event: dict) -> None:
+        """Наблюдатель исходящих событий партии (`endpoint.py::_pump`)."""
+        if event.get("type") == "response.done":
+            self.expect_reaction()
 
     def _changed(self, size: int) -> bool:
         previous, self._last_size = self._last_size, size
@@ -358,7 +472,8 @@ class VisionSampler:
                      "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}},
                 ]},
             ],
-            "max_tokens": 110 if self._pokerface else 80,
+            # Строка мимики — до десятка кодов, отсюда запас сверх прежнего.
+            "max_tokens": 150 if self._pokerface else 120,
             "temperature": 0.2,
         }
         try:
@@ -383,8 +498,9 @@ class VisionSampler:
         self.stats.failures_in_a_row = 0
         self.stats.last_ms = (time.perf_counter() - started) * 1000
 
-        # «ЛИЦО: да/нет» снимается ДО проверки на пустое наблюдение: кадр может
-        # не нести ничего про обстановку и при этом нести выражение на лице.
+        # «МИМИКА» и «ЛИЦО: да/нет» снимаются ДО проверки на пустое наблюдение:
+        # кадр может не нести ничего про обстановку и при этом нести выражение.
+        text, cues = split_cues(text)
         text, tell = split_tell(text)
         if tell is not None:
             if tell:
@@ -410,7 +526,7 @@ class VisionSampler:
         # ОДНА ЗАПИСЬ НА ОДИН ВЗГЛЯД. Обстановку и лицо модель сняла с одного
         # кадра одним вызовом — значит, и в ленте это одна строка. Пустой текст
         # при спокойном лице записью не становится: решает `note_vision`.
-        self._record(text, turn=turn, expressive=tell)
+        self._record(text, turn=turn, expressive=tell, cues=cues or None)
 
         if not text:
             return
@@ -419,6 +535,8 @@ class VisionSampler:
             "type": "vision.observation",
             "text": text,
             "turn": turn,
+            # Коды, не подписи: язык подписи выбирает тот, кто показывает.
+            **({"cues": cues} if cues else {}),
             # Плашка едет вместе с наблюдением, чтобы клиенту не приходилось
             # помнить правило. На карточке скрытых интересов такой плашки нет и
             # быть не должно — те входят в technique и влияют на оценку.

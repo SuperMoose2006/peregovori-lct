@@ -260,6 +260,14 @@ class NegotiationOrchestrator:
             if sess.observations:
                 # Зрение попадает в контекст оппонента, но НИКОГДА в счёт.
                 facts["observations"] = sess.observations[-3:]
+            cues = sess.fresh_cues(turn_id)
+            if cues:
+                # Мимика — подписями на языке партии, а не кодами и не текстом
+                # модели: из-за границы доверия в промпт едет только закрытый
+                # список (`vision.CUES`). На предложение и настрой не влияет —
+                # их считает движок, и это повторено в самом промпте.
+                from app.perception.vision import cue_labels
+                facts["face_cues"] = cue_labels(cues, lang)
             reply = self._generation_task = asyncio.create_task(
                 self._stream_opponent(facts, templated, turn_id))
             try:

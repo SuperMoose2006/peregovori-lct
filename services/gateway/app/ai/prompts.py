@@ -16,6 +16,7 @@ The model only rephrases in character; it never invents numbers or outcomes.
     player_text  str            the player's latest line
     fallback     str            engine's templated reaction (rephrase, don't copy)
     observations list[str]      what the camera layer saw (flavor only, never scored)
+    face_cues    list[str]      visible facial cues right now, labels from vision.CUES (never scored)
 """
 
 from __future__ import annotations
@@ -118,6 +119,36 @@ def _observation_block(facts: dict, lang: str) -> str:
     )
 
 
+def _face_block(facts: dict, lang: str) -> str:
+    """Мимика собеседника-человека, которую видно по видео прямо сейчас.
+
+    Подписи приходят из закрытого списка (`perception/vision.py::CUES`), а не
+    текстом модели зрения, поэтому чистить их как наблюдение не нужно — но
+    обрезать всё равно стоит: список может вырасти. Реагировать разрешено
+    (решение владельца 19.10: «как живой человек на видеозвонке»), выводить
+    чувства — нет, и пол собеседника по-прежнему неизвестен: примеры на «вы».
+    """
+    seen = [c for c in (_clean_observation(x) for x in (facts.get("face_cues") or [])) if c][:4]
+    if not seen:
+        return ""
+    joined = ", ".join(seen)
+    if lang == "ru":
+        return (
+            f"- По видео ты прямо сейчас видишь на лице собеседника: {joined}.\n"
+            "  Это то, что видно, а не мысли собеседника. Можешь отреагировать, как живой человек на\n"
+            "  видеозвонке, — коротким вопросом или замечанием («Вижу, вас что-то смутило?»),\n"
+            "  но не в каждой реплике и не выдумывая чувств. На твоё предложение и настрой\n"
+            "  это не влияет.\n"
+        )
+    return (
+        f"- On video you can see right now on the other person's face: {joined}.\n"
+        "  This is what is visible, not what they think. You may react the way a real person on a\n"
+        "  video call would — with a short question or remark (\"I see that gave you pause?\") —\n"
+        "  but not in every reply and without inventing feelings. It changes neither your offer\n"
+        "  nor your mood.\n"
+    )
+
+
 def build_system(facts: dict) -> str:
     """The role + hard-facts system prompt (facts the model must not contradict)."""
     lang = facts.get("lang", "ru")
@@ -134,7 +165,7 @@ def build_system(facts: dict) -> str:
     style_line = _style_flavor(facts.get("style"), lang)
     revealed = facts.get("revealed_interests") or []
 
-    obs = _observation_block(facts, lang)
+    obs = _observation_block(facts, lang) + _face_block(facts, lang)
     # Аудит 17.10, F05: жёсткий персонаж с присказкой «по рукам» отвечал «Дам
     # 99,7% … по рукам» на столе, где движок дал 99,2, — эхом числа игрока.
     # Правило в промпте снижает частоту; гарантию даёт sanitize.contradicts.

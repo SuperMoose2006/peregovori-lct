@@ -217,7 +217,8 @@ class RealtimeSession:
     # -------------------------------------------------------------- зрение
 
     def note_vision(self, text: str = "", *, turn: Optional[int] = None,
-                    expressive: Optional[bool] = None) -> None:
+                    expressive: Optional[bool] = None,
+                    cues: Optional[list[str]] = None) -> None:
         """Записать один взгляд слоя камеры: что увидено и на каком ходу.
 
         ОДИН ВЗГЛЯД — ОДНА ЗАПИСЬ. Обстановку и выражение лица модель снимает с
@@ -234,6 +235,10 @@ class RealtimeSession:
         Это НЕ «нет»: молчание модели и спокойное лицо — разные вещи, и
         считать их одинаково значило бы придумать данные.
 
+        `cues` — коды мимики из закрытого списка (`vision.CUES`). Пустой список
+        и `None` в ленту не пишутся: «модель не видела мимики» и «модель о ней
+        не сказала» для ленты одинаково пусты, а для промпта — тем более.
+
         Кадр, на котором не увидено ничего и лицо спокойно, не записывается
         вовсе: пустая строка в ленте — это не наблюдение, а её отсутствие.
         """
@@ -244,18 +249,41 @@ class RealtimeSession:
         self.vision_looks += 1
         if text:
             self.observations.append(text)
-        if not text and not expressive:
+        if not text and not expressive and not cues:
             return
-        self.vision_notes.append({
+        note = {
             "turn": self.turn_id if turn is None else int(turn),
-            "at_ms": max(0, round((time.monotonic() - self.started_at) * 1000)),
+            "at_ms": self.clock_ms(),
             "text": text,
             "expressive": expressive,
-        })
+        }
+        if cues:
+            note["cues"] = list(cues)
+        self.vision_notes.append(note)
         # Обрезаем хвостом: свежее наблюдение объясняет финал партии, а
         # тридцатое подряд «человек в кадре» не объясняет ничего.
         if len(self.vision_notes) > MAX_VISION_NOTES:
             del self.vision_notes[:-MAX_VISION_NOTES]
+
+    def clock_ms(self) -> int:
+        """Сколько миллисекунд идёт партия — по монотонным часам, без пауз связи."""
+        return max(0, round((time.monotonic() - self.started_at) * 1000))
+
+    def fresh_cues(self, turn_id: int) -> list[str]:
+        """Мимика, которую собеседник видит СЕЙЧАС, — для его ответа на ход `turn_id`.
+
+        Свежее — это кадры, снятые после прошлого хода: пока собеседник говорил
+        и пока человек сочинял ответ (`turn` кадра — ходов СДЕЛАНО к его
+        моменту, то есть `turn_id - 1`). Мимика трёхходовой давности — уже не
+        реакция, и спрашивать «вас что-то смутило?» про неё значило бы
+        отвечать невпопад. Берётся последняя запись, где мимика была.
+        """
+        for note in reversed(self.vision_notes):
+            if int(note.get("turn", -1)) < turn_id - 1:
+                break
+            if note.get("cues"):
+                return list(note["cues"])
+        return []
 
     def begin_generation(self) -> str:
         """Открыть новое поколение ответа оппонента."""
