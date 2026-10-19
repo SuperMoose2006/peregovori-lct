@@ -72,6 +72,25 @@ def test_a_line_promising_what_the_engine_did_not_give_is_rejected(facts, line):
     (SUPPLIER, "Рад, что мы почти договорились, но 95 пока держу."),
     (SUPPLIER, "This deal matters to us, and 95 is where I stand."),
     ({**SUPPLIER, "status": "agreement", "deal": 92.0}, "Начинали со 100, а сошлись на 92. По рукам."),
+    # Найдено ревью ветки: слова согласия, добавленные ради «Согласна на 86»,
+    # считались по всей реплике и без отрицания — обычный ОТКАЗ оппонента
+    # отвергался и заменялся шаблоном.
+    (SUPPLIER, "Я не согласна на 86."),
+    (SUPPLIER, "86 нам не подходит."),
+    (SUPPLIER, "Меня не устраивает 86, это ниже себестоимости."),
+    (SUPPLIER, "Ваши 86 для нас нереальны. Давайте обсудим сроки поставки."),
+    (SUPPLIER, "We won't accept 86, it's below our cost."),
+    (SUPPLIER, "Let's be realistic: 86 is below our cost."),
+    (SLA, "99,7% мы не потянем. Давайте обсудим сроки внедрения."),
+    (SUPPLIER, "Давайте вернёмся к цене: 95."),
+    (SUPPLIER, "Мне подходит ваш график, но цена 95."),
+    # «Когда…» в начале — условие, как «если»; пропуск начала предложения
+    # нужен только частице «что ж» и указательному "That".
+    (SUPPLIER, "Когда пришлёте гарантию объёма, договорились."),
+    (SUPPLIER, "When you confirm the annual volume, we have a deal."),
+    # После рукопожатия прежнее число рядом с числом сделки — цитата.
+    ({**SUPPLIER, "status": "agreement", "deal": 92.0},
+     "Договорились: 92 вместо 100 — но только ради годового контракта."),
 ])
 def test_a_line_that_agrees_with_the_table_passes(facts, line):
     assert not contradicts(line, facts)

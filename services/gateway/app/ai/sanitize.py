@@ -144,15 +144,24 @@ _DEAL_NEGATED_RE = re.compile(r"(?:\bне|\bnot|\bno|\bnever)\s*$")
 #: рукам», «рад, что договорились», «if you take the volume, we have a deal» —
 #: решает `_framed` ниже.
 #: Слова своего предложения: число рядом с ними — обещание, а не цитата.
-#: И слова СОГЛАСИЯ: «Согласна на 86», «Принимаю 99,7%», «пусть будет 260»,
-#: "99.7% works for us" — оппонент берёт число игрока, и это то же обещание,
-#: что «дам 86». Без них такие реплики шли «цитатой» (найдено после аудита
-#: 17.10 — тот же F05 другими глаголами).
+#: Считаются по всей реплике.
 _OWN_OFFER = ["дам", "даю", "могу", "готов", "предлагаю", "отдам", "уступлю", "соглашусь",
-              "сойдемся", "согласн", "принимаю", "принимаем", "устраивает", "подходит",
-              "пусть будет", "давайте",
-              "i can", "i ll", "i will", "give you", "we can", "we ll", "let you have",
-              "accept", "works for", "fine with", "agree to", "let s"]
+              "сойдемся", "i can", "i ll", "i will", "give you", "we can", "we ll", "let you have"]
+#: Слова СОГЛАСИЯ: «Согласна на 86», «Принимаю 99,7%», "99.7% works for us" —
+#: оппонент берёт число игрока, и это то же обещание, что «дам 86» (найдено
+#: после аудита 17.10 — тот же F05 другими глаголами). В отличие от обещания
+#: засчитываются только В КЛАУЗЕ С ЧИСЛОМ и без отрицания перед ними: по всей
+#: реплике они превращали в обещание обычный ОТКАЗ — «Я не согласна на 86»,
+#: «86 нам не подходит», «…86 нереально. Давайте обсудим сроки» (найдено
+#: ревью ветки).
+_CONSENT = ["согласн", "принимаю", "принимаем", "устраивает", "подходит",
+            "accept", "works for", "fine with", "agree to"]
+#: «Давайте 80», «пусть будет 260», "let's say 90" — согласие, только если стоит
+#: ВПЛОТНУЮ перед числом (как `offerIntentNear` у игрока).
+_CONSENT_RIGHT_BEFORE_RE = re.compile(r"(?:давайте|пусть будет|let s(?: say)?)\s+(?:(?:на|за|по)\s+)?\d")
+#: Граница клаузы в нормализованном тексте. Запятая и точка между цифрами —
+#: десятичные («99,7», «99.7»), клаузу не рвут.
+_CLAUSE_SPLIT_RE = re.compile(r"(?<!\d)[,.]|[,.](?!\d)|[!?;:]")
 
 
 #: Короткое английское «сделка»: "You've got a deal.", "Fine, deal.", "Deal — 95
@@ -172,8 +181,9 @@ def _framed(before: str) -> bool:
         if w in ("если", "if"):
             return True
         if w in ("когда", "что", "when", "that"):
-            if i == 0:
-                continue                      # начало предложения: «Что ж…», "That settles…"
+            if i == 0 and w in ("что", "that"):
+                continue                      # начало предложения: «Что ж…», "That settles…";
+                                              # «Когда пришлёте…» — условие (ревью ветки)
             if w == "что" and (words[i - 1] == "ну" or (i + 1 < len(words) and words[i + 1].startswith("ж"))):
                 continue                      # «ну что», «что ж»
             return True
@@ -231,7 +241,7 @@ def reply_verdict(text: Optional[str], facts: dict, final: bool = True) -> str:
     if not text or not facts.get("scenario_id"):
         return "ok"
     from app.engine.engine import _plausible_offer, by_id
-    from app.engine.techniques import _has, norm, number_mentions
+    from app.engine.techniques import _has, has_unnegated_in_clause, norm, number_mentions
 
     sc = by_id(facts["scenario_id"])
     status = facts.get("status", "active")
@@ -270,20 +280,32 @@ def reply_verdict(text: Optional[str], facts: dict, final: bool = True) -> str:
     def beyond(v: float, mark: float) -> bool:
         return (v < mark - near) if lower_better else (v > mark + near)
 
-    said = priced(t)
+    # Число вместе с тем, согласился ли оппонент на него В ЕГО клаузе.
+    said: list[tuple[float, bool]] = []
+    for clause in _CLAUSE_SPLIT_RE.split(t):
+        consent = bool(_CONSENT_RIGHT_BEFORE_RE.search(clause)) or has_unnegated_in_clause(clause, _CONSENT)
+        said += [(v, consent) for v in priced(clause)]
+    recorded = priced(norm(facts.get("player_text") or "")) + list(facts.get("offer_history") or [])
     if status == "agreement":
         # После рукопожатия число одно — сделки. «По рукам, 95 за штуку» при
         # сделке на 92 шло: проверка смотрела только «лучше стола для игрока»,
         # а 95 хуже (найдено после аудита 17.10). Объявленная сделка с ДРУГИМ
-        # числом в том же предложении — спор с движком в любую сторону.
+        # числом в том же предложении — спор с движком в любую сторону. Кроме
+        # прежнего числа рядом с числом сделки: «Договорились: 92 вместо 100» —
+        # цитата (ревью ветки).
         for sentence in _SENTENCE_END_RE.split(text):
             st = norm(sentence)
-            if st and _deal_claim_any(st) and any(abs(v - ref) > near for v in priced(st)):
+            if not st or not _deal_claim_any(st):
+                continue
+            nums = priced(st)
+            names_deal = any(abs(v - ref) <= near for v in nums)
+            if any(abs(v - ref) > near and not (names_deal and any(abs(v - r) <= near for r in recorded))
+                   for v in nums):
                 return "bad"
-    names_ref = any(abs(v - ref) <= near for v in said)
-    own_offer = _has(t, _OWN_OFFER)
-    recorded = priced(norm(facts.get("player_text") or "")) + list(facts.get("offer_history") or [])
-    for v in said:
+    names_ref = any(abs(v - ref) <= near for v, _ in said)
+    promise = _has(t, _OWN_OFFER)
+    for v, consent in said:
+        own_offer = promise or consent
         if not beyond(v, ref):
             continue                                   # не лучше стола — не обещание
         if beyond(v, sc.player_target) and not own_offer:
