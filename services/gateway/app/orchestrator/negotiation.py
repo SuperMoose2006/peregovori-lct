@@ -52,7 +52,7 @@ from app.orchestrator.judge import judge_enabled_for, judge_turn
 from app.orchestrator.tts_manager import TTSTaskManager
 from app.providers.openrouter import chat as orchat
 from app.realtime.events import output_delta, response_done
-from app.realtime.session import RealtimeSession
+from app.realtime.session import MAX_TURN_CHARS, RealtimeSession
 from app.vendor.olv.sentence_divider import SentenceDivider
 
 
@@ -137,7 +137,11 @@ class NegotiationOrchestrator:
         engine_sess = sess.engine_session
         bus, lang = sess.bus, sess.lang
 
-        text = (text or "").strip()[:800]
+        # Предел — тот же, что у сокета и у композера. Здесь стояло 800 при
+        # вводе до 2000: пузырь показывал ход целиком, а движок и судья видели
+        # обрезок, и вопрос или цена в хвосте молча терялись — офлайн-ядро
+        # читало всё (инвариант 8, найдено после аудита 17.10).
+        text = (text or "").strip()[:MAX_TURN_CHARS]
         if not text or engine_sess.state.status != "active":
             return
 
