@@ -314,7 +314,8 @@ export default function App() {
     } catch { /* Storage restrictions must not prevent practice. */ }
   }, [nego.state?.status]);
   const t = I18N[lang];
-  const langLocked = screen === "game";
+  // Разбор — отдельный экран, и «А что если» на нём считает ход на языке партии.
+  const langLocked = screen === "game" || screen === "debrief";
 
   // ---- Туры по разделам (lib/tours.ts) ---------------------------------------
   // Какой раздел сейчас перед человеком. Стол — только когда партия уже пришла:

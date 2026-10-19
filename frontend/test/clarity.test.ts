@@ -389,7 +389,7 @@ test("за столом язык не переключается — парти�
   // английский экран над русской игрой, «А что если» по чужим ключевым словам,
   // запись для переигровки не под тем языком.
   const app = readFileSync(join(SRC, "App.tsx"), "utf8");
-  assert.match(app, /const langLocked = screen === "game";/);
+  assert.match(app, /const langLocked = screen === "game" \|\| screen === "debrief";/);
   assert.equal((app.match(/onClick=\{\(\) => setLang\("(ru|en)"\)\}\s*disabled=\{langLocked\}/g) ?? []).length, 2);
   for (const lang of ["ru", "en"] as const) assert.ok(I18N[lang].langLocked.length > 10);
 });
