@@ -329,6 +329,27 @@ def build_facts(sess: "engine.Session", result: "engine.MoveResult") -> dict:
     }
 
 
+def names_unrevealed_interest(sess: "engine.Session", lang: str, text: str) -> bool:
+    """Называет ли текст скрытый интерес, который игрок ещё НЕ вскрыл.
+
+    Судья получает все три интереса — иначе ему не определить, какой ход
+    вскрывает, — и пишет заметку «одно конкретное указание игроку», которая
+    уходит в ленту каждым ходом. Тренер подсказки ограничен вскрытым, а у
+    судьи ограничения не было: «Спросите про стабильную загрузку производства
+    — это их главный интерес» выдавала ответ до вопроса (найдено после аудита
+    17.10). Сверка — по тем же ключевым словам, по которым движок вскрывает
+    интерес без судьи; тема — область, а не секрет, её назвать можно.
+    """
+    from app.engine.techniques import _has, norm
+    sc = engine.by_id(sess.scenario_id)
+    if sc is None or not text:
+        return False
+    keywords = (sc.hidden_interest_keywords or {}).get(lang) or []
+    found = set(sess.state.interests_found)
+    t = norm(text)
+    return any(i not in found and kws and _has(t, kws) for i, kws in enumerate(keywords))
+
+
 def coach_facts(sess: "engine.Session", lang: str) -> dict:
     """Facts for the AI coach behind the hint button.
 

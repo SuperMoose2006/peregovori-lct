@@ -67,3 +67,26 @@ async def test_cancelling_the_turn_itself_still_cancels_it(monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         await turn
     assert "debrief" not in [e["type"] for e in events]
+
+
+@pytest.mark.asyncio
+async def test_the_judges_note_never_names_an_interest_not_yet_uncovered(monkeypatch):
+    """Найдено после аудита 17.10: заметка судьи уходит в ленту каждым ходом,
+    а судья знает все три интереса. «Спросите про стабильную загрузку
+    производства — это их главный интерес» выдавала ответ до вопроса."""
+    async def judge(*args, **kwargs):
+        return {"arg_score": 60, "interest_targeted": None, "secondary_conceded": None,
+                "criteria_legitimate": None, "tradeoff_real": None, "batna_real": None,
+                "note": "Спросите про стабильную загрузку производства — это их главный интерес",
+                "techniques": []}
+
+    monkeypatch.setattr(negotiation, "judge_enabled_for", lambda mode: True)
+    monkeypatch.setattr(negotiation, "judge_turn", judge)
+    monkeypatch.setattr(chat, "available", lambda: False)
+    session = RealtimeSession(session_id="note_leak", lang="ru",
+                              engine_session=engine.create_session("supplier", "ru"))
+    events: list[dict] = []
+    monkeypatch.setattr(session.bus, "publish", events.append)
+    await negotiation.NegotiationOrchestrator(session).on_player_turn("Добрый день, давайте обсудим условия.")
+    coach = [e for e in events if e["type"] == "turn.coach"]
+    assert coach and coach[0]["text"] == ""

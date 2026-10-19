@@ -231,10 +231,15 @@ class NegotiationOrchestrator:
         probe = (next_probe(result.reaction, turn_id, result.closed, sess.probe_memory)
                  if sess.layers.probe else None)
         if judgement:
+            # Заметка судьи, называющая ещё не вскрытый интерес, не уходит:
+            # подсказка не выдаёт ответ до вопроса (`views.names_unrevealed_interest`).
+            note = judgement.get("note") or ""
+            if views.names_unrevealed_interest(engine_sess, lang, note):
+                note = ""
             bus.publish({
                 "type": "turn.coach",
                 "turn_id": turn_id,
-                "text": judgement.get("note") or "",
+                "text": note,
                 "techniques": list(judgement.get("techniques") or []),
                 # Низкий семантический балл при сработавших ключевых словах —
                 # это попугайство, а не приём. Отсюда зачёркнутая плашка в UI.
