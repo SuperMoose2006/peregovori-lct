@@ -148,3 +148,35 @@ export function synthCustomScenario(situation: string, lang: Lang, context?: Sce
     brief,
   };
 }
+
+/**
+ * Стол своей сделки с числами, поправленными игроком до первого хода (CE-01).
+ * Строка — отказ. Скрытое дно остаётся на той же доле пути «их старт → ваша
+ * цель» (инвариант 1). Зеркало
+ * services/gateway/app/ai/scenario_gen.py::adjust_custom.
+ */
+export function adjustCustom(def: ScenarioDef, open: number, target: number, redline: number,
+                             lang: Lang): ScenarioDef | string {
+  if (![open, target, redline].every((v) => Number.isFinite(v) && v > 0)) {
+    return lang === "ru" ? "Нужны три положительных числа: их старт, ваша цель и красная линия."
+      : "Three positive numbers are needed: their opening, your target and red line.";
+  }
+  const better = def.dir === "low" ? (a: number, b: number) => a < b : (a: number, b: number) => a > b;
+  if (!better(target, redline)) {
+    return lang === "ru" ? "Цель должна быть лучше красной линии." : "The target must be better than the red line.";
+  }
+  if (!better(target, open)) {
+    return lang === "ru" ? "Их стартовая цена уже лучше вашей цели — торговаться не о чем."
+      : "Their opening already beats your target — there is nothing to negotiate.";
+  }
+  const span = def.target - def.open;
+  const share = span ? (def.floor - def.open) / span : 0.5;
+  const floor = Math.round((open + Math.max(0, share) * (target - open)) * 100) / 100;
+  // Новый id, как на сервере: по нему экран сбрасывает историю цены — иначе
+  // «их стартовая цена» на шкале осталась бы прежней.
+  const id = `${def.id.split("~")[0]}~${Math.random().toString(16).slice(2, 6)}`;
+  // Вводную не трогаем: офлайн она чисел генератора не несёт — только цитату
+  // описания игрока, и замена чисел переписала бы его собственные слова. На
+  // сервере вводную пишет модель с числами стола, там они меняются (_retarget).
+  return { ...def, id, open, target, resv: redline, floor };
+}

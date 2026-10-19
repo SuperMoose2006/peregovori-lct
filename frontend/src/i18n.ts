@@ -195,10 +195,13 @@ export interface Strings {
     takenOver: string;
     /** Отказы внутри партии, у которых сервер шлёт только английский текст
      *  (`busy`, `turn_failed`, `server_error`, `output_overflow`). */
-    errors: Record<"busy" | "turn_failed" | "server_error" | "output_overflow" | "generic", string>;
+    errors: Record<"busy" | "turn_failed" | "server_error" | "output_overflow" | "adjust_closed" | "generic", string>;
   };
   // custom ("Своя сделка") mode
   custom: {
+    /** Числа своей сделки на подтверждение до первого хода (CE-01). */
+    confirm: { title: string; lead: string; open: string; target: string; redline: string;
+               ok: string; apply: string };
     context: {
       head: string; help: string; sector: string; topic: string;
       opponent_role: string; opponent_goal: string; difficulty: string; style: string;
@@ -1057,10 +1060,17 @@ export const I18N: Record<Lang, Strings> = {
         turn_failed: "Ход не состоялся — попробуйте ещё раз.",
         server_error: "Что-то пошло не так. Партия цела — попробуйте ещё раз.",
         output_overflow: "Связь не успевает за партией — переподключаемся, чтобы её восстановить.",
+        adjust_closed: "Числа можно поправить только в своей сделке до первого хода.",
         generic: "Ошибка",
       },
     },
     custom: {
+      confirm: {
+        title: "Проверьте числа сделки",
+        lead: "Их вывела модель из вашего описания и могла ошибиться. Поправьте, если нужно, — до первого хода.",
+        open: "Их стартовая цена", target: "Ваша цель", redline: "Ваша красная линия",
+        ok: "Числа верны", apply: "Применить числа",
+      },
       context: {
         head: "Для организатора: настройки сценария",
         help: "Задайте учебный контекст. Сложность и тон применятся к сценарию; без сети используются стандартные условия торга.",
@@ -2075,10 +2085,17 @@ export const I18N: Record<Lang, Strings> = {
         turn_failed: "That move didn't go through — try again.",
         server_error: "Something went wrong. The game is intact — try again.",
         output_overflow: "The connection fell behind — reconnecting to restore the game.",
+        adjust_closed: "Numbers can be corrected only in a custom deal before the first move.",
         generic: "Error",
       },
     },
     custom: {
+      confirm: {
+        title: "Check the deal numbers",
+        lead: "A model drew them from your description and may have slipped. Correct them if needed — before the first move.",
+        open: "Their opening", target: "Your target", redline: "Your red line",
+        ok: "The numbers are right", apply: "Apply the numbers",
+      },
       head: "Describe your situation",
       tooShort: "Say a little more — at least three words: who is across the table, what you are negotiating, any numbers.",
       context: {

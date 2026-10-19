@@ -342,6 +342,9 @@ export interface ScenarioContext {
 }
 
 export type ClientMsg =
+  // Своя сделка, до первого хода: поправить числа, выведенные генератором из
+  // описания (CE-01). Ответ — новое приветствие с новым столом.
+  | { type: "adjust"; open: number; target: number; redline: number }
   // scenarioId is "" for mode "custom"; situation carries the user's free-text;
   // reputation (-100..100) carries a campaign result into the next stage's trust
   // `layers` доезжает и до сервера (`session.init.layers`), и до офлайн-ядра.

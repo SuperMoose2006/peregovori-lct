@@ -47,6 +47,7 @@ CLIENT_EVENTS = (
     "input.commit",       # явный конец хода (в text-режиме идёт сразу за append)
     "response.cancel",    # перебивание: погасить текущее поколение
     "coach.request",      # кнопка 💡 — подсказка тренера
+    "session.adjust",     # своя сделка: поправить числа стола до первого хода (CE-01)
     "session.close",
 )
 
@@ -146,6 +147,17 @@ class SessionInit(BaseModel):
     #: вчерашний стол. Условие дня накладывается только если присланный
     #: сценарий и правда сегодняшний — иначе это просто обычная партия.
     daily: Optional[str] = None
+
+
+class SessionAdjust(BaseModel):
+    """`session.adjust` — поправка чисел своей сделки до первого хода.
+
+    Генератор выводит числа стола из описания, а модель может ошибиться (аудит
+    17.10, CE-01): игрок видит стартовую цену собеседника, свою цель и красную
+    линию и правит их. Ответ — тот же `session.created` с новым столом."""
+    open: float = Field(gt=0, allow_inf_nan=False)
+    target: float = Field(gt=0, allow_inf_nan=False)
+    redline: float = Field(gt=0, allow_inf_nan=False)
 
 
 class InputAppend(BaseModel):

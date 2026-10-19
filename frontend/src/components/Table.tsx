@@ -27,6 +27,7 @@ import { DealTerms } from "./DealTerms";
 import { Onboarding, type CoachStep } from "./Onboarding";
 import type { Layers } from "../lib/layers";
 import { Icon } from "./Icon";
+import { CustomConfirm } from "./CustomConfirm";
 
 interface Props {
   t: Strings;
@@ -57,6 +58,8 @@ interface Props {
   onSend: (text: string) => boolean | void;
   onHint: () => void;
   onQuit: () => void;
+  /** Своя сделка, до первого хода: поправить числа стола (CE-01). */
+  onAdjust?: (open: number, target: number, redline: number) => void;
   // The negotiation's last beat. When the table closes we hold here for a moment
   // instead of swapping straight to the scorecard: the handshake (or the walk-out)
   // IS the climax, and the hold also covers the AI mentor still composing its
@@ -130,7 +133,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, videoPending = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
+export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", meeting = false, syntheticFace = false, videoPending = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", layers, onOpenLayers, layersOpen = false, layerFail, framesSent = 0, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -287,6 +290,8 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
   // stays short and the chat/composer are reachable without endless scrolling.
   // On desktop this section is always expanded (the toggle is hidden by CSS).
   const [moreOpen, setMoreOpen] = useState(false);
+  // Числа своей сделки подтверждены (CE-01): карточка уходит до первого хода.
+  const [numbersOk, setNumbersOk] = useState(false);
   // Подпись раскрывающегося блока зависит от того, что в нём лежит: у сценария
   // без вторичных вопросов `DealTerms` не рисуется вовсе, и обещать «условия
   // сделки» было бы обещанием пустоты.
@@ -746,6 +751,13 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                 {kind === null ? <span className="conn">{t.connecting}</span> : null}
               </div>
             </div>
+            {mode === "custom" && onAdjust && st && scenario && (st.turn ?? 0) < 1 && !numbersOk ? (
+              <CustomConfirm
+                key={`${scenario.id}-${st.offer_opp}-${scenario.target}-${scenario.reservation}`}
+                t={t} unit={scenario.headline_unit} open={st.offer_opp} target={scenario.target}
+                redline={scenario.reservation} onApply={onAdjust} onOk={() => setNumbersOk(true)}
+              />
+            ) : null}
             {drillGoal ? (
               // Условия финальной партии курса — за столом, а не только в
               // карточке задания: «≤ 6 ходов» рядом со счётчиком «из 12» без

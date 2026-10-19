@@ -1377,6 +1377,7 @@ export default function App() {
             onSend={nego.turn}
             onHint={nego.requestHint}
             onQuit={goHome}
+            onAdjust={nego.adjust}
             debriefReady={!!nego.debrief}
             grade={nego.debrief?.grade ?? null}
             probeTally={activeLayers.probe ? probeTally : undefined}

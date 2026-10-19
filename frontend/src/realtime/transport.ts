@@ -137,6 +137,9 @@ export class RealtimeTransport implements Transport {
       case "hint":
         this.session?.requestHint();
         break;
+      case "adjust":
+        this.session?.adjust(message.open, message.target, message.redline);
+        break;
     }
   }
 
@@ -412,6 +415,10 @@ export class RealtimeTransport implements Transport {
           scenario: event.scenario as ScenarioView, state: event.state as StateView,
           text: String(event.greeting ?? ""),
           judge_active: Boolean((event.capabilities as Record<string, unknown>)?.judge) });
+        // Ответ на поправку чисел своей сделки (`session.adjust`) — тот же
+        // `session.created`, но это не переподключение: «связь восстановлена»
+        // здесь была бы неправдой.
+        if (event.adjusted) return;
         this.emit({ type: "notice", text: replaced
           ? (this.lang === "ru"
             ? "Предыдущая попытка недоступна. Начата новая попытка; прошлый результат не восстановлен."

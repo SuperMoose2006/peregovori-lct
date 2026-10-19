@@ -19,6 +19,7 @@ import math
 import re
 import secrets
 import time
+from dataclasses import replace
 from typing import Optional
 
 from app.engine.scenarios import (
@@ -340,3 +341,80 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
     except RuntimeRegistryFull:
         return None
     return scenario
+
+
+def adjust_custom(sc: Scenario, open_: float, target: float, redline: float,
+                  lang: str) -> "Scenario | str":
+    """Стол своей сделки с числами, поправленными игроком (CE-01). Строка — отказ.
+
+    Цель обязана быть лучше красной линии, стартовая цена собеседника — хуже
+    цели: иначе торговаться не о чем. Скрытое дно собеседника остаётся на той же
+    доле пути «его старт → ваша цель», что и в сгенерированном столе: игрок его
+    не видит и не правит, но дно обязано лежать между стартом и целью так же,
+    как задумала генерация, — и собеседник его не переходит (инвариант 1).
+    Числа во вводной меняются на поправленные: вводная, спорящая со столом, —
+    то же «показать то, чего нет». Новый id: прежний стол может ещё держать
+    чужая партия реестра."""
+    lower = sc.headline.dir == "lower_is_better"
+    better = (lambda a, b: a < b) if lower else (lambda a, b: a > b)
+    if not better(target, redline):
+        return ("Цель должна быть лучше красной линии." if lang == "ru"
+                else "The target must be better than the red line.")
+    if not better(target, open_):
+        return ("Их стартовая цена уже лучше вашей цели — торговаться не о чем." if lang == "ru"
+                else "Their opening already beats your target — there is nothing to negotiate.")
+    span = sc.player_target - sc.opponent_open
+    share = (sc.opponent_reservation - sc.opponent_open) / span if span else 0.5
+    floor = round(open_ + max(0.0, share) * (target - open_), 2)
+    briefing = {k: _retarget(v, [(sc.opponent_open, open_, "open"),
+                                 (sc.player_target, target, "target"),
+                                 (sc.player_reservation, redline, "redline")], k)
+                for k, v in sc.briefing.items()}
+    adjusted = replace(sc, id=sc.id.split("~")[0] + "~" + secrets.token_hex(2),
+                       opponent_open=float(open_), opponent_reservation=floor,
+                       player_target=float(target), player_reservation=float(redline),
+                       briefing=briefing)
+    try:
+        register_runtime_scenario(adjusted)
+    except RuntimeRegistryFull:
+        return ("Сервер занят — попробуйте ещё раз." if lang == "ru"
+                else "The server is busy — try again.")
+    return adjusted
+
+
+_RETARGET_LABELS = {"ru": {"open": "их старт", "target": "цель", "redline": "красная линия"},
+                    "en": {"open": "their opening", "target": "target", "redline": "red line"}}
+
+
+def _retarget(text: str, numbers: list[tuple[float, float, str]], lang: str) -> str:
+    """Заменить во вводной прежние числа на поправленные — в тех записях, какими
+    их пишут люди и модель: «470000», «470 000», «470 тыс». Не нашлось — вводная
+    получает короткую поправку в начале: молча оставить старое число нельзя."""
+    from app.engine.format import format_number
+    missing = []
+    for old, new, role in numbers:
+        if old == new:
+            continue
+        forms = {format_number(old, lang), format_number(old, "en"), f"{old:g}",
+                 f"{int(old):,}".replace(",", " ") if float(old).is_integer() else f"{old:g}"}
+        if float(old).is_integer() and old >= 1000 and old % 1000 == 0:
+            forms.add(f"{int(old // 1000)} тыс")
+            forms.add(f"{int(old // 1000)}k")
+        hit = False
+        for form in sorted(forms, key=len, reverse=True):
+            # Любой из трёх пробелов группы разрядов — тот же: «470 000»,
+            # «470\u00a0000», «470\u202f000».
+            body = "".join("[ \u00a0\u202f]" if ch in " \u00a0\u202f" else re.escape(ch) for ch in form)
+            pattern = r"(?<![\d.,])" + body + r"(?![\d])"
+            text, n = re.subn(pattern, format_number(new, lang), text)
+            hit = hit or n > 0
+        # Их стартовую цену вводная называть не обязана — без неё поправка в
+        # начале не нужна; цель и красную линию генератор называет всегда.
+        if not hit and role != "open":
+            missing.append((role, new))
+    if missing:
+        labels = _RETARGET_LABELS["en" if lang == "en" else "ru"]
+        parts = ", ".join(f"{labels[role]} — {format_number(v, lang)}" for role, v in missing)
+        note = (f"Вы уточнили числа: {parts}. " if lang == "ru" else f"You corrected the numbers: {parts}. ")
+        text = note + text
+    return text

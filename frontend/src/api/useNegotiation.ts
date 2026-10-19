@@ -107,6 +107,8 @@ export interface Negotiation extends NegotiationState {
           reputationAvg?: number | null) => void;
   turn: (text: string) => void;
   requestHint: () => void;
+  /** Своя сделка, до первого хода: поправить числа стола (CE-01). */
+  adjust: (open: number, target: number, redline: number) => void;
   answerProbe: (id: number, choice: number) => void;
   clearError: () => void;
   reset: () => void;
@@ -290,6 +292,10 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
     }));
   }, []);
 
+  const adjust = useCallback((open: number, target: number, redline: number) => {
+    transportRef.current?.send({ type: "adjust", open, target, redline });
+  }, []);
+
   const requestHint = useCallback(() => {
     setS((prev) => {
       // One outstanding request at a time: repeated taps must not queue up a
@@ -320,7 +326,7 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
   const setMicMuted = useCallback((muted: boolean) => transportRef.current?.setMicMuted?.(muted), []);
   const interrupt = useCallback(() => transportRef.current?.interrupt?.(), []);
 
-  return { ...s, start, turn, requestHint, answerProbe, clearError, reset, getMicLevel, getSpeechLevel,
+  return { ...s, start, turn, requestHint, adjust, answerProbe, clearError, reset, getMicLevel, getSpeechLevel,
            getVideoFrame, getAudioBlocked, resumeAudio, setMicMuted, interrupt };
 }
 

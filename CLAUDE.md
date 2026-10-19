@@ -80,6 +80,11 @@ legacy-node/                 первый прототип — эталон по
 - `input.append {input: {text? | audio? | video_frames?}}` — накапливает ход
 - `input.commit` — явный конец хода
 - `response.cancel` — перебивание с кнопки
+- `session.adjust {open, target, redline}` — своя сделка, ДО первого хода:
+  игрок поправляет числа, выведенные генератором из описания (CE-01). Ответ —
+  тот же `session.created` с новым столом; скрытое дно собеседника сдвигается
+  пропорционально (инвариант 1), числа во вводной меняются. После хода и вне
+  своей сделки — `error adjust_closed`.
 - `coach.request` · `session.close`
 
 **server → client**

@@ -435,3 +435,18 @@ test("итог хода ложится под свою реплику, даже 
   assert.equal(second.deltas, undefined);
   assert.equal(second.analysis, undefined);
 });
+
+test("ответ на поправку чисел своей сделки — новый стол без «связь восстановлена» (CE-01)", async () => {
+  const tbl = await table();
+  const before = tbl.get().log.length;
+  tbl.socket.deliver({ type: "session.created", session_id: "s-wire", resumed: false, adjusted: true,
+    scenario: { id: "supplier~ab12", target: 80, reservation: 95 }, state: { ...STATE0, offer_opp: 110 },
+    greeting: "Здравствуйте.", capabilities: { judge: true } });
+  await wait(0);
+  const s = tbl.get();
+  assert.equal(s.state?.offer_opp, 110);
+  assert.equal(s.scenario?.target, 80);
+  assert.equal(s.log.length, Math.min(before, 1), "лента — одно приветствие");
+  assert.ok(!s.log.some((e) => e.kind === "sys"), JSON.stringify(s.log));
+  tbl.close();
+});

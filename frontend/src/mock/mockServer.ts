@@ -9,7 +9,7 @@ import { SCENARIO_MAP, toScenarioView, type ScenarioDef } from "../data/scenario
 // арифметику «стола дня», а их вес — в первую отрисовку (data/mirrors.ts).
 // Офлайн-транспорт отложен, поэтому импорт здесь ничего не тянет на главную.
 import { MIRROR_MAP } from "../data/mirrors";
-import { synthCustomScenario } from "./customScenario";
+import { adjustCustom, synthCustomScenario } from "./customScenario";
 import {
   analyze, applyMove, applyStartConditions, closeOnTurnLimit, greetingText, hintLine, hintText, newSession, renderLine,
   scoreSession, stateView, timeoutLine, toAnalysis, type Session,
@@ -30,6 +30,9 @@ function reputationIntro(reputation: unknown, lang: Lang): string {
 export class MockServer implements Transport {
   private onMessage: ServerMsgHandler;
   private session: Session | null = null;
+  /** Своя сделка и её id: поправка чисел до первого хода (CE-01). */
+  private custom = false;
+  private sessionId = "";
   private closed = false;
   private timers = new Set<ReturnType<typeof setTimeout>>();
   // Per-turn record of the player's own words + their meter swing, so the debrief
@@ -60,6 +63,9 @@ export class MockServer implements Transport {
         break;
       case "hint":
         this.handleHint();
+        break;
+      case "adjust":
+        this.handleAdjust(msg);
         break;
     }
   }
@@ -106,6 +112,7 @@ export class MockServer implements Transport {
       }
     }
 
+    this.custom = msg.mode === "custom";
     const s = newSession(def, lang);
     // Репутация кампании и условие дня — общей функцией с «А что если»:
     // переигровка обязана стартовать из того же состояния. Зеркало
@@ -114,9 +121,10 @@ export class MockServer implements Transport {
     this.session = s;
     this.turns = [];
     await this.delay(genDelay);
+    this.sessionId = `mock-${def.id}-${Date.now()}`;
     this.emit({
       type: "greeting",
-      sessionId: `mock-${def.id}-${Date.now()}`,
+      sessionId: this.sessionId,
       scenario: toScenarioView(def, lang),
       state: stateView(s),
       // Репутация кампании была слышна ТОЛЬКО онлайн: офлайн-ядро применяло её
@@ -131,6 +139,29 @@ export class MockServer implements Transport {
       // badge never appears without a live judge behind it.
       judge_active: false,
     });
+  }
+
+  /** Своя сделка, до первого хода: стол с поправленными числами — новым
+   *  приветствием, как ответ сервера на `session.adjust`. Зеркало
+   *  endpoint.py (CE-01). */
+  private handleAdjust(msg: Extract<ClientMsg, { type: "adjust" }>): void {
+    const s = this.session;
+    if (!s) return;
+    if (!this.custom || s.turn > 0 || this.turns.length > 0) {
+      this.emit({ type: "notice", text: s.lang === "ru"
+        ? "Числа можно поправить только в своей сделке до первого хода."
+        : "Numbers can be corrected only in a custom deal before the first move." });
+      return;
+    }
+    const next = adjustCustom(s.sc, msg.open, msg.target, msg.redline, s.lang);
+    if (typeof next === "string") {
+      this.emit({ type: "notice", text: next });
+      return;
+    }
+    const fresh = newSession(next, s.lang);
+    this.session = fresh;
+    this.emit({ type: "greeting", sessionId: this.sessionId, scenario: toScenarioView(next, s.lang),
+                state: stateView(fresh), text: greetingText(fresh), judge_active: false });
   }
 
   private async handleTurn(text: string): Promise<void> {

@@ -47,7 +47,7 @@ from app.providers.routing import describe as describe_models
 from app.providers.tts.base import Voice
 from app.providers.tts.choose import make_tts
 from app.realtime import admission, limits
-from app.realtime.events import InputAppend, SessionInit, error, session_closed
+from app.realtime.events import InputAppend, SessionAdjust, SessionInit, error, session_closed
 from app.realtime.session import (MAX_AUDIO_BYTES, MAX_FRAME_B64, Layers,
                                   RealtimeSession, keep_for_resume,
                                   restore_from_resume)
@@ -192,6 +192,10 @@ class _Work:
     def start_turn(self, orchestrator: "NegotiationOrchestrator",
                    session: "RealtimeSession", text: str) -> bool:
         return self._spawn(orchestrator, session, text) is not None
+
+    def busy(self) -> bool:
+        """Есть ли ход в пути — принятый, но ещё не записанный движком."""
+        return any(not task.done() for task in self._turns)
 
     def _spawn(self, orchestrator: "NegotiationOrchestrator",
                session: "RealtimeSession", text: str) -> Optional[asyncio.Task]:
@@ -571,6 +575,38 @@ async def realtime_ws(websocket: WebSocket) -> None:
                     # хода. Вторая просьба, пока первая в пути, — не вторая
                     # подсказка, а второй счёт от провайдера.
                     work.start_hint(session)
+                    continue
+
+                # ---- session.adjust (своя сделка, до первого хода) --------------
+                if kind == "session.adjust":
+                    # Числа стола своей сделки — на подтверждение (аудит 17.10,
+                    # CE-01; решение владельца 19.10). Только своя сделка и
+                    # только до первого хода: дальше числа — уже партия.
+                    es = session.engine_session
+                    if session.game_mode != "custom" or es.turn > 0 or es.log or work.busy():
+                        await websocket.send_json(error(
+                            "adjust_closed", "numbers can be adjusted only in a custom deal before the first move"))
+                        continue
+                    try:
+                        data = SessionAdjust(**{k: message.get(k) for k in ("open", "target", "redline")})
+                    except ValidationError:
+                        await websocket.send_json(error("bad_numbers", (
+                            "Нужны три положительных числа: их старт, ваша цель и красная линия."
+                            if session.lang == "ru" else
+                            "Three positive numbers are needed: their opening, your target and red line.")))
+                        continue
+                    from app.ai.scenario_gen import adjust_custom
+                    adjusted = adjust_custom(engine.by_id(es.scenario_id), data.open, data.target,
+                                             data.redline, session.lang)
+                    if isinstance(adjusted, str):
+                        await websocket.send_json(error("bad_numbers", adjusted))
+                        continue
+                    es.scenario_id = adjusted.id
+                    es.state.offer_opp = adjusted.opponent_open
+                    es.state.frame_open = adjusted.opponent_open
+                    # `adjusted` отличает ответ на поправку от переподключения:
+                    # клиент не пишет «связь восстановлена».
+                    await websocket.send_json({**_created_payload(session, voice), "adjusted": True})
                     continue
 
                 # ---- session.close ---------------------------------------------

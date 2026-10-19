@@ -684,6 +684,22 @@ h1, h2, h3, .serif { font-family: var(--serif); font-weight: 800; }
 /* Условия капстоуна над столом (CE-EX). Текст — только -ink-пары: правило двух слоёв цвета. */
 .drill-goal { flex: none; margin: 8px 12px 0; padding: 6px 10px; border: 2px solid var(--line); border-radius: 12px;
   font-size: 12.5px; font-weight: 700; line-height: 1.4; color: var(--info-ink); }
+
+/* Числа своей сделки на подтверждение (CE-01): та же плашка, что условия
+   капстоуна, — над лентой, до первого хода. */
+.custom-confirm { flex: none; margin: 8px 12px 0; padding: 12px 14px; border: 2px solid var(--line);
+  border-radius: 12px; background: var(--panel); }
+.custom-confirm h3 { margin: 0 0 4px; font-size: 15px; }
+.custom-confirm p { margin: 0 0 10px; font-size: 13px; color: var(--ink-faint); }
+.cc-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.cc-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; }
+.cc-field input { font: inherit; font-size: 15px; font-weight: 700; padding: 8px 10px; border: 2px solid var(--line);
+  border-radius: 10px; background: var(--panel-2); color: var(--ink); min-width: 0; }
+.cc-field input[aria-invalid="true"] { border-color: var(--tension-ink); }
+.cc-input { display: flex; align-items: center; gap: 6px; }
+.cc-input input { flex: 1 1 auto; }
+.cc-field em { font-style: normal; font-weight: 600; color: var(--ink-faint); white-space: nowrap; }
+.cc-actions { margin-top: 10px; display: flex; justify-content: flex-end; }
 .drill-goal.over { color: var(--tension-ink); }
 .conn { font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--line-2); border-radius: 999px; padding: 2px 8px; margin-left: 8px; }
 .conn.mock { color: var(--trust-ink); border-color: color-mix(in srgb, var(--brass) 40%, transparent); }
