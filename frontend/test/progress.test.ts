@@ -615,8 +615,31 @@ test("экзамен: провал даёт долю XP, сдача — бону
   assert.ok(p.achievements.includes("exam_clean"), "максимум — свой значок");
 
   const twice = recordExam(p, "foundations", 6, 6, 5);
-  assert.ok(twice.xpGain < 60, "второй раз бонус не платится");
+  assert.equal(twice.xpGain, 0, "пересдача сданного блока опыта не платит");
   assert.deepEqual(twice.newAchievements, [], "уже полученные значки не повторяются");
+});
+
+test("экзамен: повтор провала не платит, платит только новый лучший результат", () => {
+  // Найдено после аудита 17.10: доля за провал платилась при КАЖДОЙ попытке, а
+  // пересдача сданного блока — по 30 XP. «Прервать экзамен» и вход заново
+  // превращали экзамен в кран опыта — ровно то, от чего упражнения закрыты
+  // правилом «XP один раз» (recordExercise).
+  let p = emptyProfile();
+  const first = recordExam(p, "foundations", 2, 6, 5);
+  assert.equal(first.xpGain, 10);
+  p = first.profile;
+  const same = recordExam(p, "foundations", 2, 6, 5);
+  assert.equal(same.xpGain, 0, "тот же провал второй раз");
+  p = same.profile;
+  const worse = recordExam(p, "foundations", 1, 6, 5);
+  assert.equal(worse.xpGain, 0, "хуже прежнего");
+  p = worse.profile;
+  const better = recordExam(p, "foundations", 4, 6, 5);
+  assert.equal(better.xpGain, 10, "доплата за прирост: 20 − 10");
+  p = better.profile;
+  assert.equal(getBlockProgress(p, "foundations").attempts, 4, "попытки считаются как раньше");
+  const pass = recordExam(p, "foundations", 5, 6, 5);
+  assert.equal(pass.xpGain, 60, "сдача — бонус, как и была");
 });
 
 test("значки курса выдаются по числу СДАННЫХ блоков", () => {

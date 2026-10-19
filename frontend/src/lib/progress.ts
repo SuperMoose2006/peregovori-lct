@@ -1115,8 +1115,14 @@ export function recordExam(profile: Profile, blockId: string, score: number, tot
 } {
   const b = blockOf(profile, blockId);
   const ok = score >= passMark;
-  const share = total > 0 ? score / total : 0;
-  const xpGain = ok && !b.passed ? 60 : Math.round(30 * share);
+  // Платим за прогресс, а не за попытку — то же правило, что у упражнений
+  // («XP один раз»): сдача — бонус один раз; провал — доля за НОВЫЙ лучший
+  // результат; пересдача сданного и повтор того же провала — ноль. Иначе
+  // «Прервать экзамен» и вход заново делали из экзамена кран опыта.
+  const part = (n: number, of: number) => (of > 0 ? Math.round(30 * n / of) : 0);
+  const xpGain = b.passed ? 0
+    : ok ? 60
+    : Math.max(0, part(score, total) - part(b.examBest, b.examTotal));
   const withBlock: Profile = {
     ...profile,
     xp: profile.xp + xpGain,
