@@ -1451,7 +1451,7 @@ MIRRORS: list[Scenario] = [
             ),
         ],
         briefing={
-            "ru": "Цель: оклад ≤ 205 k ₽/мес. Красная линия: 240 — выше вилки отдела нет. Алина держит цифру не из жадности: у неё три причины, и вслух названа ни одна.",
+            "ru": "Цель: оклад ≤ 205 k ₽/мес. Красная линия: 240 — выше вилки отдела нет. Алина держит цифру не из жадности: у неё три причины, и вслух не названа ни одна.",
             "en": "Goal: base ≤ 205k/mo. Red line: 240 — the band ends there. Alina holds her number for reasons, not out of greed: there are three, and none is said out loud.",
         },
     ),

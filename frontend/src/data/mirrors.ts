@@ -95,7 +95,7 @@ export const MIRRORS: ScenarioDef[] = [
       ps: { ru: "Резкий, держится за контроль, на давление отвечает давлением.", en: "Blunt, clings to control, answers pressure with pressure." },
       style: "tough",
     },
-    unit: { ru: " %", en: "%" }, open: 12, floor: 24, target: 22, resv: 18, batnaStrength: 65,
+    unit: { ru: "%", en: "%" }, open: 12, floor: 24, target: 22, resv: 18, batnaStrength: 65,
     batna: { ru: "В воронке ещё две команды на этот чек, но слабее.", en: "Two other teams are in the pipeline for the same cheque, both weaker." },
     interests: {
       ru: ["Денег на четыре месяца", "Опционы ключевого инженера", "Терм-шит от второго фонда"],
@@ -158,7 +158,7 @@ export const MIRRORS: ScenarioDef[] = [
       ps: { ru: "Мягкий, дорожит отношениями, обиду держит молча.", en: "Soft-spoken, values the relationship, holds a grudge quietly." },
       style: "relationship",
     },
-    unit: { ru: " k ₽", en: "k" }, open: 24, floor: 14, target: 16, resv: 20, batnaStrength: 50,
+    unit: { ru: "k", en: "k" }, open: 24, floor: 14, target: 16, resv: 20, batnaStrength: 50,
     batna: { ru: "Есть аутсорс дешевле, но без опыта в домене.", en: "A cheaper outsourcing team, but with no domain experience." },
     interests: {
       ru: ["Прошлый заказчик задержал оплату", "Нужен публичный кейс в портфолио", "Параллельно идёт второй проект"],

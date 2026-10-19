@@ -233,3 +233,12 @@ test("отложенный экран прогревается на просто
   assert.match(src, /requestIdleCallback/, "прогрева на простое нет");
   assert.match(src, /loadOtherSideScreen\(\)\.catch/, "прогрев обязан глушить отказ молча");
 });
+
+test("зеркало печатает цену в тех же единицах, что и оригинал", () => {
+  // Найдено после аудита 17.10: «22 %» за зеркалом инвестора против «22%» за
+  // оригиналом, «16 k ₽» против «16k» — одна сделка писалась двумя способами.
+  for (const m of MIRRORS) {
+    const origin = SCENARIO_MAP[m.mirrorOf!];
+    assert.deepEqual(m.unit, origin.unit, m.id);
+  }
+});

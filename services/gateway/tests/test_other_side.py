@@ -375,3 +375,14 @@ def test_an_ordinary_table_carries_no_card_over_the_wire() -> None:
         assert created["scenario"]["mirror_of"] == ""
         assert created["scenario"]["defending"] == []
 
+
+def test_mirror_briefings_keep_the_russian_double_negative() -> None:
+    """Найдено после аудита 17.10: «у неё три причины, и вслух названа ни одна» —
+    без «не» фраза по-русски утверждает обратное. «Ни одна» требует отрицания
+    при глаголе."""
+    import re
+    for sc in [*SCENARIOS, *MIRRORS]:
+        text = sc.briefing["ru"]
+        for clause in re.split(r"[.,;:—]", text):
+            if "ни одна" in clause or "ни один" in clause:
+                assert re.search(r"\bне\b", clause), (sc.id, clause)
