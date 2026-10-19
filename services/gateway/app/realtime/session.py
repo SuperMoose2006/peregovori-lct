@@ -211,6 +211,10 @@ class RealtimeSession:
     #: `score_session` принимает `engine.Session`, а это `RealtimeSession`.
     vision_looks: int = 0
 
+    #: Последний ответ модели про мимику: (ход, коды). Ответ «мимики нет» тоже
+    #: здесь — в ленту он не пишется, а гасить прошлую гримасу обязан.
+    last_cues: Optional[tuple[int, list[str]]] = None
+
     #: Запись партии для «Глубокого разбора» (`app/review/tape.py`): время
     #: ходов, речь игрока, кадры. Живёт здесь по той же причине, что и лента
     #: камеры, — `score_session` её не видит. В партии на зачёт её НЕТ вовсе:
@@ -260,6 +264,11 @@ class RealtimeSession:
         # кадр, и «модель ответила „ничего примечательного“» — это тоже работа
         # слоя, просто без записи в ленту.
         self.vision_looks += 1
+        if cues is not None:
+            # Последний ответ про мимику — даже пустой: спокойное лицо после
+            # гримасы обязано её погасить, иначе собеседник спросит «вас что-то
+            # смутило?» про кадр, который уже прошёл.
+            self.last_cues = (self.turn_id if turn is None else int(turn), list(cues))
         if text:
             self.observations.append(text)
         if not text and not expressive and not cues:
@@ -289,14 +298,13 @@ class RealtimeSession:
         и пока человек сочинял ответ (`turn` кадра — ходов СДЕЛАНО к его
         моменту, то есть `turn_id - 1`). Мимика трёхходовой давности — уже не
         реакция, и спрашивать «вас что-то смутило?» про неё значило бы
-        отвечать невпопад. Берётся последняя запись, где мимика была.
+        отвечать невпопад. Берётся ПОСЛЕДНИЙ ответ модели про мимику, а не
+        последняя запись с ней: спокойное лицо после гримасы её гасит.
         """
-        for note in reversed(self.vision_notes):
-            if int(note.get("turn", -1)) < turn_id - 1:
-                break
-            if note.get("cues"):
-                return list(note["cues"])
-        return []
+        if self.last_cues is None:
+            return []
+        turn, cues = self.last_cues
+        return list(cues) if turn >= turn_id - 1 else []
 
     def begin_generation(self) -> str:
         """Открыть новое поколение ответа оппонента."""

@@ -526,7 +526,10 @@ class VisionSampler:
         # ОДНА ЗАПИСЬ НА ОДИН ВЗГЛЯД. Обстановку и лицо модель сняла с одного
         # кадра одним вызовом — значит, и в ленте это одна строка. Пустой текст
         # при спокойном лице записью не становится: решает `note_vision`.
-        self._record(text, turn=turn, expressive=tell, cues=cues or None)
+        # Пустой список — тоже ответ («мимики нет»), и он важен: он гасит
+        # прошлую гримасу для собеседника (`fresh_cues`). None — модель не
+        # сказала про мимику ничего.
+        self._record(text, turn=turn, expressive=tell, cues=cues)
 
         if not text:
             return

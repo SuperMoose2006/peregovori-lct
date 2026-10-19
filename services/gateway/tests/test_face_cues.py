@@ -287,3 +287,16 @@ def test_a_failing_observer_does_not_stop_the_writer():
 
     sent = asyncio.run(go())
     assert [e["type"] for e in sent] == ["engine.state", "response.done"]
+
+
+def test_a_calm_face_seen_later_replaces_an_earlier_frown():
+    """Ревью 19.10: спокойные взгляды в ленту не пишутся, и собеседник получал
+    гримасу из начала реплики «прямо сейчас», хотя последний кадр был спокоен."""
+    sess = _session()
+    sampler = VisionSampler("ru", lambda e: None, sess.note_vision)
+    _look(sampler, "нет\nМИМИКА: frown", turn=1)
+    assert sess.fresh_cues(2) == ["frown"]
+    _look(sampler, "нет\nМИМИКА: нет", turn=1)
+    assert sess.fresh_cues(2) == [], "последний взгляд спокоен — «прямо сейчас» гримасы нет"
+    _look(sampler, "человек в кадре", turn=1)          # про мимику модель промолчала
+    assert sess.fresh_cues(2) == [], "молчание модели не возвращает прошлую гримасу"
