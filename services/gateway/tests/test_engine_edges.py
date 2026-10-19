@@ -352,3 +352,22 @@ def test_a_count_before_the_price_does_not_hide_the_price(scenario_id, line, pla
     assert a.number == player
     assert s.state.offer_player == player
     assert s.state.deal != engine.by_id(scenario_id).opponent_open
+
+
+@pytest.mark.parametrize("scenario_id,line,player", [
+    ("supplier", "Ваши 100 — это много. Давайте 90, и по рукам.", 90),
+    ("candidate_offer", "Вы предлагаете 280, я согласен на 250 — договорились.", 250),
+    ("rent", "Депозит 130 тысяч и аренда 66 тысяч — по рукам.", 66),
+    ("supplier", "Договорились на 100.", 100),
+])
+def test_the_players_offer_is_the_new_number_not_the_quoted_one(scenario_id, line, player):
+    """Найдено после аудита 17.10: из двух чисел реплики ценой бралось первое —
+    и это бывала цитата оппонента («Ваши 100…») или другая величина
+    («Депозит 130…»), на которой стол и закрывался. Единственное число —
+    как есть."""
+    s = engine.create_session(scenario_id, "ru")
+    s.turn = 1
+    engine.apply_move(s, engine.analyze(line), line)
+    assert s.state.offer_player == player
+    if s.state.status == "agreement":
+        assert s.state.deal == player

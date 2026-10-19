@@ -334,15 +334,28 @@ function plausibleOffer(sc: ScenarioDef, n: number): number | null {
 /** Какое из чисел реплики — цена этого стола: на столе в процентах не цена —
  *  деньги, на остальных — проценты; границы диапазона идут последними.
  *  Зеркало engine.py::_pick_offer. */
-function pickOffer(sc: ScenarioDef, a: RawAnalysis): number | null {
+function pickOffer(sc: ScenarioDef, a: RawAnalysis, onTable: number | null = null): number | null {
   if (!a.mentions || a.mentions.length === 0) return a.number === null ? null : plausibleOffer(sc, a.number);
   const foreign = sc.unit.ru.includes("%") ? "money" : "pct";
   const pool = a.mentions.filter((m) => m.kind !== foreign);
+  const pricedAll: number[] = [];
   for (const m of [...pool.filter((x) => !x.ranged), ...pool.filter((x) => x.ranged)]) {
     const priced = plausibleOffer(sc, m.value);
-    if (priced !== null) return priced;
+    if (priced !== null) pricedAll.push(priced);
   }
-  return null;
+  if (!pricedAll.length) return null;
+  // Чисел несколько — оферта игрока та, что НОВАЯ и ЛУЧШЕ для него, чем стол:
+  // число стола — цитата оппонента («Ваши 100 — это много. Давайте 90»), число
+  // хуже стола — другая величина («Депозит 130 и аренда 66»). Зеркало
+  // engine.py::_pick_offer.
+  if (onTable !== null && pricedAll.length > 1) {
+    const lower = sc.dir === "low";
+    for (const priced of pricedAll) {
+      if (Math.abs(priced - onTable) > 1e-6 && (lower ? priced < onTable : priced > onTable)) return priced;
+    }
+    for (const priced of pricedAll) if (Math.abs(priced - onTable) > 1e-6) return priced;
+  }
+  return pricedAll[0];
 }
 
 /** Историческая точка отсчёта калибровки, не центр трёх режимов. Сохраняем её,
@@ -619,7 +632,7 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   // обязано попасть в коридор масштаба сценария (зеркало backend).
   let priced: number | null = null;
   if (a.number !== null && (H("offer") || H("anchor") || H("concession") || H("accept") || H("tradeoff"))) {
-    priced = pickOffer(sc, a);
+    priced = pickOffer(sc, a, s.offerOpp);
     if (priced !== null) {
       s.offerPlayer = priced;
       // Показанное число обязано совпасть с тем, по которому считал движок.

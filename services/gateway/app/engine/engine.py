@@ -489,7 +489,7 @@ def _plausible_offer(sc: Scenario, number: float) -> Optional[float]:
     return None
 
 
-def _pick_offer(sc: Scenario, analysis: Analysis) -> Optional[float]:
+def _pick_offer(sc: Scenario, analysis: Analysis, on_table: Optional[float] = None) -> Optional[float]:
     """Какое из чисел реплики — цена этого стола.
 
     Первое число реплики ценой быть не обязано: «предоплату 50% в обмен на цену
@@ -498,16 +498,33 @@ def _pick_offer(sc: Scenario, analysis: Analysis) -> Optional[float]:
     доля инвестора) не цена — деньги, на остальных — проценты. Границы
     диапазона («рынок 88-92») берутся последними: это ориентир, а не оффер.
     Порядок слов в реплике на итог не влияет.
+
+    КОГДА ЧИСЕЛ НЕСКОЛЬКО, оферта игрока — то, что НОВОЕ и ЛУЧШЕ для него, чем
+    лежащее на столе (`on_table`). Число самого стола — цитата оппонента: «Ваши
+    100 — это много. Давайте 90, и по рукам» закрывало сделку на 100, «Вы
+    предлагаете 280, я согласен на 250 — договорились» — на 280. Число хуже
+    стола — другая величина той же записи: «Депозит 130 тысяч и аренда 66 тысяч
+    — по рукам» при аренде 75 закрывало на 130 (найдено после аудита 17.10).
+    Единственное число берётся как есть: «Договорились на 100» — согласие на 100.
     """
     if not analysis.mentions:
         return None if analysis.number is None else _plausible_offer(sc, analysis.number)
     foreign = "money" if "%" in sc.headline.unit["ru"] else "pct"
     pool = [m for m in analysis.mentions if m.kind != foreign]
-    for mention in [m for m in pool if not m.ranged] + [m for m in pool if m.ranged]:
-        priced = _plausible_offer(sc, mention.value)
-        if priced is not None:
-            return priced
-    return None
+    priced_all = [p for p in (_plausible_offer(sc, m.value)
+                              for m in [m for m in pool if not m.ranged] + [m for m in pool if m.ranged])
+                  if p is not None]
+    if not priced_all:
+        return None
+    if on_table is not None and len(priced_all) > 1:
+        lower = sc.headline.dir == "lower_is_better"
+        for priced in priced_all:
+            if abs(priced - on_table) > 1e-6 and ((priced < on_table) if lower else (priced > on_table)):
+                return priced
+        for priced in priced_all:
+            if abs(priced - on_table) > 1e-6:
+                return priced
+    return priced_all[0]
 
 
 def _acceptable(sess: Session, number: float) -> bool:
@@ -860,7 +877,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     if analysis.number is not None and (
         has("offer") or has("anchor") or has("concession") or has("accept") or has("tradeoff")
     ):
-        priced = _pick_offer(sc, analysis)
+        priced = _pick_offer(sc, analysis, s.offer_opp)
         if priced is not None:
             s.offer_player = priced
             # Показанное игроку число обязано совпасть с тем, по которому

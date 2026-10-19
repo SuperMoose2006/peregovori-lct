@@ -222,3 +222,24 @@ test("ход с вопросом по лицу: офлайн-ядро и про�
   assert.equal(off.settled, true);
   assert.equal(on.settled, true);
 });
+
+test("оферта игрока — новое число, а не цитата стола (зеркало test_engine_edges)", async () => {
+  // Найдено после аудита 17.10: «Ваши 100 — это много. Давайте 90» закрывало
+  // на 100, «Депозит 130 тысяч и аренда 66 тысяч» — на 130.
+  const { analyze, applyMove, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const cases: [string, string, number][] = [
+    ["supplier", "Ваши 100 — это много. Давайте 90, и по рукам.", 90],
+    ["candidate_offer", "Вы предлагаете 280, я согласен на 250 — договорились.", 250],
+    ["rent", "Депозит 130 тысяч и аренда 66 тысяч — по рукам.", 66],
+    ["supplier", "Договорились на 100.", 100],
+    ["salary", "У меня 7 лет опыта, договорились на 230 тысяч.", 230],
+  ];
+  for (const [id, line, player] of cases) {
+    const s = newSession(SCENARIO_MAP[id], "ru");
+    s.turn = 1;
+    applyMove(s, analyze(line), line);
+    assert.equal(s.offerPlayer, player, `${id}: ${line}`);
+    if (s.status === "agreement") assert.equal(s.deal, player, `${id}: ${line}`);
+  }
+});
