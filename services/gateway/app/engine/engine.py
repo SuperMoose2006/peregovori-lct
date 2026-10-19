@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 import random
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -589,8 +590,24 @@ def _topic_stems(label: str) -> list[str]:
     return out
 
 
+#: Аббревиатура в ярлыке темы: слово ЗАГЛАВНЫМИ из двух-четырёх букв.
+_ACRONYM_RE = re.compile(r"^[A-ZА-ЯЁ]{2,4}$")
+
+
+def _topic_acronyms(label: str) -> list[str]:
+    """Аббревиатуры ярлыка темы («ЗП», «IT», «KPI»). Основой они не становятся —
+    короче четырёх букв, — и тема из одной аббревиатуры не вскрывалась без судьи
+    ничем. Ищутся в ИСХОДНОЙ реплике с учётом регистра и целым словом: «it» в
+    нижнем регистре — местоимение. Зеркало — mock/engine.ts::topicAcronyms."""
+    return [w for w in re.split(r"[^A-Za-zА-Яа-яЁё]+", label) if _ACRONYM_RE.match(w)]
+
+
+def _names_acronym(raw: str, acronyms: list[str]) -> bool:
+    return any(re.search(rf"(?<![A-Za-zА-Яа-яЁё]){a}(?![A-Za-zА-Яа-яЁё])", raw) for a in acronyms)
+
+
 def _reveal_index_offline(sc: Scenario, cur_norm: str, lang: str,
-                          found: list[int]) -> Optional[int]:
+                          found: list[int], raw: str = "") -> Optional[int]:
     """Which hidden interest does an OFFLINE probe uncover (judge is None)?
 
     Интерес вскрывается ТОЛЬКО по теме вопроса: слова игрока обязаны попасть в
@@ -623,7 +640,8 @@ def _reveal_index_offline(sc: Scenario, cur_norm: str, lang: str,
         # нет (инвариант 8; ревью ветки).
         if i < len(kw) and _has(cur_norm, kw[i]):
             return i
-        if i < len(topics) and _has(cur_norm, _topic_stems(topics[i])):
+        if i < len(topics) and (_has(cur_norm, _topic_stems(topics[i]))
+                                or _names_acronym(raw, _topic_acronyms(topics[i]))):
             return i
     return None
 
@@ -695,9 +713,9 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     # ничего не вскрывал, напряжение +6, а тренер звал его снова и снова (найдено
     # после аудита 17.10). Повтор — только если о ТОЙ ЖЕ теме уже спрашивали.
     if repeat >= REPEAT_SOFT and cur_norm:
-        target = _reveal_index_offline(sc, cur_norm, sess.lang, [])
+        target = _reveal_index_offline(sc, cur_norm, sess.lang, [], raw_text)
         if target is not None and not any(
-                _reveal_index_offline(sc, norm(e.get("text") or ""), sess.lang, []) == target
+                _reveal_index_offline(sc, norm(e.get("text") or ""), sess.lang, [], e.get("text") or "") == target
                 for e in sess.ledger):
             repeat = 0.0
     sess.move_history.append((cur_tokens, cur_moves))
@@ -797,7 +815,7 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
                 # Ключевые слова тут не «слабее» судьи: с прошлой правки они
                 # требуют попадания ПО ТЕМЕ, ровно как он. Судья добавляет
                 # смысл там, где слов не хватило, — но не отменяет попадание.
-                idx = _reveal_index_offline(sc, cur_norm, sess.lang, s.interests_found)
+                idx = _reveal_index_offline(sc, cur_norm, sess.lang, s.interests_found, raw_text)
                 if idx is not None:
                     s.interests_found.append(idx)
                     revealed = True

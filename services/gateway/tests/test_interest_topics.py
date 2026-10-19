@@ -94,6 +94,33 @@ def test_three_generic_why_questions_open_nothing_and_earn_almost_no_info(lang):
     assert sess.state.info <= 15, sess.state.info
 
 
+def _acronym_table():
+    from dataclasses import replace
+    base = engine.by_id("supplier")
+    return replace(base, id="custom_acronym_test", hidden_interest_keywords={},
+                   interest_topics={"ru": ["ЗП", "Сроки", "Бюджет на IT"],
+                                    "en": ["KPI", "Deadlines", "IT budget"]})
+
+
+@pytest.mark.parametrize("lang,line,idx", [
+    ("ru", "Что для вас важно, когда речь о ЗП?", 0),
+    ("ru", "Что для вас важно в IT-отделе?", 2),
+    ("en", "What matters to you about KPI targets?", 0),
+    ("en", "What matters to you in IT spending?", 2),
+    ("en", "Is it important to you?", None),
+    ("ru", "Что для вас важнее всего?", None),
+])
+def test_an_acronym_topic_can_be_asked_about(lang, line, idx):
+    """Найдено после аудита 17.10 (не исправлялось до 19.10): тема из одной
+    аббревиатуры («ЗП», «IT», «KPI» — так их пишет генератор своей сделки) не
+    давала ни одной основы — слова короче четырёх букв отсекаются, — и без
+    судьи такой интерес было не вскрыть ничем. Аббревиатура ищется в ИСХОДНОЙ
+    реплике с учётом регистра и целым словом: «it» в нижнем регистре —
+    местоимение, а не тема."""
+    sc = _acronym_table()
+    assert _reveal_index_offline(sc, norm(line), lang, [], line) == idx
+
+
 def test_topic_stems_keep_short_words_out():
     """Основа короче четырёх букв совпала бы с чем угодно; хвост в две буквы
     срезается ради морфологии — «оплата» обязана ловить «оплате»."""

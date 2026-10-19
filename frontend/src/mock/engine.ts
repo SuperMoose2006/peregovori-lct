@@ -257,7 +257,18 @@ export function topicStems(label: string): string[] {
 // «что для вас важнее всего в этой сделке?» давало probe_vague, а «что для вас
 // важно в загрузке производства?» — вскрытие. Темы игрок видит на столе, значит
 // вопрос по теме это ВЫБОР, а не угадывание. Зеркало engine.py.
-function revealIndexOffline(sc: ScenarioDef, curNorm: string, lang: Lang, found: number[]): number | null {
+/** Аббревиатуры ярлыка темы («ЗП», «IT», «KPI»): основой они не становятся, а
+ *  тема из одной аббревиатуры не вскрывалась без судьи ничем. Ищутся в
+ *  ИСХОДНОЙ реплике с учётом регистра и целым словом: «it» — местоимение.
+ *  Зеркало engine.py::_topic_acronyms. */
+export function topicAcronyms(label: string): string[] {
+  return label.split(/[^A-Za-zА-Яа-яЁё]+/).filter((w) => /^[A-ZА-ЯЁ]{2,4}$/.test(w));
+}
+function namesAcronym(raw: string, acronyms: string[]): boolean {
+  return acronyms.some((a) => new RegExp(`(?<![A-Za-zА-Яа-яЁё])${a}(?![A-Za-zА-Яа-яЁё])`).test(raw));
+}
+
+function revealIndexOffline(sc: ScenarioDef, curNorm: string, lang: Lang, found: number[], raw = ""): number | null {
   const total = sc.interests[lang].length;
   const kw = sc.hiddenInterestKeywords?.[lang] ?? [];
   const topics = sc.interestTopics?.[lang] ?? [];
@@ -265,7 +276,7 @@ function revealIndexOffline(sc: ScenarioDef, curNorm: string, lang: Lang, found:
   for (let i = 0; i < total; i++) {
     if (found.includes(i)) continue;
     if (i < kw.length && has(curNorm, kw[i])) return i;
-    if (i < topics.length && has(curNorm, topicStems(topics[i]))) return i;
+    if (i < topics.length && (has(curNorm, topicStems(topics[i])) || namesAcronym(raw, topicAcronyms(topics[i])))) return i;
   }
   return null;
 }
@@ -539,8 +550,8 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   // той же теме уже спрашивали (найдено после аудита 17.10). Зеркало
   // engine.py::apply_move.
   if (repeat >= REPEAT_SOFT && curNorm) {
-    const target = revealIndexOffline(s.sc, curNorm, s.lang, []);
-    if (target !== null && !s.ledger.some((e) => revealIndexOffline(s.sc, norm(e.text ?? ""), s.lang, []) === target)) {
+    const target = revealIndexOffline(s.sc, curNorm, s.lang, [], rawText);
+    if (target !== null && !s.ledger.some((e) => revealIndexOffline(s.sc, norm(e.text ?? ""), s.lang, [], e.text ?? "") === target)) {
       repeat = 0;
     }
   }
@@ -580,7 +591,7 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     let revealed = false;
     probeGated = s.trust <= revealTrustGate(s);
     if (s.trust > revealTrustGate(s)) {
-      const idx = revealIndexOffline(sc, curNorm, s.lang, s.interests);
+      const idx = revealIndexOffline(sc, curNorm, s.lang, s.interests, rawText);
       if (idx !== null) { s.interests.push(idx); revealed = true; revealedIdx = idx; }
     }
     // Общий вопрос, не попавший ни в один живой интерес, приносит крохи: `info`

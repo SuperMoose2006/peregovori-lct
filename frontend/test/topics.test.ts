@@ -124,3 +124,26 @@ test("каждое КЛЮЧЕВОЕ СЛОВО ведёт к своему инт
     }
   }
 });
+
+test("тема-аббревиатура вскрывается вопросом о ней (зеркало test_interest_topics)", () => {
+  // «ЗП», «IT», «KPI» не давали ни одной основы — без судьи интерес было не
+  // вскрыть. Аббревиатура ищется с учётом регистра: «it» — местоимение.
+  const base = byId("supplier");
+  const def = {
+    ...base, id: "custom_acronym_test", hiddenInterestKeywords: { ru: [], en: [] },
+    interestTopics: { ru: ["ЗП", "Сроки", "Бюджет на IT"], en: ["KPI", "Deadlines", "IT budget"] },
+  };
+  const cases: [Lang, string, number[]][] = [
+    ["ru", "Что для вас важно, когда речь о ЗП?", [0]],
+    ["ru", "Что для вас важно в IT-отделе?", [2]],
+    ["en", "What matters to you about KPI targets?", [0]],
+    ["en", "What matters to you in IT spending?", [2]],
+    ["en", "Is it important to you?", []],
+  ];
+  for (const [lang, line, found] of cases) {
+    const s = newSession(def, lang);
+    s.turn += 1;
+    applyMove(s, analyze(line), line);
+    assert.deepEqual(s.interests, found, line);
+  }
+});
