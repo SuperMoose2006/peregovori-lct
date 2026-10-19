@@ -383,3 +383,18 @@ def test_a_date_in_a_yes_is_not_an_offer(line):
     engine.apply_move(s, a, line)
     assert a.number is None
     assert s.state.status == "agreement" and s.state.deal == s.state.offer_opp
+
+
+def test_a_million_and_thousands_are_one_number():
+    """Найдено после аудита 17.10: «1 миллион 200 тысяч» становилось
+    «1000000 200000», и на столе в тысячах (подержанная машина, старт 1200)
+    стояло 1000 — согласие на число самого оппонента отклонялось."""
+    from app.engine.numbers import spell_to_digits
+    assert spell_to_digits("1 миллион 200 тысяч") == "1200000"
+    assert spell_to_digits("1 миллион двести тысяч") == "1200000"
+    assert spell_to_digits("1 миллион, 200 тысяч") == "1000000, 200000"  # перечисление
+    s = engine.create_session("used_car", "ru")
+    s.turn = 1
+    line = "Договорились на 1 миллион 200 тысяч."
+    engine.apply_move(s, engine.analyze(line), line)
+    assert s.state.offer_player == 1200

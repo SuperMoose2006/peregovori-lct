@@ -31,6 +31,7 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
 # Единицы, десятки, сотни. Формы приведены к тому виду, в котором их оставляет
 # `norm()`: нижний регистр, «ё» → «е».
@@ -150,10 +151,14 @@ def spell_to_digits(text: str) -> str:
     tails = [t[len(b):] for t, b in zip(tokens, bare)]
 
     out: list[str] = []
+    #: Число и его старший множитель у каждого выведенного токена (None — не
+    #: собранное здесь число): по ним «1 миллион 200 тысяч» складывается в одно.
+    made: list[Optional[tuple[float, float]]] = []
     i = 0
     while i < len(tokens):
         if bare[i] not in _ALL_NUMBER_WORDS:
             out.append(tokens[i])
+            made.append(None)
             i += 1
             continue
 
@@ -175,8 +180,12 @@ def spell_to_digits(text: str) -> str:
         value = _fold(group) if has_scale else None
         if value is None:
             out.extend(tokens[i:j])
-        elif (out and _DIGITS_RE.fullmatch(out[-1])
-              and group[0] in _SCALES and _SCALES[group[0]] >= 1000):
+            made.extend([None] * (j - i))
+            i = j
+            continue
+        top = max(_SCALES[g] for g in group if g in _SCALES)
+        if (out and _DIGITS_RE.fullmatch(out[-1])
+                and group[0] in _SCALES and _SCALES[group[0]] >= 1000):
             # «70 тысяч» — множитель ПОСЛЕ цифр. Без этой ветки он приписывался
             # отдельным числом («70 1000»), и регулярка цены читала «70 100»:
             # человек называл семьдесят тысяч, а стол слышал семьдесят тысяч сто.
@@ -184,9 +193,22 @@ def spell_to_digits(text: str) -> str:
             scale = _SCALES[group[0]]
             rest = _fold(group[1:]) or 0.0 if len(group) > 1 else 0.0
             prev = float(out[-1].replace(",", "."))
-            out[-1] = _fmt(prev * scale + rest) + tails[j - 1]
+            number = prev * scale + rest
+            out[-1] = _fmt(number) + tails[j - 1]
+            made[-1] = (number, scale)
         else:
-            out.append(_fmt(value) + tails[j - 1])
+            number = value
+            out.append(_fmt(number) + tails[j - 1])
+            made.append((number, top))
+        # «1 миллион 200 тысяч» — ОДНО число: младший разряд прибавляется к
+        # старшему, стоящему вплотную перед ним без знака препинания. Раньше
+        # выходило «1000000 200000», и на столе в тысячах стояло 1000 вместо
+        # 1200 (найдено после аудита 17.10).
+        if (len(made) >= 2 and made[-2] is not None and made[-2][1] > made[-1][1]
+                and _DIGITS_RE.fullmatch(out[-2])):
+            number = made[-2][0] + made[-1][0]
+            out[-2:] = [_fmt(number) + tails[j - 1]]
+            made[-2:] = [(number, made[-2][1])]
         i = j
     return " ".join(out)
 

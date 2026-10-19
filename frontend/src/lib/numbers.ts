@@ -109,10 +109,14 @@ export function spellToDigits(text: string): string {
   const tails = tokens.map((t, i) => t.slice(bare[i].length));
 
   const out: string[] = [];
+  // Число и его старший множитель у каждого выведенного токена (null — не
+  // собранное здесь число): по ним «1 миллион 200 тысяч» складывается в одно.
+  const made: ([number, number] | null)[] = [];
   let i = 0;
   while (i < tokens.length) {
     if (!NUMBER_WORDS.has(bare[i])) {
       out.push(tokens[i]);
+      made.push(null);
       i += 1;
       continue;
     }
@@ -134,15 +138,33 @@ export function spellToDigits(text: string): string {
     const prev = out.length ? out[out.length - 1] : "";
     if (value === null) {
       out.push(...tokens.slice(i, j));
-    } else if (DIGITS.test(prev) && group[0] in SCALES && SCALES[group[0]] >= 1000) {
+      for (let k = i; k < j; k++) made.push(null);
+      i = j;
+      continue;
+    }
+    const top = Math.max(...group.filter((g) => g in SCALES).map((g) => SCALES[g]));
+    if (DIGITS.test(prev) && group[0] in SCALES && SCALES[group[0]] >= 1000) {
       // «70 тысяч» — множитель ПОСЛЕ цифр. Без этой ветки он приписывался
       // отдельным числом («70 1000»), и регулярка цены читала «70 100»:
       // человек называл семьдесят тысяч, а стол слышал семьдесят тысяч сто.
       const scale = SCALES[group[0]];
       const rest = group.length > 1 ? fold(group.slice(1)) ?? 0 : 0;
-      out[out.length - 1] = fmt(parseFloat(prev.replace(",", ".")) * scale + rest) + tails[j - 1];
+      const number = parseFloat(prev.replace(",", ".")) * scale + rest;
+      out[out.length - 1] = fmt(number) + tails[j - 1];
+      made[made.length - 1] = [number, scale];
     } else {
       out.push(fmt(value) + tails[j - 1]);
+      made.push([value, top]);
+    }
+    // «1 миллион 200 тысяч» — ОДНО число: младший разряд прибавляется к
+    // старшему, стоящему вплотную перед ним без знака препинания (найдено после
+    // аудита 17.10). Зеркало numbers.py::spell_to_digits.
+    const a = made.length >= 2 ? made[made.length - 2] : null;
+    const b = made[made.length - 1];
+    if (a && b && a[1] > b[1] && DIGITS.test(out[out.length - 2])) {
+      const number = a[0] + b[0];
+      out.splice(out.length - 2, 2, fmt(number) + tails[j - 1]);
+      made.splice(made.length - 2, 2, [number, a[1]]);
     }
     i = j;
   }

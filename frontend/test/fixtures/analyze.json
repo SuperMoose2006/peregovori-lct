@@ -2910,6 +2910,24 @@
    "spin": null
   },
   {
+   "text": "Договорились на 1 миллион 200 тысяч.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 11,
+   "words": 3,
+   "number": 1200000.0,
+   "mentions": [
+    [
+     1200000.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
    "text": "Договорились на 90, но оплата по факту.",
    "moves": [
     "accept"
@@ -4526,6 +4544,18 @@
    "spin": null
   },
   {
+   "text": "Предлагаю 1 миллион двести тысяч, это рынок.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 4,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Предлагаю 99,7% аптайма. По отраслевым данным это стандарт для нашей нагрузки.",
    "moves": [
     "objective_criteria",
@@ -4562,6 +4592,18 @@
      false
     ]
    ],
+   "spin": null
+  },
+  {
+   "text": "Предлагаю один миллион двести тысяч.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 5,
+   "words": 2,
+   "number": null,
+   "mentions": [],
    "spin": null
   },
   {
