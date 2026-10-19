@@ -414,3 +414,20 @@ def test_a_walk_back_stays_on_the_price_grid():
         engine.apply_move(s, engine.analyze(text), text)
     assert s.state.offer_opp > before, "откат обязан остаться откатом"
     assert abs(s.state.offer_opp / step - round(s.state.offer_opp / step)) < 1e-9, s.state.offer_opp
+
+
+def test_millions_reach_a_table_priced_in_millions():
+    """Найдено после аудита 17.10: на столе «своей сделки» в « млн» (10,5–12)
+    «11,5 миллиона» читалось 11 500 000 и мимо коридора; масштаб пересчитывался
+    только тысячами."""
+    from dataclasses import replace
+    from app.engine.engine import _plausible_offer
+    base = engine.by_id("supplier")
+    sc = replace(base, id="custom_mln_test", opponent_open=12.0, opponent_reservation=10.2,
+                 player_target=10.5, player_reservation=11.5,
+                 headline=replace(base.headline, unit={"ru": " млн", "en": " mln"}))
+    assert _plausible_offer(sc, 11.5) == 11.5
+    assert _plausible_offer(sc, 11_500_000) == 11.5
+    rub = replace(base, id="custom_rub_test", opponent_open=1_500_000, opponent_reservation=1_100_000,
+                  player_target=1_200_000, player_reservation=1_400_000)
+    assert _plausible_offer(rub, 1.3) == 1_300_000
