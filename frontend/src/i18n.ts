@@ -770,6 +770,11 @@ export interface Strings {
     counterpart: string;      // подпись слов собеседника
     engineBasis: Record<string, string>;  // {n} {of} — из чего число счёта по оси
     modelScore: string;       // {p} — оценка модели до взвешивания
+    open: string;             // кнопка за столом
+    openHint: string;         // почему она пока не работает
+    partial: string;          // {n} — разбор по ходам 1–n, партия ещё идёт
+    refresh: string;          // обновить устаревший разбор
+    close: string;
     assuranceDetail: string;  // {num} {den}
   };
   master: {
@@ -1955,6 +1960,11 @@ export const I18N: Record<Lang, Strings> = {
       contradictsTurn: "против хода {n}",
       counterpart: "собеседник",
       modelScore: "модель поставила {p}%; итог взвешен по числу примеров и счёту партии",
+      open: "Разбор",
+      openHint: "Глубокий разбор — после первого хода",
+      partial: "Разбор по ходам 1–{n}: партия ещё идёт.",
+      refresh: "Обновить разбор",
+      close: "Закрыть разбор",
       engineBasis: {
         interests: "интересов вскрыто {n} из {of}", arguments: "объективных критериев: {n}",
         value: "разменов: {n}", rapport: "отношения {n} из {of}", concessions: "экономика {n} из {of}",
@@ -3118,6 +3128,11 @@ export const I18N: Record<Lang, Strings> = {
       contradictsTurn: "against turn {n}",
       counterpart: "counterpart",
       modelScore: "the model gave {p}%; the result is weighted by the number of examples and the game's score",
+      open: "Review",
+      openHint: "Deep review starts after your first move",
+      partial: "Review of turns 1–{n}: the game is still on.",
+      refresh: "Update the review",
+      close: "Close the review",
       engineBasis: {
         interests: "interests uncovered: {n} of {of}", arguments: "objective criteria: {n}",
         value: "trade-offs: {n}", rapport: "relationship {n} of {of}", concessions: "economic {n} of {of}",

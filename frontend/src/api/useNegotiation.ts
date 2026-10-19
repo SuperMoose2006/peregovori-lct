@@ -122,6 +122,14 @@ export interface ReviewState {
   message: string | null;
 }
 
+/** Отчёт про другое состояние партии: с тех пор были ходы или она кончилась. */
+export function reviewStale(report: import("../types").DeepReview | null,
+                            s: Pick<NegotiationState, "state" | "debrief">): boolean {
+  if (!report || typeof report.turns !== "number") return false;
+  const finished = !!s.debrief || (!!s.state && s.state.status !== "active");
+  return report.turns < (s.state?.turn ?? report.turns) || (finished && report.finished === false);
+}
+
 export const REVIEW_IDLE: ReviewState = {
   status: "idle", done: 0, total: 0, agents: [], groups: [], report: null, code: null, message: null,
 };
@@ -391,8 +399,11 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
     // вправе позвать её дважды, и второй вызов был бы вторым счётом.
     const p = stateRef.current;
     const review = p.review ?? REVIEW_IDLE;
-    if (!p.debrief || p.conn !== "online") return;
-    if (review.status === "running" || review.status === "done") return;
+    // Разбор есть и у незаконченной партии — после первого хода (решение
+    // владельца 19.10). Готовый отчёт про это же состояние не перезапускается.
+    if (p.conn !== "online" || !(p.debrief || (p.state?.turn ?? 0) >= 1)) return;
+    if (review.status === "running") return;
+    if (review.status === "done" && !reviewStale(review.report, p)) return;
     if (transportRef.current?.send({ type: "review" }) === false) return;
     setS((q) => ({ ...q, review: { ...REVIEW_IDLE, status: "running" } }));
   }, []);
@@ -590,7 +601,7 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
     case "review_error": {
       const review = prev.review ?? REVIEW_IDLE;
       // «Уже идёт» — не сбой: идущий разбор продолжает идти.
-      if (msg.code === "review_busy" || review.status === "done") return prev;
+      if (msg.code === "review_busy" || (review.status === "done" && !reviewStale(review.report, prev))) return prev;
       return { ...prev, review: { ...review, status: "failed", code: msg.code, message: msg.message } };
     }
 

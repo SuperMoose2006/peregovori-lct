@@ -2478,15 +2478,21 @@ textarea:focus-visible,
 
 /* Выход и слои стоят В ОДНУ СТРОКУ и оба прилипают к низу рельса: кнопка,
    до которой надо доскроллить, — это кнопка, которой нет. */
-.side-acts { display: flex; align-items: stretch; gap: 8px; }
+.side-acts { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+/* Окно «Глубокого разбора» за столом — та же шторка, что у слоёв, только шире:
+   отчёт — таблица компетенций и лента со временем, в 440 пикселей она ломалась. */
+.rv-sheet { width: min(760px, 100vw); }
+.rv-sheet .deep { margin-bottom: 0; }
+.rv-open[aria-disabled="true"] { opacity: 0.55; cursor: default; }
+.deep-partial { margin: 10px 0 0; font-size: 13px; font-weight: 700; color: var(--info-ink); }
 .side-acts .quit { flex: 1 1 auto; }
-.lay-open {
+.lay-open, .rv-open {
   flex: 0 0 auto; border: 2px solid var(--line-2); border-bottom-width: 4px; border-radius: 16px;
   padding: 9px 12px; font-size: 13px; font-weight: 800; color: var(--info-ink); background: var(--panel);
   letter-spacing: 0.04em; text-transform: uppercase; transition: background-color 0.15s;
 }
-.lay-open:active { transform: translateY(2px); border-bottom-width: 2px; }
-.lay-open:hover { background: var(--panel-2); }
+.lay-open:active, .rv-open:not([aria-disabled="true"]):active { transform: translateY(2px); border-bottom-width: 2px; }
+.lay-open:hover, .rv-open:not([aria-disabled="true"]):hover { background: var(--panel-2); }
 
 /* Слои в профиле: их дом, а не ворота перед партией. */
 .prof-layers { max-width: 760px; margin: 0 auto; padding: 0 0 40px; }

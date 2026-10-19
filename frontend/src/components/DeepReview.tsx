@@ -24,9 +24,12 @@ interface Props {
   /** Связь есть: без неё «запустить» обещало бы то, чего не будет. */
   online: boolean;
   onRun: () => void;
+  /** Отчёт про другое состояние партии (с тех пор были ходы): предложить
+   *  обновить, а не выдавать прежний за нынешний. */
+  stale?: boolean;
 }
 
-export function DeepReview({ t, lang, state, available, reason, online, onRun }: Props) {
+export function DeepReview({ t, lang, state, available, reason, online, onRun, stale = false }: Props) {
   const r = t.review;
   const headId = useId();
   const running = state.status === "running";
@@ -41,7 +44,19 @@ export function DeepReview({ t, lang, state, available, reason, online, onRun }:
       </div>
 
       {state.status === "done" && state.report ? (
-        <DeepReport t={t} lang={lang} report={state.report} />
+        <>
+          {state.report.finished === false && typeof state.report.turns === "number" ? (
+            <p className="deep-partial">{r.partial.replace("{n}", String(state.report.turns))}</p>
+          ) : null}
+          {stale ? (
+            <div className="deep-go">
+              <button type="button" className="btn primary" onClick={onRun} disabled={!available || !online}>
+                {r.refresh}
+              </button>
+            </div>
+          ) : null}
+          <DeepReport t={t} lang={lang} report={state.report} />
+        </>
       ) : (
         <>
           <p className="deep-lead">{r.lead}</p>

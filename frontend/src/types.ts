@@ -248,6 +248,10 @@ export interface DeepReview {
   timeline_total: number;
   dropped_quotes: number;
   took_ms?: number;
+  /** По скольким ходам сделан разбор и кончилась ли к тому моменту партия:
+   *  разбор есть и посреди партии, и после следующего хода он устаревает. */
+  turns?: number;
+  finished?: boolean;
 }
 
 // «С той стороны стола»: один ход партии, рассказанный ОТ ЛИЦА ОППОНЕНТА.

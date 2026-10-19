@@ -320,3 +320,30 @@ test("взвешенная оценка показывает и число мо�
   assert.match(src, /model_score/);
   for (const lang of ["ru", "en"] as const) assert.match(I18N[lang].review.modelScore, /\{p\}/);
 });
+
+// ---------------------------------------------------------------------------
+// Разбор посреди партии (решение владельца 19.10)
+// ---------------------------------------------------------------------------
+
+test("отчёт посреди партии устаревает после следующего хода и после конца", async () => {
+  const { reviewStale } = await import("../src/api/useNegotiation");
+  const mid = { ...REPORT, turns: 2, finished: false } as DeepReview;
+  const st = (turn: number, status = "active") => ({ ...STATE0, turn, status }) as never;
+  assert.equal(reviewStale(mid, { state: st(2), debrief: null }), false, "те же ходы — тот же отчёт");
+  assert.equal(reviewStale(mid, { state: st(3), debrief: null }), true, "сходили — разбор устарел");
+  assert.equal(reviewStale(mid, { state: st(2, "agreement"), debrief: null }), true,
+               "партия кончилась — разбор посреди неё уже не про итог");
+  assert.equal(reviewStale({ ...REPORT, turns: 3, finished: true } as DeepReview,
+                           { state: st(3, "agreement"), debrief: {} as never }), false);
+});
+
+test("за столом есть кнопка «Разбор», а до первого хода она говорит почему не работает", () => {
+  const src = readFileSync(new URL("../src/components/Table.tsx", import.meta.url), "utf8");
+  assert.match(src, /className="rv-open"/);
+  assert.match(src, /aria-disabled=\{!\(state && state\.turn >= 1\)\}/);
+  assert.match(src, /t\.review\.openHint/);
+  for (const lang of ["ru", "en"] as const) {
+    assert.match(I18N[lang].review.partial, /\{n\}/);
+    assert.ok(I18N[lang].review.refresh && I18N[lang].review.open);
+  }
+});

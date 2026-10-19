@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import type { CampaignView, Debrief as DebriefData, Lang, Mode, ScreenMode, StateView } from "./types";
 import { I18N } from "./i18n";
 import { DEFAULT_SCENARIO_CONTEXT } from "./lib/scenarioContext";
-import { useNegotiation } from "./api/useNegotiation";
+import { reviewStale, useNegotiation } from "./api/useNegotiation";
 import type { ChatScrollPosition } from "./components/Chat";
 import { getCampaigns } from "./api/campaigns";
 import { ScenarioPicker } from "./components/ScenarioPicker";
@@ -20,6 +20,7 @@ import { readTrainingLink } from "./lib/trainingLink";
 import { saveAdminDraft } from "./lib/adminContext";
 import { repliesByMove } from "./lib/whatif";
 import { reviewAvailability } from "./lib/review";
+import { DeepReview } from "./components/DeepReview";
 import { LayersPanel } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard, RailGroup, DailyCard, StreakCard, useDayKey } from "./components/Rail";
 import { SectionTour } from "./components/SectionTour";
@@ -293,6 +294,13 @@ export default function App() {
   const openingRef = useRef<StateView | null>(null);
   const recordedRun = useRef<DebriefData | null>(null);
 
+  // «Глубокий разбор»: в итогах и за столом, посреди партии (решение
+  // владельца 19.10). Сама карточка одна, окно за столом — её же обёртка.
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const reviewSheetRef = useRef<HTMLDivElement>(null);
+  const closeReview = useCallback(() => setReviewOpen(false), []);
+  useModalShell(reviewOpen, reviewSheetRef, closeReview, { restoreTo: ".rv-open" });
+
   const laySheetRef = useRef<HTMLDivElement>(null);
   // Фокус внутрь, ловушка Tab, inert на фон, возврат фокуса на открывашку —
   // всё, без чего `aria-modal` на шторке был обещанием. См. lib/modal.ts.
@@ -344,6 +352,17 @@ export default function App() {
     } catch { /* Storage restrictions must not prevent practice. */ }
   }, [nego.state?.status]);
   const t = I18N[lang];
+  // Дверь «Глубокого разбора» — общая для итогов и окна за столом. Нет её
+  // (`hidden`) — партия на зачёт, и кнопок нет ни там, ни там.
+  const reviewCan = reviewAvailability(nego.kind, nego.capabilities, t);
+  const reviewProps = reviewCan.hidden ? null : {
+    state: nego.review, available: reviewCan.ok, reason: reviewCan.reason,
+    online: nego.conn === "online", onRun: nego.requestReview,
+    stale: reviewStale(nego.review.report, nego),
+  };
+  // Окно разбора принадлежит столу: ушли со стола — окно закрыто, и следующая
+  // партия не открывается с ним поверх.
+  useEffect(() => { if (screen !== "game") setReviewOpen(false); }, [screen]);
   // Разбор — отдельный экран, и «А что если» на нём считает ход на языке партии.
   const langLocked = screen === "game" || screen === "debrief";
 
@@ -1508,6 +1527,8 @@ export default function App() {
             onResumeAudio={nego.resumeAudio}
             onOpenLayers={() => setLayersOpen(true)}
             layersOpen={layersOpen}
+            onOpenReview={reviewProps && mode !== "exam" ? () => setReviewOpen(true) : undefined}
+            reviewOpen={reviewOpen}
             layerFail={nego.layerFail}
             observations={nego.observations}
             userSpeaking={nego.userSpeaking}
@@ -1600,12 +1621,7 @@ export default function App() {
             : undefined}
           // «Глубокий разбор» по кнопке. Сама карточка прячется на экзамене;
           // здесь — только можно ли нажать и почему нельзя.
-          review={(() => {
-            const can = reviewAvailability(nego.kind, nego.capabilities, t);
-            return can.hidden ? undefined
-              : { state: nego.review, available: can.ok, reason: can.reason,
-                  online: nego.conn === "online", onRun: nego.requestReview };
-          })()}
+          review={reviewProps ?? undefined}
           mode={mode}
           lang={lang}
           scenarioTitle={nego.scenario?.title}
@@ -1785,6 +1801,23 @@ export default function App() {
               // то есть при открытой шторке скрыта от диктора.
               fail={screen === "game" ? nego.layerFail : undefined}
             />
+          </div>
+        </div>,
+        document.body,
+      ) : null}
+
+      {/* «Глубокий разбор» посреди партии — та же карточка, что в итогах, в
+          окне поверх стола. Портал по той же причине, что у шторки слоёв. */}
+      {reviewOpen && reviewProps && screen === "game" ? createPortal(
+        <div className="lay-wrap">
+          <div className="lay-scrim" onClick={closeReview} />
+          <div ref={reviewSheetRef} tabIndex={-1}
+               className="lay-sheet rv-sheet" role="dialog" aria-modal="true" aria-label={t.review.title}>
+            <div className="lay-head">
+              <b>{t.review.title}</b>
+              <button className="lay-x" onClick={closeReview} aria-label={t.review.close}>×</button>
+            </div>
+            <DeepReview t={t} lang={lang} {...reviewProps} />
           </div>
         </div>,
         document.body,

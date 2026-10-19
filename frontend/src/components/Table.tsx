@@ -109,6 +109,10 @@ interface Props {
    *  до первого хода перезапускает сессию, а Table на это время размонтируется
    *  и унёс бы шторку с собой. */
   onOpenLayers?: () => void;
+  /** «Глубокий разбор» посреди партии (решение владельца 19.10). Нет — на
+   *  зачёте и офлайн без кнопки нечего открывать. */
+  onOpenReview?: () => void;
+  reviewOpen?: boolean;
   layersOpen?: boolean;
   /** Слой просили, но устройство не встало. Ключ есть — слой мёртв, и об этом
    *  обязана быть строка на экране, а не пустой чип живого слоя. */
@@ -144,7 +148,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", call = false, callOffer, onCall, onHangUp, hangupPending = false, callCamera, onToggleCamera, speech = null, selfView, onSelfView, syntheticFace = false, videoPending = false, micAvailable = false, devices, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", onOpenLayers, layersOpen = false, layerFail, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
+export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", call = false, callOffer, onCall, onHangUp, hangupPending = false, callCamera, onToggleCamera, speech = null, selfView, onSelfView, syntheticFace = false, videoPending = false, micAvailable = false, devices, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", onOpenLayers, layersOpen = false, onOpenReview, reviewOpen = false, layerFail, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -833,6 +837,20 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                     aria-expanded={layersOpen}
                   >
                     <Icon name="sliders" /> {t.layers.head}
+                  </button>
+                ) : null}
+                {/* Разбор уже сыгранных ходов. До первого хода разбирать нечего —
+                    кнопка видна, но говорит почему, а не молчит. */}
+                {onOpenReview ? (
+                  <button
+                    className="rv-open"
+                    onClick={state && state.turn >= 1 ? onOpenReview : undefined}
+                    aria-disabled={!(state && state.turn >= 1)}
+                    title={state && state.turn >= 1 ? undefined : t.review.openHint}
+                    aria-haspopup="dialog"
+                    aria-expanded={reviewOpen}
+                  >
+                    <Icon name="search" /> {t.review.open}
                   </button>
                 ) : null}
               </div>

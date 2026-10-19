@@ -103,7 +103,7 @@ interface Props {
   /** «Глубокий разбор» по кнопке (решение владельца 19.10). Отсутствует на
    *  экзамене: в партии на зачёт нет ни записи, ни разбора по ней. */
   review?: { state: ReviewState; available: boolean; reason: string | null;
-             online: boolean; onRun: () => void };
+             online: boolean; onRun: () => void; stale?: boolean };
   onRetry: () => void;
   onHome: () => void;
   // Campaign mode: the primary action advances the arc instead of replaying.
@@ -757,7 +757,8 @@ export function Debrief({
               карточки своя. На экзамене карточки нет вовсе. */}
           {at(2) && !exam && review ? (
             <DeepReview t={t} lang={lang} state={review.state} available={review.available}
-                        reason={review.reason} online={review.online} onRun={review.onRun} />
+                        reason={review.reason} online={review.online} onRun={review.onRun}
+                        stale={review.stale} />
           ) : null}
 
           {at(2) && d.turning_points && d.turning_points.length > 0 ? (

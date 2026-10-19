@@ -663,10 +663,11 @@ async def realtime_ws(websocket: WebSocket) -> None:
                     if refusal is not None:
                         await websocket.send_json(refusal)
                         continue
-                    if session.tape.report is not None:
-                        # Готовый отчёт — тот же, а не второй счёт от провайдера.
-                        await websocket.send_json({"type": "review.done",
-                                                   "review": session.tape.report,
+                    current = review_current(session)
+                    if current is not None:
+                        # Готовый отчёт про это же состояние партии — тот же,
+                        # а не второй счёт от провайдера.
+                        await websocket.send_json({"type": "review.done", "review": current,
                                                    "cached": True})
                         continue
                     if work.reviewing():
@@ -1194,8 +1195,8 @@ _REVIEW_TEXT = {
              "en": "Graded games have no deep review: there is no judge and no recording."},
     "no_ai": {"ru": "Глубокий разбор недоступен: нет связи с моделями. Обычный разбор — выше.",
               "en": "Deep review is unavailable: the models cannot be reached. The regular debrief is above."},
-    "not_finished": {"ru": "Глубокий разбор — после партии: доиграйте её до конца.",
-                     "en": "Deep review comes after the game: play it to the end."},
+    "not_started": {"ru": "Глубокий разбор — после первого хода: разбирать пока нечего.",
+                    "en": "Deep review starts after your first move: there is nothing to review yet."},
     "busy": {"ru": "Разбор уже идёт.", "en": "The review is already running."},
     "rate_limited": {"ru": "С этого адреса сейчас слишком много запросов к моделям. Попробуйте через минуту.",
                      "en": "Too many model requests from this address right now. Try again in a minute."},
@@ -1205,15 +1206,31 @@ _REVIEW_TEXT = {
 
 
 def _review_refusal(session: RealtimeSession) -> Optional[dict]:
-    """Почему разбор нельзя — или None. Порядок: зачёт, модели, конец партии."""
+    """Почему разбор нельзя — или None. Порядок: зачёт, модели, первый ход.
+
+    Конец партии больше не условие (решение владельца 19.10): разбор по уже
+    сыгранным ходам доступен и посреди партии, и у брошенной."""
     lang = session.lang if session.lang in ("ru", "en") else "ru"
     if session.tape is None or reproducible_run(session.game_mode):
         return error("review_unavailable", _REVIEW_TEXT["exam"][lang], "review")
     if not orchat.available():
         return error("review_unavailable", _REVIEW_TEXT["no_ai"][lang], "review")
-    if session.engine_session.state.status == "active":
-        return error("review_not_finished", _REVIEW_TEXT["not_finished"][lang], "review")
+    if session.turn_id < 1:
+        return error("review_not_started", _REVIEW_TEXT["not_started"][lang], "review")
     return None
+
+
+def review_current(session: RealtimeSession) -> Optional[dict]:
+    """Готовый отчёт, если он про ЭТО состояние партии: те же ходы, тот же итог.
+    Партия сдвинулась (ход, конец) — отчёт устарел, и разбор считается заново."""
+    tape = session.tape
+    report = tape.report if tape is not None else None
+    if report is None:
+        return None
+    finished = session.engine_session.state.status != "active"
+    if report.get("turns") != session.turn_id or bool(report.get("finished")) != finished:
+        return None
+    return report
 
 
 def review_answered(report: dict) -> bool:
@@ -1233,10 +1250,16 @@ async def _run_review(session: RealtimeSession) -> None:
     from app.review.runner import run_review
     tape = session.tape
     lang = session.lang if session.lang in ("ru", "en") else "ru"
+    # Снимок состояния ДО разбора: пока агенты думают, игрок может сходить, и
+    # отчёт обязан помнить ходы, по которым он сделан, а не те, что стали потом.
+    turns = session.turn_id
+    finished = session.engine_session.state.status != "active"
     try:
         facts = views.review_facts(session.engine_session, lang)
+        facts["lines"] = [ln for ln in facts["lines"] if ln["turn"] <= turns]
         report = await run_review(facts, tape, progress=session.bus.publish,
                                   vision_budget=lambda: limits.vision_allowed(session.client_host))
+        report["turns"], report["finished"] = turns, finished
     except asyncio.CancelledError:
         raise
     except Exception:
@@ -1245,7 +1268,10 @@ async def _run_review(session: RealtimeSession) -> None:
         return
     if tape is not None and review_answered(report):
         tape.report = report
-        tape.discard_media()
+        # Стирать запись можно, только когда партия кончилась: посреди неё
+        # следующему разбору нужны и прежние ходы.
+        if finished:
+            tape.discard_media()
     session.bus.publish({"type": "review.done", "review": report})
 
 

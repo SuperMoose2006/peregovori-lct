@@ -119,7 +119,8 @@ def test_review_runs_once_and_the_media_is_dropped(live, monkeypatch):
         _open(ws)
         monkeypatch.setattr(orchat, "available", lambda: True)
         ws.send_json({"type": "review.request"})
-        assert _until(ws, "error")[-1]["error"]["code"] == "review_not_finished"
+        assert _until(ws, "error")[-1]["error"]["code"] == "review_not_started", \
+            "до первого хода разбирать нечего"
         monkeypatch.setattr(orchat, "available", lambda: False)
         _finish(ws)
         monkeypatch.setattr(orchat, "available", lambda: True)
@@ -289,3 +290,37 @@ def test_a_review_costs_more_than_a_hint_and_one_runs_per_address(live, monkeypa
         one.send_json({"type": "session.close", "reason": "test"})
         two.send_json({"type": "session.close", "reason": "test"})
     assert costs and all(c >= 4 for c in costs), "разбор — десятки вызовов, а не один"
+
+
+def test_a_game_in_progress_can_be_reviewed_and_the_report_follows_the_game(live, monkeypatch):
+    """Решение владельца 19.10: глубокий разбор и у незаконченной партии. Отчёт
+    помнит, по скольким ходам он сделан: партия сдвинулась — разбор считается
+    заново; запись не стирается, пока партия идёт, — следующему разбору она нужна."""
+    client, built = live
+    calls = _fake_review(monkeypatch)
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        _open(ws)
+        ws.send_json({"type": "input.append", "input": {"text": "Что для вас важнее всего?"}})
+        ws.send_json({"type": "input.commit"})
+        _until(ws, "response.done", limit=80)
+        monkeypatch.setattr(orchat, "available", lambda: True)
+        built[0].tape.frame("кадр", turn=1)
+
+        ws.send_json({"type": "review.request"})
+        first = _until(ws, "review.done")[-1]["review"]
+        assert first["turns"] == 1 and first["finished"] is False
+        assert not built[0].tape.media_discarded, "партия идёт — запись нужна следующему разбору"
+
+        ws.send_json({"type": "review.request"})
+        assert _until(ws, "review.done")[-1].get("cached") is True, "ходов не прибавилось — тот же отчёт"
+
+        monkeypatch.setattr(orchat, "available", lambda: False)
+        ws.send_json({"type": "input.append", "input": {"text": "По рынку цена 90."}})
+        ws.send_json({"type": "input.commit"})
+        _until(ws, "response.done", limit=80)
+        monkeypatch.setattr(orchat, "available", lambda: True)
+        ws.send_json({"type": "review.request"})
+        second = _until(ws, "review.done")[-1]
+        assert not second.get("cached") and second["review"]["turns"] == 2, "партия сдвинулась — разбор заново"
+        ws.send_json({"type": "session.close", "reason": "test"})
+    assert calls["n"] == 2
