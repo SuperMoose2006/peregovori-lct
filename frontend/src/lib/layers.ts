@@ -229,6 +229,16 @@ export function drawerLayers(active: Layers, prefs: Layers, allowed: boolean): L
   return { ...active, camera: prefs.camera, pokerface: prefs.pokerface };
 }
 
+/** Слои ВСЕЙ партии — всё, что в ней хоть раз поднималось. Разбор обязан
+ *  смотреть сюда, а не на текущий режим: после «Завершить» камера погашена,
+ *  а её наблюдения и счёт «покерфейса» за звонок никуда не делись. */
+export function unionLayers(a: Layers, b: Layers): Layers {
+  return {
+    probe: a.probe || b.probe, voice: a.voice || b.voice, camera: a.camera || b.camera,
+    avatar: a.avatar || b.avatar, pokerface: a.pokerface || b.pokerface,
+  };
+}
+
 export function reasonText(s: LayerState, lang: Lang): string {
   return s.reason ? s.reason[lang] : "";
 }

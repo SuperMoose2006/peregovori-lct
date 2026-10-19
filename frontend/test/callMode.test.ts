@@ -183,3 +183,21 @@ test("шторка в чате показывает камеру из выбор
   assert.deepEqual(drawerLayers(call, prefs, true), call);
   assert.deepEqual(drawerLayers(NO_LAYERS, prefs, false), NO_LAYERS);
 });
+
+test("разбор видит камеру и «покерфейс» звонка и после «Завершить»", async () => {
+  // Найдено ревью: разбор смотрел на слои ТЕКУЩЕГО режима. Звонок с камерой,
+  // «Завершить», партия закрыта в чате — и карточки камеры и «покерфейса»
+  // пропадали, хотя слой честно смотрел весь звонок.
+  const { unionLayers } = await import("../src/lib/layers");
+  const prefs: Layers = { probe: true, voice: false, camera: true, avatar: true, pokerface: true };
+  const chat = startLayers("practice", prefs, READY);
+  const call = callLayers("practice", chat, prefs, READY)!;
+  const run = unionLayers(unionLayers(unionLayers(NO_LAYERS, chat), call), textLayers(call));
+  assert.equal(run.camera, true);
+  assert.equal(run.pokerface, true);
+  assert.deepEqual(unionLayers(NO_LAYERS, chat), chat, "без звонка слоёв партии не прибавляется");
+  const { readFileSync } = await import("node:fs");
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(app, /observations=\{runLayers\.camera \?/, "разбор снова смотрит на текущий режим");
+  assert.match(app, /tells=\{runLayers\.pokerface &&/);
+});

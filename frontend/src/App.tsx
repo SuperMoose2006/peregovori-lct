@@ -27,7 +27,7 @@ import { loadTourPrefs, markSeenThisSession, saveTourPrefs, seenThisSession, set
          type TourPrefs, type TourSection } from "./lib/tours";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
-import { callLayers, detectLayers, drawerLayers, layersAllowed, parseLayerPrefs, pruneLayers, reasonText, startLayers, textLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
+import { callLayers, detectLayers, drawerLayers, layersAllowed, unionLayers, parseLayerPrefs, pruneLayers, reasonText, startLayers, textLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
 import { fetchServerHealth } from "./api/health";
 import { checkDevice, dropFailedLayers, requestLayers, type DeviceChecks, type DeviceLayer } from "./lib/deviceCheck";
 import { faceRenderer } from "./lib/faceSource";
@@ -177,6 +177,12 @@ export default function App() {
    *  затирал ею выбор человека насовсем. */
   const [layerPrefs, setLayerPrefs] = useState<Layers>(() => pruneLayers(loadLayerPrefs(), layerStates));
   const [activeLayers, setActiveLayers] = useState<Layers>(NO_LAYERS);
+  /** Слои всей партии (lib/layers.ts::unionLayers): режим меняется посреди
+   *  партии, а разбор показывает то, что слои собрали за неё целиком. Сброс —
+   *  с новой партией (`nego.scenario?.id` ниже не годится: переигровка того
+   *  же стола — тот же id), поэтому по запуску. */
+  const [runLayers, setRunLayers] = useState<Layers>(NO_LAYERS);
+  useEffect(() => { setRunLayers((r) => unionLayers(r, activeLayers)); }, [activeLayers]);
   const chatScrollPosition = useRef<ChatScrollPosition | null>(null);
   /** Дата «стола дня» этой партии — чтобы перезапуск (смена слоёв, переподключение)
    *  не потерял условие дня. */
@@ -715,6 +721,7 @@ export default function App() {
       // Партия начинается ЧАТОМ: голос — это созвон, в него входят кнопкой.
       const use = startLayers(m, layerPrefs, layerStates, opts?.fixedOff);
       setActiveLayers(use);
+      setRunLayers(NO_LAYERS);
       setActiveDaily(opts?.daily);
       // Соперник этой партии снимается со стола ОДИН раз, при заходе: иначе
       // запись собственного результата подменила бы соперника на самого себя
@@ -995,6 +1002,7 @@ export default function App() {
     setCurrentScenario(null);
     setGenErr(null);
     setActiveLayers(NO_LAYERS); // своя сделка идёт без слоёв — сравнимость та же
+    setRunLayers(NO_LAYERS);
     setActiveDaily(undefined);
     nego.start("", "custom", situation, undefined, undefined, undefined, customContext);
     // dispatch drives the screen → "generating" (see the gen-phase effect above).
@@ -1561,12 +1569,12 @@ export default function App() {
           t={t}
           d={debrief}
           probeStats={activeLayers.probe ? probeStats : undefined}
-          observations={activeLayers.camera ? nego.observations : undefined}
+          observations={runLayers.camera ? nego.observations : undefined}
           // Карточка «покерфейса» рисуется, ТОЛЬКО если слой и правда смотрел:
           // подпись «ноль срывов» под невставшей камерой — обещание вместо
           // наблюдения. Число просмотренных кадров едет вместе со счётчиком
           // именно затем, чтобы эти два случая нельзя было спутать.
-          tells={activeLayers.pokerface && nego.tellFrames > 0
+          tells={runLayers.pokerface && nego.tellFrames > 0
             ? { count: nego.tells, frames: nego.tellFrames }
             : undefined}
           mode={mode}
