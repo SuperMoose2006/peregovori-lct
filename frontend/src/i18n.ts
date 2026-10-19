@@ -767,6 +767,9 @@ export interface Strings {
     cues: Record<string, string>;
     dropped: string;          // {n}
     contradictsTurn: string;  // {n}
+    counterpart: string;      // подпись слов собеседника
+    engineBasis: Record<string, string>;  // {n} {of} — из чего число счёта по оси
+    assuranceDetail: string;  // {num} {den}
   };
   master: {
     title: string;   // "Что сказал бы мастер"
@@ -1949,6 +1952,12 @@ export const I18N: Record<Lang, Strings> = {
       },
       dropped: "Цитат, которых не было в разговоре, выброшено: {n}.",
       contradictsTurn: "против хода {n}",
+      counterpart: "собеседник",
+      engineBasis: {
+        interests: "интересов вскрыто {n} из {of}", arguments: "объективных критериев: {n}",
+        value: "разменов: {n}", rapport: "отношения {n} из {of}", concessions: "экономика {n} из {of}",
+      },
+      assuranceDetail: "смягчения — в {num} из {den} реплик",
     },
     master: {
       title: "Что сказал бы мастер",
@@ -3105,6 +3114,12 @@ export const I18N: Record<Lang, Strings> = {
       },
       dropped: "Quotes that were never said, dropped: {n}.",
       contradictsTurn: "against turn {n}",
+      counterpart: "counterpart",
+      engineBasis: {
+        interests: "interests uncovered: {n} of {of}", arguments: "objective criteria: {n}",
+        value: "trade-offs: {n}", rapport: "relationship {n} of {of}", concessions: "economic {n} of {of}",
+      },
+      assuranceDetail: "softeners in {num} of {den} lines",
     },
     master: {
       title: "What a master would say",

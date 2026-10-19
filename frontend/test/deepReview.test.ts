@@ -95,11 +95,14 @@ test("кнопка шлёт review.request, прогресс и отчёт до�
     t.transport.send({ type: "review" });
     assert.equal(t.socket.types().at(-1), "review.request");
 
-    t.socket.deliver({ type: "review.progress", done: 1, total: 10, agent: "confidence" });
-    t.socket.deliver({ type: "review.progress", done: 2, total: 10, agent: "voice" });
+    const groups = ["confidence", "competency", "thinking", "specificity", "comprehension",
+                    "followups", "consistency", "facts", "voice"];
+    t.socket.deliver({ type: "review.progress", done: 1, total: 9, agent: "confidence", groups });
+    t.socket.deliver({ type: "review.progress", done: 2, total: 9, agent: "voice", groups });
     let r = t.get().review;
     assert.equal(r.status, "running");
-    assert.deepEqual([r.done, r.total, r.agents], [2, 10, ["confidence", "voice"]]);
+    assert.deepEqual([r.done, r.total, r.agents], [2, 9, ["confidence", "voice"]]);
+    assert.deepEqual(r.groups, groups, "мимики в этом разборе нет — и ждущей её не показывают");
 
     t.socket.deliver({ type: "review.done", review: REPORT });
     r = t.get().review;

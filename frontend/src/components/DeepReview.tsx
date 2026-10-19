@@ -14,10 +14,6 @@ import {
   pct, softValue,
 } from "../lib/review";
 
-/** Группы агентов в порядке показа — те же id, что шлёт сервер в прогрессе. */
-const AGENT_ORDER = ["confidence", "competency", "thinking", "specificity", "comprehension",
-                     "followups", "consistency", "facts", "voice", "face"];
-
 interface Props {
   t: Strings;
   lang: Lang;
@@ -84,11 +80,15 @@ function Progress({ t, state }: { t: Strings; state: ReviewState }) {
            aria-valuenow={value} aria-label={r.title}>
         <i style={{ width: `${value}%` }} />
       </div>
-      <ul className="deep-agents">
-        {AGENT_ORDER.filter((id) => r.agents[id]).map((id) => (
-          <li key={id} className={state.agents.includes(id) ? "done" : undefined}>{r.agents[id]}</li>
-        ))}
-      </ul>
+      {/* Только группы ЭТОГО разбора, и только когда сервер их назвал: до
+          первого шага список неизвестен, и выдумывать его незачем. */}
+      {state.groups.length ? (
+        <ul className="deep-agents">
+          {state.groups.filter((id) => r.agents[id]).map((id) => (
+            <li key={id} className={state.agents.includes(id) ? "done" : undefined}>{r.agents[id]}</li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
@@ -105,14 +105,19 @@ function Confidence({ t, value }: { t: Strings; value: number | null }) {
 
 /** Одна находка: что, когда и цитата. Незнакомый код не рисуется. */
 function Evidence({ t, lang, ev }: { t: Strings; lang: Lang; ev: ReviewEvidence }) {
-  const label = evidenceLabel(ev, t, lang);
+  // «Получилось» / «не получилось» уже написано заголовком над списком.
+  const label = ev.kind === "pro" || ev.kind === "con" ? "" : evidenceLabel(ev, t, lang);
   if (!label && !ev.text) return null;
   const when = evidenceWhen(ev, t);
   // У «шага без объяснения» текст — пометка агента, а не слова игрока: в
   // кавычки её ставить нельзя, это была бы цитата, которой не было.
   const isNote = ev.kind === "unspoken";
-  const quote = ev.quote ?? (ev.channel === "content" && !isNote ? ev.text : undefined);
-  const note = ev.channel === "content" && (ev.quote || isNote) ? ev.text : ev.note;
+  // У ответа на вопрос и реакции на уточнение текст — слова СОБЕСЕДНИКА: их
+  // показывают с подписью, а курсивные кавычки оставлены словам игрока.
+  const theirs = ev.kind.startsWith("answer_") || ev.kind.startsWith("followup_");
+  const quote = ev.quote ?? (ev.channel === "content" && !isNote && !theirs ? ev.text : undefined);
+  const note = theirs && ev.text ? `${t.review.counterpart}: «${ev.text}»`
+    : ev.channel === "content" && (ev.quote || isNote) ? ev.text : ev.note;
   return (
     <li className={`deep-ev ${ev.channel}`}>
       <span className="deep-when">{when}</span>
@@ -177,7 +182,11 @@ function DeepReport({ t, lang, report }: { t: Strings; lang: Lang; report: Repor
                   </summary>
                   {c.engine !== null && c.engine_agrees !== null ? (
                     <p className={`deep-cross ${c.engine_agrees ? "agree" : "differ"}`}>
-                      {(c.engine_agrees ? r.engineAgrees : r.engineDiffers).replace("{v}", `${pct(c.engine)}%`)}
+                      {(c.engine_agrees ? r.engineAgrees : r.engineDiffers).replace("{v}",
+                        c.engine_basis && r.engineBasis[c.id]
+                          ? r.engineBasis[c.id].replace("{n}", String(c.engine_basis.n))
+                              .replace("{of}", String(c.engine_basis.of ?? ""))
+                          : `${pct(c.engine)}%`)}
                     </p>
                   ) : null}
                   {c.pro.length ? (
@@ -207,7 +216,10 @@ function DeepReport({ t, lang, report }: { t: Strings; lang: Lang; report: Repor
                 <Confidence t={t} value={item.confidence} />
               </div>
               <p className="deep-hint">
-                {r.softHints[item.id]}{detail ? ` · ${detail}` : ""}
+                {r.softHints[item.id]}
+                {item.id === "assurance" && typeof item.num === "number" && item.den
+                  ? ` · ${r.assuranceDetail.replace("{num}", String(item.num)).replace("{den}", String(item.den))}`
+                  : detail ? ` · ${detail}` : ""}
                 {item.id === "declaration" && typeof item.questions === "number"
                   ? ` · ${r.questionsAsked.replace("{n}", String(item.questions))}` : ""}
                 {item.id === "facts" && item.unchecked

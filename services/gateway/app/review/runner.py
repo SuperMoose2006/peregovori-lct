@@ -106,13 +106,18 @@ async def run_review(facts: dict, tape: Optional[Tape], *, progress: Progress,
     voice_clips = [i for i in voice_clips if features[i]["voiced_ms"] >= 600]
     frames = _pick(tape.frames, MAX_FACE_FRAMES) if tape is not None else []
     groups_total += bool(voice_clips) + bool(frames)
+    #: Какие группы агентов работают в ЭТОМ разборе. Едут с каждым шагом
+    #: прогресса: в партии из чата голоса и мимики нет, и показывать их
+    #: ждущими значило бы обещать то, чего не будет.
+    groups = ([a.id for a in agents.CONTENT_AGENTS] + (["voice"] if voice_clips else [])
+              + (["face"] if frames else []))
     done = 0
 
     def tick(agent_id: str) -> None:
         nonlocal done
         done += 1
         progress({"type": "review.progress", "done": done, "total": groups_total,
-                  "agent": agent_id})
+                  "agent": agent_id, "groups": groups})
 
     async def call(system: str, parts, role: str, max_tokens: int) -> Optional[str]:
         async with sem:

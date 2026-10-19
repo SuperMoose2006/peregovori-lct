@@ -152,12 +152,14 @@ def test_the_whole_review_comes_together(fake_model):
     assert report["agents_total"] == 10 and report["agents_ok"] == 9
     assert [e["done"] for e in events] == list(range(1, 11))
     assert all(e["total"] == 10 for e in events)
+    assert events[0]["groups"][-2:] == ["voice", "face"] and len(events[0]["groups"]) == 10
 
     comps = {c["id"]: c for c in report["competencies"]}
     assert set(comps) == {"interests", "arguments"}, "незнакомая компетенция выпала"
     assert comps["arguments"]["con"] == [], "выдуманная цитата не доехала до человека"
     assert comps["interests"]["engine"] == pytest.approx(2 / 3, abs=0.01)
     assert comps["interests"]["engine_agrees"] is True
+    assert comps["interests"]["engine_basis"] == {"n": 2, "of": 3}, "человек видит «2 из 3», а не «67%»"
     assert comps["arguments"]["engine_agrees"] is False, "модель 0.9, движок — ни одного критерия"
     assert comps["arguments"]["confidence"] < comps["interests"]["confidence"]
     assert report["dropped_quotes"] >= 2
@@ -205,6 +207,8 @@ def test_a_chat_game_names_why_voice_and_face_are_absent(fake_model):
     assert report["channels"]["video"] == {"state": "absent", "reason": "camera_off"}
     assert report["voice"] is None and report["face"] is None
     assert events[-1]["total"] == 8
+    assert "voice" not in events[-1]["groups"] and "face" not in events[-1]["groups"], \
+        "в партии из чата голос и мимика не ждут — их нет"
     assert "голос" not in fake_model and "мимика" not in fake_model
 
 

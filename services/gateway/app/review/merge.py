@@ -80,8 +80,20 @@ _ENGINE_HINTS: dict[str, Callable[[dict], Optional[float]]] = {
     "concessions": lambda sc: (sc["economic"] / 100 if sc.get("economic") is not None else None),
 }
 
-#: Расхождение с движком больше этого — «модель и движок расходятся».
-_ENGINE_GAP = 0.35
+#: Расхождение с движком больше этого — «модель и движок расходятся». Четверть
+#: шкалы: 30% у модели против «ни одного интереса» у счёта — уже не «так же».
+_ENGINE_GAP = 0.25
+
+#: Из чего движок взял своё число — чтобы человек видел не «0%», а «интересов
+#: вскрыто 0 из 3». Ключи счёта, а не слова: подпись выбирает клиент.
+_ENGINE_BASIS: dict[str, Callable[[dict], Optional[dict]]] = {
+    "interests": lambda sc: ({"n": sc["interests_found"], "of": sc["interests_total"]}
+                             if sc.get("interests_total") else None),
+    "arguments": lambda sc: {"n": sc.get("objective_criteria") or 0},
+    "value": lambda sc: {"n": sc.get("tradeoffs") or 0},
+    "rapport": lambda sc: ({"n": sc["relationship"], "of": 100} if sc.get("relationship") is not None else None),
+    "concessions": lambda sc: ({"n": sc["economic"], "of": 100} if sc.get("economic") is not None else None),
+}
 
 
 # ---------------------------------------------------------------------- цитаты
@@ -464,15 +476,21 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
                 except (KeyError, TypeError, ZeroDivisionError):
                     engine_value = None
             agrees = None
+            basis = None
             if engine_value is not None:
                 agrees = abs(item["score"] - engine_value) <= _ENGINE_GAP
                 adjust = 0.15 if agrees else -0.25
+                try:
+                    basis = _ENGINE_BASIS[item["id"]](scorecard)
+                except (KeyError, TypeError):
+                    basis = None
             competencies.append({
                 "id": item["id"], "score": round(item["score"], 2),
                 "confidence": _confidence(len(pro) + len(con), 1, adjust),
                 "pro": pro[:MAX_EXAMPLES], "con": con[:MAX_EXAMPLES],
                 "engine": round(engine_value, 2) if engine_value is not None else None,
                 "engine_agrees": agrees,
+                "engine_basis": basis,
             })
 
     # ---------------------------------------------------------- совпадения

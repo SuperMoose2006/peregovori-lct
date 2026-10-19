@@ -194,6 +194,8 @@ export interface ReviewCompetency {
   /** Что видит движок по той же оси, 0..1; null — у оси нет пары в счёте. */
   engine: number | null;
   engine_agrees: boolean | null;
+  /** Из чего число счёта: «интересов вскрыто n из of», «разменов n»… */
+  engine_basis?: { n: number; of?: number } | null;
 }
 
 export interface ReviewSoft {
@@ -515,7 +517,7 @@ export type ServerMsg =
   // «Глубокий разбор»: прогресс по группам агентов, готовый отчёт, отказ.
   // Отказ — отдельное сообщение, а не `notice`: он относится к кнопке в
   // итогах, а не к ленте стола, которой к этому моменту уже нет.
-  | { type: "review_progress"; done: number; total: number; agent: string }
+  | { type: "review_progress"; done: number; total: number; agent: string; groups: string[] }
   | { type: "review"; review: DeepReview }
   | { type: "review_error"; code: string; message: string }
   | { type: "error"; message: string };

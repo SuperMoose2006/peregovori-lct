@@ -2605,10 +2605,15 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .deep-comps, .deep-soft, .deep-conv, .deep-voice, .deep-cues, .deep-evs { list-style: none; margin: 0; padding: 0; }
 .deep-comps > li { border-bottom: 2px solid var(--line); }
 .deep-comps summary {
-  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) auto auto; align-items: center;
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) 3.2em 9em; align-items: center;
   gap: 10px; padding: 10px 0; cursor: pointer; list-style: none;
 }
 .deep-comps summary::-webkit-details-marker { display: none; }
+/* Свой треугольник: родной спрятан ради сетки, а без него строка не выглядит
+   раскрываемой — цитаты за и против так никто и не увидел бы. */
+.deep-comps summary .deep-name::before { content: "▸ "; color: var(--ink-faint); }
+.deep-comps details[open] > summary .deep-name::before { content: "▾ "; }
+.deep-comps summary .deep-conf { justify-self: end; }
 .deep-name { font-size: 13.5px; font-weight: 700; color: var(--ink); }
 .deep-meter { height: 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
 .deep-meter i { display: block; height: 100%; background: var(--info); }
@@ -2656,7 +2661,7 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .vis-cues { margin: 2px 0 0; font-size: 12.5px; color: var(--info-ink); }
 @media (max-width: 640px) {
   .deep-channels { grid-template-columns: 1fr; }
-  .deep-comps summary { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .deep-comps summary { grid-template-columns: minmax(0, 1fr) 3.2em auto; }
   .deep-comps summary .deep-meter { display: none; }
   .deep-ev { grid-template-columns: 1fr; gap: 2px; }
 }

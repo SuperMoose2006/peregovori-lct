@@ -803,7 +803,8 @@ export class RealtimeTransport implements Transport {
 
       case "review.progress":
         this.emit({ type: "review_progress", done: Number(event.done) || 0,
-                    total: Number(event.total) || 0, agent: String(event.agent ?? "") });
+                    total: Number(event.total) || 0, agent: String(event.agent ?? ""),
+                    groups: Array.isArray(event.groups) ? event.groups.map(String) : [] });
         return;
 
       case "review.done":

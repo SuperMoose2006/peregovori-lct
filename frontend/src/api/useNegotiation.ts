@@ -111,6 +111,9 @@ export interface ReviewState {
   done: number;
   total: number;
   agents: string[];
+  /** Группы агентов ЭТОГО разбора (сервер шлёт с прогрессом): в партии из
+   *  чата голоса и мимики нет, и ждущими их не показывают. */
+  groups: string[];
   report: import("../types").DeepReview | null;
   /** Код отказа сервера (`review_unavailable`…) или свой: `review_empty` —
    *  отчёт пришёл, но ни один агент не ответил; `review_interrupted` — связь
@@ -120,7 +123,7 @@ export interface ReviewState {
 }
 
 export const REVIEW_IDLE: ReviewState = {
-  status: "idle", done: 0, total: 0, agents: [], report: null, code: null, message: null,
+  status: "idle", done: 0, total: 0, agents: [], groups: [], report: null, code: null, message: null,
 };
 
 export interface Negotiation extends NegotiationState {
@@ -571,6 +574,7 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
       const review = prev.review ?? REVIEW_IDLE;
       if (review.status === "done") return prev;
       return { ...prev, review: { ...review, status: "running", done: msg.done, total: msg.total,
+        groups: msg.groups?.length ? msg.groups : review.groups,
         agents: msg.agent && !review.agents.includes(msg.agent) ? [...review.agents, msg.agent]
           : review.agents } };
     }
