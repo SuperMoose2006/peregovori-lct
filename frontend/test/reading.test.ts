@@ -432,3 +432,22 @@ test("ход, которым сделка закрылась, подписан �
   const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "src", "components", "ReadingScreen.tsx"), "utf8");
   assert.match(src, /p\.closedDeal \? "agreed" : p\.reaction/);
 });
+
+test("на ходу, которым стол закрылся по пределу ходов, прогноз не спрашивают", () => {
+  // Найдено после аудита 17.10: «haggling», 12-й ход «Договорились, 92.» —
+  // ждали ответ «закрывать рано», а партия на этом ходу кончилась по времени;
+  // живая партия на таком ходу вопроса не задаёт.
+  let checked = 0;
+  for (const game of READING_GAMES) {
+    for (const lang of ["ru", "en"] as const) {
+      const r = buildReading(game.id, lang);
+      if (!r || r.turns.length < 12) continue;
+      const lastTurn = r.turns[r.turns.length - 1];
+      if (r.turns.length >= 12 && !lastTurn.closedDeal) {
+        assert.equal(lastTurn.ask, null, `${game.id}/${lang}`);
+        checked += 1;
+      }
+    }
+  }
+  assert.ok(checked > 0, "нет партии, закрытой по пределу, — проверять нечего");
+});

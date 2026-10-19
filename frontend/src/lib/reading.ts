@@ -192,7 +192,14 @@ export function buildReading(id: string, lang: Lang): Reading | null {
   // Реакция остаётся движковой (её сверяет тест), а экран по `closedDeal`
   // подписывает ход «сделка закрыта»; спрашивать прогноз на нём нечего.
   const closedDeal = s.ledger.map((e) => e.closed && e.status === "agreement");
-  const asks = planAsks(s.ledger.map((e, i) => (closedDeal[i] ? "agreed" : e.reaction)));
+  // Ход, на котором стол закрылся ПО ПРЕДЕЛУ ходов, хроника закрытым не
+  // помечает (лимит проверяет вызывающая сторона), — а живая партия на нём
+  // вопроса не задаёт, и оппонент говорит строку про время. Здесь спрашивали
+  // прогноз «закрывать рано» на ходу, после которого партия кончилась
+  // (найдено после аудита 17.10).
+  const last = s.ledger.length - 1;
+  const timedOut = last >= 0 && s.status === "breakdown" && !s.ledger[last].closed && s.turn >= s.maxTurns;
+  const asks = planAsks(s.ledger.map((e, i) => (closedDeal[i] || (timedOut && i === last) ? "agreed" : e.reaction)));
   const turns: ReadingTurn[] = s.ledger.map((e, i) => ({
     turn: e.turn,
     quote: e.text,
