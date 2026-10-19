@@ -311,3 +311,27 @@ test("офлайн-тренер под порогом доверия зовёт 
     assert.match(vague, lang === "ru" ? /довери/ : /trust/);
   }
 });
+
+test("готовые реплики офлайн-тренера движок засчитывает, и одинаково по-русски и по-английски", async () => {
+  // Найдено после аудита 17.10: пример критерия был «пустым» (качество 28 —
+  // ниже порога события, цена не двигалась нигде), а пример при напряжении по-
+  // английски был слабее русского (без вопроса об интересе).
+  const { analyze, applyMove, hintLine, newSession } = await import("../src/mock/engine");
+  const { SCENARIOS } = await import("../src/data/scenarios");
+  for (const def of SCENARIOS) {
+    for (const lang of ["ru", "en"] as const) {
+      const s = newSession(def, lang);
+      s.info = 60; s.tension = 20; s.met.crit = 0;          // ветка «критерий»
+      const line = hintLine(s);
+      s.turn = 1;
+      applyMove(s, analyze(line), line);
+      assert.ok(s.ledger[s.ledger.length - 1].events.includes("criteria"), `${def.id}/${lang}: ${line}`);
+    }
+  }
+  const tension = (lang: "ru" | "en") => {
+    const s = newSession(SCENARIOS[0], lang);
+    s.info = 60; s.tension = 70;
+    return [...analyze(hintLine(s)).moves].sort();
+  };
+  assert.deepEqual(tension("en"), tension("ru"));
+});

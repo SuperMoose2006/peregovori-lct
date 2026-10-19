@@ -2041,7 +2041,10 @@ const HINT_LINES: Record<Lang, Record<string, string>> = {
     // Запасной вариант для стола без тем («своя сделка»): там подставить нечего.
     infoPlain: "Что для вас важнее всего в этой сделке и почему именно это?",
     tension: "Понимаю, откуда вы идёте. Давайте вернёмся к сути — что для вас критично?",
-    crit: "По рынку сопоставимые условия идут в другом диапазоне. Давайте опираться на этот ориентир, а не на позиции.",
+    // Критерий С ИСТОЧНИКОМ: прежнее «по рынку … в другом диапазоне» давало
+    // качество 28 < CRITERIA_EVENT_MIN — события нет, цена не двигалась ни на
+    // одном из девяти столов (найдено после аудита 17.10).
+    crit: "По отраслевым данным сопоставимые условия идут в другом диапазоне, потому что так считает независимый обзор рынка. Давайте опираться на этот ориентир, а не на позиции.",
     trade: "Если мы дадим {item}, сможете подвинуться по цене?",
     close: "Тогда фиксируем: условия, о которых договорились, и цена. Подписываем?",
   },
@@ -2049,8 +2052,10 @@ const HINT_LINES: Record<Lang, Record<string, string>> = {
     info: "What matters to you here — {topic}?",
     gate: "I understand this matters to you, and the caution makes sense.",
     infoPlain: "What matters most to you in this deal, and why exactly that?",
-    tension: "I understand where you're coming from. Let's get back to substance — what is critical for you?",
-    crit: "Comparable terms on the market sit in a different range. Let's anchor on that benchmark rather than positions.",
+    // Тот же ход, что по-русски: признание И вопрос об интересе (было — только
+    // открытый вопрос, и английская подсказка давала меньше русской).
+    tension: "I understand where you're coming from. Let's get back to substance — what matters most to you here?",
+    crit: "Independent market data puts comparable terms in a different range, because that is the industry standard. Let's anchor on that benchmark rather than positions.",
     trade: "If we give you {item}, can you move on price?",
     close: "Then let's lock it: the terms we agreed plus the price. Shall we sign?",
   },
