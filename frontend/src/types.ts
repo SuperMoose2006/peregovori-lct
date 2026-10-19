@@ -187,7 +187,10 @@ export interface ReviewEvidence {
 
 export interface ReviewCompetency {
   id: string;
+  /** Оценка после взвешивания: по числу примеров и по счёту партии. */
   score: number;
+  /** Что поставила модель — как есть, до взвешивания. */
+  model_score?: number;
   confidence: number;
   pro: ReviewEvidence[];
   con: ReviewEvidence[];

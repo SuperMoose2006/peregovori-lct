@@ -270,13 +270,18 @@ CONTENT_AGENTS: tuple[ContentAgent, ...] = (
     ContentAgent(
         id="competency",
         task={
-            "ru": "Ты — агент компетенций. Оцени игрока по восьми компетенциям переговорщика числом от 0 "
-                  "до 1 и подкрепи каждую цитатами: pro — что получилось, con — что не получилось и почему. "
-                  "Нет материала — ставь 0.5 и оставляй списки пустыми. Компетенции: "
+            "ru": "Ты — агент компетенций, строгий экзаменатор. Оцени игрока по восьми компетенциям "
+                  "переговорщика числом от 0 до 1 и подкрепи каждую цитатами: pro — что получилось, con — что "
+                  "не получилось и почему. 0.5 — нейтрально или нет материала (тогда списки пустые). Выше 0.8 — "
+                  "только если приём применён НЕСКОЛЬКО раз и сработал; одна удачная фраза — это 0.6–0.7. Ниже "
+                  "0.5 — если была возможность и её упустили или сделали вред. В короткой партии высокие "
+                  "оценки редки. Компетенции: "
                   + "; ".join(f"{k} — {v}" for k, v in _COMPETENCY_TEXT["ru"].items()) + ".",
-            "en": "You are the competency agent. Rate the player on eight negotiator competencies from 0 to 1 "
-                  "and back each with quotes: pro — what worked, con — what did not and why. No material — "
-                  "give 0.5 and leave the lists empty. Competencies: "
+            "en": "You are the competency agent, a strict examiner. Rate the player on eight negotiator "
+                  "competencies from 0 to 1 and back each with quotes: pro — what worked, con — what did not and "
+                  "why. 0.5 — neutral or no material (lists empty then). Above 0.8 — only if the technique was "
+                  "used SEVERAL times and worked; one good line is 0.6–0.7. Below 0.5 — a chance was missed or "
+                  "harm was done. In a short game high scores are rare. Competencies: "
                   + "; ".join(f"{k} — {v}" for k, v in _COMPETENCY_TEXT["en"].items()) + ".",
         },
         schema=('{"competencies": [{"id": "interests", "score": 0.0, "pro": [' + _Q +
@@ -307,10 +312,12 @@ CONTENT_AGENTS: tuple[ContentAgent, ...] = (
         task={
             "ru": "Ты — агент конкретики. Раздели утверждения игрока на подкреплённые (specific: цифра, "
                   "пример, факт, срок — kind: number|example|fact|deadline) и общие слова без опоры (generic). "
-                  "Вопросы и приветствия не считай.",
+                  "Вопросы, приветствия и согласие не оценивай вовсе. Фраза, где есть цифра или факт, — specific "
+                  "целиком, даже если в ней есть и общие слова.",
             "en": "You are the specificity agent. Split the player's statements into backed ones (specific: a "
                   "number, example, fact or deadline — kind: number|example|fact|deadline) and generic words "
-                  "with nothing behind them (generic). Do not count questions and greetings.",
+                  "with nothing behind them (generic). Do not rate questions, greetings or agreement at all. A "
+                  "sentence with a number or a fact is specific as a whole, even if it also has generic words.",
         },
         schema=('{"specific": [{"turn": n, "quote": "...", "kind": "number"}], "generic": [' + _Q + ']}'),
         parse=_parse_specificity,
@@ -364,14 +371,20 @@ CONTENT_AGENTS: tuple[ContentAgent, ...] = (
     ContentAgent(
         id="facts",
         task={
-            "ru": "Ты — агент сверки фактов. Сверь утверждения игрока о цифрах, условиях и обстоятельствах с "
-                  "ВВОДНОЙ — тем, что ему было известно: matches — совпадает, contradicts — расходится с "
-                  "вводной, unsupported — во вводной этого нет (возможен блеф; не осуждай, просто отметь). В "
-                  "brief коротко напиши, что сказано во вводной. Мнения и вопросы не сверяй.",
-            "en": "You are the fact-check agent. Check the player's claims about numbers, terms and circumstances "
-                  "against the BRIEF — what they knew: matches — agrees, contradicts — conflicts with the brief, "
-                  "unsupported — the brief says nothing of it (could be a bluff; do not judge, just note). In "
-                  "brief, state shortly what the brief says. Do not check opinions or questions.",
+            "ru": "Ты — агент сверки фактов. Сверь с ВВОДНОЙ (тем, что игроку было известно) только его "
+                  "утверждения о ФАКТАХ — что есть или было: цены рынка, альтернатива, условия, сроки, "
+                  "обстоятельства. Предложения и позиции («давайте 90», «можем взять больший объём»), вопросы, "
+                  "мнения и согласие — НЕ факты, их не сверяй. matches — совпадает с вводной; contradicts — "
+                  "прямо противоречит сказанному во вводной (вводная: альтернатива по 95, игрок: «у нас есть "
+                  "предложение по 80»); unsupported — во вводной об этом ничего нет (возможен блеф; не осуждай). "
+                  "В brief коротко напиши, что сказано во вводной.",
+            "en": "You are the fact-check agent. Against the BRIEF (what the player knew), check only the "
+                  "player's claims about FACTS — what is or was: market prices, the alternative, terms, deadlines, "
+                  "circumstances. Proposals and positions (\"let's say 90\", \"we can take a larger volume\"), "
+                  "questions, opinions and agreement are NOT facts — do not check them. matches — agrees with the "
+                  "brief; contradicts — directly conflicts with the brief (brief: alternative at 95, player: \"we "
+                  "have an offer at 80\"); unsupported — the brief says nothing of it (could be a bluff; do not "
+                  "judge). In brief, state shortly what the brief says.",
         },
         schema=('{"claims": [{"turn": n, "quote": "...", "verdict": "matches|contradicts|unsupported", '
                 '"brief": "...", "note": "..."}]}'),

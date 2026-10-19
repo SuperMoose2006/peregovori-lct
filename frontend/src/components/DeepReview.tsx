@@ -180,6 +180,9 @@ function DeepReport({ t, lang, report }: { t: Strings; lang: Lang; report: Repor
                     <span className="deep-val">{pct(c.score)}%</span>
                     <Confidence t={t} value={c.confidence} />
                   </summary>
+                  {typeof c.model_score === "number" && Math.abs(c.model_score - c.score) >= 0.05 ? (
+                    <p className="deep-hint">{r.modelScore.replace("{p}", String(pct(c.model_score)))}</p>
+                  ) : null}
                   {c.engine !== null && c.engine_agrees !== null ? (
                     <p className={`deep-cross ${c.engine_agrees ? "agree" : "differ"}`}>
                       {(c.engine_agrees ? r.engineAgrees : r.engineDiffers).replace("{v}",

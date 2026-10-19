@@ -314,3 +314,9 @@ test("просьба о разборе, не ушедшая в сокет, не 
                  "не ушла — хук не включит «агенты работают» над пустотой");
   } finally { t.transport.close(); }
 });
+
+test("взвешенная оценка показывает и число модели — человек видит обе стороны", () => {
+  const src = readFileSync(new URL("../src/components/DeepReview.tsx", import.meta.url), "utf8");
+  assert.match(src, /model_score/);
+  for (const lang of ["ru", "en"] as const) assert.match(I18N[lang].review.modelScore, /\{p\}/);
+});

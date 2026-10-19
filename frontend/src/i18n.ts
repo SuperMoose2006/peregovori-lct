@@ -769,6 +769,7 @@ export interface Strings {
     contradictsTurn: string;  // {n}
     counterpart: string;      // подпись слов собеседника
     engineBasis: Record<string, string>;  // {n} {of} — из чего число счёта по оси
+    modelScore: string;       // {p} — оценка модели до взвешивания
     assuranceDetail: string;  // {num} {den}
   };
   master: {
@@ -1953,6 +1954,7 @@ export const I18N: Record<Lang, Strings> = {
       dropped: "Цитат, которых не было в разговоре, выброшено: {n}.",
       contradictsTurn: "против хода {n}",
       counterpart: "собеседник",
+      modelScore: "модель поставила {p}%; итог взвешен по числу примеров и счёту партии",
       engineBasis: {
         interests: "интересов вскрыто {n} из {of}", arguments: "объективных критериев: {n}",
         value: "разменов: {n}", rapport: "отношения {n} из {of}", concessions: "экономика {n} из {of}",
@@ -3115,6 +3117,7 @@ export const I18N: Record<Lang, Strings> = {
       dropped: "Quotes that were never said, dropped: {n}.",
       contradictsTurn: "against turn {n}",
       counterpart: "counterpart",
+      modelScore: "the model gave {p}%; the result is weighted by the number of examples and the game's score",
       engineBasis: {
         interests: "interests uncovered: {n} of {of}", arguments: "objective criteria: {n}",
         value: "trade-offs: {n}", rapport: "relationship {n} of {of}", concessions: "economic {n} of {of}",

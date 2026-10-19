@@ -89,3 +89,25 @@ def test_only_real_questions_count_as_the_player_s_questions():
         {"turn": 1, "quote": "А почему так дорого"}]})
     decl = next(s for s in report["soft"] if s["id"] == "declaration")
     assert decl["questions"] == 1, "«ваших вопросов» — только тех, что были"
+
+
+# ------------------------------------------------------------------ взвешивание
+
+def test_one_quote_does_not_buy_a_perfect_score_and_the_game_s_count_weighs_in():
+    """Живая проверка на стенде 19.10: модель ставила 100% «созданию ценности»
+    по одной цитате при нуле разменов в счёте партии. Сводка тянет оценку к
+    середине, пока примеров мало, и сводит её со счётом там, где у оси есть пара."""
+    facts = _facts([("player", "Можем взять больший объём, если цена будет 90."), ("opp", "Посмотрим.")])
+    facts["scorecard"] = {"tradeoffs": 0, "interests_found": 0, "interests_total": 3}
+    report = _report(facts, competency={"competencies": [
+        {"id": "value", "score": 1.0, "pro": [{"turn": 1, "quote": "Можем взять больший объём"}], "con": []},
+        {"id": "listening", "score": 0.9, "pro": [{"turn": 1, "quote": "если цена будет 90"},
+                                                   {"turn": 1, "quote": "Можем взять больший объём"},
+                                                   {"turn": 1, "quote": "больший объём"}], "con": []}]})
+    comps = {c["id"]: c for c in report["competencies"]}
+    value = comps["value"]
+    assert value["model_score"] == 1.0, "число модели видно как есть"
+    assert value["score"] < 0.5, f"одна цитата и ноль разменов — не {value['score']:.0%}"
+    listening = comps["listening"]
+    assert listening["score"] == listening["model_score"] == 0.9, \
+        "три примера и нет пары в счёте — оценка модели остаётся как есть"

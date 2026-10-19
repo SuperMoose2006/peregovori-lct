@@ -80,6 +80,16 @@ _ENGINE_HINTS: dict[str, Callable[[dict], Optional[float]]] = {
     "concessions": lambda sc: (sc["economic"] / 100 if sc.get("economic") is not None else None),
 }
 
+#: Сколько примеров нужно, чтобы оценке модели поверить целиком. Меньше —
+#: оценка тянется к середине пропорционально: одна цитата не покупает 100%
+#: (живая проверка на стенде 19.10: «создание ценности» 100% по одной цитате
+#: при нуле разменов в счёте партии).
+_FULL_EVIDENCE = 3
+
+#: Вес счёта партии там, где у оси есть пара в нём. Счёт — посчитанное
+#: (вскрытые интересы, критерии, размены), модель — прочитанное; сводятся оба.
+_ENGINE_WEIGHT = 0.4
+
 #: Расхождение с движком больше этого — «модель и движок расходятся». Четверть
 #: шкалы: 30% у модели против «ни одного интереса» у счёта — уже не «так же».
 _ENGINE_GAP = 0.25
@@ -488,9 +498,16 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
                     engine_value = hint(scorecard)
                 except (KeyError, TypeError, ZeroDivisionError):
                     engine_value = None
+            # ВЗВЕШИВАНИЕ. Модель выставила число — сводка решает, сколько ему
+            # верить: по примерам в его пользу (за высокую — цитаты «получилось»,
+            # за низкую — «не получилось») и по счёту партии, если у оси есть
+            # пара. Число модели едет рядом как есть: человек видит обе стороны.
+            backing = len(pro) if item["score"] >= 0.5 else len(con)
+            shown = 0.5 + (item["score"] - 0.5) * min(1.0, backing / _FULL_EVIDENCE)
             agrees = None
             basis = None
             if engine_value is not None:
+                shown = (1 - _ENGINE_WEIGHT) * shown + _ENGINE_WEIGHT * engine_value
                 agrees = abs(item["score"] - engine_value) <= _ENGINE_GAP
                 adjust = 0.15 if agrees else -0.25
                 try:
@@ -498,7 +515,7 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
                 except (KeyError, TypeError):
                     basis = None
             competencies.append({
-                "id": item["id"], "score": round(item["score"], 2),
+                "id": item["id"], "score": round(shown, 2), "model_score": round(item["score"], 2),
                 "confidence": _confidence(len(pro) + len(con), 1, adjust),
                 "pro": pro[:MAX_EXAMPLES], "con": con[:MAX_EXAMPLES],
                 "engine": round(engine_value, 2) if engine_value is not None else None,
