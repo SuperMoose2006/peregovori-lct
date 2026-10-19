@@ -14,7 +14,7 @@ with it.
 - Category: layout
 - Description: Brand wordmark + tagline, then four segmented controls — RU/EN, theme, skin, sound.
 - Extractable props: `lang` ("ru"|"en", default "ru"), `isDark` (boolean, default false), `skin` ("dojo"|"game", default "dojo"), `muted` (boolean, default false)
-- Hardcoded: the wordmark "Диалог." with its accent dot, the tagline, all glyphs (☀ ◐ 🎓 🎮), all CSS
+- Hardcoded: the wordmark "RocketTalk." with its accent dot, the tagline, all glyphs (☀ ◐ 🎓 🎮), all CSS
 
 ### AppFooter
 - Source: `frontend/src/App.tsx` (the `.foot` block)

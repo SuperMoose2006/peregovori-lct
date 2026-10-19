@@ -1,4 +1,4 @@
-# 🤝 Диалог — Negotiation Skills Simulator
+# 🤝 RocketTalk — Negotiation Skills Simulator
 
 > Интерактивный тренажёр деловых переговоров, где **исход зависит от вашей стратегии, формулировок и аргументов**.
 > An interactive business-negotiation simulator where **the outcome depends on your strategy, wording and arguments.**

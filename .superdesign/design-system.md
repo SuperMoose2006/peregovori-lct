@@ -1,4 +1,4 @@
-# Design system — «Диалог» (negotiation dojo)
+# Design system — RocketTalk (negotiation dojo)
 
 A negotiation trainer for the ЛЦТ hackathon. Bilingual RU/EN. React 18 + Vite,
 **no component library, no Tailwind** — one global stylesheet driven entirely by CSS

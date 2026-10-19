@@ -323,7 +323,7 @@ export default function App() {
       <div className="top">
         <div className="brand">
           <span className="mark">
-            Диалог<span className="dot">.</span>
+            RocketTalk<span className="dot">.</span>
           </span>
           <span className="sub">{t.tagline}</span>
         </div>
@@ -553,7 +553,7 @@ export default function App() {
       {lastGame ? <AchievementToasts t={t} lang={lang} ids={lastGame.newAchievements} /> : null}
 
       <div className="foot">
-        <span>Диалог · Negotiation Skills Simulator</span>
+        <span>RocketTalk · Negotiation Skills Simulator</span>
         <span>{t.footRight}</span>
       </div>
     </>
