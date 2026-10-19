@@ -284,6 +284,8 @@ def test_a_cold_table_says_the_question_would_not_have_worked_at_all() -> None:
     card = views.other_side(sess)
     assert card is not None
     assert all("ни на одном ходу" in w for w in card["windows"]), card["windows"]
+    # «Тема …», а не голый ярлык: «"Бюджет" не открылась бы» (аудит 17.10).
+    assert all(w.startswith("Тема «") for w in card["windows"]), card["windows"]
 
 
 def test_the_card_never_reaches_the_score() -> None:

@@ -1344,7 +1344,7 @@ const OS_WINDOW: Record<Lang, string> = {
   en: "Turn {turn}: trust {trust} against a gate of {gate} — a question about “{topic}” would have opened it right there.",
 };
 const OS_WINDOW_NEVER: Record<Lang, string> = {
-  ru: "«{topic}» не открылась бы ни на одном ходу: доверие так и не поднялось выше порога {gate}. "
+  ru: "Тема «{topic}» не открылась бы ни на одном ходу: доверие так и не поднялось выше порога {gate}. "
     + "Такой стол сначала греют, а спрашивают потом.",
   en: "“{topic}” could not have opened on any turn: trust never rose above the gate of {gate}. "
     + "A table like this is warmed first and questioned second.",
@@ -1778,6 +1778,10 @@ const HER_MISSED: Record<Lang, string> = {
   "ru": "Закрытыми остались темы: {list}. Что за ними стояло, вы узнали не за столом, а из разбора.",
   "en": "The topics that stayed closed: {list}. What sat behind them you learned from the debrief, not from me at the table."
 };
+const HER_MISSED_ONE: Record<Lang, string> = {
+  "ru": "Закрытой осталась тема: {list}. Что за ней стояло, вы узнали не за столом, а из разбора.",
+  "en": "The topic that stayed closed: {list}. What sat behind it you learned from the debrief, not from me at the table."
+};
 const HER_MISSED_NONE: Record<Lang, string> = {
   "ru": "Секретов у меня для вас не осталось — вы спросили обо всём.",
   "en": "I have no secrets left for you — you asked about everything."
@@ -1902,8 +1906,8 @@ export function herSide(s: Session): HerSide | null {
   let ask = "";
   if (unfound.length) {
     const labels = unfound.filter((i) => i < topics.length).map((i) => topics[i]);
-    missed = HER_MISSED[lang].replace("{list}",
-      (labels.length ? labels : unfound.map((i) => interests[i])).join(", "));
+    const list = labels.length ? labels : unfound.map((i) => interests[i]);
+    missed = (list.length === 1 ? HER_MISSED_ONE : HER_MISSED)[lang].replace("{list}", list.join(", "));
     const topic = unfound[0] < topics.length ? topics[unfound[0]] : "";
     ask = topic ? HER_ASK[lang].replace("{topic}", topic) : HER_ASK_NO_TOPIC[lang];
   } else {

@@ -269,3 +269,17 @@ def test_debrief_view_carries_the_column() -> None:
     assert len(deb.her_side.turns) == len(PRINCIPLED)
     # …и не тащит её там, где ходов не было.
     assert views.debrief_view(engine.create_session("supplier", "ru")).her_side is None
+
+
+def test_one_closed_topic_is_named_in_the_singular():
+    """«Закрытыми остались темы: Оплата» про одну тему — найдено после аудита
+    17.10. Одна тема — «Закрытой осталась тема», две и больше — как было."""
+    sess = play("supplier", ["Ваша цена — просто грабёж."])
+    for found, plural_expected in (([0, 1], False), ([0], True)):
+        sess.state.interests_found = found
+        col = views.her_side(sess)
+        assert col is not None
+        if plural_expected:
+            assert col["missed"].startswith("Закрытыми остались темы:"), col["missed"]
+        else:
+            assert col["missed"].startswith("Закрытой осталась тема:"), col["missed"]

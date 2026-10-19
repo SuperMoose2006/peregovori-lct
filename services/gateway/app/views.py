@@ -743,6 +743,10 @@ _STILL_CLOSED = {"ru": " А тема «{topic}» так и осталась за
 #: здесь — что эти темы так и не были тронуты за столом.
 _MISSED = {"ru": "Закрытыми остались темы: {list}. Что за ними стояло, вы узнали не за столом, а из разбора.",
            "en": "The topics that stayed closed: {list}. What sat behind them you learned from the debrief, not from me at the table."}
+#: Одна тема — единственное число: «Закрытыми остались темы: Оплата» про
+#: одну тему (найдено после аудита 17.10).
+_MISSED_ONE = {"ru": "Закрытой осталась тема: {list}. Что за ней стояло, вы узнали не за столом, а из разбора.",
+               "en": "The topic that stayed closed: {list}. What sat behind it you learned from the debrief, not from me at the table."}
 _MISSED_NONE = {"ru": "Секретов у меня для вас не осталось — вы спросили обо всём.",
                 "en": "I have no secrets left for you — you asked about everything."}
 #: Реплика, которая открыла бы закрытое. ТА ЖЕ формулировка, что даёт тренер за
@@ -887,7 +891,7 @@ def her_side(sess: "engine.Session") -> dict | None:
     unfound = [i for i in range(len(interests)) if i not in set(sess.state.interests_found)]
     if unfound:
         labels = [topics[i] for i in unfound if i < len(topics)] or [interests[i] for i in unfound]
-        missed = _MISSED[lang].format(list=", ".join(labels))
+        missed = (_MISSED_ONE if len(labels) == 1 else _MISSED)[lang].format(list=", ".join(labels))
         topic = topics[unfound[0]] if unfound[0] < len(topics) else ""
         ask = _ASK[lang].format(topic=topic) if topic else _ASK_NO_TOPIC[lang]
     else:
@@ -942,7 +946,9 @@ _WINDOW = {
     "en": "Turn {turn}: trust {trust} against a gate of {gate} — a question about “{topic}” would have opened it right there.",
 }
 _WINDOW_NEVER = {
-    "ru": "«{topic}» не открылась бы ни на одном ходу: доверие так и не поднялось выше порога {gate}. "
+    # «Тема …», а не голый ярлык: «"Бюджет" не открылась бы» — род глагола
+    # решало бы название темы (найдено после аудита 17.10).
+    "ru": "Тема «{topic}» не открылась бы ни на одном ходу: доверие так и не поднялось выше порога {gate}. "
           "Такой стол сначала греют, а спрашивают потом.",
     "en": "“{topic}” could not have opened on any turn: trust never rose above the gate of {gate}. "
           "A table like this is warmed first and questioned second.",

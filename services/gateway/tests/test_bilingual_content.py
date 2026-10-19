@@ -115,7 +115,7 @@ def _all_strings() -> list[tuple[str, str, str]]:
     #: Колонка «с той стороны стола» и подписи шкал в разборе — прозаический
     #: текст, появившийся сегодня и никем на язык не проверявшийся.
     for name in ("_HER", "_METER_LABELS", "_PRICE_LABEL", "_MOODS",
-                 "_STILL_CLOSED", "_MISSED", "_MISSED_NONE", "_ASK", "_ASK_NO_TOPIC"):
+                 "_STILL_CLOSED", "_MISSED", "_MISSED_ONE", "_MISSED_NONE", "_ASK", "_ASK_NO_TOPIC"):
         _pairs(getattr(views, name), f"views.{name}", out)
     return out
 
