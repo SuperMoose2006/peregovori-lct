@@ -1133,6 +1133,12 @@ export function renderLine(s: Session, reaction: string, closed: boolean): strin
   const u = s.sc.unit[s.lang];
   const style = s.sc.cp.style;
   let key = reaction;
+  // Слова не спорят с ценой: «убедили — подвинусь» без движения цены и
+  // «позиция прежняя» при движении — на нейтральные строки (зеркало
+  // engine.py::render_line; найдено после аудита 17.10).
+  const last = s.ledger.length ? s.ledger[s.ledger.length - 1] : null;
+  const moved = !!last && Math.abs(last.offerAfter - last.offerBefore) > 1e-9;
+  if ((reaction === "persuaded" && !moved) || (reaction === "hardened" && moved)) key = "neutral";
   if (closed && s.status === "agreement") key = "agreement";
   if (closed && s.status === "breakdown") key = "walked_out";
   const arr = reactionBank(s.lang, key, style);

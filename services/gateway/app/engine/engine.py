@@ -1755,6 +1755,16 @@ def render_line(sess: Session, reaction: str, closed: bool) -> str:
     unit = sc.headline.unit[lang]
     style = sc.counterpart.style
     key = reaction
+    # СЛОВА НЕ СПОРЯТ С ЦЕНОЙ. «Убедили — подвинусь» при цене, которая не
+    # двинулась (критерий без события), и «позиция прежняя» при цене, которая
+    # двинулась (критерий с нажимом), — шаблонная реплика говорила обратное
+    # столу. Реакция остаётся движковой (на неё опираются вопрос-прогноз и
+    # курс); меняется только выбор строк — на нейтральные, называющие текущую
+    # цифру (найдено после аудита 17.10).
+    last = sess.ledger[-1] if sess.ledger else None
+    moved = bool(last) and abs(float(last.get("offer_after", 0)) - float(last.get("offer_before", 0))) > 1e-9
+    if (reaction == "persuaded" and not moved) or (reaction == "hardened" and moved):
+        key = "neutral"
     if closed and s.status == "agreement":
         key = "agreement"
     if closed and s.status == "breakdown":

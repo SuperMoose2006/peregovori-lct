@@ -463,3 +463,22 @@ def test_the_harmful_move_is_always_among_the_turning_points():
         s.log.append({"role": "player", "text": t, "turn": s.turn, "deltas": r.deltas})
     turns = [tp["turn"] for tp in views.turning_points(s)]
     assert 2 in turns, turns
+
+
+def test_a_template_line_never_contradicts_the_price_it_names():
+    """Найдено после аудита 17.10: «Против фактов не пойду. Сдвигаюсь к 100»
+    при цене, оставшейся на 100 (критерий без события), и «Моя позиция
+    прежняя — 95» после 100 → 95 (критерий с нажимом)."""
+    persuaded_words = ("убедил", "подвин", "сдвига", "lands", "taken")
+    for text, reaction in (("По рынку это дорого.", "persuaded"),
+                           ("По рыночным данным медиана 90, потому что это стандарт. Либо 90, либо я ухожу.", "hardened")):
+        s = engine.create_session("supplier", "ru")
+        s.turn = 1
+        r = engine.apply_move(s, engine.analyze(text), text)
+        assert r.reaction == reaction
+        line = engine.render_line(s, r.reaction, r.closed).lower()
+        moved = s.ledger[-1]["offer_after"] != s.ledger[-1]["offer_before"]
+        if not moved:
+            assert not any(w in line for w in persuaded_words), line
+        else:
+            assert "прежн" not in line and "остаюсь" not in line, line
