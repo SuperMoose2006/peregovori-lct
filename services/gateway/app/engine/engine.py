@@ -354,7 +354,19 @@ def _retract(sess: Session, fraction: float) -> None:
     """
     s = sess.state
     dist = s.frame_open - s.offer_opp  # знаковое; ПРОЧЬ от игрока
-    s.offer_opp = _round2(s.offer_opp + dist * fraction)
+    moved = s.offer_opp + dist * fraction
+    # На сетку шага, как и уступка: откат давал «94,4 ₽/шт» на столе с шагом
+    # 0,5 — ровно те копейки, ради которых шаг заведён (`price_step`; найдено
+    # после аудита 17.10). Ближайший узел, но не дальше якоря и не ближе к
+    # игроку, чем было: откат остаётся откатом.
+    step = price_step(by_id(sess.scenario_id))
+    if step > 0 and dist:
+        # floor(x + 0.5), а не round(): у Python round() банковский, у JS — нет,
+        # и на ровной половине ядра разошлись бы (инвариант 8).
+        snapped = math.floor(moved / step + 0.5) * step
+        lo, hi = sorted((s.offer_opp, s.frame_open))
+        moved = clamp(snapped, lo, hi)
+    s.offer_opp = _round2(moved)
 
 
 #: Доля расстояния до якоря игрока, на которую сдвигается рамка стола. Якорь

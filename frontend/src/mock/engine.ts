@@ -456,7 +456,18 @@ function concede(s: Session, f: number): void {
 // sc.open: иначе одна грубость возвращала бы стол к цифре, которую оппонент так
 // и не произнёс. Зеркало engine.py::_retract.
 function retract(s: Session, f: number): void {
-  s.offerOpp = Math.round((s.offerOpp + (s.frameOpen - s.offerOpp) * f) * 100) / 100;
+  const dist = s.frameOpen - s.offerOpp;
+  let moved = s.offerOpp + dist * f;
+  // На сетку шага, как и уступка: откат давал «94,4 ₽/шт» на столе с шагом
+  // 0,5 (найдено после аудита 17.10). Ближайший узел, но не дальше якоря и не
+  // ближе к игроку, чем было. Зеркало engine.py::_retract.
+  const step = priceStep(s.sc);
+  if (step > 0 && dist) {
+    const snapped = Math.floor(moved / step + 0.5) * step;
+    const lo = Math.min(s.offerOpp, s.frameOpen), hi = Math.max(s.offerOpp, s.frameOpen);
+    moved = Math.max(lo, Math.min(hi, snapped));
+  }
+  s.offerOpp = Math.round(moved * 100) / 100;
 }
 
 /** Доля расстояния до якоря игрока, на которую сдвигается рамка стола, и

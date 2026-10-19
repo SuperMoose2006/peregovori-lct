@@ -398,3 +398,19 @@ def test_a_million_and_thousands_are_one_number():
     line = "Договорились на 1 миллион 200 тысяч."
     engine.apply_move(s, engine.analyze(line), line)
     assert s.state.offer_player == 1200
+
+
+def test_a_walk_back_stays_on_the_price_grid():
+    """Найдено после аудита 17.10: откат за грубость оставлял цену вне сетки
+    шага — «94,4 ₽/шт» на столе с шагом 0,5, ровно те копейки, ради которых
+    `price_step` заведён."""
+    s = engine.create_session("supplier", "ru")
+    from app.engine.engine import price_step
+    step = price_step(engine.by_id("supplier"))
+    before = None
+    for text in ["Наша цена 88, потому что медиана независимых прайсов 88.", "Это абсурд."]:
+        before = s.state.offer_opp
+        s.turn += 1
+        engine.apply_move(s, engine.analyze(text), text)
+    assert s.state.offer_opp > before, "откат обязан остаться откатом"
+    assert abs(s.state.offer_opp / step - round(s.state.offer_opp / step)) < 1e-9, s.state.offer_opp

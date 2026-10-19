@@ -243,3 +243,21 @@ test("оферта игрока — новое число, а не цитата 
     if (s.status === "agreement") assert.equal(s.deal, player, `${id}: ${line}`);
   }
 });
+
+test("откат за грубость остаётся на сетке шага (зеркало test_engine_edges)", async () => {
+  // Найдено после аудита 17.10: «94,4 ₽/шт» на столе с шагом 0,5.
+  const { analyze, applyMove, newSession, priceStep } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const def = SCENARIO_MAP.supplier;
+  const s = newSession(def, "ru");
+  let before = s.offerOpp;
+  for (const text of ["Наша цена 88, потому что медиана независимых прайсов 88.", "Это абсурд."]) {
+    before = s.offerOpp;
+    s.turn += 1;
+    applyMove(s, analyze(text), text);
+  }
+  const step = priceStep(def);
+  assert.ok(s.offerOpp > before, "откат обязан остаться откатом");
+  assert.ok(Math.abs(s.offerOpp / step - Math.round(s.offerOpp / step)) < 1e-9, String(s.offerOpp));
+  assert.equal(s.offerOpp, 94.5);
+});
