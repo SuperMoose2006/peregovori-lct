@@ -319,6 +319,8 @@ class Debrief(BaseModel):
     tradeoffs: int
     avg_arg: int
     tips: list[str] = Field(default_factory=list)
+    #: Грейд опущен до C потолком техники — факт движка, а не догадка клиента.
+    technique_capped: bool = False
     # The AI mentor's closing word. Present only when a live backend produced it;
     # the deterministic tips above always stand on their own, so the client must
     # render a complete debrief without any of these three.

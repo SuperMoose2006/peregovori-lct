@@ -277,3 +277,19 @@ test("придержанное условие размена не засчиты
   assert.ok(!checkFreeform(ex, line, "ru").ok);
   assert.ok(checkFreeform(ex, ex.reference!.ru, "ru").ok);
 });
+
+test("потолок техники — факт офлайн-ядра, как на сервере", async () => {
+  // Найдено после аудита 17.10: разбор гадал по `technique < 45`.
+  const { newSession, scoreSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const def = SCENARIO_MAP.supplier;
+  const s = newSession(def, "ru");
+  s.status = "agreement"; s.deal = def.target; s.trust = 100; s.tension = 0;
+  s.met.crit = 1; s.met.empathy = 1;
+  const d = scoreSession(s);
+  assert.equal(d.technique_capped, true);
+  assert.equal(d.grade, "C");
+  assert.ok(d.overall >= 70);
+  const src = (await import("node:fs")).readFileSync(new URL("../src/components/Debrief.tsx", import.meta.url), "utf8");
+  assert.match(src, /const techniqueFloored = d\.technique_capped === true;/);
+});

@@ -59,7 +59,7 @@ function checkAgainstBackend(name: string, scenarioId: string, lines: string[], 
   // `deal_text` намеренно НЕ сверяется: единица у клиента короче (« ₽» против
   // «₽/шт») — это решение вёрстки, а не движка. Саму печать цифры проверяет
   // тест «печать цифры сделки» ниже, на одинаковых входах.
-  for (const key of ["overall", "grade", "economic", "relationship", "technique", "status"] as const) {
+  for (const key of ["overall", "grade", "economic", "relationship", "technique", "status", "technique_capped"] as const) {
     assert.equal(
       (debrief as Record<string, unknown>)[key],
       want[key],

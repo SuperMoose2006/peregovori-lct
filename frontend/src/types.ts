@@ -240,6 +240,8 @@ export interface Debrief {
   tradeoffs: number;
   avg_arg: number;
   tips: string[];
+  /** Грейд опущен до C потолком техники — факт движка (сервер и офлайн-ядро). */
+  technique_capped?: boolean;
   // The AI mentor's closing word: it NARRATES the scorecard above, it never
   // changes it. Present only when a live AI backend answered — every debrief
   // must read complete with all three absent.

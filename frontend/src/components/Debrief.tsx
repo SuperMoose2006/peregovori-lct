@@ -240,7 +240,11 @@ export function Debrief({
 
   // Technique-floor rule (item 4): a great price with thin method caps the grade.
   // Surfacing the rule makes a capped grade read as principled, not harsh.
-  const techniqueFloored = d.technique < 45 && d.economic >= 65;
+  // ПО ФАКТУ ДВИЖКА, а не по догадке: прежнее `technique < 45 && economic >= 65`
+  // говорило «грейд ограничен» при B с техникой 44 и молчало, когда потолок
+  // сработал на технике 45+ (судейская часть выше, метод ниже 39) — принцип 2
+  // (найдено после аудита 17.10).
+  const techniqueFloored = d.technique_capped === true;
 
   // "Что сказал бы мастер" (item 3): spotlight the single weakest turning point and
   // reformulate it with the ONE most-relevant missing technique. The selection is

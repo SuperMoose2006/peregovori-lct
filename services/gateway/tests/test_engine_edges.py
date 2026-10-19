@@ -431,3 +431,20 @@ def test_millions_reach_a_table_priced_in_millions():
     rub = replace(base, id="custom_rub_test", opponent_open=1_500_000, opponent_reservation=1_100_000,
                   player_target=1_200_000, player_reservation=1_400_000)
     assert _plausible_offer(rub, 1.3) == 1_300_000
+
+
+def test_the_debrief_says_whether_the_technique_ceiling_applied():
+    """Найдено после аудита 17.10: разбор объяснял «грейд ограничен» по своей
+    догадке (`technique < 45 && economic >= 65`) — и при B с техникой 44, где
+    потолка не было. Теперь факт движка едет в разборе."""
+    from app import views
+    sc = engine.by_id("supplier")
+    s = engine.create_session("supplier", "ru")
+    s.state.status, s.state.deal = "agreement", sc.player_target
+    s.state.trust, s.state.tension = 100, 0
+    s.metrics.objective_criteria, s.metrics.empathy = 1, 1
+    d = engine.score_session(s)
+    assert d["technique_capped"] is True and d["grade"] == "C" and d["overall"] >= 70
+    assert views.debrief_view(s).technique_capped is True
+    plain = engine.create_session("supplier", "ru")
+    assert engine.score_session(plain)["technique_capped"] is False

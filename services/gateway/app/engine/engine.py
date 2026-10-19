@@ -1879,7 +1879,8 @@ def score_session(sess: Session) -> dict:
     # партиям), 45 − 6 = 39. Тот же ответ даёт пропорция: 45 из 106 очков полной
     # техники — это 39 из 92 очков метода. Цена перехода замерена: 4 буквы из
     # 233, ни одной из 18 эталонных партий.
-    if technique_method < TECHNIQUE_FLOOR and grade in ("A", "B"):
+    technique_capped = technique_method < TECHNIQUE_FLOOR and grade in ("A", "B")
+    if technique_capped:
         grade = "C"
 
     tips: list[str] = []
@@ -1958,6 +1959,10 @@ def score_session(sess: Session) -> dict:
         "hostiles": m.hostiles,
         "tradeoffs": len(s.tradeoffs_used),
         "avg_arg": _js_round(avg_arg),
+        # Сработал ли потолок техники. Разбор объяснял «грейд ограничен» по
+        # своей догадке (`technique < 45`), а не по факту движка — и говорил это
+        # там, где потолка не было (найдено после аудита 17.10, принцип 2).
+        "technique_capped": technique_capped,
         "tips": tips,
     }
 
@@ -2046,4 +2051,5 @@ def to_debrief(sess: Session) -> dict:
         "tradeoffs": d["tradeoffs"],
         "avg_arg": d["avg_arg"],
         "tips": d["tips"],
+        "technique_capped": d["technique_capped"],
     }

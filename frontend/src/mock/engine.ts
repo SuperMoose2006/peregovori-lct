@@ -1239,7 +1239,8 @@ export function scoreSession(s: Session): Debrief {
   // стояло `technique < 45`, и букву решало число, в которое входит балл судьи
   // (±5 на ход, docs/judge-reproducibility.md) — одна и та же партия давала
   // `overall` 74 и грейд то B, то C. Обоснование порога 39 — в engine.py.
-  if (techniqueMethod < TECHNIQUE_FLOOR && (grade === "A" || grade === "B")) grade = "C";
+  const techniqueCapped = techniqueMethod < TECHNIQUE_FLOOR && (grade === "A" || grade === "B");
+  if (techniqueCapped) grade = "C";
   // СОВЕТЫ — ДОСЛОВНО КАК НА СЕРВЕРЕ (engine.py::score_session), и сверяются
   // фикстурой эталонных партий. Здесь стояли свои формулировки и не было двух
   // советов — «от позиций к интересам» и «сильная BATNA»: офлайн-партия на
@@ -1295,6 +1296,8 @@ export function scoreSession(s: Session): Debrief {
     interests: sc.interests[lang].map((text, i) => ({ text, found: s.interests.includes(i) })),
     spin_stages: spinC, objective_criteria: m.crit, empathy: m.empathy,
     threats: m.threats, tradeoffs: s.tradeoffs.length, avg_arg: Math.round(avgArg), tips,
+    // Факт потолка техники — зеркало engine.py::score_session (`technique_capped`).
+    technique_capped: techniqueCapped,
     // «С той стороны стола». На сервере колонку приклеивает адаптер
     // (views.debrief_view); здесь адаптера нет — MockServer отдаёт то, что
     // вернул scoreSession, — поэтому она собирается прямо тут.
