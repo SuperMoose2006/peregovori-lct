@@ -105,6 +105,19 @@ def _extract_json(text: str) -> Optional[dict]:
         return None
 
 
+def _items(v) -> list[str]:
+    """Список строк из ответа модели — и когда она вернула ОДНУ строку.
+
+    `for x in "Штраф; портфолио; предоплата"` идёт по буквам: интересы стола
+    становились «Ш», «т», «р» — и вскрывались, и стояли в разборе буквами
+    (найдено после аудита 17.10). Строку делим по «;» и переводам строки."""
+    if isinstance(v, str):
+        return [part.strip() for part in re.split(r"[;\n]+", v) if part.strip()]
+    if isinstance(v, (list, tuple)):
+        return [str(x).strip() for x in v if str(x).strip()]
+    return []
+
+
 def _num(v, default: float = 0.0) -> float:
     try:
         return float(v)
@@ -224,7 +237,7 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
     style = d.get("style") if d.get("style") in _STYLES else "analytical"
     opp_open, opp_res, p_target, p_res = _normalize_zopa({**d, "dir": dir_})
 
-    interests = [str(x) for x in (d.get("hidden_interests") or [])][:3]
+    interests = _items(d.get("hidden_interests"))[:3]
     while len(interests) < 3:
         interests.append({"ru": "Скрытый интерес", "en": "A hidden interest"}[lang])
     # Темы интересов: панель «Скрытые интересы» и брифинг обещают их игроку, а
@@ -237,7 +250,7 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
               if isinstance(raw_topics, list) else [])
     if len(topics) != len(interests):
         topics = []
-    tradeoffs = [str(x) for x in (d.get("tradeoffs") or [])][:3]
+    tradeoffs = _items(d.get("tradeoffs"))[:3]
     while len(tradeoffs) < 2:
         tradeoffs.append({"ru": "уступка по срокам", "en": "a timing concession"}[lang])
 

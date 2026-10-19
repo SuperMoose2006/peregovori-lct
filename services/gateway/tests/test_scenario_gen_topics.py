@@ -72,3 +72,13 @@ def test_the_prompt_derives_table_numbers_from_the_description():
     их в брифинге теми же, что в полях. Гарантии это не даёт — снижает частоту."""
     assert "ВЫВОДИ ИЗ НИХ" in gen._sys_prompt("ru") and "450 000" in gen._sys_prompt("ru")
     assert "DERIVE the table numbers" in gen._sys_prompt("en")
+
+
+def test_interests_and_tradeoffs_given_as_one_string_are_not_split_into_letters(monkeypatch):
+    """Найдено после аудита 17.10: строка вместо списка шла по буквам —
+    интересы стола «Ш», «т», «р», размены «о», «т»."""
+    sc = _generate(monkeypatch, _reply(hidden_interests="Боится штрафа; хочет отзыв; нужна предоплата",
+                                       tradeoffs="отзыв; предоплата"))
+    assert sc is not None
+    assert sc.hidden_interests["ru"] == ["Боится штрафа", "хочет отзыв", "нужна предоплата"]
+    assert sc.tradeoffs["ru"][:2] == ["отзыв", "предоплата"]
