@@ -149,3 +149,18 @@ test("стол на зачёте прячет лампочку, заготовк
   assert.match(src, /hintEnabled=\{!graded\}/);
   assert.match(src, /showChips=\{!graded\}/);
 });
+
+test("репутация кампании не входит в партию на зачёт — офлайн как на сервере", async () => {
+  // Зеркало views.apply_start_conditions (найдено после аудита 17.10).
+  const { applyStartConditions, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const def = SCENARIO_MAP.supplier;
+  const trustAfter = (mode: string) => {
+    const s = newSession(def, "ru");
+    applyStartConditions(s, def, 125, null, mode as never);
+    return s.trust;
+  };
+  const base = newSession(def, "ru").trust;
+  for (const mode of REPRODUCIBLE_MODES) assert.equal(trustAfter(mode), base, mode);
+  assert.ok(trustAfter("campaign") > base, "кампания потеряла перенос репутации");
+});

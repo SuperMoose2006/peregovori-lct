@@ -1280,7 +1280,8 @@ export function applyStartConditions(s: Session, def: ScenarioDef, reputation?: 
   // Campaign reputation carries into this stage as a starting-trust nudge
   // (mirrors backend views.apply_reputation: ±15 max, initial condition only —
   // never scoring). Lets the offline demo show the carry-over take effect.
-  if (typeof reputation === "number") {
+  // В партию на зачёт не идёт — как и условие дня ниже (зеркало сервера).
+  if (typeof reputation === "number" && !reproducibleRun(mode)) {
     const nudge = Math.max(-15, Math.min(15, reputation * 0.12));
     s.trust = Math.max(0, Math.min(100, s.trust + nudge));
   }

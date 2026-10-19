@@ -566,3 +566,19 @@ def test_practice_still_gets_its_hint():
             event = ws.receive_json()
         assert event.get("kind") == "hint" and event["text"].strip()
         ws.send_json({"type": "session.close"})
+
+
+@pytest.mark.parametrize("game_mode", ["exam", "drill"])
+def test_campaign_reputation_never_reaches_a_graded_run(game_mode):
+    """Репутация кампании — вход партии, как условие дня, и на зачёт она не
+    идёт. Найдено после аудита 17.10: `session.init {gameMode: "exam",
+    reputation: 125}` поднимал доверие на 15 — отношения и счёт экзамена на
+    присланном клиентом числе."""
+    from app import views
+    graded = engine.create_session("supplier", "ru")
+    before = graded.state.trust
+    views.apply_start_conditions(graded, "supplier", 125, None, game_mode)
+    assert graded.state.trust == before
+    campaign = engine.create_session("supplier", "ru")
+    views.apply_start_conditions(campaign, "supplier", 125, None, "campaign")
+    assert campaign.state.trust > before, "кампания потеряла перенос репутации"
