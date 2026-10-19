@@ -246,6 +246,7 @@ class NegotiationOrchestrator:
         templated = (views.timeout_line(lang) if timeout
                      else engine.render_line(engine_sess, result.reaction, result.closed))
 
+        interrupted = False
         if timeout or not orchat.available():
             await self._deliver_plain(templated, turn_id)
         else:
@@ -254,14 +255,25 @@ class NegotiationOrchestrator:
             if sess.observations:
                 # Зрение попадает в контекст оппонента, но НИКОГДА в счёт.
                 facts["observations"] = sess.observations[-3:]
-            self._generation_task = asyncio.create_task(
+            reply = self._generation_task = asyncio.create_task(
                 self._stream_opponent(facts, templated, turn_id))
-            await self._generation_task
+            try:
+                await reply
+            except asyncio.CancelledError:
+                # ПЕРЕБИЛИ РЕПЛИКУ, А НЕ ХОД. `interrupt()` гасит задачу
+                # реплики, а ход её ждёт — и отмена раньше приходила сюда же:
+                # закрывший стол ход, перебитый на «Отлично, по рукам…», так и
+                # не отправлял разбор (найдено после аудита 17.10). Отменён сам
+                # ход (обрыв, вытеснение — `_Work.aclose`) — выходим.
+                me = asyncio.current_task()
+                if me is not None and me.cancelling():
+                    raise
+                interrupted = True
 
         # Показываем вопрос после реплики, как в офлайне: иначе карточка
-        # встанет между частями ещё печатающегося ответа. Отменённый ответ
-        # сюда не дойдёт и не сдвинет такт вопросов.
-        if probe:
+        # встанет между частями ещё печатающегося ответа. Перебитый ответ
+        # такт вопросов не сдвигает: человек уже говорит следующий ход.
+        if probe and not interrupted:
             sess.probe_memory = ProbeMemory(turn_id, result.reaction)
             bus.publish({"type": "probe", **probe.model_dump()})
 

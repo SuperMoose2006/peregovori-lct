@@ -69,8 +69,9 @@ async def test_cancelled_reply_does_not_consume_the_question(monkeypatch):
     try:
         await asyncio.wait_for(entered.wait(), timeout=2)
         await orchestrator.interrupt(reason='user_interrupt')
-        with pytest.raises(asyncio.CancelledError):
-            await task
+        # Перебита реплика, а не ход: ход доходит до конца (разбор закрывшего
+        # стол хода иначе терялся), но вопроса после перебитой реплики нет.
+        await asyncio.wait_for(task, timeout=2)
         assert sess.engine_session.turn == 3, 'the settled engine move remains applied'
         assert sess.probe_memory == ProbeMemory()
         sess.bus.close()
