@@ -139,3 +139,13 @@ test("«Завершить» меняет сокет только на спок�
   assert.equal(hangUpAction({ ...calm, conn: "lost" }), "local");
   assert.equal(hangUpAction({ ...calm, busy: true, conn: "lost" }), "local");
 });
+
+test("карточки на тёмной сцене звонка пишут своим цветом, а не белым сцены", async () => {
+  // Найдено вживую: сцена задаёт `color: #fff`, карточка вопроса о реакции —
+  // светлая и своего цвета текста не имеет. Вопрос и четыре ответа читались
+  // белым по белому — пустая рамка с пустыми кнопками.
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.call \{[^}]*color: #fff/, "сцена звонка больше не белая — проверка устарела");
+  assert.match(css, /\.call-cards \{ color: var\(--ink\); \}/, "карточки на сцене наследуют белый текст");
+});

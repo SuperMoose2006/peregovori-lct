@@ -4246,6 +4246,9 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .call-hint .ch-x { position: absolute; right: 6px; top: 6px; width: 28px; height: 28px; border-radius: 8px;
   color: var(--ink-dim); font-size: 18px; line-height: 1; }
 .call-hint .ch-x:hover { background: var(--panel-2); }
+/* Сцена пишет белым по тёмному, а карточки светлые: цвет текста возвращается
+   явно, иначе вопрос о реакции читался белым по белому (найдено вживую). */
+.call-cards { color: var(--ink); }
 .call-cards .probe { box-shadow: 0 8px 24px rgb(0 0 0 / 30%); }
 /* Лента открыта — подсказка уже стоит в ней; вопрос о реакции остаётся у лица. */
 .call-body.with-feed .call-hint { display: none; }
