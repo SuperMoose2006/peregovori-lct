@@ -46,31 +46,58 @@ def _status_phrase(status: str, lang: str) -> str:
 
 
 def _style_flavor(style: str | None, lang: str) -> str:
-    """One line of tone guidance so relationship/tough/analytical personas
-    actually sound different (not the same rephrased reaction)."""
+    """Манера персонажа — КАК он говорит, а не готовые фразы.
+
+    Прежняя редакция давала присказки («цифры есть цифры», «по-хорошему»), и
+    модель вставляла их в каждую реплику: живой человек так не говорит —
+    это слышно с третьего хода (жалоба владельца 19.10: «отвечает непохоже на
+    человека»). Теперь описан темп и отношение, а слова модель берёт свои."""
     ru = {
-        "relationship": ("Ты тёплый и ориентирован на отношения: ценишь контакт, не любишь давление, "
-                         "говоришь мягко и по-человечески. Обращаешься к чувствам, зовёшь решать «вместе», "
-                         "«по-хорошему»; на грубость реагируешь обидой, а не встречной агрессией."),
-        "tough": ("Ты жёсткий и прямой: рубишь коротко, давишь, не терпишь пустых слов и торопишь. "
-                  "Твоя присказка — «цифры есть цифры», «не тянем», «ближе к делу». Фразы рубленые, без реверансов."),
-        "analytical": ("Ты аналитик: сух, точен, уважаешь цифры, данные и логику, эмоции держишь в стороне. "
-                       "Часто начинаешь с «если посмотреть на факты», ссылаешься на расчёт и критерии, "
-                       "а не на настроение."),
+        "relationship": ("Манера: тёплая и спокойная. Тебе важен контакт, давление тебя задевает — на грубость "
+                         "ты не огрызаешься, а холодеешь и закрываешься. Говоришь мягко, по-простому."),
+        "tough": ("Манера: жёсткая и прямая. Короткие фразы, нетерпение к воде, можешь перебить мысль "
+                  "встречным вопросом. Не грубишь, но и не расшаркиваешься."),
+        "analytical": ("Манера: сдержанная и точная. Тебя убеждают цифры и логика, эмоции не цепляют; "
+                       "переспрашиваешь, откуда данные, и считаешь вслух."),
     }
     en = {
-        "relationship": ("You are warm and relationship-driven: you value rapport, dislike pressure, and speak "
-                         "softly, like a person. You name feelings, invite solving it \"together\" and \"the good "
-                         "way\"; to rudeness you react with hurt, not counter-aggression."),
-        "tough": ("You are tough and blunt: clipped, you press, have no patience for fluff and you rush things. "
-                  "Your tics are \"numbers are numbers\", \"let's not drag this\", \"get to the point\". Short, no frills."),
-        "analytical": ("You are analytical: dry, precise, you respect numbers, data and logic, and keep emotion "
-                       "aside. You often open with \"looking at the facts\", cite the math and criteria rather "
-                       "than mood."),
+        "relationship": ("Manner: warm and calm. Rapport matters to you and pressure stings — you don't snap back "
+                         "at rudeness, you cool down and close off. You speak gently and plainly."),
+        "tough": ("Manner: tough and direct. Short sentences, no patience for fluff, you may cut in with a "
+                  "counter-question. Not rude, but no niceties either."),
+        "analytical": ("Manner: reserved and precise. Numbers and logic persuade you, emotion doesn't; you ask "
+                       "where the data comes from and do the math out loud."),
     }
     table = ru if lang == "ru" else en
     line = table.get(style or "")
     return (line + "\n") if line else ""
+
+
+#: Как звучит живой человек на созвоне. Отдельным блоком, потому что это не
+#: факты стола, а голос: реплику слышат вслух, и канцелярит в ней режет ухо.
+_VOICE_RULES = {
+    "ru": ("Говори как живой человек на деловом созвоне, а не как чат-бот:\n"
+           "- разговорно и коротко — обычно одна-две фразы, иногда пара слов или встречный вопрос;\n"
+           "- отвечай на то, что сейчас сказали, а не пересказывай свою позицию целиком;\n"
+           "- можно переспросить, усомниться, помолчать мыслью («Хм. Девяносто?»), не соглашаться;\n"
+           "- не начинай с «Знаете», «Понимаю вашу позицию», «Спасибо за вопрос»; не льсти и не "
+           "благодари за каждую реплику;\n"
+           "- без штампов: «по-человечески», «ради общего дела», «найдём решение, которое устроит обе "
+           "стороны», «я ценю ваше стремление»;\n"
+           "- чувства не называй («мне неприятно») — пусть их слышно по тону;\n"
+           "- каждый раз строй фразу по-новому, не повторяй свои прежние обороты.\n"),
+    "en": ("Speak like a real person on a business call, not like a chatbot:\n"
+           "- conversational and short — usually one or two sentences, sometimes a few words or a "
+           "counter-question;\n"
+           "- respond to what was just said instead of restating your whole position;\n"
+           "- you may ask back, doubt, think aloud (\"Hm. Ninety?\"), disagree;\n"
+           "- don't open with \"I understand your position\", \"Thanks for asking\", \"Great question\"; "
+           "no flattery, no thanking for every line;\n"
+           "- no stock phrases like \"let's find a solution that works for both sides\" or \"I appreciate "
+           "your effort\";\n"
+           "- don't name your feelings (\"I'm upset\") — let them show in your tone;\n"
+           "- phrase things fresh every time, don't reuse your earlier wording.\n"),
+}
 
 
 # Наблюдение камеры пишет МОДЕЛЬ ЗРЕНИЯ по кадру, который снял человек. То есть
@@ -175,10 +202,11 @@ def build_system(facts: dict) -> str:
         rev = ("- Игрок уже вывел эти твои интересы — можешь на них ссылаться: "
                + "; ".join(revealed) + ".\n") if revealed else ""
         return (
-            f"Ты играешь роль оппонента на деловых переговорах. Персонаж: {name} — {desc}.\n"
+            f"Ты — {name}. {desc} Идут деловые переговоры, ты на другой стороне стола.\n"
             f"{style_line}"
-            "Ответь РОВНО одной короткой репликой (1-2 предложения) на русском, строго в "
-            "характере, без markdown, без пояснений, без кавычек вокруг ответа.\n"
+            f"{_VOICE_RULES['ru']}"
+            "Ответ — ОДНА реплика по-русски, только сами слова персонажа: без markdown, без пояснений, "
+            "без кавычек вокруг.\n"
             "Факты, которым нельзя противоречить:\n"
             f"- Твоё текущее предложение на столе: {offer}{unit}.\n"
             f"- Твой настрой сейчас: {mood}.\n"
@@ -210,10 +238,11 @@ def build_system(facts: dict) -> str:
     rev = ("- The player has already drawn out these interests of yours — you may reference them: "
            + "; ".join(revealed) + ".\n") if revealed else ""
     return (
-        f"You role-play the counterpart in a business negotiation. Character: {name} — {desc}.\n"
+        f"You are {name}. {desc} This is a business negotiation, and you sit on the other side of the table.\n"
         f"{style_line}"
-        "Reply with EXACTLY one short line (1-2 sentences) in English, strictly in character, "
-        "no markdown, no explanations, no quotes around the answer.\n"
+        f"{_VOICE_RULES['en']}"
+        "Your answer is ONE line in English, only the character's own words: no markdown, no explanations, "
+        "no quotes around it.\n"
         "Hard facts you must not contradict:\n"
         f"- Your current offer on the table: {offer}{unit}.\n"
         f"- Your current mood: {mood}.\n"
@@ -246,18 +275,18 @@ def build_user(facts: dict) -> str:
         hist = f"Разговор до этого момента:\n{transcript}\n\n" if transcript else ""
         return (
             f"{hist}"
-            f'Ориентир твоей реакции по движку (перефразируй в характере, не копируй): "{fallback}"\n\n'
-            f"Реплика игрока: {player_text}\n"
-            "Ответь с учётом всего разговора — помни свои прежние уступки и слова.\n"
-            "Твой ответ:"
+            f'Что ты по сути отвечаешь (смысл, а не слова — скажи по-своему): "{fallback}"\n\n'
+            f"Собеседник только что сказал: {player_text}\n"
+            "Помни весь разговор: свои прежние уступки и слова.\n"
+            "Твоя реплика:"
         )
     hist = f"Conversation so far:\n{transcript}\n\n" if transcript else ""
     return (
         f"{hist}"
-        f'Engine reference reaction (rephrase in character, do not copy): "{fallback}"\n\n'
-        f"Player said: {player_text}\n"
-        "Answer in light of the whole conversation — remember your earlier concessions and words.\n"
-        "Your reply:"
+        f'What you essentially answer (the meaning, not the words — say it your way): "{fallback}"\n\n'
+        f"The other person just said: {player_text}\n"
+        "Keep the whole conversation in mind: your earlier concessions and words.\n"
+        "Your line:"
     )
 
 
