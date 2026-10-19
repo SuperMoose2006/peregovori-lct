@@ -388,3 +388,15 @@ test("капстоун курса соперником стола не стан�
   assert.ok(guard, "запись соперника обязана стоять за проверкой режима");
   assert.match(guard[0], /\|\| drill \|\|/);
 });
+
+test("уход из партии снимает соперника — «своя сделка» не наследует прежний стол", () => {
+  // Найдено после аудита 17.10: соперник снимался только в `launch`, а «своя
+  // сделка» идёт мимо него — и разбор предлагал переиграть прошлый стол.
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const leave = app.match(/const leaveSession = useCallback\(\(\) => \{[^]*?\n  \}, \[/);
+  assert.ok(leave, "leaveSession не найден");
+  assert.match(leave[0], /setNextRival\(null\)/);
+  assert.match(leave[0], /setRival\(null\)/);
+  const custom = app.match(/const startCustom = useCallback\(\(\) => \{[^]*?\n  \}, \[/);
+  assert.ok(custom && /leaveSession\(\)/.test(custom[0]), "своя сделка обязана начинаться с ухода из прежней партии");
+});

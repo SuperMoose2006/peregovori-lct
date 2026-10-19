@@ -347,6 +347,12 @@ export default function App() {
     chatScrollPosition.current = null;
     nego.reset();
     activeRunRef.current = null;
+    // Соперник принадлежит ПАРТИИ, а не вкладке: снимался он только в
+    // `launch`, и «своя сделка» (мимо `launch`) получала в разборе карточку
+    // «Переиграйте против себя» с результатом ПРЕЖНЕГО стола, а кнопка
+    // переигровки собирала новую сделку (найдено после аудита 17.10).
+    setRival(null);
+    setNextRival(null);
     setDrill(null);
     setDrillVerdict(null);
     setLayersOpen(false);
