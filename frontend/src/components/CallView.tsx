@@ -304,7 +304,10 @@ export function CallView({
           label={camera.reason ? c.camera : !camera.up ? c.camOn : camera.off ? c.camOn : c.camOff}
           title={camera.reason ? c.camNa.replace("{reason}", camera.reason) : !camera.up ? c.camStart : undefined}
           off={!camera.up || camera.off}
-          disabled={!!camera.reason || offline || finished}
+          // Поднять камеру — это смена сокета (как вход в звонок), а сокет
+          // меняется только между ходами: во время хода или речи кнопка
+          // заперта, а не нажимается вхолостую (найдено ревью).
+          disabled={!!camera.reason || offline || finished || (!camera.up && status !== "listening")}
           onClick={onToggleCamera}
         />
         <CallButton icon="cc" label={c.cc} pressed={captions} onClick={() => setCaptions((v) => !v)} />

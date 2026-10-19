@@ -212,3 +212,31 @@ test("«Завершить»: отказ смены в последний мом
   const sw = body.slice(body.indexOf('if (hangUp === "switch")'), body.indexOf("nego.stopCapture();"));
   assert.match(sw, /setHangupPending\(true\);\s*return;\s*\}\s*$/, "отказ хука ведёт в «местный» выход");
 });
+
+test("камеру, которой нет в звонке, поднимают только между ходами", async () => {
+  // Найдено ревью: поднять камеру — смена сокета, хук её во время хода
+  // отклоняет, а кнопка выглядела рабочей и нажималась вхолостую.
+  const { CallView } = await import("../src/components/CallView");
+  const render = (status: string, up: boolean) => renderToStaticMarkup(createElement(CallView, {
+    t: I18N.ru, lang: "ru", scenario: { id: "supplier", counterpart_name: "Марина", counterpart_persona: "",
+      headline_unit: "₽" } as never,
+    state: null, status: status as never, avatarState: null, renderer: "portrait", synthetic: false,
+    videoPending: false, oppSpeaking: status === "speaking", speech: true, subtitle: null, transcript: null,
+    micAvailable: true, micFail: null, micMuted: false, onToggleMic: () => {},
+    camera: { up, off: false, reason: null }, onToggleCamera: () => {},
+    hud: null, turnLabel: "", feed: null, hint: null, hintEnabled: true, hintDisabled: false,
+    onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: null,
+  }));
+  const camButton = (html: string) => {
+    const at = html.indexOf(`title="${I18N.ru.call.camStart}"`);
+    return html.slice(html.lastIndexOf("<button", at), html.indexOf(">", at));
+  };
+  assert.doesNotMatch(camButton(render("listening", false)), /disabled/);
+  for (const status of ["speaking", "thinking", "hearing"]) {
+    assert.match(camButton(render(status, false)), /disabled/, `${status}: кнопка камеры жмётся вхолостую`);
+  }
+  // Поднятую камеру выключают в любой момент — это не смена сокета.
+  const up = render("speaking", true);
+  const at = up.indexOf(I18N.ru.call.camOff);
+  assert.doesNotMatch(up.slice(up.lastIndexOf("<button", at), up.indexOf(">", up.lastIndexOf("<button", at))), /disabled/);
+});
