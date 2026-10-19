@@ -288,3 +288,15 @@ test("на экзамене карточки нет: разбор рисуетс
   const src = readFileSync(new URL("../src/components/Debrief.tsx", import.meta.url), "utf8");
   assert.match(src, /at\(2\) && !exam && review \?/);
 });
+
+test("запись голоса и кадров названа там, где она начинается, а камера не обещает «только присутствие»", () => {
+  for (const lang of ["ru", "en"] as const) {
+    const t = I18N[lang];
+    // Строка в ленте при входе в созвон — момент, с которого пишется голос и кадры.
+    assert.match(t.call.started, lang === "ru" ? /памяти.*стира/i : /memory.*erased/i,
+                 `${lang}: о записи для разбора сказано в момент, когда она начинается`);
+    assert.match(t.layers.blurbs.camera, lang === "ru" ? /мимик/i : /facial/i,
+                 `${lang}: камера видит мимику — и подпись слоя это говорит`);
+    assert.doesNotMatch(t.layers.blurbs.camera, lang === "ru" ? /сигналы присутствия/ : /presence signals/);
+  }
+});
