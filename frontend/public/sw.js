@@ -1,4 +1,4 @@
-// sw.js — minimal offline-shell service worker for «Диалог».
+// sw.js — minimal offline-shell service worker for RocketTalk.
 //
 // Anti-stale design: the cache name carries a VERSION. On activate we delete every
 // cache that isn't the current version, so a freshly deployed SW can never serve

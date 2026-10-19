@@ -77,14 +77,12 @@ test("плейсхолдеры совпадают в обоих языках", (
 //
 // Здесь он закрыт для всего словаря сразу, в обе стороны.
 
-/** Единственная кириллица, которой в английском словаре место, — имя продукта.
- *  Оно и по-английски пишется так же: это название, а не забытый перевод. */
-const BRAND = /«?Диалог»?/g;
-
-/** Слова, которые в русском тексте остаются латиницей законно: термины метода
- *  и единица опыта. Список намеренно короткий и закрытый — он оправдывает
- *  восемь конкретных строк, а не открывает дверь. */
-const TERMS = /\b(SPIN|BATNA|ZOPA|XP)\b/g;
+/** Слова, которые в русском тексте остаются латиницей законно: термины метода,
+ *  единица опыта и имя продукта. Список намеренно короткий и закрытый — он
+ *  оправдывает конкретные строки, а не открывает дверь. Кириллице в английском
+ *  словаре места нет совсем: имя продукта — RocketTalk, латиница, а прежнее
+ *  «Диалог» в английском тексте — уже не название, а забытый перевод. */
+const TERMS = /\b(SPIN|BATNA|ZOPA|XP|RocketTalk)\b/g;
 
 const CYR = /[А-Яа-яЁё]/;
 const LETTER = /[A-Za-zА-Яа-яЁё]/;
@@ -105,7 +103,7 @@ function walk(o: unknown, path: string, out: [string, string][]): void {
 }
 
 /** Английская строка написана по-русски? */
-const enHasRussian = (v: string) => CYR.test(v.replace(BRAND, ""));
+const enHasRussian = (v: string) => CYR.test(v);
 
 /** Русская строка осталась английской? Тоньше первого случая: «{n} XP»
  *  законна, «Your turn» — нет. Убираем подстановки и термины; если после
@@ -118,11 +116,11 @@ const ruHasForgottenEnglish = (v: string) => {
 test("само правило отличает забытый перевод от законного исключения", () => {
   // Сторож, проверенный только на здоровом словаре, доказывает лишь то, что
   // словарь здоров. Здесь он проверяется на подложных строках — в обе стороны
-  // и на самом коварном случае: имя продукта не должно прикрывать собой
-  // кириллицу, стоящую рядом.
-  assert.equal(enHasRussian("The «Диалог» trainer certifies the method."), false);
+  // и на прежнем имени продукта: после переименования оно больше не
+  // исключение.
+  assert.equal(enHasRussian("The RocketTalk trainer certifies the method."), false);
   assert.equal(enHasRussian("Карл наблюдает"), true);
-  assert.equal(enHasRussian("The «Диалог» trainer. Ваш ход."), true);
+  assert.equal(enHasRussian("The «Диалог» trainer certifies the method."), true);
   assert.equal(enHasRussian("Your move"), false);
 
   assert.equal(ruHasForgottenEnglish("{n} XP"), false);
@@ -130,6 +128,7 @@ test("само правило отличает забытый перевод о�
   assert.equal(ruHasForgottenEnglish("Your turn"), true);
   assert.equal(ruHasForgottenEnglish("Ваш ход"), false);
   assert.equal(ruHasForgottenEnglish("SPIN и BATNA"), false);
+  assert.equal(ruHasForgottenEnglish("RocketTalk"), false);
 });
 
 test("в английском словаре нет русского текста", () => {

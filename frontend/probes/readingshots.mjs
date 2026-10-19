@@ -134,7 +134,7 @@ await shot("21-ru-dark-result.png");
 await enter("en", "light");
 await shot("30-en-light-question.png");
 const cyr = await page.locator(".rd-shell").innerText();
-if (/[А-Яа-яЁё]/.test(cyr.replace(/Диалог/g, ""))) {
+if (/[А-Яа-яЁё]/.test(cyr)) {
   await fail("в английском режиме на экране русский текст (инвариант 4):\n" +
     (cyr.match(/[^\n]*[А-Яа-яЁё][^\n]*/g) || []).join("\n"));
 }

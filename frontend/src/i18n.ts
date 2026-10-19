@@ -1799,7 +1799,7 @@ export const I18N: Record<Lang, Strings> = {
       tradeoffs: ["размен", "размена", "разменов"],
       threats: ["угроза", "угрозы", "угроз"],
     },
-    footLeft: "Диалог · тренажёр переговоров",
+    footLeft: "RocketTalk · тренажёр переговоров",
     footRight: "исход зависит от вашей стратегии",
     gam: {
       rankLabel: "ранг",
@@ -2793,7 +2793,7 @@ export const I18N: Record<Lang, Strings> = {
       tradeoffs: ["trade-off", "trade-offs", "trade-offs"],
       threats: ["threat", "threats", "threats"],
     },
-    footLeft: "Диалог · Negotiation Skills Simulator",
+    footLeft: "RocketTalk · Negotiation Skills Simulator",
     footRight: "the outcome depends on your strategy",
     gam: {
       rankLabel: "rank",

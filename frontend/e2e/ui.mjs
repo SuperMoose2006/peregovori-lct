@@ -82,15 +82,12 @@ await suite.flow("theme", async (f) => {
 
 // ---------------------------------------------------------------------------
 
-/** Русские слова на английском экране (кроме бренда «Диалог»). */
+/** Русские слова на английском экране. Имя продукта — RocketTalk, латиница. */
 async function cyrillicLeaks(p) {
   return p.evaluate(() => {
     const text = document.body.innerText;
     const out = new Map();
     for (const m of text.matchAll(/[А-Яа-яЁё][А-Яа-яЁё-]*/g)) {
-      // Регистр не важен: логотип рисуется строчными через text-transform, а
-      // innerText отдаёт текст уже преобразованным — «диалог», а не «Диалог».
-      if (m[0].toLowerCase() === "диалог") continue;
       if (!out.has(m[0])) out.set(m[0], JSON.stringify(text.slice(Math.max(0, m.index - 25), m.index + 25).replace(/\s+/g, " ")));
     }
     return [...out.values()].slice(0, 5);

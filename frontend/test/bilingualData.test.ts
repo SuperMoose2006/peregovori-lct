@@ -16,10 +16,9 @@ import { readdirSync } from "node:fs";
 
 const SRC = new URL("../src/", import.meta.url);
 
-/** Имя продукта пишется по-русски и в английском тексте — это название. */
-const BRAND = /«?Диалог»?/g;
-/** Термины метода и единица опыта законно стоят латиницей в русском тексте. */
-const TERMS = /\b(SPIN|BATNA|ZOPA|XP)\b/g;
+/** Термины метода, единица опыта и имя продукта законно стоят латиницей в
+ *  русском тексте. Кириллице в английской половине места нет совсем. */
+const TERMS = /\b(SPIN|BATNA|ZOPA|XP|RocketTalk)\b/g;
 const CYR = /[А-Яа-яЁё]/;
 const LATIN = /[A-Za-z]/;
 const LETTER = /[A-Za-zА-Яа-яЁё]/;
@@ -84,7 +83,7 @@ test("половина с текстом не стоит рядом с пуст�
 
 test("английская половина написана по-английски", async () => {
   const bad = (await data).pairs
-    .filter((p) => typeof p.en === "string" && CYR.test(p.en.replace(BRAND, "")))
+    .filter((p) => typeof p.en === "string" && CYR.test(p.en))
     .map((p) => `${p.path} = ${JSON.stringify(p.en).slice(0, 100)}`);
   assert.deepEqual(bad, [], "английскому пользователю показывают русский текст:\n" + bad.join("\n"));
 });

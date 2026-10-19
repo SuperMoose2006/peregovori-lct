@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Диалог">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="RocketTalk">
   <!-- Поле во всю площадь (безопасно для maskable): всё значимое — в центральных
        60 %. Цвет — фирменная заливка brass из styles.css, #58cc02.
        Двух дефисов подряд в комментарии быть не должно: для XML это ошибка,
@@ -7,10 +7,8 @@
        страницы, и прежний <text> падал на антикву системы. -->
   <rect width="512" height="512" fill="#58cc02"/>
   <g fill="none" stroke="#ffffff" stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M188 322 L214 148 L314 148 L314 322"/>
-    <path d="M158 322 L344 322"/>
-    <path d="M158 322 L158 384"/>
-    <path d="M344 322 L344 384"/>
+    <path d="M152 364 L152 148 L232 148 A68 68 0 0 1 232 284 L152 284"/>
+    <path d="M218 284 L286 364"/>
   </g>
-  <circle cx="400" cy="358" r="27" fill="#ffffff"/>
+  <circle cx="356" cy="358" r="27" fill="#ffffff"/>
 </svg>

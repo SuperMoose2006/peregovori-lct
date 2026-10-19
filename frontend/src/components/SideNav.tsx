@@ -63,7 +63,7 @@ export function SideNav({ t, active, onMode, onProfile, onCourse, onAdmin }: Pro
   return (
     <nav className={`sidenav${more.left ? " more-left" : ""}${more.right ? " more-right" : ""}`} aria-label={t.a11y.nav}>
       <div className="sn-brand">
-        Диалог<span className="dot">.</span>
+        RocketTalk<span className="dot">.</span>
       </div>
       <ul ref={listRef}>
         {rows.map((r) => (

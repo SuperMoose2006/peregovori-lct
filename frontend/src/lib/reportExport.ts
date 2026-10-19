@@ -11,8 +11,8 @@ export interface ReportInput {
 }
 
 const LABELS = {
-  ru: { title: "Диалог · Разбор переговоров", scenario: "Ситуация", player: "Участник", date: "Дата", mode: "Режим", modes: { practice: "Практика", exam: "Экзамен", campaign: "Кампания", custom: "Своя ситуация", drill: "Практика курса" }, score: "Итог", economic: "Экономика", relationship: "Отношения", technique: "Техника", deal: "Результат", interests: "Раскрытые интересы", spin: "Этапы SPIN", criteria: "Объективные критерии", empathy: "Эмпатия", tradeoffs: "Обмен уступками", threats: "Угрозы", tips: "Что попробовать в следующий раз", turning: "Поворотные моменты", moves: "Ваши реплики", mentor: "Комментарий наставника", mentorStrength: "Что сработало", mentorGrowth: "Что изменить в следующий раз" },
-  en: { title: "Dialog · Negotiation report", scenario: "Situation", player: "Participant", date: "Date", mode: "Mode", modes: { practice: "Practice", exam: "Exam", campaign: "Campaign", custom: "Custom situation", drill: "Course practice" }, score: "Overall", economic: "Economics", relationship: "Relationship", technique: "Technique", deal: "Outcome", interests: "Interests uncovered", spin: "SPIN stages", criteria: "Objective criteria", empathy: "Empathy", tradeoffs: "Trade-offs", threats: "Threats", tips: "Try next time", turning: "Turning points", moves: "Your lines", mentor: "Mentor's comment", mentorStrength: "What worked", mentorGrowth: "What to change next time" },
+  ru: { title: "RocketTalk · Разбор переговоров", scenario: "Ситуация", player: "Участник", date: "Дата", mode: "Режим", modes: { practice: "Практика", exam: "Экзамен", campaign: "Кампания", custom: "Своя ситуация", drill: "Практика курса" }, score: "Итог", economic: "Экономика", relationship: "Отношения", technique: "Техника", deal: "Результат", interests: "Раскрытые интересы", spin: "Этапы SPIN", criteria: "Объективные критерии", empathy: "Эмпатия", tradeoffs: "Обмен уступками", threats: "Угрозы", tips: "Что попробовать в следующий раз", turning: "Поворотные моменты", moves: "Ваши реплики", mentor: "Комментарий наставника", mentorStrength: "Что сработало", mentorGrowth: "Что изменить в следующий раз" },
+  en: { title: "RocketTalk · Negotiation report", scenario: "Situation", player: "Participant", date: "Date", mode: "Mode", modes: { practice: "Practice", exam: "Exam", campaign: "Campaign", custom: "Custom situation", drill: "Course practice" }, score: "Overall", economic: "Economics", relationship: "Relationship", technique: "Technique", deal: "Outcome", interests: "Interests uncovered", spin: "SPIN stages", criteria: "Objective criteria", empathy: "Empathy", tradeoffs: "Trade-offs", threats: "Threats", tips: "Try next time", turning: "Turning points", moves: "Your lines", mentor: "Mentor's comment", mentorStrength: "What worked", mentorGrowth: "What to change next time" },
 };
 
 /** Deliberate public fields: no session tokens, raw transport objects or camera data. */
@@ -61,12 +61,17 @@ export function reportText(input: ReportInput): string {
   return lines.join("\n") + "\n";
 }
 
+/** Имя файла выгрузки: продукт и дата партии. */
+export function reportFileName(input: ReportInput, format: "txt" | "json"): string {
+  return `rockettalk-${input.createdAt.slice(0, 10)}.${format}`;
+}
+
 export function downloadReport(input: ReportInput, format: "txt" | "json"): void {
   const body = format === "txt" ? reportText(input) : JSON.stringify(reportSnapshot(input), null, 2) + "\n";
   const url = URL.createObjectURL(new Blob([body], { type: `${format === "txt" ? "text/plain" : "application/json"};charset=utf-8` }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = `dialog-${input.createdAt.slice(0, 10)}.${format}`;
+  anchor.download = reportFileName(input, format);
   document.body.appendChild(anchor);
   try { anchor.click(); }
   finally { anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }

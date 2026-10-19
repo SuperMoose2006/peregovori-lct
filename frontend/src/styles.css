@@ -2231,11 +2231,12 @@ textarea:focus-visible,
   padding: 26px 16px; position: sticky; top: 0; align-self: start;
   height: 100vh; overflow-y: auto;
 }
-/* Логотип — зелёный, строчными, самым тяжёлым начертанием, как «duolingo».
-   Логотип исключён из требований контраста WCAG (1.4.3), поэтому ему можно
-   то, что нельзя подписи. */
+/* Логотип — зелёный, самым тяжёлым начертанием, как «duolingo». Регистр —
+   как в имени: «rockettalk» строчными слипается в одно слово, RocketTalk
+   читается двумя. Логотип исключён из требований контраста WCAG (1.4.3),
+   поэтому ему можно то, что нельзя подписи. */
 .sn-brand {
-  font-size: 34px; font-weight: 900; letter-spacing: -0.03em; text-transform: lowercase;
+  font-size: 34px; font-weight: 900; letter-spacing: -0.03em;
   color: var(--brass); padding: 0 14px; margin-bottom: 30px; line-height: 1;
 }
 .sn-brand .dot { color: var(--brass); }

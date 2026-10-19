@@ -283,10 +283,8 @@ const PROBE = `(() => {
     if (el.children.length || !vis(el)) continue;
     const t = (el.textContent || "").trim();
     if (t.length < 2) continue;
-    // «Диалог» — ИМЯ ПРОДУКТА, а не непереведённая строка: бренд не переводят,
-    // как не переводят Duolingo. Единственное законное исключение; всё
-    // остальное кириллическое в английском интерфейсе — ошибка.
-    if (t.indexOf("Диалог") === 0) continue;
+    // Имя продукта — RocketTalk, латиница, поэтому исключений нет: любая
+    // кириллица в английском интерфейсе — ошибка.
     if (/[\\u0400-\\u04FF]/.test(t)) out.cyr.push((el.className || el.tagName) + " :: " + t.slice(0, 46));
   }
 

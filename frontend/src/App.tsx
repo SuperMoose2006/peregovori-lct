@@ -1092,7 +1092,7 @@ export default function App() {
         </div>
         <div className="brand">
           <span className="mark">
-            Диалог<span className="dot">.</span>
+            RocketTalk<span className="dot">.</span>
           </span>
           <span className="sub">{t.tagline}</span>
         </div>
