@@ -22,13 +22,16 @@ interface Props {
   onGenerate: () => void;
   context?: ScenarioContext;
   onContextChange?: (context: ScenarioContext) => void;
+  /** Стол соберёт офлайн-синтез, а не модель: обещать «ИИ соберёт» нельзя
+   *  (принцип 2). */
+  offline?: boolean;
 }
 
 /** Сколько слов нужно описанию своей сделки, чтобы её было из чего собрать. */
 export const MIN_SITUATION_WORDS = 3;
 
 export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
-                                  context, onContextChange }: Props) {
+                                  context, onContextChange, offline = false }: Props) {
   // Одна буква запускала генерацию (аудит 17.10, CE-05): модель
   // придумывала сделку «из ничего», а человек не понимал, откуда она. Три
   // слова — минимум, из которого видно, кто напротив и о чём торг.
@@ -138,7 +141,7 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
             Никакого «мгновенно» — генерация занимает секунды, и обещать иное
             значит заставить человека нажать второй раз. */}
         <p className="cust-promise">
-          <span aria-hidden="true"><Icon name="dice" /></span> {t.custom.promise}
+          <span aria-hidden="true"><Icon name="dice" /></span> {offline ? t.custom.promiseOffline : t.custom.promise}
         </p>
       </div>
     </>

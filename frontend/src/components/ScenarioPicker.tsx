@@ -63,6 +63,8 @@ interface Props {
   onStartCustom: () => void;
   customContext?: ScenarioContext;
   onCustomContextChange?: (context: ScenarioContext) => void;
+  /** «Своя сделка» соберётся без модели — см. CustomSituation.offline. */
+  customOffline?: boolean;
   // campaign-mode wiring
   campaign: CampaignView | null;
   campaignProgress: CampaignProgress;
@@ -187,7 +189,7 @@ function BestChip({ profile, id }: { profile: Profile; id: string }) {
 
 export function ScenarioPicker({
   t, lang, mode, onStart,
-  situation, customError, onSituationChange, onStartCustom, customContext, onCustomContextChange,
+  situation, customError, onSituationChange, onStartCustom, customContext, onCustomContextChange, customOffline,
   campaign, campaignProgress, onBeginStage, profile,
   campaigns = [], campaignProgressOf, onPickCampaign,
   examName, onExamNameChange, onCourseBlock, onWarmup,
@@ -239,6 +241,7 @@ export function ScenarioPicker({
           onGenerate={onStartCustom}
           context={customContext}
           onContextChange={onCustomContextChange}
+          offline={customOffline}
         />
       ) : mode === "campaign" ? (
         <>

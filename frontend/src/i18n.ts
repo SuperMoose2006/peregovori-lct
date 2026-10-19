@@ -208,6 +208,8 @@ export interface Strings {
     /** Что именно соберёт генератор и сколько это займёт. Замер бейк-оффа для
      *  дефолтной модели роли `reasoning` — 2.3 с (docs/model-bakeoff.md). */
     promise: string;
+    /** То же без модели: стол собирается офлайн по образцам. */
+    promiseOffline: string;
     /** Чем «Своя сделка» отличается от «Редактора». Два режима собирают
      *  переговоры, и без этой строки их путали: здесь играете вы сами. */
     vsEditor: string;
@@ -219,6 +221,7 @@ export interface Strings {
     generate: string;
     generating: string;
     generatingSub: string;
+    generatingSubOffline: string;
     errorHead: string;
     errorSub: string; // reassuring sub-line under the failure head
     timeout: string; // message shown when generation runs past the client timeout
@@ -1060,6 +1063,8 @@ export const I18N: Record<Lang, Strings> = {
         "Опишите вашу переговорную ситуацию… Например: «Я фрилансер, клиент просит скидку 20% на проект, а я не готов опускаться ниже своей ставки. Нужно сохранить контракт и не обесценить работу.»",
       promise:
         "По описанию ИИ соберёт оппонента: характер и манеру речи, красную линию, за которую он не пойдёт, зону возможного согласия и три скрытых интереса — их придётся вскрывать вопросами. Обычно занимает 2–3 секунды.",
+      promiseOffline:
+        "Сейчас без связи: оппонент соберётся по готовым образцам — вид сделки, тон и цифры возьмутся из вашего описания, три скрытых интереса придётся вскрывать вопросами.",
       vsEditor:
         "«Своя сделка» — для вас: опишите свою настоящую ситуацию, и за стол сядете вы сами. Если нужно подготовить переговоры для других — учеников или команды — по готовым настройкам, для этого есть «Редактор».",
       examplesHead: "Не с чего начать? Возьмите пример — он подставится в поле:",
@@ -1080,6 +1085,7 @@ export const I18N: Record<Lang, Strings> = {
       generate: "Сгенерировать сценарий →",
       generating: "Генерируем вашего оппонента…",
       generatingSub: "ИИ проектирует персону, скрытые интересы и зону торга под вашу ситуацию.",
+      generatingSubOffline: "Без связи стол собирается по готовым образцам: вид сделки, тон и цифры — по вашему описанию.",
       errorHead: "Не удалось сгенерировать сценарий",
       errorSub: "Иногда генерация не удаётся. Попробуйте ещё раз или начните с готового сценария.",
       timeout: "Генерация заняла слишком много времени. Возможно, сейчас высокая нагрузка — попробуйте снова.",
@@ -2064,6 +2070,8 @@ export const I18N: Record<Lang, Strings> = {
         "Describe your negotiation situation… e.g. “I'm a freelancer, a client wants a 20% discount on the project, but I can't go below my rate. I need to keep the contract without devaluing my work.”",
       promise:
         "From your description the AI builds a counterpart: character and voice, the red line they will not cross, the bargaining zone, and three hidden interests you'll have to surface with questions. Usually takes 2–3 seconds.",
+      promiseOffline:
+        "Offline right now: the counterpart is assembled from ready-made patterns — deal type, tone and numbers come from your description, and three hidden interests still have to be surfaced with questions.",
       vsEditor:
         "“Your deal” is for you: describe your own real situation and you take the seat yourself. To prepare a negotiation for someone else — learners or your team — from ready-made settings, use the “Editor”.",
       examplesHead: "Not sure where to start? Take an example — it fills the box:",
@@ -2084,6 +2092,7 @@ export const I18N: Record<Lang, Strings> = {
       generate: "Generate scenario →",
       generating: "Generating your counterpart…",
       generatingSub: "The AI is designing a persona, hidden interests and a bargaining zone for your situation.",
+      generatingSubOffline: "Offline, the table is assembled from ready-made patterns: deal type, tone and numbers follow your description.",
       errorHead: "Couldn't generate a scenario",
       errorSub: "Generation sometimes fails. Try again, or start from a ready-made scenario.",
       timeout: "Generation took too long. It may be a busy moment — please try again.",

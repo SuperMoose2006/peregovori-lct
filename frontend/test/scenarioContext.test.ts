@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CustomSituation } from "../src/components/CustomSituation";
@@ -76,4 +77,22 @@ test("офлайн-синтез узнаёт вид сделки по слова
   assert.deepEqual(kind("Хочу поднять ставку на проекте"), ["high", "k"]);
   assert.deepEqual(kind("Нужно сдвинуть срок на 10 дней"), ["low", " дн"]);
   assert.deepEqual(kind("Прошу повысить оклад"), ["high", "k"]);
+});
+
+test("без модели «своя сделка» не обещает, что её соберёт ИИ", () => {
+  // Принцип 2 (найдено после аудита 17.10): офлайн стол собирается по
+  // образцам, а экраны говорили «ИИ соберёт…» и «ИИ проектирует персону…».
+  for (const lang of ["ru", "en"] as const) {
+    const t = I18N[lang];
+    const ai = lang === "ru" ? /ИИ/ : /\bAI\b/;
+    assert.doesNotMatch(t.custom.promiseOffline, ai);
+    assert.doesNotMatch(t.custom.generatingSubOffline, ai);
+    const html = renderToStaticMarkup(createElement(CustomSituation, {
+      t, lang, value: "Discuss the contract", error: null, onChange() {}, onGenerate() {}, offline: true,
+    }));
+    assert.ok(html.includes(t.custom.promiseOffline.slice(0, 20)));
+    assert.ok(!html.includes(t.custom.promise.slice(0, 20)));
+  }
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(app, /customOffline \? t\.custom\.generatingSubOffline : t\.custom\.generatingSub/);
 });

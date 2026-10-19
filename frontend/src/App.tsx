@@ -287,6 +287,11 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const nego = useNegotiation(lang, { videoRef, canvasRef });
+  // «Своя сделка» без модели — офлайн-синтез по образцам. Обещать там «ИИ
+  // соберёт» значило бы показать то, чего нет (принцип 2; найдено после
+  // аудита 17.10). Решает то же, что и партию: проба сервера и транспорт.
+  const customOffline = server === "offline" || (server !== null && server.cloud_ai === false)
+    || nego.kind === "mock";
   // Микрофон во встрече выключается, не закрывая партию. Дорожка та же и
   // после переподключения, поэтому выбор применяется заново к каждой новой
   // сессии; новая партия начинает с включённым.
@@ -1158,6 +1163,7 @@ export default function App() {
               onStartCustom={startCustom}
               customContext={customContext}
               onCustomContextChange={setCustomContext}
+              customOffline={customOffline}
               campaign={campaign}
               campaignProgress={progress}
               onBeginStage={beginStage}
@@ -1242,7 +1248,7 @@ export default function App() {
                 <i /><i /><i />
               </div>
               <ScreenHeading as="h1" className="gen-title">{t.custom.generating}</ScreenHeading>
-              <p className="gen-sub">{t.custom.generatingSub}</p>
+              <p className="gen-sub">{customOffline ? t.custom.generatingSubOffline : t.custom.generatingSub}</p>
             </div>
           </div>
         </section>
