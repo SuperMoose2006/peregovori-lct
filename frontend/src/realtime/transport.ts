@@ -408,7 +408,8 @@ export class RealtimeTransport implements Transport {
       // Провал СМЕНЫ РЕЖИМА — это потерянная связь посреди партии, а не
       // провал запуска: `error` рисуется только на экране подготовки.
       if (!resume) this.emit({ type: "error", message: (error as Error).message });
-      else if (refused && (error as HandshakeRefused).serverCode) this.emit({ type: "notice", text: (error as Error).message });
+      else if (refused && (error as HandshakeRefused).serverCode)
+        this.emit({ type: "notice", text: this.localMessage((error as HandshakeRefused).serverCode, (error as Error).message) });
       this.onConn("lost");
     }
   }
@@ -803,11 +804,7 @@ export class RealtimeTransport implements Transport {
         // в русской партии это строка на чужом языке посреди ленты
         // (инвариант 4, найдено после аудита 17.10). Их текст берётся из
         // словаря по коду; остальные коды сервер уже переводит сам.
-        const local = I18N[this.lang].conn.errors as Record<string, string>;
-        const message = err.code && err.code !== "generic"
-          && Object.prototype.hasOwnProperty.call(local, err.code)
-          ? local[err.code]
-          : String(err.message ?? local.generic);
+        const message = this.localMessage(err.code, err.message);
         // ОТКАЗ ВНУТРИ ПАРТИИ — СТРОКА В ЛЕНТЕ, А НЕ ПРОВАЛ ЗАПУСКА.
         //
         // `error` со стола (кончился бюджет зрения, не поднялось распознавание,
@@ -824,6 +821,15 @@ export class RealtimeTransport implements Transport {
         return;
       }
     }
+  }
+
+  /** Текст отказа сервера на языке партии: часть отказов сервер пишет только
+   *  по-английски, их слова берутся из словаря по коду (инвариант 4). */
+  private localMessage(code: string | undefined, message: string | undefined): string {
+    const local = I18N[this.lang].conn.errors as Record<string, string>;
+    return code && code !== "generic" && Object.prototype.hasOwnProperty.call(local, code)
+      ? local[code]
+      : String(message ?? local.generic);
   }
 
   /** Прежний сокет ушёл — его недособранный ход и звук не вернутся. */

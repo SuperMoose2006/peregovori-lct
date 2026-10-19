@@ -119,6 +119,15 @@ const NO_RETURN_CLOSE_CODES = new Set([4401, 4409, 4429]);
  * тот же отказ ещё четыре раза, ровно в тот момент, когда сервер просил не
  * давить, а его слова человек так и не видел (найдено вторым ревью созвона).
  */
+/** ОТВЕТЫ НА ВХОД ТРЁХ РОДОВ (третье ревью: все ошибки были «отказом»).
+ *  Отказ — лимит, неверный запрос, сборка не удалась: повторять бессмысленно.
+ *  Ответ на ЧУЖОЕ сообщение — вход тут ни при чём, его рукопожатие пропускает
+ *  (`not_initialized` на кусок звука, ушедший до `session.init`).
+ *  Всё прочее (`server_error`, `init_timeout`) — сбой, после него пробуют снова. */
+const REFUSAL_CODES = new Set(["too_many_sessions", "too_many_generations", "init_failed", "bad_payload"]);
+const STRAY_REPLY_CODES = new Set(["not_initialized", "already_initialized", "bad_json", "bad_message",
+  "bad_input", "bad_audio", "audio_too_large", "frame_too_large", "busy", "unknown_event"]);
+
 export class HandshakeRefused extends Error {
   constructor(message: string, readonly closeCode?: number, readonly serverCode?: string) {
     super(message);
@@ -258,6 +267,11 @@ export class RealtimeSession {
 
   private send(message: Record<string, unknown>, quiet = false): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    // ДО ПРИЁМА ПАРТИИ ГОВОРИТ ТОЛЬКО РУКОПОЖАТИЕ. Микрофон во время
+    // переподключения продолжает слать звук, и кусок, ушедший раньше
+    // `session.init`, сервер встречал `not_initialized` (третье ревью).
+    // `session.close` проходит всегда: уйти можно и посреди входа.
+    if (!this.started && message.type !== "session.close") return;
     this.ws.send(JSON.stringify(message));
     if (!quiet) this.record("client", String(message.type), "");
   }
@@ -342,10 +356,13 @@ export class RealtimeSession {
           resolve(message);
         } else if (message.type === "error") {
           const body = message.error as { message?: string; code?: string } | undefined;
+          const code = body?.code ?? "";
+          if (STRAY_REPLY_CODES.has(code)) return;      // ответ не на вход
+          const why = body?.message ?? "не удалось начать партию";
+          if (!REFUSAL_CODES.has(code)) { fail(why); return; }
           clearTimeout(silence);
           drop();
-          reject(new HandshakeRefused(body?.message ?? "не удалось начать партию", undefined,
-                                      body?.code ?? "generic"));
+          reject(new HandshakeRefused(why, undefined, code));
         } else {
           this.onEvent(message);
         }

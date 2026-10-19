@@ -524,3 +524,53 @@ test("своя сделка, собираемая заново, ждёт ген�
   }
   t.mock.timers.reset();
 });
+
+test("вход в партию: отказ, сбой и чужой ответ — три разные вещи", async () => {
+  // Третье ревью (вносил 62a6522): любая ошибка на входе стала «отказом» —
+  // и временный сбой сервера, и `not_initialized`, которым сервер отвечает на
+  // кусок звука, ушедший до `session.init` (микрофон при переподключении
+  // продолжает слать). Голосовое переподключение стало падать насмерть.
+  // Сбой сервера — повторить.
+  {
+    const t = await table();
+    t.transport.relayer({ voice: false, probe: true });
+    const second = await nextSocket();
+    for (let i = 0; i < 20 && !second.types().includes("session.init"); i++) await wait(10);
+    second.deliver({ type: "error", error: { code: "server_error", message: "internal error" } });
+    for (let i = 0; i < 40 && FakeSocket.instances.length < 3; i++) await wait(50);
+    assert.equal(FakeSocket.instances.length, 3, "временный сбой сервера сочтён окончательным отказом");
+    t.transport.close();
+  }
+  // Ответ на чужое сообщение — вход его не замечает.
+  {
+    const t = await table();
+    t.transport.relayer({ voice: false, probe: true });
+    const second = await nextSocket();
+    for (let i = 0; i < 20 && !second.types().includes("session.init"); i++) await wait(10);
+    second.deliver({ type: "error", error: { code: "not_initialized", message: "send session.init first" } });
+    second.deliver({ type: "session.created", session_id: "s-1", resumed: true, scenario: { id: "supplier" },
+      state: STATE0, greeting: "", capabilities: {} });
+    await wait(0);
+    assert.equal(t.get().conn, "online", "ответ на чужое сообщение сорвал вход");
+    assert.equal(FakeSocket.instances.length, 2);
+    t.transport.close();
+  }
+  // И до приёма партии клиент не шлёт ничего, кроме самого входа.
+  {
+    const { RealtimeSession } = await import("../src/realtime/vendor/realtime-session");
+    FakeSocket.instances = [];
+    const session = new RealtimeSession({ mode: "voice", onEvent: () => {} });
+    const started = session.start({ scenarioId: "supplier", lang: "ru", resume: "s-1" });
+    await wait(0);
+    const socket = FakeSocket.instances[0];
+    await wait(0);
+    session.sendAudio("AAAA");
+    session.sendText("ход до входа");
+    socket.deliver({ type: "session.queue_done" });
+    assert.deepEqual(socket.types(), ["session.init"], `до приёма ушло лишнее: ${socket.types()}`);
+    socket.deliver({ type: "session.created", session_id: "s-1", scenario: { id: "supplier" }, state: STATE0,
+      greeting: "", capabilities: {} });
+    await started;
+    session.stop();
+  }
+});
