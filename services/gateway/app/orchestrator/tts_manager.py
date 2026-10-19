@@ -47,6 +47,10 @@ from app.realtime.events import output_delta, error
 
 #: Метка конца фразы во внутренней очереди.
 _EOP = b""
+
+#: Через сколько молчания синтеза отправлять тот же текст вторым запросом.
+#: Обычный первый звук — полсекунды; секунда — это уже хвост, а не норма.
+HEDGE_AFTER_S = 1.0
 SYNTHESIS_TIMEOUT_S = 15.0
 
 
@@ -185,7 +189,11 @@ class TTSTaskManager:
         try:
             with ProviderCall("tts.synthesize", type(self._provider).__name__) as call:
                 async with asyncio.timeout(timeout):
-                    async for chunk in self._provider.stream(text, self._voice, **extra):
+                    # Синтез, который говорит сам (голос сервиса видео), — со
+                    # своим состоянием: второй запрос к нему был бы второй речью.
+                    source = (self._provider.stream(text, self._voice, **extra) if extra
+                              else self._hedged(text))
+                    async for chunk in source:
                         if chunk:
                             call.first_chunk()
                             received = True
@@ -203,6 +211,63 @@ class TTSTaskManager:
                 self._publish(error("tts_unavailable", message))
         finally:
             await queue.put(_EOP)
+
+    async def _hedged(self, text: str):
+        """Поток синтеза с подстраховкой: молчит дольше `HEDGE_AFTER_S` — тот же
+        текст уходит вторым запросом, звучит тот, кто ответил первым.
+
+        Замер на стенде 19.10: первый звук у gpt-4o-mini-tts — 0,45–0,55 с, но
+        примерно каждый четвёртый запрос — 3,3 с, и ответ собеседника приходил
+        через 5,7 с после конца речи игрока. Второй запрос стоит копейки и
+        случается только на медленных."""
+        out: asyncio.Queue = asyncio.Queue()
+
+        async def pump(tag: int) -> None:
+            try:
+                async for chunk in self._provider.stream(text, self._voice):
+                    if chunk:
+                        await out.put((tag, chunk))
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                await out.put((tag, exc))
+                return
+            await out.put((tag, None))
+
+        runners = {1: asyncio.create_task(pump(1))}
+        winner: Optional[int] = None
+        failed: set[int] = set()
+        try:
+            while True:
+                try:
+                    wait = HEDGE_AFTER_S if (winner is None and len(runners) == 1) else None
+                    tag, item = await asyncio.wait_for(out.get(), timeout=wait)
+                except TimeoutError:
+                    runners[2] = asyncio.create_task(pump(2))
+                    continue
+                if winner is None:
+                    if isinstance(item, Exception) or item is None:
+                        failed.add(tag)
+                        if len(failed) == len(runners):
+                            if isinstance(item, Exception):
+                                raise item
+                            return
+                        continue
+                    winner = tag
+                    for other, task in runners.items():
+                        if other != winner:
+                            task.cancel()
+                if tag != winner:
+                    continue
+                if isinstance(item, Exception):
+                    raise item
+                if item is None:
+                    return
+                yield item
+        finally:
+            for task in runners.values():
+                if not task.done():
+                    task.cancel()
 
     async def _send_in_order(self) -> None:
         """Отправщик: строго по очереди фраз, внутри фразы — по мере готовности.

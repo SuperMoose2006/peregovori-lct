@@ -143,3 +143,39 @@ def test_a_transcript_does_not_restart_the_quiet_window(monkeypatch):
         assert p._quiet is first, "окно тишины перезапущено расшифровкой"
         first.cancel()
     asyncio.run(go())
+
+
+def test_a_slow_synthesis_is_hedged_by_a_second_request(monkeypatch):
+    """Замер 19.10: каждый четвёртый синтез отвечал через 3,3 с вместо 0,5.
+    Молчит дольше секунды — тот же текст идёт вторым запросом, звучит первый."""
+    from app.orchestrator import tts_manager as module
+    monkeypatch.setattr(module, "HEDGE_AFTER_S", 0.05)
+
+    class Slow:
+        def __init__(self):
+            self.calls = 0
+
+        def available(self):
+            return True
+
+        async def stream(self, text, voice, **kw):
+            self.calls += 1
+            if self.calls == 1:
+                await asyncio.sleep(1.0)
+                yield b"slow"
+            else:
+                yield b"fast"
+
+    async def go():
+        events: list[dict] = []
+        provider = Slow()
+        tts = TTSTaskManager(provider, events.append, Voice(id="", lang="ru", female=True))
+        t0 = time.monotonic()
+        tts.speak("Шестьсот десять?", generation_id="g", turn_id=1)
+        await tts.wait_idle()
+        took = time.monotonic() - t0
+        audio = [e["audio"] for e in events if e.get("kind") == "audio"]
+        import base64
+        assert [base64.b64decode(a) for a in audio] == [b"fast"], "звучит ответивший первым, один раз"
+        assert took < 0.5 and provider.calls == 2
+    asyncio.run(go())
