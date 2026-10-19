@@ -105,6 +105,9 @@ export function createTransport(
     resumeAudio: () => inner?.resumeAudio?.(),
     setMicMuted: (muted: boolean) => inner?.setMicMuted?.(muted),
     interrupt: () => inner?.interrupt?.(),
+    relayer: (layers: Record<string, boolean>) => inner?.relayer?.(layers) ?? false,
+    setCameraOff: (off: boolean) => inner?.setCameraOff?.(off),
+    stopCapture: () => inner?.stopCapture?.(),
   };
 
   const adopt = (transport: Transport, kind: TransportKind) => {

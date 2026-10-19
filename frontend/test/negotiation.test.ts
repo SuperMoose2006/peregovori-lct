@@ -53,7 +53,7 @@ const me = (id: number, extra: Partial<ChatEntry & { kind: "me" }> = {}): ChatEn
 // «следующий ход принимается» повторено здесь дословно. Поменялось там —
 // обязано поменяться здесь.
 const canMove = (s: NegotiationState) =>
-  s.conn === "online" && !s.busy && !!s.state && s.state.status === "active";
+  s.conn === "online" && !s.switching && !s.busy && !!s.state && s.state.status === "active";
 
 // ---------------------------------------------------------------------------
 // 1. Начало партии и её продолжение после обрыва

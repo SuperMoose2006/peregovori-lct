@@ -88,6 +88,52 @@ def test_resume_continues_the_same_game():
         ws.send_json({"type": "session.close", "reason": "test"})
 
 
+def test_resume_switches_text_and_call_without_losing_the_game(monkeypatch):
+    """Чат ↔ созвон посреди партии — это `resume` с другим режимом и слоями.
+
+    Клиент уходит со старого сокета БЕЗ `session.close` и входит новым: режим
+    на проводе задаёт адрес (`?mode=voice`), слои — `session.init`. Партия при
+    этом обязана остаться той же — с тем же ходом и теми же шкалами, — а
+    возможности обязаны сказать правду о НОВОМ режиме: голос поднят в созвоне
+    и погашен после него (frontend: realtime/transport.ts::relayer).
+    """
+    monkeypatch.setenv("NEGO_VOICE", "off")   # распознавание здесь не нужно
+    client = TestClient(app)
+    scenario = engine.SCENARIOS[0].id
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "session.init", "payload": {
+            "scenarioId": scenario, "lang": "ru", "layers": {"probe": True}}})
+        session_id = ws.receive_json()["session_id"]
+        ws.send_json({"type": "input.append", "input": {"text": "Что для вас здесь важнее всего?"}})
+        ws.send_json({"type": "input.commit"})
+        state = None
+        for _ in range(16):
+            event = ws.receive_json()
+            if event["type"] == "engine.state":
+                state = event["state"]
+            if event["type"] == "response.done":
+                break
+    assert state is not None and state["turn"] == 1
+
+    for mode, voice in (("voice", True), ("text", False)):
+        with client.websocket_connect(f"/v1/realtime?mode={mode}") as ws:
+            ws.receive_json()
+            ws.send_json({"type": "session.init", "payload": {
+                "scenarioId": scenario, "lang": "ru", "resume": session_id,
+                "layers": {"probe": True, "voice": voice}}})
+            created = ws.receive_json()
+            assert created["session_id"] == session_id, f"{mode}: вошли не в ту партию"
+            assert created["resumed"] is True
+            assert created["mode"] == mode
+            assert created["state"] == state, f"{mode}: шкалы разошлись при смене режима"
+            assert created["capabilities"]["voice"] is voice, f"{mode}: возможности от прежнего режима"
+        # Сокет закрыт без `session.close` — партия ждёт следующего входа.
+        assert store.get(session_id) is not None, f"{mode}: партия не пережила смену режима"
+
+    store.drop(session_id)
+
+
 def test_resume_of_an_unknown_session_starts_a_fresh_game():
     """Срок ожидания вышел — начинаем новую партию, а не показываем ошибку."""
     client = TestClient(app)

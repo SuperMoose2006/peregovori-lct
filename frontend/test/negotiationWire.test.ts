@@ -83,7 +83,7 @@ const DRAFT = {
 // Предикат из `turn()` в useNegotiation.ts, дословно (хук в node не
 // поднимается: выбор транспорта читает `import.meta.env`).
 const canMove = (s: NegotiationState) =>
-  s.conn === "online" && !s.busy && !!s.state && s.state.status === "active";
+  s.conn === "online" && !s.switching && !s.busy && !!s.state && s.state.status === "active";
 
 interface Table {
   get: () => NegotiationState;

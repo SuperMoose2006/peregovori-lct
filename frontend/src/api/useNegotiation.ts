@@ -26,7 +26,9 @@ export type ChatEntry =
   // techniques / reject ride along ONLY when the live judge scored this turn (the
   // "judge-cam" chips); both absent offline/mock where no live judge ran.
   | { id: number; kind: "coach"; text: string; techniques?: string[]; reject?: boolean }
-  | { id: number; kind: "sys"; text: string }
+  // `calm` — граница режимов («созвон начался»), а не тревога: цвет обычного
+  // текста, а не цвет обрыва связи.
+  | { id: number; kind: "sys"; text: string; calm?: boolean }
   // The "read her face" question, and its resolved state once answered. The
   // engine's reaction IS the answer, so this is real, not a quiz bolted on top.
   | {
@@ -93,6 +95,10 @@ export interface NegotiationState {
   framesSent: number;
   /** Что умеет эта сессия (из `session.created`). Null до начала партии. */
   capabilities: Record<string, unknown> | null;
+  /** Идёт смена режима той же партии (текст ↔ созвон): сокет сменится, ход
+   *  останется. Баннер «связь прервалась» здесь был бы неправдой — человек
+   *  сам нажал кнопку. Снимается приветствием нового сокета. */
+  switching: boolean;
 }
 
 export interface Negotiation extends NegotiationState {
@@ -122,6 +128,11 @@ export interface Negotiation extends NegotiationState {
   setMicMuted: (muted: boolean) => void;
   /** Оборвать реплику оппонента кнопкой. Голосом сервер перебивает сам. */
   interrupt: () => void;
+  /** Сменить слои идущей партии — вход в созвон и выход из него. Ложь — смена
+   *  сейчас невозможна (ход в полёте, стол закрыт, офлайн-ядро). */
+  relayer: (layers: Record<string, boolean>, note?: string) => boolean;
+  setCameraOff: (off: boolean) => void;
+  stopCapture: () => void;
 }
 
 const initialState: NegotiationState = {
@@ -147,6 +158,7 @@ const initialState: NegotiationState = {
   tellNow: false,
   framesSent: 0,
   capabilities: null,
+  switching: false,
 };
 
 /** Куда рисовать картинку с камеры. Сами слои выбираются на экране подготовки
@@ -208,6 +220,7 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
             // A drop or a lost connection must never leave the typing indicator
             // spinning — clear busy so the reconnect banner owns the messaging.
             busy: conn === "online" ? p.busy : false,
+            switching: conn === "lost" ? false : p.switching,
           })),
         {
           // Голос и камера сюда не передаются: их выбирают на экране
@@ -275,7 +288,9 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
     const trimmed = clampInput(text.trim());
     if (!trimmed) return;
     setS((prev) => {
-      if (prev.conn !== "online" || prev.busy || !prev.state || prev.state.status !== "active") return prev;
+      // Пока сокет меняется (чат ↔ созвон), ход уйти некуда: прежний сокет
+      // закрыт, новый ещё не принят — а `busy` повис бы навсегда.
+      if (prev.conn !== "online" || prev.switching || prev.busy || !prev.state || prev.state.status !== "active") return prev;
       const entry: ChatEntry = { id: nextId(), kind: "me", text: trimmed };
       transportRef.current?.send({ type: "turn", text: trimmed });
       return { ...prev, busy: true, phase: null, log: [...prev.log, entry] };
@@ -300,7 +315,7 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
     setS((prev) => {
       // One outstanding request at a time: repeated taps must not queue up a
       // column of placeholders (or a column of answers when they all land).
-      if (prev.conn !== "online" || prev.log.some((e) => e.kind === "hint" && e.pending)) return prev;
+      if (prev.conn !== "online" || prev.switching || prev.log.some((e) => e.kind === "hint" && e.pending)) return prev;
       transportRef.current?.send({ type: "hint" });
       const entry: ChatEntry = { id: nextId(), kind: "hint", text: "", pending: true };
       return { ...prev, log: [...prev.log, entry] };
@@ -325,9 +340,27 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
   const resumeAudio = useCallback(() => transportRef.current?.resumeAudio?.(), []);
   const setMicMuted = useCallback((muted: boolean) => transportRef.current?.setMicMuted?.(muted), []);
   const interrupt = useCallback(() => transportRef.current?.interrupt?.(), []);
+  const setCameraOff = useCallback((off: boolean) => transportRef.current?.setCameraOff?.(off), []);
+  const stopCapture = useCallback(() => transportRef.current?.stopCapture?.(), []);
+  /** `note` — строка в ленту («созвон начался»): разговор голосом остаётся в
+   *  той же ленте, что и напечатанный, и граница режимов в ней видна. */
+  const relayer = useCallback((layers: Record<string, boolean>, note?: string) => {
+    const t = transportRef.current;
+    const p = stateRef.current;
+    if (!t?.relayer || p.switching || p.busy || p.conn !== "online") return false;
+    if (!p.state || p.state.status !== "active" || p.debrief) return false;
+    if (!t.relayer(layers)) return false;
+    // Недослушанная фраза прежнего режима ходом уже не станет.
+    // Отказ устройства прежнего режима к новому не относится: микрофон,
+    // не вставший в созвоне, не повод для строки под полем ввода в чате.
+    setS((q) => ({ ...q, switching: true, transcript: null, userSpeaking: false, layerFail: {},
+                   log: note ? [...q.log, { id: nextId(), kind: "sys", text: note, calm: true }] : q.log }));
+    return true;
+  }, []);
 
   return { ...s, start, turn, requestHint, adjust, answerProbe, clearError, reset, getMicLevel, getSpeechLevel,
-           getVideoFrame, getAudioBlocked, resumeAudio, setMicMuted, interrupt };
+           getVideoFrame, getAudioBlocked, resumeAudio, setMicMuted, interrupt, relayer, setCameraOff,
+           stopCapture };
 }
 
 /** Тот же итог: совпали все числа и буквы, из которых складывается оценка. */
@@ -392,6 +425,7 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
         phase: null,
         error: null,
         judgeActive: !!msg.judge_active,
+        switching: false,
         log: msg.resumed
           ? prev.log.filter(e => !(e.kind === "hint" && e.pending))
               .map(e => e.kind === "opp" && e.streaming ? { ...e, streaming: false } : e)

@@ -145,6 +145,7 @@ export class MediaProvider {
   private readonly frameIntervalMs: number;
 
   private micEnabled = true;
+  private cameraEnabled = true;
   running = false;
   private stopped = false;
   onChunk: ((chunk: MediaChunk) => void) | null = null;
@@ -276,7 +277,14 @@ export class MediaProvider {
 
     this.capture.port.onmessage = (event: MessageEvent<{ type: string; audio: Float32Array }>) => {
       if (event.data?.type !== "chunk" || !this.running) return;
-      if (!this.micEnabled) return;
+      if (!this.micEnabled) {
+        // Выключенный микрофон не гасит камеру: кадры ездят прицепом к
+        // звуку, и без этой ветки «выключить микрофон» в созвоне молча
+        // останавливало и зрение.
+        const frame = this.grabFrame();
+        if (frame) this.onFrame?.(frame);
+        return;
+      }
       this.onChunk?.({
         audio: floatToPcm16(event.data.audio),
         frame: this.grabFrame(),
@@ -290,6 +298,14 @@ export class MediaProvider {
   setMicEnabled(enabled: boolean): void {
     this.micEnabled = enabled;
     this.audioStream?.getAudioTracks().forEach((t) => (t.enabled = enabled));
+  }
+
+  /** Камера в созвоне выключается, как в любом звонке: дорожка гаснет, кадры
+   *  не снимаются и не уходят. Поток не закрывается — включить обратно можно
+   *  без второго вопроса о разрешении. */
+  setCameraEnabled(enabled: boolean): void {
+    this.cameraEnabled = enabled;
+    this.videoStream?.getVideoTracks().forEach((t) => (t.enabled = enabled));
   }
 
   /** Уровень входа 0..1 — для полоски «вас слышно». */
@@ -393,6 +409,7 @@ export class MediaProvider {
 
   private grabFrame(): string | null {
     this.bindElements();
+    if (!this.cameraEnabled) return null;
     if (!this.videoStream || !this.video || !this.canvas || !this.ctx2d) return null;
     const now = performance.now();
     if (now - this.lastFrameAt < this.frameIntervalMs) return null;

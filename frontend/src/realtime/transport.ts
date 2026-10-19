@@ -109,6 +109,14 @@ export class RealtimeTransport implements Transport {
   private voiceWanted = false;
   private microphoneAllowed = true;
   private cameraWanted = false;
+  /** Выбор человека во время созвона. Хранится здесь, а не только в
+   *  провайдере: провайдер создаётся заново при каждом входе в созвон и после
+   *  переподключения, и выключенный микрофон молча включался бы обратно. */
+  private micMuted = false;
+  private cameraOff = false;
+  /** Последний `start` — смена режима посреди партии собирает из него
+   *  новый `session.init` с другими слоями и `resume`. */
+  private lastStart: Extract<ClientMsg, { type: "start" }> | null = null;
   private closed = false;
   /** Партия уже началась: `session.created` пришёл. До него ошибка —
    *  провал запуска, после — сообщение со стола. */
@@ -155,7 +163,64 @@ export class RealtimeTransport implements Transport {
   /** Жест пользователя: разрешить браузеру играть звук. */
   resumeAudio(): void { this.player?.resume(); }
   /** Выключить микрофон, не закрывая его: дорожка молчит, партия идёт. */
-  setMicMuted(muted: boolean): void { this.media?.setMicEnabled(!muted); }
+  setMicMuted(muted: boolean): void {
+    this.micMuted = muted;
+    this.media?.setMicEnabled(!muted);
+  }
+  /** Выключить камеру в созвоне: кадры не снимаются и не уходят. */
+  setCameraOff(off: boolean): void {
+    this.cameraOff = off;
+    this.media?.setCameraEnabled(!off);
+  }
+
+  /**
+   * СМЕНА РЕЖИМА ПОСРЕДИ ПАРТИИ: текст ↔ созвон.
+   *
+   * Режим на проводе задаёт адрес сокета (`?mode=voice`), а слои едут в
+   * `session.init` — поменять их в живом сокете нечем. Зато партию держит
+   * движок, а не сокет: уходим со старого БЕЗ `session.close` (сервер
+   * отпускает партию ждать возвращения, как после обрыва) и входим новым
+   * сокетом с `resume` — тот же ход, те же шкалы, та же лента. Это ровно
+   * путь переподключения, только по воле человека.
+   *
+   * Звук и устройства прежнего режима гасятся ДО нового входа: выход из
+   * созвона закрывает микрофон и камеру, а не оставляет их гореть под чатом.
+   */
+  relayer(layers: Record<string, boolean>): boolean {
+    if (this.closed || !this.live || !this.lastStart || !this.serverSessionId) return false;
+    const resume = this.serverSessionId;
+    const message = { ...this.lastStart, layers: { ...layers } };
+    this.live = false;
+    this.session?.detach();
+    this.session = null;
+    this.forgetReply();
+    void this.stopMedia().then(() => {
+      if (!this.closed) return this.begin(message, resume);
+    });
+    return true;
+  }
+
+  /** Стол закрыт: ходов больше не будет, и держать открытыми микрофон и
+   *  камеру — значит держать горящий индикатор записи над разбором. Звук и
+   *  сокет остаются: прощальная реплика доигрывает, разбор доезжает. */
+  stopCapture(): void {
+    const media = this.media;
+    this.media = null;
+    void media?.stop().catch(() => { /* нечего гасить */ });
+  }
+
+  private async stopMedia(): Promise<void> {
+    const media = this.media;
+    const player = this.player;
+    this.media = null;
+    this.player = null;
+    this.faceFrames.clear();
+    this.markOppAudio(false);
+    await Promise.all([
+      media?.stop().catch(() => { /* нечего гасить */ }),
+      player?.dispose().catch(() => { /* уже закрыт */ }),
+    ]);
+  }
 
   /** Перебивание с кнопки. Голосовое сервер замечает сам, через VAD. */
   interrupt(): void {
@@ -204,12 +269,15 @@ export class RealtimeTransport implements Transport {
 
   // -- запуск партии -------------------------------------------------------
 
-  private async begin(message: Extract<ClientMsg, { type: "start" }>): Promise<void> {
+  /** `resume` — смена режима той же партии (`relayer`), а не новая партия. */
+  private async begin(message: Extract<ClientMsg, { type: "start" }>, resume?: string): Promise<void> {
     const layers = { ...(message.layers ?? {}) } as Record<string, boolean>;
+    this.lastStart = message;
     this.live = false;
     this.lang = message.lang;
     this.probeEnabled = !!layers.probe;
-    this.lastProbeTurn = 0;
+    // Вопрос прошлого хода уже задан — после смены режима он не повторяется.
+    if (!resume) this.lastProbeTurn = 0;
     this.voiceWanted = !!layers.voice;
     this.cameraWanted = !!layers.camera;
 
@@ -224,6 +292,7 @@ export class RealtimeTransport implements Transport {
       reputationAvg: message.reputationAvg ?? null,
       daily: message.daily ?? null,
       layers,
+      resume,
     };
 
     this.session = new RealtimeSession({
@@ -235,18 +304,25 @@ export class RealtimeTransport implements Transport {
 
     try {
       const created = await this.session.start(payload);
-      this.serverSessionId = String(created.session_id ?? "");
+      const sessionId = String(created.session_id ?? "");
+      // Та же партия — лента остаётся, даже на нулевом ходу (серверный
+      // `resumed` там ложь: ходов ещё не было). Другой id — срок ожидания
+      // вышел, и сервер честно начал новую.
+      const resumed = !!resume && sessionId === resume;
+      this.serverSessionId = sessionId;
       this.live = true;
       this.faceFrames.setStaleMs((this.session.capabilities.avatar as Record<string, unknown> | undefined)?.stale_ms);
       this.options.onCapabilities?.(this.session.capabilities);
       this.emit({
         type: "greeting",
-        sessionId: String(created.session_id ?? ""),
+        sessionId,
+        resumed,
         scenario: created.scenario as ScenarioView,
         state: created.state as StateView,
         text: String(created.greeting ?? ""),
         judge_active: Boolean((created.capabilities as Record<string, unknown>)?.judge),
       });
+      if (resume && !resumed) this.emit({ type: "notice", text: replacedNotice(this.lang) });
       // ЧТО СЕРВЕР СКАЗАЛ ПРО СЛОИ — ЧИТАЕТСЯ, А НЕ ЛЕЖИТ. `capabilities`
       // приезжали в состояние и не читались НИГДЕ, кроме бейджа судьи. Из-за
       // этого партия с камерой на сервере без ключа зрения выглядела ровно как
@@ -258,7 +334,9 @@ export class RealtimeTransport implements Transport {
       // только заодно с голосом, а сама по себе молча не работала.
       if (this.voiceWanted || this.cameraWanted) await this.startMedia();
     } catch (error) {
-      this.emit({ type: "error", message: (error as Error).message });
+      // Провал СМЕНЫ РЕЖИМА — это потерянная связь посреди партии, а не
+      // провал запуска: `error` рисуется только на экране подготовки.
+      if (!resume) this.emit({ type: "error", message: (error as Error).message });
       this.onConn("lost");
     }
   }
@@ -331,6 +409,8 @@ export class RealtimeTransport implements Transport {
     // пользователя, а не сбой. Он возвращает отчёт по каждому слою, и каждый
     // невставший слой называется на экране поимённо.
     const report = await this.media.start({ camera: this.cameraWanted, mic: this.voiceWanted && this.microphoneAllowed });
+    this.media.setMicEnabled(!this.micMuted);
+    this.media.setCameraEnabled(!this.cameraOff);
     if (this.voiceWanted && this.microphoneAllowed && report.mic !== "ok")
       this.emit({ type: "layer_failed", layer: "voice", reason: String(report.mic) });
     if (this.cameraWanted && report.camera !== "ok")
@@ -393,22 +473,9 @@ export class RealtimeTransport implements Transport {
         const replaced = !!this.serverSessionId && nextSessionId !== this.serverSessionId;
         this.serverSessionId = nextSessionId;
         // Reconnect handshake must update the visible state, not only the socket.
-        this.pendingState = null;
-        this.pendingAnalysis = null;
-        this.pendingDeltas = null;
-        this.pendingCoach = null;
-        // Поколения прежнего сокета не вернутся: новый пишет свои. Текущее
-        // уходит в историю, чтобы его запоздавший хвост ничего не тронул.
-        this.retireGeneration(this.audioGeneration);
-        this.audioGeneration = "";
-        this.generationText = "";
-        this.generationFlushed = true;
-        this.awaitingReply = false;
-        this.faceFrames.clear();
+        this.forgetReply();
         this.faceFrames.setStaleMs(((event.capabilities as Record<string, unknown> | undefined)
           ?.avatar as Record<string, unknown> | undefined)?.stale_ms);
-        this.player?.stopAll();
-        this.markOppAudio(false);
         this.options.onCapabilities?.((event.capabilities as Record<string, unknown>) ?? {});
         this.emit({ type: "greeting", sessionId: String(event.session_id ?? ""),
           resumed: Boolean(event.resumed),
@@ -420,9 +487,7 @@ export class RealtimeTransport implements Transport {
         // здесь была бы неправдой.
         if (event.adjusted) return;
         this.emit({ type: "notice", text: replaced
-          ? (this.lang === "ru"
-            ? "Предыдущая попытка недоступна. Начата новая попытка; прошлый результат не восстановлен."
-            : "The previous attempt is unavailable. A new attempt has started; the previous result was not restored.")
+          ? replacedNotice(this.lang)
           : (this.lang === "ru"
             ? "Связь восстановлена, партия продолжается с того же места; последний ответ мог прерваться."
             : "Connection restored; the game continues where it was; the last reply may have been interrupted.") });
@@ -672,6 +737,24 @@ export class RealtimeTransport implements Transport {
     }
   }
 
+  /** Прежний сокет ушёл — его недособранный ход и звук не вернутся. */
+  private forgetReply(): void {
+    this.pendingState = null;
+    this.pendingAnalysis = null;
+    this.pendingDeltas = null;
+    this.pendingCoach = null;
+    // Поколения прежнего сокета не вернутся: новый пишет свои. Текущее
+    // уходит в историю, чтобы его запоздавший хвост ничего не тронул.
+    this.retireGeneration(this.audioGeneration);
+    this.audioGeneration = "";
+    this.generationText = "";
+    this.generationFlushed = true;
+    this.awaitingReply = false;
+    this.faceFrames.clear();
+    this.player?.stopAll();
+    this.markOppAudio(false);
+  }
+
   /** Собрать старый `opponent` из накопленных частей хода. */
   private flushTurn(text: string): void {
     if (!this.pendingState) return;
@@ -691,6 +774,13 @@ export class RealtimeTransport implements Transport {
     this.pendingDeltas = null;
     this.pendingCoach = null;
   }
+}
+
+/** Вернуться в партию не вышло: сервер её уже не держит и начал новую. */
+function replacedNotice(lang: Lang): string {
+  return lang === "ru"
+    ? "Предыдущая попытка недоступна. Начата новая попытка; прошлый результат не восстановлен."
+    : "The previous attempt is unavailable. A new attempt has started; the previous result was not restored.";
 }
 
 function emptyAnalysis(): Analysis {
