@@ -53,3 +53,9 @@
   color: var(--ink); background: color-mix(in srgb, var(--info) 8%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--info) 30%, var(--line));
 }
+
+/* Ссылка для участника (CE-03): вторая кнопка под запуском и сама ссылка —
+   на случай, если браузер не дал скопировать. */
+.admin-share { margin-top: 10px; }
+.admin-link { display: block; width: 100%; margin-top: 8px; font: inherit; font-size: 12px; padding: 8px 10px;
+  border: 2px solid var(--line); border-radius: 10px; background: var(--panel-2); color: var(--ink); }

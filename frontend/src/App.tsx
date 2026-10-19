@@ -16,6 +16,8 @@ import {
 } from "./lib/courseMap";
 import type { Exercise as CourseExercise } from "./lib/courseTypes";
 import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
+import { readTrainingLink } from "./lib/trainingLink";
+import { saveAdminDraft } from "./lib/adminContext";
 import { repliesByMove } from "./lib/whatif";
 import { LayersPanel } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard, RailGroup, DailyCard, StreakCard, useDayKey } from "./components/Rail";
@@ -1009,9 +1011,27 @@ export default function App() {
 
   const openAdmin = useCallback(() => {
     leaveSession();
+    setAdminAuto(false);
     setScreen("admin");
     scrollTop();
   }, [leaveSession]);
+
+  // Тренировка, присланная ссылкой из редактора (CE-03): настройки ложатся
+  // черновиком редактора на ЭТОМ устройстве, редактор сам собирает тот же стол
+  // и сажает за него. Адрес чистится сразу: перезагрузка не должна запускать
+  // тренировку второй раз.
+  const [adminAuto, setAdminAuto] = useState(false);
+  useEffect(() => {
+    const link = readTrainingLink(window.location.search);
+    if (!link) return;
+    try { window.history.replaceState(null, "", window.location.pathname); } catch { /* адрес — не главное */ }
+    saveAdminDraft(link.draft, (() => { try { return localStorage; } catch { return undefined; } })());
+    setLang(link.lang);
+    setAdminAuto(true);
+    setScreen("admin");
+    // Один раз при открытии.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const startAdmin = useCallback((id: string) => {
     setMode("practice");
     dispatchGen("reset");
@@ -1581,7 +1601,7 @@ export default function App() {
 
       {screen === "admin" && (
         <LazyScreen lang={lang} load={loadAdmin} onHome={goHome} render={(AdminScenarioScreen) => (
-          <AdminScenarioScreen lang={lang} onExit={goHome} onLaunch={startAdmin} />
+          <AdminScenarioScreen lang={lang} onExit={goHome} onLaunch={startAdmin} autoLaunch={adminAuto} />
         )} />
       )}
 

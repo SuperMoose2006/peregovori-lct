@@ -10,24 +10,27 @@ import "./AdminScenarioScreen.css";
 import { ScreenHeading } from "./ScreenHeading";
 import { DataIcon, Icon } from "./Icon";
 import { DifficultySelect } from "./DifficultySelect";
+import { trainingLink } from "../lib/trainingLink";
 
 // «Передайте участнику готовую тренировку» обещало передачу, которой нет:
 // сценарий живёт в этом браузере и запускается здесь (аудит 17.10, CE-03 —
 // «нужен способ передачи либо ясное ограничение одним устройством»).
 const COPY = {
   ru: {
-    eyebrow: "Для преподавателя и руководителя", title: "Подготовьте переговоры", intro: "Задайте ситуацию и собеседника. Посмотрите условия и запустите тренировку на этом устройстве — участник садится за него сам: ссылки и экспорта сценария пока нет.",
+    eyebrow: "Для преподавателя и руководителя", title: "Подготовьте переговоры", intro: "Задайте ситуацию и собеседника. Посмотрите условия и запустите тренировку на этом устройстве — или отправьте участнику ссылку: по ней он сядет за тот же стол.",
     vsCustom: "Чем это отличается от «Своей сделки»: там вы описываете СВОЮ ситуацию своими словами и садитесь за стол сами. Здесь вы собираете переговоры для другого человека из готовых настроек — сфера, роль и тон собеседника, сложность, его цели, — видите заранее, что он получит, и запускаете.",
     back: "← К практике", presets: "Начать с примера", configure: "1. Настройка ситуации", domain: "Сфера", topic: "Тема встречи", role: "Роль собеседника", tone: "Тон собеседника", difficulty: "Сложность", easy: "Больше уступок", hard: "Выше требования", goals: "Заявленные цели собеседника", goalsHelp: "Выберите от одной до трёх. Они меняют его позицию и ценность ваших уступок.",
     preview: "Посмотреть условия", waiting: "Готовим тренировку…", save: "Сохранить черновик", reset: "Сбросить", saved: "Черновик сохранён в этом браузере.", saveError: "Браузер не сохранил черновик. Вы можете продолжить без сохранения.", resetDone: "Восстановлен пример закупок.",
+    share: "Скопировать ссылку для участника", shared: "Ссылка скопирована — отправьте её участнику. Настройки едут в самой ссылке.", shareManual: "Браузер не дал скопировать — выделите ссылку:", opening: "Открываем тренировку по ссылке…",
     previewTitle: "2. Предпросмотр участника", empty: "Здесь появятся условия переговоров", emptyBody: "Начните с готового примера или заполните настройки слева. Предпросмотр покажет роль участника и то, как будет вести себя собеседник.", basis: "На основе кейса", counterpart: "Ваш собеседник", player: "Роль участника", conditions: "Условия встречи", impact: "Как работают настройки", launch: "Начать тренировку", launchHint: "Участник проходит переговоры и получает разбор своих решений.", ready: "Условия готовы. Можно начинать тренировку.",
     errors: { rate: "Слишком много предпросмотров. Подождите секунду и попробуйте снова.", auth: "Нужен вход на стенд. Обновите страницу и введите пароль доступа.", invalid: "Проверьте тему, роль и выбранные цели.", server: "Не удалось подготовить тренировку. Проверьте подключение к интернету и повторите попытку." },
   },
   en: {
-    eyebrow: "For educators and team leads", title: "Set up a negotiation", intro: "Choose a situation and a counterpart. Review the terms and start the practice on this device — the learner takes the seat here: there is no share link or export yet.",
+    eyebrow: "For educators and team leads", title: "Set up a negotiation", intro: "Choose a situation and a counterpart. Review the terms and start the practice on this device — or send the learner a link: it seats them at the same table.",
     vsCustom: "How this differs from “Your deal”: there you describe YOUR own situation in your own words and take the seat yourself. Here you build a negotiation for someone else from ready-made settings — the counterpart's field, role and tone, the difficulty and their goals — see in advance what the learner will get, and launch it.",
     back: "← Back to practice", presets: "Start from an example", configure: "1. Configure the situation", domain: "Context", topic: "Meeting topic", role: "Counterpart role", tone: "Counterpart tone", difficulty: "Difficulty", easy: "More concessions", hard: "Higher expectations", goals: "Counterpart’s stated objectives", goalsHelp: "Choose one to three. These change their position and the value of your concessions.",
     preview: "Preview the terms", waiting: "Preparing practice…", save: "Save draft", reset: "Reset", saved: "Draft saved in this browser.", saveError: "The browser could not save your draft. You can continue without saving.", resetDone: "Procurement example restored.",
+    share: "Copy a link for the learner", shared: "Link copied — send it to the learner. The settings travel inside the link.", shareManual: "The browser would not copy — select the link:", opening: "Opening the practice from the link…",
     previewTitle: "2. Learner preview", empty: "Your negotiation will appear here", emptyBody: "Start with an example or complete the settings. Preview the learner’s role and how the counterpart will respond.", basis: "Based on", counterpart: "Your counterpart", player: "Learner’s role", conditions: "Meeting terms", impact: "How the settings work", launch: "Start practice", launchHint: "The learner negotiates and gets feedback on their decisions.", ready: "The terms are ready. You can start the practice.",
     errors: { rate: "Too many previews. Wait a second and try again.", auth: "Sign in to the demo. Reload the page and enter the access password.", invalid: "Check the topic, role and selected objectives.", server: "Could not prepare this practice. Check your connection and try again." },
   },
@@ -39,14 +42,17 @@ export interface AdminScenarioScreenProps {
   lang: Lang;
   onExit: () => void;
   onLaunch: (scenarioId: string) => void;
+  /** Открыто по ссылке участника (CE-03): сразу собрать стол и начать. */
+  autoLaunch?: boolean;
 }
-export function AdminScenarioScreen({ lang, onExit, onLaunch }: AdminScenarioScreenProps) {
+export function AdminScenarioScreen({ lang, onExit, onLaunch, autoLaunch = false }: AdminScenarioScreenProps) {
   const t = COPY[lang], labels = ADMIN_LABELS[lang];
   const [draft, setDraft] = useState(() => loadAdminDraft(lang, browserStorage()));
   const [preview, setPreview] = useState<AdminPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [link, setLink] = useState("");
   const request = useRef<AbortController | null>(null);
   const previewHeading = useRef<HTMLHeadingElement>(null);
   const previousLang = useRef(lang);
@@ -87,6 +93,26 @@ export function AdminScenarioScreen({ lang, onExit, onLaunch }: AdminScenarioScr
     }
   };
   const submit = (event: FormEvent) => { event.preventDefault(); void prepare(); };
+  // Ссылка участника открывает тот же стол сам: черновик уже лежит в этом
+  // браузере (его положил App), остаётся собрать стол и сесть за него.
+  useEffect(() => {
+    if (!autoLaunch) return;
+    setStatus(t.opening);
+    void prepare(true);
+    // Один раз на открытие по ссылке.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const share = async () => {
+    const url = trainingLink(draft, lang, location.origin);
+    setLink(url);
+    // Буфер обмена может не ответить вовсе (нет фокуса, запрет политики) —
+    // тогда через полторы секунды честно просим выделить ссылку руками.
+    const copied = await Promise.race([
+      navigator.clipboard?.writeText(url).then(() => true, () => false) ?? Promise.resolve(false),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1500)),
+    ]);
+    setStatus(copied ? t.shared : t.shareManual);
+  };
   const reset = () => {
     choosePreset("procurement");
     try { browserStorage()?.removeItem(ADMIN_DRAFT_KEY); } catch { /* Keep reset usable with blocked storage. */ }
@@ -130,6 +156,8 @@ export function AdminScenarioScreen({ lang, onExit, onLaunch }: AdminScenarioScr
           <dl><dt>{t.counterpart}</dt><dd>{preview.scenario.counterpart_name}</dd><dt>{t.player}</dt><dd>{preview.scenario.role}</dd><dt>{t.conditions}</dt><dd>{preview.scenario.briefing}</dd></dl>
           <div className="admin-effects"><h3>{t.impact}</h3><ul>{preview.effects.map(effect => <li key={effect}>{effect}</li>)}</ul></div>
           <button type="button" className="primary admin-launch" disabled={busy} onClick={() => void prepare(true)}>{busy ? t.waiting : t.launch}</button><p className="admin-hint">{t.launchHint}</p>
+          <button type="button" className="admin-share" disabled={busy} onClick={() => void share()}>{t.share}</button>
+          {link ? <input className="admin-link" id="admin-link" name="admin-link" readOnly value={link} aria-label={t.share} onFocus={(e) => e.currentTarget.select()} /> : null}
         </> : <div className="admin-empty"><span aria-hidden="true"><Icon name="clipboard" /></span><h3>{t.empty}</h3><p>{t.emptyBody}</p></div>}
       </section>
     </div>
