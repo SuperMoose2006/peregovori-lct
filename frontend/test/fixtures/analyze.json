@@ -777,6 +777,18 @@
    "spin": "need-payoff"
   },
   {
+   "text": "I accept your point, but 100 is too much.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "I am asking 500 for it.",
    "moves": [
     "anchor",
@@ -1611,6 +1623,18 @@
    "spin": null
   },
   {
+   "text": "That works for us, but let's sign tomorrow.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "That works for us.",
    "moves": [
     "accept"
@@ -2057,6 +2081,18 @@
    "primary": "interests_probe",
    "arg": 40,
    "words": 15,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "We almost have a deal.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
    "number": null,
    "mentions": [],
    "spin": null
@@ -2850,6 +2886,60 @@
    "spin": null
   },
   {
+   "text": "Договорились бы, если бы не цена.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 6,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Договорились на 90, но оплата по факту.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 7,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "Договорились, не будем тянуть.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 4,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Договорились, но давайте пропишем сроки письменно.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 6,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Дословный повтор: тренажёр опускает качество аргумента до 12 и режет уступку до 15% — настойчивость не равна аргументу",
    "moves": [
     "statement"
@@ -3395,6 +3485,18 @@
    "spin": null
   },
   {
+   "text": "Меня устраивает качество, но не цена.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 6,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Мне 30 лет, я работаю тут 5 лет.",
    "moves": [
     "statement"
@@ -3634,6 +3736,18 @@
   },
   {
    "text": "Мы никуда не торопимся и подождём.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 6,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Мы почти договорились, осталось обсудить цену.",
    "moves": [
     "statement"
    ],
@@ -3901,6 +4015,18 @@
    "primary": "statement",
    "arg": 20,
    "words": 9,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Ну уж нет, по рукам не ударим.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 7,
    "number": null,
    "mentions": [],
    "spin": null
@@ -4355,6 +4481,42 @@
    "primary": "statement",
    "arg": 20,
    "words": 5,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Принимаю ваше предложение.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 5,
+   "words": 3,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Принимаю ваши аргументы, но цена для нас высока.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Принимаю к сведению.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 5,
+   "words": 3,
    "number": null,
    "mentions": [],
    "spin": null

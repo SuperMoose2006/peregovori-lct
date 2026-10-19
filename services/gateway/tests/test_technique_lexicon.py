@@ -536,3 +536,30 @@ def test_closed_tail_entries_are_actually_in_the_lexicon() -> None:
     live = {w for key, words in LEX.items() if key != "closedTail" for w in words}
     for word in LEX["closedTail"]:
         assert word in live, f"LEX['closedTail'] сторожит {word!r}, которого в словаре нет"
+
+
+@pytest.mark.parametrize("line", [
+    "Принимаю ваши аргументы, но цена для нас высока.",
+    "Меня устраивает качество, но не цена.",
+    "Мы почти договорились, осталось обсудить цену.",
+    "Договорились бы, если бы не цена.",
+    "Принимаю к сведению.",
+    "Ну уж нет, по рукам не ударим.",
+    "I accept your point, but 100 is too much.",
+    "We almost have a deal.",
+])
+def test_a_hedged_yes_does_not_close_the_deal(line):
+    """Найдено после аудита 17.10: каждая из этих реплик закрывала сделку на
+    цене оппонента (economic 0) — согласие с частью, «почти», «бы», «к
+    сведению», отрицание после идиомы."""
+    assert "accept" not in analyze(line).moves
+
+
+@pytest.mark.parametrize("line", [
+    "Договорились.", "Договорились, но давайте пропишем сроки письменно.",
+    "Договорились на 90, но оплата по факту.", "Договорились, не будем тянуть.",
+    "That works for us, but let's sign tomorrow.", "Принимаю ваше предложение.",
+    "Не вопрос, договорились.",
+])
+def test_a_deal_with_a_condition_is_still_a_deal(line):
+    assert "accept" in analyze(line).moves

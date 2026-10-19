@@ -200,11 +200,40 @@ def _closes_here(t: str, at: int) -> bool:
     иначе «Не вопрос, договорились» тоже стало бы отказом.
     """
     clause = _clause_before(t, at)
-    if not clause:
-        return True                       # идиома открывает клаузу — это акт
     if any(w in _SUBORDINATORS for w in clause):
         return False                      # придаточное: о закрытии РАССКАЗЫВАЮТ
-    return not any(w in _NEGATORS for w in clause[-_NEGATION_WINDOW:])
+    if any(w in _NEGATORS or w in _CLOSE_HEDGES for w in clause[-_NEGATION_WINDOW:]):
+        return False                      # «не договорились», «почти договорились»
+    return not _undone_after(t, at)
+
+
+def _undone_after(t: str, at: int) -> bool:
+    """Отменяет ли идиому то, что идёт СРАЗУ за ней в той же клаузе.
+
+    «Договорились БЫ, если…», «по рукам НЕ ударим», «принимаю К СВЕДЕНИЮ» —
+    и согласие с частью: «Меня устраивает качество, НО не цена», «Принимаю ваши
+    аргументы, НО цена высока». Последнее — только когда между идиомой и «но»
+    стоит дополнение без числа: «Договорились, но давайте пропишем сроки» и
+    «Договорились на 90, но оплата по факту» — это сделка с условием.
+    Пропустить закрытие дешевле, чем закрыть сделку за игрока (см. `accept`).
+    """
+    end = t.find(" ", at)
+    word_end = len(t) if end < 0 else end
+    # Конец самой идиомы: она может быть из нескольких слов («по рукам»).
+    for w in LEX["accept"]:
+        if t.startswith(w, at):
+            word_end = at + len(w)
+            break
+    tail = t[word_end:]
+    words = tail.split()
+    first = words[0].strip(".,?!-") if words else ""
+    if tail[:1] not in ",.?!" and (first in _NEGATORS or first in _CLOSE_UNDO):
+        return True
+    if any(tail.lstrip().startswith(x) for x in LEX["closeNotDeal"]):
+        return True
+    m = _OBJECT_THEN_CONTRAST_RE.match(tail)
+    return bool(m and not any(ch.isdigit() for ch in m.group(1))
+                and m.group(2) in _CONTRAST)
 
 
 def _is_close(t: str) -> bool:
@@ -655,6 +684,19 @@ LEX: dict[str, list[str]] = {
         "что", "чтобы", "когда",
         "when", "once", "until",
     ],
+    # Оговорки вокруг идиомы закрытия. Не приём: служебные списки для
+    # `_closes_here`, как и два выше. Найдено после аудита 17.10: каждая из
+    # этих реплик закрывала сделку на цене оппонента — «Мы ПОЧТИ договорились»,
+    # «Договорились БЫ, если бы не цена», «Ну уж нет, по рукам НЕ ударим»,
+    # «Принимаю К СВЕДЕНИЮ», «Меня устраивает качество, НО не цена».
+    # Слово ПЕРЕД идиомой, которое делает её неполной.
+    "closeHedges": ["почти", "almost", "nearly"],
+    # Слово сразу ПОСЛЕ идиомы, которое её отменяет (вместе с `negators`).
+    "closeUndo": ["бы"],
+    # Дополнение, после которого идиома — не о сделке.
+    "closeNotDeal": ["к сведению"],
+    # Противительный союз: «устраивает ЭТО, но…» — согласие с частью.
+    "contrast": ["но", "однако", "but", "however"],
     # Основы, у которых ХВОСТ ЗАКРЫТ: совпадение засчитывается, только если
     # сразу за основой не идёт буква.
     #
@@ -676,6 +718,11 @@ _NEGATORS = frozenset(LEX["negators"])
 
 #: То же для `_closes_here` и `_starts_at_word`.
 _SUBORDINATORS = frozenset(LEX["subordinators"])
+_CLOSE_HEDGES = frozenset(LEX["closeHedges"])
+_CLOSE_UNDO = frozenset(LEX["closeUndo"])
+_CONTRAST = frozenset(LEX["contrast"])
+#: Дополнение идиомы до ближайшей запятой и первое слово после неё.
+_OBJECT_THEN_CONTRAST_RE = re.compile(r"\s+([^.,?!]+),\s*([^\s.,?!]+)")
 _CLOSED_TAIL = frozenset(LEX["closedTail"])
 
 #: Длина реплики, при которой формула закрытия читается как закрытие.

@@ -117,6 +117,29 @@ const SUBORDINATORS = new Set(LEX.subordinators);
  *
  * Зеркало services/gateway/app/engine/techniques.py::_closes_here — менять
  * синхронно (инвариант 8). */
+const CLOSE_HEDGES = new Set(LEX.closeHedges);
+const CLOSE_UNDO = new Set(LEX.closeUndo);
+const CONTRAST = new Set(LEX.contrast);
+const OBJECT_THEN_CONTRAST = /^\s+([^.,?!]+),\s*([^\s.,?!]+)/;
+
+/** Отменяет ли идиому то, что идёт СРАЗУ за ней: «договорились БЫ», «по рукам
+ *  НЕ ударим», «принимаю К СВЕДЕНИЮ», «устраивает качество, НО…» (дополнение
+ *  без числа, затем противительный союз). Зеркало techniques.py::_undone_after. */
+function undoneAfter(t: string, at: number): boolean {
+  const space = t.indexOf(" ", at);
+  let wordEnd = space < 0 ? t.length : space;
+  for (const w of LEX.accept) {
+    if (t.startsWith(w, at)) { wordEnd = at + w.length; break; }
+  }
+  const tail = t.slice(wordEnd);
+  const words = tail.split(/\s+/).filter(Boolean);
+  const first = words.length ? words[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
+  if (!",.?!".includes(tail.slice(0, 1) || "x") && (NEGATORS.has(first) || CLOSE_UNDO.has(first))) return true;
+  if (LEX.closeNotDeal.some((x) => tail.trimStart().startsWith(x))) return true;
+  const m = tail.match(OBJECT_THEN_CONTRAST);
+  return !!m && !/\d/.test(m[1]) && CONTRAST.has(m[2]);
+}
+
 export function isClose(t: string): boolean {
   return LEX.accept.some((w) => {
     for (let at = t.indexOf(w); at >= 0; at = t.indexOf(w, at + 1)) {
@@ -126,9 +149,10 @@ export function isClose(t: string): boolean {
       let cut = -1;
       for (const ch of CLAUSE_BREAKS) cut = Math.max(cut, head.lastIndexOf(ch));
       const clause = head.slice(cut + 1).split(/\s+/).filter(Boolean);
-      if (!clause.length) return true;
       if (clause.some((x) => SUBORDINATORS.has(x))) continue;
-      if (!clause.slice(-NEGATION_WINDOW).some((x) => NEGATORS.has(x))) return true;
+      // «не договорились», «почти договорились». Зеркало techniques.py::_closes_here.
+      if (clause.slice(-NEGATION_WINDOW).some((x) => NEGATORS.has(x) || CLOSE_HEDGES.has(x))) continue;
+      if (!undoneAfter(t, at)) return true;
     }
     return false;
   });

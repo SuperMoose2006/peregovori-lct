@@ -156,6 +156,18 @@ export const LEX: Record<string, string[]> = {
   subordinators: [
     "что", "чтобы", "когда", "when", "once", "until",
   ],
+  closeHedges: [
+    "почти", "almost", "nearly",
+  ],
+  closeUndo: [
+    "бы",
+  ],
+  closeNotDeal: [
+    "к сведению",
+  ],
+  contrast: [
+    "но", "однако", "but", "however",
+  ],
   closedTail: [
     "ты прав",
   ],
