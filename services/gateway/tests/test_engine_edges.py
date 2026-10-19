@@ -460,6 +460,24 @@ def test_a_small_walk_back_is_not_rounded_away(scenario_id, table, fraction):
     assert on_grid or s.state.offer_opp == s.state.frame_open, s.state.offer_opp
 
 
+def test_an_interest_keyword_inside_another_word_reveals_nothing():
+    """Найдено ревью ветки (инвариант 8): ключевые слова интереса сервер искал
+    подстрокой, офлайн-ядро — с начала слова. «Это непростой вопрос. Почему для
+    вас это важно?» на поставщике вскрывало «загрузку» на сервере («простой»
+    внутри «непростой») и давало «слишком общо» офлайн. После a34b516 та же
+    функция решает и повтор вопроса."""
+    s = engine.create_session("supplier", "ru")
+    s.turn = 1
+    line = "Это непростой вопрос. Почему для вас это важно?"
+    engine.apply_move(s, engine.analyze(line), line)
+    assert s.state.interests_found == []
+    s2 = engine.create_session("supplier", "ru")
+    s2.turn = 1
+    line = "Простой оборудования для вас проблема? Почему это важно?"
+    engine.apply_move(s2, engine.analyze(line), line)
+    assert s2.state.interests_found == [0]
+
+
 def test_millions_reach_a_table_priced_in_millions():
     """Найдено после аудита 17.10: на столе «своей сделки» в « млн» (10,5–12)
     «11,5 миллиона» читалось 11 500 000 и мимо коридора; масштаб пересчитывался

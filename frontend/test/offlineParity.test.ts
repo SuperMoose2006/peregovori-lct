@@ -282,6 +282,21 @@ test("откат за грубость остаётся на сетке шага
   assert.equal(s.offerOpp, 94.5);
 });
 
+test("ключевое слово интереса внутри другого слова ничего не вскрывает (зеркало сервера)", async () => {
+  const { analyze, applyMove, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const s = newSession(SCENARIO_MAP.supplier, "ru");
+  s.turn = 1;
+  const line = "Это непростой вопрос. Почему для вас это важно?";
+  applyMove(s, analyze(line), line);
+  assert.deepEqual(s.interests, []);
+  const s2 = newSession(SCENARIO_MAP.supplier, "ru");
+  s2.turn = 1;
+  const hit = "Простой оборудования для вас проблема? Почему это важно?";
+  applyMove(s2, analyze(hit), hit);
+  assert.deepEqual(s2.interests, [0]);
+});
+
 test("малый откат не округляется в ноль (зеркало test_engine_edges)", async () => {
   // Найдено ревью ветки: на поставщике при 99,5 грубость оставляла 99,5.
   const { analyze, applyMove, newSession } = await import("../src/mock/engine");

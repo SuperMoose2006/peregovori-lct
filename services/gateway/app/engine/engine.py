@@ -618,7 +618,10 @@ def _reveal_index_offline(sc: Scenario, cur_norm: str, lang: str,
     for i in range(total):
         if i in found:
             continue
-        if i < len(kw) and any(k in cur_norm for k in kw[i]):
+        # С начала слова, как в офлайн-ядре (`has`): подстрокой «простой»
+        # находился в «непростой», и сервер вскрывал интерес там, где офлайн —
+        # нет (инвариант 8; ревью ветки).
+        if i < len(kw) and _has(cur_norm, kw[i]):
             return i
         if i < len(topics) and _has(cur_norm, _topic_stems(topics[i])):
             return i
