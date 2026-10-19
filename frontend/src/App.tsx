@@ -32,6 +32,7 @@ import { fetchServerHealth } from "./api/health";
 import { checkDevice, dropFailedLayers, requestLayers, type DeviceChecks, type DeviceLayer } from "./lib/deviceCheck";
 import { faceRenderer } from "./lib/faceSource";
 import { callOffer, hangUpAction, syntheticFace, videoPending } from "./lib/meeting";
+import { SELF_VIEW_KEY, parseSelfView } from "./lib/selfView";
 import { Karl } from "./components/Mascot";
 import { ReadingCard } from "./components/ReadingCard";
 import { OtherSideCard } from "./components/OtherSideCard";
@@ -191,6 +192,15 @@ export default function App() {
    *  перезапускает сессию, Table на это время размонтируется — и унёс бы шторку
    *  с собой ровно в тот момент, когда человек ею пользуется. */
   const [layersOpen, setLayersOpen] = useState(false);
+  // Видеть себя в созвоне — настройка игрока: переключатель в «Слоях» и кнопка
+  // на плитке «Вы» меняют одно и то же и переживают перезагрузку.
+  const [selfView, setSelfViewState] = useState<boolean>(() => {
+    try { return parseSelfView(localStorage.getItem(SELF_VIEW_KEY)); } catch { return true; }
+  });
+  const setSelfView = useCallback((on: boolean) => {
+    setSelfViewState(on);
+    try { localStorage.setItem(SELF_VIEW_KEY, on ? "1" : "0"); } catch { /* приватный режим */ }
+  }, []);
   const closeLayers = useCallback(() => setLayersOpen(false), []);
 
   const [screen, setScreen] = useState<Screen>("home");
@@ -1484,6 +1494,8 @@ export default function App() {
             callCamera={{ up: activeLayers.camera && !nego.layerFail.camera, off: cameraOff,
                           reason: activeLayers.camera ? nego.layerFail.camera ?? null : cameraReason }}
             onToggleCamera={toggleCamera}
+            selfView={selfView}
+            onSelfView={setSelfView}
             speech={typeof nego.capabilities?.speech === "boolean" ? nego.capabilities.speech : null}
             syntheticFace={syntheticFace(nego.capabilities)}
             videoPending={videoPending(nego.capabilities)}
@@ -1687,6 +1699,8 @@ export default function App() {
                   onPreset={(next) => chooseLayers(layerPrefs, next)}
                   checks={deviceChecks}
                   onCheckNow={checkLayerNow}
+                  selfView={selfView}
+                  onSelfView={setSelfView}
                 />
               </div>
             </div>
@@ -1754,6 +1768,8 @@ export default function App() {
               onPreset={(next) => chooseLayers(drawer, next)}
               checks={deviceChecks}
               lockNote={layersLock}
+              selfView={selfView}
+              onSelfView={setSelfView}
               // Настоящие отказы идущей партии. Без них шторка отвечала
               // «Голосом ✓» над микрофоном, которого не дали (принцип 2), —
               // а честная строка про это живёт на столе, СНАРУЖИ шторки,

@@ -287,3 +287,46 @@ test("пока браузер спрашивает разрешение, зво�
   const live = render({ mic: true, camera: true });
   assert.ok(live.includes(I18N.ru.meeting.micOff) && !live.includes(c.micWaiting) && !live.includes(c.camWaiting));
 });
+
+test("«видеть себя в созвоне» — переключатель в «Слоях», общий с кнопкой на плитке", async () => {
+  // Решение владельца 19.10: не выбирать за человека, видна ли плитка «Вы», —
+  // дать переключатель. По умолчанию видна (макет), выбор переживает
+  // перезагрузку, а замок шторки (экзамен, начатый стол) его не касается: это
+  // то, что видит сам игрок, а не слой.
+  const { parseSelfView } = await import("../src/lib/selfView");
+  assert.equal(parseSelfView(null), true, "по умолчанию плитка видна, как в макете владельца");
+  assert.equal(parseSelfView("0"), false);
+  assert.equal(parseSelfView("1"), true);
+
+  const { LayersPanel } = await import("../src/components/Setup");
+  const ok3 = (id: LayerId): LayerState => ({ id, available: true, reason: null });
+  const states = { probe: ok3("probe"), voice: ok3("voice"), camera: ok3("camera"), avatar: ok3("avatar"), pokerface: ok3("pokerface") };
+  const panel = (extra: Record<string, unknown>) => renderToStaticMarkup(createElement(LayersPanel, {
+    t: I18N.ru, lang: "ru", layers: DEFAULT_LAYERS, states, onToggle: () => {}, onPreset: () => {}, ...extra,
+  }));
+  const sw = (html: string) => {
+    const at = html.indexOf(`aria-label="${I18N.ru.layers.selfView}"`);
+    return at < 0 ? null : html.slice(html.lastIndexOf("<button", at), html.indexOf(">", at));
+  };
+  assert.equal(sw(panel({})), null, "строка без обработчика — переключатель, который ничего не меняет");
+  assert.match(sw(panel({ selfView: true, onSelfView: () => {} }))!, /aria-checked="true"/);
+  const locked = sw(panel({ selfView: false, onSelfView: () => {}, lockNote: "заперто" }))!;
+  assert.match(locked, /aria-checked="false"/);
+  assert.doesNotMatch(locked, /aria-disabled/, "замок слоёв запер настройку, которая слоем не является");
+
+  const { CallView } = await import("../src/components/CallView");
+  const call = (selfView: boolean) => renderToStaticMarkup(createElement(CallView, {
+    t: I18N.ru, lang: "ru", scenario: { id: "supplier", counterpart_name: "Марина", counterpart_persona: "",
+      headline_unit: "₽" } as never,
+    state: null, status: "listening", avatarState: null, renderer: "portrait", synthetic: false,
+    videoPending: false, oppSpeaking: false, speech: true, subtitle: null, transcript: null,
+    micAvailable: true, micFail: null, micMuted: false, onToggleMic: () => {},
+    camera: { up: true, off: false, reason: null }, onToggleCamera: () => {},
+    hud: null, turnLabel: "", feed: null, hint: null, hintEnabled: true, hintDisabled: false,
+    onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: null,
+    selfView, onSelfView: () => {},
+  }));
+  assert.match(call(false), /class="call-self hidden/, "выключенная настройка, а плитка видна");
+  assert.ok(call(false).includes(I18N.ru.call.showSelf));
+  assert.doesNotMatch(call(true), /class="call-self hidden/);
+});

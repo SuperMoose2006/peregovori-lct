@@ -63,6 +63,9 @@ interface Props {
   checks?: DeviceChecks;
   /** «Проверить сейчас» у голоса и камеры, включённых без нажатия (умолчание). */
   onCheckNow?: (layer: "voice" | "camera") => void;
+  /** Видеть себя в созвоне (lib/selfView.ts). Нет обработчика — строки нет. */
+  selfView?: boolean;
+  onSelfView?: (on: boolean) => void;
 }
 
 /**
@@ -122,7 +125,36 @@ function PokerfaceRow({ t, lang, state, failed, on, cameraOn, locked, onToggle }
   );
 }
 
-export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockNote = null, fail, checks = {}, onCheckNow }: Props) {
+/**
+ * «Видеть себя в созвоне» — внутри карточки камеры, но НЕ слой: это то, что
+ * видит сам игрок, а не то, что видит ИИ. Поэтому замок шторки (экзамен,
+ * начатый стол) его не касается — смотреть на себя или нет, можно решить в
+ * любой момент.
+ */
+function SelfViewRow({ t, on, onToggle }: { t: Strings; on: boolean; onToggle: () => void }) {
+  return (
+    <div className="ly-sub">
+      <span className="ly-ic" aria-hidden="true"><Icon name="person" /></span>
+      <div className="ly-txt">
+        <b>{t.layers.selfView}</b>
+        <span id="ly-note-selfview">{t.layers.selfViewBlurb}</span>
+      </div>
+      <button
+        type="button"
+        className={`ly-sw${on ? " on" : ""}`}
+        role="switch"
+        aria-checked={on}
+        aria-label={t.layers.selfView}
+        aria-describedby="ly-note-selfview"
+        onClick={onToggle}
+      >
+        <span className="ly-knob" />
+      </button>
+    </div>
+  );
+}
+
+export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockNote = null, fail, checks = {}, onCheckNow, selfView, onSelfView }: Props) {
   const locked = !!lockNote;
   /** Почему именно этот слой не поднялся — или null. «Покерфейс» считает по
    *  кадрам камеры, поэтому её отказ гасит и его. */
@@ -245,16 +277,21 @@ export function LayersPanel({ t, lang, layers, states, onToggle, onPreset, lockN
                 </div>
               ) : null}
               {id === "camera" ? (
-                <PokerfaceRow
-                  t={t}
-                  lang={lang}
-                  state={states.pokerface}
-                  failed={failOf("pokerface")}
-                  on={layers.pokerface}
-                  cameraOn={on}
-                  locked={locked}
-                  onToggle={() => onToggle("pokerface")}
-                />
+                <div className="ly-subs">
+                  <PokerfaceRow
+                    t={t}
+                    lang={lang}
+                    state={states.pokerface}
+                    failed={failOf("pokerface")}
+                    on={layers.pokerface}
+                    cameraOn={on}
+                    locked={locked}
+                    onToggle={() => onToggle("pokerface")}
+                  />
+                  {onSelfView ? (
+                    <SelfViewRow t={t} on={selfView !== false} onToggle={() => onSelfView(selfView === false)} />
+                  ) : null}
+                </div>
               ) : null}
             </div>
           );

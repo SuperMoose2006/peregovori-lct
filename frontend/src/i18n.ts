@@ -379,6 +379,8 @@ export interface Strings {
     /** Подпись под подвыбором «покерфейса», пока камера выключена. Он считает
      *  по её кадрам, поэтому без неё включать нечего. */
     needsCamera: string;
+    /** Видеть себя в созвоне — настройка, а не слой (lib/selfView.ts). */
+    selfView: string; selfViewBlurb: string;
     presetNames: Record<string, string>;
     /** «сорвались N раз из M кадров» — счётчик «покерфейса» в разборе. */
     tellsOf: string;
@@ -1376,6 +1378,8 @@ export const I18N: Record<Lang, Strings> = {
         pokerface: "Считает, сколько раз лицо выдало вас",
       },
       needsCamera: "включите камеру — считать нечего без её кадров",
+      selfView: "Видеть себя в созвоне",
+      selfViewBlurb: "Плитка с вашей камерой в углу звонка. Отвлекает — выключите: ИИ видит вас и без неё, на оценку не влияет",
       presetNames: { classic: "Классика", read: "Читай лицо",
                      poker: "Покерфейс", full: "Полный контакт" },
       tellsOf: "{form} лицо себя выдало — кадров просмотрено: {n}",
@@ -2434,6 +2438,8 @@ export const I18N: Record<Lang, Strings> = {
         pokerface: "Counts how often your face gave you away",
       },
       needsCamera: "turn the camera on — there are no frames to count without it",
+      selfView: "See yourself in a call",
+      selfViewBlurb: "A tile with your camera in the corner of the call. Distracting? Turn it off — the AI sees you without it, and it never affects the grade",
       presetNames: { classic: "Classic", read: "Read the face",
                      poker: "Poker face", full: "Full contact" },
       tellsOf: "{form} your face gave you away — frames seen: {n}",

@@ -19,8 +19,9 @@
 //
 // ПЛИТКА «ВЫ» ВИДНА ПО УМОЛЧАНИЮ — это решение владельца (макет «как в Zoom»,
 // 19.10). Принцип «камера не показывает вас постоянно» (docs/modalities.md §2)
-// держит кнопка «Скрыть себя»: видео прячется, но не размонтируется — иначе
-// браузер заново спросил бы доступ к камере.
+// держит переключатель: «Видеть себя в созвоне» в «Слоях» и кнопка «Скрыть
+// себя» на плитке — одна настройка (lib/selfView.ts). Видео прячется, но не
+// размонтируется — иначе браузер заново спросил бы доступ к камере.
 import { useEffect, useRef, useState } from "react";
 import { OpponentFace } from "./OpponentFace";
 import { ProbeCard } from "./Chat";
@@ -102,6 +103,9 @@ interface Props {
   hangupPending: boolean;
   /** Стол закрыт — итог партии поверх сцены. */
   outcome: React.ReactNode | null;
+  /** Видеть себя в созвоне — та же настройка, что в «Слоях». */
+  selfView?: boolean;
+  onSelfView?: (on: boolean) => void;
 }
 
 export function CallView({
@@ -109,7 +113,7 @@ export function CallView({
   getSpeechLevel, getVideoFrame, getAudioBlocked, onResumeAudio, speech, subtitle, transcript,
   micAvailable, devices = { mic: true, camera: true }, micFail, micMuted, onToggleMic, getMicLevel, observation, camera, onToggleCamera, videoRef, canvasRef,
   hud, turnLabel, feed, hint, hintEnabled, hintDisabled, onHint, probe, probeTally, registerProbe,
-  onProbeAnswer, onInterrupt, onHangUp, hangupPending, outcome,
+  onProbeAnswer, onInterrupt, onHangUp, hangupPending, outcome, selfView, onSelfView,
 }: Props) {
   const c = t.call;
   const [captions, setCaptions] = useState(true);
@@ -127,7 +131,12 @@ export function CallView({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [feedOpen]);
-  const [selfHidden, setSelfHidden] = useState(false);
+  // Видеть ли себя — настройка игрока (lib/selfView.ts), если App её ведёт;
+  // иначе (тесты, отдельный показ) — своё состояние, как раньше.
+  const [ownSelf, setOwnSelf] = useState(true);
+  const shownSelf = selfView ?? ownSelf;
+  const selfHidden = !shownSelf;
+  const toggleSelf = () => (onSelfView ? onSelfView(!shownSelf) : setOwnSelf(!shownSelf));
   const [dismissedHint, setDismissedHint] = useState<number | null>(null);
 
   // Браузер мог не пустить звук без жеста. Опрашиваем редко: это не анимация,
@@ -218,7 +227,7 @@ export function CallView({
               <span className="cs-seen" title={observation}><b>{t.live.seen}</b> {observation}</span>
             ) : null}
             <button type="button" className="cs-hide" aria-pressed={selfHidden}
-              onClick={() => setSelfHidden((h) => !h)}>
+              onClick={toggleSelf}>
               {selfHidden ? c.showSelf : c.hideSelf}
             </button>
           </div>
