@@ -296,3 +296,15 @@ test("причина отказа устройства — на языке па�
     Object.defineProperty(globalThis, "navigator", { configurable: true, value: nav });
   }
 });
+
+test("«устройство не запустилось» (AbortError) называется причиной, а не «не удалось»", async () => {
+  // Второе ревью: AbortError («Timeout starting video source») сводился к
+  // безликому «не удалось включить», хотя чаще всего устройство держит другая
+  // программа — и человеку есть что с этим сделать.
+  const { describeMediaError } = await import("../src/realtime/vendor/media-provider");
+  for (const lang of ["ru", "en"] as const) {
+    const why = describeMediaError({ name: "AbortError", message: "Timeout starting video source" }, lang);
+    assert.notEqual(why, describeMediaError({ name: "Whatever" }, lang), `${lang}: AbortError без причины`);
+    assert.match(why, lang === "ru" ? /программ/ : /app/);
+  }
+});

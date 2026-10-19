@@ -523,6 +523,7 @@ const MEDIA_ERRORS = {
     notFound: "устройство не найдено",
     format: "устройство есть, но не отдаёт нужный формат",
     busy: "устройство занято другой программой",
+    aborted: "устройство не запустилось — возможно, его держит другая программа",
     failed: "не удалось включить",
     none: { videoinput: "камер в системе нет — подключите устройство",
             audioinput: "микрофонов в системе нет — подключите устройство" },
@@ -535,6 +536,7 @@ const MEDIA_ERRORS = {
     notFound: "device not found",
     format: "the device exists but does not provide the needed format",
     busy: "the device is busy in another app",
+    aborted: "the device did not start — another app may be holding it",
     failed: "could not start",
     none: { videoinput: "there are no cameras in the system — connect one",
             audioinput: "there are no microphones in the system — connect one" },
@@ -550,6 +552,10 @@ export function describeMediaError(error: unknown, lang: "ru" | "en" = "ru"): st
   if (name === "NotFoundError") return words.notFound;
   if (name === "OverconstrainedError") return words.format;
   if (name === "NotReadableError") return words.busy;
+  // «Timeout starting video source» и родня: устройство есть, но не
+  // запустилось. Чаще всего его держит другая программа — так и говорим, а не
+  // «не удалось включить» (второе ревью созвона).
+  if (name === "AbortError") return words.aborted;
   // Сырое сообщение браузера — на языке браузера, а не партии; лучше общее
   // слово на языке партии, чем чужая строка посреди фразы.
   const message = (error as { message?: string })?.message;
