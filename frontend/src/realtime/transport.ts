@@ -380,9 +380,13 @@ export class RealtimeTransport implements Transport {
           await this.startMedia(gen);
         } catch (error) {
           if (gen !== this.beginGen || this.closed) return;
+          // Бросить здесь может только подъём ЗВУКА (проигрыватель); камера
+          // спрашивается позже и свои отказы отдаёт отчётом, а не броском. Её
+          // в отказ не записываем: `dropFailedLayers` выключил бы её в выборе
+          // человека за чужую вину (третье ревью).
           const reason = describeMediaError(error, this.lang);
-          if (this.voiceWanted) this.emit({ type: "layer_failed", layer: "voice", reason });
-          if (this.cameraWanted) this.emit({ type: "layer_failed", layer: "camera", reason });
+          this.emit({ type: "layer_failed", layer: this.voiceWanted ? "voice" : "camera", reason });
+          if (!this.media) this.options.onDevices?.(NO_DEVICES);
         }
       }
     } catch (error) {
@@ -454,7 +458,15 @@ export class RealtimeTransport implements Transport {
       // сервером под кадры — проигрыватель не срезает свой буфер досрочно.
       const avatar = (this.session?.capabilities.avatar ?? {}) as Record<string, unknown>;
       this.player.holdOnEnd = typeof avatar.stale_ms === "number";
-      this.player.init();
+      try {
+        this.player.init();
+      } catch (error) {
+        // Звук не поднялся — это отказ ГОЛОСА, а не всего звонка: камера
+        // поднимается своим путём ниже, а не тонет вместе с проигрывателем
+        // (третье ревью: бросок отсюда обрывал подъём устройств целиком).
+        this.player = null;
+        this.emit({ type: "layer_failed", layer: "voice", reason: describeMediaError(error, this.lang) });
+      }
     }
 
     if (!MediaProvider.supported()) {

@@ -437,16 +437,33 @@ test("звук, не поднявшийся при входе в звонок, �
   // AudioContext) попадал в обработчик сбоя СОКЕТА — здоровая партия
   // снималась, приветствие повторялось до пяти раз, в конце «связь потеряна».
   const { AudioPlayer } = await import("../src/realtime/vendor/audio-player");
+  const { MediaProvider } = await import("../src/realtime/vendor/media-provider");
   const init = AudioPlayer.prototype.init;
+  const saved = { supported: MediaProvider.supported, start: MediaProvider.prototype.start,
+                  stop: MediaProvider.prototype.stop, mic: MediaProvider.prototype.setMicEnabled,
+                  cam: MediaProvider.prototype.setCameraEnabled };
+  let cameraAsked = false;
   AudioPlayer.prototype.init = () => { throw new Error("AudioContext недоступен"); };
+  MediaProvider.supported = () => true;
+  MediaProvider.prototype.start = async function (o: { camera?: boolean }) {
+    cameraAsked = !!o.camera;
+    return { mic: "ok", camera: o.camera ? "ok" : "off" };
+  } as never;
+  MediaProvider.prototype.stop = async function () {};
+  MediaProvider.prototype.setMicEnabled = function () {};
+  MediaProvider.prototype.setCameraEnabled = function () {};
   try {
     const t = await table();
-    t.transport.relayer({ voice: true });
+    t.transport.relayer({ voice: true, camera: true });
     const call = await nextSocket();
     for (let i = 0; i < 20 && !call.types().includes("session.init"); i++) await wait(10);
     call.deliver({ type: "session.created", session_id: "s-1", resumed: true, scenario: { id: "supplier" },
-      state: STATE0, greeting: "", capabilities: { microphone: true, speech: true } });
+      state: STATE0, greeting: "", capabilities: { microphone: true, speech: true, camera: true } });
     await wait(700);                                       // дольше первой паузы повтора
+    // Третье ревью: сбой ЗВУКА записывался и камере — и `dropFailedLayers`
+    // выключал её в выборе человека за чужую вину.
+    assert.equal(t.get().layerFail.camera, undefined, "камере приписан отказ звука");
+    assert.equal(cameraAsked, true, "звук не поднялся — и камеру звонка даже не спросили");
     assert.equal(FakeSocket.instances.length, 2, "здоровый сокет сняли и пошли переподключаться");
     assert.equal(call.readyState, FakeSocket.OPEN);
     assert.ok(!t.conns.includes("reconnecting") && !t.conns.includes("lost"), t.conns.join(","));
@@ -454,6 +471,11 @@ test("звук, не поднявшийся при входе в звонок, �
     t.transport.close();
   } finally {
     AudioPlayer.prototype.init = init;
+    MediaProvider.supported = saved.supported;
+    MediaProvider.prototype.start = saved.start;
+    MediaProvider.prototype.stop = saved.stop;
+    MediaProvider.prototype.setMicEnabled = saved.mic;
+    MediaProvider.prototype.setCameraEnabled = saved.cam;
   }
 });
 
