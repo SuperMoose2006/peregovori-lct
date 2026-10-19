@@ -433,3 +433,12 @@ test("рекорд по букве при меньшем балле — «C → 
   assert.doesNotMatch(src, /Math\.max\(0, record\.record\.bestScore - record\.prevBest\.score\)/);
   assert.match(src, /\$\{record\.prevBest\.grade\} → \$\{record\.record\.bestGrade\}/);
 });
+
+test("«теплеет» не обещает вскрытого интереса", () => {
+  // Найдено после аудита 17.10: «теплеет» даёт только признание позиции, а
+  // вскрытие всегда переписывает реакцию на «раскрылся».
+  for (const lang of ["ru", "en"] as const) {
+    const why = (I18N[lang].probe as unknown as { why: Record<string, string> }).why.warmed;
+    assert.doesNotMatch(why, lang === "ru" ? /интерес/ : /interest/, why);
+  }
+});

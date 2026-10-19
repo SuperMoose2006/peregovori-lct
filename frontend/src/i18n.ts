@@ -1426,7 +1426,9 @@ export const I18N: Record<Lang, Strings> = {
         agreed: "Соглашается — сделка закрыта",
       },
       why: {
-        warmed: "Доверие выросло — вы попали в интерес второй стороны.",
+        // «Теплеет» бывает только от признания позиции: вскрытый интерес — это
+        // уже «раскрылся» (найдено после аудита 17.10).
+        warmed: "Доверие выросло — вы признали позицию второй стороны, и она смягчилась.",
         opened_up: "Информация подскочила: вам рассказали то, что скрывали.",
         persuaded: "Рычаг вырос — убедил объективный критерий, а не нажим.",
         collaborated: "Напряжение упало, доверие выросло: вы предложили размен.",
@@ -2425,7 +2427,7 @@ export const I18N: Record<Lang, Strings> = {
         agreed: "Agrees — the deal is closed",
       },
       why: {
-        warmed: "Trust rose — you hit their actual interest.",
+        warmed: "Trust rose — you acknowledged their position, and they softened.",
         opened_up: "Information jumped: they shared what they had been holding back.",
         persuaded: "Leverage rose — an objective criterion convinced them, not pressure.",
         collaborated: "Tension fell and trust rose: you offered a trade.",
