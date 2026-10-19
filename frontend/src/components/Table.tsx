@@ -209,12 +209,22 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
   const graded = exam || drillGoal !== null;
   // Субтитр созвона — последняя реплика собеседника, пока она звучит или ещё
   // печатается. Когда он замолчал, субтитр уходит: лента хранит всё целиком.
-  const lastOpp = call ? [...log].reverse().find((e) => e.kind === "opp") : undefined;
-  const subtitle = lastOpp && lastOpp.kind === "opp" && (oppSpeaking || lastOpp.streaming) ? lastOpp.text : null;
   // Подсказка и вопрос о реакции ЭТОГО хода — те, что пришли после последней
   // реплики игрока. В созвоне они стоят на сцене; следующий ход их уносит.
   let lastMe = -1;
   for (let i = log.length - 1; i >= 0; i--) if (log[i].kind === "me") { lastMe = i; break; }
+  let lastOppAt = -1;
+  for (let i = log.length - 1; i >= 0; i--) if (log[i].kind === "opp") { lastOppAt = i; break; }
+  const lastOpp = call && lastOppAt >= 0 ? log[lastOppAt] : undefined;
+  // Только ответ на ПОСЛЕДНИЙ ход: короткое «угу…» звучит до ответа, и
+  // субтитр показывал под ним прошлую реплику — та мелькала и гасла
+  // (владелец 19.10: «появляется — исчезает — появляется снова»).
+  const subtitle = lastOpp && lastOpp.kind === "opp" && lastOppAt > lastMe
+    && (oppSpeaking || lastOpp.streaming) ? lastOpp.text : null;
+  // Пока собеседник думает, на экране остаётся сказанное, а не пустота.
+  const mine = lastMe > lastOppAt ? log[lastMe] : undefined;
+  const lastMine = call && mine?.kind === "me" && (busy || awaitingReply) ? mine.text : null;
+  const myCaption = transcript || lastMine;
   const sinceMove = log.slice(lastMe + 1);
   const callHint = [...sinceMove].reverse().find((e): e is Extract<ChatEntry, { kind: "hint" }> => e.kind === "hint") ?? null;
   const callProbe = [...sinceMove].reverse().find((e): e is Extract<ChatEntry, { kind: "probe" }> => e.kind === "probe") ?? null;
@@ -606,7 +616,7 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
           onResumeAudio={onResumeAudio}
           speech={speech}
           subtitle={subtitle}
-          transcript={transcript}
+          transcript={myCaption}
           micAvailable={micAvailable}
           // Нет сведений — нет и устройств: «включено» по умолчанию было бы
           // заявлением того, чего никто не выдал.
