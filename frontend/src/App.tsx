@@ -299,11 +299,15 @@ export default function App() {
   useEffect(() => { setMicMuted(false); }, [nego.scenario?.id]);
   useEffect(() => { nego.setMicMuted(micMuted); }, [micMuted, nego.capabilities, nego.setMicMuted]);
   // A reload cannot restore this in-memory UI session. Never silently imply it did.
-  const [interruptedRun] = useState(() => {
+  const [interruptedRun, setInterruptedRun] = useState(() => {
     try { return sessionStorage.getItem("dialog.active-run") === "1"; }
     catch { return false; }
   });
   useEffect(() => {
+    // Новая партия — и прерванная уже не новость: плашка (role="alert")
+    // висела на главной до перезагрузки и объявлялась диктору при каждом
+    // возвращении (найдено после аудита 17.10).
+    if (nego.state?.status === "active") setInterruptedRun(false);
     try {
       if (nego.state?.status === "active") sessionStorage.setItem("dialog.active-run", "1");
       else sessionStorage.removeItem("dialog.active-run");

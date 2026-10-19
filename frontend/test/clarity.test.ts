@@ -375,3 +375,11 @@ test("редактор не обещает передачу тренировки
   assert.match(src, /на этом устройстве/);
   assert.match(src, /on this device/);
 });
+
+test("плашка о прерванной партии снимается, когда началась новая", () => {
+  // Найдено после аудита 17.10: useState без сеттера — «Страница была закрыта
+  // во время партии…» (role="alert") висела на главной до перезагрузки.
+  const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+  assert.match(app, /const \[interruptedRun, setInterruptedRun\] = useState/);
+  assert.match(app, /if \(nego\.state\?\.status === "active"\) setInterruptedRun\(false\);/);
+});
