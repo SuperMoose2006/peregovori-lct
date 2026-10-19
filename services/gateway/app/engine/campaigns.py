@@ -48,13 +48,17 @@ _EPILOGUE_BANDS = ((45.0, "triumph"), (15.0, "solid"), (-15.0, "mixed"), (-45.0,
 #:
 #: «mixed» пуст намеренно: нейтральная репутация — это отсутствие слухов, а не
 #: слух о том, что человек нейтрален.
+#:
+#: Говорит оппонент АКТА, а им бывает и собеседница (Ирина, Марина, Наталья):
+#: «Наслышан» и «Слышал» здесь стояли в мужском роде (найдено после аудита
+#: 17.10). Формулировки — без рода, это сторожит test_opponent_gender_neutral.
 REPUTATION_LINES: dict[str, dict[str, str]] = {
     "triumph": {
-        "ru": "Наслышан — говорят, с вами приятно и по делу вести дела.",
+        "ru": "Мне о вас рассказывали — говорят, с вами приятно и по делу вести дела.",
         "en": "I've heard good things — they say you're straight and fair to deal with.",
     },
     "solid": {
-        "ru": "Слышал, вы уверенно ведёте переговоры.",
+        "ru": "Говорят, вы уверенно ведёте переговоры.",
         "en": "I hear you drive a confident bargain.",
     },
     "mixed": {"ru": "", "en": ""},
@@ -63,7 +67,7 @@ REPUTATION_LINES: dict[str, dict[str, str]] = {
         "en": "They say you can be a tough one to settle with.",
     },
     "burnt": {
-        "ru": "Наслышан о вашей манере — давайте на этот раз без давления.",
+        "ru": "О вашей манере мне рассказывали — давайте на этот раз без давления.",
         "en": "I've heard about your style — let's keep the pressure down this time.",
     },
 }
@@ -148,10 +152,10 @@ CAMPAIGNS: list[Campaign] = [
                       "of what is worth replaying.",
             },
             "strained": {
-                "ru": "Сделки состоялись, но за вами тянется шлейф. Инвестор согласился с оговорками, "
-                      "и по тому, как он это сказал, слышно всё, что было в предыдущих трёх актах.",
-                "en": "The deals closed, but something trails behind you. The investor agreed with "
-                      "caveats — and the way he said it carried everything from the previous three acts.",
+                "ru": "Сделки состоялись, но за вами тянется шлейф. Инвестор подписал с оговорками, "
+                      "и в каждой из них слышно всё, что было в предыдущих трёх актах.",
+                "en": "The deals closed, but something trails behind you. The investor signed with "
+                      "caveats — and every one of them carried everything from the previous three acts.",
             },
             "burnt": {
                 "ru": "Четыре стола — четыре сожжённых моста. Условия, которые вы выбивали, оказались "

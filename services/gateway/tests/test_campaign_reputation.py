@@ -27,12 +27,12 @@ def _greeting(reputation: float | None, game_mode: str = "campaign") -> str:
 
 
 def test_good_reputation_precedes_the_player():
-    assert "наслышан" in _greeting(60).lower(), "высокая репутация должна звучать в приветствии"
+    assert "рассказывали" in _greeting(60).lower(), "высокая репутация должна звучать в приветствии"
 
 
 def test_bad_reputation_precedes_the_player():
     low = _greeting(-60).lower()
-    assert "наслышан" in low or "непросто" in low, "низкая репутация тоже должна звучать"
+    assert "рассказывали" in low or "непросто" in low, "низкая репутация тоже должна звучать"
 
 
 def test_neutral_reputation_says_nothing():

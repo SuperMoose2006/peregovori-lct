@@ -19,6 +19,7 @@ GENDERED = {
     "закончил", "закончила", "ушёл", "ушла", "передумал", "передумала", "уступил",
     "уступила", "привык", "привыкла", "расположен", "расположена", "попросил",
     "попросила", "пересчитал", "пересчитала", "уверен", "уверена", "доволен", "довольна",
+    "наслышан", "наслышана",
 }
 WORD = re.compile(r"[а-яё]+", re.I)
 MOCK = Path(__file__).resolve().parents[3] / "frontend" / "src" / "mock" / "engine.ts"
@@ -57,3 +58,23 @@ def test_offline_core_bank_is_gender_neutral():
     literals = re.findall(r'"([^"\n]*[а-яё][^"\n]*)"', code, re.I)
     assert len(literals) > 100, "банк офлайн-ядра не нашёлся — проверка мерила бы пустоту"
     assert _gendered(literals) == []
+
+
+def test_campaign_reputation_greeting_is_gender_neutral():
+    """Приветствие по репутации говорит оппонент акта — в «Восхождении» это
+    Ирина и Марина, в «Своём деле» Наталья. «Наслышан» и «Слышал» стояли здесь
+    в мужском роде (найдено после аудита 17.10)."""
+    from app.engine.campaigns import REPUTATION_LINES
+    assert _gendered([v["ru"] for v in REPUTATION_LINES.values() if v["ru"]]) == []
+    en = [v["en"] for v in REPUTATION_LINES.values() if v["en"]]
+    assert not [l for l in en if re.search(r"\b(he|his|him|she|her)\b", l, re.I)]
+
+
+def test_campaign_epilogues_do_not_gender_the_counterpart():
+    """Эпилог «Восхождения» говорил об инвесторе «как он это сказал» — а
+    инвестор там Марина."""
+    from app.engine.campaigns import CAMPAIGNS
+    for c in CAMPAIGNS:
+        for band, text in c.epilogue.items():
+            assert not re.search(r"\b(он|она)\b", text["ru"], re.I), (c.id, band)
+            assert not re.search(r"\b(he|his|him|she|her)\b", text["en"], re.I), (c.id, band)
