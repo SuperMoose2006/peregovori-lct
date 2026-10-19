@@ -4289,9 +4289,12 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 .call-bar .cb.off { background: rgb(255 75 75 / 22%); color: #ffc2c2; }
 .call-bar .cb[aria-pressed="true"], .call-bar .cb[aria-expanded="true"] { background: rgb(255 255 255 / 24%); }
 .call-bar .cb.cut { background: #ffc800; color: #3c3c3c; }
-.call-bar .cb.end { min-width: 104px; background: var(--red); color: #fff; }
+/* Красный «положить трубку» — темнее фирменного `--red`: белая подпись 12 px
+   на #ff4b4b давала 3.3:1 (Lighthouse на экране звонка), а исключение для
+   белого на заливке (CLAUDE.md) — про крупный капс. #d32f2f даёт 4.98:1. */
+.call-bar .cb.end { min-width: 104px; background: #d32f2f; color: #fff; }
 .call-bar .cb.end .ico { transform: rotate(135deg); }
-.call-bar .cb.end:hover:not(:disabled) { background: var(--red-edge); }
+.call-bar .cb.end:hover:not(:disabled) { background: #b71c1c; }
 .call-bar .cb:focus-visible { outline: 3px solid #8fd0ff; outline-offset: 2px; }
 
 /* Вход в созвон — рядом с полем ввода, как голосовой режим у ChatGPT. */

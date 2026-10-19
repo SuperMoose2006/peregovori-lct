@@ -358,3 +358,25 @@ test("пока звонок подключается, микрофон и кам
   assert.ok(!html.includes(I18N.ru.meeting.noMic), "«Микрофона нет» — сведения ещё от чата");
   assert.doesNotMatch(html, /class="call-self[^"]*live/);
 });
+
+test("подпись «Завершить» читается: контраст белого на красной кнопке не ниже 4.5:1", async () => {
+  // Lighthouse на экране звонка: белая подпись 12 px на #ff4b4b — 3.3:1.
+  // Исключение «белое на заливке» в CLAUDE.md — про крупный капс, не про это.
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  const lum = (hex: string) => {
+    const c = [0, 2, 4].map((i) => parseInt(hex.slice(1 + i, 3 + i), 16) / 255)
+      .map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const ratio = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  for (const rule of [/\.call-bar \.cb\.end \{[^}]*background: (#[0-9a-f]{6})/i,
+                      /\.call-bar \.cb\.end:hover:not\(:disabled\) \{ background: (#[0-9a-f]{6})/i]) {
+    const bg = css.match(rule)?.[1];
+    assert.ok(bg, "цвет кнопки «Завершить» не найден — или снова переменная, чей контраст тест не видит");
+    assert.ok(ratio("#ffffff", bg!) >= 4.5, `${bg}: ${ratio("#ffffff", bg!).toFixed(2)}:1`);
+  }
+});
