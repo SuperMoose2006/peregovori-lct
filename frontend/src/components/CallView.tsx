@@ -60,8 +60,11 @@ interface Props {
   subtitle: string | null;
   /** Ваша фраза, пока она не стала ходом. */
   transcript: string | null;
-  /** Микрофон поднят на сервере и на устройстве. */
+  /** Микрофон поднят на сервере и не отказал на устройстве. */
   micAvailable: boolean;
+  /** Браузер ДЕЙСТВИТЕЛЬНО выдал устройство. До этого — «ждём», а не
+   *  «включён»: разрешение может ещё спрашиваться (REVIEW_12206, T4). */
+  devices?: { mic: boolean; camera: boolean };
   /** Почему микрофон не встал — или null. */
   micFail: string | null;
   micMuted: boolean;
@@ -104,7 +107,7 @@ interface Props {
 export function CallView({
   t, lang, scenario, state, status, avatarState, renderer, synthetic, videoPending, oppSpeaking,
   getSpeechLevel, getVideoFrame, getAudioBlocked, onResumeAudio, speech, subtitle, transcript,
-  micAvailable, micFail, micMuted, onToggleMic, getMicLevel, observation, camera, onToggleCamera, videoRef, canvasRef,
+  micAvailable, devices = { mic: true, camera: true }, micFail, micMuted, onToggleMic, getMicLevel, observation, camera, onToggleCamera, videoRef, canvasRef,
   hud, turnLabel, feed, hint, hintEnabled, hintDisabled, onHint, probe, probeTally, registerProbe,
   onProbeAnswer, onInterrupt, onHangUp, hangupPending, outcome,
 }: Props) {
@@ -141,7 +144,9 @@ export function CallView({
   // Уровень микрофона — ~12 раз в секунду, не rAF: полоске на кнопке больше
   // не нужно, а перерисовки стоят реально.
   const [level, setLevel] = useState(0);
-  const listening = micAvailable && !micMuted && !!getMicLevel;
+  const micWaiting = micAvailable && !devices.mic;
+  const camWaiting = camera.up && !devices.camera;
+  const listening = micAvailable && !micWaiting && !micMuted && !!getMicLevel;
   useEffect(() => {
     if (!listening) { setLevel(0); return; }
     const id = window.setInterval(() => setLevel(getMicLevel!()), 80);
@@ -205,8 +210,8 @@ export function CallView({
           <div className={`call-self${selfHidden ? " hidden" : ""}${camera.up && !camera.off ? " live" : ""}`}>
             {camera.up && videoRef ? <video ref={videoRef} muted playsInline autoPlay /> : null}
             {camera.up && canvasRef ? <canvas ref={canvasRef} hidden /> : null}
-            {!camera.up || camera.off ? (
-              <span className="cs-off"><Icon name="camoff" /> {c.cameraOffTile}</span>
+            {!camera.up || camera.off || camWaiting ? (
+              <span className="cs-off"><Icon name="camoff" /> {camWaiting && !camera.off ? c.camWaiting : c.cameraOffTile}</span>
             ) : null}
             <span className="cs-name">{c.you}{micMuted ? <Icon name="micoff" /> : null}</span>
             {camera.up && observation ? (
@@ -289,25 +294,28 @@ export function CallView({
 
       <div className="call-bar" role="toolbar" aria-label={c.controls}>
         <CallButton
-          icon={micAvailable && !micMuted ? "mic" : "micoff"}
+          icon={micAvailable && !micWaiting && !micMuted ? "mic" : "micoff"}
           // Недоступная кнопка подписана коротко, а причина — в подсказке:
           // абзац причины растягивал кнопку на полпанели.
-          label={!micAvailable ? c.mic : micMuted ? t.meeting.micOn : t.meeting.micOff}
-          title={!micAvailable ? (micFail ? c.noMic.replace("{reason}", micFail) : t.meeting.noMic) : undefined}
+          label={!micAvailable ? c.mic : micWaiting ? c.micWaiting : micMuted ? t.meeting.micOn : t.meeting.micOff}
+          title={!micAvailable ? (micFail ? c.noMic.replace("{reason}", micFail) : t.meeting.noMic)
+            : micWaiting ? c.waitingHint : undefined}
           off={!micAvailable || micMuted}
-          disabled={!micAvailable || offline || finished}
+          disabled={!micAvailable || micWaiting || offline || finished}
           level={listening ? level : undefined}
           onClick={onToggleMic}
         />
         <CallButton
           icon={camera.up && !camera.off ? "camera" : "camoff"}
-          label={camera.reason ? c.camera : !camera.up ? c.camOn : camera.off ? c.camOn : c.camOff}
-          title={camera.reason ? c.camNa.replace("{reason}", camera.reason) : !camera.up ? c.camStart : undefined}
+          label={camera.reason ? c.camera : !camera.up ? c.camOn : camWaiting ? c.camWaiting
+            : camera.off ? c.camOn : c.camOff}
+          title={camera.reason ? c.camNa.replace("{reason}", camera.reason) : !camera.up ? c.camStart
+            : camWaiting ? c.waitingHint : undefined}
           off={!camera.up || camera.off}
           // Поднять камеру — это смена сокета (как вход в звонок), а сокет
           // меняется только между ходами: во время хода или речи кнопка
           // заперта, а не нажимается вхолостую (найдено ревью).
-          disabled={!!camera.reason || offline || finished || (!camera.up && status !== "listening")}
+          disabled={!!camera.reason || offline || finished || camWaiting || (!camera.up && status !== "listening")}
           onClick={onToggleCamera}
         />
         <CallButton icon="cc" label={c.cc} pressed={captions} onClick={() => setCaptions((v) => !v)} />

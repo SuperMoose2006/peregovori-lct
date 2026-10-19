@@ -1488,6 +1488,7 @@ export default function App() {
             syntheticFace={syntheticFace(nego.capabilities)}
             videoPending={videoPending(nego.capabilities)}
             micAvailable={micAvailable}
+            devices={nego.devices}
             micMuted={micMuted}
             onToggleMic={() => setMicMuted((m) => !m)}
             getAudioBlocked={nego.getAudioBlocked}

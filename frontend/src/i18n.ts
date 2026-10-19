@@ -448,6 +448,8 @@ export interface Strings {
     camOn: string; camOff: string;
     /** Короткие подписи недоступных кнопок; причина — в подсказке. */
     mic: string; camera: string;
+    /** Браузер ещё спрашивает разрешение: устройство не выдано. */
+    micWaiting: string; camWaiting: string; waitingHint: string;
     /** Камера в этой партии не поднята — кнопка её поднимает. */
     camStart: string;
     camNa: string;
@@ -1448,6 +1450,9 @@ export const I18N: Record<Lang, Strings> = {
       camOff: "Выключить камеру",
       mic: "Микрофон",
       camera: "Камера",
+      micWaiting: "Ждём микрофон",
+      camWaiting: "Ждём камеру",
+      waitingHint: "Браузер спрашивает разрешение — ответьте в его окне",
       camStart: "Включить камеру — ИИ будет видеть вас",
       camNa: "Камера недоступна: {reason}",
       cameraOffTile: "Камера выключена",
@@ -2502,6 +2507,9 @@ export const I18N: Record<Lang, Strings> = {
       camOff: "Turn camera off",
       mic: "Microphone",
       camera: "Camera",
+      micWaiting: "Waiting for mic",
+      camWaiting: "Waiting for camera",
+      waitingHint: "The browser is asking for permission — answer in its prompt",
       camStart: "Turn camera on — the AI will see you",
       camNa: "Camera unavailable: {reason}",
       cameraOffTile: "Camera off",

@@ -95,6 +95,8 @@ interface Props {
   syntheticFace?: boolean;
   videoPending?: boolean;
   micAvailable?: boolean;
+  /** Устройства, которые браузер действительно выдал (useNegotiation.devices). */
+  devices?: { mic: boolean; camera: boolean };
   micMuted?: boolean;
   onToggleMic?: () => void;
   getAudioBlocked?: () => boolean;
@@ -139,7 +141,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", call = false, callOffer, onCall, onHangUp, hangupPending = false, callCamera, onToggleCamera, speech = null, syntheticFace = false, videoPending = false, micAvailable = false, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", onOpenLayers, layersOpen = false, layerFail, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
+export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", call = false, callOffer, onCall, onHangUp, hangupPending = false, callCamera, onToggleCamera, speech = null, syntheticFace = false, videoPending = false, micAvailable = false, devices, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", onOpenLayers, layersOpen = false, layerFail, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -597,6 +599,7 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
           subtitle={subtitle}
           transcript={transcript}
           micAvailable={micAvailable}
+          devices={devices}
           micFail={layerFail?.voice ?? null}
           micMuted={micMuted}
           onToggleMic={onToggleMic ?? (() => {})}

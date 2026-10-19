@@ -92,6 +92,10 @@ export interface NegotiationState {
   tellNow: boolean;
   /** Что умеет эта сессия (из `session.created`). Null до начала партии. */
   capabilities: Record<string, unknown> | null;
+  /** Какие устройства браузер ДЕЙСТВИТЕЛЬНО выдал. Ложь при `capabilities.
+   *  microphone === true` — разрешение ещё спрашивается, и звонок говорит
+   *  «ждём доступ», а не «микрофон включён». */
+  devices: { mic: boolean; camera: boolean };
   /** Идёт смена режима той же партии (текст ↔ созвон): сокет сменится, ход
    *  останется. Баннер «связь прервалась» здесь был бы неправдой — человек
    *  сам нажал кнопку. Снимается приветствием нового сокета. */
@@ -154,6 +158,7 @@ const initialState: NegotiationState = {
   tellFrames: 0,
   tellNow: false,
   capabilities: null,
+  devices: { mic: false, camera: false },
   switching: false,
 };
 
@@ -258,6 +263,7 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
             }),
           onSpeech: (userSpeaking) => currentState((p) => ({ ...p, userSpeaking })),
           onCapabilities: (capabilities) => currentState((p) => ({ ...p, capabilities })),
+          onDevices: (devices) => currentState((p) => ({ ...p, devices })),
         },
       );
     }

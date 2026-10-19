@@ -263,3 +263,27 @@ test("подсказки вводной не расходуются в звон�
   const effect = table.slice(table.indexOf("const tutShownTurn = useRef"), table.indexOf("setTutQueue((q) => q.slice(1));"));
   assert.match(effect, /if \([^)]*\bcall\) return;/, "очередь вводной расходуется в звонке");
 });
+
+test("пока браузер спрашивает разрешение, звонок говорит «ждём», а не «включён»", async () => {
+  // REVIEW_12206, T4 — в звонке: сервер микрофон принимает, браузер его ещё
+  // не выдал, а кнопка уже предлагала «Выключить микрофон».
+  const { CallView } = await import("../src/components/CallView");
+  const c = I18N.ru.call;
+  const render = (devices: { mic: boolean; camera: boolean }) => renderToStaticMarkup(createElement(CallView, {
+    t: I18N.ru, lang: "ru", scenario: { id: "supplier", counterpart_name: "Марина", counterpart_persona: "",
+      headline_unit: "₽" } as never,
+    state: null, status: "listening", avatarState: null, renderer: "portrait", synthetic: false,
+    videoPending: false, oppSpeaking: false, speech: true, subtitle: null, transcript: null,
+    micAvailable: true, devices, micFail: null, micMuted: false, onToggleMic: () => {},
+    camera: { up: true, off: false, reason: null }, onToggleCamera: () => {},
+    hud: null, turnLabel: "", feed: null, hint: null, hintEnabled: true, hintDisabled: false,
+    onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: null,
+  }));
+  const waiting = render({ mic: false, camera: false });
+  assert.ok(waiting.includes(c.micWaiting) && waiting.includes(c.camWaiting));
+  assert.ok(!waiting.includes(I18N.ru.meeting.micOff), "«Выключить микрофон» над невыданным микрофоном");
+  const at = waiting.indexOf(c.micWaiting);
+  assert.match(waiting.slice(waiting.lastIndexOf("<button", at), at), /disabled/);
+  const live = render({ mic: true, camera: true });
+  assert.ok(live.includes(I18N.ru.meeting.micOff) && !live.includes(c.micWaiting) && !live.includes(c.camWaiting));
+});

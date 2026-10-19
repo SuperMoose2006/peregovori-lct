@@ -329,3 +329,59 @@ test("партия начата заново — вопросы о реакци�
   assert.equal(t.seen.filter((m) => m.type === "probe").length, 3, "вопрос первого хода новой партии заглушён");
   t.transport.close();
 });
+
+test("устройства объявляются, только когда браузер их выдал, и гаснут с выходом", async () => {
+  // REVIEW_12206, T4 — перешло и в звонок: сервер обещал принять микрофон, а
+  // браузер ещё спрашивал разрешение, и экран уже говорил «микрофон включён».
+  const { RealtimeTransport } = await import("../src/realtime/transport");
+  const { MediaProvider } = await import("../src/realtime/vendor/media-provider");
+  const supported = MediaProvider.supported;
+  const start = MediaProvider.prototype.start;
+  const stop = MediaProvider.prototype.stop;
+  const setMic = MediaProvider.prototype.setMicEnabled;
+  const setCam = MediaProvider.prototype.setCameraEnabled;
+  let answer: (r: { mic: string; camera: string }) => void = () => {};
+  MediaProvider.supported = () => true;
+  MediaProvider.prototype.start = function () { return new Promise((r) => { answer = r as never; }); };
+  MediaProvider.prototype.stop = async function () {};
+  MediaProvider.prototype.setMicEnabled = function () {};
+  MediaProvider.prototype.setCameraEnabled = function () {};
+  try {
+    await withQuietPlayer(async () => {
+      FakeSocket.instances = [];
+      const devices: { mic: boolean; camera: boolean }[] = [];
+      const transport = new RealtimeTransport(() => {}, () => {}, { onDevices: (d) => devices.push(d) });
+      transport.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice", layers: { probe: true } });
+      await wait(0);
+      FakeSocket.instances[0].deliver({ type: "session.queue_done" });
+      FakeSocket.instances[0].deliver({ type: "session.created", session_id: "s-1", scenario: { id: "supplier" },
+        state: STATE0, greeting: "", capabilities: {} });
+      await wait(0);
+      transport.relayer({ voice: true, camera: true });
+      const call = await nextSocket();
+      for (let i = 0; i < 20 && !call.types().includes("session.init"); i++) await wait(10);
+      call.deliver({ type: "session.created", session_id: "s-1", resumed: true, scenario: { id: "supplier" },
+        state: STATE0, greeting: "", capabilities: { microphone: true, camera: true, speech: true } });
+      for (let i = 0; i < 5; i++) await wait(0);
+      assert.deepEqual(devices, [], "устройства объявлены, пока браузер ещё спрашивает");
+      answer({ mic: "ok", camera: "доступ не разрешён" });
+      for (let i = 0; i < 5; i++) await wait(0);
+      assert.deepEqual(devices.at(-1), { mic: true, camera: false });
+      transport.relayer({ voice: false });
+      await wait(0);
+      assert.deepEqual(devices.at(-1), { mic: false, camera: false }, "после выхода из звонка микрофон всё ещё «включён»");
+      for (let i = 0; i < 20 && FakeSocket.instances.length < 3; i++) await wait(0);
+      FakeSocket.instances[2].deliver({ type: "session.queue_done" });
+      FakeSocket.instances[2].deliver({ type: "session.created", session_id: "s-1", resumed: true,
+        scenario: { id: "supplier" }, state: STATE0, greeting: "", capabilities: {} });
+      await wait(0);
+      transport.close();
+    });
+  } finally {
+    MediaProvider.supported = supported;
+    MediaProvider.prototype.start = start;
+    MediaProvider.prototype.stop = stop;
+    MediaProvider.prototype.setMicEnabled = setMic;
+    MediaProvider.prototype.setCameraEnabled = setCam;
+  }
+});

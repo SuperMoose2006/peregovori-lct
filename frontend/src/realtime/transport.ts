@@ -52,6 +52,11 @@ export interface RealtimeExtras {
   onOppAudio?: (speaking: boolean) => void;
   /** Что умеет эта сессия — из `session.created`. */
   onCapabilities?: (capabilities: Record<string, unknown>) => void;
+  /** Какие устройства ДЕЙСТВИТЕЛЬНО отдают поток. Сервер говорит, что
+   *  микрофон он примет (`capabilities.microphone`), но браузер ещё может
+   *  спрашивать разрешение: без этого сигнала звонок объявлял «микрофон
+   *  включён» над устройством, которого никто не выдал (REVIEW_12206, T4). */
+  onDevices?: (devices: { mic: boolean; camera: boolean }) => void;
   /** Лента протокола: незаменима при отладке перебивания. */
   onProtocol?: (entry: ProtocolEntry) => void;
 }
@@ -214,6 +219,7 @@ export class RealtimeTransport implements Transport {
   stopCapture(): void {
     const media = this.media;
     this.media = null;
+    if (media) this.options.onDevices?.({ mic: false, camera: false });
     void media?.stop().catch(() => { /* нечего гасить */ });
   }
 
@@ -224,6 +230,7 @@ export class RealtimeTransport implements Transport {
     this.player = null;
     this.faceFrames.clear();
     this.markOppAudio(false);
+    if (media) this.options.onDevices?.({ mic: false, camera: false });
     await Promise.all([
       media?.stop().catch(() => { /* нечего гасить */ }),
       player?.dispose().catch(() => { /* уже закрыт */ }),
@@ -453,6 +460,7 @@ export class RealtimeTransport implements Transport {
     }
     media.setMicEnabled(!this.micMuted);
     media.setCameraEnabled(!this.cameraOff);
+    this.options.onDevices?.({ mic: report.mic === "ok", camera: report.camera === "ok" });
     if (this.voiceWanted && this.microphoneAllowed && report.mic !== "ok")
       this.emit({ type: "layer_failed", layer: "voice", reason: String(report.mic) });
     if (this.cameraWanted && report.camera !== "ok")
