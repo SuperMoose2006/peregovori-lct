@@ -214,6 +214,21 @@ export function callLayers(
   return { ...active, voice: true, camera: allowed.camera, pokerface: allowed.pokerface };
 }
 
+/**
+ * Что показывает шторка слоёв ЗА СТОЛОМ.
+ *
+ * Слои партии — кроме камеры и «покерфейса» в чате. Там их нет по построению
+ * (`textLayers`), и шторка, показывая слои чата, рисовала камеру выключенной —
+ * а первое же нажатие любого другого тумблера записывало это «выключено» в
+ * профиль, и следующий созвон поднимался без камеры (найдено ревью). Пока
+ * созвона нет, камера в шторке — это выбор человека для него. В созвоне и в
+ * партии на зачёт шторка показывает то, что партия получила на самом деле.
+ */
+export function drawerLayers(active: Layers, prefs: Layers, allowed: boolean): Layers {
+  if (!allowed || active.voice) return active;
+  return { ...active, camera: prefs.camera, pokerface: prefs.pokerface };
+}
+
 export function reasonText(s: LayerState, lang: Lang): string {
   return s.reason ? s.reason[lang] : "";
 }

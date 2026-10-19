@@ -27,7 +27,7 @@ import { loadTourPrefs, markSeenThisSession, saveTourPrefs, seenThisSession, set
          type TourPrefs, type TourSection } from "./lib/tours";
 import { dailyTable } from "./lib/daily";
 import { SkillsProfile, AchievementToasts, MilestoneCard } from "./components/Gamification";
-import { callLayers, detectLayers, layersAllowed, parseLayerPrefs, pruneLayers, reasonText, startLayers, textLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
+import { callLayers, detectLayers, drawerLayers, layersAllowed, parseLayerPrefs, pruneLayers, reasonText, startLayers, textLayers, withServer, NO_LAYERS, type LayerId, type Layers, type ServerHealth } from "./lib/layers";
 import { fetchServerHealth } from "./api/health";
 import { checkDevice, dropFailedLayers, requestLayers, type DeviceChecks, type DeviceLayer } from "./lib/deviceCheck";
 import { faceRenderer } from "./lib/faceSource";
@@ -1156,6 +1156,11 @@ export default function App() {
     lang,
   });
   const micAvailable = nego.capabilities?.microphone === true && !nego.layerFail.voice;
+  // Шторка слоёв за столом (lib/layers.ts::drawerLayers).
+  const drawer = screen === "game"
+    ? drawerLayers(activeLayers, layerPrefs,
+        layersAllowed(activeRunRef.current?.mode ?? mode, !!activeRunRef.current?.options?.fixedOff))
+    : layerPrefs;
   const cameraReason = !layerStates.camera.available ? reasonText(layerStates.camera, lang)
     : nego.layerFail.camera ?? null;
 
@@ -1727,10 +1732,10 @@ export default function App() {
             <LayersPanel
               t={t}
               lang={lang}
-              layers={screen === "game" ? activeLayers : layerPrefs}
+              layers={drawer}
               states={layerStates}
-              onToggle={(id) => chooseLayers(activeLayers, { ...activeLayers, [id]: !activeLayers[id] })}
-              onPreset={(next) => chooseLayers(screen === "game" ? activeLayers : layerPrefs, next)}
+              onToggle={(id) => chooseLayers(drawer, { ...drawer, [id]: !drawer[id] })}
+              onPreset={(next) => chooseLayers(drawer, next)}
               checks={deviceChecks}
               lockNote={layersLock}
               // Настоящие отказы идущей партии. Без них шторка отвечала

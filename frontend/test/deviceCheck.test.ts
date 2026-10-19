@@ -144,7 +144,8 @@ test("подпись под тумблером обещает проверку �
   }
   const app = readFileSync(join(SRC, "App.tsx"), "utf8");
   assert.match(app, /onToggle=\{\(id\) => chooseLayers\(layerPrefs,/, "профиль включает слой в обход проверки");
-  assert.match(app, /onToggle=\{\(id\) => chooseLayers\(activeLayers,/, "шторка за столом включает слой в обход проверки");
+  // За столом шторка собирает выбор из показанного (lib/layers.ts::drawerLayers).
+  assert.match(app, /onToggle=\{\(id\) => chooseLayers\(drawer,/, "шторка за столом включает слой в обход проверки");
 });
 
 // ---- Умолчание: все слои включены у нового профиля --------------------------------

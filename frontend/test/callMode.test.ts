@@ -164,3 +164,22 @@ test("в шторке слоёв нет тумблера «Голосом» — 
     assert.ok(html.includes(`aria-label="${I18N[lang].layers.names.camera}"`), `${lang}: камера пропала вместе с голосом`);
   }
 });
+
+test("шторка в чате показывает камеру из выбора человека, а не «выключено» чата", async () => {
+  // Найдено ревью: в чате камера погашена по построению, шторка рисовала её
+  // выключенной, и нажатие ЛЮБОГО тумблера записывало это в профиль — следующий
+  // созвон поднимался без камеры.
+  const { drawerLayers } = await import("../src/lib/layers");
+  const prefs: Layers = { probe: true, voice: false, camera: true, avatar: true, pokerface: true };
+  const chat = startLayers("practice", prefs, READY);
+  const shown = drawerLayers(chat, prefs, true);
+  assert.equal(shown.camera, true);
+  assert.equal(shown.pokerface, true);
+  // Нажатие «читай лицо» в шторке собирает выбор из ПОКАЗАННОГО — камера в нём жива.
+  const next = { ...shown, probe: !shown.probe };
+  assert.equal(next.camera, true, "нажатие соседнего тумблера выключило камеру в профиле");
+  // В созвоне и в партии на зачёт — то, что партия получила на самом деле.
+  const call = callLayers("practice", chat, { ...prefs, camera: false }, READY)!;
+  assert.deepEqual(drawerLayers(call, prefs, true), call);
+  assert.deepEqual(drawerLayers(NO_LAYERS, prefs, false), NO_LAYERS);
+});
