@@ -37,6 +37,9 @@ export class MockServer implements Transport {
   /** Which optional layers this session runs with. Only `probe` is honoured — the
    *  others report themselves unavailable and never reach here. */
   private layers: { probe?: boolean } | null = null;
+  /** Партия на зачёт (экзамен, капстоун) — без подсказок и без тренера, как
+   *  на сервере (`reproducible_run`). */
+  private graded = false;
   /** Память слоя «читай лицо» — та же, что у живого транспорта, и по той же
    *  причине: решение принимает общая чистая функция, а помнит его партия. */
   private probeMemory: ProbeMemory = { ...NO_PROBES };
@@ -84,6 +87,7 @@ export class MockServer implements Transport {
   private async handleStart(msg: Extract<ClientMsg, { type: "start" }>): Promise<void> {
     const lang: Lang = msg.lang;
     this.layers = msg.layers ?? null;
+    this.graded = msg.mode === "exam" || msg.mode === "drill";
     this.probeMemory = { ...NO_PROBES };
     let def: ScenarioDef | undefined;
     let genDelay = 150;
@@ -185,7 +189,9 @@ export class MockServer implements Transport {
       analysis: toAnalysis(raw, text),
       deltas: result.deltas,
       state: stateView(s),
-      coach: timeout ? undefined : coachLine(raw.primary, s.lang),
+      // На зачёте тренера нет: на сервере эту строку пишет судья, а в
+      // партии на зачёт судьи нет вовсе (инвариант 8).
+      coach: timeout || this.graded ? undefined : coachLine(raw.primary, s.lang),
     });
 
     // Офлайн-зеркало серверного app/probe.py; общая фикстура проверяет
@@ -212,6 +218,8 @@ export class MockServer implements Transport {
 
   private handleHint(): void {
     const s = this.session;
+    // Партия на зачёт — без подсказок; сервер на просьбу молчит так же.
+    if (this.graded) return;
     if (!s || s.status !== "active") {
       this.emit({ type: "error", message: "Hint unavailable" });
       return;

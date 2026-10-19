@@ -528,3 +528,41 @@ def test_the_daily_modifier_never_touches_a_graded_table():
             daily=date.today().isoformat())))
         assert err is None and sess is not None, (mode, err)
         assert (sess.daily is not None) is expect_applied, mode
+
+
+@pytest.mark.parametrize("game_mode", ["exam", "drill"])
+def test_a_graded_run_gives_no_hint_even_when_asked(game_mode):
+    """Требование 44: экзамен и капстоун — без подсказок. Кнопку прячет
+    клиент, но `coach.request` может прислать любой сокет, а подсказка несёт
+    готовую реплику. Найдено после аудита 17.10: сервер отвечал и тут."""
+    client = TestClient(app)
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        ws.send_json({"type": "session.init", "payload": {
+            "scenarioId": "investor", "lang": "ru", "gameMode": game_mode}})
+        _created_for(ws)
+        ws.send_json({"type": "coach.request"})
+        ws.send_json({"type": "input.append", "input": {"text": "Что для вас важнее всего?"}})
+        ws.send_json({"type": "input.commit"})
+        seen = []
+        while True:
+            event = ws.receive_json()
+            seen.append(event)
+            if event["type"] == "response.done":
+                break
+        hints = [e for e in seen if e["type"] == "turn.coach" and e.get("kind") == "hint"]
+        assert hints == [], hints
+        ws.send_json({"type": "session.close"})
+
+
+def test_practice_still_gets_its_hint():
+    client = TestClient(app)
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        ws.send_json({"type": "session.init", "payload": {
+            "scenarioId": "investor", "lang": "ru", "gameMode": "practice"}})
+        _created_for(ws)
+        ws.send_json({"type": "coach.request"})
+        event = ws.receive_json()
+        while event["type"] != "turn.coach":
+            event = ws.receive_json()
+        assert event.get("kind") == "hint" and event["text"].strip()
+        ws.send_json({"type": "session.close"})

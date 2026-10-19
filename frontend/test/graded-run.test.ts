@@ -112,3 +112,40 @@ test("офлайн-ядро не кладёт условие дня на зач�
       `${mode}: условие дня срезало лимит ходов в зачётной партии`);
   }
 });
+
+test("партия на зачёт — без подсказок и без тренера, офлайн как на сервере", async () => {
+  // Требование 44: «экзамен/капстоун без судьи, подсказок и слоёв». Найдено
+  // после аудита 17.10: в капстоуне и экзамене мастера лампочка давала
+  // готовую реплику, а офлайн-ядро клало строку тренера под каждый ход.
+  const { MockServer } = await import("../src/mock/mockServer");
+  const play = async (mode: string) => {
+    const got: { type: string; coach?: string }[] = [];
+    const srv = new MockServer((m: { type: string; coach?: string }) => { got.push(m); });
+    srv.send({ type: "start", lang: "ru", mode, scenarioId: "supplier" } as never);
+    for (let i = 0; i < 60 && !got.some((m) => m.type === "greeting"); i++) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    srv.send({ type: "hint" } as never);
+    srv.send({ type: "turn", text: "Что для вас важнее всего в этом контракте?" } as never);
+    for (let i = 0; i < 300 && !got.some((m) => m.type === "opponent"); i++) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    return got;
+  };
+  for (const mode of REPRODUCIBLE_MODES) {
+    const got = await play(mode);
+    assert.ok(got.some((m) => m.type === "opponent"), `${mode}: ход не дошёл`);
+    assert.ok(!got.some((m) => m.type === "hint"), `${mode}: подсказка на зачёте`);
+    assert.ok(!got.some((m) => m.type === "opponent" && m.coach), `${mode}: тренер на зачёте`);
+  }
+  const practice = await play("practice");
+  assert.ok(practice.some((m) => m.type === "hint"), "тренировка потеряла подсказку");
+});
+
+test("стол на зачёте прячет лампочку, заготовки и чипы приёмов", () => {
+  const src = readFileSync(new URL("../src/components/Table.tsx", import.meta.url), "utf8");
+  assert.match(src, /const graded = exam \|\| drillGoal !== null;/);
+  assert.match(src, /quickMoves=\{graded \? \[\] : t\.quickMoves\}/);
+  assert.match(src, /hintEnabled=\{!graded\}/);
+  assert.match(src, /showChips=\{!graded\}/);
+});

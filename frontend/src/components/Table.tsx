@@ -185,6 +185,8 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
   // Exam is an assessment: all live coaching feedback (meters, interests tracker,
   // technique chips/badges, meter deltas, hint) is withheld until the debrief.
   const exam = mode === "exam";
+  // На зачёт идут экзамен и капстоун курса (protocol.REPRODUCIBLE_MODES).
+  const graded = exam || drillGoal !== null;
   // Субтитр встречи — последняя реплика собеседника, пока она звучит или ещё
   // печатается. Когда он замолчал, субтитр уходит: лента хранит всё целиком.
   const lastOpp = meeting ? [...log].reverse().find((e) => e.kind === "opp") : undefined;
@@ -819,12 +821,14 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                 blocked={probeOpen}
                 placeholder={probeOpen ? t.probe.blocked : placeholder}
                 // Заготовки реплик («Интерес», «SPIN»…) — та же подсказка, что
-                // лампочка: на экзамене их нет (аудит 17.10, F06).
-                quickMoves={exam ? [] : t.quickMoves}
+                // лампочка: на экзамене их нет (аудит 17.10, F06). Партия на
+                // зачёт — это и капстоун курса (`drillGoal`): экран у него
+                // обычный, а подсказок нет так же — сервер их там не даёт.
+                quickMoves={graded ? [] : t.quickMoves}
                 onSend={onSend}
                 onHint={onHint}
-                hintEnabled={!exam}
-                showChips={!exam}
+                hintEnabled={!graded}
+                showChips={!graded}
                 limitNote={t.composerLimit}
                 charForms={t.forms.chars}
                 prefill={prefill}
