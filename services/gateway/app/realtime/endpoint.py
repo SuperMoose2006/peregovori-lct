@@ -249,6 +249,12 @@ class _Work:
                 _log.exception("realtime: ход упал")
                 session.bus.publish(error("turn_failed", "turn failed"))
 
+    def start_voice_commit(self, voice) -> None:
+        """«Готово» в голосовом режиме — ход тем же путём, но без читателя."""
+        task = asyncio.create_task(voice.force_commit())
+        self._turns.add(task)
+        task.add_done_callback(self._turns.discard)
+
     def start_hint(self, session: "RealtimeSession") -> None:
         if self._hint is not None and not self._hint.done():
             return
@@ -536,7 +542,11 @@ async def realtime_ws(websocket: WebSocket) -> None:
                     if not text and voice is not None:
                         # Голосовой режим: клиент нажал «готово», не дожидаясь
                         # детектора конца хода. Уважаем — человек решил сам.
-                        await voice.force_commit()
+                        # Задачей, а не `await`: `force_commit` ждёт весь ход, и
+                        # читатель сокета стоял бы на нём — `response.cancel` и
+                        # `session.close` ждали бы конца хода (найдено после
+                        # аудита 17.10; шапка _Work обещает обратное).
+                        work.start_voice_commit(voice)
                     elif text:
                         if not work.start_turn(orchestrator, session, text):
                             await websocket.send_json(error("busy", "turn already in flight"))

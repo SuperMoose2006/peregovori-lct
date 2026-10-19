@@ -205,3 +205,28 @@ async def test_stopping_the_reply_does_not_undo_an_accepted_move():
 
     assert session.engine_session.turn == turn == 1
     assert session.engine_session.state == state
+
+
+@pytest.mark.asyncio
+async def test_a_voice_commit_does_not_hold_the_socket_reader():
+    """Найдено после аудита 17.10: пустой `input.commit` в голосовом режиме
+    ждал весь ход прямо в цикле чтения — перебивание и закрытие стояли в
+    очереди за ним. Теперь это задача `_Work`, и `aclose` её гасит."""
+    import inspect
+    from app.realtime import endpoint
+
+    started, release = asyncio.Event(), asyncio.Event()
+
+    class Voice:
+        async def force_commit(self):
+            started.set()
+            await release.wait()
+
+    work = endpoint._Work()
+    work.start_voice_commit(Voice())
+    await asyncio.wait_for(started.wait(), 1)       # пошло, а мы не ждём
+    assert len(work._turns) == 1
+    await work.aclose()
+    assert not work._turns
+    src = inspect.getsource(endpoint.realtime_ws)
+    assert "await voice.force_commit()" not in src
