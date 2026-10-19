@@ -472,6 +472,11 @@ function retract(s: Session, f: number): void {
     const snapped = Math.floor(moved / step + 0.5) * step;
     const lo = Math.min(s.offerOpp, s.frameOpen), hi = Math.max(s.offerOpp, s.frameOpen);
     moved = Math.max(lo, Math.min(hi, snapped));
+    // Ненулевой откат — хотя бы шаг к якорю, иначе сам якорь (ревью ветки).
+    if (Math.abs(moved - s.offerOpp) < 1e-9 && f > 0) {
+      const nudged = s.offerOpp + (dist > 0 ? step : -step);
+      moved = nudged >= lo && nudged <= hi ? nudged : s.frameOpen;
+    }
   }
   s.offerOpp = Math.round(moved * 100) / 100;
 }

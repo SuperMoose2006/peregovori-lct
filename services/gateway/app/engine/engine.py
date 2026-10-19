@@ -366,6 +366,12 @@ def _retract(sess: Session, fraction: float) -> None:
         snapped = math.floor(moved / step + 0.5) * step
         lo, hi = sorted((s.offer_opp, s.frame_open))
         moved = clamp(snapped, lo, hi)
+        # Округление съедало малый откат целиком (99,5 → 99,5 при шаге 0,5;
+        # ревью ветки). Как в `_concede`: ненулевой откат — хотя бы шаг к
+        # якорю, а если до якоря меньше шага — сам якорь.
+        if abs(moved - s.offer_opp) < 1e-9 and fraction > 0:
+            nudged = s.offer_opp + (step if dist > 0 else -step)
+            moved = nudged if lo <= nudged <= hi else s.frame_open
     s.offer_opp = _round2(moved)
 
 

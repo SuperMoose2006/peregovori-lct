@@ -435,6 +435,25 @@ def test_a_walk_back_stays_on_the_price_grid():
     assert abs(s.state.offer_opp / step - round(s.state.offer_opp / step)) < 1e-9, s.state.offer_opp
 
 
+@pytest.mark.parametrize("scenario_id,table,fraction", [("supplier", 99.5, 0.35), ("salary", 184, 0.20)])
+def test_a_small_walk_back_is_not_rounded_away(scenario_id, table, fraction):
+    """Найдено ревью ветки: округление отката к сетке шага съедало малый откат
+    целиком — на поставщике при цене 99,5 грубость оставляла 99,5 (до правки
+    сетки — 99,68), на зарплате при 184 вторая угроза — 184. Как и уступка,
+    ненулевой откат — хотя бы один шаг к якорю, но не дальше якоря."""
+    from app.engine.engine import _retract, price_step
+    s = engine.create_session(scenario_id, "ru")
+    s.state.offer_opp = table
+    _retract(s, fraction)
+    away = (s.state.frame_open - table) > 0
+    assert (s.state.offer_opp > table) if away else (s.state.offer_opp < table), s.state.offer_opp
+    lo, hi = sorted((table, s.state.frame_open))
+    assert lo <= s.state.offer_opp <= hi
+    step = price_step(engine.by_id(scenario_id))
+    on_grid = abs(s.state.offer_opp / step - round(s.state.offer_opp / step)) < 1e-9
+    assert on_grid or s.state.offer_opp == s.state.frame_open, s.state.offer_opp
+
+
 def test_millions_reach_a_table_priced_in_millions():
     """Найдено после аудита 17.10: на столе «своей сделки» в « млн» (10,5–12)
     «11,5 миллиона» читалось 11 500 000 и мимо коридора; масштаб пересчитывался

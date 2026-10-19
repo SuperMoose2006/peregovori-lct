@@ -282,6 +282,18 @@ test("откат за грубость остаётся на сетке шага
   assert.equal(s.offerOpp, 94.5);
 });
 
+test("малый откат не округляется в ноль (зеркало test_engine_edges)", async () => {
+  // Найдено ревью ветки: на поставщике при 99,5 грубость оставляла 99,5.
+  const { analyze, applyMove, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const s = newSession(SCENARIO_MAP.supplier, "ru");
+  s.turn = 1;
+  s.offerOpp = 99.5;
+  applyMove(s, analyze("Это абсурд."), "Это абсурд.");
+  assert.ok(s.offerOpp > 99.5, String(s.offerOpp));
+  assert.ok(s.offerOpp <= s.frameOpen);
+});
+
 test("придержанное условие размена не засчитывается отданным (зеркало сервера)", async () => {
   // Найдено после аудита 17.10: «Если мы НЕ дадим годовой контракт…».
   const { analyze, applyMove, newSession } = await import("../src/mock/engine");
