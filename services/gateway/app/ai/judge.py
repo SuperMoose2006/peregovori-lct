@@ -25,6 +25,7 @@ Returns None on any problem → caller falls back to the keyword score.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 from typing import Optional
@@ -182,7 +183,11 @@ def _clean_techniques(items, lang: str) -> list[str]:
     vocab = TECHNIQUES_RU if lang == "ru" else TECHNIQUES_EN
     index = {v.lower(): v for v in vocab}
     out: list[str] = []
-    for it in (items or []):
+    # Не список (`3`, `true`, строка) — меток нет: `for it in 3` ронял разбор
+    # вместо отказа (найдено после аудита 17.10).
+    if not isinstance(items, (list, tuple)):
+        return out
+    for it in items:
         v = index.get(str(it).strip().lower())
         if v and v not in out:
             out.append(v)
@@ -219,13 +224,20 @@ def parse_judgement(raw: str, lang: str = "ru", interests: Optional[list] = None
 
 def _validate(d: dict, lang: str, interests: Optional[list],
               secondary: Optional[list]) -> Optional[dict]:
+    # Infinity / 1e999 / NaN — числа, которых не бывает в баллах: разбор падал
+    # OverflowError / ValueError вместо «судья не ответил» (найдено после
+    # аудита 17.10; ручка курса отдавала 500).
     try:
-        score = max(0, min(100, int(round(float(d.get("arg_score"))))))
-    except (TypeError, ValueError):
+        raw_score = float(d.get("arg_score"))
+        if not math.isfinite(raw_score):
+            return None
+        score = max(0, min(100, int(round(raw_score))))
+    except (TypeError, ValueError, OverflowError):
         return None
 
     idx = d.get("interest_targeted")
-    if isinstance(idx, bool) or not isinstance(idx, (int, float)):
+    if (isinstance(idx, bool) or not isinstance(idx, (int, float))
+            or not math.isfinite(float(idx))):
         idx = None
     else:
         idx = int(idx)

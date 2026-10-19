@@ -9,6 +9,8 @@
 import asyncio
 import os
 
+import pytest
+
 from app.ai.judge import _extract_json, parse_judgement
 from app.orchestrator.judge import judge_enabled, judge_turn
 
@@ -289,3 +291,23 @@ def test_the_judge_still_overrides_which_interest_was_targeted():
     engine.apply_move(sess, analyze(line), line,
                       judge={"arg_score": 70, "interest_targeted": 2})
     assert sess.state.interests_found == [2]
+
+
+@pytest.mark.parametrize("raw", [
+    '{"arg_score": Infinity}', '{"arg_score": 1e999}', '{"arg_score": "1e999"}',
+    '{"arg_score": NaN}', '{"arg_score": 60, "interest_targeted": NaN}',
+])
+def test_impossible_numbers_are_an_unusable_verdict_not_a_crash(raw):
+    """Найдено после аудита 17.10: такие ответы роняли разбор (OverflowError,
+    ValueError) вместо «судья не ответил» — живой ход терял повтор запроса,
+    ручка курса отдавала 500."""
+    from app.ai.judge import parse_judgement
+    got = parse_judgement(raw, "ru", interests=["a", "b", "c"])
+    assert got is None or got["interest_targeted"] is None
+
+
+@pytest.mark.parametrize("techniques", ["3", "true", '"Вопрос"'])
+def test_techniques_that_are_not_a_list_give_no_labels(techniques):
+    from app.ai.judge import parse_judgement
+    got = parse_judgement('{"arg_score": 60, "techniques": %s}' % techniques, "ru")
+    assert got is not None and got["techniques"] == []
