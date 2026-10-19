@@ -451,3 +451,14 @@ test("неотвеченный вопрос-прогноз — не промах
   assert.match(app, /const probeStats = useMemo\(\(\) => \{\s*const asked = answeredProbes\(nego\.log\);/);
   assert.match(app, /const probeTally = useMemo\(\(\) => \{\s*const asked = answeredProbes\(nego\.log\);/);
 });
+
+test("«самый дорогой ход» — только когда ход правда вредный", () => {
+  // Найдено после аудита 17.10: без вредного хода разбор брал первый ключевой
+  // и подписывал удачный вопрос «Ваш самый дорогой ход».
+  const src = readFileSync(join(SRC, "components", "Debrief.tsx"), "utf8");
+  assert.match(src, /costly=\{damageScore\(pivotal\) > 0\}/);
+  assert.match(src, /\{costly \? w\.intro : w\.introNeutral\}/);
+  for (const lang of ["ru", "en"] as const) {
+    assert.doesNotMatch(I18N[lang].whatIf.introNeutral, lang === "ru" ? /дорог/ : /costly/);
+  }
+});

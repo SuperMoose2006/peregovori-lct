@@ -249,6 +249,19 @@ def turning_points(sess: "engine.Session", k: int = 2) -> list[dict]:
         return max(abs(d.get("trust", 0)), abs(d.get("tension", 0)), abs(d.get("info", 0)))
 
     top = sorted(entries, key=swing, reverse=True)[:k]
+    # ХОД-УРОК ОБЯЗАН ПОПАСТЬ В КЛЮЧЕВЫЕ. Отбор по размаху отдавал места двум
+    # вскрытиям (+24 информации) и выкидывал ультиматум (+22 напряжения), и
+    # разбор, не найдя вредного хода, подписывал удачный вопрос «Ваш самый
+    # дорогой ход» (найдено после аудита 17.10). Есть вредный ход — он вместо
+    # самого слабого из отобранных.
+    def damage(e):
+        d = e["deltas"]
+        return d.get("tension", 0) - d.get("trust", 0)
+
+    harmful = [e for e in entries
+               if e["deltas"].get("tension", 0) >= 6 or e["deltas"].get("trust", 0) <= -6]
+    if harmful and not any(e in harmful for e in top):
+        top[-1:] = [max(harmful, key=damage)]
     top = sorted(top, key=lambda e: e.get("turn", 0))  # chronological
     out = []
     for e in top:

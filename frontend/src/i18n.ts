@@ -702,6 +702,8 @@ export interface Strings {
     title: string; // section heading
     teaser: string; // inviting one-liner at the hoisted top of the card ("Один ход решал всё →")
     intro: string; // "Вы надавили здесь. Смотрите, что было бы иначе."
+    /** Когда вредного хода в партии нет: ход ключевой, но не «дорогой». */
+    introNeutral: string;
     reveal: string; // button to run the replay
     loading: string; // in-flight label
     again: string; // reset to try a different alt line
@@ -1715,6 +1717,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "А что если…",
       teaser: "Один ход решал всё →",
       intro: "Ваш самый дорогой ход. Смотрите, что было бы, спроси вы иначе — с той же точки.",
+      introNeutral: "Ключевой ход партии. Смотрите, что было бы, скажи вы иначе — с той же точки.",
       reveal: "Показать, что было бы иначе",
       loading: "Считаю развилку…",
       again: "Другая реплика",
@@ -2708,6 +2711,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "What if…",
       teaser: "One move changed everything →",
       intro: "Your most costly move. See what would have happened had you asked differently — from the same moment.",
+      introNeutral: "The key move of the game. See what would have happened had you said it differently — from the same moment.",
       reveal: "Show what would have happened",
       loading: "Replaying the branch…",
       again: "Try another line",

@@ -448,3 +448,18 @@ def test_the_debrief_says_whether_the_technique_ceiling_applied():
     assert views.debrief_view(s).technique_capped is True
     plain = engine.create_session("supplier", "ru")
     assert engine.score_session(plain)["technique_capped"] is False
+
+
+def test_the_harmful_move_is_always_among_the_turning_points():
+    """Найдено после аудита 17.10: два вскрытия (+24 информации) вытесняли
+    ультиматум (+22 напряжения) из ключевых ходов, и разбор подписывал удачный
+    вопрос «Ваш самый дорогой ход»."""
+    from app import views
+    s = engine.create_session("supplier", "ru")
+    for t in ["Что для вас важно в этой теме — Производство?", "Это моё последнее слово: 85 или я ухожу.",
+              "Что для вас важно в этой теме — Оплата?"]:
+        s.turn += 1
+        r = engine.apply_move(s, engine.analyze(t), t)
+        s.log.append({"role": "player", "text": t, "turn": s.turn, "deltas": r.deltas})
+    turns = [tp["turn"] for tp in views.turning_points(s)]
+    assert 2 in turns, turns

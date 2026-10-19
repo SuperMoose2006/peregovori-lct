@@ -5,7 +5,7 @@ import type { Debrief as DebriefData, Lang, Mode, SecondaryIssueView, TurnRecord
 import type { Strings } from "../i18n";
 import { skillSignals, type GameResult, type RecordResult } from "../lib/progress";
 import { blockById, blockForWeakest } from "../lib/course";
-import { pickPivotalTurn, pivotalTurnIndex, recordedBranch } from "../lib/whatif";
+import { damageScore, pickPivotalTurn, pivotalTurnIndex, recordedBranch } from "../lib/whatif";
 import { LOOKED_IN_SILENCE } from "../lib/layers";
 import { formatDeal, plural } from "../lib/format";
 import { play } from "../lib/sound";
@@ -427,6 +427,7 @@ export function Debrief({
                 turnLog={d.turn_log ?? undefined}
                 reply={whatIfReplies?.[pivotIdx]}
                 start={whatIfStart}
+                costly={damageScore(pivotal) > 0}
               />
             </div>
           ) : null}
@@ -891,9 +892,12 @@ interface WhatIfCardProps {
   turnLog?: TurnRecord[];
   reply?: string;
   start?: { reputation?: number; daily?: string };
+  /** Ход и правда вредный. Нет — карточка не называет его «самым дорогим»:
+   *  вредного хода в партии могло и не быть (найдено после аудита 17.10). */
+  costly?: boolean;
 }
 
-function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote, unit, lowerBetter, turnLog, reply, start }: WhatIfCardProps) {
+function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote, unit, lowerBetter, turnLog, reply, start, costly = true }: WhatIfCardProps) {
   const w = t.whatIf;
   // Alt choice: two presets (0|1) or free text ("custom"). Default to the first
   // preset — a strong interest probe, the canonical "ask why" move.
@@ -955,7 +959,7 @@ function WhatIfCard({ t, lang, run, scenarioId, moves, turnIndex, originalQuote,
     <div className="whatif">
       <div className="wi-teaser">{w.teaser}</div>
       <h2>{w.title}</h2>
-      <p className="wi-intro">{w.intro}</p>
+      <p className="wi-intro">{costly ? w.intro : w.introNeutral}</p>
 
       <blockquote className="wi-orig">«{originalQuote}»</blockquote>
 
