@@ -16,7 +16,7 @@ import type { Lang } from "../types";
 import type { Exercise as Ex } from "../lib/courseTypes";
 import {
   COURSE_BANK, COURSE_BLOCKS, COURSE_MASTER, MASTER_PASS_MARK, blockById, drawExam,
-  exercisesOf, exercisesOfLesson, masterUnlocked, redoable, type ExamDraw,
+  exercisesOf, exercisesOfLesson, masterNext, masterUnlocked, redoable, type ExamDraw,
 } from "../lib/course";
 import {
   MASTER_ID, blockCompletion, getBlockProgress, loadProfile, markLessonDone, missedExercises, recordExam,
@@ -330,8 +330,10 @@ function MasterExam({ t, lang, profile, onStart, onBack }: {
   t: Strings; lang: Lang; profile: Profile; onStart: (ex: Ex) => void; onBack: () => void;
 }) {
   const p = getBlockProgress(profile, MASTER_ID);
-  const done = COURSE_MASTER.filter((x) => p.solved.includes(x.id)).length;
-  const next = COURSE_MASTER.find((x) => !p.solved.includes(x.id));
+  const next = masterNext(p);
+  // Сыграны все три, а зачёта нет — сказать это стоит и рядом с кнопкой
+  // переигровки, а не вместо неё.
+  const allPlayed = COURSE_MASTER.every((x) => p.solved.includes(x.id) || p.missed.includes(x.id));
 
   return (
     <section className="screen course">
@@ -364,16 +366,17 @@ function MasterExam({ t, lang, profile, onStart, onBack }: {
           <Tikhon state="exam" title={t.course.masterPassed}>{t.course.masterPassedBody}</Tikhon>
         ) : null}
 
+        {!p.passed && allPlayed ? (
+          <Karl state="concern" line={t.course.masterKarlFail} name={t.mascot.karl} />
+        ) : null}
         {next ? (
           <button className="btn primary" onClick={() => onStart(next)}>
-            {t.course.masterNext.replace("{n}", String(done + 1))
+            {t.course.masterNext.replace("{n}", String(COURSE_MASTER.indexOf(next) + 1))
               .replace("{total}", String(COURSE_MASTER.length))}
           </button>
-        ) : (
-          <Karl state={p.passed ? "celebrate" : "concern"}
-                line={p.passed ? t.course.masterKarlPass : t.course.masterKarlFail}
-                name={t.mascot.karl} />
-        )}
+        ) : p.passed ? (
+          <Karl state="celebrate" line={t.course.masterKarlPass} name={t.mascot.karl} />
+        ) : null}
       </div>
     </section>
   );

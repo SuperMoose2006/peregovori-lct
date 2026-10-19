@@ -39,6 +39,18 @@ export function redoable(missed: { blockId: string; id: string }[]): { blockId: 
     return !!ex && ex.type !== "drill";
   });
 }
+/** Какую партию экзамена мастера предлагать. Зачёт — от двух из трёх, значит
+ *  проигранная партия не запирает остальные: сначала ещё не сыгранная, а когда
+ *  сыграны все и зачёта нет — проигранная. Было «первая нерешённая»: проигрыш
+ *  первой партии предлагал её же снова, вторая и третья не открывались, и «от
+ *  двух из трёх» не случалось никогда (найдено после аудита 17.10). */
+export function masterNext(p: { solved: string[]; missed: string[]; passed: boolean },
+                           games: Exercise[] = COURSE_MASTER): Exercise | null {
+  const unplayed = games.find((x) => !p.solved.includes(x.id) && !p.missed.includes(x.id));
+  if (unplayed) return unplayed;
+  if (p.passed) return null;
+  return games.find((x) => !p.solved.includes(x.id)) ?? null;
+}
 export const exercisesOfLesson = (blockId: string, lesson: number) =>
   COURSE_BANK.filter((x) => x.block === blockId && x.lesson === lesson);
 

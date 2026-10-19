@@ -198,3 +198,24 @@ test("работа над ошибками предлагает только т�
   assert.equal(missedExercises(p).length, 3);
   assert.deepEqual(redoable(missedExercises(p)).map((m) => m.id), [task.id]);
 });
+
+test("экзамен мастера: проигранная партия не запирает две другие", async () => {
+  // Найдено после аудита 17.10: кнопка звала «первую нерешённую», и проигрыш
+  // первой партии предлагал её же снова — «зачёт от 2 из 3» не случался никогда.
+  const { masterNext, COURSE_MASTER: games, MASTER_PASS_MARK: mark } = await import("../src/lib/course");
+  const { MASTER_ID, emptyProfile, getBlockProgress, recordExercise } = await import("../src/lib/progress");
+  const [a, b, c] = games.map((x) => x.id);
+  const at = (solved: string[], missed: string[], passed = false) => masterNext({ solved, missed, passed })?.id;
+  assert.equal(at([], []), a);
+  assert.equal(at([], [a]), b, "после проигрыша первой — вторая");
+  assert.equal(at([b], [a]), c);
+  assert.equal(at([b, c], [a], true), undefined, "сдано — проигранную переигрывать незачем");
+  assert.equal(at([a, b], [], true), c, "оставшуюся можно сыграть и после зачёта");
+  assert.equal(at([c], [a, b]), a, "сыграны все без зачёта — переигровка проигранной");
+  assert.equal(mark, 2);
+  // Тот же путь через запись профиля, а не руками собранный прогресс.
+  let p = recordExercise(emptyProfile(), MASTER_ID, a, 50, false).profile;
+  assert.equal(masterNext(getBlockProgress(p, MASTER_ID))?.id, b);
+  p = recordExercise(p, MASTER_ID, b, 50, true).profile;
+  assert.equal(masterNext(getBlockProgress(p, MASTER_ID))?.id, c);
+});
