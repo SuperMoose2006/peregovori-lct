@@ -3034,6 +3034,19 @@
    "spin": null
   },
   {
+   "text": "Если мы дадим предоплату, сможете подвинуться по цене?",
+   "moves": [
+    "tradeoff",
+    "open_question"
+   ],
+   "primary": "tradeoff",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Если мы дадим трек до архитектора с наставником, вы выйдете на 230?",
    "moves": [
     "tradeoff",
@@ -3050,6 +3063,18 @@
      false
     ]
    ],
+   "spin": null
+  },
+  {
+   "text": "Если мы не договоримся сегодня, мы уйдём к конкуренту.",
+   "moves": [
+    "batna"
+   ],
+   "primary": "batna",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "mentions": [],
    "spin": null
   },
   {

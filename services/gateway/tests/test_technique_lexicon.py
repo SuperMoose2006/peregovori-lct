@@ -563,3 +563,11 @@ def test_a_hedged_yes_does_not_close_the_deal(line):
 ])
 def test_a_deal_with_a_condition_is_still_a_deal(line):
     assert "accept" in analyze(line).moves
+
+
+def test_a_negated_condition_is_pressure_not_a_tradeoff():
+    """Найдено после аудита 17.10: «Если мы не договоримся сегодня, мы уйдём к
+    конкуренту» получало `tradeoff` — цена 100 → 96, доверие +6 и +12 к
+    технике; на экзамене судьи, который бы это снял, нет."""
+    assert "tradeoff" not in analyze("Если мы не договоримся сегодня, мы уйдём к конкуренту.").moves
+    assert "tradeoff" in analyze("Если мы дадим предоплату, сможете подвинуться по цене?").moves

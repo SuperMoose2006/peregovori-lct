@@ -130,6 +130,22 @@ def _has(t: str, arr: list[str]) -> bool:
     return any(_starts_at_word(t, w) for w in arr)
 
 
+def _has_tradeoff(t: str) -> bool:
+    """`_has(LEX["tradeoff"])`, но условие под отрицанием — не размен.
+
+    «Если мы дадим предоплату…» — размен; «Если мы НЕ договоримся, уйдём» —
+    условие провала, то есть давление (`LEX["tradeoffVoidIfNot"]`)."""
+    for w in LEX["tradeoff"]:
+        for at in _word_starts(t, w):
+            if w in LEX["tradeoffVoidIfNot"]:
+                tail = t[at + len(w):]
+                words = tail.split()
+                if tail[:1] == " " and words and words[0].strip(".,?!-") in _NEGATORS:
+                    continue
+            return True
+    return False
+
+
 def _has_unnegated(t: str, arr: list[str]) -> bool:
     """`_has`, но совпадение под отрицанием не считается.
 
@@ -697,6 +713,10 @@ LEX: dict[str, list[str]] = {
     "closeNotDeal": ["к сведению"],
     # Противительный союз: «устраивает ЭТО, но…» — согласие с частью.
     "contrast": ["но", "однако", "but", "however"],
+    # Условие размена, которое под отрицанием сразу за ним — угроза, а не
+    # размен: «Если мы НЕ договоримся сегодня, мы уйдём к конкуренту» получало
+    # `tradeoff`, двигало цену и шло в технику (найдено после аудита 17.10).
+    "tradeoffVoidIfNot": ["если мы"],
     # Основы, у которых ХВОСТ ЗАКРЫТ: совпадение засчитывается, только если
     # сразу за основой не идёт буква.
     #
@@ -1002,7 +1022,7 @@ def analyze(raw_text: Optional[str]) -> Analysis:
     if _has(t, LEX["batna"]):
         add_move("batna")
         add_tag("batna", "BATNA / leverage")
-    if _has(t, LEX["tradeoff"]):
+    if _has_tradeoff(t):
         add_move("tradeoff")
         add_tag("tradeoff", "Trade-off (value creation)")
     if _has(t, LEX["threat"]):

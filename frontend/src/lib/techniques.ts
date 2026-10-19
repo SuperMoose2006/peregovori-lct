@@ -67,6 +67,23 @@ export const startsAtWord = (text: string, word: string): boolean => {
 };
 
 export const has = (t: string, arr: string[]): boolean => arr.some((w) => startsAtWord(t, w));
+
+/** `has(LEX.tradeoff)`, но условие под отрицанием — не размен: «Если мы НЕ
+ *  договоримся, уйдём» — давление (найдено после аудита 17.10). Зеркало
+ *  techniques.py::_has_tradeoff. */
+export const hasTradeoff = (t: string): boolean => LEX.tradeoff.some((w) => {
+  for (let at = t.indexOf(w); at >= 0; at = t.indexOf(w, at + 1)) {
+    const before = at === 0 ? " " : t[at - 1];
+    if (/\p{L}/u.test(before) || !tailOk(t, at, w)) continue;
+    if (LEX.tradeoffVoidIfNot.includes(w)) {
+      const tail = t.slice(at + w.length);
+      const first = (tail.split(/\s+/).filter(Boolean)[0] ?? "").replace(/^[.,?!-]+|[.,?!-]+$/g, "");
+      if (tail.startsWith(" ") && first && NEGATORS.has(first)) continue;
+    }
+    return true;
+  }
+  return false;
+});
 export const cnt = (t: string, arr: string[]): number =>
   arr.reduce((n, w) => n + (startsAtWord(t, w) ? 1 : 0), 0);
 
@@ -343,7 +360,7 @@ export function previewChips(raw: string): PreviewChip[] {
   add(has(x, LEX.anchor), "anchor", "anchor");
   add(has(x, LEX.batna), "batna", "shield");
   add(has(x, LEX.acknowledge) || has(x, LEX.interestsProbe), "empathy", "handshake");
-  add(has(x, LEX.tradeoff), "tradeoff", "refresh");
+  add(hasTradeoff(x), "tradeoff", "refresh");
   add(has(x, LEX.threat), "threat", "warning");
   return out.slice(0, 6);
 }

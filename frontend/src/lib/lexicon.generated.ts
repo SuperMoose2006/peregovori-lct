@@ -168,6 +168,9 @@ export const LEX: Record<string, string[]> = {
   contrast: [
     "но", "однако", "but", "however",
   ],
+  tradeoffVoidIfNot: [
+    "если мы",
+  ],
   closedTail: [
     "ты прав",
   ],
