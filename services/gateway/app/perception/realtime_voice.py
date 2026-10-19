@@ -62,7 +62,10 @@ REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription"
 #: Модель распознавания. `gpt-live-transcribe` отказывается работать с
 #: turn_detection («Turn detection is not supported for this transcription
 #: model»), а без VAD пришлось бы вернуть свой — то есть и задержку.
-MODEL = os.getenv("NEGO_REALTIME_ASR_MODEL", "gpt-4o-mini-transcribe")
+#: Старшая, а не `-mini`: владелец 19.10 — «криво распознаёт речь». Ход и так
+#: ждёт окно тишины, а точная фраза важнее сотни миллисекунд: обрывок,
+#: распознанный не тем словом, собеседник понимает невпопад.
+MODEL = os.getenv("NEGO_REALTIME_ASR_MODEL", "gpt-4o-transcribe")
 
 #: Порог тишины серверного VAD. Короткий НАМЕРЕННО — см. шапку.
 VAD_SILENCE_MS = int(os.getenv("NEGO_REALTIME_VAD_MS", "200"))
@@ -162,8 +165,13 @@ class RealtimeVoicePipeline:
                  on_turn: Callable[[str], Awaitable[None]],
                  on_interrupt: Callable[[], Awaitable[None]],
                  publish: Callable[[dict], None],
-                 on_turn_ending: Optional[Callable[[], object]] = None) -> None:
+                 on_turn_ending: Optional[Callable[[], object]] = None,
+                 context: str = "") -> None:
         self._lang = lang
+        #: Подсказка распознаванию: о чём разговор и с кем. Модель угадывает
+        #: созвучное слово по теме («аренда», «неустойка», имя собеседника),
+        #: а без темы слышит бытовое.
+        self._context = context
         self._on_turn = on_turn
         self._on_interrupt = on_interrupt
         self._publish = publish
@@ -366,7 +374,12 @@ class RealtimeVoicePipeline:
                 "type": "transcription",
                 "audio": {"input": {
                     "format": {"type": "audio/pcm", "rate": OPENAI_RATE},
-                    "transcription": {"model": MODEL, "language": self._lang},
+                    # Микрофон у лица, а не в комнате: шум и эхо собеседника
+                    # из колонок иначе становятся «словами» в расшифровке.
+                    "noise_reduction": {"type": "near_field"},
+                    "transcription": {"model": MODEL, "language": self._lang,
+                                      **({"prompt": self._context[:600]}
+                                         if self._context else {})},
                     "turn_detection": {
                         "type": "server_vad", "threshold": 0.5,
                         "prefix_padding_ms": 300,

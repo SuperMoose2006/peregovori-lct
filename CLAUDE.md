@@ -200,7 +200,7 @@ OpenRouter; распознавание и синтез в голосовом р�
 
 | Роль | Переменная | Дефолт |
 |---|---|---|
-| Распознавание в realtime | `NEGO_REALTIME_ASR_MODEL` | `gpt-4o-mini-transcribe` |
+| Распознавание в realtime | `NEGO_REALTIME_ASR_MODEL` | `gpt-4o-transcribe` |
 | Синтез речи | `NEGO_OPENAI_TTS_MODEL` | `gpt-4o-mini-tts` |
 
 Ключ OpenAI живёт в `OPENAI_REALTIME_KEY` — **отдельно** от `OPENAI_API_KEY`, где
