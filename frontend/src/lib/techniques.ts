@@ -187,16 +187,33 @@ const MONEY_SUFFIX = /^\s*(%|руб|rub|k(?![\p{L}\p{N}_])|к(?![\p{L}\p{N}_])|�
  *
  * Зеркало services/gateway/app/engine/techniques.py::offer_number — менять
  * синхронно (инвариант 8). */
+const MONEY_EACH = new RegExp(MONEY.source, "g");
+
+/** Число на этой позиции — счёт чего-то («7 лет», «1000 штук»), а не цена. */
+function countedAt(t: string, end: number): boolean {
+  const trimmed = t.slice(end).trim();
+  const after = trimmed ? trimmed.split(" ")[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
+  return !!after && LEX.nonPriceUnits.some((u) => after.startsWith(u));
+}
+
+/** Первое число реплики, которое НЕ счёт. Счёт впереди цены раньше гасил цену
+ *  целиком: «У меня 7 лет опыта, договорились на 230 тысяч» закрывало сделку на
+ *  цене оппонента (найдено после аудита 17.10). Зеркало
+ *  techniques.py::_first_price_match. */
+function firstPriceMatch(t: string): RegExpMatchArray | null {
+  for (const m of t.matchAll(MONEY_EACH)) {
+    if (!countedAt(t, (m.index ?? 0) + m[0].length)) return m;
+  }
+  return null;
+}
+
 export function offerNumber(t: string, moves: Iterable<string>): number | null {
-  const m = t.match(MONEY);
+  const m = firstPriceMatch(t);
   if (!m) return null;
   const v = strictNumber(m[1]);
   if (!isFinite(v)) return null;
 
   const tail = t.slice((m.index ?? 0) + m[0].length);
-  const trimmed = tail.trim();
-  const after = trimmed ? trimmed.split(" ")[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
-  if (after && LEX.nonPriceUnits.some((u) => after.startsWith(u))) return null;
 
   const mv = new Set(moves);
   if (["anchor", "concession", "accept", "tradeoff"].some((k) => mv.has(k))) return v;
@@ -217,7 +234,8 @@ export function offerNumber(t: string, moves: Iterable<string>): number | null {
  * Граница предложения — «.!?» и пробел; без lookbehind в регулярке: старый
  * Safari её не разбирает. Зеркало techniques.py::_number_in_question. */
 export function numberInQuestion(t: string): boolean {
-  const m = t.match(MONEY);
+  // То же число, что берёт offerNumber: счёт впереди («7 лет») — не оно.
+  const m = firstPriceMatch(t);
   if (!m) return t.includes("?");
   const at = (m.index ?? 0) + (/^\d/.test(m[0]) ? 0 : 1);
   let start = 0;

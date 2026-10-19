@@ -75,15 +75,15 @@
       "status": "agreement",
       "interests_found": 3,
       "turn": 6,
-      "deal": 63.0,
+      "deal": 64.0,
       "offer_opp": 63.0
     },
     "salary": {
-      "overall": 87,
+      "overall": 88,
       "grade": "A",
       "economic": 100,
       "relationship": 98,
-      "technique": 65,
+      "technique": 66,
       "status": "agreement",
       "interests_found": 3,
       "turn": 6,
@@ -99,7 +99,7 @@
       "status": "agreement",
       "interests_found": 3,
       "turn": 6,
-      "deal": 99.85,
+      "deal": 99.8,
       "offer_opp": 99.85
     },
     "supplier": {

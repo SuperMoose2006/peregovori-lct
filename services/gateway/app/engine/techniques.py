@@ -742,6 +742,26 @@ def extract_number(text: str) -> Optional[float]:
     return val if math.isfinite(val) else None
 
 
+def _counted_at(t: str, m: "re.Match[str]") -> bool:
+    """Число на позиции `m` — счёт чего-то («7 лет», «1000 штук»), а не цена."""
+    tail = t[m.end(1):]
+    after = tail.strip().split(" ")[0].strip(".,?!-") if tail.strip() else ""
+    return bool(after) and any(after.startswith(u) for u in LEX["nonPriceUnits"])
+
+
+def _first_price_match(t: str) -> "Optional[re.Match[str]]":
+    """Первое число реплики, которое НЕ счёт.
+
+    Раньше счёт впереди цены гасил цену целиком: «У меня 7 лет опыта,
+    договорились на 230 тысяч» не несло числа вовсе, и голое «договорились»
+    закрывало сделку на цене ОППОНЕНТА — 180 при красной линии игрока 195
+    (найдено после аудита 17.10). `number_mentions` счёт и так пропускает."""
+    for m in MONEY_RE.finditer(t):
+        if not _counted_at(t, m):
+            return m
+    return None
+
+
 def offer_number(t: str, moves: list[str]) -> Optional[float]:
     """Число реплики, если это ОФФЕР; иначе None.
 
@@ -754,7 +774,7 @@ def offer_number(t: str, moves: list[str]) -> Optional[float]:
     это счёт чего-то, а не деньги. Масштаб сценария проверяется отдельно и
     позже — здесь сценарий неизвестен (см. engine._plausible_offer).
     """
-    m = MONEY_RE.search(t)
+    m = _first_price_match(t)
     if not m:
         return None
     raw = m.group(1).replace(" ", "").replace(",", ".", 1)
@@ -766,10 +786,6 @@ def offer_number(t: str, moves: list[str]) -> Optional[float]:
         return None
 
     tail = t[m.end(1):]
-    after = tail.strip().split(" ")[0].strip(".,?!-") if tail.strip() else ""
-    if after and any(after.startswith(u) for u in LEX["nonPriceUnits"]):
-        return None
-
     intent = any(k in moves for k in ("anchor", "concession", "accept", "tradeoff"))
     if intent:
         return val
@@ -858,7 +874,7 @@ _SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+")
 
 
 def _number_in_question(t: str) -> bool:
-    """Стоит ли ПЕРВОЕ число реплики в вопросительном предложении.
+    """Стоит ли ПЕРВОЕ число реплики (не счёт) в вопросительном предложении.
 
     Вопрос отменяет оффер («сколько из 100 у вас на складе?»), но вопрос
     должен быть про ЭТО число. «Предлагаю 99,7% аптайма. Что для вас важно в
@@ -866,7 +882,8 @@ def _number_in_question(t: str) -> bool:
     раньше не клала цену на стол вовсе: знак вопроса искался во всей реплике
     (аудит 17.10, F05).
     """
-    m = MONEY_RE.search(t)
+    # То же число, что берёт `offer_number`: счёт впереди («7 лет») — не оно.
+    m = _first_price_match(t)
     if not m:
         return "?" in t
     pos = 0

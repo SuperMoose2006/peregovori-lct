@@ -334,3 +334,21 @@ def test_rounding_to_a_step_never_crosses_the_floor():
                 assert sess.state.offer_opp >= sc.opponent_reservation - 1e-9, sc.id
             else:
                 assert sess.state.offer_opp <= sc.opponent_reservation + 1e-9, sc.id
+
+
+@pytest.mark.parametrize("scenario_id,line,player", [
+    ("salary", "У меня 7 лет опыта, договорились на 230 тысяч.", 230),
+    ("supplier", "Контракт на 2 года, договорились на 90 рублей.", 90),
+    ("supplier", "Берём 1000 штук по 90 рублей — по рукам.", 90),
+])
+def test_a_count_before_the_price_does_not_hide_the_price(scenario_id, line, player):
+    """Найдено после аудита 17.10: число-счёт впереди («7 лет», «1000 штук»)
+    гасило цену целиком, и голое «договорились» закрывало сделку на цене
+    ОППОНЕНТА — на зарплате 180 при красной линии игрока 195."""
+    s = engine.create_session(scenario_id, "ru")
+    s.turn = 1
+    a = engine.analyze(line)
+    engine.apply_move(s, a, line)
+    assert a.number == player
+    assert s.state.offer_player == player
+    assert s.state.deal != engine.by_id(scenario_id).opponent_open

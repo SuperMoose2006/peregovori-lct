@@ -880,6 +880,24 @@
    "spin": null
   },
   {
+   "text": "I have 7 years of experience, we agree on 230.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 10,
+   "number": 230.0,
+   "mentions": [
+    [
+     230.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
    "text": "I have an alternative offer at 210k, but your project interests me more — let us find a solution here.",
    "moves": [
     "batna",
@@ -2529,6 +2547,24 @@
    "spin": null
   },
   {
+   "text": "Берём 1000 штук по 90 рублей — по рукам.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 8,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "money",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
    "text": "Бюджеты у всех, а я стою больше.",
    "moves": [
     "statement"
@@ -2952,10 +2988,16 @@
     "open_question"
    ],
    "primary": "tradeoff",
-   "arg": 38,
+   "arg": 44,
    "words": 18,
-   "number": null,
-   "mentions": [],
+   "number": 99.8,
+   "mentions": [
+    [
+     99.8,
+     "pct",
+     false
+    ]
+   ],
    "spin": null
   },
   {
@@ -3223,6 +3265,24 @@
    "number": null,
    "mentions": [],
    "spin": "situation"
+  },
+  {
+   "text": "Контракт на 2 года, договорились на 90 рублей.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 8,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "money",
+     false
+    ]
+   ],
+   "spin": null
   },
   {
    "text": "Красная линия всегда строже альтернативы.",
@@ -4838,6 +4898,36 @@
    "primary": "statement",
    "arg": 20,
    "words": 4,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "У меня 7 лет опыта, договорились на 230 тысяч.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 8,
+   "number": 230000.0,
+   "mentions": [
+    [
+     230000.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "У меня 7 лет опыта. Договоримся на 230?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 8,
    "number": null,
    "mentions": [],
    "spin": null
