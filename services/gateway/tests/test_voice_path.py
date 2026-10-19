@@ -798,3 +798,47 @@ async def test_silence_and_echo_before_the_first_word_stay_out_of_recognition():
     for _ in range(10):
         pipe.feed(block)
     assert sum(a.size for a in pipe._audio) >= kept + 10 * block.size, "речь не копится"
+
+
+@pytest.mark.asyncio
+async def test_new_speech_does_not_cancel_a_move_the_ceiling_already_sent():
+    """Найдено живой проверкой стенда 19.10: потолок ожидания отправил первую
+    мысль ходом, ход ждал очереди (придержка по темпу), а человек тем временем
+    договорил вторую — `_cancel_ceiling()` отменял задачу потолка, а вместе с
+    ней и уже отправленный ход. Первая мысль пропадала молча."""
+    asr = _SeqASR(["Знаете, девяносто это не воодушевляет", "Давайте остановимся на сотне."])
+    release = asyncio.Event()
+    turns: list[str] = []
+    decisions = [TurnDecision.UNFINISHED, TurnDecision.FINISHED]
+
+    async def on_turn(text: str) -> None:
+        if not turns:
+            await release.wait()          # ход ждёт очереди
+        turns.append(text)
+
+    async def on_interrupt() -> None:
+        pass
+
+    pipe = VoicePipeline(asr=asr, lang="ru", on_turn=on_turn,
+                         on_interrupt=on_interrupt, publish=lambda _e: None)
+
+    async def _eval(_text, _lang="ru"):
+        return decisions.pop(0)
+
+    pipe._turn_detector.eval = _eval
+    pipe._turn_detector.config.force_threshold_ms = 30
+    pipe._loop = asyncio.get_running_loop()
+    pipe._speech_started()
+    pipe._audio.append(np.full(SAMPLE_RATE, 300, dtype=np.int16))
+    await pipe._settle_turn()                 # «не договорил» → потолок взведён
+    await asyncio.sleep(0.1)                  # потолок отправил ход, ход ждёт
+    pipe._speech_started()                    # человек заговорил снова…
+    pipe._audio.append(np.full(SAMPLE_RATE, 400, dtype=np.int16))
+    pipe._speech_ended()                      # …и договорил вторую мысль
+    await asyncio.sleep(0.05)
+    release.set()
+    for _ in range(50):
+        await asyncio.sleep(0.01)
+        if len(turns) == 2:
+            break
+    assert turns == ["Знаете, девяносто это не воодушевляет", "Давайте остановимся на сотне."]
