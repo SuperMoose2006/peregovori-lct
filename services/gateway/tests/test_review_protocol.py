@@ -101,6 +101,7 @@ def test_offline_the_door_says_why(live):
     with client.websocket_connect("/v1/realtime?mode=text") as ws:
         created = _open(ws)
         assert created["capabilities"]["review"] is False
+        assert created["capabilities"]["review_reason"] == "no_models"
         _finish(ws)
         ws.send_json({"type": "review.request"})
         err = _until(ws, "error")[-1]["error"]
@@ -212,6 +213,8 @@ def test_graded_games_have_no_review(live, monkeypatch, mode):
     with client.websocket_connect("/v1/realtime?mode=text") as ws:
         created = _open(ws, gameMode=mode)
         assert created["capabilities"]["review"] is False
+        assert created["capabilities"]["review_reason"] == "graded", \
+            "капстоун экран рисует обычным разбором — причину отказа обязан назвать сервер"
         ws.send_json({"type": "review.request"})
         err = _until(ws, "error")[-1]["error"]
         assert err["code"] == "review_unavailable" and "зачёт" in err["message"]
@@ -237,4 +240,5 @@ def test_capabilities_offer_the_review_when_models_are_there(live, monkeypatch):
     with client.websocket_connect("/v1/realtime?mode=text") as ws:
         created = _open(ws)
         assert created["capabilities"]["review"] is True
+        assert "review_reason" not in created["capabilities"]
         ws.send_json({"type": "session.close", "reason": "test"})

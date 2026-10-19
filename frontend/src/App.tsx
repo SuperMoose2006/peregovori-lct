@@ -1602,8 +1602,9 @@ export default function App() {
           // здесь — только можно ли нажать и почему нельзя.
           review={(() => {
             const can = reviewAvailability(nego.kind, nego.capabilities, t);
-            return { state: nego.review, available: can.ok, reason: can.reason,
-                     online: nego.conn === "online", onRun: nego.requestReview };
+            return can.hidden ? undefined
+              : { state: nego.review, available: can.ok, reason: can.reason,
+                  online: nego.conn === "online", onRun: nego.requestReview };
           })()}
           mode={mode}
           lang={lang}

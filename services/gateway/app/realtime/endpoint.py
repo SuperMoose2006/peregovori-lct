@@ -1106,6 +1106,11 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         # доступны. Иначе кнопки нет вовсе или она говорит, почему нет.
         "review": session.tape is not None and orchat.available(),
     }
+    if not capabilities["review"]:
+        # Почему кнопки нет — словом, а не догадкой клиента: капстоун курса
+        # экран рисует обычным разбором, и «нет связи с моделями» там было бы
+        # неправдой — разбора нет, потому что партия на зачёт.
+        capabilities["review_reason"] = "graded" if session.tape is None else "no_models"
     if session.layers.avatar:
         caps = _make_avatar(session).capabilities()
         capabilities["avatar"] = {

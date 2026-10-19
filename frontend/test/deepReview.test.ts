@@ -197,6 +197,10 @@ test("кнопка знает, почему её нельзя нажать", () 
   assert.deepEqual(reviewAvailability("ws", { review: false }, t), { ok: false, reason: t.review.noModels });
   assert.deepEqual(reviewAvailability("ws", null, t), { ok: false, reason: t.review.noModels });
   assert.deepEqual(reviewAvailability("ws", { review: true }, t), { ok: true, reason: null });
+  // Капстоун курса экран рисует обычным разбором: «нет связи с моделями» было
+  // бы неправдой — разбора нет, потому что партия на зачёт. Карточки нет вовсе.
+  assert.deepEqual(reviewAvailability("ws", { review: false, review_reason: "graded" }, t),
+                   { ok: false, reason: null, hidden: true });
 });
 
 test("вывод без повода и вывод упавшего агента — разные слова, не ноль", () => {

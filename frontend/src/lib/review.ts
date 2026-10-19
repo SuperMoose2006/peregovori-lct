@@ -50,12 +50,15 @@ export function evidenceWhen(ev: { turn: number | null; at_ms: number | null }, 
   return parts.join(" · ");
 }
 
-/** Можно ли нажать кнопку, и если нет — почему. */
+/** Можно ли нажать кнопку, и если нет — почему. `hidden` — карточки нет
+ *  вовсе: партия на зачёт (капстоун курса экран рисует обычным разбором, и
+ *  «нет связи с моделями» там было бы неправдой). */
 export function reviewAvailability(kind: TransportKind | null,
                                    capabilities: Record<string, unknown> | null,
-                                   t: Strings): { ok: boolean; reason: string | null } {
+                                   t: Strings): { ok: boolean; reason: string | null; hidden?: boolean } {
   if (kind === "mock") return { ok: false, reason: t.review.offline };
   if (capabilities?.review === true) return { ok: true, reason: null };
+  if (capabilities?.review_reason === "graded") return { ok: false, reason: null, hidden: true };
   return { ok: false, reason: t.review.noModels };
 }
 
