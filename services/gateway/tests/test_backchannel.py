@@ -58,6 +58,7 @@ def test_one_reaction_per_turn_and_never_over_its_own_voice():
     async def go():
         sess, tts, provider, events, orch = _setup()
         await orch.prepare_backchannel()
+        assert orch.backchannel("Добрый день!") is False, "«угу…» на приветствие"
         assert orch.backchannel() is True
         assert orch.backchannel() is False, "на этом ходу реакция уже была"
         sess.engine_session.turn += 1
@@ -95,7 +96,7 @@ def test_the_turn_ending_signal_fires_once_the_quiet_window_passes(monkeypatch):
 
     async def go():
         p = rv.RealtimeVoicePipeline("ru", on_turn, on_interrupt, published.append,
-                                     on_turn_ending=lambda: fired.append(1))
+                                     on_turn_ending=lambda _text: fired.append(1))
         p._loop = asyncio.get_running_loop()
         p._parts = ["Давайте девяносто"]
         await p._quiet_timer()

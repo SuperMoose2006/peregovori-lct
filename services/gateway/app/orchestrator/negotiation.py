@@ -138,7 +138,7 @@ class NegotiationOrchestrator:
                     self._backchannels.append(phrase)
         return asyncio.create_task(run())
 
-    def backchannel(self) -> bool:
+    def backchannel(self, text: str = "") -> bool:
         """Человек, похоже, договорил — отозваться коротко, пока готовится ответ.
 
         Не звучит, если собеседник ещё говорит (перебивать себя нельзя), если
@@ -148,6 +148,11 @@ class NegotiationOrchestrator:
         sess = self.session
         if not self.tts or not self._backchannels:
             return False
+        if text:
+            # «Угу…» в ответ на «Добрый день» — не живая реакция, а сбой.
+            a = engine.analyze(text)
+            if "rapport" in a.moves and a.number is None:
+                return False
         if sess.engine_session.state.status != "active":
             return False
         if self._backchannel_turn == sess.turn_id:
@@ -336,6 +341,11 @@ class NegotiationOrchestrator:
         else:
             facts = views.build_facts(engine_sess, result)
             facts["fallback"] = templated
+            # «Добрый день» — приветствие, а не ход по делу: шаблон движка на
+            # нём «фиксирует цифру», и модель с порога выкладывала позицию
+            # (владелец 19.10: «сразу свой поинт без никакого введения»).
+            if "rapport" in analysis.moves and analysis.number is None:
+                facts["greeting"] = True
             if sess.observations:
                 # Зрение попадает в контекст оппонента, но НИКОГДА в счёт.
                 facts["observations"] = sess.observations[-3:]

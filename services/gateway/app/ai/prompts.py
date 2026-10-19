@@ -271,19 +271,30 @@ def build_user(facts: dict) -> str:
     fallback = facts.get("fallback", "")
     transcript = facts.get("transcript", "")
 
+    greeting = bool(facts.get("greeting"))
     if lang == "ru":
         hist = f"Разговор до этого момента:\n{transcript}\n\n" if transcript else ""
+        greet = ("Собеседник начал с приветствия — сначала поздоровайся в ответ, по-человечески. "
+                 "Если, кроме приветствия и светской фразы, о деле ничего не сказано, свою позицию и "
+                 "цифру НЕ называй: ответь на приветствие и коротко предложи начать или спроси, с чего "
+                 "начнём.\n\n") if greeting else ""
         return (
             f"{hist}"
             f'Что ты по сути отвечаешь (смысл, а не слова — скажи по-своему): "{fallback}"\n\n'
+            f"{greet}"
             f"Собеседник только что сказал: {player_text}\n"
             "Помни весь разговор: свои прежние уступки и слова.\n"
             "Твоя реплика:"
         )
     hist = f"Conversation so far:\n{transcript}\n\n" if transcript else ""
+    greet = ("The other person opened with a greeting — greet them back first, like a person. If "
+             "nothing about the deal was said beyond the greeting and small talk, do NOT state your "
+             "position or number: answer the greeting and briefly suggest getting started or ask where "
+             "to begin.\n\n") if greeting else ""
     return (
         f"{hist}"
         f'What you essentially answer (the meaning, not the words — say it your way): "{fallback}"\n\n'
+        f"{greet}"
         f"The other person just said: {player_text}\n"
         "Keep the whole conversation in mind: your earlier concessions and words.\n"
         "Your line:"

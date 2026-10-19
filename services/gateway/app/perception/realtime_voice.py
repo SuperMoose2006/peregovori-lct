@@ -165,7 +165,7 @@ class RealtimeVoicePipeline:
                  on_turn: Callable[[str], Awaitable[None]],
                  on_interrupt: Callable[[], Awaitable[None]],
                  publish: Callable[[dict], None],
-                 on_turn_ending: Optional[Callable[[], object]] = None,
+                 on_turn_ending: Optional[Callable[[str], object]] = None,
                  context: str = "") -> None:
         self._lang = lang
         #: Подсказка распознаванию: о чём разговор и с кем. Модель угадывает
@@ -632,7 +632,7 @@ class RealtimeVoicePipeline:
         self._publish({"type": "user.turn.ending"})
         if self._on_turn_ending is not None:
             try:
-                self._on_turn_ending()
+                self._on_turn_ending(self._joined())
             except Exception:
                 pass   # реакция — украшение: её сбой не трогает ход
 
