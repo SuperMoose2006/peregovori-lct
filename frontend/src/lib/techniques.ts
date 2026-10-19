@@ -267,6 +267,24 @@ function firstPriceMatch(t: string): RegExpMatchArray | null {
   return null;
 }
 
+/** Стоит ли формула `offerIntentNear` вплотную перед числом на позиции `at`
+ *  (между ними — разве что «на / за / по»). «Давайте посмотрим, на чём
+ *  основаны ваши 1200» — не оферта (найдено после аудита 17.10). Зеркало
+ *  techniques.py::_intent_right_before. */
+export function intentRightBefore(t: string, at: number): boolean {
+  const head = t.slice(0, at).trimEnd().split(/\s+/).filter(Boolean);
+  const tails = [head.join(" ")];
+  // «готов на» — формула сама с предлогом.
+  if (head.length && ["на", "за", "по"].includes(head[head.length - 1])) tails.push(head.slice(0, -1).join(" "));
+  return tails.some((tail) => LEX.offerIntentNear.some((w) => tail === w || tail.endsWith(" " + w)));
+}
+
+/** Позиция первого числа-не-счёта (см. firstPriceMatch) или -1. */
+export function firstPriceAt(t: string): number {
+  const m = firstPriceMatch(t);
+  return m ? (m.index ?? 0) + (/^\d/.test(m[0]) ? 0 : 1) : -1;
+}
+
 export function offerNumber(t: string, moves: Iterable<string>): number | null {
   const m = firstPriceMatch(t);
   if (!m) return null;
@@ -284,6 +302,7 @@ export function offerNumber(t: string, moves: Iterable<string>): number | null {
   // контекста, ни приёма, но число в них — цена. Список читается ТОЛЬКО здесь
   // и ни одного тега приёма не даёт. Зеркало techniques.py::offer_number.
   if (has(t, LEX.offerIntent)) return v;
+  if (intentRightBefore(t, (m.index ?? 0) + (/^\d/.test(m[0]) ? 0 : 1))) return v;
   if (t.split(" ").filter(Boolean).length <= 1) return v;
   return null;
 }

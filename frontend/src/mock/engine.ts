@@ -5,7 +5,7 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang, Mode } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, TurnRecord, WhatIfBranch } from "../types";
-import { LEX, cnt, has, hasHostile, hasTradeoff, hasUnnegated, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
+import { LEX, cnt, firstPriceAt, has, hasHostile, hasTradeoff, hasUnnegated, intentRightBefore, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
 import type { NumberMention } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import { normalizeDifficulty } from "../lib/difficulty";
@@ -67,7 +67,9 @@ export function analyze(raw: string): RawAnalysis {
   // предложения цены: «How about 120?», «А если 86?» — это контроффер.
   // Зеркало techniques.py::analyze.
   // Вопросом считается предложение с ЭТИМ числом, а не вся реплика (F05).
-  if (number !== null && !moves.has("accept") && (!numberInQuestion(t) || has(t, LEX.offerIntent))) {
+  const priceAt = firstPriceAt(t);
+  if (number !== null && !moves.has("accept")
+      && (!numberInQuestion(t) || has(t, LEX.offerIntent) || (priceAt >= 0 && intentRightBefore(t, priceAt)))) {
     moves.add("offer"); addT("offer", "Оффер / число");
   }
   if (q && !spin && !moves.has("interests_probe")) { moves.add("open_question"); addT("spin", "Открытый вопрос"); }

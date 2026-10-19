@@ -591,3 +591,21 @@ def test_the_plain_ways_to_name_a_price_put_it_on_the_table(line, number):
     """Найдено после аудита 17.10: самые обиходные формулы оферты числа не
     давали вовсе — «Наша цена 86.» давала, "We can do 86." нет (инвариант 4)."""
     assert analyze(line).number == number
+
+
+@pytest.mark.parametrize("line", [
+    "Понимаю, 1200 — ваша стартовая цифра. Давайте посмотрим, на чём она основана.",
+    "Предлагаю обсудить, почему 1200.",
+    "195 меня устроит, давайте на этом и сойдёмся.",
+])
+def test_an_offer_formula_far_from_the_number_does_not_make_it_an_offer(line):
+    """Регресс 75a983d (найден той же ночью проверкой уроков): «давайте» и
+    «предлагаю» читались где угодно в реплике — и разминирование чужого
+    якоря (урок anchoring/3) клало на стол ВАШИ 1200, выше вашей красной
+    линии. Формула доказывает оферту, только стоя вплотную перед числом."""
+    assert analyze(line).number is None
+
+
+@pytest.mark.parametrize("line,number", [("Готов на 90.", 90), ("Давайте за 90.", 90), ("Давайте 90?", 90)])
+def test_an_offer_formula_right_before_the_number_still_works(line, number):
+    assert analyze(line).number == number

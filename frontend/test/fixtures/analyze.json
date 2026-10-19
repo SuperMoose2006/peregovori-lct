@@ -60,19 +60,13 @@
   {
    "text": "195 меня устроит, давайте на этом и сойдёмся.",
    "moves": [
-    "offer"
+    "statement"
    ],
-   "primary": "offer",
-   "arg": 26,
+   "primary": "statement",
+   "arg": 20,
    "words": 8,
-   "number": 195.0,
-   "mentions": [
-    [
-     195.0,
-     "plain",
-     false
-    ]
-   ],
+   "number": null,
+   "mentions": [],
    "spin": null
   },
   {

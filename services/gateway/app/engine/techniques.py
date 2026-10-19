@@ -683,21 +683,25 @@ LEX: dict[str, list[str]] = {
         # получило пару по тому же правилу; «могу дать», «с меня», «мой
         # минимум» — про свою сторону, и пары им не нужно.
         "давай за", "скинь до", "как тебе",
-        # САМЫЕ ОБИХОДНЫЕ ФОРМУЛЫ ОФЕРТЫ — и их не было (найдено после аудита
-        # 17.10): «Предлагаю 90.», «Давайте 90.», «Готов на 90.», "I offer 90",
-        # "We can do 86." не клали цену на стол вовсе — при том что «могу
-        # предложить» и "i can do" в списке были, а русская «Наша цена 86.»
-        # оффер давала (инвариант 4). Число вне коридора стола всё так же не
-        # оферта (`engine._plausible_offer`). Корпус: 5 реплик из 408 стали
-        # нести цену, эталонные партии и банк курса не сдвинулись.
-        "предлагаю", "предлагаем", "готов на", "готова на", "готовы на", "давайте", "давай",
-        "i offer", "we offer", "we can do", "let s do", "let s say",
         "how about", "what about", "how does", "i can do", "i can go", "i could do",
         "i could go", "i ll do", "i ll go", "i ll give", "i will give", "offer you",
         "would you take", "will you take", "lowest", "asking",
         "go down to", "go up to", "come down to",
         "go as low as", "willing to go", "settle for", "sell it for", "take it for",
         "make it",
+    ],
+    # САМЫЕ ОБИХОДНЫЕ ФОРМУЛЫ ОФЕРТЫ — но только ВПЛОТНУЮ к числу. Их не было
+    # вовсе (найдено после аудита 17.10): «Предлагаю 90.», «Давайте 90.»,
+    # «Готов на 90.», "I offer 90", "We can do 86." не клали цену на стол, при
+    # том что «могу предложить» и "i can do" были, а русская «Наша цена 86.»
+    # оффер давала (инвариант 4). В общем списке выше они читались где угодно в
+    # реплике — и «Понимаю, 1200 — ваша стартовая цифра. Давайте посмотрим, на
+    # чём она основана» клала на стол ВАШИ 1200 (урок anchoring/3, проверка
+    # `lessons._check`). Поэтому — отдельный список: формула стоит прямо перед
+    # числом, допускается только предлог «на / за / по».
+    "offerIntentNear": [
+        "предлагаю", "предлагаем", "готов на", "готова на", "готовы на", "давайте", "давай",
+        "i offer", "we offer", "we can do", "let s do", "let s say",
     ],
     # Отрицание ПЕРЕД словом-триггером. Не приём: служебный список для
     # `_has_unnegated`, см. `_NEGATION_WINDOW`.
@@ -866,6 +870,17 @@ def _first_price_match(t: str) -> "Optional[re.Match[str]]":
     return None
 
 
+def _intent_right_before(t: str, at: int) -> bool:
+    """Стоит ли формула `offerIntentNear` вплотную перед числом на позиции `at`
+    (между ними — разве что «на / за / по»)."""
+    head = t[:at].rstrip().split()
+    tails = [" ".join(head)]
+    if head and head[-1] in ("на", "за", "по"):
+        tails.append(" ".join(head[:-1]))  # «готов на» — сама с предлогом
+    return any(tail == w or tail.endswith(" " + w)
+               for tail in tails for w in LEX["offerIntentNear"])
+
+
 def offer_number(t: str, moves: list[str]) -> Optional[float]:
     """Число реплики, если это ОФФЕР; иначе None.
 
@@ -903,6 +918,8 @@ def offer_number(t: str, moves: list[str]) -> Optional[float]:
     # иное. Список читается ЗДЕСЬ И ТОЛЬКО ЗДЕСЬ: он доказывает число, а не
     # называет приём (см. LEX["offerIntent"]).
     if _has(t, LEX["offerIntent"]):
+        return val
+    if _intent_right_before(t, m.start(1)):
         return val
     # Вся реплика — одно число: в переговорах это цена и ничто иное.
     if len([w for w in t.split(" ") if w]) <= 1:
@@ -1092,7 +1109,9 @@ def analyze(raw_text: Optional[str]) -> Analysis:
         # 1149 из 3239 пропущенных офферов чужого корпуса (35.5%) были именно
         # вопросами. Отменяет оффер только вопрос БЕЗ формулы предложения —
         # «сколько из 100 у вас на складе?».
-        if not _number_in_question(t) or _has(t, LEX["offerIntent"]):
+        price_at = _first_price_match(t)
+        if (not _number_in_question(t) or _has(t, LEX["offerIntent"])
+                or (price_at is not None and _intent_right_before(t, price_at.start(1)))):
             add_move("offer")
             add_tag("offer", "Offer / number")
 
