@@ -310,3 +310,22 @@ test("неудачный вход в ту же партию повторяетс
   t.transport.close();
 });
 
+test("партия начата заново — вопросы о реакции считаются с первого хода", async () => {
+  // Найдено ревью созвона: счётчик последнего вопроса переживал смену режима
+  // и тогда, когда сервер начал НОВУЮ партию (прежней уже нет), — и вопросы
+  // её первых ходов глушились как повторы.
+  const probe = (turn: number) => ({ type: "probe", turn, options: ["a", "b", "c", "d"], answer: 0 });
+  const t = await table();
+  t.first.deliver(probe(1));
+  t.first.deliver(probe(2));
+  assert.equal(t.seen.filter((m) => m.type === "probe").length, 2);
+  t.transport.relayer({ probe: true });
+  const second = await nextSocket();
+  for (let i = 0; i < 20 && !second.types().includes("session.init"); i++) await wait(10);
+  second.deliver({ type: "session.created", session_id: "s-новая", resumed: false,
+    scenario: { id: "supplier" }, state: STATE0, greeting: "", capabilities: {} });
+  await wait(0);
+  second.deliver(probe(1));
+  assert.equal(t.seen.filter((m) => m.type === "probe").length, 3, "вопрос первого хода новой партии заглушён");
+  t.transport.close();
+});

@@ -322,6 +322,8 @@ export class RealtimeTransport implements Transport {
       // `resumed` там ложь: ходов ещё не было). Другой id — срок ожидания
       // вышел, и сервер честно начал новую.
       const resumed = !!resume && sessionId === resume;
+      // Партии нет — нумерация вопросов о реакции начинается заново.
+      if (resume && !resumed) this.lastProbeTurn = 0;
       this.serverSessionId = sessionId;
       this.live = true;
       this.faceFrames.setStaleMs((this.session.capabilities.avatar as Record<string, unknown> | undefined)?.stale_ms);
