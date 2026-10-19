@@ -70,6 +70,11 @@ class TTSTaskManager:
         #: хвост реплики (замечание R2), а не ждать продолжения.
         self.on_audio_end: Optional[Callable[[str], Awaitable[None]]] = None
         self._finished_generation = ""
+        #: Поколение, о сбое синтеза которого уже сказано: строка «не удалось
+        #: озвучить» — одна на реплику, а не на каждую её фразу. При лёгшем
+        #: синтезе реплика из четырёх фраз клала в ленту четыре одинаковые
+        #: строки (найдено после аудита 17.10).
+        self._failure_told: Optional[str] = None
 
         self._tasks: list[asyncio.Task] = []
         self._queues: list[asyncio.Queue[bytes]] = []
@@ -136,7 +141,9 @@ class TTSTaskManager:
             message = ("Не удалось озвучить ответ. Текст доступен — можно продолжать переговоры."
                        if self._voice.lang == "ru" else
                        "Speech is unavailable. The reply is available as text; you can continue.")
-            self._publish(error("tts_unavailable", message))
+            if not generation_id or self._failure_told != generation_id:
+                self._failure_told = generation_id or None
+                self._publish(error("tts_unavailable", message))
         finally:
             await queue.put(_EOP)
 
