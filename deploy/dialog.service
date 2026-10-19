@@ -1,5 +1,5 @@
 [Unit]
-Description=Dialog negotiation trainer
+Description=RocketTalk negotiation trainer
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=60

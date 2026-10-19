@@ -73,7 +73,7 @@ def _dist(tmp_path: Path) -> str:
     """Минимальная «сборка фронтенда»: index.html и один файл в assets."""
     (tmp_path / "assets").mkdir(parents=True)
     (tmp_path / "assets" / "index-abc123.js").write_text("console.log(1)", encoding="utf-8")
-    (tmp_path / "index.html").write_text("<!doctype html><title>Диалог</title>", encoding="utf-8")
+    (tmp_path / "index.html").write_text("<!doctype html><title>RocketTalk</title>", encoding="utf-8")
     return str(tmp_path)
 
 
@@ -234,10 +234,10 @@ def test_the_combined_deploy_still_serves_the_spa_without_a_single_setting(tmp_p
         client = TestClient(main.app)
 
         assert client.get("/assets/index-abc123.js").text == "console.log(1)"
-        assert "<title>Диалог</title>" in client.get("/").text
-        assert "<title>Диалог</title>" in client.get("/course").text, "SPA-фолбэк пропал"
+        assert "<title>RocketTalk</title>" in client.get("/").text
+        assert "<title>RocketTalk</title>" in client.get("/course").text, "SPA-фолбэк пропал"
         # Обход каталога закрыт по-прежнему: наружу едет index.html, а не файл.
-        assert "<title>Диалог</title>" in client.get(
+        assert "<title>RocketTalk</title>" in client.get(
             "/%2e%2e/%2e%2e/services/gateway/.env").text
         assert client.get("/api/health").json()["ok"] is True
 

@@ -39,16 +39,16 @@ from app.engine.scenarios import SCENARIOS, MIRRORS
 CYR = re.compile(r"[А-Яа-яЁё]")
 LETTER = re.compile(r"[A-Za-zА-Яа-яЁё]")
 
-#: Имя продукта пишется одинаково на обоих языках, поэтому кириллицу в
-#: английской строке оно не оправдывает — но и не создаёт.
-BRAND = re.compile(r"«?Диалог»?")
-#: Латиница, законная в русском тексте: термины метода и единица опыта.
-#: Список закрытый — он оправдывает конкретные строки, а не открывает дверь.
-TERMS = re.compile(r"\b(SPIN|BATNA|ZOPA|XP|k)\b")
+#: Латиница, законная в русском тексте: термины метода, единица опыта и имя
+#: продукта. Список закрытый — он оправдывает конкретные строки, а не
+#: открывает дверь. Кириллице в английской строке места нет совсем: имя
+#: продукта — RocketTalk, а прежнее «Диалог» в английском тексте — забытый
+#: перевод.
+TERMS = re.compile(r"\b(SPIN|BATNA|ZOPA|XP|k|RocketTalk)\b")
 
 
 def en_has_russian(value: str) -> bool:
-    return bool(CYR.search(BRAND.sub("", value)))
+    return bool(CYR.search(value))
 
 
 def ru_has_forgotten_english(value: str) -> bool:
@@ -59,15 +59,15 @@ def ru_has_forgotten_english(value: str) -> bool:
 def test_the_rule_itself_tells_a_missing_translation_from_a_lawful_exception():
     """Сторож, проверенный только на здоровом словаре, доказывает, что словарь
     здоров, — и ничего больше. Поэтому правило проверяется на подлогах, включая
-    самый коварный случай: имя продукта не должно прикрывать собой кириллицу,
-    стоящую с ним в одной фразе."""
-    assert en_has_russian("The «Диалог» trainer certifies the method.") is False
+    прежнее имя продукта: после переименования оно больше не исключение."""
+    assert en_has_russian("The RocketTalk trainer certifies the method.") is False
     assert en_has_russian("Карл наблюдает") is True
-    assert en_has_russian("The «Диалог» trainer. Ваш ход.") is True
+    assert en_has_russian("The «Диалог» trainer certifies the method.") is True
     assert en_has_russian("Supplier Contract") is False
 
     assert ru_has_forgotten_english("{n} XP") is False
     assert ru_has_forgotten_english("k ₽") is False
+    assert ru_has_forgotten_english("RocketTalk") is False
     assert ru_has_forgotten_english("SPIN и BATNA") is False
     assert ru_has_forgotten_english("Annual volume commitment") is True
     assert ru_has_forgotten_english("Годовой контракт") is False

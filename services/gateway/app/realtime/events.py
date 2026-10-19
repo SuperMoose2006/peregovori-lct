@@ -1,4 +1,4 @@
-"""events.py — словарь realtime-протокола «Диалога».
+"""events.py — словарь realtime-протокола RocketTalk.
 
 ПРОИСХОЖДЕНИЕ. База событий перенесена из MiniCPM-o-Demo (Apache-2.0,
 commit 50b0865c), файлы `docs-app/content/docs/en/realtime-api/{overview,audio,

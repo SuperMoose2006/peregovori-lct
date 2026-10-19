@@ -1098,7 +1098,7 @@ def main() -> int:
                              "(тратит один запрос, требует сеть)")
     args = parser.parse_args()
 
-    print("«Диалог» — проверка перед показом")
+    print("RocketTalk — проверка перед показом")
     check_files()
     check_health(args.url.rstrip("/"))
     check_course()

@@ -98,7 +98,7 @@ def _tts_describe() -> str | None:
     return provider.describe() if provider is not None else None
 
 
-app = FastAPI(title="Диалог — Negotiation Simulator API", lifespan=_lifespan)
+app = FastAPI(title="RocketTalk — Negotiation Simulator API", lifespan=_lifespan)
 from app.attestation import router as attestation_router
 app.include_router(attestation_router)
 
@@ -144,7 +144,7 @@ async def _gate(request, call_next):
                 ok = False
         if not ok:
             from starlette.responses import Response as _Resp
-            return _Resp(status_code=401, headers={"WWW-Authenticate": 'Basic realm="Dialog"'})
+            return _Resp(status_code=401, headers={"WWW-Authenticate": 'Basic realm="RocketTalk"'})
         # HTTP-middleware НЕ ВИДИТ веб-сокет: у него другой scope, и `/v1/realtime`
         # остался бы открытым настежь — а это самый дорогой вход, он ходит в
         # модели. Браузер не умеет слать заголовок Authorization при рукопожатии

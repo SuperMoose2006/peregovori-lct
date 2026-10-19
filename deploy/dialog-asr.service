@@ -1,5 +1,5 @@
 [Unit]
-Description=Dialog ASR (nvidia/parakeet-tdt-0.6b-v3, CPU)
+Description=RocketTalk ASR (nvidia/parakeet-tdt-0.6b-v3, CPU)
 After=network-online.target
 Wants=network-online.target
 Before=dialog.service

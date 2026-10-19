@@ -69,7 +69,7 @@ def _get_client() -> httpx.AsyncClient:
                 # ТОЛЬКО ASCII: httpx кодирует заголовки в latin-1, и одно тире
                 # «—» в названии роняет каждый запрос UnicodeEncodeError'ом.
                 "HTTP-Referer": "https://github.com/lct/dialog",
-                "X-Title": "Dialog Negotiation Trainer",
+                "X-Title": "RocketTalk Negotiation Trainer",
             },
         )
     return _client

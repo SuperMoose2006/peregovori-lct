@@ -142,7 +142,7 @@ def document(identifier: str):
     body = f'''<!doctype html><html lang="{esc(r['lang'])}"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width"><title>{title}</title>
 <style>body{{font:18px Georgia,serif;max-width:800px;margin:4rem auto;padding:2rem;border:3px double #786338}}dt{{font-weight:bold;margin-top:1rem}}dd{{margin:0;overflow-wrap:anywhere}}small{{overflow-wrap:anywhere}}@media print{{body{{margin:0}}}}</style>
-<h1>{title}</h1><p>Диалог / Dialog</p><p>{text}</p>
+<h1>{title}</h1><p>RocketTalk</p><p>{text}</p>
 <dl><dt>ID</dt><dd>{esc(r['id'])}</dd><dt>{'Выдано (UTC)' if ru else 'Issued (UTC)'}</dt><dd>{esc(r['issued_at'])}</dd>
 <dt>{'Сценарий' if ru else 'Scenario'}</dt><dd>{esc(r['scenario_id'])}</dd>
 <dt>{'Результат' if ru else 'Result'}</dt><dd>{esc(r['grade'])} · {esc(r['overall'])}/100</dd>
