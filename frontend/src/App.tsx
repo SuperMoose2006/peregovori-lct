@@ -208,6 +208,9 @@ export default function App() {
   const [campaignId, setCampaignId] = useState<string | null>(null);
   // The session reducer retains one canonical debrief object through resume.
   const recordedDebrief = useRef<DebriefData | null>(null);
+  // Какой акт кампании идёт за столом: запись итога не кладёт его поверх акта,
+  // уже записанного другой вкладкой (lib/progress::recordCampaignStage).
+  const campaignStageRef = useRef<number | null>(null);
   // Retention profile (localStorage): best grades, attempts, day streak. Loaded
   // once; each debrief folds in a result and re-persists. `lastRecord` carries
   // the just-finished run's personal-best delta to the Debrief screen.
@@ -566,7 +569,9 @@ export default function App() {
     const total = campaign.stages.length;
     // Свёртка чистая и живёт в lib/progress; здесь остаётся только запись в
     // профиль. Этот эффект идёт ПОСЛЕ записи XP и кладёт акт поверх неё.
-    changeProfile((p) => recordCampaignStage(p, campaignId, total, d.grade, d.overall));
+    const played = campaignStageRef.current;
+    campaignStageRef.current = null;
+    changeProfile((p) => recordCampaignStage(p, campaignId, total, d.grade, d.overall, new Date(), played));
   }, [mode, nego.debrief, campaign, campaignId, changeProfile]);
 
   // Итог капстоуна снимается с ТОГО ЖЕ состояния, что и грейд: предикат смотрит
@@ -769,6 +774,7 @@ export default function App() {
       const p = getCampaignProgress(profile, pick.campaignId);
       const stage = c.stages[p.stageIndex];
       if (!stage) { setScreen("campaign_done"); return; }
+      campaignStageRef.current = p.stageIndex;
       setCurrentScenario(stage.scenario_id);
       launch(stage.scenario_id, "campaign", { reputation: p.reputation });
       return;
@@ -948,6 +954,7 @@ export default function App() {
       return;
     }
     const stage = campaign.stages[progress.stageIndex];
+    campaignStageRef.current = progress.stageIndex;
     setCurrentScenario(stage.scenario_id);
     launch(stage.scenario_id, "campaign", { reputation: progress.reputation });
   }, [campaign, progress.stageIndex, progress.reputation, launch]);

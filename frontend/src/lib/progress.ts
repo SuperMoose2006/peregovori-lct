@@ -1368,10 +1368,13 @@ export function setCampaignProgress(
  */
 export function recordCampaignStage(
   profile: Profile, campaignId: string, total: number,
-  grade: string, overall: number, now: Date = new Date(),
+  grade: string, overall: number, now: Date = new Date(), played?: number | null,
 ): Profile {
   const prev = getCampaignProgress(profile, campaignId);
   if (prev.stageIndex >= total) return profile; // арка пройдена — записывать некуда
+  // Акт, который игрался, уже записан другой вкладкой: итог второй вкладки
+  // лёг бы СЛЕДУЮЩИМ, не сыгранным актом (найдено после аудита 17.10).
+  if (played != null && played !== prev.stageIndex) return profile;
   return setCampaignProgress(profile, campaignId, {
     stageIndex: prev.stageIndex + 1,
     reputation: clampRep(prev.reputation + (overall - 50)),

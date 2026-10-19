@@ -808,3 +808,23 @@ test("местный день «назад» (перелёт на запад, п
   assert.equal(streakView(p, "2026-10-18")!.mood, "kept");
   assert.equal(touchStreak(p, new Date(2026, 9, 18, 18, 0)), p, "урок «вчера» серию не трогает");
 });
+
+// ---------------------------------------------------------------------------
+// Кампания в двух вкладках.
+import { getCampaignProgress, recordCampaignStage } from "../src/lib/progress";
+
+test("один акт, сыгранный в двух вкладках, записывается один раз", () => {
+  // Найдено после аудита 17.10 (лежало в «не исправлено»): обе вкладки
+  // начинали акт 1, первая записывала его и переводила арку на акт 2, а итог
+  // второй ложился АКТОМ 2 — не сыгранным. Запись теперь знает, какой акт
+  // игрался, и не кладёт его поверх уже записанного.
+  const start = emptyProfile();
+  const first = recordCampaignStage(start, "career", 4, "B", 80, new Date(), 0);
+  assert.equal(getCampaignProgress(first, "career").stageIndex, 1);
+  const second = recordCampaignStage(first, "career", 4, "A", 95, new Date(), 0);
+  assert.equal(second, first, "акт 1 уже записан — второй итог не становится актом 2");
+  const next = recordCampaignStage(first, "career", 4, "A", 95, new Date(), 1);
+  assert.equal(getCampaignProgress(next, "career").stageIndex, 2);
+  // Без номера акта (восстановленная партия) — как раньше.
+  assert.equal(getCampaignProgress(recordCampaignStage(first, "career", 4, "C", 60), "career").stageIndex, 2);
+});
