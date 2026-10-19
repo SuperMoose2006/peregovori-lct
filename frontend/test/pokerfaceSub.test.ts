@@ -48,7 +48,8 @@ function sub(markup: string): string {
 test("«покерфейс» не карточка верхнего уровня — он внутри камеры", () => {
   const markup = html({ ...NO_LAYERS, camera: true });
   const cards = markup.match(/class="layer /g) ?? [];
-  assert.equal(cards.length, 4, "карточек ровно четыре: аватар, читай лицо, голос, камера");
+  // Голоса в шторке нет — он режим партии, созвон (callMode.test.ts).
+  assert.equal(cards.length, 3, "карточек ровно три: аватар, читай лицо, камера");
   assert.equal((markup.match(/ly-sub/g) ?? []).length > 0, true);
   // Вложенность именно в камеру, а не рядом: подвыбор идёт ПОСЛЕ её подписи и
   // ДО закрытия её карточки — проверяем по соседству с причиной камеры.

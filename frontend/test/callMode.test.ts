@@ -149,3 +149,18 @@ test("карточки на тёмной сцене звонка пишут св
   assert.match(css, /\.call \{[^}]*color: #fff/, "сцена звонка больше не белая — проверка устарела");
   assert.match(css, /\.call-cards \{ color: var\(--ink\); \}/, "карточки на сцене наследуют белый текст");
 });
+
+test("в шторке слоёв нет тумблера «Голосом» — голос включается созвоном", async () => {
+  // Найдено ревью: тумблер остался, спрашивал микрофон и не менял ничего —
+  // `startLayers` срезает голос, а `callLayers` включает его независимо.
+  const { LayersPanel } = await import("../src/components/Setup");
+  const ok2 = (id: LayerId): LayerState => ({ id, available: true, reason: null });
+  const states = { probe: ok2("probe"), voice: ok2("voice"), camera: ok2("camera"), avatar: ok2("avatar"), pokerface: ok2("pokerface") };
+  for (const lang of ["ru", "en"] as const) {
+    const html = renderToStaticMarkup(createElement(LayersPanel, {
+      t: I18N[lang], lang, layers: DEFAULT_LAYERS, states, onToggle: () => {}, onPreset: () => {},
+    }));
+    assert.ok(!html.includes(`aria-label="${I18N[lang].layers.names.voice}"`), `${lang}: тумблер голоса в шторке`);
+    assert.ok(html.includes(`aria-label="${I18N[lang].layers.names.camera}"`), `${lang}: камера пропала вместе с голосом`);
+  }
+});
