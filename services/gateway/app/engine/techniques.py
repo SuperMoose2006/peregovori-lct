@@ -138,7 +138,11 @@ def has_unnegated_in_clause(t: str, arr: list[str]) -> bool:
     условие, которое игрок прямо придерживает (найдено после аудита 17.10)."""
     for w in arr:
         for at in _word_starts(t, w):
-            if not any(x in _NEGATORS for x in _clause_before(t, at)[-_NEGATION_WINDOW:]):
+            head = _clause_before(t, at)[-_NEGATION_WINDOW:]
+            if not any(x in _NEGATORS for x in head):
+                return True
+            # «Не против», "don't mind" — отрицание, которое соглашается (ревью ветки).
+            if any(p in " ".join(head) for p in LEX["notAgainst"]):
                 return True
     return False
 
@@ -787,6 +791,12 @@ LEX: dict[str, list[str]] = {
     "closeNotDeal": ["к сведению"],
     # Противительный союз: «устраивает ЭТО, но…» — согласие с частью.
     "contrast": ["но", "однако", "but", "however"],
+    # Отрицание, которое СОГЛАШАЕТСЯ: «мы не против годового контракта»,
+    # "we don't mind an annual contract" — условие отдано, а не придержано
+    # (ревью ветки). Служебный список `has_unnegated_in_clause`; ищется в окне
+    # перед словом условия.
+    "notAgainst": ["не против", "не возраж", "нет проблем", "t mind", "no problem",
+                   "no objection", "not against", "t object"],
     # Дополнение, которое и есть СДЕЛКА: «принимаю ваше предложение, но прошу
     # оплату по факту» — сделка с условием, а не согласие с частью (ревью ветки).
     # Засчитывается, только если основа — последнее слово короткого дополнения.

@@ -298,6 +298,23 @@ test("придержанное условие размена не засчиты
   assert.ok(checkFreeform(ex, ex.reference!.ru, "ru").ok);
 });
 
+test("«не против» условия — согласие его отдать (зеркало сервера)", async () => {
+  // Найдено ревью ветки: «не против», "don't mind" читались отказом.
+  const { analyze, applyMove, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const cases: ["ru" | "en", string, string][] = [
+    ["ru", "В обмен на 90 мы не против годового контракта.", "annual_contract"],
+    ["en", "In exchange for 90, we don't mind an annual contract.", "annual_contract"],
+    ["ru", "Взамен мы не возражаем против предоплаты, если цена будет 90.", "prepay"],
+  ];
+  for (const [lang, line, term] of cases) {
+    const s = newSession(SCENARIO_MAP.supplier, lang);
+    s.turn = 1;
+    applyMove(s, analyze(line), line);
+    assert.ok(s.termsConceded.includes(term), `${line}: ${s.termsConceded}`);
+  }
+});
+
 test("потолок техники — факт офлайн-ядра, как на сервере", async () => {
   // Найдено после аудита 17.10: разбор гадал по `technique < 45`.
   const { newSession, scoreSession } = await import("../src/mock/engine");

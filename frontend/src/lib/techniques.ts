@@ -80,6 +80,9 @@ export const hasUnnegatedInClause = (t: string, arr: string[]): boolean => arr.s
     for (const ch of CLAUSE_BREAKS) cut = Math.max(cut, lead.lastIndexOf(ch));
     const head = lead.slice(cut + 1).split(/\s+/).filter(Boolean).slice(-NEGATION_WINDOW);
     if (!head.some((x) => NEGATORS.has(x))) return true;
+    // «Не против», "don't mind" — отрицание, которое соглашается (ревью ветки).
+    const joined = head.join(" ");
+    if (LEX.notAgainst.some((p) => joined.includes(p))) return true;
   }
   return false;
 });

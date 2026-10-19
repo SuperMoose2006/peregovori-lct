@@ -177,6 +177,10 @@ export const LEX: Record<string, string[]> = {
   contrast: [
     "но", "однако", "but", "however",
   ],
+  notAgainst: [
+    "не против", "не возраж", "нет проблем", "t mind", "no problem", "no objection",
+    "not against", "t object",
+  ],
   closeDealObjects: [
     "предложени", "услови", "договор", "сделк", "вариант", "offer", "terms", "deal", "proposal",
   ],

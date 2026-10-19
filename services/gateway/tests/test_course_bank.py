@@ -848,6 +848,22 @@ def test_the_engine_does_not_concede_a_negated_term():
     assert "annual_contract" not in s.state.terms_conceded
 
 
+@pytest.mark.parametrize("lang,line,term", [
+    ("ru", "В обмен на 90 мы не против годового контракта.", "annual_contract"),
+    ("en", "In exchange for 90, we don't mind an annual contract.", "annual_contract"),
+    ("ru", "Взамен мы не возражаем против предоплаты, если цена будет 90.", "prepay"),
+])
+def test_not_minding_a_term_concedes_it(lang, line, term):
+    """Найдено ревью ветки: «не против», «не возражаем», "don't mind" — это
+    согласие отдать условие, а правило «условие под отрицанием придержано»
+    читало его отказом: цена 100 → 94,5 вместо 89 и условие не засчитано."""
+    from app import engine
+    s = engine.create_session("supplier", lang)
+    s.turn = 1
+    engine.apply_move(s, engine.analyze(line), line)
+    assert term in s.state.terms_conceded, s.state.terms_conceded
+
+
 def test_the_c_ceiling_in_the_course_is_the_engines_ceiling():
     """Найдено после аудита 17.10: урок «Счёт и потолок C» и задание cl-04
     говорили «приёмы ниже 45 — не выше C», а движок опускает потолок при
