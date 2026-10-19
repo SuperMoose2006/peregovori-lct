@@ -5,7 +5,7 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang, Mode } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, TurnRecord, WhatIfBranch } from "../types";
-import { LEX, cnt, has, hasTradeoff, hasUnnegated, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
+import { LEX, cnt, has, hasHostile, hasTradeoff, hasUnnegated, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
 import type { NumberMention } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import { normalizeDifficulty } from "../lib/difficulty";
@@ -54,7 +54,8 @@ export function analyze(raw: string): RawAnalysis {
   // Условие под отрицанием («если мы НЕ договоримся…») — давление, а не размен.
   if (hasTradeoff(t)) { moves.add("tradeoff"); addT("tradeoff", "Размен"); }
   if (has(t, LEX.threat)) { moves.add("threat"); addT("threat", "Давление"); }
-  if (has(t, LEX.hostile)) { moves.add("hostile"); addT("hostile", "Грубость"); }
+  // Под отрицанием грубость — не грубость («Не хочу показаться некомпетентным»).
+  if (hasHostile(t)) { moves.add("hostile"); addT("hostile", "Грубость"); }
   if (has(t, LEX.concession)) { moves.add("concession"); addT("concession", "Уступка"); }
   if (has(t, LEX.anchor)) { moves.add("anchor"); addT("anchor", "Якорь"); }
   if (isClose(t) || isShortClose(t)) { moves.add("accept"); addT("accept", "Закрытие"); }

@@ -68,6 +68,25 @@ export const startsAtWord = (text: string, word: string): boolean => {
 
 export const has = (t: string, arr: string[]): boolean => arr.some((w) => startsAtWord(t, w));
 
+/** `has(LEX.hostile)`, но под отрицанием грубость — не грубость («Не хочу
+ *  показаться некомпетентным, но…»); отрицание с усилителем («не просто») её
+ *  не снимает. Зеркало techniques.py::_has_hostile. */
+export const hasHostile = (t: string): boolean => LEX.hostile.some((w) => {
+  for (let at = t.indexOf(w); at >= 0; at = t.indexOf(w, at + 1)) {
+    const before = at === 0 ? " " : t[at - 1];
+    if (/\p{L}/u.test(before) || !tailOk(t, at, w)) continue;
+    // Отрицание — только в СВОЕЙ клаузе: «столько НЕ стоит, это смешно» — грубость.
+    const lead = t.slice(0, at);
+    let cut = -1;
+    for (const ch of CLAUSE_BREAKS) cut = Math.max(cut, lead.lastIndexOf(ch));
+    const head = lead.slice(cut + 1).split(/\s+/).filter(Boolean).slice(-NEGATION_WINDOW);
+    const negated = head.some((x, i) => NEGATORS.has(x)
+      && (i + 1 >= head.length || !LEX.intensifiers.includes(head[i + 1].replace(/^[.,?!-]+|[.,?!-]+$/g, ""))));
+    if (!negated) return true;
+  }
+  return false;
+});
+
 /** `has(LEX.tradeoff)`, но условие под отрицанием — не размен: «Если мы НЕ
  *  договоримся, уйдём» — давление (найдено после аудита 17.10). Зеркало
  *  techniques.py::_has_tradeoff. */

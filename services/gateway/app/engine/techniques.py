@@ -146,6 +146,27 @@ def _has_tradeoff(t: str) -> bool:
     return False
 
 
+def _has_hostile(t: str) -> bool:
+    """`_has(LEX["hostile"])`, но под отрицанием грубость — не грубость.
+
+    «Не хочу показаться некомпетентным, но почему для вас важна предоплата?»
+    засчитывалось хамством: доверие −22, напряжение +26, откат цены — за
+    вежливую реплику (против инварианта 2; найдено после аудита 17.10).
+    Отрицание, за которым идёт усилитель («вы НЕ ПРОСТО некомпетентны»),
+    грубость не снимает."""
+    for w in LEX["hostile"]:
+        for at in _word_starts(t, w):
+            # Отрицание — только в СВОЕЙ клаузе: «Да она столько НЕ стоит, это
+            # смешно» — грубость (банк курса держит её примером).
+            head = _clause_before(t, at)[-_NEGATION_WINDOW:]
+            negated = any(
+                x in _NEGATORS and (i + 1 >= len(head) or head[i + 1].strip(".,?!-") not in LEX["intensifiers"])
+                for i, x in enumerate(head))
+            if not negated:
+                return True
+    return False
+
+
 def _has_unnegated(t: str, arr: list[str]) -> bool:
     """`_has`, но совпадение под отрицанием не считается.
 
@@ -717,6 +738,9 @@ LEX: dict[str, list[str]] = {
     # размен: «Если мы НЕ договоримся сегодня, мы уйдём к конкуренту» получало
     # `tradeoff`, двигало цену и шло в технику (найдено после аудита 17.10).
     "tradeoffVoidIfNot": ["если мы"],
+    # Слова, после которых отрицание УСИЛИВАЕТ, а не отменяет: «вы НЕ ПРОСТО
+    # некомпетентны». Служебный список для `_has_hostile`.
+    "intensifiers": ["просто", "только", "just", "only", "merely"],
     # Основы, у которых ХВОСТ ЗАКРЫТ: совпадение засчитывается, только если
     # сразу за основой не идёт буква.
     #
@@ -1028,7 +1052,7 @@ def analyze(raw_text: Optional[str]) -> Analysis:
     if _has(t, LEX["threat"]):
         add_move("threat")
         add_tag("threat", "Pressure / ultimatum")
-    if _has(t, LEX["hostile"]):
+    if _has_hostile(t):
         add_move("hostile")
         add_tag("hostile", "Hostile tone")
     if _has(t, LEX["concession"]):

@@ -2699,6 +2699,18 @@
    "spin": null
   },
   {
+   "text": "Вы не просто некомпетентны, вы издеваетесь.",
+   "moves": [
+    "hostile"
+   ],
+   "primary": "hostile",
+   "arg": 0,
+   "words": 6,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Вы правы, срок действительно короткий.",
    "moves": [
     "acknowledge"
@@ -3985,6 +3997,18 @@
    "primary": "statement",
    "arg": 5,
    "words": 3,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Не хочу показаться некомпетентным, но почему для вас важна предоплата?",
+   "moves": [
+    "interests_probe"
+   ],
+   "primary": "interests_probe",
+   "arg": 32,
+   "words": 10,
    "number": null,
    "mentions": [],
    "spin": null
@@ -5590,6 +5614,18 @@
    "number": null,
    "mentions": [],
    "spin": "problem"
+  },
+  {
+   "text": "Это просто смешно и некомпетентно.",
+   "moves": [
+    "hostile"
+   ],
+   "primary": "hostile",
+   "arg": 0,
+   "words": 5,
+   "number": null,
+   "mentions": [],
+   "spin": null
   },
   {
    "text": "Это ультиматум",
