@@ -143,6 +143,25 @@ test("строка счётчика переведена и несёт подс�
   assert.ok(!/[а-яё]/i.test(I18N.en.layers.tellsOf), "кириллица в английском");
 });
 
+test("счётчики камеры согласуют число с «раз»", async () => {
+  // Найдено после аудита 17.10: «Камера смотрела 2 раз», «2 раз лицо себя
+  // выдало», «из 21 просмотренных кадров», "looked 1 times".
+  const { plural } = await import("../src/lib/format");
+  const { LOOKED_IN_SILENCE } = await import("../src/lib/layers");
+  const looked = (lang: "ru" | "en", n: number) => LOOKED_IN_SILENCE[lang]
+    .replace("{n}", String(n)).replace("{form}", plural(n, I18N[lang].layers.timesForms));
+  assert.match(looked("ru", 2), /смотрела 2 раза /);
+  assert.match(looked("ru", 5), /смотрела 5 раз /);
+  assert.match(looked("en", 1), /looked 1 time /);
+  assert.match(looked("en", 21), /looked 21 times /);
+  const tells = (lang: "ru" | "en", count: number, frames: number) => `${count} `
+    + I18N[lang].layers.tellsOf.replace("{n}", String(frames))
+      .replace("{form}", plural(count, I18N[lang].layers.timesForms));
+  assert.match(tells("ru", 2, 21), /^2 раза лицо/);
+  assert.ok(!/\d+ просмотренных/.test(tells("ru", 2, 21)), "число кадров не должно требовать согласования");
+  assert.match(tells("en", 1, 1), /^1 time your face/);
+});
+
 
 // ---------------------------------------------------------------------------
 // Лента наблюдений камеры в разборе

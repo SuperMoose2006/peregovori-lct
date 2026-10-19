@@ -254,6 +254,8 @@ export function withServer(
  * стоит она одного числа: сколько кадров модель досмотрела до ответа.
  */
 export const LOOKED_IN_SILENCE = {
-  ru: "Камера смотрела {n} раз и ничего примечательного не увидела. Это ответ слоя, а не его отсутствие.",
-  en: "The camera looked {n} times and saw nothing notable. That is the layer answering, not the layer missing.",
+  // «{form}» — через plural (layers.timesForms): было «смотрела 2 раз», «looked
+  // 1 times» (найдено после аудита 17.10).
+  ru: "Камера смотрела {n} {form} и ничего примечательного не увидела. Это ответ слоя, а не его отсутствие.",
+  en: "The camera looked {n} {form} and saw nothing notable. That is the layer answering, not the layer missing.",
 };

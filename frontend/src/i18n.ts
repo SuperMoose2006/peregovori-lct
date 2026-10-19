@@ -366,6 +366,8 @@ export interface Strings {
     presetNames: Record<string, string>;
     /** «сорвались N раз из M кадров» — счётчик «покерфейса» в разборе. */
     tellsOf: string;
+    /** «раз / раза / раз» — к числу срывов и к числу взглядов камеры. */
+    timesForms: [string, string, string];
     explainHead: string;
     explain: string[];
   };
@@ -1307,7 +1309,8 @@ export const I18N: Record<Lang, Strings> = {
       needsCamera: "включите камеру — считать нечего без её кадров",
       presetNames: { classic: "Классика", read: "Читай лицо", call: "Видеозвонок",
                      poker: "Покерфейс", full: "Полный контакт" },
-      tellsOf: "раз лицо себя выдало — из {n} просмотренных кадров",
+      tellsOf: "{form} лицо себя выдало — кадров просмотрено: {n}",
+      timesForms: ["раз", "раза", "раз"],
       explainHead: "Что это даёт",
       explain: [
         "Слои меняют состав разбора после партии, но никогда не влияют на оценку.",
@@ -2299,7 +2302,8 @@ export const I18N: Record<Lang, Strings> = {
       needsCamera: "turn the camera on — there are no frames to count without it",
       presetNames: { classic: "Classic", read: "Read the face", call: "Video call",
                      poker: "Poker face", full: "Full contact" },
-      tellsOf: "times your face gave you away — out of {n} frames seen",
+      tellsOf: "{form} your face gave you away — frames seen: {n}",
+      timesForms: ["time", "times", "times"],
       explainHead: "What this changes",
       explain: [
         "Layers change what the debrief shows — never the grade.",

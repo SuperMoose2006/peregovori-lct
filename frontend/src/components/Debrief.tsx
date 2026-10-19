@@ -681,7 +681,8 @@ export function Debrief({
               </div>
               <div className="vis-lead">
                 <MascotImg dir="karl" state="shrug" alt={t.mascot.alt.shrug} size={44} />
-                <p>{LOOKED_IN_SILENCE[lang].replace("{n}", String(d.observation_looks))}</p>
+                <p>{LOOKED_IN_SILENCE[lang].replace("{n}", String(d.observation_looks))
+                  .replace("{form}", plural(d.observation_looks ?? 0, t.layers.timesForms))}</p>
               </div>
             </div>
           ) : null}
@@ -695,7 +696,8 @@ export function Debrief({
               <p className="obs-tells">
                 <b>{tells.count}</b>
                 {" "}
-                {t.layers.tellsOf.replace("{n}", String(tells.frames))}
+                {t.layers.tellsOf.replace("{n}", String(tells.frames))
+                  .replace("{form}", plural(tells.count, t.layers.timesForms))}
               </p>
             </div>
           ) : null}
