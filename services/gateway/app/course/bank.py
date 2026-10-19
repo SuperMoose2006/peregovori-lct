@@ -1535,9 +1535,13 @@ BANK: list[dict] = [
         "answer": {"value": 85.9, "tolerance": 0.1}, "unit": T("₽/шт", "/unit"),
         "explain": T(
             "w = 0.3 + 0.45 × 0.5 = 0.525; 88 + (84 − 88) × 0.525 = 85.9. При гибкости 0.7 было бы "
-            "85.54. Всё, что вы делали десять ходов — доверие, информация, рычаг — окупается здесь.",
+            "85.54. Всё, что вы делали десять ходов — доверие, информация, рычаг — окупается здесь. "
+            "Но только если в закрывающей реплике есть повод — размен или критерий: голое «по рукам "
+            "на 84» тренажёр встретит «пока нет».",
             "w = 0.3 + 0.45 × 0.5 = 0.525; 88 + (84 − 88) × 0.525 = 85.9. At flexibility 0.7 it would "
-            "be 85.54. Everything you built over ten turns cashes out right here."),
+            "be 85.54. Everything you built over ten turns cashes out right here. But only when the "
+            "closing line carries an event — a trade or a criterion: a bare “deal at 84” gets a "
+            "“not yet”."),
     },
     {
         "id": "cl-02", "block": "closing", "lesson": 2, "type": "choice",
@@ -1574,9 +1578,11 @@ BANK: list[dict] = [
                        "Then we have a deal at 88 per unit with an annual volume commitment."),
         "explain": T(
             "Закрытие без цифры тренажёр закроет на ЕЁ последнем номере — вы подарите весь остаток зоны. "
-            "Цифра в закрывающей реплике стоит реальных денег.",
+            "Цифра в закрывающей реплике стоит реальных денег — когда за ней стоит размен или критерий: "
+            "голая цифра лучше стола получит «пока нет».",
             "A close with no number settles at HER last number — you hand over the whole remaining "
-            "zone. The figure in a closing line is worth real money."),
+            "zone. The figure in a closing line is worth real money — when a trade or a criterion "
+            "stands behind it: a bare figure better than the table gets a “not yet”."),
     },
     {
         "id": "cl-04", "block": "closing", "lesson": 4, "type": "numeric",

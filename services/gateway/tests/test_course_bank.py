@@ -873,3 +873,28 @@ def test_the_trust_gate_quoted_in_foundations_is_the_engines():
             text = BY_ID[exercise_id]["explain"][lang]
             assert str(gate) in text, (exercise_id, lang)
             assert "порог 30" not in text and "порога 30" not in text and "gate of 30" not in text
+
+
+def test_the_meeting_point_lesson_says_what_the_engine_does():
+    """Найдено после аудита 17.10: блок «Закрытие» учил точке встречи без
+    условия, а движок без заработанного события в закрывающей реплике
+    отвечает «пока нет» (w = 0). Урок называет условие — и движок с ним
+    согласен в обе стороны."""
+    from app.course.simulate import seeded
+    from app.engine.engine import apply_move
+    from app.engine import analyze
+
+    def close(line, lang):
+        s = seeded("supplier", lang, {"trust": 55, "tension": 30, "info": 40, "leverage": 30, "turn": 6})
+        s.state.offer_opp = 88.0
+        s.turn += 1
+        return apply_move(s, analyze(line), line), s
+
+    for lang, bare, traded in (("ru", "Договорились на 84.", "Договорились на 84 в обмен на годовой контракт."),
+                               ("en", "Deal at 84.", "Deal at 84 in exchange for an annual volume commitment.")):
+        r, s = close(bare, lang)
+        assert r.reaction == "not_yet" and s.state.status == "active"
+        r, s = close(traded, lang)
+        assert s.state.status == "agreement" and 84 <= s.state.deal < 88
+    lesson = next(l for b in BLOCKS if b.id == "closing" for l in b.lessons if l.idx == 1)
+    assert "пока нет" in lesson.body["ru"] and "not yet" in lesson.body["en"]

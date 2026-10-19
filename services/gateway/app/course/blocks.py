@@ -608,11 +608,19 @@ BLOCKS: list[Block] = [
                 "Сделка закрывается не на последней цифре оппонента, а в точке\n"
                 "их цифра + (ваша цифра − их цифра) · (0.3 + 0.45 · гибкость).\n\n"
                 "Гибкость собрана из доверия, информации и рычага — из всего, что вы делали "
-                "предыдущие десять ходов. Именно здесь эта работа превращается в деньги.",
+                "предыдущие десять ходов. Именно здесь эта работа превращается в деньги.\n\n"
+                "Но формула работает, только если в самой закрывающей реплике есть заработанный "
+                "повод — размен, критерий, вскрытый интерес, обоснованная альтернатива. Голое "
+                "«Договорились на 84» при её 88 — это «пока нет»: стол не сдвинется, а напряжение "
+                "вырастет. «Договорились на 84 в обмен на годовой контракт» — уже сделка.",
                 "The deal does not settle at their last number, but at "
                 "offer_opp + (offer_player − offer_opp) · (0.3 + 0.45 · flexibility).\n\n"
                 "Flexibility is built from trust, information and leverage — from everything you did "
-                "over the previous ten turns. This is where that work turns into money.",
+                "over the previous ten turns. This is where that work turns into money.\n\n"
+                "But the formula only applies when the closing line itself earns an event — a trade, a "
+                "criterion, an uncovered interest, a backed alternative. A bare “Deal at 84” against "
+                "her 88 is a “not yet”: the table does not move, and tension rises. “Deal at 84 in "
+                "exchange for an annual volume commitment” is a deal.",
             )),
             Lesson(2, T("Пол оппонента непробиваем", "Their floor does not move"), T(
                 "Ниже своей красной линии оппонент не пойдёт ни при каком доверии и ни при каком "

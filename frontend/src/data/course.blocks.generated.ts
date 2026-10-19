@@ -523,8 +523,8 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The meeting point"
         },
         "body": {
-          "ru": "Сделка закрывается не на последней цифре оппонента, а в точке\nих цифра + (ваша цифра − их цифра) · (0.3 + 0.45 · гибкость).\n\nГибкость собрана из доверия, информации и рычага — из всего, что вы делали предыдущие десять ходов. Именно здесь эта работа превращается в деньги.",
-          "en": "The deal does not settle at their last number, but at offer_opp + (offer_player − offer_opp) · (0.3 + 0.45 · flexibility).\n\nFlexibility is built from trust, information and leverage — from everything you did over the previous ten turns. This is where that work turns into money."
+          "ru": "Сделка закрывается не на последней цифре оппонента, а в точке\nих цифра + (ваша цифра − их цифра) · (0.3 + 0.45 · гибкость).\n\nГибкость собрана из доверия, информации и рычага — из всего, что вы делали предыдущие десять ходов. Именно здесь эта работа превращается в деньги.\n\nНо формула работает, только если в самой закрывающей реплике есть заработанный повод — размен, критерий, вскрытый интерес, обоснованная альтернатива. Голое «Договорились на 84» при её 88 — это «пока нет»: стол не сдвинется, а напряжение вырастет. «Договорились на 84 в обмен на годовой контракт» — уже сделка.",
+          "en": "The deal does not settle at their last number, but at offer_opp + (offer_player − offer_opp) · (0.3 + 0.45 · flexibility).\n\nFlexibility is built from trust, information and leverage — from everything you did over the previous ten turns. This is where that work turns into money.\n\nBut the formula only applies when the closing line itself earns an event — a trade, a criterion, an uncovered interest, a backed alternative. A bare “Deal at 84” against her 88 is a “not yet”: the table does not move, and tension rises. “Deal at 84 in exchange for an annual volume commitment” is a deal."
         }
       },
       {
