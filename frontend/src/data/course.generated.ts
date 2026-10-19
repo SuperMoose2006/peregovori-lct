@@ -1461,7 +1461,7 @@ export const COURSE_BANK: Exercise[] = [
     "scenario_id": "sla_renewal",
     "derive": "zopa_width",
     "prompt": {
-      "ru": "Вендор физически не даст больше 99.9%. Вам не подходит ниже 99.4%. Какова ширина ZOPA в процентных пунктах?",
+      "ru": "Вендор физически не даст больше 99,9%. Вам не подходит ниже 99,4%. Какова ширина ZOPA в процентных пунктах?",
       "en": "The vendor cannot go above 99.9%. You cannot accept below 99.4%. How wide is the ZOPA in percentage points?"
     },
     "answer": {
@@ -2088,7 +2088,7 @@ export const COURSE_BANK: Exercise[] = [
     "xp": 15,
     "scenario_id": "supplier",
     "prompt": {
-      "ru": "Годовой контракт: для Ирины ценность 0.85, вам стоит 0.2. Предоплата 30%: ценность 0.55, стоит 0.45. Что менять первым?",
+      "ru": "Годовой контракт: для Ирины ценность 0,85, вам стоит 0,2. Предоплата 30%: ценность 0,55, стоит 0,45. Что менять первым?",
       "en": "Annual commitment: worth 0.85 to Irina, costs you 0.2. 30% upfront: worth 0.55, costs 0.45. Which do you trade first?"
     },
     "options": [
@@ -2111,7 +2111,7 @@ export const COURSE_BANK: Exercise[] = [
     ],
     "answer": 1,
     "explain": {
-      "ru": "Размен — это арифметика: уступать дешёвое для себя и дорогое для них. Пакетный балл 10·0.85 − 6·0.2 = 7.3 против 2.8 у предоплаты, и уступка растёт сильнее.",
+      "ru": "Размен — это арифметика: уступать дешёвое для себя и дорогое для них. Пакетный балл 10·0,85 − 6·0,2 = 7,3 против 2,8 у предоплаты, и уступка растёт сильнее.",
       "en": "Logrolling is arithmetic: concede what is cheap for you and dear to them. Package score 10·0.85 − 6·0.2 = 7.3 versus 2.8 for the prepayment, and the concession grows more."
     }
   },
@@ -2136,7 +2136,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "points"
     },
     "explain": {
-      "ru": "(10·0.85 − 6·0.2) + (10·0.55 − 6·0.45) = 7.3 + 2.8 = 10.1. Потолок вклада +16, так что даже идеальный пакет не подменяет собой остальную технику.",
+      "ru": "(10·0,85 − 6·0,2) + (10·0,55 − 6·0,45) = 7,3 + 2,8 = 10,1. Потолок вклада +16, так что даже идеальный пакет не подменяет собой остальную технику.",
       "en": "(10·0.85 − 6·0.2) + (10·0.55 − 6·0.45) = 7.3 + 2.8 = 10.1. The contribution is capped at +16, so even a perfect package cannot stand in for the rest of the technique."
     }
   },
@@ -2164,7 +2164,7 @@ export const COURSE_BANK: Exercise[] = [
       "min_words": 8
     },
     "reference": {
-      "ru": "Если мы продлим на 3 года и введём ступенчатый SLA, сможете ли вы дать 99.8% со второго квартала?",
+      "ru": "Если мы продлим на 3 года и введём ступенчатый SLA, сможете ли вы дать 99,8% со второго квартала?",
       "en": "If we renew for three years with a phased SLA, can you move on uptime to 99.8% from Q2?"
     },
     "explain": {
@@ -2261,7 +2261,7 @@ export const COURSE_BANK: Exercise[] = [
       "long_lease": "i_vacancy"
     },
     "explain": {
-      "ru": "У каждой фишки ценность для оппонента 0.8–0.85 именно потому, что она бьёт прямо в скрытый интерес. Вторичные вопросы не выдуманы — они выведены из интересов.",
+      "ru": "У каждой фишки ценность для оппонента 0,8–0,85 именно потому, что она бьёт прямо в скрытый интерес. Вторичные вопросы не выдуманы — они выведены из интересов.",
       "en": "Every one of these chips is worth 0.8–0.85 to the counterpart precisely because it lands on a hidden interest. The secondary issues are not invented — they are derived from them."
     }
   },
@@ -2326,7 +2326,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "If we commit to an annual volume commitment for the whole year, can you move down on the price per unit?"
     },
     "explain": {
-      "ru": "Тренажёр считает пакет по НАЗВАННОМУ условию: годовой контракт стоит ей 0.85, то есть добавляет к уступке 0.10 + 0.30·0.85 = 0.355. Безымянное «пойдём навстречу» — уступка, а не размен: вы отдали, ничего не получив, и второй оси не появилось.",
+      "ru": "Тренажёр считает пакет по НАЗВАННОМУ условию: годовой контракт стоит ей 0,85, то есть добавляет к уступке 0,10 + 0,30·0,85 = 0,355. Безымянное «пойдём навстречу» — уступка, а не размен: вы отдали, ничего не получив, и второй оси не появилось.",
       "en": "The simulator scores the package by the term you NAME: the annual commitment is worth 0.85 to her, i.e. it adds 0.10 + 0.30·0.85 = 0.355 to the concession. A nameless “we will meet you halfway” is a concession, not a trade: you gave something away for nothing, and no second axis appeared."
     }
   },
@@ -2358,7 +2358,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "If we pay 30% upfront at signing, can you move down on the price per unit?"
     },
     "explain": {
-      "ru": "Предоплата стоит Ирине 0.55 против 0.85 у годового контракта — уступка меньше (0.265 против 0.355), а вам она обходится дороже (0.45 против 0.2). Порядок разменов не декоративен: сначала дешёвое вам и дорогое им.",
+      "ru": "Предоплата стоит Ирине 0,55 против 0,85 у годового контракта — уступка меньше (0,265 против 0,355), а вам она обходится дороже (0,45 против 0,2). Порядок разменов не декоративен: сначала дешёвое вам и дорогое им.",
       "en": "The prepayment is worth 0.55 to Irina against 0.85 for the annual commitment — a smaller concession (0.265 vs 0.355) and a costlier one for you (0.45 vs 0.2). The order of trades is not decorative: cheap-for-you and dear-to-them goes first."
     }
   },
@@ -2410,16 +2410,16 @@ export const COURSE_BANK: Exercise[] = [
     "xp": 15,
     "scenario_id": "sla_renewal",
     "prompt": {
-      "ru": "Виктор: «99.5% — потолок. Это не обсуждается». Ваш ход?",
+      "ru": "Виктор: «99,5% — потолок. Это не обсуждается». Ваш ход?",
       "en": "Viktor: “99.5% is the ceiling. Non-negotiable.” Your move?"
     },
     "options": [
       {
-        "ru": "Или вы даёте 99.9%, или мы уходим к конкуренту — это наше последнее слово.",
+        "ru": "Или вы даёте 99,9%, или мы уходим к конкуренту — это наше последнее слово.",
         "en": "Either you give us 99.9%, or we walk to your competitor — that is our final word."
       },
       {
-        "ru": "Понимаю, что вам важно не брать штрафы. Что именно делает 99.9% невозможным для вашей эксплуатации?",
+        "ru": "Понимаю, что вам важно не брать штрафы. Что именно делает 99,9% невозможным для вашей эксплуатации?",
         "en": "I understand you must not take penalties. What exactly makes 99.9% impossible for your ops team?"
       },
       {
@@ -2427,7 +2427,7 @@ export const COURSE_BANK: Exercise[] = [
         "en": "Everything is negotiable, do not start."
       },
       {
-        "ru": "Хорошо, пусть 99.5%.",
+        "ru": "Хорошо, пусть 99,5%.",
         "en": "Fine, let us say 99.5%."
       }
     ],
@@ -2466,7 +2466,7 @@ export const COURSE_BANK: Exercise[] = [
       "min_words": 10
     },
     "reference": {
-      "ru": "Я слышу, что это ваше последнее слово. Давайте вернёмся к цифрам: отраслевой стандарт — 99.9%, и наш простой стоит 2.4 млн в час.",
+      "ru": "Я слышу, что это ваше последнее слово. Давайте вернёмся к цифрам: отраслевой стандарт — 99,9%, и наш простой стоит 2,4 млн в час.",
       "en": "I hear that this is your final word. Let us go back to the numbers: the industry standard is 99.9% and our downtime costs 2.4m an hour."
     },
     "explain": {
@@ -2483,7 +2483,7 @@ export const COURSE_BANK: Exercise[] = [
     "xp": 20,
     "scenario_id": "sla_renewal",
     "prompt": {
-      "ru": "Виктор объявил 99.5% потолком и закрыл тему. Ответьте, не споря с ультиматумом: назовите то, что за ним стоит, и спросите про это.",
+      "ru": "Виктор объявил 99,5% потолком и закрыл тему. Ответьте, не споря с ультиматумом: назовите то, что за ним стоит, и спросите про это.",
       "en": "Viktor has declared 99.5% the ceiling and closed the subject. Answer without arguing with the ultimatum: name what sits behind it and ask about that."
     },
     "check": {
@@ -2521,7 +2521,7 @@ export const COURSE_BANK: Exercise[] = [
     "difficulty": 3,
     "xp": 15,
     "prompt": {
-      "ru": "Ваша расчётная уступка на этом ходу — 0.40. Напряжение оппонента 80. Какой она станет фактически?",
+      "ru": "Ваша расчётная уступка на этом ходу — 0,40. Напряжение оппонента 80. Какой она станет фактически?",
       "en": "Your computed concession this turn is 0.40. The opponent's tension is 80. What does it actually become?"
     },
     "answer": {
@@ -2533,7 +2533,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "fraction"
     },
     "explain": {
-      "ru": "При напряжении выше 75 тренажёр умножает уступку на 0.25: 0.40 × 0.25 = 0.10. Между 55 и 75 — на 0.6. Это цена давления в чистом виде: вы получаете рычаг и замораживаете возможность им воспользоваться.",
+      "ru": "При напряжении выше 75 тренажёр умножает уступку на 0,25: 0,40 × 0,25 = 0,10. Между 55 и 75 — на 0,6. Это цена давления в чистом виде: вы получаете рычаг и замораживаете возможность им воспользоваться.",
       "en": "Above 75 tension the simulator multiplies the concession by 0.25: 0.40 × 0.25 = 0.10. Between 55 and 75 it is 0.6. This is the price of pressure in its purest form: you gain leverage and freeze your ability to use it."
     }
   },
@@ -2578,7 +2578,7 @@ export const COURSE_BANK: Exercise[] = [
     "answer": 1,
     "fault_key": "repeat_same_line",
     "explain": {
-      "ru": "Первый раз эта реплика даёт «принимает довод» и рычаг +16. Второй — качество аргумента ≤12 и уступка ×0.15. Анти-гейминг встроен в тренажёр: одно и то же, сказанное громче, не работает.",
+      "ru": "Первый раз эта реплика даёт «принимает довод» и рычаг +16. Второй — качество аргумента ≤12 и уступка ×0,15. Анти-гейминг встроен в тренажёр: одно и то же, сказанное громче, не работает.",
       "en": "The first send yields “persuaded” and leverage +16. The second: argument quality ≤12 and concession ×0.15. Anti-gaming is built into the simulator: the same thing said louder does not work."
     }
   },
@@ -2637,11 +2637,11 @@ export const COURSE_BANK: Exercise[] = [
     "scenario_id": "sla_renewal",
     "max_turns": 6,
     "prompt": {
-      "ru": "Капстоун. Дожмите аптайм до 99.7% за 6 ходов, удержав напряжение ≤ 30 и доверие ≥ 65.",
+      "ru": "Капстоун. Дожмите аптайм до 99,7% за 6 ходов, удержав напряжение ≤ 30 и доверие ≥ 65.",
       "en": "Capstone. Push uptime to 99.7% within 6 turns, keeping tension ≤ 30 and trust ≥ 65."
     },
     "goal": {
-      "ru": "Аптайм ≥ 99.7% · напряжение ≤ 30 · доверие ≥ 65",
+      "ru": "Аптайм ≥ 99,7% · напряжение ≤ 30 · доверие ≥ 65",
       "en": "Uptime ≥ 99.7% · tension ≤ 30 · trust ≥ 65"
     },
     "pass": [
@@ -2680,7 +2680,7 @@ export const COURSE_BANK: Exercise[] = [
     "xp": 20,
     "scenario_id": "supplier",
     "prompt": {
-      "ru": "На столе: её 88, ваши 84. Гибкость 0.5. Точка встречи = её_цифра + (ваша − её) × (0.3 + 0.45 × гибкость). На чём закроется сделка?",
+      "ru": "На столе: её 88, ваши 84. Гибкость 0,5. Точка встречи = её_цифра + (ваша − её) × (0,3 + 0,45 × гибкость). На чём закроется сделка?",
       "en": "On the table: hers 88, yours 84. Flexibility 0.5. Meeting point = theirs + (yours − theirs) × (0.3 + 0.45 × flex). Where does it close?"
     },
     "answer": {
@@ -2692,7 +2692,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "/unit"
     },
     "explain": {
-      "ru": "w = 0.3 + 0.45 × 0.5 = 0.525; 88 + (84 − 88) × 0.525 = 85.9. При гибкости 0.7 было бы 85.54. Всё, что вы делали десять ходов — доверие, информация, рычаг — окупается здесь. Но только если в закрывающей реплике есть повод — размен или критерий: голое «по рукам на 84» тренажёр встретит «пока нет».",
+      "ru": "w = 0,3 + 0,45 × 0,5 = 0,525; 88 + (84 − 88) × 0,525 = 85,9. При гибкости 0,7 было бы 85,54. Всё, что вы делали десять ходов — доверие, информация, рычаг — окупается здесь. Но только если в закрывающей реплике есть повод — размен или критерий: голое «по рукам на 84» тренажёр встретит «пока нет».",
       "en": "w = 0.3 + 0.45 × 0.5 = 0.525; 88 + (84 − 88) × 0.525 = 85.9. At flexibility 0.7 it would be 85.54. Everything you built over ten turns cashes out right here. But only when the closing line carries an event — a trade or a criterion: a bare “deal at 84” gets a “not yet”."
     }
   },
@@ -2774,7 +2774,7 @@ export const COURSE_BANK: Exercise[] = [
     "difficulty": 3,
     "xp": 20,
     "prompt": {
-      "ru": "Экономика 95, Отношения 80, Приёмы 40. Посчитайте итог: 0.4·эко + 0.25·отн + 0.35·приёмы.",
+      "ru": "Экономика 95, Отношения 80, Приёмы 40. Посчитайте итог: 0,4·эко + 0,25·отн + 0,35·приёмы.",
       "en": "Economics 95, Relationship 80, Technique 40. Compute the overall: 0.4·eco + 0.25·rel + 0.35·tech."
     },
     "answer": {
@@ -2786,7 +2786,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "points"
     },
     "explain": {
-      "ru": "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, то есть грейд B. И он устоит, но на волоске: приёмы 40 — чуть выше порога 39. Будь метод ниже 39, потолок опустился бы до C. Отличная цена без метода не даёт A/B — это тезис Гарварда, зашитый в код.",
+      "ru": "0,4·95 + 0,25·80 + 0,35·40 = 38 + 20 + 14 = 72, то есть грейд B. И он устоит, но на волоске: приёмы 40 — чуть выше порога 39. Будь метод ниже 39, потолок опустился бы до C. Отличная цена без метода не даёт A/B — это тезис Гарварда, зашитый в код.",
       "en": "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, i.e. grade B. And it holds, by a hair: technique 40 is just above the floor of 39. Had the method been below 39, the ceiling would drop to C. A great price bought without method never earns A/B — the Harvard thesis, written into the code."
     }
   },
@@ -3017,7 +3017,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "By the median round at this stage the investor's share is 20%, and here are three independent market surveys it rests on."
     },
     "explain": {
-      "ru": "Подстройка — это порядок, а не маска, и произносится она вот так. С аналитиком критерий стоит дороже: рычаг +22 вместо обычных +16 — стиль добавляет шесть, — реакция «принимает довод», и доля в тот же ход поехала с 30% до 26.5%. Размен условие задания запрещает не потому, что он плох: надбавку стиля даёт именно критерий, и разменивать имеет смысл после того, как ваша цифра стала законной.",
+      "ru": "Подстройка — это порядок, а не маска, и произносится она вот так. С аналитиком критерий стоит дороже: рычаг +22 вместо обычных +16 — стиль добавляет шесть, — реакция «принимает довод», и доля в тот же ход поехала с 30% до 26,5%. Размен условие задания запрещает не потому, что он плох: надбавку стиля даёт именно критерий, и разменивать имеет смысл после того, как ваша цифра стала законной.",
       "en": "Adapting is an order of moves, not a mask — and this is how it sounds. With an analyst a criterion is worth more: leverage +22 instead of the usual +16, six of it from the style, reaction “persuaded”, and the share moved from 30% to 26.5% on the same turn. The task's check forbids a trade not because trading is bad: the style bonus goes to the criterion, and trading makes sense once your number is legitimate."
     }
   },
@@ -3114,7 +3114,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "If we give you an architect track with a mentor, can you move to 230?"
     },
     "explain": {
-      "ru": "Названная фишка двигает цену на 0.10 + 0.30·ценность и добавляет доверие 3 + 4·ценность; у трека до архитектора ценность 0.85 при вашей цене 0.15 — лучший размен стола. Безымянное «пойдём навстречу» не двигает цену вовсе: это уступка, а не размен.",
+      "ru": "Названная фишка двигает цену на 0,10 + 0,30·ценность и добавляет доверие 3 + 4·ценность; у трека до архитектора ценность 0,85 при вашей цене 0,15 — лучший размен стола. Безымянное «пойдём навстречу» не двигает цену вовсе: это уступка, а не размен.",
       "en": "A named issue moves the price by 0.10 + 0.30·value and adds 3 + 4·value trust; the architect track is worth 0.85 to him and costs you 0.15 — the best trade at this table. An unnamed “we will meet you halfway” moves nothing: that is a concession, not a trade."
     }
   },
@@ -3248,7 +3248,7 @@ export const COURSE_BANK: Exercise[] = [
     "scenario_id": "salary",
     "derive": "batna_leverage",
     "prompt": {
-      "ru": "Сила вашей альтернативы на этом столе — 60 из 100, и стартовый рычаг тренажёр считает как 0.4 × сила. С каким рычагом вы садитесь за стол, не сказав ещё ни слова?",
+      "ru": "Сила вашей альтернативы на этом столе — 60 из 100, и стартовый рычаг тренажёр считает как 0,4 × сила. С каким рычагом вы садитесь за стол, не сказав ещё ни слова?",
       "en": "Your alternative here has strength 60 out of 100, and the simulator sets starting leverage at 0.4 × strength. What leverage do you sit down with, before saying a word?"
     },
     "answer": {
@@ -3451,7 +3451,7 @@ export const COURSE_BANK: Exercise[] = [
     "scenario_id": "salary",
     "derive": "best_chip_package",
     "prompt": {
-      "ru": "Пересмотр по KPI стоит вам 0.25 и ценится оппонентом в 0.75. Вклад фишки в шкалу «Приёмы» тренажёр считает как 10 × ценность − 6 × стоимость. Сколько очков даст эта фишка?",
+      "ru": "Пересмотр по KPI стоит вам 0,25 и ценится оппонентом в 0,75. Вклад фишки в шкалу «Приёмы» тренажёр считает как 10 × ценность − 6 × стоимость. Сколько очков даст эта фишка?",
       "en": "A KPI review costs you 0.25 and is worth 0.75 to the other side. The simulator scores a chip's contribution to Technique as 10 × value − 6 × cost. How many points does this chip pay?"
     },
     "answer": {
@@ -3463,7 +3463,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "technique points"
     },
     "explain": {
-      "ru": "10 × 0.75 − 6 × 0.25 = 6.0. Подписной бонус на том же столе даёт 2.8 (10 × 0.55 − 6 × 0.45). Та же разница видна и в цене — уступка растёт на 0.325 против 0.265, — и в доверии: +6 против +5.2. Порядок размена выбирается до стола: сначала то, где разрыв «дёшево мне / дорого им» шире.",
+      "ru": "10 × 0,75 − 6 × 0,25 = 6,0. Подписной бонус на том же столе даёт 2,8 (10 × 0,55 − 6 × 0,45). Та же разница видна и в цене — уступка растёт на 0,325 против 0,265, — и в доверии: +6 против +5,2. Порядок размена выбирается до стола: сначала то, где разрыв «дёшево мне / дорого им» шире.",
       "en": "10 × 0.75 − 6 × 0.25 = 6.0. The signing bonus at the same table pays 2.8 (10 × 0.55 − 6 × 0.45). The same gap shows up in the price — the concession grows by 0.325 against 0.265 — and in trust: +6 against +5.2. The order of trades is chosen before the table: the widest cheap-to-me / dear-to-them gap goes first."
     }
   },
@@ -3497,7 +3497,7 @@ export const COURSE_BANK: Exercise[] = [
       "en": "If we tie this to a KPI review in six months, can you move to 230?"
     },
     "explain": {
-      "ru": "Условие задания требует НАЗВАННУЮ фишку, а не «разменяем что-нибудь»: тренажёр платит за конкретное условие. Названный пересмотр по KPI даёт доверие +6 сверх +6 за сам размен, добавляет 0.325 к уступке и 6.0 к технике. «Пойдём навстречу» той же длины — это уступка: цена не двигается вовсе, потому что цена ходит только за событием.",
+      "ru": "Условие задания требует НАЗВАННУЮ фишку, а не «разменяем что-нибудь»: тренажёр платит за конкретное условие. Названный пересмотр по KPI даёт доверие +6 сверх +6 за сам размен, добавляет 0,325 к уступке и 6,0 к технике. «Пойдём навстречу» той же длины — это уступка: цена не двигается вовсе, потому что цена ходит только за событием.",
       "en": "The task's check asks for a NAMED chip, not for “let us trade something”: the simulator pays for a concrete term. A named KPI review gives trust +6 on top of the +6 for the trade itself, adds 0.325 to the concession and 6.0 to Technique. “We can be flexible”, at the same length, is a concession: the price does not move at all, because price only moves behind an event."
     }
   },

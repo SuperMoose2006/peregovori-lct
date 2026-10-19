@@ -842,7 +842,7 @@ BANK: list[dict] = [
     {
         "id": "bz-02", "block": "batna-zopa", "lesson": 1, "type": "numeric",
         "difficulty": 2, "xp": 10, "scenario_id": "sla_renewal", "derive": "zopa_width",
-        "prompt": T("Вендор физически не даст больше 99.9%. Вам не подходит ниже 99.4%. Какова ширина ZOPA в процентных пунктах?",
+        "prompt": T("Вендор физически не даст больше 99,9%. Вам не подходит ниже 99,4%. Какова ширина ZOPA в процентных пунктах?",
                     "The vendor cannot go above 99.9%. You cannot accept below 99.4%. How wide is the ZOPA in percentage points?"),
         "answer": {"value": 0.5, "tolerance": 0.01}, "unit": T("п.п.", "pp"),
         "explain": T(
@@ -1199,7 +1199,7 @@ BANK: list[dict] = [
     {
         "id": "lr-01", "block": "logrolling", "lesson": 2, "type": "choice",
         "difficulty": 2, "xp": 15, "scenario_id": "supplier",
-        "prompt": T("Годовой контракт: для Ирины ценность 0.85, вам стоит 0.2. Предоплата 30%: ценность 0.55, стоит 0.45. Что менять первым?",
+        "prompt": T("Годовой контракт: для Ирины ценность 0,85, вам стоит 0,2. Предоплата 30%: ценность 0,55, стоит 0,45. Что менять первым?",
                     "Annual commitment: worth 0.85 to Irina, costs you 0.2. 30% upfront: worth 0.55, costs 0.45. Which do you trade first?"),
         "options": [
             T("Предоплату — она проще в исполнении", "The upfront payment — it is simpler to execute"),
@@ -1211,7 +1211,7 @@ BANK: list[dict] = [
         "answer": 1,
         "explain": T(
             "Размен — это арифметика: уступать дешёвое для себя и дорогое для них. Пакетный балл "
-            "10·0.85 − 6·0.2 = 7.3 против 2.8 у предоплаты, и уступка растёт сильнее.",
+            "10·0,85 − 6·0,2 = 7,3 против 2,8 у предоплаты, и уступка растёт сильнее.",
             "Logrolling is arithmetic: concede what is cheap for you and dear to them. Package score "
             "10·0.85 − 6·0.2 = 7.3 versus 2.8 for the prepayment, and the concession grows more."),
     },
@@ -1222,7 +1222,7 @@ BANK: list[dict] = [
                     "You traded BOTH secondary issues. How much does the package add to Technique? Formula: 10·value_to_them − 6·cost_to_you each."),
         "answer": {"value": 10.1, "tolerance": 0.2}, "unit": T("баллов", "points"),
         "explain": T(
-            "(10·0.85 − 6·0.2) + (10·0.55 − 6·0.45) = 7.3 + 2.8 = 10.1. Потолок вклада +16, так что "
+            "(10·0,85 − 6·0,2) + (10·0,55 − 6·0,45) = 7,3 + 2,8 = 10,1. Потолок вклада +16, так что "
             "даже идеальный пакет не подменяет собой остальную технику.",
             "(10·0.85 − 6·0.2) + (10·0.55 − 6·0.45) = 7.3 + 2.8 = 10.1. The contribution is capped at "
             "+16, so even a perfect package cannot stand in for the rest of the technique."),
@@ -1235,7 +1235,7 @@ BANK: list[dict] = [
         "check": {"require_moves": ["tradeoff"], "forbid_moves": ["threat", "hostile"],
                   "min_arg": 38, "min_words": 8},
         "reference": T(
-            "Если мы продлим на 3 года и введём ступенчатый SLA, сможете ли вы дать 99.8% со второго квартала?",
+            "Если мы продлим на 3 года и введём ступенчатый SLA, сможете ли вы дать 99,8% со второго квартала?",
             "If we renew for three years with a phased SLA, can you move on uptime to 99.8% from Q2?"),
         "explain": T(
             "Ключ — связка «если … то». Без неё тренажёр увидит уступку (вы просто отдали), а не размен "
@@ -1281,7 +1281,7 @@ BANK: list[dict] = [
         "answer": {"annual_contract": "i_util", "board_seat": "i_control",
                    "joint_status": "i_blame", "long_lease": "i_vacancy"},
         "explain": T(
-            "У каждой фишки ценность для оппонента 0.8–0.85 именно потому, что она бьёт прямо в "
+            "У каждой фишки ценность для оппонента 0,8–0,85 именно потому, что она бьёт прямо в "
             "скрытый интерес. Вторичные вопросы не выдуманы — они выведены из интересов.",
             "Every one of these chips is worth 0.8–0.85 to the counterpart precisely because it lands "
             "on a hidden interest. The secondary issues are not invented — they are derived from them."),
@@ -1317,8 +1317,8 @@ BANK: list[dict] = [
         "reference": T("Если мы дадим годовой контракт с гарантией объёма на весь год, сможете подвинуться по цене за штуку?",
                        "If we commit to an annual volume commitment for the whole year, can you move down on the price per unit?"),
         "explain": T(
-            "Тренажёр считает пакет по НАЗВАННОМУ условию: годовой контракт стоит ей 0.85, то есть "
-            "добавляет к уступке 0.10 + 0.30·0.85 = 0.355. Безымянное «пойдём навстречу» — уступка, "
+            "Тренажёр считает пакет по НАЗВАННОМУ условию: годовой контракт стоит ей 0,85, то есть "
+            "добавляет к уступке 0,10 + 0,30·0,85 = 0,355. Безымянное «пойдём навстречу» — уступка, "
             "а не размен: вы отдали, ничего не получив, и второй оси не появилось.",
             "The simulator scores the package by the term you NAME: the annual commitment is worth 0.85 to "
             "her, i.e. it adds 0.10 + 0.30·0.85 = 0.355 to the concession. A nameless “we will meet you "
@@ -1335,8 +1335,8 @@ BANK: list[dict] = [
         "reference": T("Если мы внесём предоплату 30% в момент подписания, сможете подвинуться по цене за штуку?",
                        "If we pay 30% upfront at signing, can you move down on the price per unit?"),
         "explain": T(
-            "Предоплата стоит Ирине 0.55 против 0.85 у годового контракта — уступка меньше (0.265 "
-            "против 0.355), а вам она обходится дороже (0.45 против 0.2). Порядок разменов не "
+            "Предоплата стоит Ирине 0,55 против 0,85 у годового контракта — уступка меньше (0,265 "
+            "против 0,355), а вам она обходится дороже (0,45 против 0,2). Порядок разменов не "
             "декоративен: сначала дешёвое вам и дорогое им.",
             "The prepayment is worth 0.55 to Irina against 0.85 for the annual commitment — a smaller "
             "concession (0.265 vs 0.355) and a costlier one for you (0.45 vs 0.2). The order of trades "
@@ -1368,15 +1368,15 @@ BANK: list[dict] = [
     {
         "id": "pd-01", "block": "pressure-defense", "lesson": 1, "type": "choice",
         "difficulty": 2, "xp": 15, "scenario_id": "sla_renewal",
-        "prompt": T("Виктор: «99.5% — потолок. Это не обсуждается». Ваш ход?",
+        "prompt": T("Виктор: «99,5% — потолок. Это не обсуждается». Ваш ход?",
                     "Viktor: “99.5% is the ceiling. Non-negotiable.” Your move?"),
         "options": [
-            T("Или вы даёте 99.9%, или мы уходим к конкуренту — это наше последнее слово.",
+            T("Или вы даёте 99,9%, или мы уходим к конкуренту — это наше последнее слово.",
               "Either you give us 99.9%, or we walk to your competitor — that is our final word."),
-            T("Понимаю, что вам важно не брать штрафы. Что именно делает 99.9% невозможным для вашей эксплуатации?",
+            T("Понимаю, что вам важно не брать штрафы. Что именно делает 99,9% невозможным для вашей эксплуатации?",
               "I understand you must not take penalties. What exactly makes 99.9% impossible for your ops team?"),
             T("Всё обсуждается, не начинайте.", "Everything is negotiable, do not start."),
-            T("Хорошо, пусть 99.5%.", "Fine, let us say 99.5%."),
+            T("Хорошо, пусть 99,5%.", "Fine, let us say 99.5%."),
         ],
         "answer": 1, "expect_moves": ["acknowledge"],
         "explain": T(
@@ -1402,7 +1402,7 @@ BANK: list[dict] = [
                   "forbid_moves": ["threat", "hostile", "concession", "accept"],
                   "min_arg": 40, "min_words": 10},
         "reference": T(
-            "Я слышу, что это ваше последнее слово. Давайте вернёмся к цифрам: отраслевой стандарт — 99.9%, и наш простой стоит 2.4 млн в час.",
+            "Я слышу, что это ваше последнее слово. Давайте вернёмся к цифрам: отраслевой стандарт — 99,9%, и наш простой стоит 2,4 млн в час.",
             "I hear that this is your final word. Let us go back to the numbers: the industry standard is 99.9% and our downtime costs 2.4m an hour."),
         "explain": T(
             "Это гарвардское «джиу-джитсу»: не отвечать на атаку атакой, а переводить её в вопрос "
@@ -1415,7 +1415,7 @@ BANK: list[dict] = [
     {
         "id": "pd-08", "block": "pressure-defense", "lesson": 1, "type": "freeform",
         "difficulty": 3, "xp": 20, "scenario_id": "sla_renewal",
-        "prompt": T("Виктор объявил 99.5% потолком и закрыл тему. Ответьте, не споря с ультиматумом: назовите то, что за ним стоит, и спросите про это.",
+        "prompt": T("Виктор объявил 99,5% потолком и закрыл тему. Ответьте, не споря с ультиматумом: назовите то, что за ним стоит, и спросите про это.",
                     "Viktor has declared 99.5% the ceiling and closed the subject. Answer without arguing with the ultimatum: name what sits behind it and ask about that."),
         "check": {"require_moves": ["acknowledge"],
                   "require_any": ["interests_probe", "spin_problem"],
@@ -1439,12 +1439,12 @@ BANK: list[dict] = [
     {
         "id": "pd-03", "block": "pressure-defense", "lesson": 3, "type": "numeric",
         "difficulty": 3, "xp": 15,
-        "prompt": T("Ваша расчётная уступка на этом ходу — 0.40. Напряжение оппонента 80. Какой она станет фактически?",
+        "prompt": T("Ваша расчётная уступка на этом ходу — 0,40. Напряжение оппонента 80. Какой она станет фактически?",
                     "Your computed concession this turn is 0.40. The opponent's tension is 80. What does it actually become?"),
         "answer": {"value": 0.10, "tolerance": 0.005}, "unit": T("доли", "fraction"),
         "explain": T(
-            "При напряжении выше 75 тренажёр умножает уступку на 0.25: 0.40 × 0.25 = 0.10. Между 55 и 75 "
-            "— на 0.6. Это цена давления в чистом виде: вы получаете рычаг и замораживаете возможность "
+            "При напряжении выше 75 тренажёр умножает уступку на 0,25: 0,40 × 0,25 = 0,10. Между 55 и 75 "
+            "— на 0,6. Это цена давления в чистом виде: вы получаете рычаг и замораживаете возможность "
             "им воспользоваться.",
             "Above 75 tension the simulator multiplies the concession by 0.25: 0.40 × 0.25 = 0.10. Between "
             "55 and 75 it is 0.6. This is the price of pressure in its purest form: you gain leverage "
@@ -1468,7 +1468,7 @@ BANK: list[dict] = [
         "answer": 1, "fault_key": "repeat_same_line",
         "explain": T(
             "Первый раз эта реплика даёт «принимает довод» и рычаг +16. Второй — качество аргумента "
-            "≤12 и уступка ×0.15. Анти-гейминг встроен в тренажёр: одно и то же, сказанное громче, не работает.",
+            "≤12 и уступка ×0,15. Анти-гейминг встроен в тренажёр: одно и то же, сказанное громче, не работает.",
             "The first send yields “persuaded” and leverage +16. The second: argument quality ≤12 and "
             "concession ×0.15. Anti-gaming is built into the simulator: the same thing said louder does "
             "not work."),
@@ -1506,9 +1506,9 @@ BANK: list[dict] = [
     {
         "id": "pd-07", "block": "pressure-defense", "lesson": 4, "type": "drill",
         "difficulty": 3, "xp": 40, "scenario_id": "sla_renewal", "max_turns": 6,
-        "prompt": T("Капстоун. Дожмите аптайм до 99.7% за 6 ходов, удержав напряжение ≤ 30 и доверие ≥ 65.",
+        "prompt": T("Капстоун. Дожмите аптайм до 99,7% за 6 ходов, удержав напряжение ≤ 30 и доверие ≥ 65.",
                     "Capstone. Push uptime to 99.7% within 6 turns, keeping tension ≤ 30 and trust ≥ 65."),
-        "goal": T("Аптайм ≥ 99.7% · напряжение ≤ 30 · доверие ≥ 65",
+        "goal": T("Аптайм ≥ 99,7% · напряжение ≤ 30 · доверие ≥ 65",
                   "Uptime ≥ 99.7% · tension ≤ 30 · trust ≥ 65"),
         "pass": [
             {"field": "status", "op": "==", "value": "agreement"},
@@ -1530,12 +1530,12 @@ BANK: list[dict] = [
     {
         "id": "cl-01", "block": "closing", "lesson": 1, "type": "numeric",
         "difficulty": 3, "xp": 20, "scenario_id": "supplier",
-        "prompt": T("На столе: её 88, ваши 84. Гибкость 0.5. Точка встречи = её_цифра + (ваша − её) × (0.3 + 0.45 × гибкость). На чём закроется сделка?",
+        "prompt": T("На столе: её 88, ваши 84. Гибкость 0,5. Точка встречи = её_цифра + (ваша − её) × (0,3 + 0,45 × гибкость). На чём закроется сделка?",
                     "On the table: hers 88, yours 84. Flexibility 0.5. Meeting point = theirs + (yours − theirs) × (0.3 + 0.45 × flex). Where does it close?"),
         "answer": {"value": 85.9, "tolerance": 0.1}, "unit": T("₽/шт", "/unit"),
         "explain": T(
-            "w = 0.3 + 0.45 × 0.5 = 0.525; 88 + (84 − 88) × 0.525 = 85.9. При гибкости 0.7 было бы "
-            "85.54. Всё, что вы делали десять ходов — доверие, информация, рычаг — окупается здесь. "
+            "w = 0,3 + 0,45 × 0,5 = 0,525; 88 + (84 − 88) × 0,525 = 85,9. При гибкости 0,7 было бы "
+            "85,54. Всё, что вы делали десять ходов — доверие, информация, рычаг — окупается здесь. "
             "Но только если в закрывающей реплике есть повод — размен или критерий: голое «по рукам "
             "на 84» тренажёр встретит «пока нет».",
             "w = 0.3 + 0.45 × 0.5 = 0.525; 88 + (84 − 88) × 0.525 = 85.9. At flexibility 0.7 it would "
@@ -1587,11 +1587,11 @@ BANK: list[dict] = [
     {
         "id": "cl-04", "block": "closing", "lesson": 4, "type": "numeric",
         "difficulty": 3, "xp": 20,
-        "prompt": T("Экономика 95, Отношения 80, Приёмы 40. Посчитайте итог: 0.4·эко + 0.25·отн + 0.35·приёмы.",
+        "prompt": T("Экономика 95, Отношения 80, Приёмы 40. Посчитайте итог: 0,4·эко + 0,25·отн + 0,35·приёмы.",
                     "Economics 95, Relationship 80, Technique 40. Compute the overall: 0.4·eco + 0.25·rel + 0.35·tech."),
         "answer": {"value": 72, "tolerance": 0}, "unit": T("баллов", "points"),
         "explain": T(
-            "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, то есть грейд B. И он устоит, но на "
+            "0,4·95 + 0,25·80 + 0,35·40 = 38 + 20 + 14 = 72, то есть грейд B. И он устоит, но на "
             f"волоске: приёмы 40 — чуть выше порога {TECHNIQUE_FLOOR}. Будь метод ниже {TECHNIQUE_FLOOR}, "
             "потолок опустился бы до C. Отличная цена без метода не даёт A/B — это тезис "
             "Гарварда, зашитый в код.",
@@ -1734,7 +1734,7 @@ BANK: list[dict] = [
         "explain": T(
             "Подстройка — это порядок, а не маска, и произносится она вот так. С аналитиком критерий "
             "стоит дороже: рычаг +22 вместо обычных +16 — стиль добавляет шесть, — реакция «принимает "
-            "довод», и доля в тот же ход поехала с 30% до 26.5%. Размен условие задания запрещает не потому, "
+            "довод», и доля в тот же ход поехала с 30% до 26,5%. Размен условие задания запрещает не потому, "
             "что он плох: надбавку стиля даёт именно критерий, и разменивать имеет смысл после того, "
             "как ваша цифра стала законной.",
             "Adapting is an order of moves, not a mask — and this is how it sounds. With an analyst a "
@@ -1795,8 +1795,8 @@ BANK: list[dict] = [
         "reference": T("Если мы дадим трек до архитектора с наставником, вы выйдете на 230?",
                        "If we give you an architect track with a mentor, can you move to 230?"),
         "explain": T(
-            "Названная фишка двигает цену на 0.10 + 0.30·ценность и добавляет доверие 3 + 4·ценность; "
-            "у трека до архитектора ценность 0.85 при вашей цене 0.15 — лучший размен стола. "
+            "Названная фишка двигает цену на 0,10 + 0,30·ценность и добавляет доверие 3 + 4·ценность; "
+            "у трека до архитектора ценность 0,85 при вашей цене 0,15 — лучший размен стола. "
             "Безымянное «пойдём навстречу» не двигает цену вовсе: это уступка, а не размен.",
             "A named issue moves the price by 0.10 + 0.30·value and adds 3 + 4·value trust; the "
             "architect track is worth 0.85 to him and costs you 0.15 — the best trade at this table. "
@@ -1874,7 +1874,7 @@ BANK: list[dict] = [
     {
         "id": "pr-03", "block": "preparation", "lesson": 2, "type": "numeric",
         "difficulty": 2, "xp": 10, "scenario_id": "salary", "derive": "batna_leverage",
-        "prompt": T("Сила вашей альтернативы на этом столе — 60 из 100, и стартовый рычаг тренажёр считает как 0.4 × сила. С каким рычагом вы садитесь за стол, не сказав ещё ни слова?",
+        "prompt": T("Сила вашей альтернативы на этом столе — 60 из 100, и стартовый рычаг тренажёр считает как 0,4 × сила. С каким рычагом вы садитесь за стол, не сказав ещё ни слова?",
                     "Your alternative here has strength 60 out of 100, and the simulator sets starting leverage at 0.4 × strength. What leverage do you sit down with, before saying a word?"),
         "answer": {"value": 24, "tolerance": 0}, "unit": T("очков рычага", "leverage points"),
         "explain": T(
@@ -2010,13 +2010,13 @@ BANK: list[dict] = [
     {
         "id": "pr-09", "block": "preparation", "lesson": 5, "type": "numeric",
         "difficulty": 3, "xp": 15, "scenario_id": "salary", "derive": "best_chip_package",
-        "prompt": T("Пересмотр по KPI стоит вам 0.25 и ценится оппонентом в 0.75. Вклад фишки в шкалу «Приёмы» тренажёр считает как 10 × ценность − 6 × стоимость. Сколько очков даст эта фишка?",
+        "prompt": T("Пересмотр по KPI стоит вам 0,25 и ценится оппонентом в 0,75. Вклад фишки в шкалу «Приёмы» тренажёр считает как 10 × ценность − 6 × стоимость. Сколько очков даст эта фишка?",
                     "A KPI review costs you 0.25 and is worth 0.75 to the other side. The simulator scores a chip's contribution to Technique as 10 × value − 6 × cost. How many points does this chip pay?"),
         "answer": {"value": 6, "tolerance": 0}, "unit": T("очков техники", "technique points"),
         "explain": T(
-            "10 × 0.75 − 6 × 0.25 = 6.0. Подписной бонус на том же столе даёт 2.8 "
-            "(10 × 0.55 − 6 × 0.45). Та же разница видна и в цене — уступка растёт на 0.325 против "
-            "0.265, — и в доверии: +6 против +5.2. Порядок размена выбирается до стола: сначала "
+            "10 × 0,75 − 6 × 0,25 = 6,0. Подписной бонус на том же столе даёт 2,8 "
+            "(10 × 0,55 − 6 × 0,45). Та же разница видна и в цене — уступка растёт на 0,325 против "
+            "0,265, — и в доверии: +6 против +5,2. Порядок размена выбирается до стола: сначала "
             "то, где разрыв «дёшево мне / дорого им» шире.",
             "10 × 0.75 − 6 × 0.25 = 6.0. The signing bonus at the same table pays 2.8 "
             "(10 × 0.55 − 6 × 0.45). The same gap shows up in the price — the concession grows by "
@@ -2037,7 +2037,7 @@ BANK: list[dict] = [
         "explain": T(
             "Условие задания требует НАЗВАННУЮ фишку, а не «разменяем что-нибудь»: тренажёр платит за "
             "конкретное условие. Названный пересмотр по KPI даёт доверие +6 сверх +6 за сам "
-            "размен, добавляет 0.325 к уступке и 6.0 к технике. «Пойдём навстречу» той же длины — "
+            "размен, добавляет 0,325 к уступке и 6,0 к технике. «Пойдём навстречу» той же длины — "
             "это уступка: цена не двигается вовсе, потому что цена ходит только за событием.",
             "The task's check asks for a NAMED chip, not for “let us trade something”: the simulator pays "
             "for a concrete term. A named KPI review gives trust +6 on top of the +6 for the trade "

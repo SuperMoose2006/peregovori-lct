@@ -94,7 +94,7 @@ MATERIAL = LessonMaterial(
                    "Acknowledge and ask at once — it cools things and gets you information."),
         ),
         Phrase(
-            T("Теперь, когда стало спокойнее, сможете ли вы подвинуться до 99.7, если мы "
+            T("Теперь, когда стало спокойнее, сможете ли вы подвинуться до 99,7, если мы "
               "продлим договор на три года?",
               "Now that things are calmer, can you move to 99.7 if we renew for three "
               "years?"),
@@ -104,22 +104,22 @@ MATERIAL = LessonMaterial(
         ),
     ),
     dialog=Dialog(
-        setup=T("Продление SLA. Вы уже дважды просили 99.8%, Виктор раздражён и повторяет "
+        setup=T("Продление SLA. Вы уже дважды просили 99,8%, Виктор раздражён и повторяет "
                 "своё.",
                 "The SLA renewal. You have asked for 99.8% twice already; Viktor is "
                 "irritated and keeps repeating himself."),
         state={"trust": 38, "tension": 62},
         opening=(
-            them("Сколько можно! Я уже сказал: 99.5 и ни десятой больше.",
+            them("Сколько можно! Я уже сказал: 99,5 и ни десятой больше.",
                  "How many times! I told you: 99.5 and not a tenth more."),
         ),
         bad=(
-            you("Хорошо, последний довод: отраслевой стандарт — 99.9%, у нас простой стоит "
-                "2.4 млн в час. Дайте хотя бы 99.8.",
+            you("Хорошо, последний довод: отраслевой стандарт — 99,9%, у нас простой стоит "
+                "2,4 млн в час. Дайте хотя бы 99,8.",
                 "Fine, one last argument: the industry standard is 99.9%, and our downtime "
                 "costs 2.4m an hour. Give us at least 99.8.",
                 moves=("objective_criteria",)),
-            them("Стандарт оставьте себе для презентации. 99.5.",
+            them("Стандарт оставьте себе для презентации. 99,5.",
                  "Keep the standard for your slide deck. 99.5."),
         ),
         bad_why=T(
@@ -143,17 +143,17 @@ MATERIAL = LessonMaterial(
                  "How often. Every night-time incident means a post-mortem with my director."),
             you("Тогда нам обоим нужно одно: меньше ночных инцидентов. Если мы продлим "
                 "договор на три года и вложимся в совместное дежурство, сможете ли вы "
-                "подвинуться до 99.7?",
+                "подвинуться до 99,7?",
                 "Then we both need the same thing: fewer night-time incidents. If we renew "
                 "for three years and invest in joint on-call, can you move to 99.7?",
                 moves=("tradeoff",)),
-            them("Три года и общее дежурство… 99.7 — это обсуждаемо.",
+            them("Три года и общее дежурство… 99,7 — это обсуждаемо.",
                  "Three years and shared on-call… 99.7 is something we can discuss."),
         ),
         good_why=T(
             "Вы не стали доказывать. Первая реплика остудила стол: вы назвали, что "
             "разговор стал жёстким, признали его страх и задали вопрос, на который легко "
-            "ответить. Ответ дал общую задачу — меньше ночных инцидентов. Просьбу о 99.7 "
+            "ответить. Ответ дал общую задачу — меньше ночных инцидентов. Просьбу о 99,7 "
             "вы сделали только после этого и в виде условия. Тот же Виктор, что минуту "
             "назад кричал «ни десятой больше», сам сказал «обсуждаемо».",
             "You did not try to prove anything. Your first line cooled the table: you named "
@@ -176,7 +176,7 @@ MATERIAL = LessonMaterial(
         ),
         Mistake(
             T("Остужать уступкой", "Cooling things down with a concession"),
-            T("«Ладно-ладно, не будем ссориться, пусть 99.5». Напряжение спадёт, но за ваш "
+            T("«Ладно-ладно, не будем ссориться, пусть 99,5». Напряжение спадёт, но за ваш "
               "счёт. Остужают признанием, паузой и общей задачей — не цифрой.",
               "“All right, all right, let us not fight, 99.5 it is.” The tension drops, but "
               "at your expense. You cool things with acknowledgement, a pause and a shared "

@@ -416,7 +416,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The cheap-to-me / dear-to-them matrix"
         },
         "body": {
-          "ru": "Годовой контракт стоит вам 0.2, а для поставщика он стоит 0.85 — идеальная фишка. Предоплата 30% обходится вам в 0.45, а ценится всего в 0.55 — посредственная.\n\nПорядок размена именно такой: сперва то, где разрыв больше. Отдать сначала дорогое для себя — значит потратить всю доброжелательность на полдороге.",
+          "ru": "Годовой контракт стоит вам 0,2, а для поставщика он стоит 0,85 — идеальная фишка. Предоплата 30% обходится вам в 0,45, а ценится всего в 0,55 — посредственная.\n\nПорядок размена именно такой: сперва то, где разрыв больше. Отдать сначала дорогое для себя — значит потратить всю доброжелательность на полдороге.",
           "en": "An annual commitment costs you 0.2 and is worth 0.85 to the supplier — a perfect chip. A 30% prepayment costs you 0.45 and is worth 0.55 — a mediocre one.\n\nTrade in that order: the widest gap first. Giving away what is expensive to you first spends all the goodwill halfway."
         }
       },
@@ -475,7 +475,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "An objection is a hidden interest"
         },
         "body": {
-          "ru": "«99.9% невозможно» — это упаковка. Внутри почти всегда страх: штрафы, которые не вытянет команда эксплуатации.\n\nВопрос «что именно делает 99.9% невозможным» превращает стену в информацию. Возражение — единственный подарок, который оппонент делает добровольно.",
+          "ru": "«99,9% невозможно» — это упаковка. Внутри почти всегда страх: штрафы, которые не вытянет команда эксплуатации.\n\nВопрос «что именно делает 99,9% невозможным» превращает стену в информацию. Возражение — единственный подарок, который оппонент делает добровольно.",
           "en": "“99.9% is impossible” is packaging. A fear usually sits inside: penalties the ops team cannot sustain.\n\nThe question “what exactly makes 99.9% impossible” turns a wall into information. An objection is the one gift the other side hands you voluntarily."
         }
       },
@@ -486,7 +486,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The tension thermostat"
         },
         "body": {
-          "ru": "Напряжение выше 55 режет уступки на 40%, выше 75 — на 75%. Уступка 0.40 при напряжении 80 превращается в 0.10.\n\nОтсюда практический вывод: перед тем как просить движения, потратьте ход на снижение напряжения. Он окупится больше, чем ещё один аргумент.",
+          "ru": "Напряжение выше 55 режет уступки на 40%, выше 75 — на 75%. Уступка 0,40 при напряжении 80 превращается в 0,10.\n\nОтсюда практический вывод: перед тем как просить движения, потратьте ход на снижение напряжения. Он окупится больше, чем ещё один аргумент.",
           "en": "Tension above 55 cuts concessions by 40%, above 75 by 75%. A 0.40 concession at tension 80 becomes 0.10.\n\nThe practical consequence: before asking for movement, spend a turn lowering tension. It pays back more than one more argument would."
         }
       },
@@ -523,7 +523,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The meeting point"
         },
         "body": {
-          "ru": "Сделка закрывается не на последней цифре оппонента, а в точке\nих цифра + (ваша цифра − их цифра) · (0.3 + 0.45 · гибкость).\n\nГибкость собрана из доверия, информации и рычага — из всего, что вы делали предыдущие десять ходов. Именно здесь эта работа превращается в деньги.\n\nНо формула работает, только если в самой закрывающей реплике есть заработанный повод — размен, критерий, вскрытый интерес, обоснованная альтернатива. Голое «Договорились на 84» при её 88 — это «пока нет»: стол не сдвинется, а напряжение вырастет. «Договорились на 84 в обмен на годовой контракт» — уже сделка.",
+          "ru": "Сделка закрывается не на последней цифре оппонента, а в точке\nих цифра + (ваша цифра − их цифра) · (0,3 + 0,45 · гибкость).\n\nГибкость собрана из доверия, информации и рычага — из всего, что вы делали предыдущие десять ходов. Именно здесь эта работа превращается в деньги.\n\nНо формула работает, только если в самой закрывающей реплике есть заработанный повод — размен, критерий, вскрытый интерес, обоснованная альтернатива. Голое «Договорились на 84» при её 88 — это «пока нет»: стол не сдвинется, а напряжение вырастет. «Договорились на 84 в обмен на годовой контракт» — уже сделка.",
           "en": "The deal does not settle at their last number, but at offer_opp + (offer_player − offer_opp) · (0.3 + 0.45 · flexibility).\n\nFlexibility is built from trust, information and leverage — from everything you did over the previous ten turns. This is where that work turns into money.\n\nBut the formula only applies when the closing line itself earns an event — a trade, a criterion, an uncovered interest, a backed alternative. A bare “Deal at 84” against her 88 is a “not yet”: the table does not move, and tension rises. “Deal at 84 in exchange for an annual volume commitment” is a deal."
         }
       },
@@ -556,7 +556,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The score and the C ceiling"
         },
         "body": {
-          "ru": "Итог = 0.4·экономика + 0.25·отношения + 0.35·приёмы. Экономика считается не как «сколько получил», а как доля пути от красной линии до цели.\n\nИ главное: если сам метод — приёмы без оценки смысла реплик — ниже 39, грейд не поднимается выше C, какой бы ни была цена. Отличная сделка, купленная без метода, не воспроизводима — а тренажёр учит методу.",
+          "ru": "Итог = 0,4·экономика + 0,25·отношения + 0,35·приёмы. Экономика считается не как «сколько получил», а как доля пути от красной линии до цели.\n\nИ главное: если сам метод — приёмы без оценки смысла реплик — ниже 39, грейд не поднимается выше C, какой бы ни была цена. Отличная сделка, купленная без метода, не воспроизводима — а тренажёр учит методу.",
           "en": "Overall = 0.4·economics + 0.25·relationship + 0.35·technique. Economics is not “how much you got” but the share of the distance from your red line to your target.\n\nAnd crucially: if the method itself — technique without the score for what your lines mean — is below 39, the grade never rises above C, whatever the price. A great deal bought without method does not repeat — and method is what the trainer teaches."
         }
       }
@@ -652,7 +652,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "Your BATNA works before the table"
         },
         "body": {
-          "ru": "У альтернативы есть сила — число от 0 до 100, и вслух оно не произносится. Оно превращается в стартовый рычаг: 0.4 × сила. Здесь сила 60, и партия начинается с рычагом 24 — до вашей первой реплики.\n\nЗа столом альтернатива стоит одинаково на любом столе. Названная без опоры — рычаг +10 и напряжение +14. С опорой, то есть вместе с объективным критерием или доводом качеством выше 55, — рычаг +18 и напряжение всего +4, и это её собственные числа: критерий добавляет свои +16 сверху, а с аналитиком +22. Сила альтернативы ни одного из них не меняет — она уже отработала, до разговора.\n\nПрактический вывод: усиливают BATNA заранее — вторым оффером, вторым поставщиком, запасным планом, — а за столом её достаточно один раз НАЗВАТЬ, и лучше сразу с опорой. Реакция на неё всегда одна и та же — «под давлением», даже если вы были предельно вежливы.",
+          "ru": "У альтернативы есть сила — число от 0 до 100, и вслух оно не произносится. Оно превращается в стартовый рычаг: 0,4 × сила. Здесь сила 60, и партия начинается с рычагом 24 — до вашей первой реплики.\n\nЗа столом альтернатива стоит одинаково на любом столе. Названная без опоры — рычаг +10 и напряжение +14. С опорой, то есть вместе с объективным критерием или доводом качеством выше 55, — рычаг +18 и напряжение всего +4, и это её собственные числа: критерий добавляет свои +16 сверху, а с аналитиком +22. Сила альтернативы ни одного из них не меняет — она уже отработала, до разговора.\n\nПрактический вывод: усиливают BATNA заранее — вторым оффером, вторым поставщиком, запасным планом, — а за столом её достаточно один раз НАЗВАТЬ, и лучше сразу с опорой. Реакция на неё всегда одна и та же — «под давлением», даже если вы были предельно вежливы.",
           "en": "An alternative has a strength — a number from 0 to 100 that is never said out loud. It turns into your starting leverage: 0.4 × strength. Here the strength is 60, so the round opens with 24 points of leverage, before your first line.\n\nAt the table an alternative costs the same everywhere. Named with nothing behind it: leverage +10 and tension +14. Named with backing — an objective criterion, or an argument scoring above 55 — leverage +18 and tension only +4, and those are the alternative's own numbers: the criterion adds its own +16 on top, +22 with an analytical counterpart. The strength of the alternative changes none of them — it has already done its work, before the conversation.\n\nThe practical consequence: you strengthen a BATNA in advance — a second offer, a second supplier, a fallback plan — and at the table you only need to NAME it once, preferably with backing. The reaction is always the same, “pressured”, however politely you put it."
         }
       },
@@ -685,7 +685,7 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "A trade is prepared in advance"
         },
         "body": {
-          "ru": "Последняя строка листа — размен. У каждого стола две вторичные фишки, и у каждой два числа: сколько она стоит ВАМ и сколько она стоит ИМ. Здесь пересмотр по KPI через полгода стоит вам 0.25 и ценится в 0.75; подписной бонус вместо оклада — 0.45 и 0.55.\n\nРазницу считает тренажёр, а не автор урока. В «Приёмы» фишка приносит 10 × ценность − 6 × стоимость: 6.0 у пересмотра против 2.8 у бонуса. Цену она двигает на 0.10 + 0.30 × ценность: 0.325 против 0.265. Доверие поднимает на 3 + 4 × ценность: 6 против 5.2.\n\nПоэтому лист заканчивается порядком: сначала то, где разрыв «дёшево мне / дорого им» шире. И фишку надо НАЗВАТЬ вслух — «пересмотр по KPI», а не «пойдём навстречу»: тренажёр платит за названное условие, а безымянная доброжелательность остаётся уступкой, за которую не платят ничего.",
+          "ru": "Последняя строка листа — размен. У каждого стола две вторичные фишки, и у каждой два числа: сколько она стоит ВАМ и сколько она стоит ИМ. Здесь пересмотр по KPI через полгода стоит вам 0,25 и ценится в 0,75; подписной бонус вместо оклада — 0,45 и 0,55.\n\nРазницу считает тренажёр, а не автор урока. В «Приёмы» фишка приносит 10 × ценность − 6 × стоимость: 6,0 у пересмотра против 2,8 у бонуса. Цену она двигает на 0,10 + 0,30 × ценность: 0,325 против 0,265. Доверие поднимает на 3 + 4 × ценность: 6 против 5,2.\n\nПоэтому лист заканчивается порядком: сначала то, где разрыв «дёшево мне / дорого им» шире. И фишку надо НАЗВАТЬ вслух — «пересмотр по KPI», а не «пойдём навстречу»: тренажёр платит за названное условие, а безымянная доброжелательность остаётся уступкой, за которую не платят ничего.",
           "en": "The last line of the sheet is the trade. Every table has two secondary chips, and each carries two numbers: what it costs YOU and what it is worth to THEM. Here a six-month KPI review costs you 0.25 and is worth 0.75; a signing bonus instead of base costs 0.45 and is worth 0.55.\n\nThe difference is computed by the simulator, not by the author of the lesson. On Technique a chip pays 10 × value − 6 × cost: 6.0 for the review against 2.8 for the bonus. It moves the price by 0.10 + 0.30 × value: 0.325 against 0.265. It lifts trust by 3 + 4 × value: 6 against 5.2.\n\nSo the sheet ends with an order: the widest cheap-to-me / dear-to-them gap goes first. And the chip has to be NAMED out loud — “a KPI review”, not “we can be flexible”: the simulator pays for a named term, while nameless goodwill stays a concession, and a concession buys nothing."
         }
       }
