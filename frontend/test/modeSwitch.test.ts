@@ -349,7 +349,7 @@ test("устройства объявляются, только когда бр�
   try {
     await withQuietPlayer(async () => {
       FakeSocket.instances = [];
-      const devices: { mic: boolean; camera: boolean }[] = [];
+      const devices: { mic: string; camera: string }[] = [];
       const transport = new RealtimeTransport(() => {}, () => {}, { onDevices: (d) => devices.push(d) });
       transport.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice", layers: { probe: true } });
       await wait(0);
@@ -363,13 +363,13 @@ test("устройства объявляются, только когда бр�
       call.deliver({ type: "session.created", session_id: "s-1", resumed: true, scenario: { id: "supplier" },
         state: STATE0, greeting: "", capabilities: { microphone: true, camera: true, speech: true } });
       for (let i = 0; i < 5; i++) await wait(0);
-      assert.deepEqual(devices, [], "устройства объявлены, пока браузер ещё спрашивает");
+      assert.deepEqual(devices, [{ mic: "pending", camera: "pending" }], "пока браузер спрашивает — только «ждём»");
       answer({ mic: "ok", camera: "доступ не разрешён" });
       for (let i = 0; i < 5; i++) await wait(0);
-      assert.deepEqual(devices.at(-1), { mic: true, camera: false });
+      assert.deepEqual(devices.at(-1), { mic: "on", camera: "off" });
       transport.relayer({ voice: false });
       await wait(0);
-      assert.deepEqual(devices.at(-1), { mic: false, camera: false }, "после выхода из звонка микрофон всё ещё «включён»");
+      assert.deepEqual(devices.at(-1), { mic: "off", camera: "off" }, "после выхода из звонка микрофон всё ещё «включён»");
       for (let i = 0; i < 20 && FakeSocket.instances.length < 3; i++) await wait(0);
       FakeSocket.instances[2].deliver({ type: "session.queue_done" });
       FakeSocket.instances[2].deliver({ type: "session.created", session_id: "s-1", resumed: true,

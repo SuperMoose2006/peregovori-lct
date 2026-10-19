@@ -95,7 +95,7 @@ export interface NegotiationState {
   /** Какие устройства браузер ДЕЙСТВИТЕЛЬНО выдал. Ложь при `capabilities.
    *  microphone === true` — разрешение ещё спрашивается, и звонок говорит
    *  «ждём доступ», а не «микрофон включён». */
-  devices: { mic: boolean; camera: boolean };
+  devices: import("../realtime/transport").Devices;
   /** Идёт смена режима той же партии (текст ↔ созвон): сокет сменится, ход
    *  останется. Баннер «связь прервалась» здесь был бы неправдой — человек
    *  сам нажал кнопку. Снимается приветствием нового сокета. */
@@ -158,7 +158,7 @@ const initialState: NegotiationState = {
   tellFrames: 0,
   tellNow: false,
   capabilities: null,
-  devices: { mic: false, camera: false },
+  devices: { mic: "off", camera: "off" },
   switching: false,
 };
 

@@ -29,6 +29,7 @@ import { ScreenHeading } from "./ScreenHeading";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
 import type { ChatEntry } from "../api/useNegotiation";
+import type { Devices } from "../realtime/transport";
 import type { FaceRenderer } from "../lib/faceSource";
 import type { MeetingStatus } from "../lib/meeting";
 import { formatDeal } from "../lib/format";
@@ -65,7 +66,7 @@ interface Props {
   micAvailable: boolean;
   /** Браузер ДЕЙСТВИТЕЛЬНО выдал устройство. До этого — «ждём», а не
    *  «включён»: разрешение может ещё спрашиваться (REVIEW_12206, T4). */
-  devices?: { mic: boolean; camera: boolean };
+  devices: Devices;
   /** Почему микрофон не встал — или null. */
   micFail: string | null;
   micMuted: boolean;
@@ -111,7 +112,7 @@ interface Props {
 export function CallView({
   t, lang, scenario, state, status, avatarState, renderer, synthetic, videoPending, oppSpeaking,
   getSpeechLevel, getVideoFrame, getAudioBlocked, onResumeAudio, speech, subtitle, transcript,
-  micAvailable, devices = { mic: true, camera: true }, micFail, micMuted, onToggleMic, getMicLevel, observation, camera, onToggleCamera, videoRef, canvasRef,
+  micAvailable, devices, micFail, micMuted, onToggleMic, getMicLevel, observation, camera, onToggleCamera, videoRef, canvasRef,
   hud, turnLabel, feed, hint, hintEnabled, hintDisabled, onHint, probe, probeTally, registerProbe,
   onProbeAnswer, onInterrupt, onHangUp, hangupPending, outcome, selfView, onSelfView,
 }: Props) {
@@ -153,9 +154,9 @@ export function CallView({
   // Уровень микрофона — ~12 раз в секунду, не rAF: полоске на кнопке больше
   // не нужно, а перерисовки стоят реально.
   const [level, setLevel] = useState(0);
-  const micWaiting = micAvailable && !devices.mic;
-  const camWaiting = camera.up && !devices.camera;
-  const listening = micAvailable && !micWaiting && !micMuted && !!getMicLevel;
+  const micWaiting = micAvailable && devices.mic === "pending";
+  const camWaiting = camera.up && devices.camera === "pending";
+  const listening = micAvailable && devices.mic === "on" && !micMuted && !!getMicLevel;
   useEffect(() => {
     if (!listening) { setLevel(0); return; }
     const id = window.setInterval(() => setLevel(getMicLevel!()), 80);
@@ -216,7 +217,7 @@ export function CallView({
 
           {/* Плитка «Вы». Видео живёт здесь весь созвон: провайдер медиа
               привязывает поток один раз. */}
-          <div className={`call-self${selfHidden ? " hidden" : ""}${camera.up && !camera.off ? " live" : ""}`}>
+          <div className={`call-self${selfHidden ? " hidden" : ""}${camera.up && !camera.off && devices.camera === "on" ? " live" : ""}`}>
             {camera.up && videoRef ? <video ref={videoRef} muted playsInline autoPlay /> : null}
             {camera.up && canvasRef ? <canvas ref={canvasRef} hidden /> : null}
             {!camera.up || camera.off || camWaiting ? (
@@ -309,13 +310,13 @@ export function CallView({
           label={!micAvailable ? c.mic : micWaiting ? c.micWaiting : micMuted ? t.meeting.micOn : t.meeting.micOff}
           title={!micAvailable ? (micFail ? c.noMic.replace("{reason}", micFail) : t.meeting.noMic)
             : micWaiting ? c.waitingHint : undefined}
-          off={!micAvailable || micMuted}
+          off={!micAvailable || micWaiting || micMuted}
           disabled={!micAvailable || micWaiting || offline || finished}
           level={listening ? level : undefined}
           onClick={onToggleMic}
         />
         <CallButton
-          icon={camera.up && !camera.off ? "camera" : "camoff"}
+          icon={camera.up && !camera.off && !camWaiting ? "camera" : "camoff"}
           label={camera.reason ? c.camera : !camera.up ? c.camOn : camWaiting ? c.camWaiting
             : camera.off ? c.camOn : c.camOff}
           title={camera.reason ? c.camNa.replace("{reason}", camera.reason) : !camera.up ? c.camStart

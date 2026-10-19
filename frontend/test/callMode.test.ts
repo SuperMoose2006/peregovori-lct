@@ -87,7 +87,7 @@ test("в созвоне нет поля ввода, а кнопка «Завер
     state: { trust: 55, tension: 20, info: 10, leverage: 30, offer_opp: 96, offer_player: null,
       interests_found: 0, interests_total: 3, turn: 1, max_turns: 12, status: "active" } as never, status: "listening", avatarState: null, renderer: "portrait", synthetic: false,
     videoPending: false, oppSpeaking: false, speech: true, subtitle: null, transcript: null,
-    micAvailable: true, micFail: null, micMuted: false, onToggleMic: () => {},
+    micAvailable: true, devices: { mic: "on", camera: "on" }, micFail: null, micMuted: false, onToggleMic: () => {},
     camera: { up: false, off: false, reason: null }, onToggleCamera: () => {},
     hud: null, turnLabel: "ход 1 из 12", feed: null, hint: null, hintEnabled: true, hintDisabled: false,
     onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: null,
@@ -222,7 +222,7 @@ test("камеру, которой нет в звонке, поднимают т
       headline_unit: "₽" } as never,
     state: null, status: status as never, avatarState: null, renderer: "portrait", synthetic: false,
     videoPending: false, oppSpeaking: status === "speaking", speech: true, subtitle: null, transcript: null,
-    micAvailable: true, micFail: null, micMuted: false, onToggleMic: () => {},
+    micAvailable: true, devices: { mic: "on", camera: "on" }, micFail: null, micMuted: false, onToggleMic: () => {},
     camera: { up, off: false, reason: null }, onToggleCamera: () => {},
     hud: null, turnLabel: "", feed: null, hint: null, hintEnabled: true, hintDisabled: false,
     onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: null,
@@ -269,7 +269,7 @@ test("пока браузер спрашивает разрешение, зво�
   // не выдал, а кнопка уже предлагала «Выключить микрофон».
   const { CallView } = await import("../src/components/CallView");
   const c = I18N.ru.call;
-  const render = (devices: { mic: boolean; camera: boolean }) => renderToStaticMarkup(createElement(CallView, {
+  const render = (devices: { mic: string; camera: string }, outcome: unknown = null) => renderToStaticMarkup(createElement(CallView, {
     t: I18N.ru, lang: "ru", scenario: { id: "supplier", counterpart_name: "Марина", counterpart_persona: "",
       headline_unit: "₽" } as never,
     state: null, status: "listening", avatarState: null, renderer: "portrait", synthetic: false,
@@ -277,15 +277,21 @@ test("пока браузер спрашивает разрешение, зво�
     micAvailable: true, devices, micFail: null, micMuted: false, onToggleMic: () => {},
     camera: { up: true, off: false, reason: null }, onToggleCamera: () => {},
     hud: null, turnLabel: "", feed: null, hint: null, hintEnabled: true, hintDisabled: false,
-    onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: null,
+    onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: outcome as never,
   }));
-  const waiting = render({ mic: false, camera: false });
+  const waiting = render({ mic: "pending", camera: "pending" });
   assert.ok(waiting.includes(c.micWaiting) && waiting.includes(c.camWaiting));
   assert.ok(!waiting.includes(I18N.ru.meeting.micOff), "«Выключить микрофон» над невыданным микрофоном");
   const at = waiting.indexOf(c.micWaiting);
   assert.match(waiting.slice(waiting.lastIndexOf("<button", at), at), /disabled/);
-  const live = render({ mic: true, camera: true });
+  const live = render({ mic: "on", camera: "on" });
   assert.ok(live.includes(I18N.ru.meeting.micOff) && !live.includes(c.micWaiting) && !live.includes(c.camWaiting));
+  // Найдено вторым ревью: «нет устройства» и «ждём» были одним `false`. Стол
+  // закрыт → микрофон и камера погашены → над итогом партии горело «Ждём
+  // микрофон» с подсказкой «браузер спрашивает разрешение», которой не было.
+  const gone = render({ mic: "off", camera: "off" }, createElement("div", { className: "outcome" }));
+  assert.ok(!gone.includes(c.micWaiting) && !gone.includes(c.camWaiting) && !gone.includes(c.waitingHint),
+    "погашенное устройство выдано за «ждём разрешения»");
 });
 
 test("«видеть себя в созвоне» — переключатель в «Слоях», общий с кнопкой на плитке", async () => {
@@ -320,7 +326,7 @@ test("«видеть себя в созвоне» — переключатель
       headline_unit: "₽" } as never,
     state: null, status: "listening", avatarState: null, renderer: "portrait", synthetic: false,
     videoPending: false, oppSpeaking: false, speech: true, subtitle: null, transcript: null,
-    micAvailable: true, micFail: null, micMuted: false, onToggleMic: () => {},
+    micAvailable: true, devices: { mic: "on", camera: "on" }, micFail: null, micMuted: false, onToggleMic: () => {},
     camera: { up: true, off: false, reason: null }, onToggleCamera: () => {},
     hud: null, turnLabel: "", feed: null, hint: null, hintEnabled: true, hintDisabled: false,
     onHint: () => {}, probe: null, onHangUp: () => {}, hangupPending: false, outcome: null,

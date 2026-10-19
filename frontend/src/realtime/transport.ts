@@ -56,10 +56,18 @@ export interface RealtimeExtras {
    *  микрофон он примет (`capabilities.microphone`), но браузер ещё может
    *  спрашивать разрешение: без этого сигнала звонок объявлял «микрофон
    *  включён» над устройством, которого никто не выдал (REVIEW_12206, T4). */
-  onDevices?: (devices: { mic: boolean; camera: boolean }) => void;
+  onDevices?: (devices: Devices) => void;
   /** Лента протокола: незаменима при отладке перебивания. */
   onProtocol?: (entry: ProtocolEntry) => void;
 }
+
+/** Устройство: браузер спрашивает разрешение (`pending`), поток идёт (`on`)
+ *  или его нет (`off`). Трёх состояний ровно столько, сколько нужно экрану:
+ *  «ждём» и «нет» — разные новости, и слитые в одно `false` они давали «Ждём
+ *  микрофон» над уже погашенным устройством (найдено вторым ревью созвона). */
+export type DeviceState = "off" | "pending" | "on";
+export interface Devices { mic: DeviceState; camera: DeviceState }
+const NO_DEVICES: Devices = { mic: "off", camera: "off" };
 
 export interface RealtimeTransportOptions extends RealtimeExtras {
   // Микрофона и камеры здесь НЕТ намеренно. Слои выбираются на экране
@@ -219,7 +227,7 @@ export class RealtimeTransport implements Transport {
   stopCapture(): void {
     const media = this.media;
     this.media = null;
-    if (media) this.options.onDevices?.({ mic: false, camera: false });
+    if (media) this.options.onDevices?.(NO_DEVICES);
     void media?.stop().catch(() => { /* нечего гасить */ });
   }
 
@@ -230,7 +238,7 @@ export class RealtimeTransport implements Transport {
     this.player = null;
     this.faceFrames.clear();
     this.markOppAudio(false);
-    if (media) this.options.onDevices?.({ mic: false, camera: false });
+    if (media) this.options.onDevices?.(NO_DEVICES);
     await Promise.all([
       media?.stop().catch(() => { /* нечего гасить */ }),
       player?.dispose().catch(() => { /* уже закрыт */ }),
@@ -449,8 +457,10 @@ export class RealtimeTransport implements Transport {
     // `start` больше не бросает на отказ устройства: отказ — это ответ
     // пользователя, а не сбой. Он возвращает отчёт по каждому слою, и каждый
     // невставший слой называется на экране поимённо.
-    const report = await media.start({ camera: this.cameraWanted, mic: this.voiceWanted && this.microphoneAllowed,
-                                       lang: this.lang });
+    const wantMic = this.voiceWanted && this.microphoneAllowed;
+    // «Ждём» — ровно на время вопроса браузера, и только у того, что спрошено.
+    this.options.onDevices?.({ mic: wantMic ? "pending" : "off", camera: this.cameraWanted ? "pending" : "off" });
+    const report = await media.start({ camera: this.cameraWanted, mic: wantMic, lang: this.lang });
     if (gen !== this.beginGen || this.media !== media) {
       // Этот провайдер уже ничей: его режим сменили или стол закрылся, пока
       // браузер спрашивал. Гасим СВОЁ и молчим — отчёт об устройствах
@@ -460,7 +470,7 @@ export class RealtimeTransport implements Transport {
     }
     media.setMicEnabled(!this.micMuted);
     media.setCameraEnabled(!this.cameraOff);
-    this.options.onDevices?.({ mic: report.mic === "ok", camera: report.camera === "ok" });
+    this.options.onDevices?.({ mic: report.mic === "ok" ? "on" : "off", camera: report.camera === "ok" ? "on" : "off" });
     if (this.voiceWanted && this.microphoneAllowed && report.mic !== "ok")
       this.emit({ type: "layer_failed", layer: "voice", reason: String(report.mic) });
     if (this.cameraWanted && report.camera !== "ok")

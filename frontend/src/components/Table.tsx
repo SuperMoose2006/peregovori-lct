@@ -99,7 +99,7 @@ interface Props {
   videoPending?: boolean;
   micAvailable?: boolean;
   /** Устройства, которые браузер действительно выдал (useNegotiation.devices). */
-  devices?: { mic: boolean; camera: boolean };
+  devices?: import("../realtime/transport").Devices;
   micMuted?: boolean;
   onToggleMic?: () => void;
   getAudioBlocked?: () => boolean;
@@ -602,7 +602,9 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
           subtitle={subtitle}
           transcript={transcript}
           micAvailable={micAvailable}
-          devices={devices}
+          // Нет сведений — нет и устройств: «включено» по умолчанию было бы
+          // заявлением того, чего никто не выдал.
+          devices={devices ?? { mic: "off", camera: "off" }}
           micFail={layerFail?.voice ?? null}
           micMuted={micMuted}
           onToggleMic={onToggleMic ?? (() => {})}
