@@ -109,3 +109,25 @@ def test_the_socket_gate_reads_the_peer_address():
     import inspect
     src = inspect.getsource(endpoint._admitted)
     assert "admission.acquire(websocket.client.host if websocket.client else \"\")" in src
+
+
+def test_a_failing_session_build_returns_the_game_slot(monkeypatch):
+    """Найдено после аудита 17.10: исключение в сборке партии оставляло место
+    под партию занятым, а повторный `session.init` перезаписывал аренду —
+    двенадцать сбоев запирали адрес до перезапуска."""
+    from app.realtime import limits
+
+    async def boom(payload):
+        raise RuntimeError("build failed")
+
+    monkeypatch.setattr(endpoint, "_build_session", boom)
+    client = TestClient(app)
+    host = "testclient"
+    assert not limits.exempt(host)
+    before = limits.live_sessions(host)
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        ws.receive_json()
+        for _ in range(3):
+            ws.send_json({"type": "session.init", "payload": {"scenarioId": "supplier"}})
+            assert ws.receive_json()["error"]["code"] == "server_error"
+            assert limits.live_sessions(host) == before

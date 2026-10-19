@@ -420,7 +420,17 @@ async def realtime_ws(websocket: WebSocket) -> None:
                             limits.too_many_generations(payload.lang), "rate_limited"))
                         continue
 
-                    session, problem = await _build_session(payload)
+                    try:
+                        session, problem = await _build_session(payload)
+                    except BaseException:
+                        # Сбой сборки уходит в общий обработчик сообщения, а
+                        # место под партию — обратно адресу: иначе следующий
+                        # `session.init` перезаписывал `lease`, не отпустив
+                        # прежний, и после двенадцати сбоев адрес запирался до
+                        # перезапуска (найдено после аудита 17.10).
+                        lease.release()
+                        lease = None
+                        raise
                     if session is None:
                         lease.release()
                         lease = None
