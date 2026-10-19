@@ -250,3 +250,20 @@ test("отказ внутри партии — на языке партии, а 
     assert.ok(notices.every((n) => /[а-яё]/i.test(n)));
   } finally { t.transport.close(); }
 });
+
+test("начало речи не глушит оппонента — глушит подтверждённое перебивание", async () => {
+  // Найдено после аудита 17.10: звук гасился на `user.speech.started`, до
+  // решения защиты от эха; кашель обрывал середину реплики навсегда.
+  const t = await table();
+  try {
+    t.state(1);
+    t.say("g1", "audio", "A1");
+    t.player.calls.length = 0;
+    t.socket.deliver({ type: "user.speech.started" });
+    assert.ok(!t.player.calls.includes("stop"), "всплеск, который сервер отвергнет, оборвал звук");
+    t.say("g1", "audio", "A2");
+    assert.ok(t.player.calls.includes("play:A2"));
+    t.socket.deliver({ type: "generation.cancelled", generation_id: "g1", reason: "barge_in" });
+    assert.ok(t.player.calls.includes("stop"), "подтверждённое перебивание обязано глушить");
+  } finally { t.transport.close(); }
+});
