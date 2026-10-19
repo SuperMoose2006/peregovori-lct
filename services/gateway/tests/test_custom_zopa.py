@@ -34,3 +34,20 @@ def test_generated_zopa_is_as_tight_as_handmade():
             assert opp_res <= target < player_res < opp_open
         else:
             assert opp_open < player_res < target <= opp_res
+
+
+def test_the_described_target_survives_normalisation():
+    """CE-01, причина в коде (найдено после аудита 17.10). Дно модели шло в
+    сортировку и потом всё равно перезаписывалось из цели — его единственным
+    следом был сдвиг остальных: «старт 530 000, дно 470 000, цель 450 000,
+    предел 500 000» давало цель 470 000, ровно как в аудите."""
+    from app.ai.scenario_gen import _normalize_zopa
+    o, r, t, p = _normalize_zopa({"dir": "lower_is_better", "opponent_open": 530000,
+                                  "opponent_reservation": 470000, "player_target": 450000,
+                                  "player_reservation": 500000})
+    assert (o, t, p) == (530000, 450000, 500000)
+    assert r <= t, "цель обязана быть достижимой: дно оппонента не выше цели"
+    o, r, t, p = _normalize_zopa({"dir": "higher_is_better", "opponent_open": 180,
+                                  "opponent_reservation": 230, "player_target": 250,
+                                  "player_reservation": 200})
+    assert (o, t, p) == (180, 250, 200) and r >= t

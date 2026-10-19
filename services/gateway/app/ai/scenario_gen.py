@@ -120,27 +120,30 @@ _OPP_FLOOR_BEYOND_TARGET = 0.143
 def _normalize_zopa(d: dict) -> tuple[float, float, float, float]:
     """Return (opponent_open, opponent_reservation, player_target, player_reservation)
     as a strictly-ordered, guaranteed-playable ZOPA for the given direction."""
-    raw = [
-        _num(d.get("opponent_open")), _num(d.get("opponent_reservation")),
-        _num(d.get("player_target")), _num(d.get("player_reservation")),
-    ]
+    # ДНО МОДЕЛИ В СОРТИРОВКУ НЕ ИДЁТ: ниже оно всё равно выводится из цели, а
+    # участвуя в сортировке, оно лишь сдвигало остальные три. «Старт 530 000,
+    # дно 470 000, цель 450 000, предел 500 000» давало цель 470 000 — ровно
+    # то «цель 470 000 вместо 450 000» из аудита 17.10 (CE-01): модель описание
+    # прочла верно, а число испортила сортировка.
+    raw = [_num(d.get("opponent_open")), _num(d.get("player_target")),
+           _num(d.get("player_reservation"))]
     nums = sorted(raw)
     # Degenerate input → fabricate a spread around the largest magnitude seen.
-    if nums[0] == nums[3]:
-        base = abs(nums[3]) or 100.0
-        nums = [base * f for f in (0.7, 0.85, 1.0, 1.15)]
+    if nums[0] == nums[2]:
+        base = abs(nums[2]) or 100.0
+        nums = [base * f for f in (0.85, 1.0, 1.15)]
     # Force strictly increasing.
-    for i in range(1, 4):
+    for i in range(1, 3):
         if nums[i] <= nums[i - 1]:
             nums[i] = nums[i - 1] + max(1.0, abs(nums[i - 1]) * 0.05)
-    a, b, c, dd = (round(x, 2) for x in nums)
+    a, b, c = (round(x, 2) for x in nums)
     lower = str(d.get("dir", "lower_is_better")) != "higher_is_better"
     if lower:
-        # player wants LOW: floor=a, target=b, reservation=c, open=d
-        opp_open, opp_res, target, player_res = dd, a, b, c
+        # player wants LOW: target=a, reservation=b, open=c
+        opp_open, target, player_res = c, a, b
     else:
-        # player wants HIGH: open=a, reservation=b, target=c, opp_reservation=d
-        opp_open, opp_res, target, player_res = a, dd, c, b
+        # player wants HIGH: open=a, reservation=b, target=c
+        opp_open, target, player_res = a, c, b
 
     # ДНО ОППОНЕНТА ПРИЖИМАЕТСЯ К ЦЕЛИ. Сортировка выше гарантирует играбельность,
     # но ставит дно в КРАЙ диапазона — то есть оппонент готов уйти далеко за цель
