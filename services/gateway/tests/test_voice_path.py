@@ -612,3 +612,21 @@ async def test_the_endpoint_actually_closes_the_pipeline():
     assert inspect.iscoroutinefunction(_Classic.close)
     assert inspect.iscoroutinefunction(RealtimeVoicePipeline.close)
     assert "await voice.close()" in inspect.getsource(endpoint.realtime_ws)
+
+
+@pytest.mark.asyncio
+async def test_classic_pipeline_publishes_a_final_only_when_the_turn_leaves():
+    """Найдено после аудита 17.10: финал расшифровки уходил ДО решения
+    детектора — «недоговорённое» уже стояло пузырём «вы» с занятостью, а
+    договорив, человек получал второй финал всего буфера: два пузыря на ход.
+    Пока детектор ждёт — только предпросмотр; финал — с самим ходом."""
+    asr = _FakeASR("Я готов уступить")
+    pipe, turns, events = _classic(asr, TurnDecision.UNFINISHED)
+    pipe._audio.append(np.full(SAMPLE_RATE, 300, dtype=np.int16))
+    await pipe._settle_turn()
+    assert turns == []
+    assert [e for e in events if e.get("final")] == []
+    assert any(e.get("type") == "user.transcript" and not e.get("final") for e in events)
+    await pipe.force_commit()
+    assert turns == ["Я готов уступить"]
+    assert [e["text"] for e in events if e.get("final")] == turns

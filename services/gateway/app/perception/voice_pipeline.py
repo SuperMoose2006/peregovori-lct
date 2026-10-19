@@ -213,7 +213,13 @@ class VoicePipeline:
             return
 
         self._transcript = text
-        self._publish({"type": "user.transcript", "text": text, "final": True})
+        # ФИНАЛ — ТОЛЬКО КОГДА ХОД УХОДИТ. Финальная расшифровка публиковалась
+        # ДО решения детектора конца реплики: «Я готов уступить…» признавалось
+        # недоговорённым, а клиент уже ставил пузырь «вы» и занятость; договорив,
+        # человек получал ВТОРОЙ финал всего буфера — два пузыря на один ход, и
+        # первый так и оставался без чипов (найдено после аудита 17.10). Пока
+        # детектор думает — это предпросмотр, как у realtime-конвейера.
+        self._publish({"type": "user.transcript", "text": text, "final": False})
 
         t1 = time.perf_counter()
         decision = await self._turn_detector.eval(text, self._lang)
@@ -223,6 +229,7 @@ class VoicePipeline:
             self._cancel_ceiling()
             self._audio.clear()
             self._transcript = ""
+            self._publish({"type": "user.transcript", "text": text, "final": True})
             await self._on_turn(text)
             return
 
@@ -293,4 +300,5 @@ class VoicePipeline:
         self._cancel_ceiling()
         self._audio.clear()
         self._transcript = ""
+        self._publish({"type": "user.transcript", "text": text, "final": True})
         await self._on_turn(text)
