@@ -438,13 +438,16 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
   const tutShownTurn = useRef(-1);
   useEffect(() => {
     if (!tutOn || tutMark !== null) return;
-    if (busy || finished || probeOpen || tourActive) return;
+    // В созвоне подсветке не на что указывать — рельса со шкалой цены и
+    // темами там нет, и `Onboarding` не рисуется. Очередь ждёт возвращения в
+    // чат, а не расходуется невидимо (найдено ревью).
+    if (busy || finished || probeOpen || tourActive || call) return;
     if (tutQueue.length === 0) return;
     if (turnNow <= tutShownTurn.current) return;
     tutShownTurn.current = turnNow;
     setTutMark(tutQueue[0]);
     setTutQueue((q) => q.slice(1));
-  }, [tutOn, tutMark, tutQueue, busy, finished, probeOpen, turnNow, tourActive]);
+  }, [tutOn, tutMark, tutQueue, busy, finished, probeOpen, turnNow, tourActive, call]);
 
   // Игрок пошёл дальше — подсветка снимается сама. Висеть до клика по «Понятно»
   // она не имеет права: это подсказка, а не шлагбаум.

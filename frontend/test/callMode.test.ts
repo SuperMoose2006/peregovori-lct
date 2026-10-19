@@ -253,3 +253,13 @@ test("тосты не прячутся под звонком", async () => {
   assert.ok(z(/\.app\.in-call \.ach-toasts \{ z-index: (\d+)/) > z(/\.call \{[^}]*z-index: (\d+)/),
     "достижения под звонком");
 });
+
+test("подсказки вводной не расходуются в звонке, где их не показать", async () => {
+  // Найдено ревью: очередь подсветок новичка выдавала метку и в созвоне, где
+  // `Onboarding` не рисуется, — подсказка уходила невидимо и больше не
+  // повторялась (одна на событие).
+  const { readFileSync } = await import("node:fs");
+  const table = readFileSync(new URL("../src/components/Table.tsx", import.meta.url), "utf8");
+  const effect = table.slice(table.indexOf("const tutShownTurn = useRef"), table.indexOf("setTutQueue((q) => q.slice(1));"));
+  assert.match(effect, /if \([^)]*\bcall\) return;/, "очередь вводной расходуется в звонке");
+});
