@@ -431,3 +431,28 @@ test("молчащий сервер при возвращении в парти�
   t.mock.timers.reset();
   session.stop();
 });
+
+test("звук, не поднявшийся при входе в звонок, — отказ слоя, а не обрыв связи", async () => {
+  // Найдено вторым ревью: бросок из подъёма устройств (браузер не дал
+  // AudioContext) попадал в обработчик сбоя СОКЕТА — здоровая партия
+  // снималась, приветствие повторялось до пяти раз, в конце «связь потеряна».
+  const { AudioPlayer } = await import("../src/realtime/vendor/audio-player");
+  const init = AudioPlayer.prototype.init;
+  AudioPlayer.prototype.init = () => { throw new Error("AudioContext недоступен"); };
+  try {
+    const t = await table();
+    t.transport.relayer({ voice: true });
+    const call = await nextSocket();
+    for (let i = 0; i < 20 && !call.types().includes("session.init"); i++) await wait(10);
+    call.deliver({ type: "session.created", session_id: "s-1", resumed: true, scenario: { id: "supplier" },
+      state: STATE0, greeting: "", capabilities: { microphone: true, speech: true } });
+    await wait(700);                                       // дольше первой паузы повтора
+    assert.equal(FakeSocket.instances.length, 2, "здоровый сокет сняли и пошли переподключаться");
+    assert.equal(call.readyState, FakeSocket.OPEN);
+    assert.ok(!t.conns.includes("reconnecting") && !t.conns.includes("lost"), t.conns.join(","));
+    assert.ok(t.get().layerFail.voice, "голос не встал — и об этом ни слова");
+    t.transport.close();
+  } finally {
+    AudioPlayer.prototype.init = init;
+  }
+});

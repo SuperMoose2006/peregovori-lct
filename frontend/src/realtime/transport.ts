@@ -18,7 +18,7 @@ import { normalizeDifficulty } from "../lib/difficulty";
 import { canReconnect, reconnectDelay } from "../lib/net";
 import { AudioPlayer } from "./vendor/audio-player";
 import { AvatarFrames } from "../lib/avatarFrames";
-import { MediaProvider, toBase64 } from "./vendor/media-provider";
+import { MediaProvider, describeMediaError, toBase64 } from "./vendor/media-provider";
 import {
   HandshakeRefused,
   RealtimeSession,
@@ -363,7 +363,21 @@ export class RealtimeTransport implements Transport {
       this.honourServerCapabilities(this.session.capabilities);
       // Камера — самостоятельный слой: без этого условия она включалась
       // только заодно с голосом, а сама по себе молча не работала.
-      if (this.voiceWanted || this.cameraWanted) await this.startMedia(gen);
+      if (this.voiceWanted || this.cameraWanted) {
+        // СБОЙ УСТРОЙСТВ — НЕ СБОЙ СВЯЗИ. Партия уже принята сервером; если
+        // звук или микрофон не поднялись (браузер не дал AudioContext), это
+        // называется слоем, а сокет остаётся. Раньше бросок отсюда попадал в
+        // `catch` ниже: здоровый сокет снимался, приветствие проигрывалось
+        // заново до пяти раз, и в конце — «связь потеряна» (второе ревью).
+        try {
+          await this.startMedia(gen);
+        } catch (error) {
+          if (gen !== this.beginGen || this.closed) return;
+          const reason = describeMediaError(error, this.lang);
+          if (this.voiceWanted) this.emit({ type: "layer_failed", layer: "voice", reason });
+          if (this.cameraWanted) this.emit({ type: "layer_failed", layer: "camera", reason });
+        }
+      }
     } catch (error) {
       if (gen !== this.beginGen || this.closed) return;
       // ВЕРНУТЬСЯ В ПАРТИЮ ПРОБУЕМ ТАК ЖЕ УПОРНО, КАК ПОСЛЕ ОБРЫВА. Смена
