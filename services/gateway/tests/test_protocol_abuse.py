@@ -618,6 +618,22 @@ def test_head_on_media_answers_like_get_and_still_stays_inside_dist():
     assert client.head("/api/health").status_code == 405
 
 
+def test_an_unknown_api_address_is_not_the_app_page():
+    """Найдено после аудита 17.10: `GET /api/nope` и `GET /api/whatif` (ручка
+    только на POST) отдавали страницу приложения с 200 — клиент видел
+    `response.ok` и падал в `.json()`."""
+    from app.main import SERVES_SPA
+
+    if not SERVES_SPA:
+        pytest.skip("frontend/dist не собран — фолбэка нет")
+    for path in ("/api/nope", "/api/whatif", "/v1/nope"):
+        r = client.get(path)
+        assert r.status_code == 404, (path, r.status_code)
+        assert "text/html" not in r.headers.get("content-type", ""), path
+    assert client.get("/api/health").status_code == 200
+    assert client.get("/some/app/route").status_code == 200
+
+
 # ---------------------------------------------------------------------------
 # 8. Голосовой ход: звук приходит с улицы тем же сокетом
 # ---------------------------------------------------------------------------

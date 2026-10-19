@@ -769,6 +769,11 @@ if SERVES_SPA:
         # общий маршрут не вправе подменить это страницей приложения.
         if request.method == "HEAD" and full_path.startswith(("api/", "v1/")):
             raise HTTPException(status_code=405, detail="Method Not Allowed")
+        # И GET тоже: неизвестный адрес API (`/api/nope`, POST-ручка `/api/whatif`)
+        # получал страницу приложения с 200 — клиент другой версии видел
+        # `response.ok` и падал уже в `.json()` (найдено после аудита 17.10).
+        if full_path.startswith(("api/", "v1/")):
+            raise HTTPException(status_code=404, detail="Not Found")
         # ПУТЬ ОБЯЗАН ОСТАТЬСЯ ВНУТРИ dist. `full_path` приходит с улицы, и
         # `os.path.join(_DIST, "../../services/gateway/.env")` — это настоящий
         # файл: гейтвей раздавал наружу ключ OpenRouter (и `/etc/passwd` тем же
