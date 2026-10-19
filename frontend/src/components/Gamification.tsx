@@ -427,9 +427,11 @@ export function AchievementToasts({ t, lang, ids }: { t: Strings; lang: Lang; id
       clearTimeout(hide);
     };
   }, [ids]);
-  if (visible.length === 0) return null;
+  // Живая область стоит ВСЕГДА, а тосты в ней появляются: вставленная сразу с
+  // содержимым область диктором не объявляется, а тост живёт 4,6 с — человек
+  // с диктором о награде не узнавал вовсе (найдено после аудита 17.10).
   return (
-    <div className="ach-toasts">
+    <div className="ach-toasts" role="status" aria-live="polite">
       {visible.map((id, i) => {
         const a = getAchievement(id);
         if (!a) return null;

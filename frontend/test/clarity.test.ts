@@ -400,3 +400,11 @@ test("вердикт капстоуна объявляется: живая об�
   const app = readFileSync(join(SRC, "App.tsx"), "utf8");
   assert.match(app, /screen === "debrief" && drill \? \(\s*<div role="status" aria-live="polite">\s*\{drillVerdict \?/);
 });
+
+test("награда объявляется: живая область тостов стоит до тоста", () => {
+  // Найдено после аудита 17.10: контейнер появлялся сразу с содержимым и без
+  // live-роли, а тост живёт 4,6 с — диктор о награде не сообщал.
+  const src = readFileSync(join(SRC, "components", "Gamification.tsx"), "utf8");
+  assert.match(src, /<div className="ach-toasts" role="status" aria-live="polite">/);
+  assert.doesNotMatch(src, /if \(visible\.length === 0\) return null;/);
+});
