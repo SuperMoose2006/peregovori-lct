@@ -277,7 +277,10 @@ test("ошибка за столом — строка в ленте, а не о�
     assert.equal(s.error, null, "отказ хода выдан за провал запуска");
     assert.equal(s.busy, false, "ход не состоялся, а стол всё ещё «ждёт оппонента»");
     const sys = s.log[s.log.length - 1];
-    assert.deepEqual([sys.kind, (sys as { text: string }).text], ["sys", "turn failed"]);
+    // Текст — из словаря по языку партии, а не английская строка сервера
+    // (инвариант 4, см. generationLifecycle.test.ts).
+    const { I18N } = await import("../src/i18n");
+    assert.deepEqual([sys.kind, (sys as { text: string }).text], ["sys", I18N.ru.conn.errors.turn_failed]);
     assert.ok(canMove(s), "после отказа хода стол обязан принять следующий");
   } finally { t.close(); }
 });

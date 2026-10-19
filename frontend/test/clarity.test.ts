@@ -313,7 +313,9 @@ test("на экзамене нет заготовок реплик — ни «И
   // кнопки SPIN/Интерес/Критерий/Эмпатия/Размен были активны в режиме оценки.
   // Лампочка подсказки там уже гасла — заготовки та же подсказка.
   assert.match(readFileSync(join(SRC, "components", "Table.tsx"), "utf8"),
-    /quickMoves=\{exam \? \[\] : t\.quickMoves\}/);
+    /quickMoves=\{graded \? \[\] : t\.quickMoves\}/);
+  // `graded` — экзамен И капстоун курса (graded-run.test.ts), экзамен в нём.
+  assert.match(readFileSync(join(SRC, "components", "Table.tsx"), "utf8"), /const graded = exam \|\| /);
   const props = {
     disabled: false, blocked: false, placeholder: "", onSend: () => true, onHint: () => {},
     hintEnabled: false, hintLabel: "", sendLabel: "", showChips: false,
