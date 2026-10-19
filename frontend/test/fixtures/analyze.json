@@ -473,6 +473,18 @@
    "spin": null
   },
   {
+   "text": "Don't be ridiculous.",
+   "moves": [
+    "hostile"
+   ],
+   "primary": "hostile",
+   "arg": 0,
+   "words": 4,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Either 20%, or we go to another fund.",
    "moves": [
     "offer"
@@ -888,6 +900,18 @@
    "primary": "statement",
    "arg": 20,
    "words": 6,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "I don't want to sound ridiculous, but why does prepayment matter?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 28,
+   "words": 12,
    "number": null,
    "mentions": [],
    "spin": null
@@ -1564,6 +1588,18 @@
    "primary": "statement",
    "arg": 20,
    "words": 9,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "No that's ridiculous",
+   "moves": [
+    "hostile"
+   ],
+   "primary": "hostile",
+   "arg": 0,
+   "words": 4,
    "number": null,
    "mentions": [],
    "spin": null
@@ -4278,6 +4314,18 @@
    "spin": null
   },
   {
+   "text": "Не хочу прозвучать некомпетентно, но откуда цифра 100?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 8,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Нет объективного критерия под цифрой 230k",
    "moves": [
     "objective_criteria",
@@ -4305,6 +4353,18 @@
    "primary": "statement",
    "arg": 5,
    "words": 2,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Нет это абсурд",
+   "moves": [
+    "hostile"
+   ],
+   "primary": "hostile",
+   "arg": 0,
+   "words": 3,
    "number": null,
    "mentions": [],
    "spin": null

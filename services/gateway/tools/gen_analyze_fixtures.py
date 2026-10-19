@@ -32,6 +32,11 @@ TARGET = Path(__file__).resolve().parents[3] / "frontend" / "test" / "fixtures" 
 
 #: Краевые случаи, которых в банке нет, но которые ломались исторически.
 EDGE: list[str] = [
+    # Отрицание само грубость не снимает — только рамка вежливой оговорки
+    # (ревью ветки).
+    "Нет это абсурд", "No that's ridiculous", "Don't be ridiculous.",
+    "Не хочу прозвучать некомпетентно, но откуда цифра 100?",
+    "I don't want to sound ridiculous, but why does prepayment matter?",
     "300000", "300 000", "триста тысяч", "64k", "88 ₽/шт",
     "Или вы даёте 230k, или я ухожу к конкуренту.",
     "Either you give me 230k or I walk to your competitor.",

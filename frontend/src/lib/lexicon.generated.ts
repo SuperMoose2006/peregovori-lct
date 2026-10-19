@@ -183,8 +183,9 @@ export const LEX: Record<string, string[]> = {
   tradeoffVoidIfNot: [
     "если мы",
   ],
-  intensifiers: [
-    "просто", "только", "just", "only", "merely",
+  hostileDisclaimers: [
+    "показаться", "прозвучать", "сочтите", "to sound", "not to be", "mean to be", "want to be",
+    "without being",
   ],
   closedTail: [
     "ты прав",

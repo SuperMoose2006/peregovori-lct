@@ -582,6 +582,23 @@ def test_a_negated_insult_is_not_an_insult():
     assert "hostile" in analyze("Это просто смешно и некомпетентно.").moves
 
 
+@pytest.mark.parametrize("line,hostile", [
+    ("Нет это абсурд", True),
+    ("No that's ridiculous", True),
+    ("Don't be ridiculous.", True),
+    ("Это не абсурд — это позор!", True),
+    ("Я не говорю, что вы некомпетентны, но вы обманываете.", True),
+    ("Не хочу прозвучать некомпетентно, но откуда цифра 100?", False),
+    ("I don't want to sound ridiculous, but why does prepayment matter?", False),
+])
+def test_only_a_polite_disclaimer_cancels_an_insult(line, hostile):
+    """Найдено ревью ветки: любое отрицание в трёх словах перед основой снимало
+    грубость, и «Нет это абсурд», "Don't be ridiculous" стали нейтральной
+    репликой без штрафа (инвариант 2 наоборот). Снимает только рамка
+    вежливой оговорки: «не хочу показаться / прозвучать», "not to sound"."""
+    assert ("hostile" in analyze(line).moves) is hostile
+
+
 @pytest.mark.parametrize("line,number", [
     ("Предлагаю 90.", 90), ("Давайте 90.", 90), ("Готов на 90.", 90),
     ("I offer 90.", 90), ("We can do 86. What do you think?", 86),
