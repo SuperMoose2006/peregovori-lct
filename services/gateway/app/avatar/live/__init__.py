@@ -30,7 +30,7 @@ def _portrait(scenario_id: str) -> Optional[Path]:
 
 def create_live_avatar(scenario_id: str, publish: Callable[[dict], None], *,
                        cfg: Optional[LiveVideoConfig] = None, lang: str = "ru",
-                       female: bool = True):
+                       female: bool = True, style: Optional[str] = None):
     """Лицо от внешнего сервиса, если он включён кредами. Иначе None.
 
     Никогда не бросает: любая ошибка сборки значит «видео нет, портрет как
@@ -53,7 +53,7 @@ def create_live_avatar(scenario_id: str, publish: Callable[[dict], None], *,
         from dataclasses import replace
         from app.avatar.live.casting import face_for
         cfg = replace(cfg, avatar=face_for(cfg.vendor, scenario_id, female, explicit=cfg.avatar,
-                                           path=cfg.casting))
+                                           path=cfg.casting, style=style))
         return LiveVideoAvatar(persona, publish, lambda: cls.from_env(cfg, persona), cfg)
     except Exception:
         import logging

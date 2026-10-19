@@ -3,13 +3,16 @@
 Одно лицо на все пятнадцать персонажей — это не собеседник, а диктор. Поэтому
 лицо выбирается по персонажу, в таком порядке:
 
-1. раскладка персонажей (`casting.json`, поле `personas`) — её пишет сессия
-   кастинга в документе `AVATAR_CASTING.md` (каталог docs, появится), а `tools/sync_casting.py` переносит в
+1. раскладка персонажей (`casting.json`, поле `personas`) — её пишет документ
+   кастинга `docs/AVATAR_CASTING.md`, а `tools/sync_casting.py` переносит в
    JSON: на стенд документы не выкладываются, JSON едет вместе с кодом;
 2. `NEGO_LIVE_VIDEO_AVATAR` — одно лицо на всех, если так задано;
-3. лицо по умолчанию для пола персонажа (`defaults`) — пока раскладки нет,
-   женщины и мужчины хотя бы не меняются голосом и лицом местами;
-4. пусто — драйвер берёт стоковое лицо сам.
+3. пул по полу и стилю персонажа (`pools`) — для своей сделки и
+   сгенерированных столов, которых в раскладке нет: лицо выбирается по хешу id
+   стола, поэтому у одного стола оно одно и то же (смена режима, возвращение);
+4. лицо по умолчанию для пола персонажа (`defaults`) — женщины и мужчины хотя
+   бы не меняются голосом и лицом местами;
+5. пусто — драйвер берёт стоковое лицо сам.
 
 Путь к своей раскладке — `NEGO_LIVE_VIDEO_CASTING`. Файла нет или он битый —
 раскладка пустая, партия идёт с лицом по умолчанию: лицо не повод ронять игру.
@@ -20,7 +23,9 @@ from __future__ import annotations
 import json
 import logging
 import re
+import zlib
 from functools import lru_cache
+from typing import Optional
 from pathlib import Path
 
 _log = logging.getLogger("dialog.live_video")
@@ -50,8 +55,12 @@ def table(path: str = "") -> dict:
     return _read(str(target), mtime)
 
 
-def face_for(vendor: str, scenario_id: str, female: bool, explicit: str = "", path: str = "") -> str:
-    """Id лица сервиса `vendor` для персонажа. Пусто — пусть драйвер выберет сам."""
+def face_for(vendor: str, scenario_id: str, female: bool, explicit: str = "", path: str = "",
+             style: Optional[str] = None) -> str:
+    """Id лица сервиса `vendor` для персонажа. Пусто — пусть драйвер выберет сам.
+
+    `style` — характер персонажа (`relationship` | `analytical` | `tough`):
+    по нему лицо берётся из пула, если персонажа нет в раскладке."""
     section = table(path).get(vendor) or {}
     personas = section.get("personas") or {}
     face = personas.get(scenario_id)
@@ -59,6 +68,13 @@ def face_for(vendor: str, scenario_id: str, female: bool, explicit: str = "", pa
         return face
     if explicit:
         return explicit
+    pool = ((section.get("pools") or {}).get("female" if female else "male") or {}).get(style or "")
+    if isinstance(pool, list):
+        faces = [f for f in pool if isinstance(f, str) and f]
+        if faces:
+            # crc32, а не hash(): встроенный хеш строк солится заново при
+            # каждом запуске, и после перезапуска стол сменил бы собеседника.
+            return faces[zlib.crc32(scenario_id.encode("utf-8")) % len(faces)]
     defaults = section.get("defaults") or {}
     face = defaults.get("female" if female else "male")
     return face if isinstance(face, str) else ""

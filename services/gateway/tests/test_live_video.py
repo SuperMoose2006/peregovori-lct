@@ -1282,3 +1282,39 @@ def test_gateway_shutdown_waits_for_the_service_stops(monkeypatch):
     with TestClient(main.app):
         assert waited == []
     assert waited, "шлюз остановился, не дождавшись остановки сессий живого видео"
+
+
+def test_generated_personas_get_a_face_from_the_pool_by_gender_and_style(tmp_path):
+    """Своя сделка: строки в раскладке нет, но пол и стиль есть — лицо из пула,
+    одно и то же для одного стола (смена режима не меняет собеседнику лицо)."""
+    from app.avatar.live.casting import face_for
+    path = tmp_path / "c.json"
+    path.write_text(json.dumps({"liveavatar": {
+        "defaults": {"female": "F", "male": "M"},
+        "personas": {"supplier": "P"},
+        "pools": {"female": {"tough": ["T1", "T2", "T3"]}, "male": {"relationship": ["R1"]}}}}))
+    first = face_for("liveavatar", "custom_abc", True, path=str(path), style="tough")
+    assert first in {"T1", "T2", "T3"}
+    assert all(face_for("liveavatar", "custom_abc", True, path=str(path), style="tough") == first
+               for _ in range(5)), "один стол — одно лицо"
+    picks = {face_for("liveavatar", f"custom_{i}", True, path=str(path), style="tough") for i in range(40)}
+    assert len(picks) > 1, "разные столы — разные лица из пула"
+    assert face_for("liveavatar", "custom_abc", False, path=str(path), style="relationship") == "R1"
+    assert face_for("liveavatar", "custom_abc", False, path=str(path), style="analytical") == "M", \
+        "пула под стиль нет — лицо по умолчанию для пола"
+    assert face_for("liveavatar", "supplier", True, path=str(path), style="tough") == "P", \
+        "персонаж из таблицы — своё лицо, пул его не трогает"
+    assert face_for("liveavatar", "custom_abc", True, explicit="E", path=str(path), style="tough") == "E"
+
+
+def test_every_built_in_persona_has_its_own_face_and_gender_fits_the_pool():
+    from app.avatar.live.casting import table
+    from app.engine.scenarios import MIRRORS, SCENARIOS
+    section = table()["liveavatar"]
+    personas = section["personas"]
+    ids = [s.id for s in SCENARIOS] + [m.id for m in MIRRORS]
+    assert set(personas) == set(ids), "у каждого персонажа — своё лицо"
+    assert len(set(personas.values())) == len(ids), "одно лицо не играет двух персонажей"
+    for gender in ("female", "male"):
+        for style in ("relationship", "analytical", "tough"):
+            assert section["pools"][gender][style], f"пул {gender}/{style} пуст"

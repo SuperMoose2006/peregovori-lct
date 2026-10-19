@@ -1,10 +1,68 @@
 {
-  "_note": "Персонаж → лицо сервиса живого видео. Правится tools/sync_casting.py по документу кастинга (AVATAR_CASTING.md в docs, когда появится), руками — только defaults.",
+  "_note": "Персонаж → лицо сервиса живого видео. personas правит tools/sync_casting.py по docs/AVATAR_CASTING.md; pools (для своей сделки и сгенерированных столов: пол → стиль → лица) и defaults — руками, вместе с тем же документом.",
   "liveavatar": {
     "defaults": {
       "female": "6e32f90a-f566-45be-9ec7-a5f6999ee606",
       "male": "0930fd59-c8ad-434d-ad53-b391a1768720"
     },
-    "personas": {}
+    "personas": {
+      "supplier": "dc6a2ade-fcad-48b4-89ce-8ae807b18c32",
+      "salary": "f1e41c53-5e22-43a2-bfb7-5a149a16d071",
+      "conflict": "c6fe7922-ef30-4928-98b2-95e44bdf3f1e",
+      "investor": "3a4e53c9-3ff9-4e88-9d82-13bd31a4b083",
+      "rent": "0cbed480-e2e3-453e-a85d-3cd69b97e2b2",
+      "used_car": "9f81fba4-6c06-42c4-81ce-542a67d1755c",
+      "freelance_rate": "64b526e4-741c-43b6-a918-4e40f3261c7a",
+      "sla_renewal": "03f8332d-9046-42a1-bff3-3b2309f77b58",
+      "candidate_offer": "93a7ec78-06df-481e-8cd2-26eb7259487a",
+      "supplier_mirror": "0930fd59-c8ad-434d-ad53-b391a1768720",
+      "investor_mirror": "246e8d9d-5826-4f49-b8a0-07cb73ff7556",
+      "freelance_mirror": "6c2017bc-1eef-4071-ba70-0e9d5bcbf00f",
+      "salary_mirror": "dd60c4b6-690f-48cf-81c7-f2ab55e027ac",
+      "conflict_mirror": "890ec104-6027-4cf5-bc09-eb86221c67af",
+      "rent_mirror": "9650a758-1085-4d49-8bf3-f347565ec229"
+    },
+    "pools": {
+      "female": {
+        "relationship": [
+          "52a7e1ec-fc58-4624-814b-b56cc231e5bb",
+          "0cbed480-e2e3-453e-a85d-3cd69b97e2b2",
+          "a96238c3-21e9-4eca-b4ca-3e411e4e5b6d",
+          "1d91e311-781e-42ab-bcbf-07801119a67b"
+        ],
+        "analytical": [
+          "057a86fc-cdb4-430d-a74a-719c96f4f211",
+          "916650f4-25c5-42c8-907b-5943e3b5893a",
+          "dd60c4b6-690f-48cf-81c7-f2ab55e027ac",
+          "027e1948-e585-4a46-aa0e-f963fe0bf66a"
+        ],
+        "tough": [
+          "3a4e53c9-3ff9-4e88-9d82-13bd31a4b083",
+          "890ec104-6027-4cf5-bc09-eb86221c67af",
+          "ebdfdc7e-7e2c-4d2c-8407-a78883e5000a",
+          "cf775668-bdbb-46ae-9e3d-b66dadb4846b"
+        ]
+      },
+      "male": {
+        "relationship": [
+          "6c2017bc-1eef-4071-ba70-0e9d5bcbf00f",
+          "a4991f42-d211-4581-9631-639f7fe7c635",
+          "9bbf0dbc-d1d4-491b-a4af-549b3715c230",
+          "93a7ec78-06df-481e-8cd2-26eb7259487a"
+        ],
+        "analytical": [
+          "dce6a701-415e-4e5f-8192-590ee398a66f",
+          "d26e35aa-892f-4089-bf08-4dd0461543cc",
+          "0930fd59-c8ad-434d-ad53-b391a1768720",
+          "64b526e4-741c-43b6-a918-4e40f3261c7a"
+        ],
+        "tough": [
+          "03f8332d-9046-42a1-bff3-3b2309f77b58",
+          "9f81fba4-6c06-42c4-81ce-542a67d1755c",
+          "246e8d9d-5826-4f49-b8a0-07cb73ff7556",
+          "f1e41c53-5e22-43a2-bfb7-5a149a16d071"
+        ]
+      }
+    }
   }
 }

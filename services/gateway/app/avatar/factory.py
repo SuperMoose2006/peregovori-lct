@@ -1,7 +1,7 @@
 # AUDIT-DEBT paid-video: provider contract exists; paid stream is not integrated/accepted. Requires owner account, key and budget. See docs/deep-audit-12206/CLEANUP.md.
 """One registration point for optional video adapters; no paid default."""
 import os
-from typing import Callable
+from typing import Callable, Optional
 from app.avatar.base import AvatarProvider
 from app.avatar.amplitude import AmplitudeAvatar
 from app.avatar.presence import PresenceAvatar
@@ -34,7 +34,7 @@ def _accepted(provider: AvatarProvider) -> bool:
 
 
 def create_avatar(persona: str, publish: Callable[[dict], None], *, voice: bool,
-                  lang: str = 'ru', female: bool = True) -> AvatarProvider:
+                  lang: str = 'ru', female: bool = True, style: Optional[str] = None) -> AvatarProvider:
     name = os.getenv('NEGO_AVATAR_PROVIDER', 'local')
     factory = _factory_for(name) if voice else None
     if factory is not None:
@@ -51,7 +51,7 @@ def create_avatar(persona: str, publish: Callable[[dict], None], *, voice: bool,
     # возвращает None, не трогая ни сети, ни шины, — и ниже всё как было.
     if voice and name in ('', 'local'):
         from app.avatar.live import create_live_avatar
-        live = create_live_avatar(persona, publish, lang=lang, female=female)
+        live = create_live_avatar(persona, publish, lang=lang, female=female, style=style)
         if live is not None and _accepted(live):
             return live
     return (AmplitudeAvatar if voice and name != 'presence' else PresenceAvatar)(persona, publish)

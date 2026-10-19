@@ -1017,7 +1017,11 @@ def _make_avatar(session: RealtimeSession) -> AvatarProvider:
         session.avatar_provider = create_avatar(session.engine_session.scenario_id,
                                                 session.bus.publish, voice=session.layers.voice,
                                                 lang=session.lang,
-                                                female=_persona_is_female(scenario))
+                                                female=_persona_is_female(scenario),
+                                                # Характер — для лица из пула, если
+                                                # персонажа нет в раскладке (своя сделка).
+                                                style=getattr(getattr(scenario, "counterpart", None),
+                                                              "style", None))
     return session.avatar_provider
 
 
