@@ -432,6 +432,13 @@ LEX: dict[str, list[str]] = {
         "официальн",
         "market rate", "market price", "benchmark", "industry standard", "the data",
         "research shows", "independent", "objective", "precedent", "comparable",
+        # Английская пара к «медиана», «рыночн», «обзор зарплат», «исследование»,
+        # «прайс», «практика рынка», «индекс», «официальн», «регламент» — её не
+        # было: "The salary survey puts the median at 230, because that is the
+        # market standard" не было критерием, русский близнец — был (инвариант 4;
+        # найдено после аудита 17.10).
+        "median", "market data", "market standard", "market practice", "survey",
+        "a study", "the study", "price list", "index", "official", "regulation",
     ],
     # Тоже ни одной ты-формы, и по другой причине: BATNA — это МОЯ запасная
     # дорога. «У нас есть варианты», «можем уйти», «рассматриваем других» — всё

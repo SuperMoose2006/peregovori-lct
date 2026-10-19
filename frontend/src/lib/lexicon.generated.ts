@@ -60,7 +60,9 @@ export const LEX: Record<string, string[]> = {
     "данные показывают", "исследование", "прайс", "отраслев", "практика рынка", "обзор зарплат",
     "объективн", "прецедент", "регламент", "индекс", "котировк", "официальн", "market rate",
     "market price", "benchmark", "industry standard", "the data", "research shows",
-    "independent", "objective", "precedent", "comparable",
+    "independent", "objective", "precedent", "comparable", "median", "market data",
+    "market standard", "market practice", "survey", "a study", "the study", "price list",
+    "index", "official", "regulation",
   ],
   batna: [
     "другой поставщик", "другое предложение", "альтернатив", "конкурент", "у нас есть варианты",

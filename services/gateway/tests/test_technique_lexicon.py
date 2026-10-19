@@ -644,3 +644,17 @@ def test_an_ultimatum_is_a_threat_in_both_languages(ru, en):
 
 def test_quoting_their_final_word_is_not_a_threat():
     assert "threat" not in analyze("I hear that this is your final word. Let us go back to the numbers.").moves
+
+
+@pytest.mark.parametrize("ru,en", [
+    ("По обзору зарплат медиана по этой роли 230, потому что это рыночный стандарт.",
+     "The salary survey puts the median for this role at 230, because that is the market standard."),
+    ("Исследование показывает медиану 64 по району.", "A study shows a median of 64 for the district."),
+    ("По официальному индексу цен это 90.", "By the official price index that is 90."),
+])
+def test_an_objective_criterion_is_one_in_both_languages(ru, en):
+    """Инвариант 4 (найдено после аудита 17.10): английский словарь критериев
+    был вдвое короче русского — «медиана», «обзор зарплат», «исследование»,
+    «индекс» по-английски критерием не считались."""
+    assert "objective_criteria" in analyze(ru).moves
+    assert "objective_criteria" in analyze(en).moves
