@@ -82,3 +82,30 @@ def test_initialized_game_outlives_init_deadline(monkeypatch):
         time.sleep(0.15)
         ws.send_json({"type": "coach.request"})
         assert ws.receive_json()["type"] == "turn.coach"
+
+
+def test_one_address_cannot_hold_every_socket(monkeypatch):
+    """Найдено после аудита 17.10: общий потолок сокетов (128) занимался ДО
+    `session.init`, без доли на адрес — один адрес, открывающий сокеты и не
+    начинающий партий, держал всех остальных снаружи."""
+    monkeypatch.setattr(admission, "MAX_WEBSOCKETS", 100)
+    monkeypatch.setattr(admission, "MAX_WEBSOCKETS_PER_HOST", 2)
+    a = [admission.acquire("203.0.113.7") for _ in range(2)]
+    assert all(a)
+    assert admission.acquire("203.0.113.7") is None, "третий сокет того же адреса"
+    other = admission.acquire("198.51.100.9")
+    assert other is not None, "чужой адрес обязан пройти"
+    a[0].release()
+    again = admission.acquire("203.0.113.7")
+    assert again is not None, "освобождённое место возвращается адресу"
+    local = [admission.acquire("127.0.0.1") for _ in range(5)]
+    assert all(local), "локальные клиенты (стенд, нагрузочный прибор) не делятся по адресу"
+    for lease in [a[1], other, again, *local]:
+        lease.release()
+    assert admission._per_host == {}
+
+
+def test_the_socket_gate_reads_the_peer_address():
+    import inspect
+    src = inspect.getsource(endpoint._admitted)
+    assert "admission.acquire(websocket.client.host if websocket.client else \"\")" in src

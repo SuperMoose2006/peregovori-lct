@@ -23,15 +23,24 @@ def _positive_number(name: str, default: str, *, integer: bool = False):
 
 # Conservative public pilot defaults; no unbounded/disabled sentinel values.
 MAX_WEBSOCKETS: int = _positive_number("NEGO_MAX_WEBSOCKETS", "128", integer=True)
+#: Share of the global cap one address may hold, game or no game. Without it a
+#: single address opening 128 sockets and never sending `session.init` (each
+#: closed after INIT_TIMEOUT_S, reopened at once) kept every other visitor
+#: out — the per-address game limit only applies at init (found after the
+#: 17.10 audit). Twice the per-address game limit leaves room for takeover and
+#: reconnect overlap. Local hosts are exempt, as for games (`limits.exempt`).
+MAX_WEBSOCKETS_PER_HOST: int = _positive_number("NEGO_MAX_WEBSOCKETS_PER_HOST", "24", integer=True)
 INIT_TIMEOUT_S: float = _positive_number("NEGO_WS_INIT_TIMEOUT_S", "10")
 
 _lock = threading.Lock()
 _live = 0
+_per_host: dict[str, int] = {}
 
 
 class SocketLease:
-    def __init__(self) -> None:
+    def __init__(self, host: str = "") -> None:
         self._released = False
+        self._host = host
 
     def release(self) -> None:
         global _live
@@ -40,16 +49,28 @@ class SocketLease:
                 return
             self._released = True
             _live -= 1
+            if self._host:
+                left = _per_host.get(self._host, 0) - 1
+                if left > 0:
+                    _per_host[self._host] = left
+                else:
+                    _per_host.pop(self._host, None)
 
 
-def acquire() -> SocketLease | None:
+def acquire(host: str = "") -> SocketLease | None:
     """Reserve before accepting; no await between checking and reserving."""
     global _live
+    from app.realtime.limits import exempt
+    counted = not exempt(host)
     with _lock:
         if _live >= MAX_WEBSOCKETS:
             return None
+        if counted and _per_host.get(host, 0) >= MAX_WEBSOCKETS_PER_HOST:
+            return None
         _live += 1
-        return SocketLease()
+        if counted:
+            _per_host[host] = _per_host.get(host, 0) + 1
+        return SocketLease(host if counted else "")
 
 
 def live_websockets() -> int:

@@ -276,7 +276,7 @@ class _Work:
 def _admitted(handler):
     @wraps(handler)
     async def admitted(websocket: WebSocket) -> None:
-        socket_lease = admission.acquire()
+        socket_lease = admission.acquire(websocket.client.host if websocket.client else "")
         if socket_lease is None:
             await websocket.close(code=WS_RATE_LIMITED)
             return
