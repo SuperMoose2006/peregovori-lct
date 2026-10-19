@@ -780,6 +780,10 @@ LEX: dict[str, list[str]] = {
     "closeNotDeal": ["к сведению"],
     # Противительный союз: «устраивает ЭТО, но…» — согласие с частью.
     "contrast": ["но", "однако", "but", "however"],
+    # Уступительная клауза: число в ней — сказанное о прошлом, а не новая
+    # оферта. «Хорошо, 95 — по рукам, хотя я рассчитывал на 90» уводило
+    # оферту в 90 (найдено ревью ветки). Основы: слово клаузы НАЧИНАЕТСЯ с них.
+    "concessive": ["хотя", "рассчитыва", "надеял", "although", "though", "hoped", "hoping"],
     # Условие размена, которое под отрицанием сразу за ним — угроза, а не
     # размен: «Если мы НЕ договоримся сегодня, мы уйдём к конкуренту» получало
     # `tradeoff`, двигало цену и шло в технику (найдено после аудита 17.10).
@@ -996,6 +1000,9 @@ class NumberMention:
     #: Граница диапазона «88-92»: рыночный ориентир, а не оффер. Берётся, только
     #: если ничего, кроме диапазона, в реплике нет.
     ranged: bool
+    #: Число в уступительной клаузе («хотя я рассчитывал на 90»): сказанное о
+    #: прошлом. Новой офертой при числе стола в реплике не считается.
+    aside: bool = False
 
 
 def number_mentions(t: str) -> list[NumberMention]:
@@ -1028,7 +1035,8 @@ def number_mentions(t: str) -> list[NumberMention]:
             (i > 0 and _RANGE_GAP_RE.match(t[found[i - 1][1]:start]) is not None)
             or (i + 1 < len(found) and _RANGE_GAP_RE.match(t[end:found[i + 1][0]]) is not None)
         )
-        out.append(NumberMention(value=val, kind=kind, ranged=ranged))
+        aside = any(w.startswith(c) for w in _clause_before(t, start) for c in LEX["concessive"])
+        out.append(NumberMention(value=val, kind=kind, ranged=ranged, aside=aside))
     return out
 
 

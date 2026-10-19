@@ -192,7 +192,7 @@ def render() -> str:
             "arg": a.arg_quality,
             "words": a.words,
             "number": a.number,
-            "mentions": [[m.value, m.kind, m.ranged] for m in a.mentions],
+            "mentions": [[m.value, m.kind, m.ranged, m.aside] for m in a.mentions],
             "spin": a.spin,
         })
     return json.dumps({"source": "engine/techniques.py::analyze", "cases": rows},

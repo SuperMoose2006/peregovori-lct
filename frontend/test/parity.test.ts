@@ -188,7 +188,7 @@ test("классификатор в браузере отвечает ровно
   for (const c of fixtures.cases as {
     text: string; moves: string[]; arg: number;
     number: number | null; spin: string | null; primary: string;
-    mentions: [number, string, boolean][];
+    mentions: [number, string, boolean, boolean][];
   }[]) {
     const a = analyze(c.text);
     if (JSON.stringify([...a.moves].sort()) !== JSON.stringify([...c.moves].sort())) {
@@ -197,7 +197,7 @@ test("классификатор в браузере отвечает ровно
       bad.push(`«${c.text}» аргумент: ${a.arg} ≠ ${c.arg}`);
     } else if (a.number !== c.number) {
       bad.push(`«${c.text}» число: ${a.number} ≠ ${c.number}`);
-    } else if (JSON.stringify((a.mentions ?? []).map((m) => [m.value, m.kind, m.ranged])) !== JSON.stringify(c.mentions)) {
+    } else if (JSON.stringify((a.mentions ?? []).map((m) => [m.value, m.kind, m.ranged, m.aside])) !== JSON.stringify(c.mentions)) {
       // Из этого списка движок выбирает цену по единице стола (аудит 17.10, F01).
       bad.push(`«${c.text}» числа: ${JSON.stringify(a.mentions)} ≠ ${JSON.stringify(c.mentions)}`);
     } else if ((a.spin ?? null) !== (c.spin ?? null)) {

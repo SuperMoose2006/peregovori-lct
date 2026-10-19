@@ -367,6 +367,9 @@ export interface NumberMention {
   kind: "pct" | "money" | "plain";
   /** Граница диапазона «88-92»: ориентир, а не оффер. */
   ranged: boolean;
+  /** Число в уступительной клаузе («хотя я рассчитывал на 90»): сказанное о
+   *  прошлом, а не новая оферта. */
+  aside: boolean;
 }
 
 // Суффикс вплотную к числу съедается вместе с ним, как в MONEY_RE на сервере:
@@ -400,7 +403,12 @@ export function numberMentions(t: string): NumberMention[] {
     const ranged =
       (i > 0 && RANGE_GAP.test(t.slice(found[i - 1].end, f.start))) ||
       (i + 1 < found.length && RANGE_GAP.test(t.slice(f.end, found[i + 1].start)));
-    out.push({ value: f.value, kind: f.kind, ranged });
+    const head = t.slice(0, f.start);
+    let cut = -1;
+    for (const ch of CLAUSE_BREAKS) cut = Math.max(cut, head.lastIndexOf(ch));
+    const clause = head.slice(cut + 1).split(/\s+/).filter(Boolean);
+    const aside = clause.some((w) => LEX.concessive.some((c) => w.startsWith(c)));
+    out.push({ value: f.value, kind: f.kind, ranged, aside });
   });
   return out;
 }

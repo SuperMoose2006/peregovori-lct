@@ -177,6 +177,9 @@ export const LEX: Record<string, string[]> = {
   contrast: [
     "но", "однако", "but", "however",
   ],
+  concessive: [
+    "хотя", "рассчитыва", "надеял", "although", "though", "hoped", "hoping",
+  ],
   tradeoffVoidIfNot: [
     "если мы",
   ],

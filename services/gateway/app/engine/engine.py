@@ -522,25 +522,33 @@ def _pick_offer(sc: Scenario, analysis: Analysis, on_table: Optional[float] = No
     стола — другая величина той же записи: «Депозит 130 тысяч и аренда 66 тысяч
     — по рукам» при аренде 75 закрывало на 130 (найдено после аудита 17.10).
     Единственное число берётся как есть: «Договорились на 100» — согласие на 100.
+
+    Новой офертой не бывает число уступительной клаузы («хотя я рассчитывал на
+    90»), а когда лучшего числа нет, а число стола названо, — это согласие на
+    стол: «Ок, 95 вместо 97 — по рукам» закрывало на 97, «Договорились на 100 —
+    лучше, чем ваши первые 120» — на 120 (найдено ревью ветки).
     """
     if not analysis.mentions:
         return None if analysis.number is None else _plausible_offer(sc, analysis.number)
     foreign = "money" if "%" in sc.headline.unit["ru"] else "pct"
     pool = [m for m in analysis.mentions if m.kind != foreign]
-    priced_all = [p for p in (_plausible_offer(sc, m.value)
-                              for m in [m for m in pool if not m.ranged] + [m for m in pool if m.ranged])
+    ordered = [m for m in pool if not m.ranged] + [m for m in pool if m.ranged]
+    priced_all = [(p, m) for p, m in ((_plausible_offer(sc, m.value), m) for m in ordered)
                   if p is not None]
     if not priced_all:
         return None
     if on_table is not None and len(priced_all) > 1:
         lower = sc.headline.dir == "lower_is_better"
-        for priced in priced_all:
-            if abs(priced - on_table) > 1e-6 and ((priced < on_table) if lower else (priced > on_table)):
+        for priced, m in priced_all:
+            if (not m.aside and abs(priced - on_table) > 1e-6
+                    and ((priced < on_table) if lower else (priced > on_table))):
                 return priced
-        for priced in priced_all:
+        if any(abs(priced - on_table) <= 1e-6 for priced, _ in priced_all):
+            return on_table
+        for priced, _ in priced_all:
             if abs(priced - on_table) > 1e-6:
                 return priced
-    return priced_all[0]
+    return priced_all[0][0]
 
 
 def _acceptable(sess: Session, number: float) -> bool:

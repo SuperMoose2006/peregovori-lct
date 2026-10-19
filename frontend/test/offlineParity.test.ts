@@ -244,6 +244,26 @@ test("оферта игрока — новое число, а не цитата 
   }
 });
 
+test("согласие на число стола закрывает на нём (зеркало test_engine_edges)", async () => {
+  // Найдено ревью ветки: «Ок, 95 вместо 97 — по рукам» закрывало на 97, а
+  // «…хотя я рассчитывал на 90» уводило оферту в 90.
+  const { analyze, applyMove, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const cases: [number, string][] = [
+    [95, "Ок, 95 вместо 97 — по рукам."],
+    [100, "Договорились на 100 — это лучше, чем ваши первые 120."],
+    [95, "Хорошо, 95 — по рукам, хотя я рассчитывал на 90."],
+  ];
+  for (const [table, line] of cases) {
+    const s = newSession(SCENARIO_MAP.supplier, "ru");
+    s.turn = 1;
+    s.offerOpp = table;
+    applyMove(s, analyze(line), line);
+    assert.equal(s.status, "agreement", line);
+    assert.equal(s.deal, table, line);
+  }
+});
+
 test("откат за грубость остаётся на сетке шага (зеркало test_engine_edges)", async () => {
   // Найдено после аудита 17.10: «94,4 ₽/шт» на столе с шагом 0,5.
   const { analyze, applyMove, newSession, priceStep } = await import("../src/mock/engine");

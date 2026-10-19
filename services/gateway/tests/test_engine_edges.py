@@ -373,6 +373,25 @@ def test_the_players_offer_is_the_new_number_not_the_quoted_one(scenario_id, lin
         assert s.state.deal == player
 
 
+@pytest.mark.parametrize("table,line", [
+    (95, "Ок, 95 вместо 97 — по рукам."),
+    (100, "Договорились на 100 — это лучше, чем ваши первые 120."),
+    (95, "Хорошо, 95 — по рукам, хотя я рассчитывал на 90."),
+])
+def test_agreeing_to_the_table_number_closes_on_it(table, line):
+    """Найдено ревью ветки: правило «оферта — новое и лучшее число» в запасной
+    ветке брало ПЕРВОЕ число, отличное от стола, — то есть худшее, которое
+    игрок лишь упоминает: «Ок, 95 вместо 97 — по рукам» закрывало на 97.
+    А число в уступительной клаузе («хотя я рассчитывал на 90») — не новая
+    оферта, а сказанное о прошлом."""
+    s = engine.create_session("supplier", "ru")
+    s.turn = 1
+    s.state.offer_opp = table
+    engine.apply_move(s, engine.analyze(line), line)
+    assert s.state.status == "agreement", line
+    assert s.state.deal == table, line
+
+
 @pytest.mark.parametrize("line", ["Договорились, подписываем 15 числа.", "По рукам, отгрузка 1 марта."])
 def test_a_date_in_a_yes_is_not_an_offer(line):
     """Найдено после аудита 17.10: число даты читалось офертой вне коридора, и

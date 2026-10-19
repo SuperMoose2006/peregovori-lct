@@ -343,24 +343,27 @@ export function pickOffer(sc: ScenarioDef, a: RawAnalysis, onTable: number | nul
   if (!a.mentions || a.mentions.length === 0) return a.number === null ? null : plausibleOffer(sc, a.number);
   const foreign = sc.unit.ru.includes("%") ? "money" : "pct";
   const pool = a.mentions.filter((m) => m.kind !== foreign);
-  const pricedAll: number[] = [];
+  const pricedAll: { priced: number; aside: boolean }[] = [];
   for (const m of [...pool.filter((x) => !x.ranged), ...pool.filter((x) => x.ranged)]) {
     const priced = plausibleOffer(sc, m.value);
-    if (priced !== null) pricedAll.push(priced);
+    if (priced !== null) pricedAll.push({ priced, aside: m.aside });
   }
   if (!pricedAll.length) return null;
   // Чисел несколько — оферта игрока та, что НОВАЯ и ЛУЧШЕ для него, чем стол:
   // число стола — цитата оппонента («Ваши 100 — это много. Давайте 90»), число
   // хуже стола — другая величина («Депозит 130 и аренда 66»). Зеркало
-  // engine.py::_pick_offer.
+  // engine.py::_pick_offer. Число уступительной клаузы новой офертой не бывает,
+  // а названное число стола без лучшего — согласие на стол («Ок, 95 вместо 97 —
+  // по рукам» закрывало на 97; найдено ревью ветки).
   if (onTable !== null && pricedAll.length > 1) {
     const lower = sc.dir === "low";
-    for (const priced of pricedAll) {
-      if (Math.abs(priced - onTable) > 1e-6 && (lower ? priced < onTable : priced > onTable)) return priced;
+    for (const { priced, aside } of pricedAll) {
+      if (!aside && Math.abs(priced - onTable) > 1e-6 && (lower ? priced < onTable : priced > onTable)) return priced;
     }
-    for (const priced of pricedAll) if (Math.abs(priced - onTable) > 1e-6) return priced;
+    if (pricedAll.some(({ priced }) => Math.abs(priced - onTable) <= 1e-6)) return onTable;
+    for (const { priced } of pricedAll) if (Math.abs(priced - onTable) > 1e-6) return priced;
   }
-  return pricedAll[0];
+  return pricedAll[0].priced;
 }
 
 /** Историческая точка отсчёта калибровки, не центр трёх режимов. Сохраняем её,
