@@ -1390,7 +1390,12 @@ BANK: list[dict] = [
         "difficulty": 3, "xp": 20, "scenario_id": "sla_renewal",
         "prompt": T("Не отступите и не пригрозите: верните разговор к объективному критерию.",
                     "Do not retreat and do not threaten: bring the conversation back to an objective criterion."),
-        "check": {"require_moves": ["objective_criteria"], "forbid_moves": ["threat", "hostile"],
+        # «Не отступите» — проверкой, а не только словами задания: без
+        # уступки и закрытия в запрете «Хорошо, мы согласны на 99.5%, раз
+        # отраслевой стандарт…» засчитывалось — а в игре закрывало сделку ниже
+        # вашей красной линии (инвариант 9; найдено после аудита 17.10).
+        "check": {"require_moves": ["objective_criteria"],
+                  "forbid_moves": ["threat", "hostile", "concession", "accept"],
                   "min_arg": 40, "min_words": 10},
         "reference": T(
             "Я слышу, что это ваше последнее слово. Давайте вернёмся к цифрам: отраслевой стандарт — 99.9%, и наш простой стоит 2.4 млн в час.",

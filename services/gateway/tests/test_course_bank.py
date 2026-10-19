@@ -794,3 +794,17 @@ def test_no_exercise_answer_is_a_reaction_the_layer_cannot_ask_about() -> None:
                  if x["type"] in ("reaction", "face") and x.get("answer") not in scale]
     assert not off_scale, (
         "ответ вне шкалы теплоты — слой не сможет построить варианты: " + str(off_scale))
+
+
+@pytest.mark.parametrize("lang,line", [
+    ("ru", "Хорошо, мы согласны на 99.5%, раз отраслевой стандарт для такого класса — 99.5%, и это подтверждают три обзора."),
+    ("en", "Fine, we accept 99.5%, since the industry standard for this class is 99.5%, confirmed by three reviews."),
+])
+def test_pd02_does_not_accept_a_retreat(lang, line):
+    """Инвариант 9 (найдено после аудита 17.10): «не отступите» засчитывало
+    отступление с критерием — а в игре оно закрывало сделку ниже красной
+    линии (99,31 при пределе 99,4)."""
+    from app.course.check import check_freeform
+    item = next(x for x in BANK if x["id"] == "pd-02")
+    assert not check_freeform(item, line, lang)["ok"]
+    assert check_freeform(item, item["reference"][lang], lang)["ok"]

@@ -2458,7 +2458,9 @@ export const COURSE_BANK: Exercise[] = [
       ],
       "forbid_moves": [
         "threat",
-        "hostile"
+        "hostile",
+        "concession",
+        "accept"
       ],
       "min_arg": 40,
       "min_words": 10
