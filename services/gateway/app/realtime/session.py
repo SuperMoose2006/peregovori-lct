@@ -18,7 +18,9 @@ from typing import Any, Optional
 
 from app.ai.sanitize import sanitize
 from app.probe import ProbeMemory
+from app.protocol import reproducible_run
 from app.realtime.bus import EventBus, new_generation_id
+from app.review.tape import Tape
 
 
 #: Предел накопленного хода игрока, знаков. Клиент обрезает на 2000 (см.
@@ -208,6 +210,16 @@ class RealtimeSession:
     #: `score_session` принимает `engine.Session`, а это `RealtimeSession`.
     vision_looks: int = 0
 
+    #: Запись партии для «Глубокого разбора» (`app/review/tape.py`): время
+    #: ходов, речь игрока, кадры. Живёт здесь по той же причине, что и лента
+    #: камеры, — `score_session` её не видит. В партии на зачёт её НЕТ вовсе:
+    #: там нет ни слоёв, ни судьи, и разбора по записи тоже нет.
+    tape: Optional[Tape] = None
+
+    def __post_init__(self) -> None:
+        if self.tape is None and not reproducible_run(self.game_mode):
+            self.tape = Tape(self.clock_ms)
+
     # ------------------------------------------------------------------ ходы
 
     @property
@@ -375,8 +387,10 @@ class RealtimeSession:
 # метро показывал ленту, начинающуюся с середины партии, и молчал о том, что
 # начала он не знает. Лента с дырой хуже отсутствующей: дыры в ней не видно.
 
-#: session_id → (положено_в, сколько_шла_партия, наблюдения, лента, взгляды).
-_KEPT: dict[str, tuple[float, float, list[str], list[dict], int, ProbeMemory]] = {}
+#: session_id → (положено_в, сколько_шла_партия, наблюдения, лента, взгляды,
+#: память «читай лицо», запись для «Глубокого разбора»).
+_KEPT: dict[str, tuple[float, float, list[str], list[dict], int, ProbeMemory,
+                       Optional[Tape]]] = {}
 
 #: Столько же, сколько ждёт брошенную партию `app/session.py`: смысла держать
 #: ленту дольше самой партии нет.
@@ -395,12 +409,18 @@ def keep_for_resume(session: "RealtimeSession") -> None:
     # Взгляды считаются наравне с записями: партия, где камера смотрела и
     # молчала, обязана пережить обрыв так же, как разговорчивая, — иначе после
     # метро разбор скажет «слой не поднялся» про слой, который работал.
+    # Запись партии — тоже: смена режима (чат ↔ созвон) идёт через `resume`, и
+    # без неё каждый созвон начинал бы запись с нуля, а разбор видел бы только
+    # последний кусок партии.
+    tape = session.tape if session.tape is not None and not session.tape.empty else None
     if (not session.observations and not session.vision_notes and not session.vision_looks
-            and not session.probe_memory.last_turn):
+            and not session.probe_memory.last_turn and tape is None):
         return
+    if tape is not None:
+        tape.close_open()
     _KEPT[session.session_id] = (now, now - session.started_at,
                                  list(session.observations), list(session.vision_notes),
-                                 session.vision_looks, session.probe_memory)
+                                 session.vision_looks, session.probe_memory, tape)
 
 
 def restore_from_resume(session: "RealtimeSession", session_id: str) -> None:
@@ -413,8 +433,13 @@ def restore_from_resume(session: "RealtimeSession", session_id: str) -> None:
     kept = _KEPT.pop(session_id, None)
     if kept is None:
         return
-    _at, elapsed, observations, notes, looks, probe_memory = kept
+    _at, elapsed, observations, notes, looks, probe_memory, tape = kept
     session.probe_memory = probe_memory
+    # Запись едет только туда, где её ведут: партия на зачёт записи не знает,
+    # и возвращение туда (режим сервер берёт из хранилища) её не заводит.
+    if tape is not None and session.tape is not None:
+        tape.rebind(session.clock_ms)
+        session.tape = tape
     session.observations[:0] = observations
     session.vision_notes[:0] = notes
     session.vision_looks += looks

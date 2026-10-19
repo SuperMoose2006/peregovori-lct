@@ -58,6 +58,7 @@ services/gateway/            Python 3.12, FastAPI, :8010
     realtime/                события · шина · сессия · endpoint
     perception/              vad · turn_detect · voice_pipeline · vision
     orchestrator/            ход, судья, синтез речи
+    review/                  «Глубокий разбор»: запись партии, агенты — НЕ в счёт
     providers/               маршрутизация «роль → модель»
     avatar/                  presence — картинка по реакции движка, ЛИПСИНКА НЕТ
     vendor/                  перенесённый upstream-код

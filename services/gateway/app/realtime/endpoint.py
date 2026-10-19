@@ -482,8 +482,11 @@ async def realtime_ws(websocket: WebSocket) -> None:
 
                     orchestrator, voice, vision = _wire(session, work=work)
                     # Зрение слушает конец реплики собеседника: это повод
-                    # посмотреть на реакцию (`vision.py`, «МИМИКА»).
-                    observers = (vision.on_event,) if vision is not None else ()
+                    # посмотреть на реакцию (`vision.py`, «МИМИКА»). Запись
+                    # партии слушает всё — ей нужно время ходов и речи.
+                    observers = tuple(o for o in (
+                        vision.on_event if vision is not None else None,
+                        _tape_observer(session)) if o is not None)
                     writer = asyncio.create_task(_pump(websocket, session, observers))
                     # Владельцем записываемся ПОСЛЕ того, как всё поднято:
                     # вытесняющий зовёт `quiesce`, и гасить полусобранное было
@@ -531,6 +534,11 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         frames = [f for f in frames if len(f) <= MAX_FRAME_B64]
                     if frames:
                         session.append_input(frames=frames)
+                        if session.tape is not None and session.layers.camera:
+                            # Запись партии берёт кадр сама по своему такту —
+                            # даже когда модель зрения не поднялась: мимику
+                            # «Глубокий разбор» смотрит по записи, после партии.
+                            session.tape.frame(frames[-1], session.turn_id)
                         if vision is not None:
                             # «Кадр изменился» считает браузер: у него кадр уже в
                             # canvas, а по сжатому JPEG честной разницы не получить.
@@ -554,6 +562,8 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         # Нечётный хвост — не повод ронять партию: PCM16 идёт
                         # парами байт, лишний байт просто не звук.
                         pcm = np.frombuffer(blob[:len(blob) - len(blob) % 2], dtype=np.int16)
+                        if session.tape is not None:
+                            session.tape.audio(pcm)
                         voice.feed(pcm)
                     if data.force_listen:
                         await orchestrator.interrupt(reason="force_listen")
@@ -571,6 +581,8 @@ async def realtime_ws(websocket: WebSocket) -> None:
                         # аудита 17.10; шапка _Work обещает обратное).
                         work.start_voice_commit(voice)
                     elif text:
+                        if session.tape is not None:
+                            session.tape.mark_source("text")
                         if not work.start_turn(orchestrator, session, text):
                             await websocket.send_json(error("busy", "turn already in flight"))
                     continue
@@ -864,6 +876,8 @@ def _wire(session: RealtimeSession, *, work: Optional["_Work"] = None) -> tuple[
             распознанная, пока шёл напечатанный ход, двигала тот же счётчик
             внахлёст. Теперь путь один — `_Work.run_turn`.
             """
+            if session.tape is not None:
+                session.tape.mark_source("voice")
             await work.run_turn(orchestrator, session, text)
 
         voice_publish = _voice_publisher(session)
@@ -1114,6 +1128,19 @@ def _attach_vision_tape(event: dict, session: RealtimeSession) -> None:
         deb["observation_looks"] = session.vision_looks
     else:
         deb.pop("observation_looks", None)
+
+
+def _tape_observer(session: RealtimeSession) -> Optional[Callable[[dict], None]]:
+    """Наблюдатель для записи партии — или None, если записи нет (зачёт)."""
+    if session.tape is None:
+        return None
+
+    def observe(event: dict) -> None:
+        # Запись берётся из сессии В МОМЕНТ события, а не при сборке: при
+        # возвращении в партию её подменяет `restore_from_resume`.
+        if session.tape is not None:
+            session.tape.observe(event, session.turn_id)
+    return observe
 
 
 async def _pump(websocket: WebSocket, session: RealtimeSession,
