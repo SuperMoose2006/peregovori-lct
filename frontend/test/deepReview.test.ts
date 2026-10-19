@@ -62,7 +62,7 @@ const EMPTY = {
 
 const REPORT = {
   version: 1, lang: "ru", affects_score: false, agents: [], agents_ok: 9, agents_total: 10,
-  channels: { content: { state: "ok" }, voice: { state: "absent", reason: "chat" },
+  channels: { content: { state: "ok", agents_ok: 8, agents_total: 8 }, voice: { state: "absent", reason: "chat" },
               video: { state: "absent", reason: "camera_off" } },
   competencies: [], soft: [], voice: null, face: null, convergences: [], timeline: [],
   timeline_total: 0, dropped_quotes: 0,
@@ -129,11 +129,16 @@ test("отказ ложится на кнопку, а «уже идёт» — н
   } finally { t.transport.close(); }
 });
 
-test("отчёт без единого ответившего агента — сбой, а не разбор", () => {
+test("отчёт без единого ответившего агента смысла — сбой, а не разбор", () => {
   const s = reduce({ ...EMPTY, review: { ...REVIEW_IDLE, status: "running" } },
                    { type: "review", review: { ...REPORT, agents_ok: 0 } }, () => 1);
-  assert.equal(s.review.status, "failed");
-  assert.equal(s.review.code, "review_empty");
+  assert.equal(s.review.status, "done", "агенты смысла ответили — это разбор");
+  const faceOnly = { ...REPORT, agents_ok: 1,
+    channels: { ...REPORT.channels, content: { state: "failed" as const, agents_ok: 0, agents_total: 8 } } };
+  const f = reduce({ ...EMPTY, review: { ...REVIEW_IDLE, status: "running" } },
+                   { type: "review", review: faceOnly }, () => 1);
+  assert.equal(f.review.status, "failed", "ответила одна мимика — компетенций нет, это сбой");
+  assert.equal(f.review.code, "review_empty");
   assert.ok(I18N.ru.review.failed.review_empty && I18N.en.review.failed.review_empty);
 });
 

@@ -75,7 +75,7 @@ def _until(ws, kind: str, limit: int = 40) -> list[dict]:
 
 
 def _fake_review(monkeypatch, *, gate: threading.Event | None = None, fail: bool = False,
-                 agents_ok: int = 3):
+                 agents_ok: int = 3, content_ok: int | None = None):
     calls = {"n": 0}
 
     async def fake(facts, tape, *, progress, **kw):
@@ -87,7 +87,10 @@ def _fake_review(monkeypatch, *, gate: threading.Event | None = None, fail: bool
             raise RuntimeError("агенты упали")
         progress({"type": "review.progress", "done": 2, "total": 2, "agent": "competency"})
         assert facts["lines"], "разбор получил разговор"
-        return {"version": 1, "affects_score": False, "agents_ok": agents_ok, "agents_total": 10}
+        return {"version": 1, "affects_score": False, "agents_ok": agents_ok, "agents_total": 10,
+                "channels": {"content": {"state": "ok" if (content_ok if content_ok is not None else agents_ok) else "failed",
+                                         "agents_ok": content_ok if content_ok is not None else agents_ok,
+                                         "agents_total": 8}}}
 
     monkeypatch.setattr(runner, "run_review", fake)
     return calls
@@ -144,6 +147,26 @@ def test_a_review_with_no_agent_alive_is_not_kept(live, monkeypatch):
         ws.send_json({"type": "session.close", "reason": "test"})
     assert calls["n"] == 2, "сбой — не разбор: просьбу повторить исполняют"
     assert not built[0].tape.media_discarded and built[0].tape.frames
+
+
+def test_a_review_where_only_the_face_answered_is_not_kept(live, monkeypatch):
+    """Ревью 19.10: модель смысла лежит, зрение отвечает — `agents_ok` = 1, и
+    отчёт без единой компетенции запоминался навсегда, а запись стиралась:
+    повторить было нечем. Разбор — это смысл; без него это сбой."""
+    client, built = live
+    calls = _fake_review(monkeypatch, agents_ok=1, content_ok=0)
+    with client.websocket_connect("/v1/realtime?mode=text") as ws:
+        _open(ws)
+        _finish(ws)
+        monkeypatch.setattr(orchat, "available", lambda: True)
+        built[0].tape.frame("кадр", turn=1)
+        ws.send_json({"type": "review.request"})
+        _until(ws, "review.done")
+        ws.send_json({"type": "review.request"})
+        again = _until(ws, "review.done")[-1]
+        assert not again.get("cached")
+        ws.send_json({"type": "session.close", "reason": "test"})
+    assert calls["n"] == 2 and not built[0].tape.media_discarded
 
 
 def test_a_second_press_while_running_is_busy_and_a_crash_is_said(live, monkeypatch):

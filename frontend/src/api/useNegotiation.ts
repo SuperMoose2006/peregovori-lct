@@ -580,9 +580,10 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
     }
 
     case "review":
-      // Отчёт, где не ответил ни один агент, — сбой, а не разбор: сервер его
-      // не запомнил, и кнопка предлагает повторить.
-      return { ...prev, review: msg.review.agents_ok > 0
+      // Отчёт, где не ответил ни один агент СМЫСЛА, — сбой, а не разбор:
+      // сервер его не запомнил, и кнопка предлагает повторить. Голос и мимика
+      // без смысла разбором не считаются (то же правило, что `review_answered`).
+      return { ...prev, review: (msg.review.channels?.content?.agents_ok ?? 0) > 0
         ? { ...(prev.review ?? REVIEW_IDLE), status: "done", report: msg.review, code: null, message: null }
         : { ...REVIEW_IDLE, status: "failed", code: "review_empty" } };
 

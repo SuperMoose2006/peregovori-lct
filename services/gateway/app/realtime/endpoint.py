@@ -1196,11 +1196,19 @@ def _review_refusal(session: RealtimeSession) -> Optional[dict]:
     return None
 
 
+def review_answered(report: dict) -> bool:
+    """Ответил ли хоть один агент смысла — то есть разбор ли это вообще."""
+    return bool(((report.get("channels") or {}).get("content") or {}).get("agents_ok"))
+
+
 async def _run_review(session: RealtimeSession) -> None:
     """Собрать отчёт и отдать его. Готовый — запомнить, звук и кадры — выбросить.
 
-    Отчёт, где не ответил НИ ОДИН агент, не запоминается и запись не
+    Отчёт, где не ответил НИ ОДИН агент СМЫСЛА, не запоминается и запись не
     выбрасывается: это сбой, а не разбор, и человек вправе попросить ещё раз.
+    Голос и мимика без смысла разбором не считаются — раньше ответившее зрение
+    при лежащей модели смысла запоминало отчёт без единой компетенции навсегда,
+    а запись стиралась, и повторить было нечем (ревью 19.10).
     """
     from app.review.runner import run_review
     tape = session.tape
@@ -1214,7 +1222,7 @@ async def _run_review(session: RealtimeSession) -> None:
         _log.exception("realtime: глубокий разбор упал")
         session.bus.publish(error("review_failed", _REVIEW_TEXT["failed"][lang], "review"))
         return
-    if tape is not None and report.get("agents_ok"):
+    if tape is not None and review_answered(report):
         tape.report = report
         tape.discard_media()
     session.bus.publish({"type": "review.done", "review": report})
