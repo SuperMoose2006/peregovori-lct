@@ -171,6 +171,9 @@ export const LEX: Record<string, string[]> = {
   subordinators: [
     "что", "чтобы", "когда", "when", "once", "until",
   ],
+  closeRecall: [
+    "как", "как мы", "как и", "как мы и", "as", "as we", "like we",
+  ],
   closeHedges: [
     "почти", "almost", "nearly",
   ],

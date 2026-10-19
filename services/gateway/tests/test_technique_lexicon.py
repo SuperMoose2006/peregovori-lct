@@ -573,6 +573,22 @@ def test_a_deal_with_a_condition_is_still_a_deal(line):
     assert "accept" in analyze(line).moves
 
 
+@pytest.mark.parametrize("line,closes", [
+    ("Как мы и договорились, сначала обсудим сроки.", False),
+    ("Как мы договорились вчера, начнём с графика.", False),
+    ("As we agreed, let us start with the schedule.", False),
+    ("Как насчёт 90 — по рукам?", True),
+    ("Как и договорились — 90, подписываем.", True),
+])
+def test_recalling_an_earlier_agreement_is_not_a_close(line, closes):
+    """Найдено после аудита 17.10 (лежало в «не исправлено»): «Как мы и
+    договорились, сначала…» — ссылка на прошлую договорённость, а не
+    рукопожатие, но закрывала сделку на цене оппонента. Союз «как» в общий
+    список придаточных не годится — он снял бы «Как насчёт 90 — по рукам?»,
+    поэтому снимается только «как (мы) (и)» ВПЛОТНУЮ перед идиомой."""
+    assert ("accept" in analyze(line).moves) is closes
+
+
 def test_a_partial_yes_about_the_offer_is_still_partial():
     """Сделка-объект снимает «согласие с частью» только как ВСЁ дополнение:
     «ваше предложение по срокам, но…» — по-прежнему согласие с частью."""

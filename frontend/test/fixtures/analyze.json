@@ -378,6 +378,18 @@
    "spin": "problem"
   },
   {
+   "text": "As we agreed, let us start with the schedule.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Both at once, to show good faith",
    "moves": [
     "statement"
@@ -3676,6 +3688,49 @@
    "primary": "open_question",
    "arg": 5,
    "words": 2,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Как и договорились — 90, подписываем.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 5,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false,
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "Как мы договорились вчера, начнём с графика.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 7,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Как мы и договорились, сначала обсудим сроки.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 7,
    "number": null,
    "mentions": [],
    "spin": null

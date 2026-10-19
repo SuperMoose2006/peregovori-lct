@@ -216,6 +216,8 @@ export function isClose(t: string): boolean {
       if (clause.some((x) => SUBORDINATORS.has(x))) continue;
       // «не договорились», «почти договорились». Зеркало techniques.py::_closes_here.
       if (clause.slice(-NEGATION_WINDOW).some((x) => NEGATORS.has(x) || CLOSE_HEDGES.has(x))) continue;
+      // «Как мы и договорились» — ссылка на прошлое. Зеркало techniques.py::_closes_here.
+      if ([1, 2, 3].some((k) => clause.length >= k && LEX.closeRecall.includes(clause.slice(-k).join(" ")))) continue;
       if (!undoneAfter(t, at)) return true;
     }
     return false;
