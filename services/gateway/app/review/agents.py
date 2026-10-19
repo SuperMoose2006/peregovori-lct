@@ -138,13 +138,20 @@ def _parse_competency(data: dict) -> dict:
             continue
         if score != score:     # NaN
             continue
+        # Модель иногда отвечает по сто-балльной шкале, хотя просили долю: «70»
+        # — это 70 из 100, а не «больше единицы, значит 100%». Число вне обеих
+        # шкал — не ответ, а мусор, и выдумывать за него оценку нельзя.
+        if 1 < score <= 100:
+            score /= 100
+        if not 0 <= score <= 1:
+            continue
         pro = [q for q in (_quote(x) for x in _items(item, "pro", 3)) if q]
         con = []
         for x in _items(item, "con", 3):
             q = _quote(x)
             if q:
                 con.append({**q, "why": _str(x.get("why"), 160)})
-        found[cid] = {"id": cid, "score": min(1.0, max(0.0, score)), "pro": pro, "con": con}
+        found[cid] = {"id": cid, "score": round(score, 3), "pro": pro, "con": con}
     return {"competencies": [found[c] for c in COMPETENCIES if c in found]}
 
 
