@@ -645,12 +645,12 @@ BLOCKS: list[Block] = [
             Lesson(4, T("Счёт и потолок «C»", "The score and the C ceiling"), T(
                 "Итог = 0.4·экономика + 0.25·отношения + 0.35·приёмы. Экономика считается не как "
                 "«сколько получил», а как доля пути от красной линии до цели.\n\n"
-                f"И главное: если сам метод — приёмы без оценки судьи — ниже {TECHNIQUE_FLOOR}, грейд не "
+                f"И главное: если сам метод — приёмы без оценки смысла реплик — ниже {TECHNIQUE_FLOOR}, грейд не "
                 "поднимается выше C, какой бы ни была цена. "
                 "Отличная сделка, купленная без метода, не воспроизводима — а тренажёр учит методу.",
                 "Overall = 0.4·economics + 0.25·relationship + 0.35·technique. Economics is not “how "
                 "much you got” but the share of the distance from your red line to your target.\n\n"
-                f"And crucially: if the method itself — technique without the judge's score — is below "
+                f"And crucially: if the method itself — technique without the score for what your lines mean — is below "
                 f"{TECHNIQUE_FLOOR}, the grade never rises above C, whatever the "
                 "price. A great deal bought without method does not repeat — and method is what the "
                 "trainer teaches.",
