@@ -558,6 +558,9 @@ export class RealtimeTransport implements Transport {
         const nextSessionId = String(event.session_id ?? "");
         const replaced = !!this.serverSessionId && nextSessionId !== this.serverSessionId;
         this.serverSessionId = nextSessionId;
+        // Партия новая — нумерация вопросов о реакции с первого хода, как и при
+        // смене режима (второе ревью: здесь сброса не было).
+        if (replaced) this.lastProbeTurn = 0;
         // Reconnect handshake must update the visible state, not only the socket.
         this.forgetReply();
         this.faceFrames.setStaleMs(((event.capabilities as Record<string, unknown> | undefined)

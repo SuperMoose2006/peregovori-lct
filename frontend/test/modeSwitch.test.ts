@@ -473,3 +473,23 @@ test("отсоединённый сокет не говорит за стол, �
   old.onStatus?.("idle");
   assert.equal(t.get().conn, before, "отсоединённая сессия переписала связь стола");
 });
+
+test("переподключение в НОВУЮ партию тоже считает вопросы о реакции заново", async () => {
+  // Второе ревью: сброс был только на пути смены режима, а обычное
+  // переподключение, вернувшееся в новую партию, глушило её первые вопросы.
+  const probe = (turn: number) => ({ type: "probe", turn, options: ["a", "b", "c", "d"], answer: 0 });
+  const t = await table();
+  t.first.deliver(probe(1));
+  t.first.deliver(probe(2));
+  t.first.shut(1006);
+  for (let i = 0; i < 40 && FakeSocket.instances.length < 2; i++) await wait(50);
+  const second = FakeSocket.instances[1];
+  second.deliver({ type: "session.queue_done" });
+  for (let i = 0; i < 20 && !second.types().includes("session.init"); i++) await wait(10);
+  second.deliver({ type: "session.created", session_id: "s-новая", resumed: false,
+    scenario: { id: "supplier" }, state: STATE0, greeting: "", capabilities: {} });
+  await wait(0);
+  second.deliver(probe(1));
+  assert.equal(t.seen.filter((m) => m.type === "probe").length, 3, "вопрос первого хода новой партии заглушён");
+  t.transport.close();
+});
