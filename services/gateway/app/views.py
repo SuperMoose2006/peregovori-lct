@@ -479,6 +479,18 @@ def reputation_intro(reputation: float, lang: str) -> str:
     return line.get("en" if lang == "en" else "ru", "")
 
 
+def close_on_turn_limit(sess: "engine.Session", result) -> bool:
+    """Последний ход без сделки закрывает стол срывом по времени. Правило одно
+    для партии (`negotiation.py`) и для «А что если» (`main._whatif_branch`):
+    переигровка двенадцатого хода его не знала и показывала «идут переговоры»,
+    хотя партия на нём кончилась. Зеркало — `closeOnTurnLimit` в офлайн-ядре."""
+    if sess.state.status == "active" and sess.turn >= sess.max_turns:
+        sess.state.status = "breakdown"
+        result.closed = True
+        return True
+    return False
+
+
 def timeout_line(lang: str) -> str:
     if lang == "ru":
         return "У нас вышло время на сегодня. Предлагаю вернуться позже — договориться так и не удалось."

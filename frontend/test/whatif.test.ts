@@ -206,3 +206,21 @@ test("неразборчивая дата стола дня не роняет о
   assert.doesNotThrow(() => applyStartConditions(s, def, null, "garbage"));
   assert.deepEqual({ trust: s.trust, tension: s.tension, maxTurns: s.maxTurns }, before);
 });
+
+// Двенадцать нейтральных ходов: стол живой до последнего, сделки нет.
+const NEUTRAL = ["Добрый день.", "Расскажите, как у вас устроены поставки?", "Понятно.",
+  "Хорошо, я вас слышу.", "Давайте подумаем.", "Интересно.",
+  "Продолжайте, пожалуйста.", "Ясно.", "Понимаю.", "Хм.", "Так.", "Ладно, понятно."];
+
+test("whatIfLocal: последний ход закрывает стол по времени в обеих ветках", () => {
+  // Партия на двенадцатом ходу кончается срывом, если сделки нет (MockServer и
+  // negotiation.py). Переигровка этого правила не знала и показывала
+  // «идут переговоры» — зеркало теста test_whatif.py.
+  const r = whatIfLocal({ scenarioId: "supplier", lang: "ru", moves: NEUTRAL, turnIndex: 11, altText: "Хорошо." })!;
+  for (const b of [r.original, r.alternative]) {
+    assert.equal(b.state.status, "breakdown");
+    assert.equal(b.opponent_line, "У нас вышло время на сегодня. Предлагаю вернуться позже — договориться так и не удалось.");
+  }
+  const deal = whatIfLocal({ scenarioId: "supplier", lang: "ru", moves: NEUTRAL, turnIndex: 11, altText: "Согласен на 100, договорились." })!;
+  assert.equal(deal.alternative.state.status, "agreement");
+});

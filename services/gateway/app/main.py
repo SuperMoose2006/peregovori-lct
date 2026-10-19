@@ -585,7 +585,10 @@ def _whatif_branch(scenario_id: str, lang: str, prefix: list[str], branch_text: 
     analysis = engine.analyze(branch_text)
     result = engine.apply_move(sess, analysis, branch_text,
                                judge=views.replay_judge(sc, lang, branch_judge))
-    line = engine.render_line(sess, result.reaction, result.closed)
+    # Последний ход закрывает стол так же, как в партии.
+    timeout = views.close_on_turn_limit(sess, result)
+    line = (views.timeout_line(lang) if timeout
+            else engine.render_line(sess, result.reaction, result.closed))
     return {
         "text": branch_text,
         "analysis": views.analysis_view(analysis).model_dump(),

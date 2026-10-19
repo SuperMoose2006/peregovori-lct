@@ -2003,6 +2003,25 @@ export function herSide(s: Session): HerSide | null {
   return { name: sc.cp.nm[lang].split(",")[0].trim(), turns, missed, ask };
 }
 
+// Последний ход без сделки закрывает стол срывом по времени — зеркало
+// views.py::close_on_turn_limit. Одно правило для партии (MockServer) и для
+// «А что если»: переигровка двенадцатого хода показывала «идут переговоры».
+export function closeOnTurnLimit(s: Session, result: { closed: boolean }): boolean {
+  if (s.status === "active" && s.turn >= s.maxTurns) {
+    s.status = "breakdown";
+    result.closed = true;
+    return true;
+  }
+  return false;
+}
+
+// Слово в слово как views.py::timeout_line (инвариант 8).
+export function timeoutLine(lang: Lang): string {
+  return lang === "ru"
+    ? "У нас вышло время на сегодня. Предлагаю вернуться позже — договориться так и не удалось."
+    : "We're out of time for today. Let's revisit later — we couldn't reach agreement.";
+}
+
 // ---------- "А что если…" replay (offline mirror of backend _whatif_branch) ----------
 // Replay `prefix` on a FRESH session, then apply one `branchText` move and capture
 // the outcome. A fresh session per branch guarantees the two branches share no
@@ -2020,7 +2039,7 @@ export function whatIfBranch(def: ScenarioDef, lang: Lang, prefix: string[], bra
   s.turn += 1;
   const raw = analyze(branchText);
   const result = applyMove(s, raw, branchText);
-  const line = renderLine(s, result.reaction, result.closed);
+  const line = closeOnTurnLimit(s, result) ? timeoutLine(lang) : renderLine(s, result.reaction, result.closed);
   return {
     text: branchText,
     analysis: toAnalysis(raw, branchText),

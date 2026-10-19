@@ -253,3 +253,32 @@ def test_the_turn_log_carries_each_line_and_the_reply_after_it():
     log = views.debrief_view(sess).model_dump()["turn_log"]
     assert [r["text"] for r in log] == JUDGED_MOVES
     assert [r["reply"] for r in log] == ["Здравствуйте!", "Пока 100."]
+
+
+# Двенадцать нейтральных ходов: стол живой до последнего, сделки нет.
+NEUTRAL_MOVES = ["Добрый день.", "Расскажите, как у вас устроены поставки?", "Понятно.",
+                 "Хорошо, я вас слышу.", "Давайте подумаем.", "Интересно.",
+                 "Продолжайте, пожалуйста.", "Ясно.", "Понимаю.", "Хм.", "Так.", "Ладно, понятно."]
+
+
+def test_the_last_turn_closes_the_table_in_both_branches():
+    """Партия на двенадцатом ходу закрывается срывом по времени, если сделки нет
+    (`negotiation.py`). Переигровка этого правила не знала: «А что если» на
+    последнем ходу показывало «идут переговоры» и обычную реплику, хотя партия
+    на нём кончилась."""
+    from app import views
+
+    r = client.post("/api/whatif", json={
+        "scenarioId": "supplier", "lang": "ru", "moves": NEUTRAL_MOVES,
+        "turnIndex": 11, "altText": "Хорошо."}).json()
+    for side in ("original", "alternative"):
+        assert r[side]["state"]["status"] == "breakdown", side
+        assert r[side]["opponent_line"] == views.timeout_line("ru"), side
+
+
+def test_a_deal_on_the_last_turn_is_still_a_deal():
+    r = client.post("/api/whatif", json={
+        "scenarioId": "supplier", "lang": "ru", "moves": NEUTRAL_MOVES,
+        "turnIndex": 11, "altText": "Согласен на 100, договорились."}).json()
+    assert r["alternative"]["state"]["status"] == "agreement"
+    assert r["original"]["state"]["status"] == "breakdown"

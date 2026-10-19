@@ -11,8 +11,8 @@ import { SCENARIO_MAP, toScenarioView, type ScenarioDef } from "../data/scenario
 import { MIRROR_MAP } from "../data/mirrors";
 import { synthCustomScenario } from "./customScenario";
 import {
-  analyze, applyMove, applyStartConditions, greetingText, hintLine, hintText, newSession, renderLine,
-  scoreSession, stateView, toAnalysis, type Session,
+  analyze, applyMove, applyStartConditions, closeOnTurnLimit, greetingText, hintLine, hintText, newSession, renderLine,
+  scoreSession, stateView, timeoutLine, toAnalysis, type Session,
 } from "./engine";
 import { NO_PROBES, nextProbe, type ProbeMemory } from "../lib/probe";
 import { EPILOGUE_BANDS, REPUTATION_LINES } from "../data/campaigns.generated";
@@ -156,21 +156,9 @@ export class MockServer implements Transport {
     this.emit({ type: "analysis", analysis: toAnalysis(raw, text) });
     this.emit({ type: "arg_quality", value: raw.arg, judged: false });
 
-    let timeout = false;
-    if (s.status === "active" && s.turn >= s.maxTurns) {
-      s.status = "breakdown";
-      result.closed = true;
-      timeout = true;
-    }
-
-    let reply = renderLine(s, result.reaction, result.closed);
-    if (timeout) {
-      // Слово в слово как views.py::timeout_line: офлайн и онлайн закрывают
-      // стол одной репликой (инвариант 8).
-      reply = s.lang === "ru"
-        ? "У нас вышло время на сегодня. Предлагаю вернуться позже — договориться так и не удалось."
-        : "We're out of time for today. Let's revisit later — we couldn't reach agreement.";
-    }
+    // Офлайн и онлайн закрывают стол одной репликой (инвариант 8).
+    const timeout = closeOnTurnLimit(s, result);
+    const reply = timeout ? timeoutLine(s.lang) : renderLine(s, result.reaction, result.closed);
 
     this.turns[this.turns.length - 1].reply = reply;
     // Stream the opponent reply in a few chunks (exercises opponent_delta),

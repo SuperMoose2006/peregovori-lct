@@ -200,11 +200,7 @@ class NegotiationOrchestrator:
         engine_sess.turn = turn_id
         result = engine.apply_move(engine_sess, analysis, text, judge=judgement)
 
-        timeout = False
-        if engine_sess.state.status == "active" and engine_sess.turn >= engine_sess.max_turns:
-            engine_sess.state.status = "breakdown"
-            result.closed = True
-            timeout = True
+        timeout = views.close_on_turn_limit(engine_sess, result)
 
         engine_sess.log.append({"role": "player", "text": text, "judge": judgement,
                                 "turn": turn_id, "deltas": result.deltas})
