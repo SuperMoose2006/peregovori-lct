@@ -352,15 +352,21 @@ BLOCKS: list[Block] = [
                 "That is why a criterion helps both sides: it gives them a reason to agree without "
                 "admitting defeat.",
             )),
-            Lesson(4, T("Шкала «Рычаг»", "The Leverage meter"), T(
+            Lesson(4, T("Рычаг: что его двигает", "Leverage: what moves it"), T(
                 "Критерий даёт рычаг +16, а с аналитическим собеседником ещё +6 сверху. Альтернатива "
                 "без подкрепления — всего +10 и напряжение +14; та же альтернатива с критерием — "
                 "+18 и напряжение всего +4.\n\n"
-                "Рычаг — не про громкость. Это про то, насколько тяжело вам возразить.",
+                "Рычаг — не про громкость. Это про то, насколько тяжело вам возразить.\n\n"
+                "За столом он виден чипом «Рыч» под вашей репликой. Шкала «Гибкость» складывает его "
+                "с доверием и информацией, а напряжение её съедает: рычаг, купленный грубостью, "
+                "гибкость не прибавит.",
                 "A criterion grants leverage +16, and another +6 with an analytical counterpart. An "
                 "unbacked alternative gives only +10 and tension +14; the same alternative backed by "
                 "a criterion gives +18 and tension of just +4.\n\n"
-                "Leverage is not about volume. It is about how hard you are to argue with.",
+                "Leverage is not about volume. It is about how hard you are to argue with.\n\n"
+                "At the table you see it as the “Lev” chip under your line. The Flexibility meter adds "
+                "it to trust and information, and tension eats it: leverage bought with rudeness "
+                "won't add flexibility.",
             )),
         ],
     ),

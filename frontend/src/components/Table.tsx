@@ -706,9 +706,11 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
             {st && !exam ? (
               <Meters
                 state={st}
-                labels={t.meters}
-                short={t.metersShort}
-                info={t.meterInfo}
+                // Под ключом `leverage` в состоянии — гибкость, а не сырой рычаг
+                // чипов: подпись обязана говорить то же, что показывает полоса.
+                labels={{ ...t.meters, leverage: t.flexMeter.full }}
+                short={{ ...t.metersShort, leverage: t.flexMeter.short }}
+                info={{ ...t.meterInfo, leverage: t.flexMeter.info }}
                 groupLabel={t.a11y.hud}
                 deltas={lastDeltas}
               />

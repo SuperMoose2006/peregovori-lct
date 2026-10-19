@@ -257,12 +257,12 @@ export const COURSE_BLOCKS: CourseBlock[] = [
       {
         "idx": 4,
         "title": {
-          "ru": "Шкала «Рычаг»",
-          "en": "The Leverage meter"
+          "ru": "Рычаг: что его двигает",
+          "en": "Leverage: what moves it"
         },
         "body": {
-          "ru": "Критерий даёт рычаг +16, а с аналитическим собеседником ещё +6 сверху. Альтернатива без подкрепления — всего +10 и напряжение +14; та же альтернатива с критерием — +18 и напряжение всего +4.\n\nРычаг — не про громкость. Это про то, насколько тяжело вам возразить.",
-          "en": "A criterion grants leverage +16, and another +6 with an analytical counterpart. An unbacked alternative gives only +10 and tension +14; the same alternative backed by a criterion gives +18 and tension of just +4.\n\nLeverage is not about volume. It is about how hard you are to argue with."
+          "ru": "Критерий даёт рычаг +16, а с аналитическим собеседником ещё +6 сверху. Альтернатива без подкрепления — всего +10 и напряжение +14; та же альтернатива с критерием — +18 и напряжение всего +4.\n\nРычаг — не про громкость. Это про то, насколько тяжело вам возразить.\n\nЗа столом он виден чипом «Рыч» под вашей репликой. Шкала «Гибкость» складывает его с доверием и информацией, а напряжение её съедает: рычаг, купленный грубостью, гибкость не прибавит.",
+          "en": "A criterion grants leverage +16, and another +6 with an analytical counterpart. An unbacked alternative gives only +10 and tension +14; the same alternative backed by a criterion gives +18 and tension of just +4.\n\nLeverage is not about volume. It is about how hard you are to argue with.\n\nAt the table you see it as the “Lev” chip under your line. The Flexibility meter adds it to trust and information, and tension eats it: leverage bought with rudeness won't add flexibility."
         }
       }
     ]

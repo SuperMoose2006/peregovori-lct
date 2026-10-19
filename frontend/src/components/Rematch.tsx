@@ -203,7 +203,8 @@ export function RematchRail(props: RematchRailProps) {
             {METER_IDS.map((id) => (
               <MeterRow
                 key={id}
-                label={t.metersShort[id]}
+                // Ряд строится по состояниям стола: под `leverage` там гибкость.
+                label={id === "leverage" ? t.flexMeter.short : t.metersShort[id]}
                 gap={meters[id]}
                 then={meterSeries(pastTrail, id)}
                 now={nowTrail.map((s) => s[id])}

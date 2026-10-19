@@ -53,6 +53,9 @@ export interface Strings {
   metersShort: MeterLabels;
   // one-line explanations shown on meter hover/focus (accessible tooltips)
   meterInfo: MeterLabels;
+  /** Шкала стола под ключом `leverage` показывает ГИБКОСТЬ (to_state_view), а не
+   *  сырой рычаг чипов — решение владельца 19.10: так её и называть. */
+  flexMeter: { full: string; short: string; info: string };
   // deal-tracker (price scale) labels.
   //
   // КАЖДАЯ МЕТКА ШКАЛЫ НАЗВАНА ЧЬЯ ОНА. Раньше подписи были «цель», «красная
@@ -915,7 +918,7 @@ export const I18N: Record<Lang, Strings> = {
           name: "Объективные критерии",
           idea: "Спор мнений выигрывает тот, кто громче. Спор по критерию — тот, кто прав.",
           example:
-            "«По рыночным данным справедливая ставка — X» → это законный рычаг: шкала «Рычаг» растёт, а уступка не выглядит капитуляцией.",
+            "«По рыночным данным справедливая ставка — X» → это законный рычаг: чип «Рыч» под репликой растёт, а уступка не выглядит капитуляцией.",
         },
         {
           tag: "Гарвард",
@@ -952,6 +955,10 @@ export const I18N: Record<Lang, Strings> = {
       tension: "Напряжение: растёт от давления, угроз и грубости; спадает, когда вы признаёте интересы.",
       info: "Информация: растёт, когда вы вскрываете скрытые интересы вопросами (SPIN).",
       leverage: "Рычаг: растёт, когда вы опираетесь на объективные критерии и на свой запасной вариант (BATNA), а не на эмоции.",
+    },
+    flexMeter: {
+      full: "Гибкость", short: "Гибк",
+      info: "Гибкость: насколько собеседник готов двигаться к вам. Складывается из доверия, того, что вы знаете о его интересах, и силы ваших доводов (рычаг, чип «Рыч»); напряжение её съедает.",
     },
     tracker: {
       title: "Цена сделки",
@@ -1218,7 +1225,7 @@ export const I18N: Record<Lang, Strings> = {
         progress: { title: "Ваш прогресс", body: "Цель на сегодня, серия дней и ранг считаются по вашим партиям. На оценку конкретной партии они не влияют. Слон Тихон хранит ваши рекорды — вы встретите его в разборе после партии." },
       },
       table: {
-        meters: { title: "Четыре шкалы разговора", body: "Доверие растёт от эмпатии и честных доводов. Напряжение растёт от давления и грубости: дойдёт до предела — собеседник встанет из-за стола. Информация — сколько вы узнали о его интересах, рычаг — сила ваших доводов. После каждой реплики видно, какая шкала сдвинулась." },
+        meters: { title: "Четыре шкалы разговора", body: "Доверие растёт от эмпатии и честных доводов. Напряжение растёт от давления и грубости: дойдёт до предела — собеседник встанет из-за стола. Информация — сколько вы узнали о его интересах. Гибкость — насколько он готов двигаться к вам: доверие, информация и сила ваших доводов вместе, минус напряжение. После каждой реплики видно, какая шкала сдвинулась." },
         price: { title: "Цена сделки", body: "Синяя точка — их цена сейчас, синее кольцо — с чего они начали. Зелёная черта — ваша цель, красная — ваша красная линия: хуже неё соглашаться не стоит, лучше уйти к запасному варианту. Штриховка между ними — ваш коридор. Строка сверху говорит, где их цена сейчас." },
         interests: { title: "Скрытые интересы", body: "У собеседника три скрытых интереса, здесь видны темы, в которых они лежат. Спросите по теме — интерес откроется, и цена сдвинется без давления." },
         batna: { title: "Ваш запасной вариант (BATNA)", body: "Что вы сделаете, если не договоритесь. Спокойная ссылка на него — рычаг. Угроза «уйду» в лоб бьёт по доверию." },
@@ -1933,7 +1940,7 @@ export const I18N: Record<Lang, Strings> = {
           name: "Objective criteria",
           idea: "A clash of opinions is won by the loudest. A clash of criteria, by whoever's right.",
           example:
-            "“By market data, the fair rate is X” → that's legitimate leverage: the Leverage meter rises, and a concession doesn't read as surrender.",
+            "“By market data, the fair rate is X” → that's legitimate leverage: the “Lev” chip under your line rises, and a concession doesn't read as surrender.",
         },
         {
           tag: "Harvard",
@@ -1970,6 +1977,10 @@ export const I18N: Record<Lang, Strings> = {
       tension: "Tension: rises with pressure, threats and rudeness; eases when you acknowledge interests.",
       info: "Information: grows as you surface the counterpart's hidden interests with questions (SPIN).",
       leverage: "Leverage: grows when you lean on objective criteria and on your fallback (BATNA), not on emotion.",
+    },
+    flexMeter: {
+      full: "Flexibility", short: "Flex",
+      info: "Flexibility: how ready the counterpart is to move toward you. Built from trust, what you know of their interests and the strength of your arguments (leverage, the “Lev” chip); tension eats it.",
     },
     tracker: {
       title: "The price",
@@ -2229,7 +2240,7 @@ export const I18N: Record<Lang, Strings> = {
         progress: { title: "Your progress", body: "Today's goal, your day streak and your rank are counted from your games. They never change how a game is scored. Tikhon the elephant keeps your records — you'll meet him in the breakdown after a game." },
       },
       table: {
-        meters: { title: "Four conversation meters", body: "Trust grows with empathy and fair arguments. Tension grows with pressure and rudeness: push it to the limit and the counterpart walks out. Information is how much you've learned about their interests; leverage is the strength of your arguments. After each line you see which meter moved." },
+        meters: { title: "Four conversation meters", body: "Trust grows with empathy and fair arguments. Tension grows with pressure and rudeness: push it to the limit and the counterpart walks out. Information is how much you've learned about their interests. Flexibility is how ready they are to move toward you: trust, information and the strength of your arguments together, minus tension. After each line you see which meter moved." },
         price: { title: "The price", body: "The blue dot is their price now, the blue ring is where they started. The green mark is your target, the red one is your red line: don't agree to anything worse — your fallback is better. The hatched band between them is your range. The line on top says where their price stands." },
         interests: { title: "Hidden interests", body: "The counterpart has three hidden interests; here you see the topics they sit in. Ask about a topic and the interest opens up — and the price moves without pressure." },
         batna: { title: "Your fallback plan (BATNA)", body: "What you'll do if there's no deal. Mentioning it calmly is leverage. A blunt “I'll walk” hits trust." },
