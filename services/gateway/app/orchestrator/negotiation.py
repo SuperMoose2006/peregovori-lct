@@ -110,6 +110,9 @@ class NegotiationOrchestrator:
         self._backchannels: list[str] = []
         self._backchannel_turn = -1
         self._backchannel_next = 0
+        #: Поколение короткой реакции: его начало хода НЕ гасит — реакция для
+        #: того и звучит, чтобы заполнить секунды, пока ход считается.
+        self._backchannel_gen: Optional[str] = None
 
     # ------------------------------------------------------- короткая реакция
 
@@ -156,6 +159,7 @@ class NegotiationOrchestrator:
         self._backchannel_next += 1
         self._backchannel_turn = sess.turn_id
         generation_id = sess.begin_generation()
+        self._backchannel_gen = generation_id
         return self.tts.speak_prepared(phrase, generation_id=generation_id, turn_id=sess.turn_id + 1)
 
     def _set_speaking(self, speaking: bool) -> None:
@@ -217,8 +221,11 @@ class NegotiationOrchestrator:
         if not text or engine_sess.state.status != "active":
             return
 
-        # Если оппонент ещё говорит — его перебили самим фактом хода.
-        await self.interrupt(reason="new_turn")
+        # Если оппонент ещё говорит — его перебили самим фактом хода. Кроме
+        # короткой реакции («угу…»): она звучит ровно в эти секунды, и гасит
+        # её начало настоящего ответа (новое поколение), а не начало хода.
+        if not (self._backchannel_gen and sess.generation_id == self._backchannel_gen):
+            await self.interrupt(reason="new_turn")
 
         # 1. Детерминированный разбор. Мгновенный, без сети: теги приёмов
         #    появляются под репликой игрока раньше, чем оппонент начал думать.

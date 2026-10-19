@@ -100,3 +100,46 @@ def test_the_turn_ending_signal_fires_once_the_quiet_window_passes(monkeypatch):
         await p._quiet_timer()
     asyncio.run(go())
     assert fired == [1] and {"type": "user.turn.ending"} in published
+
+
+def test_the_turn_itself_does_not_cut_the_reaction(monkeypatch):
+    """Реакция звучит ровно пока ход считается — начало хода её не гасит;
+    гасит начало настоящего ответа (новое поколение)."""
+    from app.orchestrator import negotiation as module
+    monkeypatch.setattr(module, "judge_enabled_for", lambda _mode: False)
+
+    async def go():
+        sess, tts, provider, events, orch = _setup()
+        await orch.prepare_backchannel()
+        orch.backchannel()
+        gen = sess.generation_id
+        await orch.on_player_turn("Что для вас важнее всего?")
+        cancelled = [e for e in events if e.get("type") == "generation.cancelled"]
+        assert not [e for e in cancelled if e.get("generation_id") == gen], \
+            "начало хода погасило «угу…» — реакция не успевала прозвучать"
+        assert sess.engine_session.turn == 1
+    asyncio.run(go())
+
+
+def test_a_transcript_does_not_restart_the_quiet_window(monkeypatch):
+    """Замер 19.10: расшифровка заново заводила окно тишины, и ход уходил через
+    900 мс после неё, а не после конца речи."""
+    from app.perception import realtime_voice as rv
+    published: list[dict] = []
+
+    async def on_turn(text):
+        pass
+
+    async def on_interrupt():
+        pass
+
+    async def go():
+        p = rv.RealtimeVoicePipeline("ru", on_turn, on_interrupt, published.append)
+        p._loop = asyncio.get_running_loop()
+        await p._on_event({"type": "input_audio_buffer.speech_stopped", "item_id": "a"})
+        first = p._quiet
+        await p._on_event({"type": "conversation.item.input_audio_transcription.completed",
+                           "item_id": "a", "transcript": "Давайте девяносто."})
+        assert p._quiet is first, "окно тишины перезапущено расшифровкой"
+        first.cancel()
+    asyncio.run(go())

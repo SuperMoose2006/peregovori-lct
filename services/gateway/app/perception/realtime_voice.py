@@ -475,9 +475,13 @@ class RealtimeVoicePipeline:
             self._publish({"type": "user.transcript",
                            "text": self._joined(), "final": False})
             await self._maybe_barge_in(text)
-            # Кусок расшифрован. Если человек уже молчит — обновляем отсчёт;
-            # если ещё говорит, таймер заведёт `speech_stopped`.
-            if not self._speaking:
+            # Кусок расшифрован. Отсчёт тишины уже идёт от `speech_stopped` и
+            # сам дождётся этой расшифровки — заводить его заново НЕЛЬЗЯ:
+            # тогда ход уходил через 900 мс после РАСШИФРОВКИ, а не после конца
+            # речи, то есть на полсекунды-секунду позже обещанного (замер на
+            # стенде 19.10). Заводим, только если отсчёта нет вовсе — страховка
+            # на случай, что `speech_stopped` не пришёл.
+            if not self._speaking and (self._quiet is None or self._quiet.done()):
                 self._arm_quiet()
             return
 
