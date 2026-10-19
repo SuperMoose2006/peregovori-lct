@@ -90,9 +90,6 @@ export interface NegotiationState {
   /** Что слой сказал про ПОСЛЕДНИЙ кадр. Нужен живому чипу: счётчик за партию
    *  не отвечает на вопрос «а сейчас-то я держу лицо». */
   tellNow: boolean;
-  /** Сколько кадров камеры ушло на сервер. Ноль при поднятой камере значит,
-   *  что поток открыт, а картинка никуда не едет — и чип обязан это сказать. */
-  framesSent: number;
   /** Что умеет эта сессия (из `session.created`). Null до начала партии. */
   capabilities: Record<string, unknown> | null;
   /** Идёт смена режима той же партии (текст ↔ созвон): сокет сменится, ход
@@ -156,7 +153,6 @@ const initialState: NegotiationState = {
   tells: 0,
   tellFrames: 0,
   tellNow: false,
-  framesSent: 0,
   capabilities: null,
   switching: false,
 };
@@ -242,7 +238,6 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
                            tellFrames: p.tellFrames + 1 })),
           onObservation: (text) =>
             currentState((p) => ({ ...p, observations: [...p.observations, text] })),
-          onCameraFrame: () => currentState((p) => ({ ...p, framesSent: p.framesSent + 1 })),
           // ГОЛОС И КЛАВИАТУРА ОБЯЗАНЫ ДАВАТЬ ОДИН И ТОТ ЖЕ ХОД — включая то, что
           // человек видит. Раньше финальная расшифровка просто гасила живой
           // предпросмотр (`transcript: null`), а сам текст выбрасывался: партия
