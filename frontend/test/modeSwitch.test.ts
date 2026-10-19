@@ -409,3 +409,25 @@ test("отказ сервера при смене режима не повтор
     t.transport.close();
   }
 });
+
+test("молчащий сервер при возвращении в партию держит вход секунды, а не минуту", async (t) => {
+  // Найдено вторым ревью: тишина рукопожатия — 45 с, запас под генерацию
+  // «своей сделки». Возвращение (`resume`) ничего не генерирует, а попыток
+  // пять — молчащий сервер держал «Подключение…» минутами.
+  const { RealtimeSession } = await import("../src/realtime/vendor/realtime-session");
+  FakeSocket.instances = [];
+  const tick = () => new Promise((r) => setImmediate(r));
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const session = new RealtimeSession({ mode: "voice", onEvent: () => {} });
+  let failed = false;
+  const started = session.start({ scenarioId: "supplier", lang: "ru", resume: "s-1" }).catch(() => { failed = true; });
+  for (let i = 0; i < 10 && FakeSocket.instances.length === 0; i++) await tick();
+  for (let i = 0; i < 5; i++) await tick();               // сокет открылся, рукопожатие ждёт
+  t.mock.timers.tick(13000);
+  for (let i = 0; i < 5; i++) await tick();
+  assert.equal(failed, true, "вход в партию ждёт молчащий сервер дольше 13 с");
+  await started;
+  t.mock.timers.tick(60000);
+  t.mock.timers.reset();
+  session.stop();
+});

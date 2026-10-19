@@ -84,6 +84,11 @@ const OPEN_TIMEOUT_MS = 4000;
  *  Генерация «Своей сделки» укладывается в 22 с (GEN_BUDGET_S), поэтому срок
  *  с запасом, и он сбрасывается каждым событием сервера (очередь, дельты). */
 const HANDSHAKE_SILENCE_MS = 45000;
+/** Возвращение в партию (`resume`) сценарий не генерирует — серверу нужно
+ *  достать партию из памяти, и только. Ждать его 45 с значило держать
+ *  «Подключение…» по минуте на каждую из пяти попыток, когда сервер молчит
+ *  (найдено вторым ревью созвона). */
+const RESUME_SILENCE_MS = 12000;
 const MAX_LOG = 200;
 
 /**
@@ -298,7 +303,8 @@ export class RealtimeSession {
       const fail = (why: string) => { clearTimeout(silence); reject(new Error(why)); };
       const arm = () => {
         clearTimeout(silence);
-        silence = setTimeout(() => fail("сервер не ответил на запуск партии"), HANDSHAKE_SILENCE_MS);
+        silence = setTimeout(() => fail("сервер не ответил на запуск партии"),
+                             payload.resume ? RESUME_SILENCE_MS : HANDSHAKE_SILENCE_MS);
       };
       arm();
       socket.onclose = (event) => {
