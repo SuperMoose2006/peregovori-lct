@@ -159,3 +159,27 @@ def test_below_the_trust_gate_the_coach_asks_for_contact_not_a_question(lang):
     result = engine.apply_move(s, engine.analyze(line), line)
     assert "acknowledge" in engine.analyze(line).moves
     assert result.reaction == "warmed"
+
+
+@pytest.mark.parametrize("lang", ["ru", "en"])
+@pytest.mark.parametrize("scenario_id", ["supplier", "rent", "used_car"])
+def test_the_coachs_questions_about_each_topic_are_not_repeats(scenario_id, lang):
+    """Найдено после аудита 17.10: вопросы тренера о разных темах отличаются
+    одним словом и шли повтором — ничего не вскрывали, напряжение росло, а
+    тренер звал тот же вопрос снова. Теперь каждый вскрывает свою тему; тот же
+    вопрос о той же теме — повтор, как прежде."""
+    from app import views
+    s = engine.create_session(scenario_id, lang)
+    reveals = 0
+    for _ in range(2):
+        hint = views.compute_hint(s, lang)
+        line = hint.split("«")[1].split("»")[0] if lang == "ru" else hint.split('"')[1]
+        s.turn += 1
+        engine.apply_move(s, engine.analyze(line), line)
+        reveals += s.ledger[-1].get("revealed") is not None
+    assert reveals == 2
+    s.state.trust = 0
+    again = s.ledger[-1]["text"]
+    s.turn += 1
+    engine.apply_move(s, engine.analyze(again), again)
+    assert s.ledger[-1]["repeat"] >= 0.85, "тот же вопрос о той же теме — повтор"

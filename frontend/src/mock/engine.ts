@@ -525,7 +525,17 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   // более. Считаем сходство со всеми ходами партии и штрафуем непрерывно.
   const curTokens = tokensOf(curNorm);
   const curMoves = new Set(a.moves);
-  const repeat = curNorm ? repeatStrength(s, curTokens, curMoves) : 0;
+  let repeat = curNorm ? repeatStrength(s, curTokens, curMoves) : 0;
+  // Вопрос о НОВОЙ теме — не повтор: «… — Производство?» и «… — Оплата?»
+  // отличаются одним словом, и второй шёл повтором. Повтор — только если о
+  // той же теме уже спрашивали (найдено после аудита 17.10). Зеркало
+  // engine.py::apply_move.
+  if (repeat >= REPEAT_SOFT && curNorm) {
+    const target = revealIndexOffline(s.sc, curNorm, s.lang, []);
+    if (target !== null && !s.ledger.some((e) => revealIndexOffline(s.sc, norm(e.text ?? ""), s.lang, []) === target)) {
+      repeat = 0;
+    }
+  }
   s.moveHistory.push({ tokens: curTokens, moves: curMoves });
   s.lastPlayerNorm = curNorm;
   const repeated = repeat >= REPEAT_HARD;

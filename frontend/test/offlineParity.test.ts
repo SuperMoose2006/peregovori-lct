@@ -335,3 +335,22 @@ test("готовые реплики офлайн-тренера движок з�
   };
   assert.deepEqual(tension("en"), tension("ru"));
 });
+
+test("вопросы офлайн-тренера о разных темах не идут повтором (зеркало сервера)", async () => {
+  // Найдено после аудита 17.10: «… — Производство?» и «… — Оплата?» шли повтором.
+  const { analyze, applyMove, hintLine, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  for (const id of ["supplier", "rent", "used_car"]) {
+    for (const lang of ["ru", "en"] as const) {
+      const s = newSession(SCENARIO_MAP[id], lang);
+      let reveals = 0;
+      for (let i = 0; i < 2; i++) {
+        const line = hintLine(s);
+        s.turn += 1;
+        applyMove(s, analyze(line), line);
+        if (s.ledger[s.ledger.length - 1].revealed !== null) reveals += 1;
+      }
+      assert.equal(reveals, 2, `${id}/${lang}`);
+    }
+  }
+});

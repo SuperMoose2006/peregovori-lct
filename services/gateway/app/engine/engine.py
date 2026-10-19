@@ -672,6 +672,17 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     cur_tokens = _tokens(cur_norm)
     cur_moves = frozenset(analysis.moves)
     repeat = _repeat_strength(sess, cur_tokens, cur_moves) if cur_norm else 0.0
+    # ВОПРОС О НОВОЙ ТЕМЕ — НЕ ПОВТОР. Вопросы тренера «Что для вас важно в этой
+    # теме — Производство?» и «… — Оплата?» отличаются одним словом, и Жаккар
+    # с надбавкой за те же приёмы давал 0,86–0,93: второй вопрос шёл повтором —
+    # ничего не вскрывал, напряжение +6, а тренер звал его снова и снова (найдено
+    # после аудита 17.10). Повтор — только если о ТОЙ ЖЕ теме уже спрашивали.
+    if repeat >= REPEAT_SOFT and cur_norm:
+        target = _reveal_index_offline(sc, cur_norm, sess.lang, [])
+        if target is not None and not any(
+                _reveal_index_offline(sc, norm(e.get("text") or ""), sess.lang, []) == target
+                for e in sess.ledger):
+            repeat = 0.0
     sess.move_history.append((cur_tokens, cur_moves))
     sess.last_player_norm = cur_norm
     repeated = repeat >= REPEAT_HARD
