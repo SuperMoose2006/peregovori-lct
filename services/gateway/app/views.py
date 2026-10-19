@@ -592,10 +592,22 @@ _HER: dict[str, dict[str, dict[str, str] | list[dict[str, str]]]] = {
                        "en": "None of that touches the numbers. I'm resetting my offer — we'll count again."},
     },
     "threat_again": {
-        "base": {"ru": "Второй ультиматум подряд — это уже не нервы, а способ разговаривать. Половину уступки я забираю обратно.",
-                 "en": "A second ultimatum in a row isn't nerves any more, it's a method. Half of my concession goes back."},
-        "tough": {"ru": "Давите второй раз — значит, аргументы кончились. Уступку снимаю.",
-                  "en": "Pressing twice means the arguments ran out. The concession is off."},
+        "base": {"ru": "Снова ультиматум — это уже не нервы, а способ разговаривать. Половину уступки я забираю обратно.",
+                 "en": "Another ultimatum isn't nerves any more, it's a method. Half of my concession goes back."},
+        "tough": {"ru": "Давите снова — значит, аргументы кончились. Уступку снимаю.",
+                  "en": "Pressing again means the arguments ran out. The concession is off."},
+    },
+    "hostile_flat": {
+        "base": {"ru": "Это уже не про сделку, а про меня лично. В таком тоне я разговор не продолжаю.",
+                 "en": "That stopped being about the deal and became about me. I don't carry on in that tone."},
+    },
+    "threat_with_criteria": {
+        "base": {"ru": "Цифры у вас убедительные, тон — нет. Двигаюсь по фактам, а ультиматум мне в этом не помогает.",
+                 "en": "Your numbers are convincing; your tone isn't. I'm moving on the facts, and the ultimatum doesn't help."},
+    },
+    "tradeoff_hollow": {
+        "base": {"ru": "Обменом вы это назвали, но настоящего обмена я в нём не вижу. Повода двигаться пока нет.",
+                 "en": "You called it a trade, but I don't see a real one in it. No reason to move yet."},
     },
     "threat_backed": {
         "base": {"ru": "Альтернатива у вас и правда есть, и вы её обосновали. Приятного мало, но считаться приходится.",
@@ -831,7 +843,7 @@ def _meters(entry: dict, lang: str) -> list[str]:
 
 def _her_turn(entry: dict, style: str, lang: str, interests: list[str],
               topics: list[str], issue_labels: dict[str, str],
-              open_topic: str, opened: int) -> tuple[str, str]:
+              open_topic: str, opened: int, lower: bool = True) -> tuple[str, str]:
     """Один ход глазами оппонента: (что она говорит, тон).
 
     Порядок веток — это ПРИОРИТЕТ, и он тот же, что у самого движка: конец
@@ -849,11 +861,19 @@ def _her_turn(entry: dict, style: str, lang: str, interests: list[str],
         return say("walked_out"), "bad"
     if entry.get("closed") and entry.get("status") == "agreement":
         return say("closed"), "good"
+    # ЦЕНА В ЭТОЙ ЖЕ СТРОКЕ — и колонка не вправе ей противоречить: «уступку
+    # возвращаю назад» без отката, «двигаться не стану» рядом с «Цена 180 → 195»,
+    # «часть пути пройду» после вето судьи (найдено после аудита 17.10).
+    before, after = entry.get("offer_before"), entry.get("offer_after")
+    moved = before is not None and after is not None and abs(after - before) > 1e-9
+    toward = moved and ((after < before) if lower else (after > before))
     if "hostile" in moves:
-        return say("hostile"), "bad"
+        return (say("hostile"), "bad") if moved and not toward else (say("hostile_flat"), "bad")
     if "threat" in moves:
-        if entry.get("rollback", 0) > 0:
+        if entry.get("rollback", 0) > 0 and moved and not toward:
             return say("threat_again"), "bad"
+        if toward and "criteria" in events:
+            return say("threat_with_criteria"), "flat"
         return (say("threat_backed"), "flat") if "batna" in events else (say("threat_bare"), "bad")
     if "batna" in moves:
         # Событие `batna` возникает только у ОБОСНОВАННОЙ альтернативы — ровно
@@ -877,7 +897,7 @@ def _her_turn(entry: dict, style: str, lang: str, interests: list[str],
     if traded:
         return say("term").format(term=", ".join(traded)), "good"
     if "tradeoff" in moves:
-        return say("tradeoff"), "good"
+        return (say("tradeoff"), "good") if "tradeoff" in events else (say("tradeoff_hollow"), "flat")
 
     if entry.get("gated"):
         tail = _STILL_CLOSED[lang].format(topic=open_topic) if open_topic else ""
@@ -919,7 +939,7 @@ def her_side(sess: "engine.Session") -> dict | None:
         rest = [i for i in range(len(interests)) if i not in found]
         open_topic = topics[rest[0]] if rest and rest[0] < len(topics) else ""
         said, tone = _her_turn(entry, style, lang, interests, topics, issue_labels,
-                               open_topic, len(found))
+                               open_topic, len(found), sc.headline.dir == "lower_is_better")
         idx = entry.get("revealed")
         if idx is not None:
             found.add(idx)

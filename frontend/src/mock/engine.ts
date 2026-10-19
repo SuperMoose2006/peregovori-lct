@@ -1529,14 +1529,32 @@ const HER: HerBank = {
       "en": "None of that touches the numbers. I'm resetting my offer — we'll count again."
     }
   },
+  "hostile_flat": {
+    "base": {
+      "ru": "Это уже не про сделку, а про меня лично. В таком тоне я разговор не продолжаю.",
+      "en": "That stopped being about the deal and became about me. I don't carry on in that tone."
+    }
+  },
+  "threat_with_criteria": {
+    "base": {
+      "ru": "Цифры у вас убедительные, тон — нет. Двигаюсь по фактам, а ультиматум мне в этом не помогает.",
+      "en": "Your numbers are convincing; your tone isn't. I'm moving on the facts, and the ultimatum doesn't help."
+    }
+  },
+  "tradeoff_hollow": {
+    "base": {
+      "ru": "Обменом вы это назвали, но настоящего обмена я в нём не вижу. Повода двигаться пока нет.",
+      "en": "You called it a trade, but I don't see a real one in it. No reason to move yet."
+    }
+  },
   "threat_again": {
     "base": {
-      "ru": "Второй ультиматум подряд — это уже не нервы, а способ разговаривать. Половину уступки я забираю обратно.",
-      "en": "A second ultimatum in a row isn't nerves any more, it's a method. Half of my concession goes back."
+      "ru": "Снова ультиматум — это уже не нервы, а способ разговаривать. Половину уступки я забираю обратно.",
+      "en": "Another ultimatum isn't nerves any more, it's a method. Half of my concession goes back."
     },
     "tough": {
-      "ru": "Давите второй раз — значит, аргументы кончились. Уступку снимаю.",
-      "en": "Pressing twice means the arguments ran out. The concession is off."
+      "ru": "Давите снова — значит, аргументы кончились. Уступку снимаю.",
+      "en": "Pressing again means the arguments ran out. The concession is off."
     }
   },
   "threat_backed": {
@@ -1882,7 +1900,7 @@ function herMeters(e: LedgerEntry, lang: Lang): string[] {
  *  колонка не может разойтись с цифрами рядом с ней. Зеркало views.py. */
 function herTurn(e: LedgerEntry, style: CounterpartStyle, lang: Lang, interests: string[],
                  topics: string[], issueLabels: Record<string, string>,
-                 openTopic: string, opened: number): [string, string] {
+                 openTopic: string, opened: number, lower = true): [string, string] {
   const mv = new Set(e.moves);
   // `opened` — сколько интересов она открыла ДО этого хода: первое признание
   // звучит не так, как третье.
@@ -1890,9 +1908,13 @@ function herTurn(e: LedgerEntry, style: CounterpartStyle, lang: Lang, interests:
 
   if (e.reaction === "walked_out" || e.status === "breakdown") return [say("walked_out"), "bad"];
   if (e.closed && e.status === "agreement") return [say("closed"), "good"];
-  if (mv.has("hostile")) return [say("hostile"), "bad"];
+  // Колонка не противоречит цене в той же строке (зеркало views.py::_her_turn).
+  const moved = Math.abs(e.offerAfter - e.offerBefore) > 1e-9;
+  const toward = moved && (lower ? e.offerAfter < e.offerBefore : e.offerAfter > e.offerBefore);
+  if (mv.has("hostile")) return moved && !toward ? [say("hostile"), "bad"] : [say("hostile_flat"), "bad"];
   if (mv.has("threat")) {
-    if (e.rollback > 0) return [say("threat_again"), "bad"];
+    if (e.rollback > 0 && moved && !toward) return [say("threat_again"), "bad"];
+    if (toward && e.events.includes("criteria")) return [say("threat_with_criteria"), "flat"];
     return e.events.includes("batna") ? [say("threat_backed"), "flat"] : [say("threat_bare"), "bad"];
   }
   if (mv.has("batna")) {
@@ -1915,7 +1937,7 @@ function herTurn(e: LedgerEntry, style: CounterpartStyle, lang: Lang, interests:
     .filter((x) => x.startsWith("term:") && issueLabels[x.slice(5)])
     .map((x) => issueLabels[x.slice(5)]);
   if (traded.length) return [say("term").replace("{term}", traded.join(", ")), "good"];
-  if (mv.has("tradeoff")) return [say("tradeoff"), "good"];
+  if (mv.has("tradeoff")) return e.events.includes("tradeoff") ? [say("tradeoff"), "good"] : [say("tradeoff_hollow"), "flat"];
 
   const tail = openTopic ? HER_STILL_CLOSED[lang].replace("{topic}", openTopic) : "";
   if (e.gated) return [say("gated") + tail, "bad"];
@@ -1948,7 +1970,7 @@ export function herSide(s: Session): HerSide | null {
     const rest: number[] = [];
     for (let i = 0; i < interests.length; i++) if (!found.has(i)) rest.push(i);
     const openTopic = rest.length && rest[0] < topics.length ? topics[rest[0]] : "";
-    const [said, tone] = herTurn(e, style, lang, interests, topics, issueLabels, openTopic, found.size);
+    const [said, tone] = herTurn(e, style, lang, interests, topics, issueLabels, openTopic, found.size, s.lowerBetter);
     if (e.revealed !== null) found.add(e.revealed);
     turns.push({
       turn: e.turn,

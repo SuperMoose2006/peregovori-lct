@@ -283,3 +283,21 @@ def test_one_closed_topic_is_named_in_the_singular():
             assert col["missed"].startswith("Закрытыми остались темы:"), col["missed"]
         else:
             assert col["missed"].startswith("Закрытой осталась тема:"), col["missed"]
+
+
+@pytest.mark.parametrize("lang", ["ru", "en"])
+def test_the_column_never_contradicts_the_price_in_the_same_row(lang):
+    """Найдено после аудита 17.10: «уступку возвращаю назад» на первой же
+    грубости, где цена стояла; «двигаться не стану» рядом с «Цена 180 → 195»
+    (критерий с ультиматумом); «часть пути пройду» после вето размена."""
+    rude = {"ru": "Ты врёшь, вы просто жадные.", "en": "You're lying, you're just greedy."}[lang]
+    col = views.her_side(play("supplier", [rude], lang))
+    first = col["turns"][0]["said"]
+    assert ("уступк" not in first and "возвращаю" not in first) if lang == "ru" else ("concession" not in first)
+    crit_threat = {"ru": "По обзору зарплат медиана по этой роли 230, потому что это рыночный стандарт. Либо 230, либо я ухожу.",
+                   "en": "The salary survey puts the median for this role at 230, because that is the market standard. Either 230 or I walk."}[lang]
+    sess = play("salary", [crit_threat], lang)
+    entry = sess.ledger[0]
+    said = views.her_side(sess)["turns"][0]["said"]
+    if entry["offer_after"] > entry["offer_before"]:
+        assert ("не стану" not in said and "не подвинусь" not in said) if lang == "ru" else ("won't move" not in said)
