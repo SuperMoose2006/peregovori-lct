@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import time
+import weakref
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -218,7 +219,7 @@ class RealtimeSession:
 
     def __post_init__(self) -> None:
         if self.tape is None and not reproducible_run(self.game_mode):
-            self.tape = Tape(self.clock_ms)
+            self.tape = Tape(_weak_clock(self))
 
     # ------------------------------------------------------------------ ходы
 
@@ -369,6 +370,22 @@ class RealtimeSession:
         return text, frames
 
 
+def _weak_clock(session: "RealtimeSession"):
+    """Часы партии для записи — без сильной ссылки на сессию.
+
+    Связанный метод `session.clock_ms` держал бы сессию, а сессия держит
+    запись: кольцо, которое разбирает только полная сборка мусора. Пока её
+    нет, общий счётчик памяти записей рос мёртвыми партиями, и честный
+    человек получал «память занята» из-за чужих ушедших (ревью 19.10).
+    """
+    ref = weakref.ref(session)
+
+    def clock() -> int:
+        live = ref()
+        return live.clock_ms() if live is not None else 0
+    return clock
+
+
 # ---------------------------------------------------------------------------
 # Что переживает обрыв связи
 # ---------------------------------------------------------------------------
@@ -399,7 +416,11 @@ _KEEP_TTL_S = 300.0
 
 def _reap_kept(now: float) -> None:
     for key in [k for k, v in _KEPT.items() if now - v[0] > _KEEP_TTL_S]:
-        _KEPT.pop(key, None)
+        kept = _KEPT.pop(key, None)
+        # Партии больше нет — её голос и кадры стираются сейчас, а не когда
+        # дойдут руки у сборщика мусора: «потом стираются» обещано человеку.
+        if kept is not None and kept[6] is not None:
+            kept[6].discard_media()
 
 
 def keep_for_resume(session: "RealtimeSession") -> None:
@@ -430,6 +451,7 @@ def restore_from_resume(session: "RealtimeSession", session_id: str) -> None:
     время в ленте пошло бы назад посреди списка. Пауза между обрывом и
     возвращением в них не входит — человека в эти секунды за столом не было.
     """
+    _reap_kept(time.monotonic())
     kept = _KEPT.pop(session_id, None)
     if kept is None:
         return
@@ -438,7 +460,7 @@ def restore_from_resume(session: "RealtimeSession", session_id: str) -> None:
     # Запись едет только туда, где её ведут: партия на зачёт записи не знает,
     # и возвращение туда (режим сервер берёт из хранилища) её не заводит.
     if tape is not None and session.tape is not None:
-        tape.rebind(session.clock_ms)
+        tape.rebind(_weak_clock(session))
         session.tape = tape
     session.observations[:0] = observations
     session.vision_notes[:0] = notes

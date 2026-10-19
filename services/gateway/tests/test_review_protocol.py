@@ -144,9 +144,10 @@ def test_a_review_with_no_agent_alive_is_not_kept(live, monkeypatch):
         _until(ws, "review.done")
         ws.send_json({"type": "review.request"})
         _until(ws, "review.done")
+        # Запись цела, пока партия открыта: повторить разбор есть по чему.
+        assert not built[0].tape.media_discarded and built[0].tape.frames
         ws.send_json({"type": "session.close", "reason": "test"})
     assert calls["n"] == 2, "сбой — не разбор: просьбу повторить исполняют"
-    assert not built[0].tape.media_discarded and built[0].tape.frames
 
 
 def test_a_review_where_only_the_face_answered_is_not_kept(live, monkeypatch):
@@ -165,8 +166,9 @@ def test_a_review_where_only_the_face_answered_is_not_kept(live, monkeypatch):
         ws.send_json({"type": "review.request"})
         again = _until(ws, "review.done")[-1]
         assert not again.get("cached")
+        assert not built[0].tape.media_discarded
         ws.send_json({"type": "session.close", "reason": "test"})
-    assert calls["n"] == 2 and not built[0].tape.media_discarded
+    assert calls["n"] == 2
 
 
 def test_a_second_press_while_running_is_busy_and_a_crash_is_said(live, monkeypatch):

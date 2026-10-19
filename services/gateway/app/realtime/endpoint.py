@@ -744,6 +744,10 @@ async def realtime_ws(websocket: WebSocket) -> None:
                 # уже нет в хранилище, и держать её ленту не за чем.
                 if store.get(session.session_id) is not None:
                     keep_for_resume(session)
+                elif session.tape is not None:
+                    # Партия закрыта насовсем (`session.close`): возвращаться
+                    # некуда, и голос с кадрами стираются сейчас же.
+                    session.tape.discard_media()
             # Вытесненный не трогает ни хранилище, ни ленту: партия уже чужая, и
             # `release` поставил бы ЖИВОЙ партии срок в пять минут, а `drop` —
             # вынул бы её из-под нового владельца. Ленту ему уже переложило

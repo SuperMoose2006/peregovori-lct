@@ -244,12 +244,12 @@ def test_a_typed_move_lands_on_the_tape_with_its_source(monkeypatch):
         for _ in range(30):
             if ws.receive_json()["type"] == "response.done":
                 break
+        tape = built[0].tape
+        assert [f.jpeg_b64 for f in tape.frames] == ["jpeg-кадр"], "кадр записан и без модели зрения"
         ws.send_json({"type": "session.close", "reason": "test"})
 
-    tape = built[0].tape
     assert set(tape.turn_at) == {1} and tape.turn_source == {1: "text"}
     assert 1 in tape.reply_at
-    assert [f.jpeg_b64 for f in tape.frames] == ["jpeg-кадр"], "кадр записан и без модели зрения"
 
 
 @pytest.mark.parametrize("layers", [{}, {"camera": False}])
@@ -277,3 +277,73 @@ def test_no_camera_layer_means_no_frames_on_the_tape(monkeypatch, layers):
         ws.send_json({"type": "session.close", "reason": "test"})
         ws.receive_json()
     assert built[0].tape.frames == []
+
+
+# ------------------------------------------------------------------ память отпускается сразу
+
+def test_a_finished_session_frees_its_tape_without_waiting_for_the_collector():
+    """Ревью 19.10: запись держала сессию через часы, сессия — запись; память
+    возвращалась только полной сборкой мусора, и общий счётчик пух мёртвыми."""
+    gc.collect()
+    base = tape_module.held_bytes()
+    gc.disable()
+    try:
+        sess = _session(sid="no-cycle")
+        sess.tape.speech_started(turn=0)
+        sess.tape.audio(np.full(16_000, 100, dtype=np.int16))
+        assert tape_module.held_bytes() > base
+        del sess
+        assert tape_module.held_bytes() == base, "память ушедшей партии вернулась сразу"
+    finally:
+        gc.enable()
+
+
+def test_an_expired_kept_tape_is_erased():
+    from app.realtime import session as session_module
+    sess = _session(sid="kept-expired")
+    sess.tape.frame("jpeg", turn=0)
+    tape = sess.tape
+    keep_for_resume(sess)
+    at, *rest = session_module._KEPT["kept-expired"]
+    session_module._KEPT["kept-expired"] = (at - session_module._KEEP_TTL_S - 1, *rest)
+    session_module._reap_kept(at)
+    assert "kept-expired" not in session_module._KEPT
+    assert tape.media_discarded and tape.frames == [], "партия ушла — её голос и кадры стёрты"
+
+
+def test_frames_are_capped_by_bytes_not_only_by_count(monkeypatch):
+    monkeypatch.setattr(tape_module, "MAX_FRAME_BYTES", 10_000)
+    clock = _Clock()
+    tape = Tape(clock)
+    for _ in range(12):
+        clock.ms += 2000
+        tape.frame("x" * 2_000, turn=0)
+    assert sum(len(f.jpeg_b64) for f in tape.frames) <= 10_000
+    assert tape.frames_thinned and tape.frames[0].at_ms == 2000
+
+
+def test_an_explicitly_closed_game_erases_its_tape(monkeypatch):
+    from fastapi.testclient import TestClient
+    import app.realtime.endpoint as endpoint_module
+    from app.main import app
+
+    built: list = []
+    original = endpoint_module._build_session
+
+    async def spy(payload):
+        session, problem = await original(payload)
+        if session is not None:
+            built.append(session)
+        return session, problem
+
+    monkeypatch.setattr(endpoint_module, "_build_session", spy)
+    with TestClient(app).websocket_connect("/v1/realtime?mode=text") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "session.init", "payload": {
+            "scenarioId": "supplier", "lang": "ru", "layers": {"camera": True}}})
+        ws.receive_json()
+        ws.send_json({"type": "input.append", "input": {"video_frames": ["jpeg"]}})
+        ws.send_json({"type": "session.close", "reason": "test"})
+        ws.receive_json()
+    tape = built[0].tape
+    assert tape.media_discarded and tape.frames == [], "человек закрыл партию — запись стёрта сразу"

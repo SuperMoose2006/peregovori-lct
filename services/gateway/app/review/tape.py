@@ -63,6 +63,12 @@ FRAME_EVERY_MS = 1_800
 #: удваивается: длинная партия остаётся покрытой целиком, только реже.
 MAX_FRAMES = 150
 
+#: Потолок кадров ПО БАЙТАМ на одну запись. Счёт кадров сам по себе не держит
+#: память: 150 кадров по 160 тысяч знаков — 24 МБ, и пара таких записей с одного
+#: адреса съела бы общий потолок за всех (ревью 19.10). Восемь мегабайт — это
+#: триста обычных 448-пиксельных кадров; дальше — то же прореживание.
+MAX_FRAME_BYTES = 8 * 1024 * 1024
+
 #: Кадр больше этого в запись не берётся: 448-пиксельный JPEG — около 26 тысяч
 #: знаков base64, а предел сокета (700 тысяч) рассчитан на защиту, не на норму.
 MAX_FRAME_CHARS = 160_000
@@ -290,7 +296,8 @@ class Tape:
             return
         self.frames.append(Frame(turn=int(turn), at_ms=now, jpeg_b64=jpeg_b64))
         self._grow(len(jpeg_b64))
-        if len(self.frames) > MAX_FRAMES:
+        while len(self.frames) > MAX_FRAMES or (
+                len(self.frames) > 2 and sum(len(f.jpeg_b64) for f in self.frames) > MAX_FRAME_BYTES):
             dropped = self.frames[1::2]
             self.frames = self.frames[::2]
             self._grow(-sum(len(f.jpeg_b64) for f in dropped))
