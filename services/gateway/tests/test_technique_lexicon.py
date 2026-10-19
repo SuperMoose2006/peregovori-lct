@@ -620,3 +620,12 @@ def test_what_stands_behind_a_number_is_a_question_not_a_price():
     a = analyze(line)
     assert a.number is None and "interests_probe" in a.moves
     assert analyze("Такая квартира стоит 64, это медиана района.").number == 64
+
+
+def test_we_accept_closes_like_i_accept_and_my_soglasny():
+    """Найдено после аудита 17.10: «мы согласны» и "i accept" закрывали
+    сделку, а "we accept 99.5%" — нет; английская половина задания pd-02
+    засчитывала отступление (инвариант 4)."""
+    assert "accept" in analyze("We accept 99.5%.").moves
+    assert "accept" in analyze("Мы согласны на 99.5%.").moves
+    assert "accept" not in analyze("We accept your point, but 100 is too much.").moves

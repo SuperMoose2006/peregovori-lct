@@ -2104,6 +2104,36 @@
    "spin": null
   },
   {
+   "text": "We accept 99.5%.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 11,
+   "words": 3,
+   "number": 99.5,
+   "mentions": [
+    [
+     99.5,
+     "pct",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "We accept your point, but 100 is too much.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 9,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "We almost have a deal.",
    "moves": [
     "statement"

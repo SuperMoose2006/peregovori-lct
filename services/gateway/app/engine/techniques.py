@@ -570,7 +570,7 @@ LEX: dict[str, list[str]] = {
     # добавлять «ты согласен» было бы не закрытием, а вопросом о нём.
     "accept": [
         "по рукам", "договорились", "принимаю", "мы согласны", "заключаем", "подписываем",
-        "меня устраивает", "deal at", "deal on", "we have a deal", "i accept",
+        "меня устраивает", "deal at", "deal on", "we have a deal", "i accept", "we accept",
         "we agree", "done deal", "let us sign", "i can live with", "that works for us",
     ],
     # Закрытие, сказанное ОДНИМ СЛОВОМ. Читается только у короткой реплики и
