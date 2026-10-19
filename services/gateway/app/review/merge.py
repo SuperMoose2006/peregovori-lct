@@ -115,26 +115,26 @@ class Quotes:
     def locate(self, turn: int, quote: str) -> Optional[int]:
         """Ход, где цитата действительно есть, или None — тогда её нет вовсе.
 
+        ДОСЛОВНО, ЦЕЛЫМИ СЛОВАМИ. Регистр, знаки и «ё» не в счёт, а слова — в
+        счёт все и подряд. Прежняя «похожесть» (четыре пятых слов от трёх
+        букв) принимала «я готов снижать цену» при сказанном «я НЕ готов» —
+        короткое «не» в счёт не шло, и цитата переворачивала смысл; а поиск
+        подстрокой находил «ну» внутри «нужно» (ревью 19.10). В кавычках у
+        человека может стоять только то, что он сказал.
+
         Сначала названный ход, потом любой: агент мог ошибиться номером, и
         выбросить настоящую цитату за опечатку в номере — потерять пример.
-        Пересказ близко к тексту (четыре пятых слов на месте) принимается
-        только в НАЗВАННОМ ходе: искать «похожее» по всей партии значило бы
-        прицепить пример к чужой реплике.
         """
         q = _norm(quote)
         if len(q) < 2:
             self.dropped += 1
             return None
-        if turn in self._norm and q in self._norm[turn]:
+        needle = f" {q} "
+        if turn in self._norm and needle in f" {self._norm[turn]} ":
             return turn
         for t, text in self._norm.items():
-            if q in text:
+            if needle in f" {text} ":
                 return t
-        words = [w for w in q.split() if len(w) >= 3]
-        if turn in self._norm and words:
-            have = set(self._norm[turn].split())
-            if sum(w in have for w in words) / len(words) >= 0.8:
-                return turn
         self.dropped += 1
         return None
 
@@ -385,7 +385,8 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
             at_turn = q.get("answer_turn") or min(q["turn"] + 1, last_turn or q["turn"] + 1)
             ev = _ev("content", f"answer_{q['answered']}", at_turn,
                      (timing.get(at_turn) or {}).get("at_ms"), text=q["question"])
-            if q.get("quote") and quotes.locate(at_turn, q["quote"]) is not None:
+            # Цитата ответа доказывает ответ, только если она из ЭТОГО хода.
+            if q.get("quote") and quotes.locate(at_turn, q["quote"]) == at_turn:
                 ev["quote"] = q["quote"]
             examples.append(note(ev, strain=q["answered"] == "no", listed=q["answered"] == "no"))
         examples.sort(key=lambda e: e["kind"] != "answer_no")
@@ -402,7 +403,7 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
             at_turn = f.get("answer_turn") or f["turn"] + 1
             ev = _ev("content", f"followup_{f['handling']}", at_turn,
                      (timing.get(at_turn) or {}).get("at_ms"), text=f["probe"])
-            if f.get("quote") and quotes.locate(at_turn, f["quote"]) is not None:
+            if f.get("quote") and quotes.locate(at_turn, f["quote"]) == at_turn:
                 ev["quote"] = f["quote"]
             examples.append(note(ev, strain=f["handling"] != "steady",
                                  listed=f["handling"] != "steady"))
@@ -418,7 +419,8 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
         for c in cons["contradictions"]:
             a = quotes.locate(c["turn_a"], c["quote_a"])
             b = quotes.locate(c["turn_b"], c["quote_b"])
-            if a is None or b is None:
+            # Обе цитаты нашлись в одной реплике — это не противоречие ходов.
+            if a is None or b is None or a == b:
                 continue
             ev = _ev("content", "contradiction", b, quote_ms(timing, player, b, c["quote_b"]),
                      text=c["quote_b"])
