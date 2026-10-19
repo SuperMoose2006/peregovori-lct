@@ -235,6 +235,9 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
           // тем же кодом, что и напечатанная (см. attach ниже по файлу).
           onTranscript: (text, final) =>
             currentState((p) => {
+              // Стол закрыт — речь не ход (сервер её и не шлёт, но запоздавшее
+              // событие не должно ставить пузырь и вечную занятость).
+              if (p.debrief || (p.state && p.state.status !== "active")) return { ...p, transcript: null };
               if (!final) return { ...p, transcript: text };
               const said = text.trim();
               if (!said) return { ...p, transcript: null };

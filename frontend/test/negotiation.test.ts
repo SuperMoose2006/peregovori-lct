@@ -394,3 +394,13 @@ test("реплика, погашенная до первого слова, за�
   assert.equal(s.log.filter((e) => e.kind === "opp").length, 0);
   assert.deepEqual((s.log[0] as { deltas?: unknown }).deltas, DELTAS, "дельты хода обязаны лечь под реплику игрока");
 });
+
+test("за закрытым столом расшифровка речи не становится ходом", async () => {
+  // Найдено после аудита 17.10: «спасибо» на разборе ставило пузырь «вы» и
+  // вечную занятость. Сервер такую речь больше не шлёт; клиент — второй рубеж.
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../src/api/useNegotiation.ts", import.meta.url), "utf8");
+  const handler = src.match(/onTranscript: \(text, final\) =>[^]*?if \(!final\)/);
+  assert.ok(handler, "обработчик расшифровки не найден");
+  assert.match(handler[0], /p\.debrief \|\| \(p\.state && p\.state\.status !== "active"\)/);
+});

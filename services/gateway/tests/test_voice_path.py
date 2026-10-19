@@ -630,3 +630,24 @@ async def test_classic_pipeline_publishes_a_final_only_when_the_turn_leaves():
     await pipe.force_commit()
     assert turns == ["Я готов уступить"]
     assert [e["text"] for e in events if e.get("final")] == turns
+
+
+def test_speech_after_the_table_closed_is_not_published():
+    """Найдено после аудита 17.10: «спасибо» на разборе приходило финальной
+    расшифровкой — пузырь «вы» и вечная занятость за закрытым столом."""
+    from app import engine
+    from app.realtime.endpoint import _voice_publisher
+    from app.realtime.session import RealtimeSession
+
+    session = RealtimeSession(session_id="voice_closed", lang="ru",
+                              engine_session=engine.create_session("supplier", "ru"))
+    events: list[dict] = []
+    session.bus.publish = events.append  # type: ignore[method-assign]
+    publish = _voice_publisher(session)
+    publish({"type": "user.transcript", "text": "Добрый день", "final": True})
+    assert len(events) == 1, "за открытым столом речь — ход"
+    session.engine_session.state.status = "agreement"
+    publish({"type": "user.transcript", "text": "Спасибо", "final": True})
+    publish({"type": "user.speech.started"})
+    publish({"type": "error", "error": {"code": "asr_unavailable"}})
+    assert [e["type"] for e in events] == ["user.transcript", "error"]

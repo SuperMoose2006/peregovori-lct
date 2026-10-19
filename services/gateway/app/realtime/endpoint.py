@@ -273,6 +273,22 @@ class _Work:
                 await task
 
 
+def _voice_publisher(session: "RealtimeSession"):
+    """Шина для голосовых конвейеров: речь игрока — только за открытым столом.
+
+    СТОЛ ЗАКРЫТ — РЕЧЬ ИГРОКА БОЛЬШЕ НЕ ХОД. Разбор держит сокет открытым,
+    микрофон слушает, и «спасибо» после рукопожатия приходило финальной
+    расшифровкой: клиент ставил пузырь «вы» и занятость, а закрытый стол хода
+    не принимал — занятость не снималась никогда (найдено после аудита 17.10).
+    """
+    def publish(event: dict) -> None:
+        if (str(event.get("type", "")).startswith("user.")
+                and session.engine_session.state.status != "active"):
+            return
+        session.bus.publish(event)
+    return publish
+
+
 def _admitted(handler):
     @wraps(handler)
     async def admitted(websocket: WebSocket) -> None:
@@ -783,19 +799,21 @@ def _wire(session: RealtimeSession, *, work: Optional["_Work"] = None) -> tuple[
             """
             await work.run_turn(orchestrator, session, text)
 
+        voice_publish = _voice_publisher(session)
+
         want_realtime = voice_mode() == "realtime"
         pipeline = RealtimeVoicePipeline(
             lang=session.lang,
             on_turn=guarded_turn,
             on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
-            publish=session.bus.publish,
+            publish=voice_publish,
         ) if want_realtime else None
         if voice_mode() == "classic":
             pipeline = VoicePipeline(
                 asr=make_asr(), lang=session.lang,
                 on_turn=guarded_turn,
                 on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
-                publish=session.bus.publish,
+                publish=voice_publish,
             )
         if pipeline is not None and pipeline.available:
             voice = pipeline
