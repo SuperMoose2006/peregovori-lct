@@ -630,7 +630,16 @@ export class RealtimeTransport implements Transport {
       }
 
       case "error": {
-        const message = String((event.error as { message?: string })?.message ?? "ошибка");
+        const err = (event.error ?? {}) as { code?: string; message?: string };
+        // Часть отказов сервер пишет только по-английски («turn failed») —
+        // в русской партии это строка на чужом языке посреди ленты
+        // (инвариант 4, найдено после аудита 17.10). Их текст берётся из
+        // словаря по коду; остальные коды сервер уже переводит сам.
+        const local = I18N[this.lang].conn.errors as Record<string, string>;
+        const message = err.code && err.code !== "generic"
+          && Object.prototype.hasOwnProperty.call(local, err.code)
+          ? local[err.code]
+          : String(err.message ?? local.generic);
         // ОТКАЗ ВНУТРИ ПАРТИИ — СТРОКА В ЛЕНТЕ, А НЕ ПРОВАЛ ЗАПУСКА.
         //
         // `error` со стола (кончился бюджет зрения, не поднялось распознавание,

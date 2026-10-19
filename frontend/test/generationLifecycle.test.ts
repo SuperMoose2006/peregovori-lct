@@ -233,3 +233,20 @@ test("отмена невиданного поколения без хода в 
     assert.equal(opponents(t.received).length, 1);
   } finally { t.transport.close(); }
 });
+
+test("отказ внутри партии — на языке партии, а не английской строкой сервера", async () => {
+  // Найдено после аудита 17.10: «turn failed» и «turn already in flight»
+  // ложились в ленту русской партии как есть (инвариант 4).
+  const { I18N } = await import("../src/i18n");
+  const t = await table();
+  try {
+    t.socket.deliver({ type: "error", error: { code: "turn_failed", message: "turn failed" } });
+    t.socket.deliver({ type: "error", error: { code: "busy", message: "turn already in flight" } });
+    t.socket.deliver({ type: "error", error: { code: "asr_unavailable", message: "Распознавание недоступно." } });
+    const notices = t.received.filter((m) => m.type === "notice").map((m) => (m as { text: string }).text);
+    assert.deepEqual(notices, [
+      I18N.ru.conn.errors.turn_failed, I18N.ru.conn.errors.busy, "Распознавание недоступно.",
+    ]);
+    assert.ok(notices.every((n) => /[а-яё]/i.test(n)));
+  } finally { t.transport.close(); }
+});

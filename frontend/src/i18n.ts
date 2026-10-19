@@ -188,6 +188,9 @@ export interface Strings {
     // «переподключаемся» было бы неправдой: переподключаться некуда, партия
     // жива и идёт в другом окне.
     takenOver: string;
+    /** Отказы внутри партии, у которых сервер шлёт только английский текст
+     *  (`busy`, `turn_failed`, `server_error`, `output_overflow`). */
+    errors: Record<"busy" | "turn_failed" | "server_error" | "output_overflow" | "generic", string>;
   };
   // custom ("Своя сделка") mode
   custom: {
@@ -1032,6 +1035,13 @@ export const I18N: Record<Lang, Strings> = {
       retry: "Перезапустить сценарий",
       home: "На главную",
       takenOver: "Эту партию продолжили в другом окне — здесь она остановлена. Играйте там или перезапустите сценарий.",
+      errors: {
+        busy: "Предыдущий ход ещё в работе — этот не принят. Дождитесь ответа и повторите.",
+        turn_failed: "Ход не состоялся — попробуйте ещё раз.",
+        server_error: "Что-то пошло не так. Партия цела — попробуйте ещё раз.",
+        output_overflow: "Связь не успевает за партией — переподключаемся, чтобы её восстановить.",
+        generic: "Ошибка",
+      },
     },
     custom: {
       context: {
@@ -2028,6 +2038,13 @@ export const I18N: Record<Lang, Strings> = {
       retry: "Restart scenario",
       home: "Home",
       takenOver: "This game was taken over in another window — it is stopped here. Play there, or restart the scenario.",
+      errors: {
+        busy: "Your previous move is still being handled — this one was not taken. Wait for the reply and try again.",
+        turn_failed: "That move didn't go through — try again.",
+        server_error: "Something went wrong. The game is intact — try again.",
+        output_overflow: "The connection fell behind — reconnecting to restore the game.",
+        generic: "Error",
+      },
     },
     custom: {
       head: "Describe your situation",
