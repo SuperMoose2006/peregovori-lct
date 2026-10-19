@@ -35,6 +35,7 @@ def test_a_pause_inside_the_line_is_found_where_it_is():
     pause = out["pauses"][0]
     assert abs(pause["at_ms"] - 1300) <= 60 and abs(pause["dur_ms"] - 900) <= 60
     assert abs(out["voiced_ms"] - 1800) <= 80
+    assert abs(out["speech_from_ms"] - 300) <= 40 and abs(out["speech_to_ms"] - 3000) <= 40
 
 
 def test_short_gaps_and_edge_silence_are_not_pauses():

@@ -109,7 +109,10 @@ def analyze(pcm: np.ndarray) -> dict:
     db = _loudness(x)
     out: dict = {"dur_ms": int(x.size * 1000 // SAMPLE_RATE), "voiced_ms": 0, "pauses": [],
                  "f0_hz": None, "f0_range_st": None, "loudness_db": None,
-                 "pitch_jumps": [], "fading": False}
+                 "pitch_jumps": [], "fading": False,
+                 # Где в куске речь началась и кончилась: кусок несёт секунду
+                 # предзаписи, и время цитаты считается от голоса, а не от неё.
+                 "speech_from_ms": None, "speech_to_ms": None}
     if not db.size:
         return out
     floor = float(np.percentile(db, 10))
@@ -121,6 +124,7 @@ def analyze(pcm: np.ndarray) -> dict:
     out["loudness_db"] = round(float(np.median(db[speech])), 1)
 
     first, last = int(np.argmax(speech)), len(speech) - 1 - int(np.argmax(speech[::-1]))
+    out["speech_from_ms"], out["speech_to_ms"] = first * FRAME_MS, (last + 1) * FRAME_MS
     inner = ~speech[first:last + 1]
     for start, length in _runs(inner):
         if length * FRAME_MS >= PAUSE_MIN_MS:

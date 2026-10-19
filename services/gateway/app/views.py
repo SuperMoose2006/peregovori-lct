@@ -414,6 +414,54 @@ def debrief_facts(sess: "engine.Session", deb: dict, lang: str) -> dict:
     return facts
 
 
+def review_facts(sess: "engine.Session", lang: str) -> dict:
+    """Всё, что «Глубокому разбору» нужно знать о партии, — обычным словарём.
+
+    Разбор (`app/review`) с движком напрямую не разговаривает: как и наставник,
+    он получает факты через этот адаптер. Вводная — ровно то, что знал ИГРОК
+    (его цель, красная линия, альтернатива), без скрытых интересов собеседника:
+    агент сверки фактов судит речь игрока по тому, что игроку было известно.
+    Реплики собеседника помечены ходом, на который они отвечают; приветствие —
+    ход 0. Счёт движка едет только для сверки направлений (`merge.py`) — разбор
+    его не меняет и не пересчитывает.
+    """
+    sc = engine.by_id(sess.scenario_id)
+    lines: list[dict] = []
+    turn = 0
+    for entry in sess.log or []:
+        role = entry.get("role")
+        text = (entry.get("text") or "").strip()
+        if role not in ("player", "opp") or not text:
+            continue
+        if role == "player":
+            turn = int(entry.get("turn") or turn + 1)
+        lines.append({"role": role, "turn": turn, "text": text,
+                      "interrupted": bool(entry.get("interrupted"))})
+    deb = engine.to_debrief(sess)
+    unit = sc.headline.unit[lang]
+    return {
+        "lang": lang,
+        "brief": {
+            "title": sc.title[lang],
+            "role": sc.role[lang],
+            "briefing": sc.briefing[lang],
+            "counterpart": f"{sc.counterpart.name[lang]} — {sc.counterpart.persona[lang]}",
+            "batna": sc.player_batna.note[lang],
+            "target": sc.player_target,
+            "reservation": sc.player_reservation,
+            "opponent_open": sc.opponent_open,
+            "unit": unit,
+            "issues": [iss.label[lang] for iss in getattr(sc, "secondary_issues", [])],
+        },
+        "greeting": greeting_line(sess, lang),
+        "lines": lines,
+        "scorecard": {k: deb.get(k) for k in (
+            "grade", "overall", "economic", "relationship", "technique", "status",
+            "interests_found", "interests_total", "objective_criteria", "tradeoffs",
+            "threats", "empathy", "spin_stages")},
+    }
+
+
 def _transcript(sess: "engine.Session", lang: str, max_turns: int = 6, *,
                 for_opponent: bool = True) -> str:
     """Recent dialogue so the opponent has memory of its own concessions/words.

@@ -122,6 +122,35 @@ async def complete(system: str, user: str, *, role: Role = "opponent",
         return text or None if raw else sanitize(text)
 
 
+async def complete_parts(system: str, parts: list[dict], *, role: Role,
+                         max_tokens: int, temperature: float = 0.2,
+                         model: str | None = None) -> Optional[str]:
+    """Ответ на сообщение ИЗ ЧАСТЕЙ — текст, картинки, звук. Всегда сырой.
+
+    Агентам «Глубокого разбора» нужно подать модели кадры подряд с подписями
+    времени или запись реплики: строкой это не передать. Санитайзера нет:
+    ответ — JSON, а не реплика персонажа. None — ИИ недоступен или ответ пуст.
+    """
+    if not available():
+        return None
+    payload = {
+        "model": model or model_for(role),
+        "messages": [{"role": "system", "content": system},
+                     {"role": "user", "content": parts}],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }
+    with ProviderCall("llm.complete", "openrouter", role) as call:
+        try:
+            r = await _get_client().post("/chat/completions", json=payload)
+            r.raise_for_status()
+            text = (r.json()["choices"][0]["message"]["content"] or "").strip()
+        except Exception as exc:
+            call.fail(exc)
+            return None
+        return text or None
+
+
 async def stream(system: str, user: str, *, role: Role = "opponent",
                  max_tokens: int = 220, temperature: float = 0.8,
                  model: str | None = None) -> AsyncIterator[str]:
