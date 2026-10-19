@@ -262,3 +262,13 @@ def test_after_agreement_the_prompt_names_the_deal_not_the_last_offer():
     ru = build_system({"lang": "ru", "persona_name": "Ирина", "persona_desc": "x", "style": "tough",
                        "offer_opp": 95, "deal": 93.2, "unit": " ₽", "mood": "m", "status": "agreement"})
     assert "ТОЛЬКО 93.2 ₽" in ru and "95" not in ru
+
+
+def test_the_prompt_does_not_let_the_model_guess_the_players_gender():
+    """Живая проверка созвона на стенде 19.10: «вариант для нас обеих» —
+    модель сама решила, что игрок женщина. Пол игрока неизвестен никому, и
+    шаблоны движка давно нейтральны (test_opponent_gender_neutral); теперь это
+    сказано и модели — на обоих языках."""
+    ru, en = _tough("ru"), _tough("en")
+    assert "Пол игрока неизвестен" in ru and "«нас обеих»" in ru and "«мы с вами»" in ru
+    assert "gender is unknown" in en

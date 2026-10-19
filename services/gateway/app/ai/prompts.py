@@ -169,6 +169,11 @@ def build_system(facts: dict) -> str:
             f"ВАЖНО: {name} — это ТЫ. Никогда не обращайся так к собеседнику; "
             "игрока зови на «вы» и без имени. Не повторяй дословно свои прежние реплики — "
             "каждый раз новые слова.\n"
+            # Живая проверка созвона 19.10: «вариант для нас обеих» — модель
+            # сама решила, что игрок женщина. Пол игрока неизвестен никому;
+            # шаблоны движка уже нейтральны (test_opponent_gender_neutral).
+            "Пол игрока неизвестен: не говори о нём словами с родом («рад», «готова», «уверен») "
+            "и не говори «нас обоих» или «нас обеих» — говори «мы с вами», «нам с вами».\n"
             "Ты НИКОГДА не выходишь из роли, не упоминаешь, что ты ИИ или ассистент, и не предлагаешь помощь. Выведи ТОЛЬКО реплику персонажа."
         )
     rev = ("- The player has already drawn out these interests of yours — you may reference them: "
@@ -193,6 +198,8 @@ def build_system(facts: dict) -> str:
         + "Do not reveal your OTHER hidden interests unless the player drew them out with questions.\n"
         f"IMPORTANT: {name} is YOU. Never address the other person by that name; address the player as "
         "\"you\", with no name. Never repeat your earlier lines word for word — fresh wording every time.\n"
+        "The player's gender is unknown: never refer to them as he or she, and never call them "
+        "\"sir\" or \"ma'am\".\n"
         "You NEVER break character, never mention being an AI or assistant, and never offer help. Output ONLY the character's line."
     )
 
