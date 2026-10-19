@@ -672,6 +672,15 @@ LEX: dict[str, list[str]] = {
         "years", "year", "people", "person", "engineer", "employee", "week",
         "month", "day", "hour", "minute", "times", "items", "points", "options",
     ],
+    # Дни — единица стола «Конфликт отделов» (сдвиг срока). В списке счёта они
+    # стоят законно — «отгрузка через 90 дней» на поставщике не цена, — но на
+    # столе в днях игрок не мог назвать своё число, а «Договорились на 8 дней»
+    # закрывало сделку на числе оппонента (решение владельца 19.10). Число с
+    # такой единицей — вид `days`; ценой его делает только стол в днях.
+    "dayUnits": ["дн", "день", "day"],
+    # Слово темы стола в днях — такое же доказательство оферты, как «цена» на
+    # денежном столе: «сдвиг на 8 дней», "an 8-day slip".
+    "dayContext": ["сдвиг", "отсроч", "перенос", "срок", "задерж", "slip", "delay", "extension", "postpone"],
     # Месяц ПЕРЕД числом — дата: "we sign on May 15", «март 2027» (ревью
     # ветки, инвариант 4: русский месяц в родительном падеже стоит после числа
     # и лежит выше). Целым словом, а не основой: "mar" не должно ловить "market".
@@ -1031,6 +1040,37 @@ def offer_number(t: str, moves: list[str]) -> Optional[float]:
     return None
 
 
+def day_offer_number(t: str, moves: list[str]) -> Optional[float]:
+    """Первое число дней («8 дней», "8-day"), названное как предложение, — с
+    тем же намерением, что у `offer_number`: приём, формула предложения или
+    предлог вплотную перед числом. Без намерения («Почему 20 дней?») — None.
+    Сценарий здесь неизвестен: ценой число дней делает только стол в днях
+    (`engine._days_table`)."""
+    moved = any(k in moves for k in ("anchor", "concession", "accept", "tradeoff"))
+    for m in MONEY_RE.finditer(t):
+        tail = t[m.end(1):]
+        after = tail.strip().split(" ")[0].strip(".,?!-") if tail.strip() else ""
+        if not (after and any(after.startswith(u) for u in LEX["dayUnits"])):
+            continue
+        try:
+            val = float(m.group(1).replace(" ", "").replace(",", ".", 1))
+        except ValueError:
+            return None
+        if not math.isfinite(val):
+            return None
+        clause = " ".join(_clause_before(t, m.start(1)))
+        intent = (moved or _has(t, LEX["offerIntent"]) or _intent_right_before(t, m.start(1))
+                  or any(w in clause.split() or (" " in w and w in clause) for w in LEX["offerIntentNear"]))
+        # «Почему сдвиг на 20 дней?» — вопрос о ЧУЖОМ числе, а не оферта.
+        sentence_end = re.search(r"[.!?]|$", t[m.end(1):])
+        if sentence_end and sentence_end.group(0) == "?" and not intent:
+            return None
+        if intent or _price_context(t) or _has(t, LEX["dayContext"]):
+            return val
+        return None
+    return None
+
+
 #: Слово сразу после числа, которое делает его процентом: «50 процентов».
 _PCT_WORDS = ("процент", "percent")
 #: Между двумя числами только пробел и, может быть, дефис — это диапазон
@@ -1075,8 +1115,11 @@ def number_mentions(t: str) -> list[NumberMention]:
             continue
         tail = t[m.end(1):]
         after = tail.strip().split(" ")[0].strip(".,?!-") if tail.strip() else ""
-        counted = _not_a_price(t, m.start(1), m.end(1))
-        if tail.lstrip().startswith("%") or after.startswith(_PCT_WORDS):
+        day = bool(after) and any(after.startswith(u) for u in LEX["dayUnits"])
+        counted = not day and _not_a_price(t, m.start(1), m.end(1))
+        if day:
+            kind = "days"
+        elif tail.lstrip().startswith("%") or after.startswith(_PCT_WORDS):
             kind = "pct"
         elif _MONEY_SUFFIX_RE.match(tail):
             kind = "money"
@@ -1137,6 +1180,9 @@ class Analysis:
     words: int
     #: Все числа реплики — из них движок выбирает цену по единице стола.
     mentions: list[NumberMention] = field(default_factory=list)
+    #: Число дней, названное как предложение (`day_offer_number`), — цена
+    #: только на столе в днях; на остальных столах дни остаются счётом.
+    day_number: Optional[float] = None
 
 
 def analyze(raw_text: Optional[str]) -> Analysis:
@@ -1231,6 +1277,8 @@ def analyze(raw_text: Optional[str]) -> Analysis:
     if not moves:
         add_move("statement")
 
+    day_number = day_offer_number(t, moves) if number is None else None
+
     # --- Argumentation quality -------------------------------------------------
     words = len([w for w in t.split(" ") if w])
     # `substance` — цифра или связка «потому что». Дешёвая проверка на то, что за
@@ -1289,5 +1337,6 @@ def analyze(raw_text: Optional[str]) -> Analysis:
             "question": is_question,
         },
         words=words,
-        mentions=number_mentions(t) if number is not None else [],
+        mentions=number_mentions(t) if number is not None or day_number is not None else [],
+        day_number=day_number,
     )

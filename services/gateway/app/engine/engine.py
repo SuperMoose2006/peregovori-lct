@@ -512,6 +512,11 @@ def _plausible_offer(sc: Scenario, number: float) -> Optional[float]:
     return None
 
 
+def _days_table(sc: Scenario) -> bool:
+    """Цена стола — в днях («Конфликт отделов»: дни сдвига срока)."""
+    return "дн" in sc.headline.unit["ru"]
+
+
 def _pick_offer(sc: Scenario, analysis: Analysis, on_table: Optional[float] = None) -> Optional[float]:
     """Какое из чисел реплики — цена этого стола.
 
@@ -538,7 +543,9 @@ def _pick_offer(sc: Scenario, analysis: Analysis, on_table: Optional[float] = No
     if not analysis.mentions:
         return None if analysis.number is None else _plausible_offer(sc, analysis.number)
     foreign = "money" if "%" in sc.headline.unit["ru"] else "pct"
-    pool = [m for m in analysis.mentions if m.kind != foreign]
+    # Число дней — цена только на столе в днях (решение владельца 19.10).
+    days = _days_table(sc)
+    pool = [m for m in analysis.mentions if m.kind != foreign and (m.kind != "days" or days)]
     ordered = [m for m in pool if not m.ranged] + [m for m in pool if m.ranged]
     priced_all = [(p, m) for p, m in ((_plausible_offer(sc, m.value), m) for m in ordered)
                   if p is not None]
@@ -954,8 +961,11 @@ def apply_move(sess: Session, analysis: Analysis, raw_text: str = "",
     # признать размен настоящим, но число, названное вслух, остаётся числом на
     # столе. Вето снимает НАЧИСЛЕНИЕ за приём, а не право игрока назвать цену.
     priced = None
-    if analysis.number is not None and (
-        has("offer") or has("anchor") or has("concession") or has("accept") or has("tradeoff")
+    # На столе в днях «Предлагаю сдвиг на 8 дней» — оферта: намерение у числа
+    # дней уже проверено (`day_offer_number`), а на прочих столах дни — счёт.
+    day_offer = analysis.day_number is not None and _days_table(sc)
+    if (analysis.number is not None or day_offer) and (
+        day_offer or has("offer") or has("anchor") or has("concession") or has("accept") or has("tradeoff")
     ):
         priced = _pick_offer(sc, analysis, s.offer_opp)
         if priced is not None:

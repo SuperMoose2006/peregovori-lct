@@ -169,6 +169,10 @@ EDGE: list[str] = [
     "We have a deal, we sign on the 15th.", "We have a deal, we sign on May 15.",
     "We have a deal, delivery on the 1st of March.", "We can do 90, may 15 work for delivery?",
     "Договорились на 90, отгрузка 1 марта.",
+    # Дни — цена только на столе в днях (решение владельца 19.10).
+    "Предлагаю сдвиг на 8 дней.", "Давайте 8 дней, и закроем вопрос.", "Договорились на 8 дней.",
+    "Почему сдвиг на 20 дней?", "Как насчёт 8 дней?", "I suggest an 8-day slip.", "We agree on 8 days.",
+    "Готовы на 90 дней отсрочки.",
     # «1 миллион 200 тысяч» — одно число (найдено после аудита 17.10).
     "Договорились на 1 миллион 200 тысяч.", "Предлагаю один миллион двести тысяч.",
     "Предлагаю 1 миллион двести тысяч, это рынок.",
@@ -210,6 +214,7 @@ def render() -> str:
             "words": a.words,
             "number": a.number,
             "mentions": [[m.value, m.kind, m.ranged, m.aside] for m in a.mentions],
+            "day_number": a.day_number,
             "spin": a.spin,
         })
     return json.dumps({"source": "engine/techniques.py::analyze", "cases": rows},

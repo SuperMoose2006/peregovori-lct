@@ -144,6 +144,12 @@ export const LEX: Record<string, string[]> = {
     "декабр", "years", "year", "people", "person", "engineer", "employee", "week", "month",
     "day", "hour", "minute", "times", "items", "points", "options",
   ],
+  dayUnits: [
+    "дн", "день", "day",
+  ],
+  dayContext: [
+    "сдвиг", "отсроч", "перенос", "срок", "задерж", "slip", "delay", "extension", "postpone",
+  ],
   monthsBefore: [
     "январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь",
     "октябрь", "ноябрь", "декабрь", "january", "february", "march", "april", "may", "june",

@@ -11,6 +11,7 @@
    "words": 0,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -24,6 +25,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -44,6 +46,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -56,6 +59,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -68,6 +72,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -87,6 +92,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -106,6 +112,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -125,6 +132,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -144,6 +152,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -163,6 +172,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -182,6 +192,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -194,6 +205,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -206,6 +218,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -218,6 +231,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -230,6 +244,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -242,6 +257,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -254,6 +270,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -266,6 +283,7 @@
    "words": 17,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -278,6 +296,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -290,6 +309,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -302,6 +322,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -314,6 +335,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -326,6 +348,7 @@
    "words": 20,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -338,6 +361,7 @@
    "words": 1,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -350,6 +374,7 @@
    "words": 28,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -363,6 +388,7 @@
    "words": 17,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -375,6 +401,7 @@
    "words": 21,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -387,6 +414,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -399,6 +427,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -419,6 +448,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -439,6 +469,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -451,6 +482,7 @@
    "words": 1,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -470,6 +502,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -482,6 +515,7 @@
    "words": 1,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -494,6 +528,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -513,6 +548,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -525,6 +561,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -537,6 +574,7 @@
    "words": 16,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -558,6 +596,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -579,6 +618,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -599,6 +639,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -611,6 +652,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -623,6 +665,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -635,6 +678,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -647,6 +691,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -659,6 +704,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -671,6 +717,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -690,6 +737,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -709,6 +757,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -722,6 +771,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -742,6 +792,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -755,6 +806,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -767,6 +819,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -779,6 +832,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -791,6 +845,7 @@
    "words": 21,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "need-payoff"
   },
   {
@@ -803,6 +858,7 @@
    "words": 13,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "need-payoff"
   },
   {
@@ -815,6 +871,7 @@
    "words": 12,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "need-payoff"
   },
   {
@@ -827,6 +884,7 @@
    "words": 12,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -839,6 +897,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -859,6 +918,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -871,6 +931,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -883,6 +944,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -902,6 +964,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -914,6 +977,7 @@
    "words": 14,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -926,6 +990,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -938,6 +1003,7 @@
    "words": 12,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -957,6 +1023,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -976,6 +1043,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -996,6 +1064,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1008,6 +1077,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1034,6 +1104,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1046,6 +1117,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1058,6 +1130,7 @@
    "words": 13,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1077,6 +1150,27 @@
      false
     ]
    ],
+   "day_number": null,
+   "spin": null
+  },
+  {
+   "text": "I suggest an 8-day slip.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "mentions": [
+    [
+     8.0,
+     "days",
+     false,
+     false
+    ]
+   ],
+   "day_number": 8.0,
    "spin": null
   },
   {
@@ -1090,6 +1184,7 @@
    "words": 34,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1103,6 +1198,7 @@
    "words": 25,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1115,6 +1211,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1128,6 +1225,7 @@
    "words": 23,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1148,6 +1246,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1160,6 +1259,7 @@
    "words": 21,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1172,6 +1272,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1184,6 +1285,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1196,6 +1298,7 @@
    "words": 12,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1209,6 +1312,7 @@
    "words": 21,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1229,6 +1333,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1249,6 +1354,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1269,6 +1375,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1295,6 +1402,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1315,6 +1423,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1328,6 +1437,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1341,6 +1451,7 @@
    "words": 13,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1353,6 +1464,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1365,6 +1477,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1377,6 +1490,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1389,6 +1503,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1401,6 +1516,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1413,6 +1529,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1425,6 +1542,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1437,6 +1555,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1449,6 +1568,7 @@
    "words": 13,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1462,6 +1582,7 @@
    "words": 19,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1482,6 +1603,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1503,6 +1625,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1522,6 +1645,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1534,6 +1658,7 @@
    "words": 16,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1546,6 +1671,7 @@
    "words": 17,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1558,6 +1684,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1570,6 +1697,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1582,6 +1710,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1602,6 +1731,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1614,6 +1744,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1626,6 +1757,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1638,6 +1770,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1664,6 +1797,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1676,6 +1810,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1688,6 +1823,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -1700,6 +1836,7 @@
    "words": 18,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -1712,6 +1849,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -1724,6 +1862,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1736,6 +1875,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1748,6 +1888,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1760,6 +1901,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1772,6 +1914,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1784,6 +1927,7 @@
    "words": 18,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1796,6 +1940,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1808,6 +1953,7 @@
    "words": 12,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1820,6 +1966,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1832,6 +1979,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1844,6 +1992,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1856,6 +2005,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1876,6 +2026,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1896,6 +2047,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1908,6 +2060,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1920,6 +2073,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1932,6 +2086,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1952,6 +2107,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1972,6 +2128,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -1992,6 +2149,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2012,6 +2170,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2032,6 +2191,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2044,6 +2204,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2056,6 +2217,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2068,6 +2230,7 @@
    "words": 24,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2080,6 +2243,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2092,6 +2256,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2104,6 +2269,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2116,6 +2282,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2135,6 +2302,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2147,6 +2315,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2159,6 +2328,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2171,6 +2341,7 @@
    "words": 14,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2183,6 +2354,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2195,6 +2367,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2207,6 +2380,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2226,6 +2400,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2238,6 +2413,27 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
+   "spin": null
+  },
+  {
+   "text": "We agree on 8 days.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "mentions": [
+    [
+     8.0,
+     "days",
+     false,
+     false
+    ]
+   ],
+   "day_number": 8.0,
    "spin": null
   },
   {
@@ -2250,6 +2446,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2262,6 +2459,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2282,6 +2480,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2320,6 +2519,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2340,6 +2540,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2352,6 +2553,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2364,6 +2566,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2376,6 +2579,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2388,6 +2592,7 @@
    "words": 22,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2400,6 +2605,7 @@
    "words": 12,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2412,6 +2618,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2431,6 +2638,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2452,6 +2660,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2473,6 +2682,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2493,6 +2703,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2513,6 +2724,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2533,6 +2745,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2545,6 +2758,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -2557,6 +2771,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -2569,6 +2784,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2581,6 +2797,7 @@
    "words": 12,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -2593,6 +2810,7 @@
    "words": 13,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -2605,6 +2823,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2617,6 +2836,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -2629,6 +2849,7 @@
    "words": 13,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2641,6 +2862,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2653,6 +2875,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2673,6 +2896,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2685,6 +2909,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2697,6 +2922,7 @@
    "words": 1,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2709,6 +2935,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2729,6 +2956,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2749,6 +2977,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2769,6 +2998,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2781,6 +3011,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2793,6 +3024,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2805,6 +3037,7 @@
    "words": 20,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2818,6 +3051,7 @@
    "words": 16,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2831,6 +3065,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2850,6 +3085,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2862,6 +3098,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2874,6 +3111,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2886,6 +3124,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2898,6 +3137,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2910,6 +3150,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2923,6 +3164,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2936,6 +3178,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -2948,6 +3191,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2960,6 +3204,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2972,6 +3217,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2984,6 +3230,7 @@
    "words": 1,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -2996,6 +3243,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3015,6 +3263,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3034,6 +3283,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3054,6 +3304,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3080,6 +3331,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3119,6 +3371,47 @@
      false
     ]
    ],
+   "day_number": null,
+   "spin": null
+  },
+  {
+   "text": "Готовы на 90 дней отсрочки.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "mentions": [
+    [
+     90.0,
+     "days",
+     false,
+     false
+    ]
+   ],
+   "day_number": 90.0,
+   "spin": null
+  },
+  {
+   "text": "Давайте 8 дней, и закроем вопрос.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 6,
+   "number": null,
+   "mentions": [
+    [
+     8.0,
+     "days",
+     false,
+     false
+    ]
+   ],
+   "day_number": 8.0,
    "spin": null
   },
   {
@@ -3138,6 +3431,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3150,6 +3444,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3162,6 +3457,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3175,6 +3471,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3187,6 +3484,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3213,6 +3511,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3225,6 +3524,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3244,6 +3544,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3263,6 +3564,27 @@
      false
     ]
    ],
+   "day_number": null,
+   "spin": null
+  },
+  {
+   "text": "Договорились на 8 дней.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 4,
+   "number": null,
+   "mentions": [
+    [
+     8.0,
+     "days",
+     false,
+     false
+    ]
+   ],
+   "day_number": 8.0,
    "spin": null
   },
   {
@@ -3282,6 +3604,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3301,6 +3624,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3313,6 +3637,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3325,6 +3650,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3337,6 +3663,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3349,6 +3676,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3361,6 +3689,7 @@
    "words": 17,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3381,6 +3710,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3393,6 +3723,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3413,6 +3744,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3426,6 +3758,7 @@
    "words": 17,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3446,6 +3779,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3459,6 +3793,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3479,6 +3814,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3491,6 +3827,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3511,6 +3848,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3531,6 +3869,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3550,6 +3889,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3562,6 +3902,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3574,6 +3915,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3586,6 +3928,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3598,6 +3941,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3610,6 +3954,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3629,6 +3974,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3650,6 +3996,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3671,6 +4018,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3683,6 +4031,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -3695,6 +4044,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3715,6 +4065,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3728,6 +4079,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3747,6 +4099,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3759,6 +4112,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3771,6 +4125,27 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
+   "spin": null
+  },
+  {
+   "text": "Как насчёт 8 дней?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 4,
+   "number": null,
+   "mentions": [
+    [
+     8.0,
+     "days",
+     false,
+     false
+    ]
+   ],
+   "day_number": 8.0,
    "spin": null
   },
   {
@@ -3791,6 +4166,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3803,6 +4179,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -3823,6 +4200,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3835,6 +4213,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -3847,6 +4226,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -3866,6 +4246,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3878,6 +4259,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3890,6 +4272,7 @@
    "words": 19,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3902,6 +4285,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3914,6 +4298,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3934,6 +4319,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3946,6 +4332,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3958,6 +4345,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3978,6 +4366,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -3990,6 +4379,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4002,6 +4392,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4014,6 +4405,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4026,6 +4418,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4045,6 +4438,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4057,6 +4451,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4069,6 +4464,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4081,6 +4477,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4100,6 +4497,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4119,6 +4517,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4139,6 +4538,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4151,6 +4551,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4170,6 +4571,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4190,6 +4592,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4211,6 +4614,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4230,6 +4634,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4249,6 +4654,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4261,6 +4667,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4273,6 +4680,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4294,6 +4702,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4315,6 +4724,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4335,6 +4745,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4355,6 +4766,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4367,6 +4779,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4379,6 +4792,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "need-payoff"
   },
   {
@@ -4391,6 +4805,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "need-payoff"
   },
   {
@@ -4403,6 +4818,7 @@
    "words": 12,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "need-payoff"
   },
   {
@@ -4415,6 +4831,7 @@
    "words": 18,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4436,6 +4853,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4448,6 +4866,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4460,6 +4879,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4472,6 +4892,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4484,6 +4905,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4496,6 +4918,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4508,6 +4931,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4528,6 +4952,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4540,6 +4965,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4552,6 +4978,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4564,6 +4991,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4576,6 +5004,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4588,6 +5017,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4600,6 +5030,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4612,6 +5043,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4624,6 +5056,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4644,6 +5077,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4656,6 +5090,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4668,6 +5103,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4688,6 +5124,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4708,6 +5145,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4728,6 +5166,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4740,6 +5179,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4760,6 +5200,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4780,6 +5221,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4800,6 +5242,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4820,6 +5263,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4839,6 +5283,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4851,6 +5296,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4863,6 +5309,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4883,6 +5330,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4895,6 +5343,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4907,6 +5356,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4919,6 +5369,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4931,6 +5382,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "need-payoff"
   },
   {
@@ -4943,6 +5395,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4955,6 +5408,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4968,6 +5422,7 @@
    "words": 17,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -4988,6 +5443,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5000,6 +5456,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5013,6 +5470,7 @@
    "words": 20,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5026,6 +5484,7 @@
    "words": 24,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5038,6 +5497,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5051,6 +5511,20 @@
    "words": 24,
    "number": null,
    "mentions": [],
+   "day_number": null,
+   "spin": null
+  },
+  {
+   "text": "Почему сдвиг на 20 дней?",
+   "moves": [
+    "open_question"
+   ],
+   "primary": "open_question",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5070,6 +5544,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5089,6 +5564,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5108,6 +5584,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5128,6 +5605,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5149,6 +5627,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5168,6 +5647,27 @@
      false
     ]
    ],
+   "day_number": null,
+   "spin": null
+  },
+  {
+   "text": "Предлагаю сдвиг на 8 дней.",
+   "moves": [
+    "statement"
+   ],
+   "primary": "statement",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "mentions": [
+    [
+     8.0,
+     "days",
+     false,
+     false
+    ]
+   ],
+   "day_number": 8.0,
    "spin": null
   },
   {
@@ -5180,6 +5680,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5192,6 +5693,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5204,6 +5706,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5216,6 +5719,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5228,6 +5732,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5241,6 +5746,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5253,6 +5759,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5265,6 +5772,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -5277,6 +5785,7 @@
    "words": 13,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -5289,6 +5798,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5301,6 +5811,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5327,6 +5838,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5365,6 +5877,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5385,6 +5898,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5397,6 +5911,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -5416,6 +5931,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5428,6 +5944,7 @@
    "words": 1,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5440,6 +5957,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5452,6 +5970,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5464,6 +5983,7 @@
    "words": 1,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5476,6 +5996,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5495,6 +6016,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5514,6 +6036,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5533,6 +6056,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5545,6 +6069,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -5557,6 +6082,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -5569,6 +6095,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -5581,6 +6108,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -5600,6 +6128,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": "situation"
   },
   {
@@ -5612,6 +6141,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -5624,6 +6154,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5637,6 +6168,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5650,6 +6182,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5670,6 +6203,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5682,6 +6216,7 @@
    "words": 14,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5702,6 +6237,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5714,6 +6250,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5726,6 +6263,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5738,6 +6276,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5750,6 +6289,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5769,6 +6309,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5781,6 +6322,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5793,6 +6335,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5805,6 +6348,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5824,6 +6368,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5836,6 +6381,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5856,6 +6402,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5876,6 +6423,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5888,6 +6436,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5900,6 +6449,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5912,6 +6462,7 @@
    "words": 18,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5924,6 +6475,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5936,6 +6488,7 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -5948,6 +6501,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5960,6 +6514,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5972,6 +6527,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -5991,6 +6547,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6010,6 +6567,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6029,6 +6587,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6041,6 +6600,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6053,6 +6613,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6079,6 +6640,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6117,6 +6679,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6129,6 +6692,7 @@
    "words": 10,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "implication"
   },
   {
@@ -6142,6 +6706,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -6154,6 +6719,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6166,6 +6732,7 @@
    "words": 3,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6179,6 +6746,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -6191,6 +6759,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6204,6 +6773,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6217,6 +6787,7 @@
    "words": 11,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6229,6 +6800,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6241,6 +6813,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6253,6 +6826,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6265,6 +6839,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6277,6 +6852,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6289,6 +6865,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6301,6 +6878,7 @@
    "words": 9,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6313,6 +6891,7 @@
    "words": 15,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6325,6 +6904,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": "problem"
   },
   {
@@ -6337,6 +6917,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6349,6 +6930,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6361,6 +6943,7 @@
    "words": 7,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6373,6 +6956,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6385,6 +6969,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6412,6 +6997,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6424,6 +7010,7 @@
    "words": 5,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6436,6 +7023,7 @@
    "words": 6,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6448,6 +7036,7 @@
    "words": 1,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6460,6 +7049,7 @@
    "words": 2,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6479,6 +7069,7 @@
      false
     ]
    ],
+   "day_number": null,
    "spin": null
   },
   {
@@ -6491,6 +7082,7 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "day_number": null,
    "spin": null
   }
  ]

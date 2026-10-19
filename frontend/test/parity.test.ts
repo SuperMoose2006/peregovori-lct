@@ -188,7 +188,7 @@ test("классификатор в браузере отвечает ровно
   for (const c of fixtures.cases as {
     text: string; moves: string[]; arg: number;
     number: number | null; spin: string | null; primary: string;
-    mentions: [number, string, boolean, boolean][];
+    mentions: [number, string, boolean, boolean][]; day_number?: number | null;
   }[]) {
     const a = analyze(c.text);
     if (JSON.stringify([...a.moves].sort()) !== JSON.stringify([...c.moves].sort())) {
@@ -200,6 +200,9 @@ test("классификатор в браузере отвечает ровно
     } else if (JSON.stringify((a.mentions ?? []).map((m) => [m.value, m.kind, m.ranged, m.aside])) !== JSON.stringify(c.mentions)) {
       // Из этого списка движок выбирает цену по единице стола (аудит 17.10, F01).
       bad.push(`«${c.text}» числа: ${JSON.stringify(a.mentions)} ≠ ${JSON.stringify(c.mentions)}`);
+    } else if ((a.dayNumber ?? null) !== (c.day_number ?? null)) {
+      // Число дней — цена стола «Конфликт отделов» (решение владельца 19.10).
+      bad.push(`«${c.text}» дни: ${a.dayNumber} ≠ ${c.day_number}`);
     } else if ((a.spin ?? null) !== (c.spin ?? null)) {
       bad.push(`«${c.text}» SPIN: ${a.spin} ≠ ${c.spin}`);
     } else if (a.primary !== c.primary) {

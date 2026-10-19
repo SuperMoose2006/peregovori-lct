@@ -267,10 +267,12 @@ def reply_verdict(text: Optional[str], facts: dict, final: bool = True) -> str:
     near = 0.02 * abs(sc.opponent_open - sc.opponent_reservation)
     foreign = "money" if "%" in sc.headline.unit["ru"] else "pct"
 
+    days_table = "дн" in sc.headline.unit["ru"]
+
     def priced(source: str) -> list[float]:
         out = []
         for m in number_mentions(source):
-            if m.ranged or m.kind == foreign:
+            if m.ranged or m.kind == foreign or (m.kind == "days" and not days_table):
                 continue
             p = _plausible_offer(sc, m.value)
             if p is not None:

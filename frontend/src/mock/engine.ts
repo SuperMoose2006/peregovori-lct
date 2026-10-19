@@ -5,7 +5,7 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang, Mode } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, TurnRecord, WhatIfBranch } from "../types";
-import { LEX, cnt, firstPriceAt, has, hasHostile, hasTradeoff, hasUnnegated, hasUnnegatedInClause, intentRightBefore, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
+import { LEX, cnt, dayOfferNumber, firstPriceAt, has, hasHostile, hasTradeoff, hasUnnegated, hasUnnegatedInClause, intentRightBefore, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
 import type { NumberMention } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import { normalizeDifficulty } from "../lib/difficulty";
@@ -28,6 +28,9 @@ export interface RawAnalysis {
   tags: Tag[];
   /** Все числа реплики — из них движок выбирает цену по единице стола. */
   mentions?: NumberMention[];
+  /** Число дней, названное как предложение, — цена только на столе в днях.
+   *  Зеркало techniques.py::Analysis.day_number. */
+  dayNumber?: number | null;
 }
 
 export function analyze(raw: string): RawAnalysis {
@@ -102,7 +105,9 @@ export function analyze(raw: string): RawAnalysis {
     "concession", "offer", "anchor", "open_question", "rapport", "statement",
   ];
   const primary = pr.find((p) => moves.has(p)) || "statement";
-  return { moves: [...moves], primary, number, arg, spin, tags, mentions: number !== null ? numberMentions(t) : [] };
+  const dayNumber = number === null ? dayOfferNumber(t, moves) : null;
+  return { moves: [...moves], primary, number, arg, spin, tags, dayNumber,
+           mentions: number !== null || dayNumber !== null ? numberMentions(t) : [] };
 }
 
 // Convert internal RawAnalysis into the protocol Analysis object.
@@ -362,10 +367,17 @@ function plausibleOffer(sc: ScenarioDef, n: number): number | null {
 /** Какое из чисел реплики — цена этого стола: на столе в процентах не цена —
  *  деньги, на остальных — проценты; границы диапазона идут последними.
  *  Зеркало engine.py::_pick_offer. */
+/** Цена стола — в днях («Конфликт отделов»). Зеркало engine.py::_days_table. */
+function daysTable(sc: ScenarioDef): boolean {
+  return sc.unit.ru.includes("дн");
+}
+
 export function pickOffer(sc: ScenarioDef, a: RawAnalysis, onTable: number | null = null): number | null {
   if (!a.mentions || a.mentions.length === 0) return a.number === null ? null : plausibleOffer(sc, a.number);
   const foreign = sc.unit.ru.includes("%") ? "money" : "pct";
-  const pool = a.mentions.filter((m) => m.kind !== foreign);
+  // Число дней — цена только на столе в днях (зеркало engine.py::_pick_offer).
+  const days = daysTable(sc);
+  const pool = a.mentions.filter((m) => m.kind !== foreign && (m.kind !== "days" || days));
   const pricedAll: { priced: number; aside: boolean }[] = [];
   for (const m of [...pool.filter((x) => !x.ranged), ...pool.filter((x) => x.ranged)]) {
     const priced = plausibleOffer(sc, m.value);
@@ -689,7 +701,10 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   // Намерение назвать цену — необходимое условие, но не достаточное: число
   // обязано попасть в коридор масштаба сценария (зеркало backend).
   let priced: number | null = null;
-  if (a.number !== null && (H("offer") || H("anchor") || H("concession") || H("accept") || H("tradeoff"))) {
+  // На столе в днях «Предлагаю сдвиг на 8 дней» — оферта (зеркало engine.py).
+  const dayOffer = a.dayNumber != null && daysTable(sc);
+  if ((a.number !== null || dayOffer)
+      && (dayOffer || H("offer") || H("anchor") || H("concession") || H("accept") || H("tradeoff"))) {
     priced = pickOffer(sc, a, s.offerOpp);
     if (priced !== null) {
       s.offerPlayer = priced;

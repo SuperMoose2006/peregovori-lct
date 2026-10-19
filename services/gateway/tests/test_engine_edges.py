@@ -410,6 +410,38 @@ def test_a_date_in_a_yes_is_not_an_offer(lang, line):
     assert s.state.status == "agreement" and s.state.deal == s.state.offer_opp
 
 
+@pytest.mark.parametrize("lang,line,player", [
+    ("ru", "Предлагаю сдвиг на 8 дней.", 8),
+    ("ru", "Давайте 8 дней, и закроем вопрос.", 8),
+    ("ru", "Договорились на 8 дней.", 8),
+    ("ru", "Почему 20 дней?", None),
+    ("en", "I suggest an 8-day slip.", 8),
+    ("en", "We agree on 8 days.", 8),
+])
+def test_a_table_priced_in_days_hears_days(lang, line, player):
+    """Найдено после аудита 17.10, решение владельца 19.10: на столе
+    «Конфликт отделов» единица — дни сдвига, а «дней» стояло в списке счёта:
+    игрок не мог назвать своё число, а «Договорились на 8 дней» закрывало
+    сделку на 20 днях ОППОНЕНТА. Теперь «N дней» — число вида days, ценой —
+    только на столе в днях."""
+    s = engine.create_session("conflict", lang)
+    s.turn = 1
+    engine.apply_move(s, engine.analyze(line), line)
+    assert s.state.offer_player == player, line
+    assert not (s.state.status == "agreement" and s.state.deal == 20), "сделка на числе оппонента"
+
+
+@pytest.mark.parametrize("line,player", [
+    ("Отгрузка через 90 дней, цена 95.", 95),
+    ("Готовы на 90 дней отсрочки.", None),
+])
+def test_days_are_still_not_a_price_elsewhere(line, player):
+    s = engine.create_session("supplier", "ru")
+    s.turn = 1
+    engine.apply_move(s, engine.analyze(line), line)
+    assert s.state.offer_player == player, line
+
+
 def test_a_million_and_thousands_are_one_number():
     """Найдено после аудита 17.10: «1 миллион 200 тысяч» становилось
     «1000000 200000», и на столе в тысячах (подержанная машина, старт 1200)

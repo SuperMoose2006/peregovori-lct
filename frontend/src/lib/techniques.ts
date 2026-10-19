@@ -357,6 +357,38 @@ export function offerNumber(t: string, moves: Iterable<string>): number | null {
   return null;
 }
 
+/** Первое число дней («8 дней», "8-day"), названное как предложение: приём,
+ *  формула предложения в той же клаузе или вплотную, слово темы стола в днях
+ *  («сдвиг», "slip"). Вопрос без формулы предложения — не оферта («Почему
+ *  сдвиг на 20 дней?»). Ценой его делает только стол в днях.
+ *  Зеркало techniques.py::day_offer_number. */
+export function dayOfferNumber(t: string, moves: Iterable<string>): number | null {
+  const mv = new Set(moves);
+  const moved = ["anchor", "concession", "accept", "tradeoff"].some((k) => mv.has(k));
+  for (const m of t.matchAll(MONEY_ALL)) {
+    const start = (m.index ?? 0) + (/^\d/.test(m[0]) ? 0 : 1);
+    const end = start + m[1].length;
+    const tail = t.slice(end);
+    const trimmed = tail.trim();
+    const after = trimmed ? trimmed.split(" ")[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
+    if (!(after && LEX.dayUnits.some((u) => after.startsWith(u)))) continue;
+    const value = strictNumber(m[1]);
+    if (!isFinite(value)) return null;
+    const head = t.slice(0, start);
+    let cut = -1;
+    for (const ch of CLAUSE_BREAKS) cut = Math.max(cut, head.lastIndexOf(ch));
+    const clause = head.slice(cut + 1).split(/\s+/).filter(Boolean).join(" ");
+    const words = clause.split(" ");
+    const intent = moved || has(t, LEX.offerIntent) || intentRightBefore(t, start)
+      || LEX.offerIntentNear.some((w) => words.includes(w) || (w.includes(" ") && clause.includes(w)));
+    const endMark = tail.match(/[.!?]|$/);
+    if (endMark && endMark[0] === "?" && !intent) return null;
+    if (intent || priceContext(t) || has(t, LEX.dayContext)) return value;
+    return null;
+  }
+  return null;
+}
+
 /** Стоит ли ПЕРВОЕ число реплики в вопросительном предложении. Вопрос
  * отменяет оффер, но вопрос должен быть про ЭТО число: «Предлагаю 99,7%
  * аптайма. Что для вас важно?» раньше не клала цену на стол (аудит 17.10, F05).
@@ -383,8 +415,9 @@ export function numberInQuestion(t: string): boolean {
  * Зеркало techniques.py::NumberMention — менять синхронно (инвариант 8). */
 export interface NumberMention {
   value: number;
-  /** "pct" — «50%»; "money" — валюта или масштаб; "plain" — голое число. */
-  kind: "pct" | "money" | "plain";
+  /** "pct" — «50%»; "money" — валюта или масштаб; "plain" — голое число;
+   *  "days" — «8 дней»: цена только на столе в днях (решение владельца 19.10). */
+  kind: "pct" | "money" | "plain" | "days";
   /** Граница диапазона «88-92»: ориентир, а не оффер. */
   ranged: boolean;
   /** Число в уступительной клаузе («хотя я рассчитывал на 90»): сказанное о
@@ -411,9 +444,10 @@ export function numberMentions(t: string): NumberMention[] {
     const tail = t.slice(end);
     const trimmed = tail.trim();
     const after = trimmed ? trimmed.split(" ")[0].replace(/^[.,?!-]+|[.,?!-]+$/g, "") : "";
-    const counted = countedAt(t, start, end);
-    const kind: NumberMention["kind"] =
-      tail.trimStart().startsWith("%") || PCT_WORDS.some((w) => after.startsWith(w)) ? "pct"
+    const day = !!after && LEX.dayUnits.some((u) => after.startsWith(u));
+    const counted = !day && countedAt(t, start, end);
+    const kind: NumberMention["kind"] = day ? "days"
+      : tail.trimStart().startsWith("%") || PCT_WORDS.some((w) => after.startsWith(w)) ? "pct"
         : MONEY_SUFFIX.test(tail) ? "money" : "plain";
     found.push({ start, end, value, kind, counted });
   }

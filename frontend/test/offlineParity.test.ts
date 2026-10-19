@@ -297,6 +297,29 @@ test("ключевое слово интереса внутри другого �
   assert.deepEqual(s2.interests, [0]);
 });
 
+test("стол в днях слышит дни, остальные — нет (зеркало test_engine_edges)", async () => {
+  // Решение владельца 19.10: «Договорились на 8 дней» закрывало на 20 днях оппонента.
+  const { analyze, applyMove, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const cases: [string, "ru" | "en", string, number | null][] = [
+    ["conflict", "ru", "Предлагаю сдвиг на 8 дней.", 8],
+    ["conflict", "ru", "Давайте 8 дней, и закроем вопрос.", 8],
+    ["conflict", "ru", "Договорились на 8 дней.", 8],
+    ["conflict", "ru", "Почему 20 дней?", null],
+    ["conflict", "en", "I suggest an 8-day slip.", 8],
+    ["conflict", "en", "We agree on 8 days.", 8],
+    ["supplier", "ru", "Отгрузка через 90 дней, цена 95.", 95],
+    ["supplier", "ru", "Готовы на 90 дней отсрочки.", null],
+  ];
+  for (const [id, lang, line, player] of cases) {
+    const s = newSession(SCENARIO_MAP[id], lang);
+    s.turn = 1;
+    applyMove(s, analyze(line), line);
+    assert.equal(s.offerPlayer, player, `${id}: ${line}`);
+    assert.ok(!(s.status === "agreement" && s.deal === 20), `${line}: сделка на числе оппонента`);
+  }
+});
+
 test("малый откат не округляется в ноль (зеркало test_engine_edges)", async () => {
   // Найдено ревью ветки: на поставщике при 99,5 грубость оставляла 99,5.
   const { analyze, applyMove, newSession } = await import("../src/mock/engine");
