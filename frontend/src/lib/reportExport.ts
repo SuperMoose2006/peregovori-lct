@@ -51,7 +51,7 @@ export function reportText(input: ReportInput): string {
   const lines = [l.title, "", `${l.date}: ${r.created_at}`, `${l.mode}: ${l.modes[input.mode]}`];
   if (r.scenario) lines.push(`${l.scenario}: ${r.scenario}`);
   if (r.participant) lines.push(`${l.player}: ${r.participant}`);
-  lines.push("", `${l.score}: ${d.grade} · ${d.overall}/100`, `${l.economic}: ${d.economic}/100`, `${l.relationship}: ${d.relationship}/100`, `${l.technique}: ${d.technique}/100`, `${l.deal}: ${d.deal}`, "", `${l.interests}: ${d.interests_found}/${d.interests_total}`, `${l.spin}: ${d.spin_stages}/3`, `${l.criteria}: ${d.objective_criteria}`, `${l.empathy}: ${d.empathy}`, `${l.tradeoffs}: ${d.tradeoffs}`, `${l.threats}: ${d.threats}`);
+  lines.push("", `${l.score}: ${d.grade} · ${d.overall}/100`, `${l.economic}: ${d.economic}/100`, `${l.relationship}: ${d.relationship}/100`, `${l.technique}: ${d.technique}/100`, `${l.deal}: ${d.deal}`, "", `${l.interests}: ${d.interests_found}/${d.interests_total}`, `${l.spin}: ${d.spin_stages}/4`, `${l.criteria}: ${d.objective_criteria}`, `${l.empathy}: ${d.empathy}`, `${l.tradeoffs}: ${d.tradeoffs}`, `${l.threats}: ${d.threats}`);
   if (d.tips.length) lines.push("", l.tips, ...d.tips.map((tip, i) => `${i + 1}. ${tip}`));
   if (d.turning_points.length) lines.push("", l.turning, ...d.turning_points.map((p) => `${p.turn}. «${p.quote}»\n   ${p.what}${p.coach ? `\n   ${p.coach}` : ""}`));
   if (d.mentor) lines.push("", l.mentor, d.mentor);

@@ -261,7 +261,9 @@ export function Debrief({
   })();
 
   const cells: Array<{ n: string; l: string }> = [
-    { n: `${d.spin_stages}/3`, l: t.stat.spin },
+    // Этапов SPIN четыре, и движок считает все четыре (баллы — за три): «/3»
+    // давало «4/3» (найдено после аудита 17.10).
+    { n: `${d.spin_stages}/4`, l: t.stat.spin },
     // Подпись согласуется с числом: «1 критерий», а не «1 критериев».
     { n: String(d.objective_criteria), l: plural(d.objective_criteria, t.statForms.criteria) },
     { n: String(d.empathy), l: plural(d.empathy, t.statForms.empathy) },

@@ -415,3 +415,13 @@ test("штамп итога печатает сделку тем же форма
   assert.match(src, /formatDeal\(st!\.deal, scenario\.headline_unit, lang\)/);
   assert.doesNotMatch(src, /\{st!\.deal\}\s*\{scenario\.headline_unit\}/);
 });
+
+test("этапы SPIN — из четырёх: «4/3» не бывает", async () => {
+  // Найдено после аудита 17.10: движок считает четыре этапа, экран делил на три.
+  const src = readFileSync(join(SRC, "components", "Debrief.tsx"), "utf8");
+  assert.match(src, /\$\{d\.spin_stages\}\/4/);
+  const { reportText } = await import("../src/lib/reportExport");
+  void reportText;
+  const exp = readFileSync(join(SRC, "lib", "reportExport.ts"), "utf8");
+  assert.match(exp, /\$\{d\.spin_stages\}\/4/);
+});
