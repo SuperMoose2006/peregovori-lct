@@ -57,3 +57,35 @@ def test_a_contradiction_needs_two_different_turns():
         {"turn_a": 2, "quote_a": "Бюджет 90, и это всё, повторю", "turn_b": 2, "quote_b": "повторю", "note": "—"}]})
     cons = next(s for s in report["soft"] if s["id"] == "consistency")
     assert len(cons["examples"]) == 1, "противоречие внутри одной реплики — не противоречие ходов"
+
+
+# ------------------------------------------------------------------ слова собеседника
+
+def test_a_counterpart_question_nobody_asked_is_not_shown_or_counted():
+    facts = _facts([("player", "Давайте о цене."), ("opp", "А какой у вас бюджет?"),
+                    ("player", "Около 90.")])
+    report = _report(facts, comprehension={"questions": [
+        {"turn": 0, "question": "С чего начнём?", "answered": "full", "answer_turn": 1},
+        {"turn": 1, "question": "А какой у вас бюджет?", "answered": "partial", "answer_turn": 2},
+        {"turn": 1, "question": "Почему вы так спешите?", "answered": "no", "answer_turn": 2}]})
+    comp = next(s for s in report["soft"] if s["id"] == "comprehension")
+    assert sorted(e["text"] for e in comp["examples"]) == ["А какой у вас бюджет?", "С чего начнём?"]
+    assert comp["den"] == 2, "выдуманный вопрос не входит и в долю отвеченных"
+
+
+def test_a_probe_the_counterpart_never_made_is_dropped():
+    facts = _facts([("player", "Цена 90."), ("opp", "Это слишком мало."), ("player", "Тогда 92.")])
+    report = _report(facts, followups={"followups": [
+        {"turn": 1, "probe": "Это слишком мало", "handling": "conceded", "answer_turn": 2},
+        {"turn": 1, "probe": "Вы уверены в своих цифрах?", "handling": "defensive", "answer_turn": 2}]})
+    fol = next(s for s in report["soft"] if s["id"] == "followups")
+    assert fol["den"] == 1 and [e["kind"] for e in fol["examples"]] == ["followup_conceded"]
+
+
+def test_only_real_questions_count_as_the_player_s_questions():
+    facts = _facts([("player", "Что для вас важнее всего?"), ("opp", "Сроки.")])
+    report = _report(facts, thinking={"declared": [], "unspoken": [], "shifts": [], "questions": [
+        {"turn": 1, "quote": "Что для вас важнее всего"},
+        {"turn": 1, "quote": "А почему так дорого"}]})
+    decl = next(s for s in report["soft"] if s["id"] == "declaration")
+    assert decl["questions"] == 1, "«ваших вопросов» — только тех, что были"

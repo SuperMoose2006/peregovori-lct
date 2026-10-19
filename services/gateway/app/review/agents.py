@@ -320,11 +320,12 @@ CONTENT_AGENTS: tuple[ContentAgent, ...] = (
         task={
             "ru": "Ты — агент понимания вопросов. Найди вопросы СОБЕСЕДНИКА к игроку (turn — номер хода, на "
                   "который отвечал собеседник; приветствие — ход 0) и проверь, ответил ли игрок следующим "
-                  "ходом: full — по существу, partial — частично, no — ушёл от ответа или не заметил.",
+                  "ходом: full — по существу, partial — частично, no — ушёл от ответа или не заметил. "
+                  "question — ДОСЛОВНАЯ цитата вопроса собеседника: сверяется с разговором.",
             "en": "You are the question-comprehension agent. Find the COUNTERPART's questions to the player "
                   "(turn — the turn the counterpart was answering; the greeting is turn 0) and check whether the "
                   "player answered in the next turn: full — to the point, partial — in part, no — dodged or "
-                  "missed it.",
+                  "missed it. question is a VERBATIM quote of the counterpart's question: it is checked.",
         },
         schema=('{"questions": [{"turn": n, "question": "...", "answer_turn": n, '
                 '"answered": "full|partial|no", "quote": "..."}]}'),
@@ -335,10 +336,12 @@ CONTENT_AGENTS: tuple[ContentAgent, ...] = (
         task={
             "ru": "Ты — агент реакции на уточнения. Найди, где собеседник переспрашивал, уточнял, давил или "
                   "возражал, и оцени ответ игрока: steady — спокойно и по делу, defensive — оправдывался, "
-                  "evasive — ушёл от ответа, conceded — сдал позицию без встречного условия.",
+                  "evasive — ушёл от ответа, conceded — сдал позицию без встречного условия. probe — "
+                  "ДОСЛОВНАЯ цитата собеседника: сверяется с разговором.",
             "en": "You are the follow-up agent. Find where the counterpart probed, asked to clarify, pushed or "
                   "objected, and rate the player's answer: steady — calm and to the point, defensive — "
-                  "justifying, evasive — dodged, conceded — gave ground with nothing in return.",
+                  "justifying, evasive — dodged, conceded — gave ground with nothing in return. probe is a "
+                  "VERBATIM quote of the counterpart: it is checked.",
         },
         schema=('{"followups": [{"turn": n, "probe": "...", "answer_turn": n, '
                 '"handling": "steady|defensive|evasive|conceded", "quote": "..."}]}'),

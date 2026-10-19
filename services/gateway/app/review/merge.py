@@ -191,6 +191,14 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
     lang = facts.get("lang", "ru")
     player = {ln["turn"]: ln["text"] for ln in facts.get("lines") or [] if ln["role"] == "player"}
     quotes = Quotes(player)
+    # Слова СОБЕСЕДНИКА сверяются так же, как слова игрока: его вопрос стоит в
+    # отчёте в кавычках с подписью «собеседник», и выдуманный вопрос был бы
+    # приписан ему — а заодно вошёл бы в долю отвеченных (ревью 19.10).
+    said: dict[int, str] = {0: facts.get("greeting") or ""} if facts.get("greeting") else {}
+    for ln in facts.get("lines") or []:
+        if ln["role"] == "opp":
+            said[ln["turn"]] = (said.get(ln["turn"], "") + " " + ln["text"]).strip()
+    theirs = Quotes(said)
     turns = sorted(player)
     last_turn = turns[-1] if turns else 0
     timeline: list[dict] = []
@@ -369,11 +377,10 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
             ev = cite(x["turn"], x["quote"], "shift", listed=True)
             if ev is not None and x.get("note"):
                 ev["note"] = x["note"]
-        for x in think["questions"]:
-            cite(x["turn"], x["quote"], "question")
+        asked = [e for e in (cite(x["turn"], x["quote"], "question") for x in think["questions"]) if e]
         soft_item("declaration", _ratio(len(declared), len(declared) + len(unspoken)),
                   unspoken + declared, num=len(declared), den=len(declared) + len(unspoken))
-        soft[-1]["questions"] = len(think["questions"])
+        soft[-1]["questions"] = len(asked)
     else:
         soft_item("declaration", None, [], agent_ok=False)
 
@@ -381,6 +388,8 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
     if comp is not None:
         score, examples = 0.0, []
         for q in comp["questions"]:
+            if theirs.locate(q["turn"], q["question"]) is None:
+                continue
             score += {"full": 1.0, "partial": 0.5, "no": 0.0}[q["answered"]]
             at_turn = q.get("answer_turn") or min(q["turn"] + 1, last_turn or q["turn"] + 1)
             ev = _ev("content", f"answer_{q['answered']}", at_turn,
@@ -390,8 +399,8 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
                 ev["quote"] = q["quote"]
             examples.append(note(ev, strain=q["answered"] == "no", listed=q["answered"] == "no"))
         examples.sort(key=lambda e: e["kind"] != "answer_no")
-        soft_item("comprehension", _ratio(score, len(comp["questions"])), examples,
-                  num=score, den=len(comp["questions"]))
+        soft_item("comprehension", _ratio(score, len(examples)), examples,
+                  num=score, den=len(examples))
     else:
         soft_item("comprehension", None, [], agent_ok=False)
 
@@ -399,6 +408,8 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
     if fol is not None:
         steady, examples = 0, []
         for f in fol["followups"]:
+            if theirs.locate(f["turn"], f["probe"]) is None:
+                continue
             steady += f["handling"] == "steady"
             at_turn = f.get("answer_turn") or f["turn"] + 1
             ev = _ev("content", f"followup_{f['handling']}", at_turn,
@@ -408,8 +419,8 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
             examples.append(note(ev, strain=f["handling"] != "steady",
                                  listed=f["handling"] != "steady"))
         examples.sort(key=lambda e: e["kind"] == "followup_steady")
-        soft_item("followups", _ratio(steady, len(fol["followups"])), examples,
-                  num=steady, den=len(fol["followups"]))
+        soft_item("followups", _ratio(steady, len(examples)), examples,
+                  num=steady, den=len(examples))
     else:
         soft_item("followups", None, [], agent_ok=False)
 
@@ -538,6 +549,6 @@ def build_report(*, facts: dict, timing: dict[int, dict], content: dict[str, Opt
         "convergences": convergences[:12],
         "timeline": timeline[:MAX_TIMELINE],
         "timeline_total": len(timeline),
-        "dropped_quotes": quotes.dropped,
+        "dropped_quotes": quotes.dropped + theirs.dropped,
         "content_agents": sorted(by_id),
     }
