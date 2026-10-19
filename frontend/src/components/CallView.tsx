@@ -21,7 +21,7 @@
 // 19.10). Принцип «камера не показывает вас постоянно» (docs/modalities.md §2)
 // держит кнопка «Скрыть себя»: видео прячется, но не размонтируется — иначе
 // браузер заново спросил бы доступ к камере.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { OpponentFace } from "./OpponentFace";
 import { ProbeCard } from "./Chat";
 import { ScreenHeading } from "./ScreenHeading";
@@ -111,6 +111,19 @@ export function CallView({
   const c = t.call;
   const [captions, setCaptions] = useState(true);
   const [feedOpen, setFeedOpen] = useState(false);
+  const feedButton = useRef<HTMLButtonElement | null>(null);
+  // Панель закрывается и Esc — как любая выезжающая панель; фокус
+  // возвращается на кнопку, которая её открыла, а не падает в <body>.
+  useEffect(() => {
+    if (!feedOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setFeedOpen(false);
+      feedButton.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [feedOpen]);
   const [selfHidden, setSelfHidden] = useState(false);
   const [dismissedHint, setDismissedHint] = useState<number | null>(null);
 
@@ -266,7 +279,8 @@ export function CallView({
           <aside className="call-feed" id="call-feed" aria-label={c.feed}>
             <div className="cf-head">
               <b>{c.feed}</b>
-              <button type="button" className="cf-x" onClick={() => setFeedOpen(false)} aria-label={c.feedClose}>×</button>
+              <button type="button" className="cf-x" aria-label={c.feedClose}
+                onClick={() => { setFeedOpen(false); feedButton.current?.focus(); }}>×</button>
             </div>
             {feed}
           </aside>
@@ -298,6 +312,7 @@ export function CallView({
           <CallButton icon="bulb" label={c.hint} disabled={hintDisabled || finished} onClick={onHint} />
         ) : null}
         <CallButton icon="chat" label={c.feed} expanded={feedOpen} controls={feedOpen ? "call-feed" : undefined}
+          buttonRef={feedButton}
           onClick={() => setFeedOpen((v) => !v)} />
         {oppSpeaking && onInterrupt ? (
           <CallButton icon="bolt" label={t.meeting.interrupt} className="cut" onClick={onInterrupt} />
@@ -313,7 +328,7 @@ export function CallView({
  *  диктору). `pressed` — только у переключателя с неизменной подписью
  *  (субтитры): у микрофона и камеры подпись сама называет действие, и
  *  «нажато» поверх неё читалось бы диктору двойным отрицанием. */
-function CallButton({ icon, label, title, pressed, expanded, controls, off, disabled, className, level, onClick }: {
+function CallButton({ icon, label, title, pressed, expanded, controls, off, disabled, className, level, buttonRef, onClick }: {
   icon: IconName;
   label: string;
   title?: string;
@@ -325,10 +340,12 @@ function CallButton({ icon, label, title, pressed, expanded, controls, off, disa
   className?: string;
   /** Уровень входа 0..1 — полоска под значком микрофона. */
   level?: number;
+  buttonRef?: React.MutableRefObject<HTMLButtonElement | null>;
   onClick: () => void;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       className={`cb${off ? " off" : ""}${className ? ` ${className}` : ""}`}
       aria-pressed={pressed}
