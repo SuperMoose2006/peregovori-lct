@@ -609,3 +609,14 @@ def test_an_offer_formula_far_from_the_number_does_not_make_it_an_offer(line):
 @pytest.mark.parametrize("line,number", [("Готов на 90.", 90), ("Давайте за 90.", 90), ("Давайте 90?", 90)])
 def test_an_offer_formula_right_before_the_number_still_works(line, number):
     assert analyze(line).number == number
+
+
+def test_what_stands_behind_a_number_is_a_question_not_a_price():
+    """Найдено после аудита 17.10 (`lessons._check`, урок foundations/1):
+    «стоит» из ценового контекста делало «Понимаю, 75 — ваша цифра. Помогите
+    понять, что стоит за этой цифрой…» вашей офертой 75 — хуже вашей красной
+    линии. «Сколько стоит» и «стоит 90» — по-прежнему цена."""
+    line = "Понимаю, 75 — ваша цифра. Помогите понять, что стоит за этой цифрой: вам важнее, чтобы квартира не пустовала?"
+    a = analyze(line)
+    assert a.number is None and "interests_probe" in a.moves
+    assert analyze("Такая квартира стоит 64, это медиана района.").number == 64

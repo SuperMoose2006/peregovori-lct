@@ -4541,6 +4541,31 @@
    "spin": null
   },
   {
+   "text": "Понимаю, 1200 — ваша стартовая цифра. Давайте посмотрим, на чём она основана.",
+   "moves": [
+    "acknowledge"
+   ],
+   "primary": "acknowledge",
+   "arg": 30,
+   "words": 11,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Понимаю, 75 — ваша цифра. Помогите понять, что стоит за этой цифрой: вам важнее, чтобы квартира не пустовала?",
+   "moves": [
+    "interests_probe",
+    "acknowledge"
+   ],
+   "primary": "interests_probe",
+   "arg": 50,
+   "words": 17,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
    "text": "Понимаю, что вам важно не брать штрафы. Что именно делает 99.9% невозможным для вашей эксплуатации?",
    "moves": [
     "acknowledge",
@@ -5171,6 +5196,25 @@
    "words": 4,
    "number": null,
    "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Такая квартира стоит 64, это медиана района.",
+   "moves": [
+    "objective_criteria",
+    "offer"
+   ],
+   "primary": "objective_criteria",
+   "arg": 44,
+   "words": 7,
+   "number": 64.0,
+   "mentions": [
+    [
+     64.0,
+     "plain",
+     false
+    ]
+   ],
    "spin": null
   },
   {

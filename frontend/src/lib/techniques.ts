@@ -267,6 +267,20 @@ function firstPriceMatch(t: string): RegExpMatchArray | null {
   return null;
 }
 
+/** `has(LEX.priceContext)`, кроме «стоит ЗА»: «что стоит за этой цифрой» —
+ *  вопрос об интересе (урок foundations/1). Зеркало techniques.py::_price_context. */
+function priceContext(t: string): boolean {
+  return LEX.priceContext.some((w) => {
+    for (let at = t.indexOf(w); at >= 0; at = t.indexOf(w, at + 1)) {
+      const before = at === 0 ? " " : t[at - 1];
+      if (/\p{L}/u.test(before) || !tailOk(t, at, w)) continue;
+      if (w === "стоит" && t.slice(at + w.length).startsWith(" за ")) continue;
+      return true;
+    }
+    return false;
+  });
+}
+
 /** Стоит ли формула `offerIntentNear` вплотную перед числом на позиции `at`
  *  (между ними — разве что «на / за / по»). «Давайте посмотрим, на чём
  *  основаны ваши 1200» — не оферта (найдено после аудита 17.10). Зеркало
@@ -296,7 +310,7 @@ export function offerNumber(t: string, moves: Iterable<string>): number | null {
   const mv = new Set(moves);
   if (["anchor", "concession", "accept", "tradeoff"].some((k) => mv.has(k))) return v;
   if (MONEY_SUFFIX.test(tail)) return v;
-  if (has(t, LEX.priceContext)) return v;
+  if (priceContext(t)) return v;
   // Формула предложения цены — такое же доказательство, как слово «цена»:
   // «how about 120», «i can do 480», «а если 86» не несут ни ценового
   // контекста, ни приёма, но число в них — цена. Список читается ТОЛЬКО здесь

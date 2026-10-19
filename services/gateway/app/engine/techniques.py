@@ -870,6 +870,20 @@ def _first_price_match(t: str) -> "Optional[re.Match[str]]":
     return None
 
 
+def _price_context(t: str) -> bool:
+    """`_has(LEX["priceContext"])`, кроме «стоит ЗА»: «что стоит за этой
+    цифрой» — вопрос об интересе, а не о цене. Урок foundations/1 учил ровно
+    этой фразе, и «Понимаю, 75 — ваша цифра. Помогите понять, что стоит за
+    этой цифрой…» клала на стол ВАШИ 75 — хуже вашей красной линии
+    (`lessons._check`; найдено после аудита 17.10)."""
+    for w in LEX["priceContext"]:
+        for at in _word_starts(t, w):
+            if w == "стоит" and t[at + len(w):].startswith(" за "):
+                continue
+            return True
+    return False
+
+
 def _intent_right_before(t: str, at: int) -> bool:
     """Стоит ли формула `offerIntentNear` вплотную перед числом на позиции `at`
     (между ними — разве что «на / за / по»)."""
@@ -910,7 +924,7 @@ def offer_number(t: str, moves: list[str]) -> Optional[float]:
         return val
     if _MONEY_SUFFIX_RE.match(tail):
         return val
-    if _has(t, LEX["priceContext"]):
+    if _price_context(t):
         return val
     # Формула предложения цены — такое же доказательство, как слово «цена».
     # «How about 120», «i can do 480», «а если 86» не несут ни одного слова
