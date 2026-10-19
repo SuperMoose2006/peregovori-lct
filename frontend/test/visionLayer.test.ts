@@ -59,7 +59,13 @@ function installMedia() {
       enumerateDevices: async () => [{ kind: "videoinput" }],
       getUserMedia: async (c: { video?: unknown }) => {
         asked.push(c.video ? "camera" : "mic");
-        return { getTracks: () => [{ stop() {} }] } as unknown as MediaStream;
+        // Поток с тем же набором методов, что у настоящего: транспорт после
+        // старта выключает/включает дорожки (`getVideoTracks`). Заглушка без
+        // них бросала — и бросок молча уходил в «ошибку запуска», которую тест
+        // не смотрел (вскрылось, когда сбой устройств стал отказом слоя).
+        const track = { enabled: true, stop() {} };
+        return { getTracks: () => [track], getVideoTracks: () => (c.video ? [track] : []),
+                 getAudioTracks: () => (c.video ? [] : [track]) } as unknown as MediaStream;
       },
     },
   } });
