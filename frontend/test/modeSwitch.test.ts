@@ -385,3 +385,27 @@ test("устройства объявляются, только когда бр�
     MediaProvider.prototype.setCameraEnabled = setCam;
   }
 });
+
+test("отказ сервера при смене режима не повторяют, а называют его словами", async () => {
+  // Найдено вторым ревью (вносил 9527d45): повтор входа повторял и ОТКАЗЫ —
+  // «слишком много партий с адреса» (ошибка + код 4429) билась ещё четыре
+  // раза, а слова сервера человек не видел.
+  for (const refuse of ["error", "4429"] as const) {
+    const t = await table();
+    t.transport.relayer({ voice: false, probe: true });
+    const second = await nextSocket();
+    for (let i = 0; i < 20 && !second.types().includes("session.init"); i++) await wait(10);
+    if (refuse === "error") {
+      second.deliver({ type: "error", error: { code: "too_many_sessions", message: "С этого адреса уже идёт много партий." } });
+    } else {
+      second.shut(4429);
+    }
+    await wait(700);                                   // дольше первой паузы повтора
+    assert.equal(FakeSocket.instances.length, 2, `${refuse}: отказ повторили`);
+    assert.equal(t.get().conn, "lost", `${refuse}: ${t.conns.join(",")}`);
+    if (refuse === "error") {
+      assert.ok(t.seen.some((m) => m.type === "notice" && m.text.includes("много партий")), "слова сервера потеряны");
+    }
+    t.transport.close();
+  }
+});

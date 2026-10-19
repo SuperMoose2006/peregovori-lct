@@ -103,6 +103,22 @@ const MAX_LOG = 200;
  */
 const NO_RETURN_CLOSE_CODES = new Set([4401, 4409, 4429]);
 
+/**
+ * ОТКАЗ СЕРВЕРА ПРИ ВХОДЕ В ПАРТИЮ — не обрыв, а ответ, и повторять его нельзя.
+ *
+ * Рукопожатие проваливалось голым `Error`, и код закрытия (4429 «слишком много
+ * партий с адреса», 4401 «назовите пароль») или код ошибки сервера терялся по
+ * дороге. Повтор входа — и смены режима, и обычного переподключения — бил в
+ * тот же отказ ещё четыре раза, ровно в тот момент, когда сервер просил не
+ * давить, а его слова человек так и не видел (найдено вторым ревью созвона).
+ */
+export class HandshakeRefused extends Error {
+  constructor(message: string, readonly closeCode?: number, readonly serverCode?: string) {
+    super(message);
+    this.name = "HandshakeRefused";
+  }
+}
+
 export class RealtimeSession {
   private ws: WebSocket | null = null;
   private readonly mode: "text" | "voice";
@@ -285,7 +301,12 @@ export class RealtimeSession {
         silence = setTimeout(() => fail("сервер не ответил на запуск партии"), HANDSHAKE_SILENCE_MS);
       };
       arm();
-      socket.onclose = () => fail("соединение закрылось до начала партии");
+      socket.onclose = (event) => {
+        const code = Number((event as { code?: number } | undefined)?.code);
+        if (!NO_RETURN_CLOSE_CODES.has(code)) { fail("соединение закрылось до начала партии"); return; }
+        clearTimeout(silence);
+        reject(new HandshakeRefused("сервер отказал во входе в партию", code));
+      };
       const sendInit = () => {
         if (sent) return;
         sent = true;
@@ -303,8 +324,10 @@ export class RealtimeSession {
           clearTimeout(silence);
           resolve(message);
         } else if (message.type === "error") {
-          const body = message.error as { message?: string } | undefined;
-          fail(body?.message ?? "не удалось начать партию");
+          const body = message.error as { message?: string; code?: string } | undefined;
+          clearTimeout(silence);
+          reject(new HandshakeRefused(body?.message ?? "не удалось начать партию", undefined,
+                                      body?.code ?? "generic"));
         } else {
           this.onEvent(message);
         }
@@ -324,13 +347,13 @@ export class RealtimeSession {
    * Обрыв связи. Партия при этом ЖИВА: состояние игры держит движок на сервере,
    * а не сокет. Поэтому переподключаемся и продолжаем, а не начинаем заново.
    */
-  private handleClose(event?: { code?: number }): void {
+  private handleClose(event?: { code?: number }, refused = false): void {
     this.started = false;
     if (this.closing || !this.initPayload) {
       this.onStatus?.("idle");
       return;
     }
-    if (event && NO_RETURN_CLOSE_CODES.has(Number(event.code))) {
+    if (refused || (event && NO_RETURN_CLOSE_CODES.has(Number(event.code)))) {
       // Отказ по существу. Причину сервер уже прислал отдельным событием
       // (`session.closed {reason}` или `error`), поэтому здесь остаётся только
       // не делать хуже: не возвращаться и честно сказать, что связи больше нет.
@@ -354,7 +377,12 @@ export class RealtimeSession {
       // чем не переподключаться вовсе.
       void this.start({ ...this.initPayload, resume: this.sessionId || undefined })
         .then(created => this.onEvent(created))
-        .catch(() => this.handleClose());
+        .catch((error) => {
+          if (!(error instanceof HandshakeRefused)) { this.handleClose(); return; }
+          // Слова сервера — человеку, а не в журнал: `error` уходит на стол.
+          if (error.serverCode) this.onEvent({ type: "error", error: { code: error.serverCode, message: error.message } });
+          this.handleClose(undefined, true);
+        });
     }, delay);
   }
 

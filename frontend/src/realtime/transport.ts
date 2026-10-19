@@ -20,6 +20,7 @@ import { AudioPlayer } from "./vendor/audio-player";
 import { AvatarFrames } from "../lib/avatarFrames";
 import { MediaProvider, toBase64 } from "./vendor/media-provider";
 import {
+  HandshakeRefused,
   RealtimeSession,
   type ConnectionStatus,
   type ProtocolEntry,
@@ -373,7 +374,10 @@ export class RealtimeTransport implements Transport {
       const failed = this.session;
       this.session = null;
       failed?.detach();
-      if (resume && canReconnect(attempt + 1)) {
+      // Отказ сервера (лимит, пароль, ошибка входа) — ответ, а не обрыв: его не
+      // повторяют, а говорят словами сервера.
+      const refused = error instanceof HandshakeRefused;
+      if (resume && !refused && canReconnect(attempt + 1)) {
         this.onConn("reconnecting");
         setTimeout(() => {
           if (gen === this.beginGen && !this.closed) void this.begin(message, resume, attempt + 1);
@@ -383,6 +387,7 @@ export class RealtimeTransport implements Transport {
       // Провал СМЕНЫ РЕЖИМА — это потерянная связь посреди партии, а не
       // провал запуска: `error` рисуется только на экране подготовки.
       if (!resume) this.emit({ type: "error", message: (error as Error).message });
+      else if (refused && (error as HandshakeRefused).serverCode) this.emit({ type: "notice", text: (error as Error).message });
       this.onConn("lost");
     }
   }
