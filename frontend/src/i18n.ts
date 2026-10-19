@@ -24,6 +24,8 @@ export interface MeterLabels {
 export interface Strings {
   tagline: string;
   interruptedRun: string;
+  /** Подпись переключателя языка за столом: партия идёт на своём языке. */
+  langLocked: string;
   // header sound toggle aria-labels (action-describing: what a tap will do)
   sound: { mute: string; unmute: string };
   eyebrow: string;
@@ -888,6 +890,7 @@ export const I18N: Record<Lang, Strings> = {
   ru: {
     tagline: "тренажёр переговоров",
     interruptedRun: "Страница была закрыта во время партии. Эта партия не восстановлена и не засчитана как завершённая. Начните новую тренировку.",
+    langLocked: "Язык меняется между партиями: эта идёт на том, на котором началась.",
     sound: { mute: "Выключить звук", unmute: "Включить звук" },
     eyebrow: "Гарвардский метод · SPIN · BATNA",
     heroTitle: "Учитесь <em>договариваться</em> — за столом, а не по учебнику.",
@@ -1899,6 +1902,7 @@ export const I18N: Record<Lang, Strings> = {
   en: {
     tagline: "negotiation trainer",
     interruptedRun: "The page closed during a negotiation. That run has not been restored or recorded as completed. Start a new practice run.",
+    langLocked: "The language changes between games: this one stays in the language it started in.",
     sound: { mute: "Mute sound", unmute: "Unmute sound" },
     eyebrow: "Harvard method · SPIN · BATNA",
     heroTitle: "Learn to <em>negotiate</em> — at the table, not from a textbook.",

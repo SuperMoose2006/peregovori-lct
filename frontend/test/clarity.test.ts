@@ -383,3 +383,13 @@ test("плашка о прерванной партии снимается, ко
   assert.match(app, /const \[interruptedRun, setInterruptedRun\] = useState/);
   assert.match(app, /if \(nego\.state\?\.status === "active"\) setInterruptedRun\(false\);/);
 });
+
+test("за столом язык не переключается — партия идёт на своём", () => {
+  // Найдено после аудита 17.10: RU/EN работали посреди партии и на разборе —
+  // английский экран над русской игрой, «А что если» по чужим ключевым словам,
+  // запись для переигровки не под тем языком.
+  const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+  assert.match(app, /const langLocked = screen === "game";/);
+  assert.equal((app.match(/onClick=\{\(\) => setLang\("(ru|en)"\)\}\s*disabled=\{langLocked\}/g) ?? []).length, 2);
+  for (const lang of ["ru", "en"] as const) assert.ok(I18N[lang].langLocked.length > 10);
+});

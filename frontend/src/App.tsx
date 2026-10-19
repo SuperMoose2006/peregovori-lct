@@ -314,6 +314,7 @@ export default function App() {
     } catch { /* Storage restrictions must not prevent practice. */ }
   }, [nego.state?.status]);
   const t = I18N[lang];
+  const langLocked = screen === "game";
 
   // ---- Туры по разделам (lib/tours.ts) ---------------------------------------
   // Какой раздел сейчас перед человеком. Стол — только когда партия уже пришла:
@@ -1099,10 +1100,17 @@ export default function App() {
           <div className="seg">
             {/* Выбор языка — состояние, а не только цвет: класс `on` диктор не
                 слышит, и две кнопки звучали одинаково (e2e ui --strict). */}
-            <button className={lang === "ru" ? "on" : ""} aria-pressed={lang === "ru"} onClick={() => setLang("ru")}>
+            {/* Партия идёт на языке, на котором началась: ключевые слова,
+                реплики оппонента, «А что если» и запись для переигровки — её.
+                Переключатель посреди партии давал английский экран над русской
+                игрой, «А что если» по чужим ключевым словам и запись соперника
+                не под тем языком (найдено после аудита 17.10). */}
+            <button className={lang === "ru" ? "on" : ""} aria-pressed={lang === "ru"} onClick={() => setLang("ru")}
+              disabled={langLocked} title={langLocked ? t.langLocked : undefined}>
               RU
             </button>
-            <button className={lang === "en" ? "on" : ""} aria-pressed={lang === "en"} onClick={() => setLang("en")}>
+            <button className={lang === "en" ? "on" : ""} aria-pressed={lang === "en"} onClick={() => setLang("en")}
+              disabled={langLocked} title={langLocked ? t.langLocked : undefined}>
               EN
             </button>
           </div>
