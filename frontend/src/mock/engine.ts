@@ -133,6 +133,9 @@ export interface Metrics {
   /** Игрок назвал обоснованную цифру ПЕРВЫМ — до того, как оппонент положил
    *  свою на стол. Зеркало backend Metrics.opening_anchor. */
   openingAnchor: boolean;
+  /** Ходов, где главным приёмом была альтернатива (BATNA). Зеркало backend
+   *  `move_counts["batna"]` — по нему разбор советует упомянуть сильную BATNA. */
+  batnaMoves: number;
 }
 export interface Session {
   sc: ScenarioDef;
@@ -213,7 +216,7 @@ export function newSession(sc: ScenarioDef, lang: Lang): Session {
     interests: [], tradeoffs: [], termsConceded: [], deal: null, status: "active",
     met: {
       argSum: 0, argN: 0, threats: 0, hostiles: 0, empathy: 0, crit: 0,
-      spin: new Set(), probes: 0, repeatSum: 0, repeatN: 0, openingAnchor: false,
+      spin: new Set(), probes: 0, repeatSum: 0, repeatN: 0, openingAnchor: false, batnaMoves: 0,
     },
     lastPlayerNorm: "",
     moveHistory: [],
@@ -502,6 +505,7 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
   const b = { trust: s.trust, tension: s.tension, info: s.info, leverage: s.leverage, offerOpp: s.offerOpp };
   const m = s.met;
   m.argSum += a.arg; m.argN++;
+  if (a.primary === "batna") m.batnaMoves++;
   // В счёт идёт только сходство ВЫШЕ мягкого порога: живая партия неизбежно
   // повторяет слова, и штрафовать за это нельзя.
   m.repeatSum += Math.max(0, repeat - REPEAT_SOFT) / (1 - REPEAT_SOFT); m.repeatN++;
@@ -1206,28 +1210,40 @@ export function scoreSession(s: Session): Debrief {
   // (±5 на ход, docs/judge-reproducibility.md) — одна и та же партия давала
   // `overall` 74 и грейд то B, то C. Обоснование порога 39 — в engine.py.
   if (techniqueMethod < TECHNIQUE_FLOOR && (grade === "A" || grade === "B")) grade = "C";
+  // СОВЕТЫ — ДОСЛОВНО КАК НА СЕРВЕРЕ (engine.py::score_session), и сверяются
+  // фикстурой эталонных партий. Здесь стояли свои формулировки и не было двух
+  // советов — «от позиций к интересам» и «сильная BATNA»: офлайн-партия на
+  // зарплату с неупомянутой BATNA получала «Отличную работу» там, где сервер
+  // советовал BATNA, а `tips[0]` говорит наставник (найдено после аудита 17.10).
   const tips: string[] = [];
   const T = (ru: string, en: string) => tips.push(lang === "ru" ? ru : en);
   if (spinC < 2)
     T("Задавайте больше вопросов по SPIN (Проблема → Последствия), чтобы вскрыть боль второй стороны.",
-      "Ask more SPIN questions (Problem → Implication) to surface their pain.");
+      "Ask more SPIN questions (Problem → Implication) to surface the other side's pain.");
   if (m.crit === 0)
-    T("Опирайтесь на объективные критерии — это легитимный рычаг по Гарвардскому методу.",
-      "Anchor on objective criteria — legitimate leverage per the Harvard method.");
+    T("Опирайтесь на объективные критерии (рыночные данные, стандарты) — это легитимный рычаг по Гарвардскому методу.",
+      "Anchor on objective criteria (market data, standards) — legitimate leverage per the Harvard method.");
   if (s.interests.length < sc.interests[lang].length)
-    T("Вы вскрыли не все скрытые интересы. За позициями всегда стоят интересы.",
-      "You didn't surface every hidden interest. Behind positions lie interests.");
+    T("Вы вскрыли не все скрытые интересы. За позициями всегда стоят интересы — ищите «почему».",
+      "You didn't surface every hidden interest. Behind positions lie interests — dig for the \"why\".");
+  if (m.probes === 0)
+    T("Переходите от позиций к интересам: спрашивайте, что и почему важно для оппонента.",
+      "Move from positions to interests: ask what matters to them and why.");
   if (s.tradeoffs.length === 0)
-    T("Создавайте ценность разменом по нескольким вопросам, а не только торгом по цене.",
-      "Create value by trading across issues, not just price haggling.");
+    T("Создавайте ценность разменом по нескольким вопросам (логроллинг), а не только торгом по цене.",
+      "Create value by trading across issues (logrolling), not just haggling on price.");
   if (m.empathy === 0)
-    T("Используйте активное слушание — отражайте слова оппонента, снижая напряжение.",
+    T("Используйте активное слушание — отражайте слова оппонента, чтобы снизить напряжение.",
       "Use active listening — paraphrase them to lower tension.");
   if (m.threats > 1 || m.hostiles > 0)
-    T("Меньше давления: напряжение замораживает уступки.", "Less pressure: tension freezes concessions.");
+    T("Меньше давления и перехода на личности: напряжение замораживает уступки.",
+      "Less pressure and personal attacks: tension freezes concessions.");
+  if (sc.batnaStrength > 55 && m.batnaMoves === 0)
+    T("У вас была сильная BATNA — стоило её аккуратно упомянуть как рычаг.",
+      "You had a strong BATNA — worth citing it carefully as leverage.");
   if (tips.length === 0)
     T("Отличная работа — чистое применение принципиальных переговоров.",
-      "Excellent — clean principled negotiation.");
+      "Excellent — a clean application of principled negotiation.");
   // ПЕРВОЙ СТРОКОЙ: разбор показывает `tips[0]` словом наставника. Сменившаяся
   // мерка экономики обязана быть названа — иначе игрок видит 100 при цифре хуже
   // своей цели и не может её проверить. Зеркало engine.py::score_session.

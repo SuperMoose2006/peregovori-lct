@@ -70,6 +70,14 @@ function checkAgainstBackend(name: string, scenarioId: string, lines: string[], 
   assert.equal(s.offerOpp, want.offer_opp, `${name}: цена на столе`);
   assert.equal(s.deal, want.deal, `${name}: цифра сделки`);
   assert.equal(s.turn, want.turn, `${name}: длина партии`);
+  // Советы разбора — дословно и в том же порядке: первый из них говорит
+  // наставник (найдено после аудита 17.10).
+  // Совет «цель за красной линией» печатает цифры с единицей, а единица у
+  // клиента короче (см. `deal_text` выше), — у него сверяется только наличие.
+  const unit = (t: string) => /^(Цель|Your target) \(/.test(t);
+  const tips = (list: string[]) => list.filter((t) => !unit(t));
+  assert.deepEqual(tips(debrief.tips), tips(want.tips as string[]), `${name}: советы разбора разошлись с сервером`);
+  assert.equal(debrief.tips.some(unit), (want.tips as string[]).some(unit), `${name}: совет о недостижимой цели`);
   // «С той стороны стола» — до символа. Колонка объясняет партию, и объяснение
   // расходится молча: числа-то у обоих ядер сойдутся. Сверяется целиком —
   // имя персоны, реплики оппонента, чипы шкал, занавес и вопрос-ключ.
