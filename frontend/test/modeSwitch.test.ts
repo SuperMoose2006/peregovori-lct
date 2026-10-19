@@ -493,3 +493,34 @@ test("переподключение в НОВУЮ партию тоже счи�
   assert.equal(t.seen.filter((m) => m.type === "probe").length, 3, "вопрос первого хода новой партии заглушён");
   t.transport.close();
 });
+
+test("своя сделка, собираемая заново, ждёт генерацию; провалившийся вход закрывает сокет", async (t) => {
+  // Третье ревью: возвращение в «свою сделку», которой на сервере уже нет,
+  // заново ГЕНЕРИРУЕТ сценарий — до 22 с молча. Срок 12 с рвал вход и
+  // запускал новую платную генерацию на каждой попытке. И провалившийся вход
+  // не закрывал свой сокет — сервер мог досоздать на нём партию.
+  const { RealtimeSession } = await import("../src/realtime/vendor/realtime-session");
+  const tick = () => new Promise((r) => setImmediate(r));
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  for (const gameMode of ["custom", "practice"] as const) {
+    FakeSocket.instances = [];
+    const session = new RealtimeSession({ mode: "text", onEvent: () => {} });
+    let failed = false;
+    const started = session.start({ scenarioId: "gen_x", lang: "ru", gameMode, resume: "s-1" })
+      .catch(() => { failed = true; });
+    for (let i = 0; i < 10 && FakeSocket.instances.length === 0; i++) await tick();
+    for (let i = 0; i < 5; i++) await tick();
+    t.mock.timers.tick(20000);
+    for (let i = 0; i < 5; i++) await tick();
+    if (gameMode === "custom") {
+      assert.equal(failed, false, "своя сделка: вход оборван посреди генерации");
+      t.mock.timers.tick(30000);
+      for (let i = 0; i < 5; i++) await tick();
+    }
+    assert.equal(failed, true, `${gameMode}: молчащий сервер ждали бесконечно`);
+    assert.equal(FakeSocket.instances[0].readyState, 3, `${gameMode}: провалившийся вход оставил сокет открытым`);
+    await started;
+    session.stop();
+  }
+  t.mock.timers.reset();
+});

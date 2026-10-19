@@ -84,10 +84,12 @@ const OPEN_TIMEOUT_MS = 4000;
  *  Генерация «Своей сделки» укладывается в 22 с (GEN_BUDGET_S), поэтому срок
  *  с запасом, и он сбрасывается каждым событием сервера (очередь, дельты). */
 const HANDSHAKE_SILENCE_MS = 45000;
-/** Возвращение в партию (`resume`) сценарий не генерирует — серверу нужно
- *  достать партию из памяти, и только. Ждать его 45 с значило держать
- *  «Подключение…» по минуте на каждую из пяти попыток, когда сервер молчит
- *  (найдено вторым ревью созвона). */
+/** Возвращение в партию (`resume`) обычно лишь достаёт её из памяти сервера.
+ *  Ждать его 45 с значило держать «Подключение…» по минуте на каждую из пяти
+ *  попыток, когда сервер молчит (второе ревью созвона). ИСКЛЮЧЕНИЕ — своя
+ *  сделка: если партии уже нет (перезапуск, срок ожидания), сервер собирает
+ *  её заново и генерирует сценарий — до 22 с молча, и обрыв на 12-й секунде
+ *  запускал бы новую платную генерацию на каждой попытке (третье ревью). */
 const RESUME_SILENCE_MS = 12000;
 const MAX_LOG = 200;
 
@@ -300,17 +302,26 @@ export class RealtimeSession {
       // приёма, перезапуск на выкладке) оставлял экран «Соединение…» навсегда,
       // без ошибки и без выхода (аудит 16.10). То же — при долгой тишине.
       let silence: ReturnType<typeof setTimeout> | undefined;
-      const fail = (why: string) => { clearTimeout(silence); reject(new Error(why)); };
+      // ПРОВАЛЕННЫЙ ВХОД ЗАКРЫВАЕТ СВОЙ СОКЕТ. Иначе он оставался открытым:
+      // сервер мог досоздать на нём партию, а её события — та же сессия —
+      // проходили на стол поверх следующей попытки (третье ревью).
+      const drop = () => {
+        socket.onmessage = null;
+        socket.onclose = null;
+        try { socket.close(); } catch { /* уже закрыт */ }
+      };
+      const fail = (why: string) => { clearTimeout(silence); drop(); reject(new Error(why)); };
       const arm = () => {
         clearTimeout(silence);
         silence = setTimeout(() => fail("сервер не ответил на запуск партии"),
-                             payload.resume ? RESUME_SILENCE_MS : HANDSHAKE_SILENCE_MS);
+                             payload.resume && payload.gameMode !== "custom" ? RESUME_SILENCE_MS : HANDSHAKE_SILENCE_MS);
       };
       arm();
       socket.onclose = (event) => {
         const code = Number((event as { code?: number } | undefined)?.code);
         if (!NO_RETURN_CLOSE_CODES.has(code)) { fail("соединение закрылось до начала партии"); return; }
         clearTimeout(silence);
+        drop();
         reject(new HandshakeRefused("сервер отказал во входе в партию", code));
       };
       const sendInit = () => {
@@ -332,6 +343,7 @@ export class RealtimeSession {
         } else if (message.type === "error") {
           const body = message.error as { message?: string; code?: string } | undefined;
           clearTimeout(silence);
+          drop();
           reject(new HandshakeRefused(body?.message ?? "не удалось начать партию", undefined,
                                       body?.code ?? "generic"));
         } else {
