@@ -154,8 +154,10 @@ export class RealtimeTransport implements Transport {
     this.options = options;
   }
 
-  send(message: ClientMsg): void {
-    if (this.closed) return;
+  /** Ложь — сообщение не ушло (сейчас это знает только «Глубокий разбор»:
+   *  карточка не включает прогресс над просьбой, которой сервер не получил). */
+  send(message: ClientMsg): boolean | void {
+    if (this.closed) return false;
     switch (message.type) {
       case "start":
         void this.begin(message);
@@ -164,8 +166,7 @@ export class RealtimeTransport implements Transport {
         this.session?.sendText(message.text);
         break;
       case "review":
-        this.session?.requestReview();
-        break;
+        return this.session?.requestReview() ?? false;
       case "hint":
         this.session?.requestHint();
         break;

@@ -304,3 +304,13 @@ test("запись голоса и кадров названа там, где о
     assert.doesNotMatch(t.layers.blurbs.camera, lang === "ru" ? /сигналы присутствия/ : /presence signals/);
   }
 });
+
+test("просьба о разборе, не ушедшая в сокет, не зажигает вечный прогресс", async () => {
+  const t = await table();
+  try {
+    assert.equal(t.transport.send({ type: "review" }), true, "ушла — транспорт так и говорит");
+    t.socket.readyState = 3;   // сокет уже закрывается, а статус связи ещё «онлайн»
+    assert.equal(t.transport.send({ type: "review" }), false,
+                 "не ушла — хук не включит «агенты работают» над пустотой");
+  } finally { t.transport.close(); }
+});

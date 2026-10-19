@@ -239,9 +239,9 @@ export class RealtimeSession {
     this.send({ type: "coach.request" });
   }
 
-  /** «Глубокий разбор» сыгранной партии. */
-  requestReview(): void {
-    this.send({ type: "review.request" });
+  /** «Глубокий разбор» сыгранной партии. Ложь — просьба не ушла. */
+  requestReview(): boolean {
+    return this.send({ type: "review.request" });
   }
 
   /** Своя сделка: поправить числа стола до первого хода (CE-01). */
@@ -270,15 +270,18 @@ export class RealtimeSession {
 
   // -- внутреннее ----------------------------------------------------------
 
-  private send(message: Record<string, unknown>, quiet = false): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+  /** Отправить. Ложь — сообщение не ушло (сокет не открыт или вход не
+   *  завершён): тому, кто ждёт ответа, ждать нечего. */
+  private send(message: Record<string, unknown>, quiet = false): boolean {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
     // ДО ПРИЁМА ПАРТИИ ГОВОРИТ ТОЛЬКО РУКОПОЖАТИЕ. Микрофон во время
     // переподключения продолжает слать звук, и кусок, ушедший раньше
     // `session.init`, сервер встречал `not_initialized` (третье ревью).
     // `session.close` проходит всегда: уйти можно и посреди входа.
-    if (!this.started && message.type !== "session.close") return;
+    if (!this.started && message.type !== "session.close") return false;
     this.ws.send(JSON.stringify(message));
     if (!quiet) this.record("client", String(message.type), "");
+    return true;
   }
 
   private async open(): Promise<WebSocket> {
