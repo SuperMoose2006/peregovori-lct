@@ -192,3 +192,11 @@ test("тур разбора называет формулу оценки — т�
   }
   assert.deepEqual(TOURS.debrief.slice(0, 2).map((s) => s.id), ["grade", "parts"]);
 });
+
+test("тур закрывается с клавиатуры и объявляет шаг", () => {
+  // Найдено после аудита 17.10: тур встаёт сам и перекрывает раздел, а
+  // закрыть его можно было только мышью или пройдя Tab весь экран.
+  const src = readFileSync(new URL("../src/components/Onboarding.tsx", import.meta.url), "utf8");
+  assert.match(src, /e\.key === "Escape" && !e\.defaultPrevented\) skipRef\.current\(\)/);
+  assert.match(src, /className=\{`onb-tip a-\$\{arrow\}`\}[^>]*aria-live="polite"/);
+});

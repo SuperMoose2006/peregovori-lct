@@ -12,7 +12,7 @@
 // хозяин: за столом — Table, по событиям движка первой партии; в каждом разделе —
 // SectionTour, тур по его элементам (правила показа — lib/tours.ts). Состояния игры здесь не трогают, поэтому
 // детерминированный движок остаётся единственным источником правды.
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export interface CoachStep {
@@ -99,6 +99,19 @@ export function placeTip(hole: Rect, vw: number, vh: number, tipW: number, tipH:
 
 export function Onboarding(props: CoachStep) {
   const { stepKey, targetRef, title, body, primaryLabel, onPrimary, skipLabel, onSkip, progress, optOut } = props;
+  // Тур включается сам на первом заходе в раздел и перекрывает его, а кнопки
+  // «Пропустить» стоят последними в документе: с клавиатуры до них надо было
+  // пройти весь экран. Escape — как у любого всплывающего окна (найдено после
+  // аудита 17.10). Уже обработанное (модальное окно поверх) не трогаем.
+  const skipRef = useRef(onSkip);
+  skipRef.current = onSkip;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) skipRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
   const [rect, setRect] = useState<Rect | null>(null);
   const lastRect = useRef<Rect | null>(null);
   const tipRef = useRef<HTMLDivElement>(null);
@@ -185,7 +198,8 @@ export function Onboarding(props: CoachStep) {
     <div className="onb" role="dialog" aria-label={title}>
       <div className="onb-hole" style={{ top: hole.top, left: hole.left, width: hole.width, height: hole.height }} />
 
-      <div className={`onb-tip a-${arrow}`} style={tipStyle} ref={tipRef}>
+      {/* Шаг сменился — диктор слышит новый, а не молчит до Tab по всему экрану. */}
+      <div className={`onb-tip a-${arrow}`} style={tipStyle} ref={tipRef} aria-live="polite">
         <span className="onb-arrow" aria-hidden="true" />
         <div className="onb-title">{title}</div>
         <div className="onb-body">{body}</div>
