@@ -184,7 +184,10 @@ export class MediaProvider {
    * быть назван на экране поимённо, иначе получается запрещённое четвёртое
    * состояние: переключатель включён, а внутри пусто.
    */
-  async start(options: { camera?: boolean; mic?: boolean } = {}): Promise<MediaStartReport> {
+  /** `lang` — язык партии: причина отказа устройства едет на экран как есть
+   *  и обязана быть на нём (инвариант 4). */
+  async start(options: { camera?: boolean; mic?: boolean; lang?: "ru" | "en" } = {}): Promise<MediaStartReport> {
+    const lang = options.lang ?? "ru";
     this.stopped = false;
     const wantCamera = options.camera === true;
     const wantMic = options.mic !== false;
@@ -194,7 +197,7 @@ export class MediaProvider {
     };
 
     if (!MediaProvider.supported()) {
-      const why = "браузер не отдаёт устройства: нужен https или localhost";
+      const why = MEDIA_ERRORS[lang].insecure;
       if (wantCamera) report.camera = why;
       if (wantMic) report.mic = why;
       return report;
@@ -204,7 +207,7 @@ export class MediaProvider {
       try {
         await this.startCamera();
       } catch (error) {
-        report.camera = await explainMediaError(error, "videoinput");
+        report.camera = await explainMediaError(error, "videoinput", lang);
       }
     }
     if (this.stopped) { await this.stop(); return { camera: "off", mic: "off" }; }
@@ -213,7 +216,7 @@ export class MediaProvider {
       try {
         await this.startMic();
       } catch (error) {
-        report.mic = await explainMediaError(error, "audioinput");
+        report.mic = await explainMediaError(error, "audioinput", lang);
       }
     }
     if (this.stopped) { await this.stop(); return { camera: "off", mic: "off" }; }
@@ -510,18 +513,47 @@ export function toBase64(buffer: ArrayBufferLike): string {
  * `NotAllowedError` на экране — это не сообщение, а расписка в том, что текст
  * никто не писал.
  */
-export function describeMediaError(error: unknown): string {
+/** Слова отказов — на языке партии. Были только по-русски, и в английской
+ *  партии причина вставала внутрь английской фразы звонка («The microphone
+ *  did not start: доступ не разрешён…» — найдено ревью созвона). */
+const MEDIA_ERRORS = {
+  ru: {
+    insecure: "браузер не отдаёт устройства: нужен https или localhost",
+    denied: "доступ не разрешён — браузер отказал в устройстве",
+    notFound: "устройство не найдено",
+    format: "устройство есть, но не отдаёт нужный формат",
+    busy: "устройство занято другой программой",
+    failed: "не удалось включить",
+    none: { videoinput: "камер в системе нет — подключите устройство",
+            audioinput: "микрофонов в системе нет — подключите устройство" },
+    some: { videoinput: "камер в системе: {n} — возможно, устройство занято другой программой",
+            audioinput: "микрофонов в системе: {n} — возможно, устройство занято другой программой" },
+  },
+  en: {
+    insecure: "the browser withholds devices: https or localhost is required",
+    denied: "access not allowed — the browser refused the device",
+    notFound: "device not found",
+    format: "the device exists but does not provide the needed format",
+    busy: "the device is busy in another app",
+    failed: "could not start",
+    none: { videoinput: "there are no cameras in the system — connect one",
+            audioinput: "there are no microphones in the system — connect one" },
+    some: { videoinput: "cameras in the system: {n} — the device may be busy in another app",
+            audioinput: "microphones in the system: {n} — the device may be busy in another app" },
+  },
+} as const;
+
+export function describeMediaError(error: unknown, lang: "ru" | "en" = "ru"): string {
+  const words = MEDIA_ERRORS[lang];
   const name = (error as { name?: string })?.name ?? "";
-  if (name === "NotAllowedError" || name === "SecurityError")
-    return "доступ не разрешён — браузер отказал в устройстве";
-  if (name === "NotFoundError")
-    return "устройство не найдено";
-  if (name === "OverconstrainedError")
-    return "устройство есть, но не отдаёт нужный формат";
-  if (name === "NotReadableError")
-    return "устройство занято другой программой";
+  if (name === "NotAllowedError" || name === "SecurityError") return words.denied;
+  if (name === "NotFoundError") return words.notFound;
+  if (name === "OverconstrainedError") return words.format;
+  if (name === "NotReadableError") return words.busy;
+  // Сырое сообщение браузера — на языке браузера, а не партии; лучше общее
+  // слово на языке партии, чем чужая строка посреди фразы.
   const message = (error as { message?: string })?.message;
-  return message ? String(message) : "не удалось включить";
+  return message && lang === "ru" && /[а-яё]/i.test(message) ? String(message) : words.failed;
 }
 
 /**
@@ -531,8 +563,9 @@ export function describeMediaError(error: unknown): string {
  * ПОСЛЕ неудачной попытки, когда разрешение уже спрошено, поэтому список
  * настоящий, а не обрезанный из соображений приватности.
  */
-export async function explainMediaError(error: unknown, kind: "videoinput" | "audioinput"): Promise<string> {
-  const why = describeMediaError(error);
+export async function explainMediaError(error: unknown, kind: "videoinput" | "audioinput",
+                                        lang: "ru" | "en" = "ru"): Promise<string> {
+  const why = describeMediaError(error, lang);
   const name = (error as { name?: string })?.name ?? "";
   if (name !== "NotFoundError" && name !== "OverconstrainedError") return why;
 
@@ -543,9 +576,7 @@ export async function explainMediaError(error: unknown, kind: "videoinput" | "au
   } catch {
     count = null;
   }
-  const thing = kind === "videoinput" ? "камер" : "микрофонов";
-  if (count === 0) return `${thing} в системе нет — подключите устройство`;
-  if (count && count > 0)
-    return `${why} (${thing} в системе: ${count} — возможно, устройство занято другой программой)`;
+  if (count === 0) return MEDIA_ERRORS[lang].none[kind];
+  if (count && count > 0) return `${why} (${MEDIA_ERRORS[lang].some[kind].replace("{n}", String(count))})`;
   return why;
 }

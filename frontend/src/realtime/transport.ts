@@ -442,7 +442,8 @@ export class RealtimeTransport implements Transport {
     // `start` больше не бросает на отказ устройства: отказ — это ответ
     // пользователя, а не сбой. Он возвращает отчёт по каждому слою, и каждый
     // невставший слой называется на экране поимённо.
-    const report = await media.start({ camera: this.cameraWanted, mic: this.voiceWanted && this.microphoneAllowed });
+    const report = await media.start({ camera: this.cameraWanted, mic: this.voiceWanted && this.microphoneAllowed,
+                                       lang: this.lang });
     if (gen !== this.beginGen || this.media !== media) {
       // Этот провайдер уже ничей: его режим сменили или стол закрылся, пока
       // браузер спрашивал. Гасим СВОЁ и молчим — отчёт об устройствах

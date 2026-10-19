@@ -273,3 +273,26 @@ test("изменившийся кадр едет сразу — экономия
   assert.ok(grab(), "кадр изменился, а наружу не поехал — событие потеряно");
   await p.stop();
 });
+
+test("причина отказа устройства — на языке партии (инвариант 4)", async () => {
+  // Найдено ревью созвона: слова отказов были только по-русски, и в английской
+  // партии причина вставала внутрь английской фразы звонка.
+  const { describeMediaError, explainMediaError } = await import("../src/realtime/vendor/media-provider");
+  const cyr = /[а-яё]/i;
+  for (const name of ["NotAllowedError", "SecurityError", "NotFoundError", "OverconstrainedError", "NotReadableError", "AbortError"]) {
+    const en = describeMediaError({ name, message: "Could not start video source" }, "en");
+    assert.ok(!cyr.test(en), `${name}: «${en}» в английской партии`);
+    const ru = describeMediaError({ name, message: "Could not start video source" }, "ru");
+    assert.ok(cyr.test(ru), `${name}: «${ru}» — английская строка браузера в русской партии`);
+  }
+  const g = globalThis as Record<string, unknown>;
+  const nav = g.navigator;
+  Object.defineProperty(globalThis, "navigator", { configurable: true,
+    value: { mediaDevices: { enumerateDevices: async () => [{ kind: "videoinput" }, { kind: "videoinput" }] } } });
+  try {
+    const en = await explainMediaError({ name: "NotFoundError" }, "videoinput", "en");
+    assert.ok(!cyr.test(en) && en.includes("2"), en);
+  } finally {
+    Object.defineProperty(globalThis, "navigator", { configurable: true, value: nav });
+  }
+});
