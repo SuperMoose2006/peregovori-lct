@@ -938,6 +938,9 @@ def _wire(session: RealtimeSession, *, work: Optional["_Work"] = None) -> tuple[
             on_turn=guarded_turn,
             on_interrupt=lambda: orchestrator.interrupt(reason="barge_in"),
             publish=voice_publish,
+            # Человек договорил — собеседник коротко отзывается сразу, пока
+            # готовит ответ (решение владельца 19.10).
+            on_turn_ending=orchestrator.backchannel,
         ) if want_realtime else None
         if voice_mode() == "classic":
             pipeline = VoicePipeline(
@@ -948,6 +951,8 @@ def _wire(session: RealtimeSession, *, work: Optional["_Work"] = None) -> tuple[
             )
         if pipeline is not None and pipeline.available:
             voice = pipeline
+            if want_realtime:
+                orchestrator.prepare_backchannel()
             # Замыкаем петлю: оркестратор знает, когда оппонент звучит, и
             # пайплайн поднимает планку перебивания на это время.
             orchestrator.on_speaking_change = pipeline.set_opponent_speaking

@@ -46,6 +46,9 @@ export interface RealtimeExtras {
   onTranscript?: (text: string, final: boolean) => void;
   /** Игрок заговорил / замолчал (по VAD сервера). */
   onSpeech?: (speaking: boolean) => void;
+  /** Окно тишины вышло: игрок, похоже, договорил, ход вот-вот уйдёт. Экран
+   *  пишет «думает…» сразу, а не после расшифровки и судьи (19.10). */
+  onTurnEnding?: () => void;
   /** Говорит ли ОППОНЕНТ — по собственному звуку клиента, а не по слою аватара.
    *  Раньше это состояние приходило только из `avatar.state`, поэтому в режиме
    *  «только голос» кнопка перебивания не появлялась вовсе: слой аватара выключен
@@ -796,6 +799,10 @@ export class RealtimeTransport implements Transport {
 
       case "user.speech.stopped":
         this.options.onSpeech?.(false);
+        return;
+
+      case "user.turn.ending":
+        this.options.onTurnEnding?.();
         return;
 
       case "debrief":

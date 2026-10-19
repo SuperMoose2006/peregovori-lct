@@ -130,11 +130,17 @@ class RealtimeVoicePipeline:
     def __init__(self, lang: str,
                  on_turn: Callable[[str], Awaitable[None]],
                  on_interrupt: Callable[[], Awaitable[None]],
-                 publish: Callable[[dict], None]) -> None:
+                 publish: Callable[[dict], None],
+                 on_turn_ending: Optional[Callable[[], object]] = None) -> None:
         self._lang = lang
         self._on_turn = on_turn
         self._on_interrupt = on_interrupt
         self._publish = publish
+        #: «Похоже, человек договорил»: окно тишины вышло, ход вот-вот уйдёт.
+        #: Собеседник в эту секунду отзывается коротко («угу…»), а клиент
+        #: пишет «думает…» — иначе расшифровка, судья и мысль идут в тишине,
+        #: и кажется, что всё зависло (жалоба владельца 19.10).
+        self._on_turn_ending = on_turn_ending
 
         self._key = os.getenv("OPENAI_REALTIME_KEY", "").strip()
         self._ws = None
@@ -546,6 +552,8 @@ class RealtimeVoicePipeline:
     async def _quiet_timer(self) -> None:
         try:
             await asyncio.sleep(_QUIET_MS / 1000)
+            if not self._speaking and (self._pending_asr > 0 or self._joined()):
+                self._turn_ending()
             # Окно тишины вышло — но кусок речи может быть ещё на расшифровке.
             # Отправить сейчас значит отправить черновик и получить ту же фразу
             # вторым ходом, когда расшифровка вернётся. Ждём обещанное, но не
@@ -562,6 +570,14 @@ class RealtimeVoicePipeline:
         except asyncio.CancelledError:
             return
         await self._commit(reason="quiet")
+
+    def _turn_ending(self) -> None:
+        self._publish({"type": "user.turn.ending"})
+        if self._on_turn_ending is not None:
+            try:
+                self._on_turn_ending()
+            except Exception:
+                pass   # реакция — украшение: её сбой не трогает ход
 
     async def _commit(self, *, reason: str) -> None:
         text = self._joined()

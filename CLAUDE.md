@@ -127,6 +127,9 @@ legacy-node/                 первый прототип — эталон по
   `probe {turn, options, answer}` — вопрос по окончательной реакции, после
   судьи, применения хода и проверки лимита; в закрытой партии не отправляется.
 - `avatar.state` · `avatar.frame` · `vision.observation` · `vision.tell` · `user.speech.started|stopped` · `user.transcript`
+  · `user.turn.ending` — окно тишины вышло, игрок, похоже, договорил: клиент
+  сразу пишет «думает…», а собеседник коротко отзывается заранее готовым
+  «угу…» (`NegotiationOrchestrator.backchannel`) — своим поколением без текста.
 - `review.progress {done, total, agent}` · `review.done {review}` — «Глубокий
   разбор» (`app/review`): восемь агентов смысла, голос, мимика, сводка по
   времени с уверенностью. **Не влияет на оценку** (`affects_score: false` в

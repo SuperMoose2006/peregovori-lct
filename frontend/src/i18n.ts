@@ -1539,7 +1539,7 @@ export const I18N: Record<Lang, Strings> = {
       hintSay: "Скажите:",
       dismiss: "Скрыть",
       dialing: "Соединяем…",
-      started: "Созвон начался. Голос и кадры камеры хранятся только в памяти, пока открыта партия, — для «Глубокого разбора», — и потом стираются.",
+      started: "Созвон начался. Речь распознаёт OpenAI; голос и кадры камеры хранятся только в памяти, пока открыта партия, — для «Глубокого разбора», — и потом стираются.",
       ended: "Созвон завершён — партия продолжается в чате",
     },
     live: {
@@ -2724,7 +2724,7 @@ export const I18N: Record<Lang, Strings> = {
       hintSay: "Say:",
       dismiss: "Dismiss",
       dialing: "Connecting…",
-      started: "Call started. Your voice and camera frames are kept in memory only while the game is open — for the deep review — and erased afterwards.",
+      started: "Call started. Speech is recognised by OpenAI; your voice and camera frames are kept in memory only while the game is open — for the deep review — and erased afterwards.",
       ended: "Call ended — the game continues in the chat",
     },
     live: {

@@ -1529,6 +1529,7 @@ export default function App() {
             layersOpen={layersOpen}
             onOpenReview={reviewProps && mode !== "exam" ? () => setReviewOpen(true) : undefined}
             reviewOpen={reviewOpen}
+            awaitingReply={nego.awaitingReply}
             layerFail={nego.layerFail}
             observations={nego.observations}
             userSpeaking={nego.userSpeaking}

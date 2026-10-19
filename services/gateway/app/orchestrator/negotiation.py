@@ -42,6 +42,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Callable, Optional
 
 from app import engine, views
@@ -61,6 +62,25 @@ from app.vendor.olv.sentence_divider import SentenceDivider
 DEBRIEF_NOTE_BUDGET_S = 8.0
 # Total wall-clock budget, including a provider that drips tokens indefinitely.
 OPPONENT_STREAM_BUDGET_S = 15.0
+
+
+#: Короткие реакции по характеру персонажа. Нейтральные: «так» и «угу» не
+#: соглашаются и не спорят — ими человек показывает, что услышал, пока думает.
+#: Без «понимаю» и «хорошо»: первое — штамп, второе звучит как согласие с
+#: тем, чего движок ещё не посчитал.
+_BACKCHANNELS = {
+    "ru": {"tough": ["Так.", "Ага.", "Ну…"],
+           "analytical": ["Так…", "Секунду…", "Ага…"],
+           "": ["Так…", "Угу…", "Ага…"]},
+    "en": {"tough": ["Right.", "Uh-huh.", "Well…"],
+           "analytical": ["Okay…", "One second…", "Mm-hm…"],
+           "": ["Mm-hm…", "Right…", "Okay…"]},
+}
+
+
+def backchannel_phrases(lang: str, style: str | None) -> list[str]:
+    table = _BACKCHANNELS.get(lang, _BACKCHANNELS["ru"])
+    return list(table.get(style or "", table[""]))
 
 
 class NegotiationOrchestrator:
@@ -85,6 +105,58 @@ class NegotiationOrchestrator:
         #: (`realtime/endpoint.py`) на голосовой пайплайн — без этого его защита
         #: от самоподслушивания мертва.
         self.on_speaking_change: Optional[Callable[[bool], None]] = None
+        #: Короткие реакции («Угу…»), которые уже готовы голосом персонажа, и
+        #: номер хода, на котором реакция уже прозвучала: одна на ход.
+        self._backchannels: list[str] = []
+        self._backchannel_turn = -1
+        self._backchannel_next = 0
+
+    # ------------------------------------------------------- короткая реакция
+
+    def prepare_backchannel(self) -> Optional[asyncio.Task]:
+        """Заранее озвучить короткие реакции голосом персонажа (в созвоне).
+
+        Жалоба владельца 19.10: человек договорил, а собеседник молчит секунды
+        — распознавание, судья, мысль, синтез, — и кажется, что всё зависло.
+        Живой человек на созвоне в эту секунду отзывается: «так…», «угу». Звук
+        готовится заранее, чтобы реакция шла сразу, без полусекунды синтеза.
+        """
+        if not self.tts:
+            return None
+        try:
+            style = engine.by_id(self.session.engine_session.scenario_id).counterpart.style
+        except Exception:
+            style = ""
+        phrases = backchannel_phrases(self.session.lang, style)
+
+        async def run() -> None:
+            for phrase in phrases:
+                if await self.tts.prepare(phrase):
+                    self._backchannels.append(phrase)
+        return asyncio.create_task(run())
+
+    def backchannel(self) -> bool:
+        """Человек, похоже, договорил — отозваться коротко, пока готовится ответ.
+
+        Не звучит, если собеседник ещё говорит (перебивать себя нельзя), если
+        на этом ходу реакция уже была, если стол закрыт или звука не готово.
+        Реакция — своё поколение без текста: в журнал разговора не пишется, и
+        настоящий ответ, начинаясь, гасит её, если она ещё звучит."""
+        sess = self.session
+        if not self.tts or not self._backchannels:
+            return False
+        if sess.engine_session.state.status != "active":
+            return False
+        if self._backchannel_turn == sess.turn_id:
+            return False
+        if self.tts.playing_until > time.monotonic() or (
+                self._generation_task is not None and not self._generation_task.done()):
+            return False
+        phrase = self._backchannels[self._backchannel_next % len(self._backchannels)]
+        self._backchannel_next += 1
+        self._backchannel_turn = sess.turn_id
+        generation_id = sess.begin_generation()
+        return self.tts.speak_prepared(phrase, generation_id=generation_id, turn_id=sess.turn_id + 1)
 
     def _set_speaking(self, speaking: bool) -> None:
         if self.on_speaking_change:

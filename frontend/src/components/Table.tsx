@@ -112,6 +112,8 @@ interface Props {
   /** «Глубокий разбор» посреди партии (решение владельца 19.10). Нет — на
    *  зачёте и офлайн без кнопки нечего открывать. */
   onOpenReview?: () => void;
+  /** Игрок договорил, ход в пути — в созвоне сразу «думает…». */
+  awaitingReply?: boolean;
   reviewOpen?: boolean;
   layersOpen?: boolean;
   /** Слой просили, но устройство не встало. Ключ есть — слой мёртв, и об этом
@@ -148,7 +150,7 @@ export function firstMoveBody(o: Strings["onboarding"], infoDelta: number, topic
   return o.firstBody.replace("{gain}", gain).replace("{topic}", topic);
 }
 
-export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", call = false, callOffer, onCall, onHangUp, hangupPending = false, callCamera, onToggleCamera, speech = null, selfView, onSelfView, syntheticFace = false, videoPending = false, micAvailable = false, devices, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", onOpenLayers, layersOpen = false, onOpenReview, reviewOpen = false, layerFail, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
+export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kind, scenario, state, log, busy, disconnected = false, phase, judgeActive, cloudAi = null, onSend, onHint, onQuit, onAdjust, debriefReady, onSeeDebrief, grade = null, probeTally, onProbeAnswer, avatarState = null, oppSpeaking = false, getSpeechLevel, getVideoFrame, faceRenderer = "portrait", call = false, callOffer, onCall, onHangUp, hangupPending = false, callCamera, onToggleCamera, speech = null, selfView, onSelfView, syntheticFace = false, videoPending = false, micAvailable = false, devices, micMuted = false, onToggleMic, getAudioBlocked, onResumeAudio, conn = "online", onOpenLayers, layersOpen = false, onOpenReview, reviewOpen = false, awaitingReply = false, layerFail, observations, userSpeaking = false, transcript = null, getMicLevel, onInterrupt, videoRef, canvasRef, tourActive = false }: Props) {
   // The coach's worked example travels from a hint bubble down into the
   // composer. A monotonic nonce (not the text) is what makes re-tapping the
   // same suggestion refill the box after the player edited it away.
@@ -592,7 +594,7 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
           lang={lang}
           scenario={scenario}
           state={st}
-          status={meetingStatus({ conn, oppSpeaking, userSpeaking, busy })}
+          status={meetingStatus({ conn, oppSpeaking, userSpeaking, busy: busy || awaitingReply })}
           avatarState={avatarState}
           renderer={faceRenderer}
           synthetic={syntheticFace}

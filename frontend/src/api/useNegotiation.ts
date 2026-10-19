@@ -102,6 +102,9 @@ export interface NegotiationState {
   switching: boolean;
   /** «Глубокий разбор» по кнопке в итогах. В грейд не входит. */
   review: ReviewState;
+  /** Игрок договорил, ход вот-вот уйдёт: на экране «думает…» сразу, не ждём
+   *  расшифровку и судью. Снимается речью, ходом или страховкой по времени. */
+  awaitingReply: boolean;
 }
 
 /** Состояние «Глубокого разбора». `agents` — группы агентов, которые уже
@@ -195,6 +198,7 @@ const initialState: NegotiationState = {
   devices: { mic: "off", camera: "off" },
   switching: false,
   review: REVIEW_IDLE,
+  awaitingReply: false,
 };
 
 /** Куда рисовать картинку с камеры. Сами слои выбираются на экране подготовки
@@ -210,6 +214,7 @@ export interface RealtimeOptions {
 export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Negotiation {
   const [s, publishState] = useState<NegotiationState>(initialState);
   const stateRef = useRef(s);
+  const awaitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Actions may arrive twice before React renders. Commit once, outside React's
   // replayable updater: transport sends and IDs must not be replayed in StrictMode.
   const setS = useCallback((change: NegotiationState | ((p: NegotiationState) => NegotiationState)) => {
@@ -293,10 +298,18 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
               if (!final) return { ...p, transcript: text };
               const said = text.trim();
               if (!said) return { ...p, transcript: null };
-              return { ...p, transcript: null, busy: true, phase: null,
+              return { ...p, transcript: null, busy: true, phase: null, awaitingReply: false,
                        log: [...p.log, { id: nextId(), kind: "me", text: said }] };
             }),
-          onSpeech: (userSpeaking) => currentState((p) => ({ ...p, userSpeaking })),
+          onSpeech: (userSpeaking) => currentState((p) => ({
+            ...p, userSpeaking, awaitingReply: userSpeaking ? false : p.awaitingReply })),
+          onTurnEnding: () => {
+            currentState((p) => (p.state?.status === "active" && !p.busy ? { ...p, awaitingReply: true } : p));
+            // Страховка: ход мог не состояться (в расшифровке ни слова) — «думает…»
+            // не висит дольше, чем идёт самый долгий честный ход.
+            if (awaitTimer.current) clearTimeout(awaitTimer.current);
+            awaitTimer.current = setTimeout(() => currentState((p) => (p.awaitingReply ? { ...p, awaitingReply: false } : p)), 8000);
+          },
           onCapabilities: (capabilities) => currentState((p) => ({ ...p, capabilities })),
           onDevices: (devices) => currentState((p) => ({ ...p, devices })),
         },
