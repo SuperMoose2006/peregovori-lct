@@ -17,7 +17,8 @@ import {
 import { NO_PROBES, nextProbe, type ProbeMemory } from "../lib/probe";
 import { EPILOGUE_BANDS, REPUTATION_LINES } from "../data/campaigns.generated";
 
-/** Зеркало views.reputation_intro. Пороги и текст — из одной таблицы с эпилогом. */
+/** Зеркало views.reputation_intro. Пороги и текст — из одной таблицы с эпилогом;
+ *  читается СРЕДНИЙ акт (`reputationAvg`), а не накопленная сумма. */
 function reputationIntro(reputation: unknown, lang: Lang): string {
   if (typeof reputation !== "number") return "";
   for (const [threshold, key] of EPILOGUE_BANDS) {
@@ -123,7 +124,7 @@ export class MockServer implements Transport {
       // приходит из того же сгенерированного источника, что и на сервере
       // (views.reputation_intro), поэтому разъехаться им негде.
       // Только в кампании — как на сервере (endpoint: game_mode == "campaign").
-      text: [msg.mode === "campaign" ? reputationIntro(msg.reputation, lang) : "", greetingText(s)]
+      text: [msg.mode === "campaign" ? reputationIntro(msg.reputationAvg, lang) : "", greetingText(s)]
         .filter(Boolean).join(" "),
       // Offline demo is the deterministic keyword path — the semantic judge is a
       // backend-only capability. Report it honestly so the "graded by meaning"

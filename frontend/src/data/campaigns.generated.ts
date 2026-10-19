@@ -28,7 +28,7 @@ export interface CampaignDef {
  * совпадать и с `views.reputation_intro`, иначе оппонент в четвёртом акте
  * здоровается «наслышан, вы жёстки», а финал хвалит за отношения.
  */
-export const EPILOGUE_BANDS: [number, string][] = [[45.0, "triumph"], [15.0, "solid"], [-15.0, "mixed"], [-45.0, "strained"]];
+export const EPILOGUE_BANDS: [number, string][] = [[35.0, "triumph"], [20.0, "solid"], [5.0, "mixed"], [-10.0, "strained"]];
 
 /**
  * Чем оппонент здоровается, узнав репутацию из прошлых актов.

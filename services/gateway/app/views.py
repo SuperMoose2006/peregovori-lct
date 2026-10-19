@@ -463,8 +463,12 @@ def greeting_line(sess: "engine.Session", lang: str) -> str:
     return f"Hello. I'm {name}. I'll name my figure, but I'd rather you start — where shall we begin?"
 
 
-def reputation_intro(reputation: float, lang: str) -> str:
+def reputation_intro(reputation: Optional[float], lang: str) -> str:
     """Оппонент кампании ссылается на репутацию из прошлых актов.
+
+    `reputation` — СРЕДНИЙ акт (средний балл сыгранных актов минус 50), а не
+    накопленная сумма: пороги полос рассчитаны на один акт (решение владельца
+    19.10). Нет его — первый акт, — нет и вступления.
 
     Пороги и сами строки живут в `campaigns.REPUTATION_LINES` — рядом с
     полосами эпилога, а не отдельной лесенкой `if` здесь. Раньше их было две, и

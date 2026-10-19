@@ -131,6 +131,11 @@ class SessionInit(BaseModel):
     situation: Optional[str] = Field(default=None, max_length=1500)
     context: Optional[ScenarioContext] = None
     reputation: Optional[float] = None     # репутация из прошлых актов кампании
+    #: Средний акт кампании: средний балл сыгранных актов минус 50. По нему
+    #: оппонент здоровается («наслышан о вас») — по той же полосе, что эпилог.
+    #: Сумма `reputation` для этого не годится: пороги рассчитаны на один акт.
+    #: Нет поля (первый акт, старый клиент) — нет и приветствия.
+    reputationAvg: Optional[float] = Field(default=None, ge=-50, le=50, allow_inf_nan=False)
     layers: dict[str, bool] = Field(default_factory=dict)
     #: Вернуться в брошенную партию после обрыва связи. Состояние игры держит
     #: движок, а не сокет, поэтому переподключение — это продолжение, а не

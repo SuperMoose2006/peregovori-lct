@@ -350,6 +350,9 @@ export type ClientMsg =
   | { type: "start"; scenarioId: string; lang: Lang; mode: Mode; situation?: string;
       context?: ScenarioContext;
       reputation?: number;
+      /** Средний акт кампании: средний балл сыгранных актов минус 50. По нему
+       *  оппонент здоровается — по той же полосе, что эпилог. */
+      reputationAvg?: number | null;
       /** ISO-дата «стола дня». Условие дня ляжет, только если стол ТОГО дня и
        *  правда этот — иначе «короткий стол» выпрашивался бы на любом. */
       daily?: string;

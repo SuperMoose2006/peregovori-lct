@@ -68,7 +68,7 @@ def test_every_campaign_has_a_full_bilingual_epilogue():
     видна как пустой экран в финале.
     """
     from app.engine.campaigns import CAMPAIGNS, epilogue_key
-    bands = {epilogue_key(r) for r in (80, 30, 0, -30, -80)}
+    bands = {epilogue_key(r) for r in (40, 25, 10, 0, -30)}
     assert bands == {"triumph", "solid", "mixed", "strained", "burnt"}
     for c in CAMPAIGNS:
         assert set(c.epilogue) == bands, f"кампания {c.id}: полосы эпилога не сошлись"
@@ -164,7 +164,8 @@ def test_every_epilogue_band_is_reachable():
             lo += worst - 50
             hi += best - 50
 
-        lo, hi = max(-100.0, lo), min(100.0, hi)
+        # Полоса — по СРЕДНЕМУ акту (решение владельца 19.10).
+        lo, hi = lo / len(camp.stages), hi / len(camp.stages)
         for threshold, key in _EPILOGUE_BANDS:
             assert lo <= threshold <= hi or key == epilogue_key(lo), (
                 f"{camp.id}: финал «{key}» недостижим — репутация ходит "

@@ -44,7 +44,7 @@ import { isMirrorTable } from "./lib/mirrorIds";
 // была бы граница загрузки, за которой всегда уже всё загружено.
 import { CampaignComplete } from "./components/CampaignScreen";
 import { PROFILE_KEY, applyDebrief, loadPastRun, loadProfile, savePastRun, saveProfile, setDailyGoalTarget, updateProfile,
-         activeCampaignId, chooseNextStep, emptyCampaign, getCampaignProgress,
+         activeCampaignId, campaignMood, chooseNextStep, emptyCampaign, getCampaignProgress,
          recordCampaignStage, resetCampaign,
          type GameResult, type Grade, type NextStepPick, type PastRun, type Profile } from "./lib/progress";
 // История партий — ВИТРИНА, а не механика: свой ключ в localStorage, профиль
@@ -118,7 +118,7 @@ const LANG_KEY = "dialog.lang.v1";
 const THEME_KEY = "dialog.theme.v1";
 const LAYERS_KEY = "dialog.layers.v1";
 type DrillContext = { ex: CourseExercise; blockId: string; exam?: ExamCtx };
-type LaunchOptions = { daily?: string; reputation?: number; fixedOff?: boolean; drill?: DrillContext; source?: "admin" };
+type LaunchOptions = { daily?: string; reputation?: number; reputationAvg?: number | null; fixedOff?: boolean; drill?: DrillContext; source?: "admin" };
 type ActiveRun = { scenarioId: string; mode: Mode; options?: LaunchOptions };
 
 /** Выбор слоёв — настройка игрока, а не свойство одной партии: он живёт в
@@ -711,7 +711,7 @@ export default function App() {
       setRival(loadPastRun(scenarioId));
       setNextRival(null);
       recordedRun.current = null;
-      nego.start(scenarioId, m, undefined, opts?.reputation, use, opts?.daily);
+      nego.start(scenarioId, m, undefined, opts?.reputation, use, opts?.daily, undefined, opts?.reputationAvg);
       setScreen("game");
       scrollTop();
     },
@@ -776,7 +776,7 @@ export default function App() {
       if (!stage) { setScreen("campaign_done"); return; }
       campaignStageRef.current = p.stageIndex;
       setCurrentScenario(stage.scenario_id);
-      launch(stage.scenario_id, "campaign", { reputation: p.reputation });
+      launch(stage.scenario_id, "campaign", { reputation: p.reputation, reputationAvg: campaignMood(p.results) });
       return;
     }
     if (!pick.scenarioId) return;
@@ -861,7 +861,8 @@ export default function App() {
     setActiveLayers(useNow);
     const run = activeRunRef.current;
     if (!run) return;
-    nego.start(run.scenarioId, run.mode, undefined, run.options?.reputation, useNow, run.options?.daily);
+    nego.start(run.scenarioId, run.mode, undefined, run.options?.reputation, useNow, run.options?.daily,
+               undefined, run.options?.reputationAvg);
   }, [layerStates, screen, currentScenario, nego, mode, drill, activeLayers, activeDaily]);
   const applyLayersRef = useRef(applyLayers);
   applyLayersRef.current = applyLayers;
@@ -956,8 +957,8 @@ export default function App() {
     const stage = campaign.stages[progress.stageIndex];
     campaignStageRef.current = progress.stageIndex;
     setCurrentScenario(stage.scenario_id);
-    launch(stage.scenario_id, "campaign", { reputation: progress.reputation });
-  }, [campaign, progress.stageIndex, progress.reputation, launch]);
+    launch(stage.scenario_id, "campaign", { reputation: progress.reputation, reputationAvg: campaignMood(progress.results) });
+  }, [campaign, progress.stageIndex, progress.reputation, progress.results, launch]);
 
   // Debrief → advance: back to the arc overview (progress already recorded), or
   // to the summit summary after the final act.

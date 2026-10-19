@@ -116,6 +116,8 @@ class RealtimeSession:
     #: Репутация, принесённая из прошлых актов кампании. Нужна не только для
     #: сдвига доверия: с ней оппонент здоровается иначе — «наслышан о вас».
     reputation: Optional[float] = None
+    #: Средний акт (средний балл минус 50) — по нему приветствие, см. SessionInit.
+    reputation_avg: Optional[float] = None
     layers: Layers = field(default_factory=Layers)
     probe_memory: ProbeMemory = field(default_factory=ProbeMemory)
     avatar_provider: Any = None         # one provider instance per connection

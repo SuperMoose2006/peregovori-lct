@@ -7,7 +7,7 @@ import type { Strings } from "../i18n";
 import { EPILOGUE_BANDS } from "../data/campaigns.generated";
 import { COURSE_BLOCKS } from "../lib/courseMap";
 import { ScreenHeading } from "./ScreenHeading";
-import type { CampaignProgress, StageResult } from "../lib/progress";
+import { campaignMood, type CampaignProgress, type StageResult } from "../lib/progress";
 import { Karl } from "./Mascot";
 import { Icon, DataIcon } from "./Icon";
 import { DifficultyIndicator } from "./DifficultyIndicator";
@@ -304,14 +304,14 @@ export function CampaignComplete({
           </div>
 
           {/* Эпилог — единственное место в продукте, где итог кампании говорится
-              словами, а не числом. Полосу выбирает накопленная репутация, а не
-              средний балл: репутация помнит, КАК вы шли, а не только куда
-              пришли. В счёт это не входит и входить не может — грейд каждого
-              акта уже посчитан движком и здесь не пересматривается. Кампании
-              без эпилога (пустой словарь) просто заканчиваются списком актов. */}
-          {campaign.epilogue?.[epilogueKey(progress.reputation)] && (
+              словами, а не числом. Полосу выбирает СРЕДНИЙ акт (`campaignMood`):
+              пороги рассчитаны на один акт, и накопленная сумма четырёх давала
+              ровному C «триумф» (решение владельца 19.10). В счёт это не входит
+              и входить не может — грейд каждого акта уже посчитан движком.
+              Кампании без эпилога просто заканчиваются списком актов. */}
+          {campaign.epilogue?.[epilogueKey(campaignMood(progress.results))] && (
             <p className="camp-epilogue serif">
-              {campaign.epilogue[epilogueKey(progress.reputation)]}
+              {campaign.epilogue[epilogueKey(campaignMood(progress.results))]}
             </p>
           )}
 

@@ -57,6 +57,8 @@ export interface SessionInitPayload {
   situation?: string | null;
   context?: ScenarioContext;
   reputation?: number | null;
+  /** Средний акт кампании (средний балл минус 50) — по нему приветствие. */
+  reputationAvg?: number | null;
   layers?: Record<string, boolean>;
   /** ISO-дата «стола дня». Дату шлёт КЛИЕНТ: часовой пояс знает браузер, а
    *  сервер по своему UTC выдал бы игроку на востоке вчерашний стол. */

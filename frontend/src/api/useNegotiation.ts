@@ -102,7 +102,9 @@ export interface Negotiation extends NegotiationState {
           layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean;
                      pokerface?: boolean },
           /** ISO-дата «стола дня» — только когда партия и правда сегодняшняя. */
-          daily?: string, context?: ScenarioContext) => void;
+          daily?: string, context?: ScenarioContext,
+          /** Средний акт кампании (средний балл минус 50) — по нему приветствие. */
+          reputationAvg?: number | null) => void;
   turn: (text: string) => void;
   requestHint: () => void;
   answerProbe: (id: number, choice: number) => void;
@@ -255,12 +257,12 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
   const start = useCallback(
     (scenarioId: string, mode: Mode, situation?: string, reputation?: number,
      layers?: { probe?: boolean; voice?: boolean; camera?: boolean; pokerface?: boolean },
-     daily?: string, context?: ScenarioContext) => {
+     daily?: string, context?: ScenarioContext, reputationAvg?: number | null) => {
       teardown();
       setS({ ...initialState });
       const t = ensureTransport();
       t.send({ type: "start", scenarioId, lang: langRef.current, mode, situation,
-               reputation, layers, daily, context });
+               reputation, reputationAvg, layers, daily, context });
     },
     [ensureTransport, teardown],
   );

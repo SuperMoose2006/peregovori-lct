@@ -1397,6 +1397,19 @@ export function recordCampaignStage(
   });
 }
 
+/**
+ * Средний акт кампании: средний балл сыгранных актов минус 50, или `null`, если
+ * актов ещё не было. По нему выбираются полоса эпилога и приветствие оппонента
+ * (`EPILOGUE_BANDS`, пороги по грейдам). Накопленная `reputation` для этого не
+ * годится: пороги рассчитаны на один акт, а сумма четырёх прыгала через них —
+ * ровное C давало «триумф», как четыре A (найдено после аудита 17.10, решение
+ * владельца 19.10). Сумма остаётся сдвигом доверия на старте акта.
+ */
+export function campaignMood(results: { overall: number }[]): number | null {
+  if (!results.length) return null;
+  return results.reduce((s, r) => s + r.overall, 0) / results.length - 50;
+}
+
 /** «Пройти заново» — обнуление ОДНОЙ кампании, вторая не трогается. */
 export function resetCampaign(profile: Profile, campaignId: string): Profile {
   return setCampaignProgress(profile, campaignId, emptyCampaign());

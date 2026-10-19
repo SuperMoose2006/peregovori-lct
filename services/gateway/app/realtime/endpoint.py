@@ -695,6 +695,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
                 game_mode=payload.gameMode,
                 layers=_layers_for(payload),
                 reputation=payload.reputation,
+                reputation_avg=payload.reputationAvg,
             )
             # Ходы и шкалы вернул движок, наблюдения камеры вернуть некому:
             # `RealtimeSession` здесь новая. Без этой строки разбор после метро
@@ -755,6 +756,7 @@ async def _build_session(payload: SessionInit) -> tuple[Optional[RealtimeSession
         game_mode=payload.gameMode,
         layers=_layers_for(payload),
         reputation=payload.reputation,
+        reputation_avg=payload.reputationAvg,
         daily=daily_mod,
     ), None
 
@@ -961,7 +963,9 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
     # ВЫЗЫВАЛАСЬ НИОТКУДА: кампания обещает, что репутация переносится между
     # актами, а игрок видел только безымянный сдвиг доверия — без объяснения,
     # откуда он взялся. Теперь оппонент говорит об этом вслух.
-    intro = (views.reputation_intro(session.reputation, session.lang)
+    # Полоса — по СРЕДНЕМУ акту, как у эпилога: сумма четырёх актов прыгала
+    # через пороги, рассчитанные на один (решение владельца 19.10).
+    intro = (views.reputation_intro(session.reputation_avg, session.lang)
              if session.game_mode == "campaign" else "")
     greeting = views.greeting_line(engine_session, session.lang)
     if intro:

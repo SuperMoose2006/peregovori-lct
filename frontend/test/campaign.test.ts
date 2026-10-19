@@ -129,10 +129,12 @@ test("полосы эпилога берутся из одного источн�
 });
 
 test("репутация ложится в полосу так же, как на сервере", () => {
+  // Средний акт (средний балл минус 50), пороги по грейдам: A ≥ 85 → 35,
+  // B ≥ 70 → 20, C ≥ 55 → 5, D ≥ 40 → −10 (решение владельца 19.10).
   const table: [number | null, string][] = [
-    [100, "triumph"], [45, "triumph"], [44.9, "solid"], [15, "solid"],
-    [14.9, "mixed"], [0, "mixed"], [-15, "mixed"], [-15.1, "strained"],
-    [-45, "strained"], [-45.1, "burnt"], [-100, "burnt"], [null, "mixed"],
+    [50, "triumph"], [35, "triumph"], [34.9, "solid"], [20, "solid"],
+    [19.9, "mixed"], [5, "mixed"], [4.9, "strained"], [-10, "strained"],
+    [-10.1, "burnt"], [-50, "burnt"], [null, "mixed"],
   ];
   for (const [rep, want] of table) {
     assert.equal(epilogueKey(rep), want, `репутация ${rep}`);
@@ -192,30 +194,31 @@ test("офлайн оппонент кампании тоже ссылается
   // на что-то повлиял.
   const { MockServer } = await import("../src/mock/mockServer");
 
-  const greet = async (reputation: number | undefined, lang: "ru" | "en") => {
+  const greet = async (reputationAvg: number | undefined, lang: "ru" | "en") => {
     let text: string | null = null;
     const srv = new MockServer((m: { type: string; text?: string }) => {
       if (m.type === "greeting") text = m.text ?? "";
     });
     srv.send({ type: "start", scenarioId: "supplier", lang, mode: "campaign",
-               reputation } as never);
+               reputation: reputationAvg, reputationAvg } as never);
     for (let i = 0; i < 60 && text === null; i++) await new Promise((r) => setTimeout(r, 10));
     return text as string | null;
   };
 
-  const warm = await greet(80, "ru");
+  const warm = await greet(40, "ru");
   assert.ok(warm && /рассказывали|Говорят/.test(warm), `нет упоминания репутации: ${warm}`);
 
-  const cold = await greet(-80, "ru");
+  const cold = await greet(-30, "ru");
   assert.ok(cold && /рассказывали|Говорят/.test(cold), `нет упоминания репутации: ${cold}`);
   assert.notEqual(warm, cold, "хорошая и дурная слава звучат одинаково");
 
-  // Нейтральная репутация — это ОТСУТСТВИЕ слухов, а не слух о нейтральности.
-  const neutral = await greet(0, "ru");
+  // Нейтральная репутация (ровное C) — это ОТСУТСТВИЕ слухов, а не слух о
+  // нейтральности.
+  const neutral = await greet(10, "ru");
   const none = await greet(undefined, "ru");
   assert.equal(neutral, none, "нейтральная репутация что-то добавила в приветствие");
 
-  const warmEn = await greet(80, "en");
+  const warmEn = await greet(40, "en");
   assert.ok(warmEn && !/[а-яё]/i.test(warmEn), `кириллица в английском: ${warmEn}`);
 });
 
@@ -237,11 +240,28 @@ test("офлайн: репутация вне кампании молчит, к�
   for (const [mode, heard] of [["practice", false], ["campaign", true]] as const) {
     let text: string | null = null;
     const srv = new MockServer((m: ServerMsg) => { if (m.type === "greeting") text = m.text; });
-    srv.send({ type: "start", scenarioId: "salary", lang: "ru", mode, reputation: 80 } as never);
+    srv.send({ type: "start", scenarioId: "salary", lang: "ru", mode, reputation: 80, reputationAvg: 40 } as never);
     for (let i = 0; i < 100 && text === null; i++) await new Promise((r) => setTimeout(r, 10));
     srv.close();
     const intro = Object.values((await import("../src/data/campaigns.generated")).REPUTATION_LINES)
       .some((line) => !!(line as { ru: string })?.ru && String(text).includes((line as { ru: string }).ru));
     assert.equal(intro, heard, `${mode}: «${text}»`);
   }
+});
+
+test("эпилог и приветствие читают средний акт, а не сумму (решение владельца 19.10)", async () => {
+  // Пороги рассчитаны на один акт, а читалась сумма четырёх: ровное C (62 на
+  // каждом акте) давало «триумф», как четыре A.
+  const { campaignMood } = await import("../src/lib/progress");
+  const evenC = [62, 62, 62, 62].map((overall) => ({ overall }));
+  const fourA = [88, 90, 86, 92].map((overall) => ({ overall }));
+  assert.equal(epilogueKey(campaignMood(evenC)), "mixed");
+  assert.equal(epilogueKey(campaignMood(fourA)), "triumph");
+  assert.equal(campaignMood([]), null, "до первого акта — ни полосы, ни приветствия");
+  const { MockServer } = await import("../src/mock/mockServer");
+  let text: string | null = null;
+  const srv = new MockServer((m: { type: string; text?: string }) => { if (m.type === "greeting") text = m.text ?? ""; });
+  srv.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "campaign", reputation: 36, reputationAvg: 12 } as never);
+  for (let i = 0; i < 60 && text === null; i++) await new Promise((r) => setTimeout(r, 10));
+  assert.ok(text && (text as string).startsWith("Здравствуйте"), `ровное C здоровается без «наслышан»: ${text}`);
 });

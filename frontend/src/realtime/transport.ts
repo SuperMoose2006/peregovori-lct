@@ -218,6 +218,7 @@ export class RealtimeTransport implements Transport {
       context: message.context ? { ...message.context,
         difficulty: message.context.difficulty === null ? null : normalizeDifficulty(message.context.difficulty) } : undefined,
       reputation: message.reputation ?? null,
+      reputationAvg: message.reputationAvg ?? null,
       daily: message.daily ?? null,
       layers,
     };
