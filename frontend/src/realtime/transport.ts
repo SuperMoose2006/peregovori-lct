@@ -213,8 +213,9 @@ export class RealtimeTransport implements Transport {
     const message = { ...this.lastStart, layers: { ...layers } };
     this.live = false;
     this.beginGen++;
-    this.session?.detach();
+    const old = this.session;
     this.session = null;
+    old?.detach();
     this.forgetReply();
     void this.stopMedia().then(() => {
       if (!this.closed) return this.begin(message, resume);
@@ -284,8 +285,9 @@ export class RealtimeTransport implements Transport {
     this.live = false;
     this.beginGen++;
     if (this.drainTimer) { clearInterval(this.drainTimer); this.drainTimer = null; }
-    this.session?.stop();
+    const session = this.session;
     this.session = null;
+    session?.stop();
     void this.media?.stop();
     this.media = null;
     void this.player?.dispose();
@@ -323,12 +325,17 @@ export class RealtimeTransport implements Transport {
       resume,
     };
 
-    this.session = new RealtimeSession({
+    // ГОВОРИТ ТОЛЬКО ТЕКУЩИЙ СОКЕТ. Отсоединённая сессия может ещё дожить
+    // своё: переподключение, начатое до смены режима, через полминуты тишины
+    // сообщало «idle» → «онлайн» поверх «связь потеряна», и «Завершить»
+    // повисало без баннера (найдено вторым ревью созвона).
+    const session: RealtimeSession = new RealtimeSession({
       mode: this.voiceWanted ? "voice" : "text",
-      onEvent: (event) => this.route(event),
-      onStatus: (status) => this.onConn(mapStatus(status)),
+      onEvent: (event) => { if (this.session === session) this.route(event); },
+      onStatus: (status) => { if (this.session === session) this.onConn(mapStatus(status)); },
       onProtocol: this.options.onProtocol,
     });
+    this.session = session;
 
     try {
       const created = await this.session.start(payload);
@@ -870,5 +877,7 @@ function emptyAnalysis(): Analysis {
 function mapStatus(status: ConnectionStatus): ConnStatus {
   if (status === "reconnecting") return "reconnecting";
   if (status === "lost") return "lost";
+  // «Подключается» — не «онлайн»: ход и подсказка ждут, пока сокет не принят.
+  if (status === "connecting") return "connecting";
   return "online";
 }

@@ -456,3 +456,20 @@ test("звук, не поднявшийся при входе в звонок, �
     AudioPlayer.prototype.init = init;
   }
 });
+
+test("отсоединённый сокет не говорит за стол, а «подключается» — не «онлайн»", async () => {
+  // Найдено вторым ревью: переподключение, начатое до смены режима, могло
+  // дожить своё и через полминуты сообщить «idle» → «онлайн» поверх «связь
+  // потеряна»; а «подключается» отображалось как «онлайн» — ход до приёма
+  // сокета уходил в никуда.
+  const t = await table();
+  const old = (t.transport as unknown as { session: { onStatus?: (s: string) => void } }).session;
+  t.transport.relayer({ voice: false, probe: true });
+  await nextSocket();
+  assert.equal(t.get().conn, "connecting", "сокет ещё не принят, а стол «онлайн»");
+  t.transport.close();                                   // новая сессия ушла — проверяем только старую
+  const before = t.get().conn;
+  old.onStatus?.("lost");
+  old.onStatus?.("idle");
+  assert.equal(t.get().conn, before, "отсоединённая сессия переписала связь стола");
+});
