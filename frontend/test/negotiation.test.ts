@@ -21,7 +21,7 @@ const EMPTY: NegotiationState = {
   phase: null, error: null, layerFail: {}, conn: "online", judgeActive: false,
   avatarState: null, oppSpeaking: false, oppAudio: false, userSpeaking: false,
   transcript: null, observations: [], tells: 0, tellFrames: 0, tellNow: false,
-  framesSent: 0, capabilities: null,
+  capabilities: null,
 };
 
 const STATE = {

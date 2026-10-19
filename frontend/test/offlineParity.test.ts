@@ -205,7 +205,7 @@ test("ход с вопросом по лицу: офлайн-ядро и про�
       kind: null, scenario: null, state: null, log: [{ id: ++id, kind: "me", text: "реплика" }], debrief: null,
       busy: true, phase: null, error: null, layerFail: {}, conn: "online", judgeActive: false,
       avatarState: null, oppSpeaking: false, oppAudio: false, userSpeaking: false, transcript: null,
-      observations: [], tells: 0, tellFrames: 0, tellNow: false, framesSent: 0, capabilities: null,
+      observations: [], tells: 0, tellFrames: 0, tellNow: false, capabilities: null,
     };
     const s = msgs.reduce((acc, m) => reduce(acc, m, () => ++id), s0);
     return { kinds: s.log.map((e) => e.kind), busy: s.busy,

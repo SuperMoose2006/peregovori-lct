@@ -222,7 +222,9 @@ test("профиль говорит, где слои работают, и пом
   }));
   assert.ok(html.includes(ru.layers.where), "не сказано, что слои работают только в «Тренировке»");
   assert.match(ru.layers.where, /Тренировк/);
-  assert.ok(html.includes(ru.layers.needs.voice) && html.includes(ru.layers.needs.camera));
+  assert.ok(html.includes(ru.layers.needs.camera));
+  // Голоса в шторке нет: он режим партии — созвон (callMode.test.ts).
+  assert.ok(!html.includes(ru.layers.needs.voice));
   // Живого видео-лица нет — строка есть, выключателя у неё нет, и она «недоступно».
   const later = html.slice(html.indexOf("ly-later"));
   assert.ok(later.includes(ru.layers.avatarVideo), "про живое видео-лицо ничего не сказано");
@@ -288,13 +290,13 @@ test("браузерная причина первичнее серверной"
 
 test("выбранный, но недоступный слой не горит включённым", () => {
   const html = renderToStaticMarkup(createElement(LayersPanel, {
-    t: ru, lang: "ru" as const, layers: { ...NO_LAYERS, voice: true },
+    t: ru, lang: "ru" as const, layers: { ...NO_LAYERS, camera: true },
     states: withServer(READY, "offline"), onToggle: () => {}, onPreset: () => {},
   }));
-  const at = html.indexOf(`aria-label="${ru.layers.names.voice}"`);
-  const voice = html.slice(html.lastIndexOf("<button", at), html.indexOf(">", at)); // тег тумблера целиком
-  assert.match(voice, /aria-checked="false"/);
-  assert.match(voice, /aria-disabled="true"/);
+  const at = html.indexOf(`aria-label="${ru.layers.names.camera}"`);
+  const camera = html.slice(html.lastIndexOf("<button", at), html.indexOf(">", at)); // тег тумблера целиком
+  assert.match(camera, /aria-checked="false"/);
+  assert.match(camera, /aria-disabled="true"/);
 });
 
 test("на экзамене строка-совет под шапкой графика молчит, легенда остаётся", () => {
