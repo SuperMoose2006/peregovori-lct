@@ -425,3 +425,11 @@ test("этапы SPIN — из четырёх: «4/3» не бывает", async
   const exp = readFileSync(join(SRC, "lib", "reportExport.ts"), "utf8");
   assert.match(exp, /\$\{d\.spin_stages\}\/4/);
 });
+
+test("рекорд по букве при меньшем балле — «C → B», а не «+0»", () => {
+  // Найдено после аудита 17.10: isBetter ставит букву выше балла, а значок
+  // печатал max(0, разница баллов).
+  const src = readFileSync(join(SRC, "components", "Debrief.tsx"), "utf8");
+  assert.doesNotMatch(src, /Math\.max\(0, record\.record\.bestScore - record\.prevBest\.score\)/);
+  assert.match(src, /\$\{record\.prevBest\.grade\} → \$\{record\.record\.bestGrade\}/);
+});

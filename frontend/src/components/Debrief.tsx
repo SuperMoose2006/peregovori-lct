@@ -354,8 +354,13 @@ export function Debrief({
                   {game?.celebrate ? (
                     <span className="pb-new">
                       ▲ {t.newRecord}
+                      {/* Рекорд по букве при меньшем балле — это «C → B», а не «+0»
+                          (найдено после аудита 17.10). */}
                       {record.prevBest && record.prevBest.grade
-                        ? ` +${Math.max(0, record.record.bestScore - record.prevBest.score)}`
+                        ? (record.record.bestScore > record.prevBest.score
+                          ? ` +${record.record.bestScore - record.prevBest.score}`
+                          : record.record.bestGrade && record.record.bestGrade !== record.prevBest.grade
+                            ? ` ${record.prevBest.grade} → ${record.record.bestGrade}` : "")
                         : ""}
                     </span>
                   ) : null}
