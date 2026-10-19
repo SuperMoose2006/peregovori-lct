@@ -65,3 +65,15 @@ test("нетронутая панель ничего не решает: тон �
     assert.equal((html.match(new RegExp(`<option value="" selected="">${t.custom.context.auto}</option>`, "g")) ?? []).length, 2);
   }
 });
+
+test("офлайн-синтез узнаёт вид сделки по словам, а не по кускам слов", () => {
+  // Найдено после аудита 17.10: «ставк» ловило «поставки», класс «дн[ей|я]» —
+  // «сегодня», а «арендная ставка» шла вверх, как зарплата.
+  const kind = (text: string) => { const d = synthCustomScenario(text, "ru"); return [d.dir, d.unit.ru]; };
+  assert.deepEqual(kind("Я арендатор, хочу снизить арендную ставку"), ["low", " ₽"]);
+  assert.deepEqual(kind("Сегодня обсуждаю цену закупки"), ["low", " ₽"]);
+  assert.deepEqual(kind("Обсуждаем условия поставки оборудования"), ["low", " ₽"]);
+  assert.deepEqual(kind("Хочу поднять ставку на проекте"), ["high", "k"]);
+  assert.deepEqual(kind("Нужно сдвинуть срок на 10 дней"), ["low", " дн"]);
+  assert.deepEqual(kind("Прошу повысить оклад"), ["high", "k"]);
+});

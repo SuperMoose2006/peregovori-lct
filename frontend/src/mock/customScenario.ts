@@ -25,7 +25,9 @@ interface DealKind {
 const KINDS: DealKind[] = [
   {
     // Compensation / salary / rate — player pushes the number UP.
-    match: /зарплат|оклад|компенсац|ставк|гонорар|salary|compensation|wage|raise|\brate\b|\bfee\b/i,
+    // С НАЧАЛА СЛОВА: `\b` в JS кириллицу не видит, и «ставк» ловило
+    // «поставки» и «доставку» (найдено после аудита 17.10).
+    match: /(?<!\p{L})(?:зарплат|оклад|компенсац|ставк|гонорар)|salary|compensation|wage|raise|\brate\b|\bfee\b/iu,
     dir: "high", unit: { ru: "k", en: "k" }, open: 180, floor: 250, target: 235, resv: 195,
   },
   {
@@ -35,7 +37,9 @@ const KINDS: DealKind[] = [
   },
   {
     // Timeline / deadline / days — player wants FEWER days.
-    match: /срок|дедлайн|дн[ей|я]|недел|deadline|timeline|\bdays?\b|\bweeks?\b|schedule/i,
+    // «дн[ей|я]» было классом символов и ловило «сегодня»: «Сегодня обсуждаю
+    // цену закупки» становилось столом в днях.
+    match: /(?<!\p{L})(?:срок|дедлайн|дн(?:ей|я|и)|день|недел)|deadline|timeline|\bdays?\b|\bweeks?\b|schedule/iu,
     dir: "low", unit: { ru: " дн", en: " d" }, open: 20, floor: 6, target: 8, resv: 14,
   },
 ];
@@ -46,6 +50,10 @@ const DEFAULT_KIND: DealKind = {
 };
 
 function pickKind(text: string): DealKind {
+  // Аренда — цена, которую арендатор хочет СНИЗИТЬ, даже когда она «ставка»:
+  // «хочу снизить арендную ставку» читалось зарплатой и шло вверх, а сервер
+  // такой стол строит «меньше — лучше» (инвариант 8).
+  if (/(?<!\p{L})(?:аренд|арендатор)|\brent\b|\blease\b/iu.test(text)) return DEFAULT_KIND;
   return KINDS.find((k) => k.match.test(text)) ?? DEFAULT_KIND;
 }
 
