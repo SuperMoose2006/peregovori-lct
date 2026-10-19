@@ -320,8 +320,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "Trust is 18 — below the reveal gate. You name the feeling and ask the SAME tenant question. Which meter moves the most?"
     },
     "explain": {
-      "ru": "Не Информация: она выросла на 5, а не на 24. Интерес не вскрылся, потому что доверие 18 ниже порога 30, и вопрос вернулся переспросом. Сильнее всего сдвинулось напряжение (−13): отражение чувства снимает 10, вопрос ещё 3. Это и есть правильный ход — доверие стало 30, а порог нужно ПЕРЕЙТИ, поэтому следующая тёплая реплика откроет дверь.",
-      "en": "Not Information: it rose by 5, not by 24. The interest did not open because trust of 18 is below the gate of 30, and the question came back as a query. What moved most is tension (−13): naming the feeling takes off 10, the question another 3. And that is the right move — trust is now 30, and the gate has to be CROSSED, so one more warm line opens the door."
+      "ru": "Не Информация: она выросла на 5, а не на 24. Интерес не вскрылся, потому что доверие 18 ниже порога 34, и вопрос вернулся переспросом. Сильнее всего сдвинулось напряжение (−13): отражение чувства снимает 10, вопрос ещё 3. Это и есть правильный ход — доверие стало 30: до порога 34 ещё не дошло, а его нужно ПЕРЕЙТИ, поэтому дверь откроет следующая тёплая реплика с вопросом.",
+      "en": "Not Information: it rose by 5, not by 24. The interest did not open because trust of 18 is below the gate of 34, and the question came back as a query. What moved most is tension (−13): naming the feeling takes off 10, the question another 3. And that is the right move — trust is now 30: still short of the gate of 34, which has to be CROSSED, so the next warm line with a question opens the door."
     }
   },
   {
@@ -394,8 +394,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "I understand you, Natalia: an empty flat is real lost income, and after your last tenants that caution is completely natural."
     },
     "explain": {
-      "ru": "Узнать этот ход мало — под порогом доверия его надо ПРОИЗВЕСТИ, и здесь видно, из чего он состоит. Отражение положения даёт доверие +8 (18 → 26) и снимает 10 напряжения, реакция «теплеет»; порог 30 нужно ПЕРЕЙТИ, поэтому дверь откроет следующая такая же реплика. Условие задания запрещает цену и уступку не для строгости: «понимаю, давайте 60» — это оффер, а не доверие, и цена от него не поедет — тренажёр двигает её только за событием (вскрытый интерес, критерий, размен).",
-      "en": "Recognising the move is not enough — below the gate you have to PRODUCE it, and here you see what it is made of. Reflecting her position adds trust +8 (18 → 26) and takes 10 off tension, reaction “warmed”; the gate of 30 has to be CROSSED, so one more line like this opens the door. The task's check forbids a price and a concession for a reason: “I understand, let us say 60” is an offer, not trust, and it moves no price — the simulator moves it only for an event (an interest uncovered, a criterion, a trade)."
+      "ru": "Узнать этот ход мало — под порогом доверия его надо ПРОИЗВЕСТИ, и здесь видно, из чего он состоит. Отражение положения даёт доверие +8 (18 → 26) и снимает 10 напряжения, реакция «теплеет». Порог этого стола — 34, и его нужно ПЕРЕЙТИ: 26 + 8 — это ещё ровно порог, поэтому понадобятся две такие реплики, а не одна. Условие задания запрещает цену и уступку не для строгости: «понимаю, давайте 60» — это оффер, а не доверие, и цена от него не поедет — тренажёр двигает её только за событием (вскрытый интерес, критерий, размен).",
+      "en": "Recognising the move is not enough — below the gate you have to PRODUCE it, and here you see what it is made of. Reflecting her position adds trust +8 (18 → 26) and takes 10 off tension, reaction “warmed”. The gate on this table is 34 and has to be CROSSED: 26 + 8 lands exactly on it, so it takes two more lines like this, not one. The task's check forbids a price and a concession for a reason: “I understand, let us say 60” is an offer, not trust, and it moves no price — the simulator moves it only for an event (an interest uncovered, a criterion, a trade)."
     }
   },
   {

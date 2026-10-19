@@ -859,3 +859,17 @@ def test_the_c_ceiling_in_the_course_is_the_engines_ceiling():
         for text in (lesson.body[lang], cl04["explain"][lang]):
             assert str(TECHNIQUE_FLOOR) in text, text[:80]
             assert "45" not in text, text[:80]
+
+
+def test_the_trust_gate_quoted_in_foundations_is_the_engines():
+    """Найдено после аудита 17.10: fo-08 и fo-11 называли порог вскрытия на
+    аренде «30», а движок держит 34 — и fo-11 обещал, что дверь откроет
+    «следующая такая же реплика», хотя 26 + 8 = 34 ещё ровно порог."""
+    from app.course.simulate import seeded
+    from app.engine.engine import reveal_trust_gate
+    gate = int(reveal_trust_gate(seeded("rent", "ru", BY_ID["fo-08"]["state"])))
+    for exercise_id in ("fo-08", "fo-11"):
+        for lang in ("ru", "en"):
+            text = BY_ID[exercise_id]["explain"][lang]
+            assert str(gate) in text, (exercise_id, lang)
+            assert "порог 30" not in text and "порога 30" not in text and "gate of 30" not in text
