@@ -60,13 +60,19 @@
   {
    "text": "195 меня устроит, давайте на этом и сойдёмся.",
    "moves": [
-    "statement"
+    "offer"
    ],
-   "primary": "statement",
-   "arg": 20,
+   "primary": "offer",
+   "arg": 26,
    "words": 8,
-   "number": null,
-   "mentions": [],
+   "number": 195.0,
+   "mentions": [
+    [
+     195.0,
+     "plain",
+     false
+    ]
+   ],
    "spin": null
   },
   {
@@ -986,6 +992,24 @@
    "words": 13,
    "number": null,
    "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "I offer 90.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false
+    ]
+   ],
    "spin": null
   },
   {
@@ -2112,13 +2136,20 @@
   {
    "text": "We can do 86. What do you think?",
    "moves": [
+    "offer",
     "open_question"
    ],
-   "primary": "open_question",
-   "arg": 20,
+   "primary": "offer",
+   "arg": 26,
    "words": 8,
-   "number": null,
-   "mentions": [],
+   "number": 86.0,
+   "mentions": [
+    [
+     86.0,
+     "plain",
+     false
+    ]
+   ],
    "spin": null
   },
   {
@@ -2189,6 +2220,24 @@
    "words": 8,
    "number": null,
    "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "We offer 90.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false
+    ]
+   ],
    "spin": null
   },
   {
@@ -2747,6 +2796,24 @@
    "spin": null
   },
   {
+   "text": "Готов на 90.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 3,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
    "text": "Готов уступить до 120.",
    "moves": [
     "concession",
@@ -2820,6 +2887,24 @@
      92.0,
      "money",
      true
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "Давайте 90.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 2,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false
     ]
    ],
    "spin": null
@@ -4546,13 +4631,37 @@
   {
    "text": "Предлагаю 1 миллион двести тысяч, это рынок.",
    "moves": [
-    "statement"
+    "offer"
    ],
-   "primary": "statement",
-   "arg": 20,
+   "primary": "offer",
+   "arg": 26,
    "words": 4,
-   "number": null,
-   "mentions": [],
+   "number": 1200000.0,
+   "mentions": [
+    [
+     1200000.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
+   "text": "Предлагаю 90.",
+   "moves": [
+    "offer"
+   ],
+   "primary": "offer",
+   "arg": 11,
+   "words": 2,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false
+    ]
+   ],
    "spin": null
   },
   {
@@ -4597,13 +4706,19 @@
   {
    "text": "Предлагаю один миллион двести тысяч.",
    "moves": [
-    "statement"
+    "offer"
    ],
-   "primary": "statement",
-   "arg": 5,
+   "primary": "offer",
+   "arg": 11,
    "words": 2,
-   "number": null,
-   "mentions": [],
+   "number": 1200000.0,
+   "mentions": [
+    [
+     1200000.0,
+     "plain",
+     false
+    ]
+   ],
    "spin": null
   },
   {
@@ -5364,13 +5479,19 @@
   {
    "text": "Хорошо, давайте 260, лишь бы вы вышли.",
    "moves": [
-    "statement"
+    "offer"
    ],
-   "primary": "statement",
-   "arg": 20,
+   "primary": "offer",
+   "arg": 26,
    "words": 7,
-   "number": null,
-   "mentions": [],
+   "number": 260.0,
+   "mentions": [
+    [
+     260.0,
+     "plain",
+     false
+    ]
+   ],
    "spin": null
   },
   {

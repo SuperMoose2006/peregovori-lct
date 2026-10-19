@@ -580,3 +580,14 @@ def test_a_negated_insult_is_not_an_insult():
     assert "hostile" not in analyze("Не хочу показаться некомпетентным, но почему для вас важна предоплата?").moves
     assert "hostile" in analyze("Вы не просто некомпетентны, вы издеваетесь.").moves
     assert "hostile" in analyze("Это просто смешно и некомпетентно.").moves
+
+
+@pytest.mark.parametrize("line,number", [
+    ("Предлагаю 90.", 90), ("Давайте 90.", 90), ("Готов на 90.", 90),
+    ("I offer 90.", 90), ("We can do 86. What do you think?", 86),
+    ("Предлагаю 230 тысяч.", 230000),
+])
+def test_the_plain_ways_to_name_a_price_put_it_on_the_table(line, number):
+    """Найдено после аудита 17.10: самые обиходные формулы оферты числа не
+    давали вовсе — «Наша цена 86.» давала, "We can do 86." нет (инвариант 4)."""
+    assert analyze(line).number == number
