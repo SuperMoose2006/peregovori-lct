@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import re
 import secrets
 import time
@@ -119,10 +120,26 @@ def _items(v) -> list[str]:
 
 
 def _num(v, default: float = 0.0) -> float:
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return default
+    parsed = _price(v)
+    return default if parsed is None else parsed
+
+
+def _price(v) -> Optional[float]:
+    """Число из ответа модели — и когда оно пришло строкой с пробелами и
+    знаком: «450 000», «450 000 ₽», «99,8%». Раньше всё это молча
+    становилось нулём, и сортировка отдавала нулю роль в столе: выходил
+    выдуманный стол без единого флажка (найдено после аудита 17.10)."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v) if math.isfinite(v) else None
+    if isinstance(v, str):
+        cleaned = re.sub(r"[\s\u00a0\u202f]", "", v)
+        m = re.fullmatch(r"[^\d\-]*(-?\d+(?:[.,]\d+)?)[^\d]*", cleaned)
+        if m:
+            value = float(m.group(1).replace(",", "."))
+            return value if math.isfinite(value) else None
+    return None
 
 
 #: Насколько дно оппонента заходит ЗА цель игрока, долей расстояния «старт → цель».
@@ -172,6 +189,10 @@ def _normalize_zopa(d: dict) -> tuple[float, float, float, float]:
     span = abs(opp_open - target) or 1.0
     gap = round(span * _OPP_FLOOR_BEYOND_TARGET, 2)
     opp_res = round(target - gap, 2) if lower else round(target + gap, 2)
+    # Цель «без неустойки» (0) уводила дно в минус, и оппонент мог назвать
+    # отрицательную цену. Неотрицательный стол остаётся неотрицательным.
+    if lower and opp_res < 0 <= min(raw):
+        opp_res = 0.0
     return opp_open, opp_res, target, player_res
 
 
@@ -233,6 +254,10 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
     if not d:
         return None
 
+    # Без трёх опорных чисел стола нет — честнее «не удалось», чем стол из
+    # нулей (найдено после аудита 17.10).
+    if any(_price(d.get(k)) is None for k in ("opponent_open", "player_target", "player_reservation")):
+        return None
     dir_ = "higher_is_better" if str(d.get("dir")) == "higher_is_better" else "lower_is_better"
     style = d.get("style") if d.get("style") in _STYLES else "analytical"
     opp_open, opp_res, p_target, p_res = _normalize_zopa({**d, "dir": dir_})

@@ -51,3 +51,37 @@ def test_the_described_target_survives_normalisation():
                                   "opponent_reservation": 230, "player_target": 250,
                                   "player_reservation": 200})
     assert (o, t, p) == (180, 250, 200) and r >= t
+
+
+def test_numbers_as_strings_parse_and_a_missing_one_is_an_honest_failure(monkeypatch):
+    """Найдено после аудита 17.10: «450 000», «450 000 ₽» и null молча
+    становились нулём, и сортировка отдавала нулю роль в столе."""
+    import asyncio
+    import json
+    from app.ai import scenario_gen as gen
+    from app.ai.scenario_gen import _normalize_zopa, _price
+    from app.providers.openrouter import chat as orchat
+
+    assert _price("450 000") == 450000 and _price("450 000 ₽") == 450000
+    assert _price("99,8%") == 99.8 and _price(None) is None and _price("много") is None
+    o, r, t, p = _normalize_zopa({"dir": "lower_is_better", "opponent_open": "530 000",
+                                  "player_target": "450 000 ₽", "player_reservation": "500000"})
+    assert (o, t, p) == (530000, 450000, 500000)
+
+    base = {"title": "T", "role": "R", "counterpart_name": "N", "counterpart_persona": "P",
+            "style": "analytical", "unit": " ₽", "dir": "lower_is_better",
+            "opponent_open": 100, "player_target": None, "player_reservation": 90,
+            "hidden_interests": ["a", "b", "c"], "tradeoffs": ["x", "y"], "briefing": "B"}
+
+    async def complete(*args, **kwargs):
+        return json.dumps(base)
+
+    monkeypatch.setattr(orchat, "complete", complete)
+    assert asyncio.run(gen.generate_scenario("Ремонт: цена 100, хочу 80", "ru")) is None
+
+
+def test_a_target_of_zero_never_gives_a_negative_floor():
+    from app.ai.scenario_gen import _normalize_zopa
+    o, r, t, p = _normalize_zopa({"dir": "lower_is_better", "opponent_open": 100000,
+                                  "player_target": 0, "player_reservation": 40000})
+    assert r >= 0 and r <= t
