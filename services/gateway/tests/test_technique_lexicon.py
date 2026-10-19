@@ -629,3 +629,18 @@ def test_we_accept_closes_like_i_accept_and_my_soglasny():
     assert "accept" in analyze("We accept 99.5%.").moves
     assert "accept" in analyze("Мы согласны на 99.5%.").moves
     assert "accept" not in analyze("We accept your point, but 100 is too much.").moves
+
+
+@pytest.mark.parametrize("ru,en", [
+    ("Это моё последнее слово: повторите или я ухожу.", "That is my final word: match it or I leave."),
+    ("Либо вы выходите на 215, либо мы берём другого финалиста.", "Either you come in at 215, or we take another finalist."),
+])
+def test_an_ultimatum_is_a_threat_in_both_languages(ru, en):
+    """Инвариант 4 (найдено после аудита 17.10): ультиматум был угрозой по-русски
+    и спокойным заявлением по-английски — bz-04 принимал его в EN."""
+    assert "threat" in analyze(ru).moves
+    assert "threat" in analyze(en).moves
+
+
+def test_quoting_their_final_word_is_not_a_threat():
+    assert "threat" not in analyze("I hear that this is your final word. Let us go back to the numbers.").moves

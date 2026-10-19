@@ -495,10 +495,10 @@
   {
    "text": "Either you come in at 215, or we take another finalist — that is our final word.",
    "moves": [
-    "statement"
+    "threat"
    ],
-   "primary": "statement",
-   "arg": 28,
+   "primary": "threat",
+   "arg": 16,
    "words": 16,
    "number": null,
    "mentions": [],
@@ -602,10 +602,10 @@
   {
    "text": "Fine, 1150, that is my final word.",
    "moves": [
-    "statement"
+    "threat"
    ],
-   "primary": "statement",
-   "arg": 20,
+   "primary": "threat",
+   "arg": 8,
    "words": 7,
    "number": null,
    "mentions": [],

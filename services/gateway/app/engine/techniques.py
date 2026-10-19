@@ -476,6 +476,15 @@ LEX: dict[str, list[str]] = {
         "это неприемлемо и точка", "take it or leave it", "final offer", "or else",
         "or i walk", "or we walk", "or i go elsewhere", "otherwise we",
         "you have no choice", "i demand", "right now or", "non-negotiable",
+        # Английская пара к «моё последнее слово», «либо вы…», «или я ухожу» —
+        # её не было, и один и тот же ультиматум был угрозой по-русски и
+        # спокойным заявлением по-английски: задание bz-04 принимало его в EN
+        # и отклоняло в RU (инвариант 4; найдено после аудита 17.10).
+        # «Ваше последнее слово» — цитата чужого ультиматума, а не свой: только
+        # «моё / наше».
+        "my final word", "our final word", "either you", "either we", "either i",
+        "or i leave", "or we leave", "or i ll leave", "or we ll leave",
+        "or i ll walk", "or we ll walk",
     ],
     # Грубость почти всегда персональна — она про того, кому сказана, — поэтому
     # раздваиваются все четыре записи с адресатом. Безличные («это глупо»,

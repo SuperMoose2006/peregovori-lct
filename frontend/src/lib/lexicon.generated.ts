@@ -76,7 +76,9 @@ export const LEX: Record<string, string[]> = {
     "иначе разрываем", "либо ты", "ты обязан", "у тебя нет выбора", "это неприемлемо и точка",
     "take it or leave it", "final offer", "or else", "or i walk", "or we walk",
     "or i go elsewhere", "otherwise we", "you have no choice", "i demand", "right now or",
-    "non-negotiable",
+    "non-negotiable", "my final word", "our final word", "either you", "either we", "either i",
+    "or i leave", "or we leave", "or i ll leave", "or we ll leave", "or i ll walk",
+    "or we ll walk",
   ],
   hostile: [
     "вы не понимаете", "это глупо", "смешно", "вы обманываете", "некомпетентн", "вы врете",
