@@ -338,3 +338,13 @@ def test_a_barge_in_ends_the_voice_for_the_reaction_clock(clocked):
     clock.t += 1.5
     _offer(sampler, turn=1)
     assert looks == [0, 1], "перебитый собеседник замолчал сразу — реакция смотрится как обычно"
+
+
+def test_a_cue_line_in_markdown_or_inline_does_not_leak_into_the_observation():
+    """Ревью 19.10: «**МИМИКА:** frown» и строка мимики в одной строке с
+    наблюдением не узнавались — коды уезжали в текст наблюдения, а оттуда в
+    промпт собеседника сырыми."""
+    assert split_cues("**МИМИКА:** frown, smile") == ("", ["frown", "smile"])
+    assert split_cues("человек в кадре. МИМИКА: frown") == ("человек в кадре.", ["frown"])
+    assert split_cues("Person in frame. *CUES*: none") == ("Person in frame.", [])
+    assert split_cues("МИМИКА: **frown**, _smile_") == ("", ["frown", "smile"])

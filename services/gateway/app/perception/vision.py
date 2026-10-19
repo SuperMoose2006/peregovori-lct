@@ -248,16 +248,22 @@ def split_cues(raw: str) -> tuple[str, Optional[list[str]]]:
     global _CUES_RE
     if _CUES_RE is None:
         import re
-        _CUES_RE = re.compile(r"^\s*(?:МИМИКА|CUES)\s*[:\-]\s*(.*)$", re.IGNORECASE)
+        # Где угодно в строке и в обёртке markdown: «**МИМИКА:** frown» и
+        # «человек в кадре. МИМИКА: frown» модель тоже пишет, и без этого коды
+        # уезжали в текст наблюдения — а оттуда сырыми в промпт (ревью 19.10).
+        _CUES_RE = re.compile(r"[*_`]*\b(?:МИМИКА|CUES)[*_`]*\s*[:\-][*_`]*\s*(.*)$", re.IGNORECASE)
     kept, cues = [], None
     for line in (raw or "").splitlines():
-        m = _CUES_RE.match(line)
+        m = _CUES_RE.search(line)
         if not m:
             kept.append(line)
             continue
+        head = line[:m.start()].strip()
+        if head:
+            kept.append(head)
         found: list[str] = []
         for part in m.group(1).replace(";", ",").split(","):
-            code = part.strip().strip(".«»\"'`").lower().replace(" ", "_").replace("-", "_")
+            code = part.strip().strip(".«»\"'`*_ ").lower().replace(" ", "_").replace("-", "_")
             if code in CUES and code not in found:
                 found.append(code)
         cues = found
