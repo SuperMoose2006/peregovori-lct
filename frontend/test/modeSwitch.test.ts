@@ -39,6 +39,11 @@ class FakeSocket {
 
   send(data: string): void { this.sent.push(data); }
   close(): void { this.readyState = 3; }
+  /** Закрыться так, как закрывается настоящий сокет: с кодом. */
+  shut(code: number): void {
+    this.readyState = 3;
+    this.onclose?.({ code });
+  }
   deliver(event: Record<string, unknown>): void {
     this.onmessage?.({ data: JSON.stringify(event) });
   }
@@ -77,9 +82,10 @@ async function table() {
   let id = 0;
   let state: NegotiationState = { ...EMPTY };
   const seen: ServerMsg[] = [];
+  const conns: string[] = [];
   const transport = new RealtimeTransport(
     (m) => { seen.push(m); state = reduce(state, m, () => ++id); },
-    (conn) => { state = { ...state, conn }; },
+    (conn) => { conns.push(conn); state = { ...state, conn }; },
   );
   transport.send({ type: "start", scenarioId: "supplier", lang: "ru", mode: "practice",
                    layers: { probe: true, avatar: true, voice: false, camera: false, pokerface: false } });
@@ -89,7 +95,7 @@ async function table() {
   first.deliver({ type: "session.created", session_id: "s-1", resumed: false,
     scenario: { id: "supplier" }, state: STATE0, greeting: "Здравствуйте.", capabilities: {} });
   await wait(0);
-  return { transport, first, seen, get: () => state,
+  return { transport, first, seen, conns, get: () => state,
            note: (text: string) => { state = { ...state, log: [...state.log, { id: ++id, kind: "sys", text }] }; } };
 }
 
@@ -228,3 +234,55 @@ test("смена режима до начала партии невозможн�
   await wait(0);
   transport.close();
 });
+
+test("ответ браузера о микрофоне, пришедший после «Завершить», не роняет живой чат", async () => {
+  // Найдено ревью созвона. «Созвон» → браузер спрашивает микрофон → человек
+  // жмёт «Завершить» → отвечает браузеру. Продолжение прежнего входа читало
+  // уже обнулённое поле провайдера, падало, и `catch` объявлял «связь
+  // потеряна» поверх живого текстового сокета: панель с «Повторить», который
+  // начинает НОВУЮ партию.
+  const { MediaProvider } = await import("../src/realtime/vendor/media-provider");
+  const supported = MediaProvider.supported;
+  const start = MediaProvider.prototype.start;
+  const stop = MediaProvider.prototype.stop;
+  let answer: (r: { mic: string; camera: string }) => void = () => {};
+  let stopped = 0;
+  MediaProvider.supported = () => true;
+  MediaProvider.prototype.start = function () { return new Promise((r) => { answer = r as never; }); };
+  MediaProvider.prototype.stop = async function () { stopped++; };
+  try {
+    await withQuietPlayer(async () => {
+      const t = await table();
+      t.transport.relayer({ voice: true });
+      const call = await nextSocket();
+      for (let i = 0; i < 20 && !call.types().includes("session.init"); i++) await wait(10);
+      call.deliver({ type: "session.created", session_id: "s-1", resumed: true,
+        scenario: { id: "supplier" }, state: STATE0, greeting: "", capabilities: { microphone: true, speech: true } });
+      for (let i = 0; i < 5; i++) await wait(0);           // браузер спрашивает микрофон
+
+      assert.equal(t.transport.relayer({ voice: false }), true, "«Завершить» не принято");
+      for (let i = 0; i < 20 && FakeSocket.instances.length < 3; i++) await wait(0);
+      const chat = FakeSocket.instances[2];
+      chat.deliver({ type: "session.queue_done" });
+      chat.deliver({ type: "session.created", session_id: "s-1", resumed: true,
+        scenario: { id: "supplier" }, state: STATE0, greeting: "", capabilities: {} });
+      await wait(0);
+      const before = t.conns.length;
+      const failedBefore = t.seen.filter((m) => m.type === "layer_failed").length;
+
+      answer({ mic: "ok", camera: "off" });                // человек ответил браузеру
+      for (let i = 0; i < 5; i++) await wait(0);
+      assert.ok(!t.conns.slice(before).includes("lost"), `чат объявлен потерянным: ${t.conns.slice(before)}`);
+      assert.equal(t.get().conn, "online");
+      assert.equal(t.seen.filter((m) => m.type === "layer_failed").length, failedBefore,
+        "отчёт об устройствах режима, которого больше нет, доехал до экрана");
+      assert.ok(stopped >= 1, "микрофон, выданный уже после выхода из звонка, остался гореть");
+      t.transport.close();
+    });
+  } finally {
+    MediaProvider.supported = supported;
+    MediaProvider.prototype.start = start;
+    MediaProvider.prototype.stop = stop;
+  }
+});
+

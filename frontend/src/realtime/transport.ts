@@ -117,6 +117,12 @@ export class RealtimeTransport implements Transport {
   /** Последний `start` — смена режима посреди партии собирает из него
    *  новый `session.init` с другими слоями и `resume`. */
   private lastStart: Extract<ClientMsg, { type: "start" }> | null = null;
+  /** ПОКОЛЕНИЕ ВХОДА. Каждый `begin` — свой номер; смена режима и закрытие
+   *  его поднимают. Вход, который сменили, после своих `await` ничего не
+   *  трогает и ничего не объявляет: иначе ответ на вопрос браузера о
+   *  микрофоне, пришедший после «Завершить», ронял уже живой чат в «связь
+   *  потеряна» (найдено ревью созвона). */
+  private beginGen = 0;
   private closed = false;
   /** Партия уже началась: `session.created` пришёл. До него ошибка —
    *  провал запуска, после — сообщение со стола. */
@@ -191,6 +197,7 @@ export class RealtimeTransport implements Transport {
     const resume = this.serverSessionId;
     const message = { ...this.lastStart, layers: { ...layers } };
     this.live = false;
+    this.beginGen++;
     this.session?.detach();
     this.session = null;
     this.forgetReply();
@@ -258,6 +265,7 @@ export class RealtimeTransport implements Transport {
   close(): void {
     this.closed = true;
     this.live = false;
+    this.beginGen++;
     if (this.drainTimer) { clearInterval(this.drainTimer); this.drainTimer = null; }
     this.session?.stop();
     this.session = null;
@@ -271,6 +279,7 @@ export class RealtimeTransport implements Transport {
 
   /** `resume` — смена режима той же партии (`relayer`), а не новая партия. */
   private async begin(message: Extract<ClientMsg, { type: "start" }>, resume?: string): Promise<void> {
+    const gen = ++this.beginGen;
     const layers = { ...(message.layers ?? {}) } as Record<string, boolean>;
     this.lastStart = message;
     this.live = false;
@@ -304,6 +313,7 @@ export class RealtimeTransport implements Transport {
 
     try {
       const created = await this.session.start(payload);
+      if (gen !== this.beginGen) return;
       const sessionId = String(created.session_id ?? "");
       // Та же партия — лента остаётся, даже на нулевом ходу (серверный
       // `resumed` там ложь: ходов ещё не было). Другой id — срок ожидания
@@ -332,8 +342,9 @@ export class RealtimeTransport implements Transport {
       this.honourServerCapabilities(this.session.capabilities);
       // Камера — самостоятельный слой: без этого условия она включалась
       // только заодно с голосом, а сама по себе молча не работала.
-      if (this.voiceWanted || this.cameraWanted) await this.startMedia();
+      if (this.voiceWanted || this.cameraWanted) await this.startMedia(gen);
     } catch (error) {
+      if (gen !== this.beginGen || this.closed) return;
       // Провал СМЕНЫ РЕЖИМА — это потерянная связь посреди партии, а не
       // провал запуска: `error` рисуется только на экране подготовки.
       if (!resume) this.emit({ type: "error", message: (error as Error).message });
@@ -374,7 +385,7 @@ export class RealtimeTransport implements Transport {
    * пустого экрана человек видит ошибку и продолжает. Обратный порядок сделал
    * бы отказ в микрофоне отказом в игре.
    */
-  private async startMedia(): Promise<void> {
+  private async startMedia(gen: number): Promise<void> {
     if (this.voiceWanted) {
       this.player = new AudioPlayer({ outputSampleRate: 24000 });
       // Лицо от внешнего сервиса (у него свой порог `stale_ms`): звук держится
@@ -390,27 +401,37 @@ export class RealtimeTransport implements Transport {
       if (this.cameraWanted) this.emit({ type: "layer_failed", layer: "camera", reason: INSECURE_REASON[this.lang] });
       return;
     }
-    this.media = new MediaProvider({
+    // Провайдер — локальный: пока браузер спрашивает доступ, поле `media`
+    // могут обнулить (выход из созвона, стол закрыт) или занять новым входом.
+    const media = new MediaProvider({
       video: this.options.videoEl?.current ?? undefined,
       canvas: this.options.canvasEl?.current ?? undefined,
       videoRef: this.options.videoEl ?? null,
       canvasRef: this.options.canvasEl ?? null,
     });
-    this.media.onChunk = ({ audio, frame }) => {
+    this.media = media;
+    media.onChunk = ({ audio, frame }) => {
       this.session?.sendAudio(toBase64(audio.buffer), frame,
-                              frame ? this.media?.lastChangeRatio() : undefined);
+                              frame ? media.lastChangeRatio() : undefined);
       if (frame) this.options.onCameraFrame?.();
     };
-    this.media.onFrame = (frame) => {
-      this.session?.sendFrame(frame, this.media?.lastChangeRatio());
+    media.onFrame = (frame) => {
+      this.session?.sendFrame(frame, media.lastChangeRatio());
       this.options.onCameraFrame?.();
     };
     // `start` больше не бросает на отказ устройства: отказ — это ответ
     // пользователя, а не сбой. Он возвращает отчёт по каждому слою, и каждый
     // невставший слой называется на экране поимённо.
-    const report = await this.media.start({ camera: this.cameraWanted, mic: this.voiceWanted && this.microphoneAllowed });
-    this.media.setMicEnabled(!this.micMuted);
-    this.media.setCameraEnabled(!this.cameraOff);
+    const report = await media.start({ camera: this.cameraWanted, mic: this.voiceWanted && this.microphoneAllowed });
+    if (gen !== this.beginGen || this.media !== media) {
+      // Этот провайдер уже ничей: его режим сменили или стол закрылся, пока
+      // браузер спрашивал. Гасим СВОЁ и молчим — отчёт об устройствах
+      // относится к режиму, которого больше нет.
+      await media.stop().catch(() => { /* нечего гасить */ });
+      return;
+    }
+    media.setMicEnabled(!this.micMuted);
+    media.setCameraEnabled(!this.cameraOff);
     if (this.voiceWanted && this.microphoneAllowed && report.mic !== "ok")
       this.emit({ type: "layer_failed", layer: "voice", reason: String(report.mic) });
     if (this.cameraWanted && report.camera !== "ok")
@@ -419,8 +440,8 @@ export class RealtimeTransport implements Transport {
     // слой, он держит его поток — и обязан дожить до `stop()`, иначе дорожка
     // останется гореть.
     if (report.mic !== "ok" && report.camera !== "ok") {
-      await this.media.stop().catch(() => { /* нечего гасить */ });
-      this.media = null;
+      await media.stop().catch(() => { /* нечего гасить */ });
+      if (this.media === media) this.media = null;
     }
   }
 
