@@ -40,11 +40,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.perception import vision as V   # noqa: E402
 
-#: 320-пиксельный JPEG качества 0.6 — примерно столько base64-знаков.
-FRAME_B64 = 15_000
+#: 448-пиксельный JPEG качества 0.65 (`media-provider.ts::FRAME_WIDTH`) —
+#: примерно столько base64-знаков. До 19.10 было 320 пикселей и 15 000 знаков.
+FRAME_B64 = 26_000
 
 #: Такт клиента: media-provider снимает кадр раз в секунду.
 CLIENT_FPS = 1.0
+
+#: Неизменившийся кадр клиент шлёт не чаще этого (`SEND_HEARTBEAT_MS`). До
+#: 19.10 он зеркалил `_MIN_INTERVAL_S` (8 с); теперь 2 с — ради мимики в записи
+#: партии для «Глубокого разбора» и реакционного взгляда.
+CLIENT_HEARTBEAT_S = 2.0
 
 
 class _Clock:
@@ -84,7 +90,7 @@ async def _measure(seconds: int, change, gated: bool) -> tuple[int, int]:
         ratio = change(i)
         if gated:
             first = last_sent < 0
-            overdue = clock.t - last_sent >= V._MIN_INTERVAL_S
+            overdue = clock.t - last_sent >= CLIENT_HEARTBEAT_S
             if not first and not overdue and ratio < V._CHANGE_PIXELS:
                 continue
             last_sent = clock.t

@@ -183,9 +183,9 @@ test("«не найдено» договаривает: камеры нет во
 // доля изменившихся проб яркости считается здесь, в canvas, и едет вместе с
 // кадром.
 //
-// Теперь неизменившийся кадр не едет вовсе, а такт heartbeat зеркалит серверный
-// интервал взгляда. Число обращений к модели от этого не меняется — меняется
-// только трафик, и проверяется здесь именно это.
+// Теперь неизменившийся кадр едет не чаще такта (2 с с 19.10: мимику для
+// «Глубокого разбора» восьмисекундный такт пропускал). Число обращений к модели
+// от этого не меняется — меняется только трафик, и проверяется здесь именно это.
 
 /** Экран, который можно заставить измениться. */
 function screen() {
@@ -243,6 +243,37 @@ test("неизменившийся кадр наружу не едет — за 
             `в неподвижной комнате ушло ${sent.length} кадров вместо ${heartbeats}`);
   assert.ok(sent.length >= 2,
             "молчащий транспорт неотличим от сломанной камеры: такт обязан быть");
+  await p.stop();
+});
+
+test("мимике нужен частый кадр: в спокойной комнате кадр едет не реже раза в 2 с и шире 320", async () => {
+  install({ camera: true, mic: false });
+  const clock = installClock();
+  const s = screen();
+  const { MediaProvider, FRAME_WIDTH, SEND_HEARTBEAT_MS } = await load();
+
+  const video = { videoWidth: s.w, videoHeight: s.h, srcObject: null as unknown,
+                  play: async () => {} };
+  const canvas = { width: 0, height: 0, getContext: () => s.ctx2d,
+                   toDataURL: () => "data:image/jpeg;base64,ZZZZ" };
+  const p = new MediaProvider({
+    video: video as unknown as HTMLVideoElement,
+    canvas: canvas as unknown as HTMLCanvasElement,
+    frameIntervalMs: 1000,
+  });
+  const sent: number[] = [];
+  await p.start({ camera: true, mic: false });
+  for (let i = 0; i < 60; i++) {
+    clock.t += 1000;
+    const f = (p as unknown as { grabFrame(): string | null }).grabFrame();
+    if (f) sent.push(clock.t);
+  }
+  assert.ok(SEND_HEARTBEAT_MS <= 2000, `такт ${SEND_HEARTBEAT_MS} мс пропускает мимику`);
+  const gaps = sent.slice(1).map((t, i) => t - sent[i]);
+  assert.ok(gaps.length >= 25 && Math.max(...gaps) <= 2000,
+            `кадры шли с разрывами ${gaps.join(", ")} мс`);
+  assert.ok(FRAME_WIDTH >= 400, "на 320 пикселях лицо — сотня точек, бровей не разглядеть");
+  assert.equal(canvas.width, FRAME_WIDTH);
   await p.stop();
 });
 
