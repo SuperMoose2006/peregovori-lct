@@ -69,14 +69,34 @@ async def run_review(facts: dict, tape: Optional[Tape], *, progress: Progress,
         tape.close_open()
 
     # ------------------------------------------------------ голос без модели
-    clips = []
+    recorded = []
     if tape is not None and not tape.media_discarded:
-        clips = [c for c in tape.clips if c.samples > 0 and 0 < c.turn + 1 <= last_turn]
+        recorded = [c for c in tape.clips if c.samples > 0]
 
     def measure() -> list[dict]:
-        return [acoustics.analyze(c.array()) for c in clips]
+        return [acoustics.analyze(c.array()) for c in recorded]
 
-    features = await asyncio.to_thread(measure) if clips else []
+    measured = await asyncio.to_thread(measure) if recorded else []
+
+    # ЧЕЙ ЭТО КУСОК — ПО ВРЕМЕНИ, А НЕ ПО СЧЁТЧИКУ НА СТАРТЕ. Ход принят
+    # (`turn.analysis`) раньше, чем движок его досчитал, и реплика, начатая в
+    # эту секунду, несёт прежний `turn_id` — по нему она уезжала к уже
+    # принятому ходу (ревью 19.10). Кусок принадлежит первому ходу, принятому
+    # ПОСЛЕ начала речи; хода нет — остаётся счётчик.
+    accepted = sorted(tape.turn_at.items(), key=lambda kv: kv[1]) if tape is not None else []
+
+    def owner(clip, feat) -> int:
+        start = clip.at_ms + (feat.get("speech_from_ms") or 0)
+        for turn, at in accepted:
+            if at >= start:
+                return turn
+        return clip.turn + 1
+
+    owned = [(c, f, owner(c, f)) for c, f in zip(recorded, measured)]
+    owned = [x for x in owned if 0 < x[2] <= last_turn]
+    clips = [c for c, _, _ in owned]
+    features = [f for _, f, _ in owned]
+    clip_turn = [t for _, _, t in owned]
 
     # ------------------------------------------------------ время ходов
     timing: dict[int, dict] = {}
@@ -87,7 +107,7 @@ async def run_review(facts: dict, tape: Optional[Tape], *, progress: Progress,
                 info["at_ms"] = tape.turn_at[turn]
             if turn in tape.turn_source:
                 info["source"] = tape.turn_source[turn]
-        spans = [(c, f) for c, f in zip(clips, features) if c.turn + 1 == turn
+        spans = [(c, f) for c, f, t in zip(clips, features, clip_turn) if t == turn
                  and f.get("speech_from_ms") is not None]
         if spans and info.get("source") != "text":
             info["start_ms"] = spans[0][0].at_ms + spans[0][1]["speech_from_ms"]
@@ -160,7 +180,7 @@ async def run_review(facts: dict, tape: Optional[Tape], *, progress: Progress,
 
         async def one(i: int) -> None:
             clip = clips[i]
-            system, user = agents.voice_prompt(lang, player_text.get(clip.turn + 1, ""))
+            system, user = agents.voice_prompt(lang, player_text.get(clip_turn[i], ""))
             wav = pcm_to_wav_base64(clip.array().astype(np.float32) / 32768.0, SAMPLE_RATE)
             parts = [{"type": "text", "text": user},
                      {"type": "input_audio", "input_audio": {"data": wav, "format": "wav"}}]
@@ -226,7 +246,7 @@ async def run_review(facts: dict, tape: Optional[Tape], *, progress: Progress,
     if clips:
         turns: dict[int, dict] = {}
         for i, (clip, feat) in enumerate(zip(clips, features)):
-            t = clip.turn + 1
+            t = clip_turn[i]
             slot = turns.setdefault(t, {"clips": [], "voiced_ms": 0})
             slot["clips"].append({"at_ms": clip.at_ms, "features": feat,
                                   "events": voice_results.get(i)})

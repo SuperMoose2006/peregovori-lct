@@ -241,3 +241,36 @@ def test_the_review_does_not_touch_the_engine(fake_model):
     before = engine.score_session(sess)
     _run(facts, _tape())
     assert engine.score_session(sess) == before
+
+
+def test_speech_belongs_to_the_turn_it_became_not_to_the_counter_at_its_start(monkeypatch):
+    """Ревью 19.10: ход принят (turn.analysis), а движок его ещё считает —
+    `turn_id` прежний, и следующая реплика, начатая в эту секунду, уезжала к
+    уже принятому ходу: его речь растягивалась на чужую, а у следующего хода
+    голоса не было вовсе."""
+    monkeypatch.setattr(orchat, "available", lambda: False)
+    clock = {"ms": 0}
+    tape = Tape(lambda: clock["ms"])
+    clock["ms"] = 1_000
+    tape.speech_started(turn=0)
+    tape.audio(_speech_with_a_pause())
+    tape.speech_stopped()
+    tape.audio(np.zeros(SAMPLE_RATE, dtype=np.int16))
+    clock["ms"] = 6_000
+    tape.mark_source("voice")
+    tape.observe({"type": "turn.analysis", "turn_id": 1}, turn=0)
+    clock["ms"] = 6_500
+    tape.speech_started(turn=0)                 # движок ещё считает ход 1
+    tape.audio(_speech_with_a_pause())
+    tape.speech_stopped()
+    tape.audio(np.zeros(SAMPLE_RATE, dtype=np.int16))
+    clock["ms"] = 12_000
+    tape.mark_source("voice")
+    tape.observe({"type": "turn.analysis", "turn_id": 2}, turn=1)
+
+    facts = _facts()
+    facts.pop("_engine")
+    facts["lines"] = facts["lines"][:4]
+    report, _ = _run(facts, tape)
+    assert [v["turn"] for v in report["voice"]["turns"]] == [1, 2], \
+        "у каждого хода — своя речь"
