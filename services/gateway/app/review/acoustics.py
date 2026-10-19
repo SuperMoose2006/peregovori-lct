@@ -69,23 +69,36 @@ def _loudness(x: np.ndarray) -> np.ndarray:
     return 20.0 * np.log10(rms + 1e-9)
 
 
+#: Окон тона за один проход. Все окна куска одной матрицей — это около 60 МБ
+#: временной памяти на тридцать секунд речи (ревью 19.10), мимо общего потолка
+#: записей и в юните с MemoryMax=2G рядом с чужими партиями. Пачками по 128 —
+#: пара мегабайт, а скорость та же: numpy всё равно считает построчно.
+_PITCH_CHUNK = 128
+
+
 def _pitch(x: np.ndarray) -> np.ndarray:
     """Основной тон по окнам 40 мс с шагом 20 мс; NaN — окно глухое."""
     hop = SAMPLE_RATE * FRAME_MS // 1000
-    fr = _frames(x, _PITCH_WIN, hop)
-    if not fr.size:
+    if x.size < _PITCH_WIN:
         return np.zeros(0)
-    fr = fr - fr.mean(axis=1, keepdims=True)
-    spec = np.fft.rfft(fr * np.hanning(_PITCH_WIN), n=2 * _PITCH_WIN, axis=1)
-    ac = np.fft.irfft(np.abs(spec) ** 2, axis=1)[:, :_PITCH_WIN]
+    n = 1 + (x.size - _PITCH_WIN) // hop
+    out = np.full(n, np.nan)
+    window = np.hanning(_PITCH_WIN)
     lo, hi = int(SAMPLE_RATE / _F0_MAX), int(SAMPLE_RATE / _F0_MIN)
-    seg = ac[:, lo:hi]
-    lag = np.argmax(seg, axis=1) + lo
-    peak = seg[np.arange(seg.shape[0]), lag - lo]
-    energy = ac[:, 0] + 1e-12
-    f0 = SAMPLE_RATE / lag.astype(float)
-    f0[(peak / energy) < _VOICED] = np.nan
-    return f0
+    for first in range(0, n, _PITCH_CHUNK):
+        last = min(n, first + _PITCH_CHUNK)
+        fr = _frames(x[first * hop:(last - 1) * hop + _PITCH_WIN], _PITCH_WIN, hop)
+        fr = fr - fr.mean(axis=1, keepdims=True)
+        spec = np.fft.rfft(fr * window, n=2 * _PITCH_WIN, axis=1)
+        ac = np.fft.irfft(np.abs(spec) ** 2, axis=1)[:, :_PITCH_WIN]
+        seg = ac[:, lo:hi]
+        lag = np.argmax(seg, axis=1) + lo
+        peak = seg[np.arange(seg.shape[0]), lag - lo]
+        energy = ac[:, 0] + 1e-12
+        f0 = SAMPLE_RATE / lag.astype(float)
+        f0[(peak / energy) < _VOICED] = np.nan
+        out[first:last] = f0
+    return out
 
 
 def _runs(mask: np.ndarray) -> list[tuple[int, int]]:

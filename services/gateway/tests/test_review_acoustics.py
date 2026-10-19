@@ -74,3 +74,18 @@ def test_silence_says_nothing():
     out = analyze(_pcm(_silence(1500)))
     assert out["voiced_ms"] == 0 and out["f0_hz"] is None and out["pauses"] == []
     assert analyze(np.zeros(0, dtype=np.int16))["dur_ms"] == 0
+
+
+def test_a_long_clip_is_measured_in_bounded_memory():
+    """Ревью 19.10: окна тона считались одной матрицей — около 60 МБ временной
+    памяти на тридцатисекундный кусок, мимо общего потолка записей. Гейтвей
+    живёт в юните с MemoryMax=2G рядом с чужими партиями."""
+    import tracemalloc
+    pcm = _pcm(_silence(200), _tone(140, 29_600), _silence(200))
+    tracemalloc.start()
+    try:
+        analyze(pcm)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 16 * 1024 * 1024, f"пик {peak / 1e6:.0f} МБ на один кусок речи"
