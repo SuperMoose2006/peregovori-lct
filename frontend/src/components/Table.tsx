@@ -803,8 +803,9 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
                       opponent's own closing line by a rouble or two. */}
                   {st!.status === "agreement" && st!.deal != null ? (
                     <span className="oc-price">
-                      {st!.deal}
-                      {scenario.headline_unit}
+                      {/* Тем же форматом, что трекер и разбор: «85,9 ₽», а не
+                          «85.9 ₽» (найдено после аудита 17.10). */}
+                      {formatDeal(st!.deal, scenario.headline_unit, lang)}
                     </span>
                   ) : null}
                 </div>

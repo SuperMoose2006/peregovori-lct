@@ -408,3 +408,10 @@ test("награда объявляется: живая область тост�
   assert.match(src, /<div className="ach-toasts" role="status" aria-live="polite">/);
   assert.doesNotMatch(src, /if \(visible\.length === 0\) return null;/);
 });
+
+test("штамп итога печатает сделку тем же форматом, что трекер и разбор", () => {
+  // Найдено после аудита 17.10: «85.9 ₽» и «1060k» на штампе над «85,9 ₽».
+  const src = readFileSync(join(SRC, "components", "Table.tsx"), "utf8");
+  assert.match(src, /formatDeal\(st!\.deal, scenario\.headline_unit, lang\)/);
+  assert.doesNotMatch(src, /\{st!\.deal\}\s*\{scenario\.headline_unit\}/);
+});
