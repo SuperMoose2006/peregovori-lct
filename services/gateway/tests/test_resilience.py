@@ -221,3 +221,36 @@ def test_offline_game_is_fully_playable():
     score = engine.score_session(session.engine_session)
     assert 0 <= score["overall"] <= 100
     assert score["grade"] in ("A", "B", "C", "D", "F")
+
+
+def test_abandoned_sessions_are_bounded_per_address_and_in_total(monkeypatch):
+    """Найдено после аудита 17.10: «открыл, начал, оборвал» без предела —
+    предел партий на адрес отпускался при обрыве, а сессия ждала пять минут;
+    хранилище и его обход росли для всех. Сверх предела уходит самая старая
+    брошенная; живые партии и чужие адреса не трогаются."""
+    from app import session as session_module
+
+    monkeypatch.setattr(session_module, "MAX_WAITING_PER_HOST", 3)
+    monkeypatch.setattr(session_module, "MAX_WAITING", 5)
+    local = SessionStore()
+    live = local.new_id()
+    local.put(live, object())
+    mine = []
+    for i in range(6):
+        sid = local.new_id()
+        local.put(sid, object())
+        local.release(sid, host="203.0.113.7")
+        mine.append(sid)
+    assert [local.get(s) is not None for s in mine] == [False, False, False, True, True, True]
+    others = []
+    for i in range(4):
+        sid = local.new_id()
+        local.put(sid, object())
+        local.release(sid, host=f"198.51.100.{i}")
+        others.append(sid)
+    assert len(local._expiry) == 5, "общий предел брошенных"
+    assert local.get(live) is not None, "живая партия не вытесняется"
+    assert local.get(others[-1]) is not None
+    # Возвращение снимает сессию с учёта брошенных.
+    assert local.claim(others[-1]) is not None
+    assert others[-1] not in local._waiting_host

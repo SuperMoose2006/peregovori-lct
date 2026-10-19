@@ -610,7 +610,7 @@ async def realtime_ws(websocket: WebSocket) -> None:
             if not session.evicted:
                 # Отпускаем, а не удаляем: сокет мог оборваться сам. Явное
                 # `session.close` уже удалило сессию выше.
-                store.release(session.session_id)
+                store.release(session.session_id, host=session.client_host or "")
                 # Лента камеры живёт в этой сессии, а она сейчас умрёт вместе с
                 # сокетом. Откладываем на тот же срок, что и саму партию — и только
                 # если возвращаться есть куда: после явного `session.close` партии

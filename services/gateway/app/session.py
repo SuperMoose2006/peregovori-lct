@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import os
 import secrets
 import time
 from typing import Any
@@ -25,6 +26,15 @@ from typing import Any
 RESUME_TTL_S = 300
 
 
+#: Сколько брошенных сессий ждут возвращения — с одного адреса и всего.
+#: Найдено после аудита 17.10: «открыл, начал партию, оборвал» повторялось без
+#: предела — предел партий на адрес отпускался при обрыве, а сессия лежала
+#: пять минут; хранилище и его обход на каждом `get` росли для всех. Сверх
+#: предела вытесняется САМАЯ СТАРАЯ брошенная (живые партии не трогаются).
+MAX_WAITING_PER_HOST = int(os.getenv("NEGO_MAX_RESUMABLE_PER_HOST", "24") or 24)
+MAX_WAITING = int(os.getenv("NEGO_MAX_RESUMABLE", "4000") or 4000)
+
+
 class SessionStore:
     def __init__(self) -> None:
         self._sessions: dict[str, Any] = {}
@@ -32,6 +42,8 @@ class SessionStore:
         #: session_id → момент, после которого сессия считается брошенной.
         #: Отсутствие ключа = сессия занята живым сокетом и не истекает.
         self._expiry: dict[str, float] = {}
+        #: session_id → адрес, с которого брошена (только ждущие возвращения).
+        self._waiting_host: dict[str, str] = {}
 
     def new_id(self) -> str:
         """Идентификатор партии. Он же — ПРОПУСК В НЕЁ.
@@ -50,6 +62,7 @@ class SessionStore:
         self._sessions[session_id] = session
         self._contexts[session_id] = dict(context or {})
         self._expiry.pop(session_id, None)
+        self._waiting_host.pop(session_id, None)
         self._reap()
 
     def get(self, session_id: str) -> Any | None:
@@ -72,11 +85,22 @@ class SessionStore:
         self._sessions.pop(session_id, None)
         self._contexts.pop(session_id, None)
         self._expiry.pop(session_id, None)
+        self._waiting_host.pop(session_id, None)
 
-    def release(self, session_id: str) -> None:
+    def release(self, session_id: str, host: str = "") -> None:
         """Отпустить после обрыва: сессия ждёт возвращения `RESUME_TTL_S`."""
-        if session_id in self._sessions:
-            self._expiry[session_id] = time.monotonic() + RESUME_TTL_S
+        if session_id not in self._sessions:
+            return
+        self._expiry.pop(session_id, None)  # в конец очереди: она теперь младшая
+        self._expiry[session_id] = time.monotonic() + RESUME_TTL_S
+        from app.realtime.limits import exempt
+        if not exempt(host):
+            self._waiting_host[session_id] = host
+            mine = [sid for sid in self._expiry if self._waiting_host.get(sid) == host]
+            for sid in mine[:max(0, len(mine) - MAX_WAITING_PER_HOST)]:
+                self.drop(sid)
+        while len(self._expiry) > MAX_WAITING:
+            self.drop(next(iter(self._expiry)))
 
     def claim(self, session_id: str) -> Any | None:
         """Забрать брошенную сессию обратно. None — её нет или срок вышел."""
@@ -84,6 +108,7 @@ class SessionStore:
         if session is None:
             return None
         self._expiry.pop(session_id, None)
+        self._waiting_host.pop(session_id, None)
         return session
 
     def _reap(self) -> None:
@@ -94,6 +119,7 @@ class SessionStore:
             self._sessions.pop(session_id, None)
             self._contexts.pop(session_id, None)
             self._expiry.pop(session_id, None)
+            self._waiting_host.pop(session_id, None)
 
     def context(self, session_id: str) -> dict:
         """Server-owned admission facts; never supplied again by resume."""
