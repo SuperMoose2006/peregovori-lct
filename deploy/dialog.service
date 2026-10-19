@@ -11,7 +11,10 @@ User=dialog
 Group=dialog
 WorkingDirectory=/opt/dialog/current/services/gateway
 EnvironmentFile=/etc/dialog.env
-ExecStart=/opt/dialog/current/services/gateway/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1 --ws websockets --ws-max-size 8388608 --ws-max-queue 4 --ws-ping-interval 20 --ws-ping-timeout 20 --timeout-graceful-shutdown 20 --no-access-log
+# Буфер входящих кадров: сокеты × очередь × размер обязан помещаться в
+# MemoryHigh. Было 8 МиБ × 4 — до 4 ГиБ на 128 сокетов при MemoryMax=2G.
+# Самое крупное законное сообщение — ~2,7 МБ (звук 2 МБ в base64).
+ExecStart=/opt/dialog/current/services/gateway/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1 --ws websockets --ws-max-size 3145728 --ws-max-queue 2 --ws-ping-interval 20 --ws-ping-timeout 20 --timeout-graceful-shutdown 20 --no-access-log
 Restart=always
 RestartSec=3
 TimeoutStopSec=30
