@@ -25,4 +25,6 @@ ICON_NAMES: frozenset[str] = frozenset({
     "bank", "laptop", "building", "worried", "angry", "key", "box", "rocket",
     "house", "car", "satellite", "pen", "belt", "question", "map", "check",
     "warning", "chat", "clock",
+    # Панель созвона (CallView): трубка, микрофон и камера выключены, субтитры.
+    "phone", "micoff", "camoff", "cc",
 })
