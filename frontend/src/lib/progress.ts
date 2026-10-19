@@ -1148,6 +1148,20 @@ export function recordExam(profile: Profile, blockId: string, score: number, tot
   return { profile: next, xpGain, passed: ok, newAchievements: fresh };
 }
 
+/**
+ * Экзамен прерван ПОСЛЕ хотя бы одного вердикта — это попытка: счётчик растёт,
+ * и следующий заход вытягивает другой набор (`drawExam` детерминирован номером
+ * попытки). Опыта, лучшего результата и сдачи не даёт. Раньше выход не тратил
+ * попытку, и экзамен проходился перебором: ошибся — вышел — тот же набор
+ * (найдено после аудита 17.10, решение владельца 19.10). `attempt` — номер,
+ * с которым экзамен начинали: повторный вызов за ту же попытку ничего не меняет.
+ */
+export function recordExamQuit(profile: Profile, blockId: string, attempt: number): Profile {
+  const b = blockOf(profile, blockId);
+  if (b.attempts !== attempt) return profile;
+  return { ...profile, course: { ...profile.course, [blockId]: { ...b, attempts: b.attempts + 1 } } };
+}
+
 /** Доля блока, пройденная игроком (0..1): уроки + упражнения + экзамен. */
 export function blockCompletion(b: BlockProgress, lessons: number, exercises: number): number {
   const parts = [

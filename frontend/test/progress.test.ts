@@ -828,3 +828,26 @@ test("один акт, сыгранный в двух вкладках, запи
   // Без номера акта (восстановленная партия) — как раньше.
   assert.equal(getCampaignProgress(recordCampaignStage(first, "career", 4, "C", 60), "career").stageIndex, 2);
 });
+
+// ---------------------------------------------------------------------------
+// Экзамен блока: перебор.
+import { recordExamQuit } from "../src/lib/progress";
+import { drawExam } from "../src/lib/course";
+
+test("прерванный после вердикта экзамен — это попытка, и следующий набор другой", () => {
+  // Найдено после аудита 17.10, решение владельца 19.10: вердикт «верно/неверно»
+  // виден по каждому заданию, «Прервать экзамен» не тратил попытку, а набор
+  // детерминирован номером попытки — выйти после ошибки и войти снова давало
+  // тот же экзамен, то есть его можно было пройти перебором.
+  const p = emptyProfile();
+  const quit = recordExamQuit(p, "foundations", 0);
+  const b = getBlockProgress(quit, "foundations");
+  assert.equal(b.attempts, 1);
+  assert.equal(quit.xp, p.xp, "за выход опыта нет");
+  assert.equal(b.examBest, 0);
+  assert.equal(b.passed, false);
+  // Тот же выход второй раз (две вкладки, повторный вызов) — не вторая попытка.
+  assert.equal(recordExamQuit(quit, "foundations", 0), quit);
+  const ids = (n: number) => drawExam("foundations", n).items.map((x) => x.id).join(",");
+  assert.notEqual(ids(0), ids(1), "новая попытка — другой набор");
+});

@@ -19,7 +19,7 @@ import {
   exercisesOf, exercisesOfLesson, masterNext, masterUnlocked, redoable, type ExamDraw,
 } from "../lib/course";
 import {
-  MASTER_ID, blockCompletion, getBlockProgress, loadProfile, markLessonDone, missedExercises, recordExam,
+  MASTER_ID, blockCompletion, getBlockProgress, loadProfile, markLessonDone, missedExercises, recordExam, recordExamQuit,
   recordExercise, type Profile,
 } from "../lib/progress";
 import {
@@ -68,14 +68,24 @@ export function CourseScreen({ t, lang, profile, onProfile, onStartDrill, onExit
   // сильнее `startAt`: человек только что доиграл партию, которой закончился
   // экзамен, и любой другой экран на её месте — потеря результата.
   //
-  // Недоигранная попытка выбрасывается, а не показывается: экзамен, из которого
-  // ушли, не тратит счётчик — то же правило, что у кнопки «Прервать экзамен».
-  const [resume, setResume] = useState<ExamRunSnapshot | null>(() => {
+  // Недоигранная попытка выбрасывается, а не показывается — но засчитывается,
+  // как и выход кнопкой «Прервать экзамен»: до капстоуна человек уже видел
+  // вердикты, и бесплатный выход делал экзамен проходимым перебором (решение
+  // владельца 19.10, `recordExamQuit`).
+  const [boot] = useState(() => {
     const run = loadExamRun();
-    if (!run) return null;
-    if (run.capstoneOk === null) { clearExamRun(); return null; }
-    return run;
+    if (!run) return { resume: null, abandoned: null };
+    if (run.capstoneOk === null) { clearExamRun(); return { resume: null, abandoned: run }; }
+    return { resume: run, abandoned: null };
   });
+  const [resume, setResume] = useState<ExamRunSnapshot | null>(boot.resume);
+  useEffect(() => {
+    const run = boot.abandoned;
+    if (run && run.results.length > 0) onProfile(recordExamQuit(loadProfile(profile), run.blockId, run.attempt));
+    // Один раз на монтирование: брошенная попытка приходит с диска и в жизни
+    // экрана не меняется.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [view, setView] = useState<View>(() =>
     resume
       ? { kind: "exam", id: resume.blockId }
@@ -684,9 +694,14 @@ function ExamRunner({ t, lang, profile, onProfile, blockId, resume, onStartDrill
         <div className="lesson-step">
           {t.course.stepOf.replace("{n}", String(step + 1)).replace("{total}", String(draw.items.length))}
           <span className="exam-flag"><Icon name="cap" /> {t.course.examMode}</span>
-          {/* Выход без записи: прерванная попытка не тратит счётчик и не портит
-              лучший результат — наказывать за случайно открытый экзамен не за что. */}
-          <button className="btn ghost exam-quit" onClick={onBack}>✕ {t.course.examQuit}</button>
+          {/* Выход после хотя бы одного вердикта — попытка (`recordExamQuit`):
+              иначе ошибся — вышел — тот же набор, и экзамен проходился
+              перебором. Случайно открытый и сразу закрытый экзамен не стоит
+              ничего, лучший результат выход не портит никогда. */}
+          <button className="btn ghost exam-quit" onClick={() => {
+            if (results.length > 0) onProfile(recordExamQuit(loadProfile(profile), blockId, attempt));
+            onBack();
+          }}>✕ {t.course.examQuit}</button>
         </div>
         <Exercise
           key={ex.id} t={t} lang={lang} ex={ex} exam onDone={onDone}
