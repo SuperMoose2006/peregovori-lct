@@ -787,6 +787,11 @@ async def test_silence_and_echo_before_the_first_word_stay_out_of_recognition():
     block = np.zeros(1600, dtype=np.int16)            # 100 мс
     for _ in range(50):                                # 5 с тишины и эха между ходами
         pipe.feed(block)
+    # Запас обязан накрыть окно решения VAD: иначе первое слово съедается
+    # (так и было на стенде с запасом 400 мс).
+    from app.perception.vad import VADConfig
+    cfg = VADConfig()
+    assert _PREROLL_MS >= cfg.silence_duration_ms + cfg.prefix_padding_ms
     kept = sum(a.size for a in pipe._audio)
     assert kept <= _PREROLL_MS * SAMPLE_RATE // 1000 + block.size, kept
     pipe._speech_started()
