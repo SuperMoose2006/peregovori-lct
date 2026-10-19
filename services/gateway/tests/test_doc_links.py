@@ -157,8 +157,10 @@ def test_documented_layers_are_the_layers_that_exist():
     from app.realtime.session import Layers
 
     doc = (ROOT / "docs" / "product.md").read_text(encoding="utf-8")
-    #: Как слой называется в таблице докладной записки.
-    names = {"probe": "Читай лицо", "voice": "Голосом", "camera": "Камера",
+    #: Как слой называется в таблице докладной записки. Голос — на проводе
+    #: всё ещё слой (`session.init.layers.voice`), а для человека — режим
+    #: партии, созвон (19.10); строка таблицы так и названа.
+    names = {"probe": "Читай лицо", "voice": "Голос — созвон", "camera": "Камера",
              "avatar": "Лицо оппонента", "pokerface": "Покерфейс"}
 
     real = {f.name for f in dataclasses.fields(Layers)}
