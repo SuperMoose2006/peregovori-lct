@@ -393,3 +393,10 @@ test("за столом язык не переключается — парти�
   assert.equal((app.match(/onClick=\{\(\) => setLang\("(ru|en)"\)\}\s*disabled=\{langLocked\}/g) ?? []).length, 2);
   for (const lang of ["ru", "en"] as const) assert.ok(I18N[lang].langLocked.length > 10);
 });
+
+test("вердикт капстоуна объявляется: живая область стоит до вердикта", () => {
+  // Найдено после аудита 17.10: плашка «задание выполнено / нет» приезжала
+  // после разбора без live-роли, а фокус уже был на заголовке разбора.
+  const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+  assert.match(app, /screen === "debrief" && drill \? \(\s*<div role="status" aria-live="polite">\s*\{drillVerdict \?/);
+});

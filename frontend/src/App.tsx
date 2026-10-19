@@ -1407,15 +1407,23 @@ export default function App() {
         </section>
       )}
 
-      {screen === "debrief" && drillVerdict && drill ? (
-        <div className="wrap">
-          <div className={`drill-verdict ${drillVerdict.ok ? "ok" : "bad"}`}>
-            <b>{drill.blockId === MASTER_ID
-              ? (drillVerdict.ok ? t.course.masterDrillPass : t.course.masterDrillFail)
-              : (drillVerdict.ok ? t.course.drillPass : t.course.drillFail)}</b>
-            <span>{drill.ex.goal ? drill.ex.goal[lang] : ""}</span>
-            <button className="btn primary" onClick={backToCourse}>{t.course.backToCourse}</button>
-          </div>
+      {/* Вердикт приезжает ПОСЛЕ разбора (движок-зеркало грузится отдельно),
+          а фокус к тому времени уже на заголовке разбора — читая вперёд,
+          диктор до плашки не доходил, и объявить её было некому (найдено после
+          аудита 17.10). Живая область стоит заранее и наполняется вердиктом. */}
+      {screen === "debrief" && drill ? (
+        <div role="status" aria-live="polite">
+          {drillVerdict ? (
+            <div className="wrap">
+              <div className={`drill-verdict ${drillVerdict.ok ? "ok" : "bad"}`}>
+                <b>{drill.blockId === MASTER_ID
+                  ? (drillVerdict.ok ? t.course.masterDrillPass : t.course.masterDrillFail)
+                  : (drillVerdict.ok ? t.course.drillPass : t.course.drillFail)}</b>
+                <span>{drill.ex.goal ? drill.ex.goal[lang] : ""}</span>
+                <button className="btn primary" onClick={backToCourse}>{t.course.backToCourse}</button>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
