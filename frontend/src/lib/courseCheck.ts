@@ -14,7 +14,7 @@
 //
 // Зеркало: services/gateway/app/course/check.py. Менять синхронно.
 import { SCENARIO_MAP } from "../data/scenarios";
-import { analyze, applyMove, newSession } from "../mock/engine";
+import { analyze, applyMove, newSession, pickOffer } from "../mock/engine";
 import { has, norm } from "./techniques";
 import type { Exercise } from "./courseTypes";
 import type { Lang, StateView } from "../types";
@@ -39,6 +39,14 @@ export function checkFreeform(ex: Exercise, text: string, lang: Lang): Verdict {
   if (words < (spec.min_words ?? 0)) reasons.push("too_short");
   if (a.arg < (spec.min_arg ?? 0)) reasons.push("weak_argument");
   if (spec.require_number && a.number === null) reasons.push("no_number");
+  if (spec.number_in_zone && a.number !== null && ex.scenario_id) {
+    // Цифра закрытия — внутри зоны сделки (дно оппонента … ваша красная
+    // линия), выбранная так же, как в партии. Зеркало course/check.py.
+    const def = SCENARIO_MAP[ex.scenario_id];
+    const priced = def ? pickOffer(def, a) : null;
+    const lo = def ? Math.min(def.floor, def.resv) : 0, hi = def ? Math.max(def.floor, def.resv) : 0;
+    if (priced === null || priced < lo || priced > hi) reasons.push("outside_zone");
+  }
 
   if (spec.require_secondary && ex.scenario_id) {
     const def = SCENARIO_MAP[ex.scenario_id];

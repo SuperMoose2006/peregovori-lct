@@ -339,7 +339,7 @@ function plausibleOffer(sc: ScenarioDef, n: number): number | null {
 /** Какое из чисел реплики — цена этого стола: на столе в процентах не цена —
  *  деньги, на остальных — проценты; границы диапазона идут последними.
  *  Зеркало engine.py::_pick_offer. */
-function pickOffer(sc: ScenarioDef, a: RawAnalysis, onTable: number | null = null): number | null {
+export function pickOffer(sc: ScenarioDef, a: RawAnalysis, onTable: number | null = null): number | null {
   if (!a.mentions || a.mentions.length === 0) return a.number === null ? null : plausibleOffer(sc, a.number);
   const foreign = sc.unit.ru.includes("%") ? "money" : "pct";
   const pool = a.mentions.filter((m) => m.kind !== foreign);

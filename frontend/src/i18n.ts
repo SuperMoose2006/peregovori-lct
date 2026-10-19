@@ -582,7 +582,7 @@ export interface Strings {
     // называл бы состояние иначе, чем подпись под портретом в партии.
     moves: Record<string, string>;
     why: { missing: string; missingAny: string; forbidden: string; missingTerm: string;
-           tooShort: string; weak: string; noNumber: string; generic: string };
+           tooShort: string; weak: string; noNumber: string; outsideZone: string; generic: string };
   };
   // "Table setting" card filling the empty chat at turn 0. The opening frame a
   // juror stares at longest, and the moment a first-timer decides whether they
@@ -1616,6 +1616,7 @@ export const I18N: Record<Lang, Strings> = {
         tooShort: "Слишком коротко — оценивать пока нечего",
         weak: "Аргумент слабый: нет обоснования, цифры или источника",
         noNumber: "Нужна конкретная цифра",
+        outsideZone: "Цифра вне зоны сделки: за ней либо оппонент не согласится, либо вы уйдёте в минус",
         generic: "Ответ не подошёл",
       },
     },
@@ -2614,6 +2615,7 @@ export const I18N: Record<Lang, Strings> = {
         tooShort: "Too short — nothing to score yet",
         weak: "Weak argument: no grounding, number or source",
         noNumber: "A concrete number is required",
+        outsideZone: "The number is outside the deal zone: either they will never agree to it, or it puts you at a loss",
         generic: "That answer did not pass",
       },
     },

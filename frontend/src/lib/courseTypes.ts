@@ -42,6 +42,8 @@ export interface FreeformCheck {
   min_words?: number;
   require_number?: boolean;
   require_secondary?: string;
+  /** Цифра закрытия — внутри зоны сделки стола. Зеркало schema.FreeformCheck. */
+  number_in_zone?: boolean;
 }
 
 export interface OptionWithKey extends L {

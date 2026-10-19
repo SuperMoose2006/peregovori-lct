@@ -1559,8 +1559,13 @@ BANK: list[dict] = [
         "difficulty": 2, "xp": 15, "scenario_id": "supplier",
         "prompt": T("Зафиксируйте сделку: цифра + условие пакета.",
                     "Lock the deal in: the number plus the package term."),
+        # «Цифра + условие пакета» — обе половины проверкой: прежде любая цифра
+        # закрытия засчитывалась, и «Договорились на 99 ₽/шт» (за красной
+        # линией 92, экономика 0) было верным ответом; условие не проверялось
+        # вовсе (инвариант 9; найдено после аудита 17.10).
         "check": {"require_moves": ["accept"], "forbid_moves": ["threat", "hostile"],
-                  "require_number": True, "min_words": 6},
+                  "require_number": True, "number_in_zone": True,
+                  "require_secondary": "annual_contract", "min_words": 6},
         "reference": T("Тогда фиксируем: 88 ₽/шт при годовом контракте. По рукам?",
                        "Then we have a deal at 88 per unit with an annual volume commitment."),
         "explain": T(

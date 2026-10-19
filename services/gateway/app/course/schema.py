@@ -115,6 +115,8 @@ class FreeformCheck(CourseModel):
     min_words: int | None = Field(default=None, ge=0)
     require_number: bool | None = None
     require_secondary: str | None = None
+    #: Цифра закрытия — внутри зоны сделки стола (дно оппонента … ваша красная линия).
+    number_in_zone: bool | None = None
 
 
 class FreeformExercise(ExerciseBase):

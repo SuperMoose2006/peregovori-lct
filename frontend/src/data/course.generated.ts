@@ -2753,6 +2753,8 @@ export const COURSE_BANK: Exercise[] = [
         "hostile"
       ],
       "require_number": true,
+      "number_in_zone": true,
+      "require_secondary": "annual_contract",
       "min_words": 6
     },
     "reference": {

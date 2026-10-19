@@ -465,6 +465,7 @@ function reasonLabel(t: Strings, reason: string): string {
     case "too_short": return t.course.why.tooShort;
     case "weak_argument": return t.course.why.weak;
     case "no_number": return t.course.why.noNumber;
+    case "outside_zone": return t.course.why.outsideZone;
     default: return t.course.why.generic;
   }
 }

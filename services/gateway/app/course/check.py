@@ -21,7 +21,7 @@
 
 from __future__ import annotations
 
-from app.engine.engine import _match_secondary_issues
+from app.engine.engine import _match_secondary_issues, _pick_offer
 from app.engine.scenarios import by_id
 from app.engine.techniques import Analysis, analyze, norm
 
@@ -91,6 +91,17 @@ def check_freeform(item: dict, text: str, lang: str = "ru",
         reasons.append("weak_argument")
     if spec.get("require_number") and a.number is None:
         reasons.append("no_number")
+    if spec.get("number_in_zone") and a.number is not None:
+        # Цифра закрытия — внутри зоны сделки: не дальше дна оппонента (там он
+        # не согласится) и не хуже вашей красной линии (там сделка в минус).
+        # Без этого «Договорились на 99 ₽/шт» засчитывалось — а в игре это
+        # сделка за красной линией, экономика 0 (инвариант 9; найдено после
+        # аудита 17.10). Цена выбирается так же, как в партии (`_pick_offer`).
+        sc = by_id(item["scenario_id"])
+        priced = _pick_offer(sc, a)
+        lo, hi = sorted((sc.opponent_reservation, sc.player_reservation))
+        if priced is None or not lo <= priced <= hi:
+            reasons.append("outside_zone")
 
     secondary = spec.get("require_secondary")
     if secondary:

@@ -219,3 +219,13 @@ test("экзамен мастера: проигранная партия не з
   p = recordExercise(p, MASTER_ID, b, 50, true).profile;
   assert.equal(masterNext(getBlockProgress(p, MASTER_ID))?.id, c);
 });
+
+test("cl-03: цифра закрытия — внутри зоны сделки и с условием пакета (зеркало сервера)", async () => {
+  // Инвариант 9 (найдено после аудита 17.10).
+  const { checkFreeform } = await import("../src/lib/courseCheck");
+  const ex = COURSE_BANK.find((x) => x.id === "cl-03")!;
+  assert.ok(checkFreeform(ex, "Договорились на 99 ₽/шт при годовом контракте, по рукам.", "ru").reasons.includes("outside_zone"));
+  assert.ok(checkFreeform(ex, "We have a deal at 99 per unit with an annual volume commitment.", "en").reasons.includes("outside_zone"));
+  assert.ok(checkFreeform(ex, "Тогда фиксируем: 88 ₽/шт. По рукам?", "ru").reasons.includes("missing_term:annual_contract"));
+  for (const lang of ["ru", "en"] as const) assert.ok(checkFreeform(ex, ex.reference![lang], lang).ok, lang);
+});

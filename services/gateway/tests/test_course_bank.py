@@ -808,3 +808,17 @@ def test_pd02_does_not_accept_a_retreat(lang, line):
     item = next(x for x in BANK if x["id"] == "pd-02")
     assert not check_freeform(item, line, lang)["ok"]
     assert check_freeform(item, item["reference"][lang], lang)["ok"]
+
+
+@pytest.mark.parametrize("lang,line,reason", [
+    ("ru", "Договорились на 99 ₽/шт при годовом контракте, по рукам.", "outside_zone"),
+    ("en", "We have a deal at 99 per unit with an annual volume commitment.", "outside_zone"),
+    ("ru", "Тогда фиксируем: 88 ₽/шт. По рукам?", "missing_term:annual_contract"),
+])
+def test_cl03_checks_both_halves_of_the_close(lang, line, reason):
+    """Инвариант 9 (найдено после аудита 17.10): «цифра + условие пакета»
+    засчитывало любую цифру закрытия — и 99 за красной линией 92 — и не
+    смотрело на условие вовсе."""
+    item = next(x for x in BANK if x["id"] == "cl-03")
+    assert reason in check_freeform(item, line, lang)["reasons"]
+    assert check_freeform(item, item["reference"][lang], lang)["ok"]
