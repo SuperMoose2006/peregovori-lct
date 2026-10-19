@@ -64,3 +64,37 @@ test("plural выбирает русскую форму по последним 
   assert.equal(say(111), "111 заданий");
   assert.equal(say(0), "0 заданий");
 });
+
+test("plural по-английски: единственное число только у единицы", () => {
+  // Найдено после аудита 17.10: русское правило шло и в английский —
+  // «21 day in a row», «21 character left», «31 game».
+  const days: [string, string, string] = ["day", "days", "days"];
+  assert.equal(plural(1, days), "day");
+  assert.equal(plural(21, days), "days");
+  assert.equal(plural(31, days), "days");
+  assert.equal(plural(2, days), "days");
+  assert.equal(plural(0, days), "days");
+});
+
+test("тройки форм в словаре: русские различают 2 и 5, английские нет", async () => {
+  // На этом различии plural узнаёт язык. Русская тройка с одинаковыми второй
+  // и третьей формой молча получила бы английское правило — и наоборот.
+  const { I18N } = await import("../src/i18n");
+  const triples = (node: unknown, path: string, out: [string, string[]][]) => {
+    if (Array.isArray(node)) {
+      if (/forms/i.test(path) && node.length === 3 && node.every((x) => typeof x === "string")) {
+        out.push([path, node as string[]]);
+      }
+      return out;
+    }
+    if (node && typeof node === "object") {
+      for (const [k, v] of Object.entries(node)) triples(v, `${path}.${k}`, out);
+    }
+    return out;
+  };
+  const ru = triples(I18N.ru, "ru", []);
+  const en = triples(I18N.en, "en", []);
+  assert.ok(ru.length >= 9 && en.length === ru.length, `${ru.length} / ${en.length}`);
+  for (const [path, f] of ru) assert.notEqual(f[1], f[2], path);
+  for (const [path, f] of en) assert.equal(f[1], f[2], path);
+});

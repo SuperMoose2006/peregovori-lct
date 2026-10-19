@@ -47,9 +47,15 @@ export function teachingPlaceholder(turn: number, base: string, nudges: string[]
  * Нужна ровно потому, что «1 заданий» на экране блока читается как недоделка —
  * а курс, который учит формулировкам, обязан сам говорить грамотно. Для
  * английского вызывающая сторона передаёт две одинаковые формы множественного.
+ *
+ * И ПО НИМ ЖЕ АНГЛИЙСКИЙ УЗНАЁТСЯ: у английского единственное число только у
+ * единицы. Раньше русское правило шло и туда — «21 day in a row», «21 character
+ * left» (найдено после аудита 17.10). Что русские тройки различают вторую и
+ * третью форму, а английские нет, сторожит тест по словарю.
  */
 export function plural(n: number, forms: [string, string, string]): string {
   const abs = Math.abs(Math.trunc(n));
+  if (forms[1] === forms[2]) return abs === 1 ? forms[0] : forms[1];
   const tens = abs % 100;
   if (tens >= 11 && tens <= 14) return forms[2];
   const ones = abs % 10;
