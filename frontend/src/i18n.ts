@@ -714,6 +714,60 @@ export interface Strings {
     strength: string;  // label above the one thing that worked
     growth: string;    // label above the one thing to change next time
   };
+  /** «Глубокий разбор» (кнопка в итогах). Ключи кодов (`kinds`, `cues`,
+   *  `agents`…) — зеркало `services/gateway/app/review` и `vision.py::CUES`. */
+  review: {
+    title: string;
+    lead: string;
+    privacy: string;
+    badge: string;
+    start: string;
+    duration: string;
+    starting: string;
+    running: string;          // {done} {total}
+    retry: string;
+    offline: string;
+    noModels: string;
+    failed: Record<string, string>;   // review_empty / review_interrupted / generic
+    agents: Record<string, string>;
+    agentsOk: string;         // {ok} {total}
+    agentFailed: string;
+    took: string;             // {s}
+    channels: Record<"content" | "voice" | "video", string>;
+    channelState: Record<string, string>;
+    competencies: string;
+    competencyNames: Record<string, string>;
+    pro: string;
+    con: string;
+    engineAgrees: string;     // {v}
+    engineDiffers: string;    // {v}
+    confidence: string;       // {p}
+    confLevels: Record<"high" | "mid" | "low", string>;
+    soft: string;
+    softNames: Record<string, string>;
+    softHints: Record<string, string>;
+    softNone: string;
+    softUnavailable: string;
+    ratio: string;            // {num} {den}
+    unchecked: string;        // {n}
+    questionsAsked: string;   // {n}
+    convergences: string;
+    convergencesLead: string;
+    tight: string;
+    noConvergences: string;
+    voice: string;
+    voiceTurn: Record<"wpm" | "pauses" | "longest" | "jumps" | "fading", string>;
+    face: string;
+    faceTense: string;        // {n} {m}
+    timeline: string;
+    more: string;             // {n}
+    less: string;
+    turn: string;             // {n}
+    kinds: Record<string, string>;
+    cues: Record<string, string>;
+    dropped: string;          // {n}
+    contradictsTurn: string;  // {n}
+  };
   master: {
     title: string;   // "Что сказал бы мастер"
     yours: string;   // "Ваша реплика"
@@ -1783,6 +1837,119 @@ export const I18N: Record<Lang, Strings> = {
       strength: "Что сработало",
       growth: "Что изменить в следующий раз",
     },
+    review: {
+      title: "Глубокий разбор",
+      lead: "Восемь агентов читают смысл ваших реплик, агент голоса слушает запись, агент мимики смотрит кадры с камеры. Всё сводится по времени партии, и у каждого вывода — уверенность системы.",
+      privacy: "Запись голоса и кадры хранятся только в памяти и стираются, как только разбор готов.",
+      badge: "оценка модели · не влияет на грейд",
+      start: "Запустить разбор",
+      duration: "около минуты",
+      starting: "Запускаем агентов…",
+      running: "Агенты работают: {done} из {total}",
+      retry: "Запустить ещё раз",
+      offline: "Глубокий разбор работает только онлайн: без связи модели недоступны.",
+      noModels: "Глубокий разбор сейчас недоступен: нет связи с моделями.",
+      failed: {
+        review_empty: "Ни один агент не ответил — разбора нет. Попробуйте ещё раз.",
+        review_interrupted: "Связь прервалась посреди разбора. Запустите его ещё раз.",
+        generic: "Разбор не получился. Попробуйте ещё раз.",
+      },
+      agents: {
+        confidence: "Уверенность речи", competency: "Компетенции", thinking: "Проговаривание",
+        specificity: "Конкретика", comprehension: "Понимание вопросов", followups: "Уточнения",
+        consistency: "Последовательность", facts: "Сверка с вводной", voice: "Голос", face: "Мимика",
+      },
+      agentsOk: "Ответили {ok} из {total} агентов",
+      agentFailed: "не ответил",
+      took: "за {s} с",
+      channels: { content: "Смысл", voice: "Голос", video: "Мимика" },
+      channelState: {
+        chat: "партия шла в чате — голоса нет",
+        no_speech: "речь не записалась",
+        discarded: "запись уже стёрта",
+        camera_off: "камера была выключена",
+        failed: "агент не ответил",
+        partial: "ответили не все агенты",
+        measured: "{s} с речи — измерено без модели",
+        voiceOk: "{s} с речи",
+        videoOk: "{n} кадров",
+        contentOk: "{ok} из {total} агентов",
+        truncated: "часть речи не записалась: предел записи",
+        starved: "часть записи не сохранилась: память была занята",
+        thinned: "длинная партия: кадры прорежены",
+      },
+      competencies: "Компетенции",
+      competencyNames: {
+        interests: "Выяснение интересов", listening: "Слушание", arguments: "Аргументы и критерии",
+        value: "Создание ценности", concessions: "Уступки и якорь", pressure: "Устойчивость к давлению",
+        rapport: "Отношения и тон", closing: "Фиксация договорённостей",
+      },
+      pro: "Что получилось",
+      con: "Что не получилось",
+      engineAgrees: "счёт партии видит так же: {v}",
+      engineDiffers: "счёт партии видит иначе: {v} — уверенность снижена",
+      confidence: "уверенность {p}%",
+      confLevels: { high: "высокая", mid: "средняя", low: "низкая" },
+      soft: "Как вы говорили",
+      softNames: {
+        assurance: "Уверенность речи", specificity: "Конкретика", declaration: "Проговаривание мыслей",
+        comprehension: "Понимание вопросов", followups: "Реакция на уточнения",
+        consistency: "Последовательность", facts: "Сверка с вводной",
+      },
+      softHints: {
+        assurance: "реплики без смягчений, заминок и напряжённой мимики",
+        specificity: "утверждения с цифрой, примером или фактом",
+        declaration: "шаги, у которых названа причина",
+        comprehension: "вопросы собеседника, на которые есть ответ",
+        followups: "уточнения и нажим, встреченные спокойно",
+        consistency: "без противоречий самому себе",
+        facts: "сказанное совпадает с вводной",
+      },
+      softNone: "не было повода",
+      softUnavailable: "агент не ответил",
+      ratio: "{num} из {den}",
+      unchecked: "ещё {n} — во вводной этого нет: блеф или довод из жизни, не ошибка",
+      questionsAsked: "ваших вопросов: {n}",
+      convergences: "Совпадения сигналов",
+      convergencesLead: "На этих ходах разные каналы показали одно и то же — здесь выводу можно верить больше.",
+      tight: "в пределах 2,5 с",
+      noConvergences: "Сигналы разных каналов ни разу не сошлись на одном ходу.",
+      voice: "Голос",
+      voiceTurn: {
+        wpm: "{n} сл/мин", pauses: "пауз: {n}", longest: "самая долгая {s} с",
+        jumps: "скачков высоты: {n}", fading: "голос затухает к концу",
+      },
+      face: "Мимика",
+      faceTense: "напряжённая мимика — на {n} из {m} кадров",
+      timeline: "Лента сигналов",
+      more: "Показать все ({n})",
+      less: "Свернуть",
+      turn: "Ход {n}",
+      kinds: {
+        hedge: "смягчение", softener: "смягчение", self_doubt: "сомнение в сказанном",
+        apology: "лишнее извинение", filler_word: "слово-паразит",
+        pause: "пауза {v} с", pitch_jump: "голос подскочил на {v} пт", fading: "голос затухает",
+        filler: "заполнитель паузы", hesitation: "заминка", restart: "фраза начата заново",
+        stutter: "запинка", tremor: "дрожь в голосе", laugh: "смех", sigh: "вздох",
+        rushed: "скороговорка", trailing_off: "голос гаснет",
+        generic: "общие слова", number: "цифра", example: "пример", fact: "факт", deadline: "срок",
+        position: "позиция", reasoning: "довод", conclusion: "вывод", proposal: "предложение",
+        unspoken: "шаг без объяснения", shift: "поворот разговора", question: "вопрос",
+        answer_full: "ответ на вопрос", answer_partial: "ответ лишь отчасти", answer_no: "вопрос остался без ответа",
+        followup_steady: "уточнение — спокойно", followup_defensive: "уточнение — оправдание",
+        followup_evasive: "уточнение — уход от ответа", followup_conceded: "уточнение — уступка без условия",
+        contradiction: "противоречие", claim_matches: "совпадает с вводной",
+        claim_contradicts: "расходится с вводной", claim_unsupported: "во вводной этого нет",
+        pro: "получилось", con: "не получилось",
+      },
+      cues: {
+        frown: "нахмуренные брови", wince: "гримаса", smile: "улыбка", lip_press: "поджатые губы",
+        raised_brows: "поднятые брови", eye_roll: "закатывание глаз", gaze_away: "взгляд в сторону",
+        head_shake: "покачивание головой", nod: "кивок", hand_to_face: "рука у лица",
+      },
+      dropped: "Цитат, которых не было в разговоре, выброшено: {n}.",
+      contradictsTurn: "против хода {n}",
+    },
     master: {
       title: "Что сказал бы мастер",
       yours: "Ваша реплика",
@@ -2825,6 +2992,119 @@ export const I18N: Record<Lang, Strings> = {
       title: "A word from your mentor",
       strength: "What worked",
       growth: "What to change next time",
+    },
+    review: {
+      title: "Deep review",
+      lead: "Eight agents read the meaning of your lines, a voice agent listens to the recording, a facial-cue agent looks at the camera frames. Everything is lined up on the game's clock, and every finding carries the system's confidence.",
+      privacy: "The voice recording and frames are kept in memory only and erased as soon as the review is ready.",
+      badge: "model's assessment · does not affect the grade",
+      start: "Run the review",
+      duration: "about a minute",
+      starting: "Starting the agents…",
+      running: "Agents at work: {done} of {total}",
+      retry: "Run it again",
+      offline: "Deep review works online only: the models are not reachable offline.",
+      noModels: "Deep review is unavailable right now: the models cannot be reached.",
+      failed: {
+        review_empty: "No agent answered, so there is no review. Please try again.",
+        review_interrupted: "The connection dropped mid-review. Run it again.",
+        generic: "The review failed. Please try again.",
+      },
+      agents: {
+        confidence: "Speech assurance", competency: "Competencies", thinking: "Reasoning aloud",
+        specificity: "Specificity", comprehension: "Question comprehension", followups: "Follow-ups",
+        consistency: "Consistency", facts: "Brief check", voice: "Voice", face: "Facial cues",
+      },
+      agentsOk: "{ok} of {total} agents answered",
+      agentFailed: "did not answer",
+      took: "in {s} s",
+      channels: { content: "Meaning", voice: "Voice", video: "Facial cues" },
+      channelState: {
+        chat: "the game was played in chat — no voice",
+        no_speech: "no speech was recorded",
+        discarded: "the recording is already erased",
+        camera_off: "the camera was off",
+        failed: "the agent did not answer",
+        partial: "not every agent answered",
+        measured: "{s} s of speech — measured without a model",
+        voiceOk: "{s} s of speech",
+        videoOk: "{n} frames",
+        contentOk: "{ok} of {total} agents",
+        truncated: "part of the speech was not recorded: recording limit",
+        starved: "part of the recording was not kept: memory was busy",
+        thinned: "a long game: frames were thinned",
+      },
+      competencies: "Competencies",
+      competencyNames: {
+        interests: "Uncovering interests", listening: "Listening", arguments: "Arguments and criteria",
+        value: "Creating value", concessions: "Concessions and anchor", pressure: "Resilience under pressure",
+        rapport: "Relationship and tone", closing: "Closing",
+      },
+      pro: "What worked",
+      con: "What did not",
+      engineAgrees: "the game's score sees it the same: {v}",
+      engineDiffers: "the game's score sees it differently: {v} — confidence lowered",
+      confidence: "confidence {p}%",
+      confLevels: { high: "high", mid: "medium", low: "low" },
+      soft: "How you spoke",
+      softNames: {
+        assurance: "Speech assurance", specificity: "Specificity", declaration: "Reasoning aloud",
+        comprehension: "Question comprehension", followups: "Handling follow-ups",
+        consistency: "Consistency", facts: "Brief check",
+      },
+      softHints: {
+        assurance: "lines without softeners, hitches or tense facial cues",
+        specificity: "statements with a number, example or fact",
+        declaration: "moves whose reason was stated",
+        comprehension: "counterpart questions that got an answer",
+        followups: "probes and pushback met calmly",
+        consistency: "no contradicting yourself",
+        facts: "what you said matches the brief",
+      },
+      softNone: "no occasion",
+      softUnavailable: "the agent did not answer",
+      ratio: "{num} of {den}",
+      unchecked: "{n} more — not in the brief: a bluff or a real-world point, not a mistake",
+      questionsAsked: "your questions: {n}",
+      convergences: "Matching signals",
+      convergencesLead: "On these turns different channels showed the same thing — findings here deserve more trust.",
+      tight: "within 2.5 s",
+      noConvergences: "Signals from different channels never met on the same turn.",
+      voice: "Voice",
+      voiceTurn: {
+        wpm: "{n} wpm", pauses: "pauses: {n}", longest: "longest {s} s",
+        jumps: "pitch jumps: {n}", fading: "voice fades at the end",
+      },
+      face: "Facial cues",
+      faceTense: "tense facial cues — in {n} of {m} frames",
+      timeline: "Signal timeline",
+      more: "Show all ({n})",
+      less: "Collapse",
+      turn: "Turn {n}",
+      kinds: {
+        hedge: "softener", softener: "softener", self_doubt: "self-doubt",
+        apology: "needless apology", filler_word: "filler word",
+        pause: "pause {v} s", pitch_jump: "pitch jumped {v} st", fading: "voice fades",
+        filler: "filler", hesitation: "hitch", restart: "sentence restarted",
+        stutter: "stumble", tremor: "shaky voice", laugh: "laugh", sigh: "sigh",
+        rushed: "gabbling", trailing_off: "voice trails off",
+        generic: "generic words", number: "number", example: "example", fact: "fact", deadline: "deadline",
+        position: "position", reasoning: "reason", conclusion: "conclusion", proposal: "proposal",
+        unspoken: "move without a reason", shift: "turn in the conversation", question: "question",
+        answer_full: "question answered", answer_partial: "answered only in part", answer_no: "question left unanswered",
+        followup_steady: "follow-up — calm", followup_defensive: "follow-up — justifying",
+        followup_evasive: "follow-up — dodged", followup_conceded: "follow-up — gave ground for nothing",
+        contradiction: "contradiction", claim_matches: "matches the brief",
+        claim_contradicts: "conflicts with the brief", claim_unsupported: "not in the brief",
+        pro: "worked", con: "did not work",
+      },
+      cues: {
+        frown: "furrowed brows", wince: "a wince", smile: "a smile", lip_press: "pressed lips",
+        raised_brows: "raised eyebrows", eye_roll: "an eye roll", gaze_away: "looking away",
+        head_shake: "a head shake", nod: "a nod", hand_to_face: "a hand to the face",
+      },
+      dropped: "Quotes that were never said, dropped: {n}.",
+      contradictsTurn: "against turn {n}",
     },
     master: {
       title: "What a master would say",

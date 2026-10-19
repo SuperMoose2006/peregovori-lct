@@ -17,6 +17,8 @@ import { RematchOffer } from "./Rematch";
 import { ServerCertificate } from "./ServerCertificate";
 import type { PastRun } from "../lib/progress";
 import { Icon, DataIcon } from "./Icon";
+import { DeepReview } from "./DeepReview";
+import type { ReviewState } from "../api/useNegotiation";
 
 /** Сколько строк ленты помещается в карточку. Партия на двенадцать ходов
  *  успевает набрать вчетверо больше (взгляд не чаще раза в 8 секунд), а разбор
@@ -48,9 +50,12 @@ export function visionTape(notes: unknown, rows: number = VISION_TAPE_ROWS):
     if (typeof n.turn !== "number") continue;
     const text = typeof n.text === "string" ? n.text : "";
     const expressive = n.expressive === true ? true : n.expressive === false ? false : null;
-    if (!text && expressive !== true) continue;
+    // Мимика — коды закрытого списка; чужое слово из ответа модели сюда не
+    // доезжает (подписи берутся из словаря интерфейса).
+    const cues = Array.isArray(n.cues) ? n.cues.filter((c): c is string => typeof c === "string") : [];
+    if (!text && expressive !== true && !cues.length) continue;
     all.push({ turn: n.turn, at_ms: typeof n.at_ms === "number" ? n.at_ms : 0,
-               text, expressive });
+               text, expressive, ...(cues.length ? { cues } : {}) });
   }
   return { tape: all.slice(-rows), hidden: Math.max(0, all.length - rows) };
 }
@@ -95,6 +100,10 @@ interface Props {
    *  срывов» неотличимо от «слой ни разу не посмотрел», а это разные новости —
    *  первая про выдержку, вторая про то, что камера не доехала. */
   tells?: { count: number; frames: number };
+  /** «Глубокий разбор» по кнопке (решение владельца 19.10). Отсутствует на
+   *  экзамене: в партии на зачёт нет ни записи, ни разбора по ней. */
+  review?: { state: ReviewState; available: boolean; reason: string | null;
+             online: boolean; onRun: () => void };
   onRetry: () => void;
   onHome: () => void;
   // Campaign mode: the primary action advances the arc instead of replaying.
@@ -130,7 +139,8 @@ interface Props {
 }
 
 export function Debrief({
-  t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, observations, tells, onRetry, onHome, onNext, nextLabel,
+  t, d, mode, lang, scenarioTitle, playerName, record, game, probeStats, observations, tells, review,
+  onRetry, onHome, onNext, nextLabel,
   runWhatIf, whatIfMoves, whatIfScenarioId, whatIfUnit, whatIfLowerBetter, whatIfReplies, whatIfStart,
   secondaryIssues, termsConceded, onCourse, rematch,
 }: Props) {
@@ -662,6 +672,11 @@ export function Debrief({
                       <i>{visionClock(n.at_ms)}</i>
                     </span>
                     {n.text ? <p className="vis-what">{n.text}</p> : null}
+                    {n.cues?.length ? (
+                      <p className="vis-cues">
+                        {n.cues.map((c) => t.review.cues[c]).filter(Boolean).join(", ")}
+                      </p>
+                    ) : null}
                     {/* Отметка только на «да». `null` — модель про лицо не
                         сказала, и это не «нет»: рисовать «лицо спокойно» там,
                         где никто ничего не говорил, значит придумать данные. */}
@@ -735,6 +750,14 @@ export function Debrief({
                 </div>
               ) : null}
             </div>
+          ) : null}
+
+          {/* «Глубокий разбор» — сразу за словом наставника: и то и другое —
+              модель поверх готового счёта, и плашка «не влияет на грейд» у
+              карточки своя. На экзамене карточки нет вовсе. */}
+          {at(2) && !exam && review ? (
+            <DeepReview t={t} lang={lang} state={review.state} available={review.available}
+                        reason={review.reason} online={review.online} onRun={review.onRun} />
           ) : null}
 
           {at(2) && d.turning_points && d.turning_points.length > 0 ? (

@@ -10,6 +10,7 @@ import { SCENARIO_MAP, toScenarioView, type ScenarioDef } from "../data/scenario
 // Офлайн-транспорт отложен, поэтому импорт здесь ничего не тянет на главную.
 import { MIRROR_MAP } from "../data/mirrors";
 import { adjustCustom, synthCustomScenario } from "./customScenario";
+import { I18N } from "../i18n";
 import {
   analyze, applyMove, applyStartConditions, closeOnTurnLimit, greetingText, hintLine, hintText, newSession, renderLine,
   scoreSession, stateView, timeoutLine, toAnalysis, type Session,
@@ -66,6 +67,13 @@ export class MockServer implements Transport {
         break;
       case "adjust":
         this.handleAdjust(msg);
+        break;
+      case "review":
+        // «Глубокий разбор» — двадцать вызовов моделей по записи партии.
+        // Офлайн-ядру делать его нечем, и имитации здесь нет (принцип 2):
+        // отказ называет причину словами.
+        this.emit({ type: "review_error", code: "review_unavailable",
+                    message: I18N[this.session?.lang ?? "ru"].review.offline });
         break;
     }
   }

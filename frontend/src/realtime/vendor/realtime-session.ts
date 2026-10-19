@@ -239,6 +239,11 @@ export class RealtimeSession {
     this.send({ type: "coach.request" });
   }
 
+  /** «Глубокий разбор» сыгранной партии. */
+  requestReview(): void {
+    this.send({ type: "review.request" });
+  }
+
   /** Своя сделка: поправить числа стола до первого хода (CE-01). */
   adjust(open: number, target: number, redline: number): void {
     this.send({ type: "session.adjust", open, target, redline });

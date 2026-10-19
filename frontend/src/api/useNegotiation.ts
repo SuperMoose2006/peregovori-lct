@@ -100,7 +100,28 @@ export interface NegotiationState {
    *  останется. Баннер «связь прервалась» здесь был бы неправдой — человек
    *  сам нажал кнопку. Снимается приветствием нового сокета. */
   switching: boolean;
+  /** «Глубокий разбор» по кнопке в итогах. В грейд не входит. */
+  review: ReviewState;
 }
+
+/** Состояние «Глубокого разбора». `agents` — группы агентов, которые уже
+ *  ответили (или отказались): по ним кнопка показывает, сколько осталось. */
+export interface ReviewState {
+  status: "idle" | "running" | "done" | "failed";
+  done: number;
+  total: number;
+  agents: string[];
+  report: import("../types").DeepReview | null;
+  /** Код отказа сервера (`review_unavailable`…) или свой: `review_empty` —
+   *  отчёт пришёл, но ни один агент не ответил; `review_interrupted` — связь
+   *  оборвалась посреди разбора, и сервер его погасил. */
+  code: string | null;
+  message: string | null;
+}
+
+export const REVIEW_IDLE: ReviewState = {
+  status: "idle", done: 0, total: 0, agents: [], report: null, code: null, message: null,
+};
 
 export interface Negotiation extends NegotiationState {
   // situation is the free-text brief for mode "custom" (ignored otherwise).
@@ -134,6 +155,8 @@ export interface Negotiation extends NegotiationState {
   relayer: (layers: Record<string, boolean>, note?: string) => boolean;
   setCameraOff: (off: boolean) => void;
   stopCapture: () => void;
+  /** Запустить «Глубокий разбор» сыгранной партии. Готовый не перезапускается. */
+  requestReview: () => void;
 }
 
 const initialState: NegotiationState = {
@@ -160,6 +183,7 @@ const initialState: NegotiationState = {
   capabilities: null,
   devices: { mic: "off", camera: "off" },
   switching: false,
+  review: REVIEW_IDLE,
 };
 
 /** Куда рисовать картинку с камеры. Сами слои выбираются на экране подготовки
@@ -359,9 +383,20 @@ export function useNegotiation(lang: Lang, realtime: RealtimeOptions = {}): Nego
     return true;
   }, []);
 
+  const requestReview = useCallback(() => {
+    // Проверка по снимку, отправка — вне функции обновления состояния: React
+    // вправе позвать её дважды, и второй вызов был бы вторым счётом.
+    const p = stateRef.current;
+    const review = p.review ?? REVIEW_IDLE;
+    if (!p.debrief || p.conn !== "online") return;
+    if (review.status === "running" || review.status === "done") return;
+    if (transportRef.current?.send({ type: "review" }) === false) return;
+    setS((q) => ({ ...q, review: { ...REVIEW_IDLE, status: "running" } }));
+  }, []);
+
   return { ...s, start, turn, requestHint, adjust, answerProbe, clearError, reset, getMicLevel, getSpeechLevel,
            getVideoFrame, getAudioBlocked, resumeAudio, setMicMuted, interrupt, relayer, setCameraOff,
-           stopCapture };
+           stopCapture, requestReview };
 }
 
 /** Тот же итог: совпали все числа и буквы, из которых складывается оценка. */
@@ -427,6 +462,13 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
         error: null,
         judgeActive: !!msg.judge_active,
         switching: false,
+        // Новая партия — разбор с нуля. Возвращение посреди разбора значит, что
+        // прежний сокет ушёл, а с ним и задача разбора на сервере: ждать её
+        // ответа бессмысленно, честнее предложить запустить ещё раз.
+        review: !msg.resumed ? REVIEW_IDLE
+          : (prev.review ?? REVIEW_IDLE).status === "running"
+            ? { ...REVIEW_IDLE, status: "failed", code: "review_interrupted" }
+            : (prev.review ?? REVIEW_IDLE),
         log: msg.resumed
           ? prev.log.filter(e => !(e.kind === "hint" && e.pending))
               .map(e => e.kind === "opp" && e.streaming ? { ...e, streaming: false } : e)
@@ -524,6 +566,28 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
       // (`observations` с ходами и временем): она посчитана там же, где шла
       // партия, и переживает обрыв связи, в отличие от накопленной здесь.
       return { ...prev, debrief: msg.debrief, busy: false };
+
+    case "review_progress": {
+      const review = prev.review ?? REVIEW_IDLE;
+      if (review.status === "done") return prev;
+      return { ...prev, review: { ...review, status: "running", done: msg.done, total: msg.total,
+        agents: msg.agent && !review.agents.includes(msg.agent) ? [...review.agents, msg.agent]
+          : review.agents } };
+    }
+
+    case "review":
+      // Отчёт, где не ответил ни один агент, — сбой, а не разбор: сервер его
+      // не запомнил, и кнопка предлагает повторить.
+      return { ...prev, review: msg.review.agents_ok > 0
+        ? { ...(prev.review ?? REVIEW_IDLE), status: "done", report: msg.review, code: null, message: null }
+        : { ...REVIEW_IDLE, status: "failed", code: "review_empty" } };
+
+    case "review_error": {
+      const review = prev.review ?? REVIEW_IDLE;
+      // «Уже идёт» — не сбой: идущий разбор продолжает идти.
+      if (msg.code === "review_busy" || review.status === "done") return prev;
+      return { ...prev, review: { ...review, status: "failed", code: msg.code, message: msg.message } };
+    }
 
     case "phase":
       return { ...prev, phase: msg.phase };

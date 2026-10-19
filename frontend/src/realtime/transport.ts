@@ -163,6 +163,9 @@ export class RealtimeTransport implements Transport {
       case "turn":
         this.session?.sendText(message.text);
         break;
+      case "review":
+        this.session?.requestReview();
+        break;
       case "hint":
         this.session?.requestHint();
         break;
@@ -798,6 +801,15 @@ export class RealtimeTransport implements Transport {
         this.emit({ type: "debrief", debrief: event.debrief as never });
         return;
 
+      case "review.progress":
+        this.emit({ type: "review_progress", done: Number(event.done) || 0,
+                    total: Number(event.total) || 0, agent: String(event.agent ?? "") });
+        return;
+
+      case "review.done":
+        this.emit({ type: "review", review: event.review as never });
+        return;
+
       // Сервер закрыл партию по существу — это НЕ обрыв связи.
       // `taken_over` значит «партию продолжили в другом окне»: она жива, просто
       // не здесь. Молчание в этом месте выглядело бы как зависший стол, а
@@ -817,6 +829,12 @@ export class RealtimeTransport implements Transport {
         // (инвариант 4, найдено после аудита 17.10). Их текст берётся из
         // словаря по коду; остальные коды сервер уже переводит сам.
         const message = this.localMessage(err.code, err.message);
+        // Отказ «Глубокого разбора» относится к кнопке в итогах: строкой в
+        // ленту стола его не положить — стола к этому моменту уже нет.
+        if (err.code?.startsWith("review_")) {
+          this.emit({ type: "review_error", code: err.code, message });
+          return;
+        }
         // ОТКАЗ ВНУТРИ ПАРТИИ — СТРОКА В ЛЕНТЕ, А НЕ ПРОВАЛ ЗАПУСКА.
         //
         // `error` со стола (кончился бюджет зрения, не поднялось распознавание,

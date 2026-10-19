@@ -154,6 +154,95 @@ export interface VisionNote {
   /** Несло ли лицо явное выражение. `null` — модель об этом не сказала, и это
    *  НЕ «нет»: молчание модели и спокойное лицо разные вещи. */
   expressive: boolean | null;
+  /** Мимика кодами из закрытого списка (`perception/vision.py::CUES`): то, что
+   *  видно, а не вывод о чувствах. Нет поля — модель про мимику не сказала. */
+  cues?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// «Глубокий разбор» — зеркало `services/gateway/app/review/merge.py`.
+// Оценка МОДЕЛИ по записи партии; в грейд не входит (`affects_score: false`).
+// ---------------------------------------------------------------------------
+
+/** Одна находка, поставленная на время партии. */
+export interface ReviewEvidence {
+  channel: "content" | "voice" | "video";
+  /** Код находки: `hedge`, `pause`, `frown`, `answer_no`… — подпись в i18n. */
+  kind: string;
+  turn: number | null;
+  /** Миллисекунд от начала партии; null — время неизвестно (ход без записи). */
+  at_ms: number | null;
+  /** Цитата игрока или пометка агента. */
+  text?: string;
+  /** Число: длительность паузы (мс), высота скачка (полутоны)… */
+  value?: number;
+  note?: string;
+  quote?: string;
+  quote_a?: string;
+  turn_a?: number;
+  brief?: string;
+  corroborated?: boolean;
+  lexicon?: boolean;
+}
+
+export interface ReviewCompetency {
+  id: string;
+  score: number;
+  confidence: number;
+  pro: ReviewEvidence[];
+  con: ReviewEvidence[];
+  /** Что видит движок по той же оси, 0..1; null — у оси нет пары в счёте. */
+  engine: number | null;
+  engine_agrees: boolean | null;
+}
+
+export interface ReviewSoft {
+  id: string;
+  /** 0..1, больше — лучше; null — не было повода или агент не ответил. */
+  value: number | null;
+  confidence: number | null;
+  num?: number | null;
+  den?: number | null;
+  unavailable?: boolean;
+  unchecked?: number;
+  questions?: number;
+  channels?: Record<string, number>;
+  examples: ReviewEvidence[];
+}
+
+export interface ReviewChannel {
+  state: "ok" | "partial" | "failed" | "absent" | "measured";
+  reason?: string;
+  seconds?: number;
+  clips?: number;
+  frames?: number;
+  truncated?: boolean;
+  starved?: boolean;
+  thinned?: boolean;
+  agents_ok?: number;
+  agents_total?: number;
+}
+
+export interface DeepReview {
+  version: number;
+  lang: Lang;
+  affects_score: false;
+  agents: { id: string; channel: string; ok: boolean; reason?: string }[];
+  agents_ok: number;
+  agents_total: number;
+  channels: { content: ReviewChannel; voice: ReviewChannel; video: ReviewChannel };
+  competencies: ReviewCompetency[];
+  soft: ReviewSoft[];
+  voice: { turns: { turn: number; voiced_ms: number; wpm: number | null; pauses: number;
+                    longest_pause_ms: number | null; pitch_jumps: number; fading: boolean;
+                    events: number }[]; voiced_ms: number } | null;
+  face: { frames: number; cues: Record<string, number>; tense_frames: number } | null;
+  convergences: { turn: number; at_ms: number | null; tight: boolean; channels: string[];
+                  signals: ReviewEvidence[] }[];
+  timeline: ReviewEvidence[];
+  timeline_total: number;
+  dropped_quotes: number;
+  took_ms?: number;
 }
 
 // «С той стороны стола»: один ход партии, рассказанный ОТ ЛИЦА ОППОНЕНТА.
@@ -362,7 +451,10 @@ export type ClientMsg =
       layers?: { probe?: boolean; voice?: boolean; camera?: boolean; avatar?: boolean;
                  pokerface?: boolean } }
   | { type: "turn"; text: string }
-  | { type: "hint" };
+  | { type: "hint" }
+  // «Глубокий разбор» — кнопка в итогах. Офлайн-ядро его не умеет и честно
+  // отвечает отказом (`review_error`).
+  | { type: "review" };
 
 // server -> client
 export type ServerMsg =
@@ -420,4 +512,10 @@ export type ServerMsg =
   // сказать нельзя — `error` за столом никем не рисуется, и человек остался бы
   // перед замершим экраном без единого слова.
   | { type: "notice"; text: string; keepBusy?: boolean }
+  // «Глубокий разбор»: прогресс по группам агентов, готовый отчёт, отказ.
+  // Отказ — отдельное сообщение, а не `notice`: он относится к кнопке в
+  // итогах, а не к ленте стола, которой к этому моменту уже нет.
+  | { type: "review_progress"; done: number; total: number; agent: string }
+  | { type: "review"; review: DeepReview }
+  | { type: "review_error"; code: string; message: string }
   | { type: "error"; message: string };

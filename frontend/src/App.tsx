@@ -19,6 +19,7 @@ import { MASTER_ID, recordExam, recordExercise } from "./lib/progress";
 import { readTrainingLink } from "./lib/trainingLink";
 import { saveAdminDraft } from "./lib/adminContext";
 import { repliesByMove } from "./lib/whatif";
+import { reviewAvailability } from "./lib/review";
 import { LayersPanel } from "./components/Setup";
 import { ProgressCards, MethodCard, RailCard, RailGroup, DailyCard, StreakCard, useDayKey } from "./components/Rail";
 import { SectionTour } from "./components/SectionTour";
@@ -1597,6 +1598,13 @@ export default function App() {
           tells={runLayers.pokerface && nego.tellFrames > 0
             ? { count: nego.tells, frames: nego.tellFrames }
             : undefined}
+          // «Глубокий разбор» по кнопке. Сама карточка прячется на экзамене;
+          // здесь — только можно ли нажать и почему нельзя.
+          review={(() => {
+            const can = reviewAvailability(nego.kind, nego.capabilities, t);
+            return { state: nego.review, available: can.ok, reason: can.reason,
+                     online: nego.conn === "online", onRun: nego.requestReview };
+          })()}
           mode={mode}
           lang={lang}
           scenarioTitle={nego.scenario?.title}
