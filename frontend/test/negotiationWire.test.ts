@@ -411,3 +411,27 @@ test("причина невставшего слоя в английской п�
     AudioPlayer.prototype.init = init;
   }
 });
+
+test("итог хода ложится под свою реплику, даже если следующая уже в ленте (классический голос)", () => {
+  // Найдено после аудита 17.10 (лежало в «не исправлено»): человек заговорил,
+  // пока шёл судья, распознавание положило реплику N+1 в ленту РАНЬШЕ итога
+  // хода N — и балл аргумента с дельтами хода N вставали под N+1. Разбор
+  // (`analysis`) приходит до судьи и уже лежит под N; итог хода теперь ищет
+  // реплику, у которой разбор есть, а итога ещё нет.
+  let id = 0;
+  const next = () => ++id;
+  let s: NegotiationState = { ...EMPTY, state: STATE0 as never,
+    log: [{ id: next(), kind: "me", text: "Первая реплика" }] };
+  s = reduce(s, { type: "analysis", analysis: DRAFT as never }, next);
+  // Финальная расшифровка следующей реплики — до итога первой.
+  s = { ...s, log: [...s.log, { id: next(), kind: "me", text: "Вторая реплика" }] };
+  s = reduce(s, { type: "arg_quality", value: 41, judged: true }, next);
+  s = reduce(s, { type: "opponent", text: "Ответ.", analysis: DRAFT as never,
+    deltas: { trust: 5, tension: 0, info: 10, leverage: 0 }, state: STATE1 as never }, next);
+  const [first, second] = s.log.filter((e: ChatEntry) => e.kind === "me");
+  assert.equal(first.argSettled, true);
+  assert.deepEqual(first.deltas, { trust: 5, tension: 0, info: 10, leverage: 0 });
+  assert.equal(second.argSettled, undefined, "итог чужого хода не под второй репликой");
+  assert.equal(second.deltas, undefined);
+  assert.equal(second.analysis, undefined);
+});

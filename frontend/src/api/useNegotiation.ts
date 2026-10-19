@@ -350,6 +350,29 @@ function streamingOpp(log: ChatEntry[]): number {
 // НЕГО ЖЕ записанный поток событий и смотрит, на каком событии разбор впервые
 // становится виден игроку. Мерить это по проводу нельзя — ушедшее событие не
 // доказывает нарисованного поля (ровно так прибор задержек врал трижды).
+/** Реплика игрока, которой принадлежит ИТОГ хода (балл аргумента, дельты).
+ *
+ * Разбор (`analysis`) приходит до судьи и ложится под реплику сразу; итог —
+ * после судьи. В классическом голосе человек может заговорить, пока идёт
+ * судья, и финальная расшифровка кладёт реплику N+1 в ленту РАНЬШЕ итога хода
+ * N — поиск «последней реплики без итога» отдавал итог N реплике N+1 (найдено
+ * после аудита 17.10). Поэтому сначала — последняя реплика, у которой разбор
+ * уже есть, а итога ещё нет; без такой (старый сервер, потерянный `analysis`) —
+ * как раньше, последняя без итога. Реплика, которая ходом так и не стала,
+ * разбора не получает — и итог не уезжает на неё. */
+type MeEntry = Extract<ChatEntry, { kind: "me" }>;
+function settlingMove(log: ChatEntry[], open: (e: MeEntry) => boolean): number {
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i];
+    if (e.kind === "me" && e.analysis && open(e)) return i;
+  }
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i];
+    if (e.kind === "me" && open(e)) return i;
+  }
+  return -1;
+}
+
 export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => number): NegotiationState {
   switch (msg.type) {
     case "greeting":
@@ -401,15 +424,12 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
     // значит либо соврать, либо переписать уже показанное на глазах.
     case "arg_quality": {
       const log = [...prev.log];
-      for (let i = log.length - 1; i >= 0; i--) {
-        const e = log[i];
-        if (e.kind === "me" && !e.argSettled) {
-          const analysis = e.analysis ? { ...e.analysis, arg_quality: msg.value } : undefined;
-          log[i] = { ...e, analysis, argSettled: true, judged: msg.judged };
-          return { ...prev, log };
-        }
-      }
-      return prev;
+      const i = settlingMove(log, (e) => !e.argSettled);
+      if (i < 0) return prev;
+      const e = log[i] as MeEntry;
+      const analysis = e.analysis ? { ...e.analysis, arg_quality: msg.value } : undefined;
+      log[i] = { ...e, analysis, argSettled: true, judged: msg.judged };
+      return { ...prev, log };
     }
 
     case "opponent": {
@@ -418,11 +438,10 @@ export function reduce(prev: NegotiationState, msg: ServerMsg, nextId: () => num
       // тогда эта ветка ничего не делает. Она держит ход, до которого
       // `turn.analysis` не доехал (старый сервер, потерянное событие) — но
       // ЧИСЛО отсюда не берётся: `argSettled` ставит только `arg_quality`.
-      for (let i = log.length - 1; i >= 0; i--) {
-        const e = log[i];
-        if (e.kind !== "me" || e.deltas) continue;
-        log[i] = { ...e, analysis: e.analysis ?? msg.analysis, deltas: msg.deltas };
-        break;
+      const mine = settlingMove(log, (e) => !e.deltas);
+      if (mine >= 0) {
+        const e = log[mine] as MeEntry;
+        log[mine] = { ...e, analysis: e.analysis ?? msg.analysis, deltas: msg.deltas };
       }
       // Finalize (or add) the opponent bubble with the authoritative text.
       const at = streamingOpp(log);
