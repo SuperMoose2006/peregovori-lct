@@ -31,6 +31,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+# Порог потолка «C» — из движка, а не числом в тексте: урок и задание cl-04
+# говорили «ниже 45», а движок опускает потолок при методе ниже 39 — с
+# техникой 44 партия получала B (найдено после аудита 17.10).
+from app.engine.engine import TECHNIQUE_FLOOR
+
 
 def T(ru: str, en: str) -> dict[str, str]:
     return {"ru": ru, "en": en}
@@ -632,11 +637,13 @@ BLOCKS: list[Block] = [
             Lesson(4, T("Счёт и потолок «C»", "The score and the C ceiling"), T(
                 "Итог = 0.4·экономика + 0.25·отношения + 0.35·приёмы. Экономика считается не как "
                 "«сколько получил», а как доля пути от красной линии до цели.\n\n"
-                "И главное: при технике ниже 45 грейд не поднимается выше C, какой бы ни была цена. "
+                f"И главное: если сам метод — приёмы без оценки судьи — ниже {TECHNIQUE_FLOOR}, грейд не "
+                "поднимается выше C, какой бы ни была цена. "
                 "Отличная сделка, купленная без метода, не воспроизводима — а тренажёр учит методу.",
                 "Overall = 0.4·economics + 0.25·relationship + 0.35·technique. Economics is not “how "
                 "much you got” but the share of the distance from your red line to your target.\n\n"
-                "And crucially: with technique below 45 the grade never rises above C, whatever the "
+                f"And crucially: if the method itself — technique without the judge's score — is below "
+                f"{TECHNIQUE_FLOOR}, the grade never rises above C, whatever the "
                 "price. A great deal bought without method does not repeat — and method is what the "
                 "trainer teaches.",
             )),

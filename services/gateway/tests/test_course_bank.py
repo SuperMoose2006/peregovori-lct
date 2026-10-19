@@ -846,3 +846,16 @@ def test_the_engine_does_not_concede_a_negated_term():
     line = "Если мы НЕ дадим годовой контракт с гарантией объёма, сможете подвинуться по цене?"
     engine.apply_move(s, engine.analyze(line), line)
     assert "annual_contract" not in s.state.terms_conceded
+
+
+def test_the_c_ceiling_in_the_course_is_the_engines_ceiling():
+    """Найдено после аудита 17.10: урок «Счёт и потолок C» и задание cl-04
+    говорили «приёмы ниже 45 — не выше C», а движок опускает потолок при
+    методе ниже 39: партия с техникой 44 получала B вопреки уроку."""
+    from app.engine.engine import TECHNIQUE_FLOOR
+    lesson = next(l for b in BLOCKS if b.id == "closing" for l in b.lessons if l.idx == 4)
+    cl04 = BY_ID["cl-04"]
+    for lang in ("ru", "en"):
+        for text in (lesson.body[lang], cl04["explain"][lang]):
+            assert str(TECHNIQUE_FLOOR) in text, text[:80]
+            assert "45" not in text, text[:80]

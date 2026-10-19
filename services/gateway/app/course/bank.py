@@ -48,6 +48,7 @@
 from __future__ import annotations
 
 from app.course.blocks import T
+from app.engine.engine import TECHNIQUE_FLOOR
 
 BANK: list[dict] = [
     # ---------------- 1. foundations --------------------------------------
@@ -1581,12 +1582,14 @@ BANK: list[dict] = [
                     "Economics 95, Relationship 80, Technique 40. Compute the overall: 0.4·eco + 0.25·rel + 0.35·tech."),
         "answer": {"value": 72, "tolerance": 0}, "unit": T("баллов", "points"),
         "explain": T(
-            "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, то есть грейд B. НО: приёмы 40 < 45, "
-            "поэтому потолок опускается до C. Отличная цена без метода не даёт A/B — это тезис "
+            "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, то есть грейд B. И он устоит, но на "
+            f"волоске: приёмы 40 — чуть выше порога {TECHNIQUE_FLOOR}. Будь метод ниже {TECHNIQUE_FLOOR}, "
+            "потолок опустился бы до C. Отличная цена без метода не даёт A/B — это тезис "
             "Гарварда, зашитый в код.",
-            "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, i.e. grade B. BUT: technique 40 < 45, so "
-            "the ceiling drops to C. A great price bought without method never earns A/B — the Harvard "
-            "thesis, written into the code."),
+            "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, i.e. grade B. And it holds, by a hair: "
+            f"technique 40 is just above the floor of {TECHNIQUE_FLOOR}. Had the method been below "
+            f"{TECHNIQUE_FLOOR}, the ceiling would drop to C. A great price bought without method never "
+            "earns A/B — the Harvard thesis, written into the code."),
     },
     {
         "id": "cl-05", "block": "closing", "lesson": 4, "type": "drill",

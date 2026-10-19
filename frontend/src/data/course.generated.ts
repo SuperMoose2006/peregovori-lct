@@ -2786,8 +2786,8 @@ export const COURSE_BANK: Exercise[] = [
       "en": "points"
     },
     "explain": {
-      "ru": "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, то есть грейд B. НО: приёмы 40 < 45, поэтому потолок опускается до C. Отличная цена без метода не даёт A/B — это тезис Гарварда, зашитый в код.",
-      "en": "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, i.e. grade B. BUT: technique 40 < 45, so the ceiling drops to C. A great price bought without method never earns A/B — the Harvard thesis, written into the code."
+      "ru": "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, то есть грейд B. И он устоит, но на волоске: приёмы 40 — чуть выше порога 39. Будь метод ниже 39, потолок опустился бы до C. Отличная цена без метода не даёт A/B — это тезис Гарварда, зашитый в код.",
+      "en": "0.4·95 + 0.25·80 + 0.35·40 = 38 + 20 + 14 = 72, i.e. grade B. And it holds, by a hair: technique 40 is just above the floor of 39. Had the method been below 39, the ceiling would drop to C. A great price bought without method never earns A/B — the Harvard thesis, written into the code."
     }
   },
   {

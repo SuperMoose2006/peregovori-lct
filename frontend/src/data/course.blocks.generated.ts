@@ -556,8 +556,8 @@ export const COURSE_BLOCKS: CourseBlock[] = [
           "en": "The score and the C ceiling"
         },
         "body": {
-          "ru": "Итог = 0.4·экономика + 0.25·отношения + 0.35·приёмы. Экономика считается не как «сколько получил», а как доля пути от красной линии до цели.\n\nИ главное: при технике ниже 45 грейд не поднимается выше C, какой бы ни была цена. Отличная сделка, купленная без метода, не воспроизводима — а тренажёр учит методу.",
-          "en": "Overall = 0.4·economics + 0.25·relationship + 0.35·technique. Economics is not “how much you got” but the share of the distance from your red line to your target.\n\nAnd crucially: with technique below 45 the grade never rises above C, whatever the price. A great deal bought without method does not repeat — and method is what the trainer teaches."
+          "ru": "Итог = 0.4·экономика + 0.25·отношения + 0.35·приёмы. Экономика считается не как «сколько получил», а как доля пути от красной линии до цели.\n\nИ главное: если сам метод — приёмы без оценки судьи — ниже 39, грейд не поднимается выше C, какой бы ни была цена. Отличная сделка, купленная без метода, не воспроизводима — а тренажёр учит методу.",
+          "en": "Overall = 0.4·economics + 0.25·relationship + 0.35·technique. Economics is not “how much you got” but the share of the distance from your red line to your target.\n\nAnd crucially: if the method itself — technique without the judge's score — is below 39, the grade never rises above C, whatever the price. A great deal bought without method does not repeat — and method is what the trainer teaches."
         }
       }
     ]
