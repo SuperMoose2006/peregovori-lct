@@ -31,7 +31,7 @@ import type { IconName } from "./Icon";
 import type { ChatEntry } from "../api/useNegotiation";
 import type { Devices } from "../realtime/transport";
 import type { FaceRenderer } from "../lib/faceSource";
-import type { MeetingStatus } from "../lib/meeting";
+import { callDialing, type MeetingStatus } from "../lib/meeting";
 import { formatDeal } from "../lib/format";
 import type { Strings } from "../i18n";
 import type { Lang, ScenarioView, StateView } from "../types";
@@ -171,6 +171,10 @@ export function CallView({
   }, [listening, getMicLevel]);
   const unit = scenario.headline_unit;
   const shownHint = hint && hint.id !== dismissedHint ? hint : null;
+  // Пока звонок соединяется или видео собеседника ещё не пришло — дозвон, а не
+  // рисованный портрет, который через секунды сменит другое лицо.
+  const dialing = callDialing({ status, videoPending, finished });
+  const initial = (scenario.counterpart_name.trim()[0] ?? "").toUpperCase();
 
   return (
     <section className="call" aria-label={c.title} data-status={status}>
@@ -193,6 +197,15 @@ export function CallView({
 
       <div className={`call-body${feedOpen ? " with-feed" : ""}`}>
         <div className="call-stage">
+          {dialing ? (
+            <div className="call-face call-dial" role="status" aria-live="polite">
+              <div className="cd-ring" aria-hidden="true">
+                <i /><i /><i />
+                <span className="cd-initial">{initial}</span>
+              </div>
+              <p className="cd-text">{connecting ? c.dialing : t.meeting.videoConnecting}</p>
+            </div>
+          ) : (
           <div className="call-face">
             <OpponentFace
               scenarioId={scenario.id}
@@ -209,11 +222,12 @@ export function CallView({
               size={320}
             />
           </div>
+          )}
           <div className="mt-who">
             <b>{scenario.counterpart_name}</b>
             <span title={scenario.counterpart_persona}>{scenario.counterpart_persona}</span>
             {synthetic ? <span className="mt-test">{t.meeting.testStream}</span> : null}
-            {videoPending ? <span className="mt-pending" role="status">{t.meeting.videoConnecting}</span> : null}
+            {videoPending && !dialing ? <span className="mt-pending" role="status">{t.meeting.videoConnecting}</span> : null}
           </div>
           {/* Одна живая строка на экран: что происходит в созвоне. */}
           <span className={`mt-status ${status}`} role="status">

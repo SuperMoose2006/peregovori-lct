@@ -53,3 +53,15 @@ test("портрет: ролик только без reduced-motion и пока 
   assert.equal(pickFaceSource(face({ loopFailed: true })), "still");
   assert.equal(pickFaceSource(face({ renderer: "amplitude" })), "drawn");
 });
+
+test("созвон без промелькивающей иллюстрации: пока видео не пришло — дозвон, а не портрет", async () => {
+  const { callDialing } = await import("../src/lib/meeting");
+  assert.equal(callDialing({ status: "connecting", videoPending: false, finished: false }), true,
+               "звонок соединяется — дозвон");
+  assert.equal(callDialing({ status: "listening", videoPending: true, finished: false }), true,
+               "видео обещано, первого кадра нет — дозвон");
+  assert.equal(callDialing({ status: "speaking", videoPending: false, finished: false }), false,
+               "видео пришло или его нет вовсе — лицо");
+  assert.equal(callDialing({ status: "connecting", videoPending: true, finished: true }), false,
+               "итог партии — не дозвон");
+});

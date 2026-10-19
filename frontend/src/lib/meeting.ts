@@ -72,6 +72,21 @@ export function videoPending(capabilities: Record<string, unknown> | null | unde
   return a.lipsync_mode === "video" && a.pending === undefined;
 }
 
+/** Экран дозвона вместо лица (решение владельца 19.10: «пусть сразу будет
+ *  аватар, пока грузится — анимация дозвона, как в Зуме»). Раньше в эти секунды
+ *  стоял рисованный портрет, а потом его сменяло видео — человек видел двух
+ *  разных собеседников подряд.
+ *
+ *  Дозвон — пока звонок соединяется или пока видео собеседника обещано, но
+ *  первого кадра нет (`videoPending`: и «ждём первый кадр», и «сервис ещё не
+ *  на связи к началу реплики»). Портрет в созвоне остаётся только запасным
+ *  путём — когда живого видео нет вовсе или оно сломалось: тогда лицо честно
+ *  рисованное, а не вечный дозвон. */
+export function callDialing(i: { status: string; videoPending: boolean; finished: boolean }): boolean {
+  if (i.finished) return false;
+  return i.status === "connecting" || i.videoPending;
+}
+
 /** Стенд обязан быть подписан как стенд. */
 export function syntheticFace(capabilities: Record<string, unknown> | null | undefined): boolean {
   return (capabilities?.avatar as { synthetic?: unknown } | undefined)?.synthetic === true;

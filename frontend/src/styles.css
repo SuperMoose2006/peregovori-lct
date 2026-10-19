@@ -4266,6 +4266,33 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
    задаёт сцена, иначе он застывал бы на 320 px при любой высоте окна. */
 .call-face .face .av-svg { width: 100% !important; height: 100% !important; }
 .call-face .face__img { width: 100%; height: 100%; object-fit: cover; }
+/* Дозвон: как в Зуме — инициал собеседника в круге и расходящиеся волны, пока
+   звонок соединяется или видео собеседника ещё не пришло. Вместо рисованного
+   портрета, который через секунды сменило бы другое лицо. */
+.call-dial {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  border-radius: 22px; background: radial-gradient(circle at 50% 42%, #2f3f47 0%, #1b262c 70%);
+}
+.cd-ring { position: relative; width: clamp(110px, 26%, 170px); aspect-ratio: 1; }
+.cd-ring i {
+  position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgb(255 255 255 / 45%);
+  animation: cd-wave 2.4s ease-out infinite;
+}
+.cd-ring i:nth-child(2) { animation-delay: 0.8s; }
+.cd-ring i:nth-child(3) { animation-delay: 1.6s; }
+.cd-initial {
+  position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%;
+  background: #3a4b54; color: #fff; font-weight: 800; font-size: clamp(40px, 9vw, 64px);
+}
+.cd-text { margin: 0; color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.02em; }
+@keyframes cd-wave {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(1.9); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cd-ring i { animation: none; opacity: 0; }
+  .cd-ring i:first-child { opacity: 0.6; transform: scale(1.25); }
+}
 .call[data-status="reconnecting"] .call-face,
 .call[data-status="lost"] .call-face { filter: grayscale(1) brightness(0.6); }
 

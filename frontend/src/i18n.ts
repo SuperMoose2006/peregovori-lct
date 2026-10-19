@@ -463,7 +463,7 @@ export interface Strings {
     noMic: string;
     youSaid: string; hintSay: string; dismiss: string;
     /** Строки в ленте на границе режимов. */
-    started: string; ended: string;
+    dialing: string; started: string; ended: string;
   };
   live: {
     micOn: string; hearing: string; interrupt: string;
@@ -1538,6 +1538,7 @@ export const I18N: Record<Lang, Strings> = {
       youSaid: "Вы:",
       hintSay: "Скажите:",
       dismiss: "Скрыть",
+      dialing: "Соединяем…",
       started: "Созвон начался. Голос и кадры камеры хранятся только в памяти, пока открыта партия, — для «Глубокого разбора», — и потом стираются.",
       ended: "Созвон завершён — партия продолжается в чате",
     },
@@ -2722,6 +2723,7 @@ export const I18N: Record<Lang, Strings> = {
       youSaid: "You:",
       hintSay: "Say:",
       dismiss: "Dismiss",
+      dialing: "Connecting…",
       started: "Call started. Your voice and camera frames are kept in memory only while the game is open — for the deep review — and erased afterwards.",
       ended: "Call ended — the game continues in the chat",
     },
