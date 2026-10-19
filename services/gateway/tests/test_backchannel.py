@@ -82,6 +82,7 @@ def test_a_closed_table_and_a_silent_voice_give_no_reaction():
 def test_the_turn_ending_signal_fires_once_the_quiet_window_passes(monkeypatch):
     from app.perception import realtime_voice as rv
     monkeypatch.setattr(rv, "_QUIET_MS", 10)
+    monkeypatch.setattr(rv, "_QUIET_LONG_MS", 20)
     monkeypatch.setattr(rv, "_ASR_GRACE_MS", 10)
     published: list[dict] = []
     fired: list[int] = []
@@ -100,6 +101,39 @@ def test_the_turn_ending_signal_fires_once_the_quiet_window_passes(monkeypatch):
         await p._quiet_timer()
     asyncio.run(go())
     assert fired == [1] and {"type": "user.turn.ending"} in published
+
+
+def test_an_unfinished_thought_waits_longer_and_a_new_phrase_keeps_the_turn(monkeypatch):
+    """Владелец 19.10: на паузе посреди мысли («Смотрите, я…») ход уходил
+    обрывком — собеседник отвечал невпопад, субтитры гасли."""
+    from app.perception import realtime_voice as rv
+    assert rv.looks_finished("Давайте девяносто.")
+    assert rv.looks_finished("Добрый день!")
+    assert not rv.looks_finished("Смотрите, я...")
+    assert not rv.looks_finished("Цена высокая,")
+    assert not rv.looks_finished("Мы готовы, если")
+    monkeypatch.setattr(rv, "_QUIET_MS", 10)
+    monkeypatch.setattr(rv, "_QUIET_LONG_MS", 200)
+    monkeypatch.setattr(rv, "_ASR_GRACE_MS", 10)
+    turns: list[str] = []
+
+    async def on_turn(text):
+        turns.append(text)
+
+    async def on_interrupt():
+        pass
+
+    async def go():
+        p = rv.RealtimeVoicePipeline("ru", on_turn, on_interrupt, lambda e: None)
+        p._loop = asyncio.get_running_loop()
+        p._parts = ["Смотрите, я думаю, что"]
+        timer = asyncio.ensure_future(p._quiet_timer())
+        await asyncio.sleep(0.05)
+        assert not turns, "обрывок мысли ушёл ходом через короткое окно"
+        p._speaking = True          # заговорил дальше — ход продолжается
+        await timer
+        assert not turns
+    asyncio.run(go())
 
 
 def test_the_turn_itself_does_not_cut_the_reaction(monkeypatch):

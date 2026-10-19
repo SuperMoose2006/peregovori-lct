@@ -40,6 +40,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Optional
@@ -94,6 +95,36 @@ _BARGE_CONFIRM_MS = int(os.getenv("NEGO_REALTIME_BARGE_MS", "250"))
 #: `max_turns`. Поэтому таймер тишины ДОЖИДАЕТСЯ обещанной расшифровки — но не
 #: вечно: расшифровка может и не прийти, а игрок не должен зависнуть.
 _ASR_GRACE_MS = int(os.getenv("NEGO_REALTIME_ASR_GRACE_MS", "1500"))
+
+#: Окно тишины, если мысль по расшифровке НЕ закончена: «Смотрите, я…»,
+#: запятая, висящее «и», «но», «потому что». Владелец 19.10: на паузе посреди
+#: мысли ход уходил обрывком — собеседник отвечал невпопад, субтитры гасли, а
+#: продолжение становилось вторым ходом в очереди (выглядело как зависание).
+#: Семантического детектора у быстрого пути нет (лишний вызов модели), а
+#: пунктуация расшифровки уже говорит главное — и бесплатно.
+_QUIET_LONG_MS = int(os.getenv("NEGO_REALTIME_QUIET_LONG_MS", "1800"))
+
+#: Слова, на которых мысль не кончается.
+_HANGING = frozenset((
+    "и", "а", "но", "или", "что", "чтобы", "потому", "если", "то", "ну", "вот", "это", "как",
+    "когда", "который", "которая", "которые", "в", "на", "с", "по", "за", "для", "от", "до",
+    "э", "эм", "ээ", "мм", "типа", "значит", "короче",
+    "and", "but", "or", "that", "because", "if", "so", "the", "a", "to", "of", "with", "for",
+    "um", "uh", "like",
+))
+
+
+def looks_finished(text: str) -> bool:
+    """Похожа ли расшифровка на законченную мысль. Пустая — да: ждать нечего."""
+    t = (text or "").strip()
+    if not t:
+        return True
+    if t.endswith(("...", "…", ",", "—", "-", ":", ";")):
+        return False
+    words = re.findall(r"\w+", t.lower())
+    if words and words[-1] in _HANGING:
+        return False
+    return t[-1] in ".!?»\""
 
 #: Аварийный потолок хода — забытый включённый микрофон не должен копиться вечно.
 _MAX_TURN_SECONDS = 120
@@ -556,8 +587,6 @@ class RealtimeVoicePipeline:
     async def _quiet_timer(self) -> None:
         try:
             await asyncio.sleep(_QUIET_MS / 1000)
-            if not self._speaking and (self._pending_asr > 0 or self._joined()):
-                self._turn_ending()
             # Окно тишины вышло — но кусок речи может быть ещё на расшифровке.
             # Отправить сейчас значит отправить черновик и получить ту же фразу
             # вторым ходом, когда расшифровка вернётся. Ждём обещанное, но не
@@ -571,8 +600,19 @@ class RealtimeVoicePipeline:
                     # Человек снова заговорил — ход не кончился, таймер заведёт
                     # следующий `speech_stopped`.
                     return
+            # Мысль по расшифровке не закончена — пауза посреди фразы, а не
+            # конец хода: ждём дольше. Заговорил — таймер снимет `speech_started`.
+            if not looks_finished(self._joined()):
+                extra = max(0.0, (_QUIET_LONG_MS - _QUIET_MS) / 1000 - waited)
+                await asyncio.sleep(extra)
+                if self._speaking:
+                    return
         except asyncio.CancelledError:
             return
+        if self._joined():
+            # «Похоже, договорил» — именно сейчас, когда ход уходит: раньше
+            # «угу…» и «думает…» звучали и на паузе посреди мысли.
+            self._turn_ending()
         await self._commit(reason="quiet")
 
     def _turn_ending(self) -> None:

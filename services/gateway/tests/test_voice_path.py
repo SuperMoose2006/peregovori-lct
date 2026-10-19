@@ -90,6 +90,7 @@ def _fast_windows(monkeypatch):
     """
     monkeypatch.setattr(rv, "_QUIET_MS", 100)
     monkeypatch.setattr(rv, "_ASR_GRACE_MS", 250)
+    monkeypatch.setattr(rv, "_QUIET_LONG_MS", 150)
 
 
 # ---------------------------------------------------------------------------
