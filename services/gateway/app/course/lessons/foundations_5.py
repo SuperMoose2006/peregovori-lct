@@ -101,7 +101,11 @@ MATERIAL = LessonMaterial(
                 "обиделась. Разговор остыл.",
                 "Renting. You opened by calling Natalia's price inflated, and she took "
                 "offence. The conversation has gone cold."),
-        state={"trust": 24, "tension": 45},
+        # 27, а не 24: на 24 одна искренняя реплика давала 32 — ниже порога
+        # вскрытия этого стола (34), и «хорошая ветка» урока в игре получала
+        # переспрос (`lessons._check`; найдено после аудита 17.10). На 27 стол
+        # по-прежнему холодный: вопросы плохой ветки не вскрывают ничего.
+        state={"trust": 27, "tension": 45},
         opening=(
             them("Если вам дорого — ищите дешевле. Я своё сказала.",
                  "If it is too expensive for you, look for something cheaper. I have said my "
