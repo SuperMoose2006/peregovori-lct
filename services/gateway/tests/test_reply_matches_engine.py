@@ -34,6 +34,20 @@ SUPPLIER = {"scenario_id": "supplier", "status": "active", "offer_opp": 95.0, "d
     (SUPPLIER, "Ладно, дам 86."),                       # число игрока, но обещанное
     (SUPPLIER, "Не вопрос, договорились."),
     ({**SUPPLIER, "status": "agreement", "deal": 92.0}, "По рукам, 88 за штуку."),
+    # Найдено после аудита 17.10: согласие на число игрока, число за его целью
+    # без «дам», чужое число после сделки и короткие формы объявленной сделки.
+    (SUPPLIER, "Согласна на 86."),
+    (SUPPLIER, "Хорошо, принимаю 86 за штуку."),
+    (SLA, "Принимаю 99,7%."),
+    (SLA, "OK, 99.7% works for us."),
+    (SUPPLIER, "Давайте 80, и закроем вопрос."),
+    ({**SUPPLIER, "status": "agreement", "deal": 92.0}, "По рукам, 95 за штуку."),
+    (SUPPLIER, "Что ж, по рукам."),
+    (SUPPLIER, "Ну что ж, договорились!"),
+    (SUPPLIER, "Ну что, по рукам!"),
+    (SUPPLIER, "That settles it, we have a deal."),
+    (SUPPLIER, "You've got a deal."),
+    (SUPPLIER, "Fine, deal."),
 ])
 def test_a_line_promising_what_the_engine_did_not_give_is_rejected(facts, line):
     assert contradicts(line, facts)
@@ -55,6 +69,9 @@ def test_a_line_promising_what_the_engine_did_not_give_is_rejected(facts, line):
     (SUPPLIER, "Мы ещё не договорились."),
     (SLA, "100% доступность каналов мы не обещаем, держим 99,2%."),
     ({**SUPPLIER, "status": "agreement", "deal": 92.0}, "По рукам, 92 за штуку."),
+    (SUPPLIER, "Рад, что мы почти договорились, но 95 пока держу."),
+    (SUPPLIER, "This deal matters to us, and 95 is where I stand."),
+    ({**SUPPLIER, "status": "agreement", "deal": 92.0}, "Начинали со 100, а сошлись на 92. По рукам."),
 ])
 def test_a_line_that_agrees_with_the_table_passes(facts, line):
     assert not contradicts(line, facts)

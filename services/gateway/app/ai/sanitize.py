@@ -140,21 +140,62 @@ _DEAL_CLAIM_RE = re.compile(
 )
 #: Отрицание вплотную перед фразой: «не договорились», «no deal».
 _DEAL_NEGATED_RE = re.compile(r"(?:\bне|\bnot|\bno|\bnever)\s*$")
-#: Условие или рассказ раньше в том же предложении: «если пойдёте на 90, по
-#: рукам», «рад, что договорились», «if you take the volume, we have a deal».
-_DEAL_FRAMED_RE = re.compile(r"\b(?:если|когда|что|if|when|that)\b")
+#: Условие или рассказ раньше в том же предложении — «если пойдёте на 90, по
+#: рукам», «рад, что договорились», «if you take the volume, we have a deal» —
+#: решает `_framed` ниже.
 #: Слова своего предложения: число рядом с ними — обещание, а не цитата.
+#: И слова СОГЛАСИЯ: «Согласна на 86», «Принимаю 99,7%», «пусть будет 260»,
+#: "99.7% works for us" — оппонент берёт число игрока, и это то же обещание,
+#: что «дам 86». Без них такие реплики шли «цитатой» (найдено после аудита
+#: 17.10 — тот же F05 другими глаголами).
 _OWN_OFFER = ["дам", "даю", "могу", "готов", "предлагаю", "отдам", "уступлю", "соглашусь",
-              "сойдемся", "i can", "i ll", "i will", "give you", "we can", "we ll", "let you have"]
+              "сойдемся", "согласн", "принимаю", "принимаем", "устраивает", "подходит",
+              "пусть будет", "давайте",
+              "i can", "i ll", "i will", "give you", "we can", "we ll", "let you have",
+              "accept", "works for", "fine with", "agree to", "let s"]
+
+
+#: Короткое английское «сделка»: "You've got a deal.", "Fine, deal.", "Deal — 95
+#: per unit." Существительное «deal» внутри фразы («this deal matters») — не
+#: объявление, поэтому только в начале предложения, после запятой в конце или
+#: в «got (yourself) a deal».
+_DEAL_SHORT_RE = re.compile(r"^deal\b|,\s*deal\s*[.!]?$|\bgot (?:a|yourself a) deal\b")
+
+
+def _framed(before: str) -> bool:
+    """Условие или рассказ раньше в предложении — но не частица «что ж» и не
+    указательное "That …" в начале: «Что ж, по рукам», «Ну что ж,
+    договорились!», "That settles it, we have a deal" — объявленные сделки, а
+    шли «рассказом» (найдено после аудита 17.10)."""
+    words = [w.strip(".,?!-") for w in before.split()]
+    for i, w in enumerate(words):
+        if w in ("если", "if"):
+            return True
+        if w in ("когда", "что", "when", "that"):
+            if i == 0:
+                continue                      # начало предложения: «Что ж…», "That settles…"
+            if w == "что" and (words[i - 1] == "ну" or (i + 1 < len(words) and words[i + 1].startswith("ж"))):
+                continue                      # «ну что», «что ж»
+            return True
+    return False
 
 
 def _deal_claim(sentence: str) -> bool:
     for m in _DEAL_CLAIM_RE.finditer(sentence):
         before = sentence[:m.start()]
-        if _DEAL_NEGATED_RE.search(before) or _DEAL_FRAMED_RE.search(before):
+        if _DEAL_NEGATED_RE.search(before) or _framed(before):
             continue
         return True
+    m = _DEAL_SHORT_RE.search(sentence.strip())
+    if m and not _DEAL_NEGATED_RE.search(sentence.strip()[:m.start()]):
+        return True
     return False
+
+
+def _deal_claim_any(sentence: str) -> bool:
+    """Есть ли в предложении слова сделки вообще (после рукопожатия рамки
+    «если» уже не бывает)."""
+    return bool(_DEAL_CLAIM_RE.search(sentence) or _DEAL_SHORT_RE.search(sentence.strip()))
 
 
 def reply_verdict(text: Optional[str], facts: dict, final: bool = True) -> str:
@@ -230,6 +271,15 @@ def reply_verdict(text: Optional[str], facts: dict, final: bool = True) -> str:
         return (v < mark - near) if lower_better else (v > mark + near)
 
     said = priced(t)
+    if status == "agreement":
+        # После рукопожатия число одно — сделки. «По рукам, 95 за штуку» при
+        # сделке на 92 шло: проверка смотрела только «лучше стола для игрока»,
+        # а 95 хуже (найдено после аудита 17.10). Объявленная сделка с ДРУГИМ
+        # числом в том же предложении — спор с движком в любую сторону.
+        for sentence in _SENTENCE_END_RE.split(text):
+            st = norm(sentence)
+            if st and _deal_claim_any(st) and any(abs(v - ref) > near for v in priced(st)):
+                return "bad"
     names_ref = any(abs(v - ref) <= near for v in said)
     own_offer = _has(t, _OWN_OFFER)
     recorded = priced(norm(facts.get("player_text") or "")) + list(facts.get("offer_history") or [])
