@@ -15,6 +15,7 @@ import type { ConnStatus, ServerMsgHandler, Transport } from "../api/transport";
 import { I18N } from "../i18n";
 import { INSECURE_REASON, SERVER_SIDE_REASON } from "../lib/layers";
 import { normalizeDifficulty } from "../lib/difficulty";
+import { canReconnect, reconnectDelay } from "../lib/net";
 import { AudioPlayer } from "./vendor/audio-player";
 import { AvatarFrames } from "../lib/avatarFrames";
 import { MediaProvider, toBase64 } from "./vendor/media-provider";
@@ -277,8 +278,10 @@ export class RealtimeTransport implements Transport {
 
   // -- запуск партии -------------------------------------------------------
 
-  /** `resume` — смена режима той же партии (`relayer`), а не новая партия. */
-  private async begin(message: Extract<ClientMsg, { type: "start" }>, resume?: string): Promise<void> {
+  /** `resume` — смена режима той же партии (`relayer`), а не новая партия.
+   *  `attempt` — номер попытки вернуться в неё (lib/net.ts). */
+  private async begin(message: Extract<ClientMsg, { type: "start" }>, resume?: string,
+                      attempt = 0): Promise<void> {
     const gen = ++this.beginGen;
     const layers = { ...(message.layers ?? {}) } as Record<string, boolean>;
     this.lastStart = message;
@@ -345,6 +348,21 @@ export class RealtimeTransport implements Transport {
       if (this.voiceWanted || this.cameraWanted) await this.startMedia(gen);
     } catch (error) {
       if (gen !== this.beginGen || this.closed) return;
+      // ВЕРНУТЬСЯ В ПАРТИЮ ПРОБУЕМ ТАК ЖЕ УПОРНО, КАК ПОСЛЕ ОБРЫВА. Смена
+      // режима — тот же `resume`, и сервер держит партию тот же срок. Без
+      // повтора одна неудача сокета (перезапуск на выкладке, мобильная сеть)
+      // сразу давала «связь потеряна», а «Повторить» там начинает новую
+      // партию — то есть смена режима, нажатая человеком, была хрупче обрыва.
+      const failed = this.session;
+      this.session = null;
+      failed?.detach();
+      if (resume && canReconnect(attempt + 1)) {
+        this.onConn("reconnecting");
+        setTimeout(() => {
+          if (gen === this.beginGen && !this.closed) void this.begin(message, resume, attempt + 1);
+        }, reconnectDelay(attempt + 1));
+        return;
+      }
       // Провал СМЕНЫ РЕЖИМА — это потерянная связь посреди партии, а не
       // провал запуска: `error` рисуется только на экране подготовки.
       if (!resume) this.emit({ type: "error", message: (error as Error).message });

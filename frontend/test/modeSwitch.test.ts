@@ -286,3 +286,27 @@ test("ответ браузера о микрофоне, пришедший по
   }
 });
 
+test("неудачный вход в ту же партию повторяется, а не сдаётся с первого раза", async () => {
+  // Найдено ревью созвона: обрыв сокета переподключается с паузами
+  // (lib/net.ts), а смена режима при первой же неудаче давала «связь
+  // потеряна» — хотя сервер держит партию тот же срок.
+  const t = await table();
+  t.transport.relayer({ voice: false, probe: true });
+  const second = await nextSocket();
+  second.shut(1006);                                       // перезапуск сервера на выкладке
+  for (let i = 0; i < 5; i++) await wait(0);
+  assert.equal(t.get().conn, "reconnecting", `сдались сразу: ${t.conns.join(",")}`);
+  for (let i = 0; i < 40 && FakeSocket.instances.length < 3; i++) await wait(50);
+  const third = FakeSocket.instances[2];
+  assert.ok(third, "повторной попытки не было");
+  third.deliver({ type: "session.queue_done" });
+  for (let i = 0; i < 20 && !third.types().includes("session.init"); i++) await wait(10);
+  assert.equal(third.init().resume, "s-1", "повтор вошёл не в ту партию");
+  third.deliver({ type: "session.created", session_id: "s-1", resumed: true,
+    scenario: { id: "supplier" }, state: STATE0, greeting: "", capabilities: {} });
+  await wait(0);
+  assert.equal(t.get().conn, "online");
+  assert.ok(!t.conns.includes("lost"));
+  t.transport.close();
+});
+
