@@ -163,6 +163,14 @@ class RealtimeVoicePipeline:
         #: счётчик не ноль, окно тишины не закрывает ход: иначе в движок уедет
         #: живая гипотеза, а следом — та же фраза ещё раз (см. `_ASR_GRACE_MS`).
         self._pending_asr = 0
+        #: Куски речи, ушедшие на расшифровку, — по id элемента. Счётчик сам по
+        #: себе не знал, ЧЬЯ расшифровка пришла: `…transcription.failed` не
+        #: учитывался (каждый следующий ход ждал весь запас 1,5 с), а
+        #: запоздавшая после истёкшего запаса приклеивалась к следующему ходу
+        #: (найдено после аудита 17.10).
+        self._pending_items: set[str] = set()
+        #: Куски, чей ход уже сыгран без них (запас вышел): их расшифровка — в мусор.
+        self._stale_items: set[str] = set()
         #: Ход уже отправлен, а расшифровка того же звука ещё в пути. Всё, что
         #: придёт до следующего `speech_started`, относится к УЖЕ СЫГРАННОМУ
         #: ходу — второй раз его играть нельзя.
@@ -401,6 +409,9 @@ class RealtimeVoicePipeline:
             # Кусок закрыт и уехал на расшифровку. Пока она не вернулась, ход
             # закрывать нечем: живая гипотеза — это черновик, а не реплика.
             self._pending_asr += 1
+            item = str(event.get("item_id") or "")
+            if item:
+                self._pending_items.add(item)
             self._publish({"type": "user.speech.stopped"})
             # Отсчёт тишины начинается ЗДЕСЬ, а не от прихода расшифровки.
             # Расшифровка отстаёт от речи почти на секунду, и таймер, заведённый
@@ -421,9 +432,28 @@ class RealtimeVoicePipeline:
             await self._maybe_barge_in(self._live)
             return
 
+        if kind.endswith("transcription.failed"):
+            # Расшифровки не будет — ждать её незачем.
+            item = str(event.get("item_id") or "")
+            if item and item in self._stale_items:
+                self._stale_items.discard(item)   # из счётчика снята при ходе
+                return
+            self._pending_asr = max(0, self._pending_asr - 1)
+            self._pending_items.discard(item)
+            return
+
         if kind.endswith("transcription.completed"):
             text = str(event.get("transcript") or "").strip()
+            item = str(event.get("item_id") or "")
+            if item and item in self._stale_items:
+                # Кусок уже сыгранного хода: человек мог заговорить снова
+                # (`_spent` снят), но эта расшифровка — не начало новой фразы.
+                # Из счётчика она снята при ходе.
+                self._stale_items.discard(item)
+                self._live = ""
+                return
             self._pending_asr = max(0, self._pending_asr - 1)
+            self._pending_items.discard(item)
             if self._spent:
                 # Ход по этому звуку уже сыгран (окно ожидания вышло, ушла
                 # гипотеза). Дописать сюда окончательную расшифровку значит
@@ -540,6 +570,11 @@ class RealtimeVoicePipeline:
         self._parts.clear()
         self._live = ""
         self._fed_samples = 0
+        # Куски, чья расшифровка ещё в пути, принадлежат ЭТОМУ ходу: и ждать их
+        # следующему ходу незачем, и приклеиваться к нему им нельзя.
+        self._stale_items |= self._pending_items
+        self._pending_asr = max(0, self._pending_asr - len(self._pending_items))
+        self._pending_items.clear()
         # Ход сыгран. Всё, что расшифровка ещё принесёт по этому же звуку,
         # относится к нему, а не к следующему: до `speech_started` — в мусор.
         self._spent = True

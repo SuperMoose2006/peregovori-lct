@@ -651,3 +651,44 @@ def test_speech_after_the_table_closed_is_not_published():
     publish({"type": "user.speech.started"})
     publish({"type": "error", "error": {"code": "asr_unavailable"}})
     assert [e["type"] for e in events] == ["user.transcript", "error"]
+
+
+async def _ev(rig, kind: str, **fields):
+    await rig.pipe._on_event({"type": kind, **fields})
+
+
+@pytest.mark.asyncio
+async def test_a_failed_transcription_does_not_hold_every_later_move():
+    """Найдено после аудита 17.10: `…transcription.failed` не учитывался —
+    счётчик ждущих оставался выше нуля, и каждый следующий ход ждал весь
+    запас расшифровки (1,5 с в бою)."""
+    rig = _Rig()
+    await _ev(rig, "input_audio_buffer.speech_started")
+    await rig.delta("Предлагаю 90")
+    await _ev(rig, "input_audio_buffer.speech_stopped", item_id="i1")
+    await _ev(rig, "conversation.item.input_audio_transcription.failed", item_id="i1")
+    await asyncio.sleep(0.18)        # окно 100 мс + фора, но меньше окна + запаса (350)
+    assert rig.turns == ["Предлагаю 90"]
+
+
+@pytest.mark.asyncio
+async def test_a_late_transcription_is_not_glued_to_the_next_move():
+    """Найдено после аудита 17.10: запас вышел, ход ушёл по гипотезе; человек
+    заговорил снова, и запоздавшая расшифровка ПРЕЖНЕЙ фразы приклеивалась к
+    началу нового хода — те же слова звучали дважды."""
+    rig = _Rig()
+    await _ev(rig, "input_audio_buffer.speech_started")
+    await rig.delta("Первая фраза")
+    await _ev(rig, "input_audio_buffer.speech_stopped", item_id="i1")
+    await asyncio.sleep(0.45)        # окно + запас вышли — ход ушёл по гипотезе
+    assert rig.turns == ["Первая фраза"]
+    await _ev(rig, "input_audio_buffer.speech_started")
+    await _ev(rig, "conversation.item.input_audio_transcription.completed",
+              item_id="i1", transcript="Первая фраза полностью")
+    await rig.delta("Вторая фраза")
+    await _ev(rig, "input_audio_buffer.speech_stopped", item_id="i2")
+    await _ev(rig, "conversation.item.input_audio_transcription.completed",
+              item_id="i2", transcript="Вторая фраза")
+    await asyncio.sleep(0.3)
+    assert len(rig.turns) == 2
+    assert "Первая" not in rig.turns[1], rig.turns
