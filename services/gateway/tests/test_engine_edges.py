@@ -371,3 +371,15 @@ def test_the_players_offer_is_the_new_number_not_the_quoted_one(scenario_id, lin
     assert s.state.offer_player == player
     if s.state.status == "agreement":
         assert s.state.deal == player
+
+
+@pytest.mark.parametrize("line", ["Договорились, подписываем 15 числа.", "По рукам, отгрузка 1 марта."])
+def test_a_date_in_a_yes_is_not_an_offer(line):
+    """Найдено после аудита 17.10: число даты читалось офертой вне коридора, и
+    согласие отклонялось («пока не соглашается», напряжение +8)."""
+    s = engine.create_session("supplier", "ru")
+    s.turn = 1
+    a = engine.analyze(line)
+    engine.apply_move(s, a, line)
+    assert a.number is None
+    assert s.state.status == "agreement" and s.state.deal == s.state.offer_opp

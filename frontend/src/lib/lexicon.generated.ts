@@ -135,9 +135,10 @@ export const LEX: Record<string, string[]> = {
   ],
   nonPriceUnits: [
     "лет", "год", "человек", "чел", "инженер", "сотрудник", "недел", "месяц", "дня", "дней",
-    "день", "час", "минут", "штук", "раз", "пункт", "услови", "вариант", "years", "year",
-    "people", "person", "engineer", "employee", "week", "month", "day", "hour", "minute",
-    "times", "items", "points", "options",
+    "день", "час", "минут", "штук", "раз", "пункт", "услови", "вариант", "числ", "январ",
+    "феврал", "март", "апрел", "мая", "июн", "июл", "август", "сентябр", "октябр", "ноябр",
+    "декабр", "years", "year", "people", "person", "engineer", "employee", "week", "month",
+    "day", "hour", "minute", "times", "items", "points", "options",
   ],
   offerIntent: [
     "как насчет", "как вам", "а если", "могу дать", "могу отдать", "могу сделать",

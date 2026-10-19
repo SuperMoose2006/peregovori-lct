@@ -2928,6 +2928,24 @@
    "spin": null
   },
   {
+   "text": "Договорились на 90, отгрузка 1 марта.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 26,
+   "words": 6,
+   "number": 90.0,
+   "mentions": [
+    [
+     90.0,
+     "plain",
+     false
+    ]
+   ],
+   "spin": null
+  },
+  {
    "text": "Договорились, не будем тянуть.",
    "moves": [
     "accept"
@@ -2947,6 +2965,18 @@
    "primary": "accept",
    "arg": 20,
    "words": 6,
+   "number": null,
+   "mentions": [],
+   "spin": null
+  },
+  {
+   "text": "Договорились, подписываем 15 числа.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 4,
    "number": null,
    "mentions": [],
    "spin": null
@@ -4320,6 +4350,18 @@
      false
     ]
    ],
+   "spin": null
+  },
+  {
+   "text": "По рукам, отгрузка 1 марта.",
+   "moves": [
+    "accept"
+   ],
+   "primary": "accept",
+   "arg": 20,
+   "words": 5,
+   "number": null,
+   "mentions": [],
    "spin": null
   },
   {
