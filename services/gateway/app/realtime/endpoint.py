@@ -188,6 +188,7 @@ class _Work:
         self._lock = asyncio.Lock()
         self._turns: set[asyncio.Task] = set()
         self._hint: Optional[asyncio.Task] = None
+        self._review: Optional[asyncio.Task] = None
 
     def start_turn(self, orchestrator: "NegotiationOrchestrator",
                    session: "RealtimeSession", text: str) -> bool:
@@ -273,9 +274,19 @@ class _Work:
         except Exception:
             _log.exception("realtime: подсказка упала")
 
+    def reviewing(self) -> bool:
+        return self._review is not None and not self._review.done()
+
+    def start_review(self, session: "RealtimeSession") -> None:
+        """«Глубокий разбор» — задачей: десятки секунд и два десятка вызовов,
+        читатель на них стоять не должен (`session.close` обязан доходить)."""
+        if self.reviewing():
+            return
+        self._review = asyncio.create_task(_run_review(session))
+
     async def aclose(self) -> None:
         """Сокет ушёл — платить за его ход больше не за что."""
-        tasks = [t for t in (*self._turns, self._hint) if t is not None]
+        tasks = [t for t in (*self._turns, self._hint, self._review) if t is not None]
         for task in tasks:
             task.cancel()
         for task in tasks:
@@ -638,6 +649,29 @@ async def realtime_ws(websocket: WebSocket) -> None:
                     # `adjusted` отличает ответ на поправку от переподключения:
                     # клиент не пишет «связь восстановлена».
                     await websocket.send_json({**_created_payload(session, voice), "adjusted": True})
+                    continue
+
+                # ---- review.request («Глубокий разбор») ------------------------
+                if kind == "review.request":
+                    refusal = _review_refusal(session)
+                    if refusal is not None:
+                        await websocket.send_json(refusal)
+                        continue
+                    if session.tape.report is not None:
+                        # Готовый отчёт — тот же, а не второй счёт от провайдера.
+                        await websocket.send_json({"type": "review.done",
+                                                   "review": session.tape.report,
+                                                   "cached": True})
+                        continue
+                    if work.reviewing():
+                        await websocket.send_json(error("review_busy", _REVIEW_TEXT["busy"][
+                            session.lang], "review"))
+                        continue
+                    if not limits.paid_slot(peer):
+                        await websocket.send_json(error("review_rate_limited", _REVIEW_TEXT[
+                            "rate_limited"][session.lang], "rate_limited"))
+                        continue
+                    work.start_review(session)
                     continue
 
                 # ---- session.close ---------------------------------------------
@@ -1064,6 +1098,9 @@ def _created_payload(session: RealtimeSession, voice: Optional[VoicePipeline]) -
         # знать до первого хода. Тот же выбор, что у сборки партии.
         "speech": bool(session.layers.voice) and _speech_for(
             _make_avatar(session) if session.layers.avatar else None) is not None,
+        # Кнопка «Глубокий разбор» в итогах: запись ведётся (не зачёт) и модели
+        # доступны. Иначе кнопки нет вовсе или она говорит, почему нет.
+        "review": session.tape is not None and orchat.available(),
     }
     if session.layers.avatar:
         caps = _make_avatar(session).capabilities()
@@ -1128,6 +1165,59 @@ def _attach_vision_tape(event: dict, session: RealtimeSession) -> None:
         deb["observation_looks"] = session.vision_looks
     else:
         deb.pop("observation_looks", None)
+
+
+#: Слова отказов «Глубокого разбора». Отказ — обычный `error` с кодом
+#: `review_*`: клиент показывает его на месте кнопки, а не баннером партии.
+_REVIEW_TEXT = {
+    "exam": {"ru": "В партии на зачёт глубокого разбора нет: там нет ни судьи, ни записи.",
+             "en": "Graded games have no deep review: there is no judge and no recording."},
+    "no_ai": {"ru": "Глубокий разбор недоступен: нет связи с моделями. Обычный разбор — выше.",
+              "en": "Deep review is unavailable: the models cannot be reached. The regular debrief is above."},
+    "not_finished": {"ru": "Глубокий разбор — после партии: доиграйте её до конца.",
+                     "en": "Deep review comes after the game: play it to the end."},
+    "busy": {"ru": "Разбор уже идёт.", "en": "The review is already running."},
+    "rate_limited": {"ru": "С этого адреса сейчас слишком много запросов к моделям. Попробуйте через минуту.",
+                     "en": "Too many model requests from this address right now. Try again in a minute."},
+    "failed": {"ru": "Глубокий разбор не получился. Попробуйте ещё раз.",
+               "en": "The deep review failed. Please try again."},
+}
+
+
+def _review_refusal(session: RealtimeSession) -> Optional[dict]:
+    """Почему разбор нельзя — или None. Порядок: зачёт, модели, конец партии."""
+    lang = session.lang if session.lang in ("ru", "en") else "ru"
+    if session.tape is None or reproducible_run(session.game_mode):
+        return error("review_unavailable", _REVIEW_TEXT["exam"][lang], "review")
+    if not orchat.available():
+        return error("review_unavailable", _REVIEW_TEXT["no_ai"][lang], "review")
+    if session.engine_session.state.status == "active":
+        return error("review_not_finished", _REVIEW_TEXT["not_finished"][lang], "review")
+    return None
+
+
+async def _run_review(session: RealtimeSession) -> None:
+    """Собрать отчёт и отдать его. Готовый — запомнить, звук и кадры — выбросить.
+
+    Отчёт, где не ответил НИ ОДИН агент, не запоминается и запись не
+    выбрасывается: это сбой, а не разбор, и человек вправе попросить ещё раз.
+    """
+    from app.review.runner import run_review
+    tape = session.tape
+    lang = session.lang if session.lang in ("ru", "en") else "ru"
+    try:
+        facts = views.review_facts(session.engine_session, lang)
+        report = await run_review(facts, tape, progress=session.bus.publish)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        _log.exception("realtime: глубокий разбор упал")
+        session.bus.publish(error("review_failed", _REVIEW_TEXT["failed"][lang], "review"))
+        return
+    if tape is not None and report.get("agents_ok"):
+        tape.report = report
+        tape.discard_media()
+    session.bus.publish({"type": "review.done", "review": report})
 
 
 def _tape_observer(session: RealtimeSession) -> Optional[Callable[[dict], None]]:

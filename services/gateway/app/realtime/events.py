@@ -48,6 +48,7 @@ CLIENT_EVENTS = (
     "response.cancel",    # перебивание: погасить текущее поколение
     "coach.request",      # кнопка 💡 — подсказка тренера
     "session.adjust",     # своя сделка: поправить числа стола до первого хода (CE-01)
+    "review.request",     # кнопка «Глубокий разбор» в итогах — только после партии
     "session.close",
 )
 
@@ -98,6 +99,11 @@ SERVER_EVENTS = (
     "user.speech.started",  # VAD: игрок заговорил
     "user.speech.stopped",
     "user.transcript",      # расшифровка речи игрока (partial / final)
+    # «Глубокий разбор» (`app/review`): сколько групп агентов готово из
+    # скольких, и готовый отчёт. НЕ влияет на оценку — `affects_score: false`
+    # едет в самом отчёте. Отказы — обычным `error` с кодом `review_*`.
+    "review.progress",
+    "review.done",
 )
 
 #: Ветки выходного потока. `listen` от MiniCPM: модель слушает и молчит.

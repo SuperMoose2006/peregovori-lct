@@ -86,6 +86,10 @@ legacy-node/                 первый прототип — эталон по
   тот же `session.created` с новым столом; скрытое дно собеседника сдвигается
   пропорционально (инвариант 1), числа во вводной меняются. После хода и вне
   своей сделки — `error adjust_closed`.
+- `review.request` — кнопка «Глубокий разбор» в итогах. Только после партии
+  и не на зачёте; отказы — `error` с кодом `review_*` (`unavailable`,
+  `not_finished`, `busy`, `rate_limited`, `failed`). Готовый отчёт не
+  пересчитывается: повтор получает его же с `cached: true`.
 - `coach.request` · `session.close`
 
 **server → client**
@@ -122,6 +126,11 @@ legacy-node/                 первый прототип — эталон по
   `probe {turn, options, answer}` — вопрос по окончательной реакции, после
   судьи, применения хода и проверки лимита; в закрытой партии не отправляется.
 - `avatar.state` · `avatar.frame` · `vision.observation` · `vision.tell` · `user.speech.started|stopped` · `user.transcript`
+- `review.progress {done, total, agent}` · `review.done {review}` — «Глубокий
+  разбор» (`app/review`): восемь агентов смысла, голос, мимика, сводка по
+  времени с уверенностью. **Не влияет на оценку** (`affects_score: false` в
+  отчёте); запись партии, по которой он строится, живёт в `RealtimeSession`
+  и после отчёта выбрасывается.
 - `generation.cancelled` · `session.closed {reason}` · `error`
 
 Списки закрытые: `CLIENT_EVENTS` / `SERVER_EVENTS` в `realtime/events.py`, и
