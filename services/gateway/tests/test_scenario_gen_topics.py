@@ -82,3 +82,10 @@ def test_interests_and_tradeoffs_given_as_one_string_are_not_split_into_letters(
     assert sc is not None
     assert sc.hidden_interests["ru"] == ["Боится штрафа", "хочет отзыв", "нужна предоплата"]
     assert sc.tradeoffs["ru"][:2] == ["отзыв", "предоплата"]
+
+
+def test_a_style_given_as_a_list_does_not_crash_the_generation(monkeypatch):
+    """Найдено после аудита 17.10: `"style": ["tough"]` ронял генерацию
+    TypeError — «internal error» по-английски и сожжённая платная попытка."""
+    sc = _generate(monkeypatch, _reply(style=["tough"]))
+    assert sc is not None and sc.counterpart.style == "analytical"

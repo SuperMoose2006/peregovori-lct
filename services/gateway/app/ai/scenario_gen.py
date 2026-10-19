@@ -259,7 +259,11 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
     if any(_price(d.get(k)) is None for k in ("opponent_open", "player_target", "player_reservation")):
         return None
     dir_ = "higher_is_better" if str(d.get("dir")) == "higher_is_better" else "lower_is_better"
-    style = d.get("style") if d.get("style") in _STYLES else "analytical"
+    # Строкой — иначе `["tough"] in _STYLES` (список в множестве) бросал
+    # TypeError, и вся генерация падала «internal error» по-английски, сжигая
+    # платную попытку (найдено после аудита 17.10).
+    raw_style = d.get("style")
+    style = raw_style if isinstance(raw_style, str) and raw_style in _STYLES else "analytical"
     opp_open, opp_res, p_target, p_res = _normalize_zopa({**d, "dir": dir_})
 
     interests = _items(d.get("hidden_interests"))[:3]
