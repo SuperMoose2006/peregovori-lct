@@ -1434,7 +1434,9 @@ export const I18N: Record<Lang, Strings> = {
         collaborated: "Напряжение упало, доверие выросло: вы предложили размен.",
         neutral: "Счётчики почти не двинулись — ход прошёл мимо.",
         not_yet: "Отказа нет, но и движения нет: закрывать рано.",
-        probe_vague: "Вопрос слишком общий — интерес так не вскрыть. Назовите тему.",
+        // Переспрос бывает по двум причинам — общий вопрос ИЛИ доверие ниже
+        // порога; прежний текст винил вопрос и тогда, когда тема была названа.
+        probe_vague: "Интерес не вскрылся: вопрос слишком общий — или доверия ещё мало, чтобы открыться. Назовите тему; если она названа — сначала верните контакт.",
         pressured: "Напряжение выросло — это восприняли как нажим.",
         hardened: "Напряжение выросло, доверие упало — вторая сторона закрылась.",
         offended: "Доверие обвалилось: резкий тон бьёт сильнее аргумента.",
@@ -2433,7 +2435,7 @@ export const I18N: Record<Lang, Strings> = {
         collaborated: "Tension fell and trust rose: you offered a trade.",
         neutral: "The meters barely moved — the move passed them by.",
         not_yet: "No refusal, but no movement either: too early to close.",
-        probe_vague: "The question was too broad to uncover an interest. Name the topic.",
+        probe_vague: "No interest opened: either the question was too broad, or trust is still too low for them to open up. Name the topic; if you did, rebuild contact first.",
         pressured: "Tension rose — they read that as a push.",
         hardened: "Tension rose and trust fell — they closed off.",
         offended: "Trust collapsed: a harsh tone hits harder than any argument.",

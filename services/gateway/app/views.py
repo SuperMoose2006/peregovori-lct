@@ -477,6 +477,17 @@ def compute_hint(sess: "engine.Session", lang: str) -> str:
     s = sess.state
     sc = engine.by_id(sess.scenario_id)
     ru = lang == "ru"
+    # ПОД ПОРОГОМ ДОВЕРИЯ ВОПРОС НЕ СРАБОТАЕТ — и тренер не вправе его звать.
+    # Он советовал вопрос по теме при доверии ниже порога вскрытия, движок
+    # отвечал переспросом, а вопрос-прогноз объяснял «слишком общий вопрос» —
+    # хотя тема была названа (найдено после аудита 17.10).
+    from app.engine.engine import reveal_trust_gate
+    if s.info < 40 and s.trust <= reveal_trust_gate(sess):
+        return ("Доверия пока мало: даже вопрос по теме вернётся переспросом. Сначала признайте "
+                "положение второй стороны: «Понимаю, для вас это важно, и осторожность понятна.»"
+                if ru else
+                "Trust is still too low: even a question on a topic will come back as a query. "
+                "Acknowledge their position first: \"I understand this matters to you, and the caution makes sense.\"")
     if s.info < 40:
         # ТРЕНЕР ЦИТИРУЕТ ТОЛЬКО ТО, ЧТО ДВИЖОК ЗАСЧИТЫВАЕТ. Здесь стояло «Что
         # для вас важнее всего в этой сделке?» — вопрос без темы, то есть ровно

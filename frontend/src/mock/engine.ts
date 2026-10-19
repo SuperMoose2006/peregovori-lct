@@ -1997,6 +1997,9 @@ export function whatIfBranch(def: ScenarioDef, lang: Lang, prefix: string[], bra
 // Coaching hint (mirrors the demo's hint() heuristic).
 export function hintText(s: Session): string {
   const H = HINTS[s.lang];
+  // Под порогом доверия вопрос не сработает — сначала контакт (зеркало
+  // views.py::compute_hint; найдено после аудита 17.10).
+  if (s.info < 40 && s.trust <= revealTrustGate(s)) return H.gate;
   if (s.info < 40) return H.info;
   if (s.tension > 60) return H.tension;
   if (s.met.crit === 0) return H.crit;
@@ -2009,6 +2012,7 @@ export function hintText(s: Session): string {
 // item where the situation calls for one, so it is never generic filler.
 export function hintLine(s: Session): string {
   const L = HINT_LINES[s.lang];
+  if (s.info < 40 && s.trust <= revealTrustGate(s)) return L.gate;
   if (s.info < 40) {
     // ТРЕНЕР ПРЕДЛАГАЕТ ТОЛЬКО ТО, ЧТО ДВИЖОК ЗАСЧИТЫВАЕТ. Здесь стояло «Что
     // для вас важнее всего в этой сделке и почему именно это?» — вопрос без
@@ -2033,6 +2037,7 @@ const HINT_LINES: Record<Lang, Record<string, string>> = {
     // Ярлык темы идёт в реплику КАК ЕСТЬ, в именительном: «важно в производство»
     // было бы косноязычием, «в этой теме — Производство» склоняться не обязано.
     info: "Что для вас важно в этой теме — {topic}?",
+    gate: "Понимаю, для вас это важно, и осторожность понятна.",
     // Запасной вариант для стола без тем («своя сделка»): там подставить нечего.
     infoPlain: "Что для вас важнее всего в этой сделке и почему именно это?",
     tension: "Понимаю, откуда вы идёте. Давайте вернёмся к сути — что для вас критично?",
@@ -2042,6 +2047,7 @@ const HINT_LINES: Record<Lang, Record<string, string>> = {
   },
   en: {
     info: "What matters to you here — {topic}?",
+    gate: "I understand this matters to you, and the caution makes sense.",
     infoPlain: "What matters most to you in this deal, and why exactly that?",
     tension: "I understand where you're coming from. Let's get back to substance — what is critical for you?",
     crit: "Comparable terms on the market sit in a different range. Let's anchor on that benchmark rather than positions.",
@@ -2052,6 +2058,7 @@ const HINT_LINES: Record<Lang, Record<string, string>> = {
 const HINTS: Record<Lang, Record<string, string>> = {
   ru: {
     info: "Вы почти не знаете, что движет оппонентом. Спросите ПО ТЕМЕ — темы стола перечислены в панели «Скрытые интересы».",
+    gate: "Доверия пока мало: даже вопрос по теме вернётся переспросом. Сначала признайте положение второй стороны.",
     tension: "Напряжение высокое — уступки заморожены. Признайте: «Понимаю, откуда вы идёте…»",
     crit: "Подкрепите позицию объективным критерием — сошлитесь на рыночные данные.",
     trade: "Вы знаете их интересы — предложите размен.",
@@ -2059,6 +2066,7 @@ const HINTS: Record<Lang, Record<string, string>> = {
   },
   en: {
     info: "You barely know what drives them. Ask about a TOPIC — they are listed in the “Hidden interests” panel.",
+    gate: "Trust is still too low: even a question on a topic will come back as a query. Acknowledge their position first.",
     tension: 'Tension is high — concessions are frozen. Acknowledge: "I understand where you\'re coming from…"',
     crit: "Back your position with an objective criterion — cite market data.",
     trade: "You know their interests — propose a trade.",

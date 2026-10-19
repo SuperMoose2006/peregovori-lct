@@ -293,3 +293,21 @@ test("потолок техники — факт офлайн-ядра, как �
   const src = (await import("node:fs")).readFileSync(new URL("../src/components/Debrief.tsx", import.meta.url), "utf8");
   assert.match(src, /const techniqueFloored = d\.technique_capped === true;/);
 });
+
+test("офлайн-тренер под порогом доверия зовёт контакт, а не вопрос (зеркало сервера)", async () => {
+  // Найдено после аудита 17.10.
+  const { analyze, applyMove, hintLine, hintText, newSession, revealTrustGate } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const { I18N } = await import("../src/i18n");
+  for (const lang of ["ru", "en"] as const) {
+    const s = newSession(SCENARIO_MAP.rent, lang);
+    s.trust = revealTrustGate(s) - 8;
+    assert.match(hintText(s), lang === "ru" ? /Доверия пока мало/ : /Trust is still too low/);
+    const line = hintLine(s);
+    s.turn = 1;
+    const r = applyMove(s, analyze(line), line);
+    assert.equal(r.reaction, "warmed", `${lang}: ${line}`);
+    const vague = (I18N[lang].probe as unknown as { why: Record<string, string> }).why.probe_vague;
+    assert.match(vague, lang === "ru" ? /довери/ : /trust/);
+  }
+});

@@ -142,3 +142,20 @@ def test_the_coach_only_quotes_lines_the_engine_recognises(sc, lang):
     assert _reveal_index_offline(sc, norm(line), lang, []) is not None, (
         f"{sc.id}/{lang}: тренер советует «{line}», а движок не вскрывает по ней "
         f"ни одного интереса")
+
+
+@pytest.mark.parametrize("lang", ["ru", "en"])
+def test_below_the_trust_gate_the_coach_asks_for_contact_not_a_question(lang):
+    """Найдено после аудита 17.10: тренер звал вопрос по теме при доверии ниже
+    порога вскрытия — движок отвечал переспросом, а вопрос-прогноз говорил
+    «слишком общий вопрос», хотя тема была названа."""
+    from app import views
+    from app.engine.engine import reveal_trust_gate
+    s = engine.create_session("rent", lang)
+    s.state.trust = reveal_trust_gate(s) - 8
+    hint = views.compute_hint(s, lang)
+    line = hint.split("«")[1].split("»")[0] if lang == "ru" else hint.split('"')[1]
+    s.turn = 1
+    result = engine.apply_move(s, engine.analyze(line), line)
+    assert "acknowledge" in engine.analyze(line).moves
+    assert result.reaction == "warmed"
