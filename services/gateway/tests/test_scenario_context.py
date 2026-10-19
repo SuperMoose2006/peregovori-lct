@@ -92,3 +92,27 @@ def test_context_travels_over_websocket_and_game_finishes(monkeypatch):
         events = []
         while not events or events[-1]['type'] != 'session.closed':
             events.append(ws.receive_json())
+
+
+@pytest.mark.asyncio
+async def test_untouched_settings_leave_tone_and_difficulty_to_the_description(monkeypatch):
+    """Найдено после аудита 17.10: панель «Для организатора» свёрнута, но форма
+    всегда слала значения по умолчанию (3, «деловой»), и они перебивали
+    описание: «Клиент давит ультиматумом» давал делового оппонента. Пустое —
+    «по описанию»: решает генератор; выбранное — как прежде, перебивает."""
+    from app.providers.openrouter import chat
+
+    async def complete(system, user, **kwargs):
+        return json.dumps({'title': 'Ultimatum', 'style': 'tough', 'difficulty': 5,
+            'counterpart_name': 'Client', 'counterpart_persona': 'Pushes hard',
+            'briefing': 'The client demands 30% off', 'role': 'Seller', 'opponent_open': 70,
+            'opponent_reservation': 85, 'player_target': 95, 'player_reservation': 80,
+            'dir': 'higher_is_better', 'hidden_interests': ['Budget', 'Deadline', 'Boss']})
+
+    monkeypatch.setattr(chat, 'complete', complete)
+    untouched = ScenarioContext.model_validate({'sector': '', 'topic': '', 'opponent_role': '',
+                                                'opponent_goal': '', 'difficulty': None, 'style': None})
+    scenario = await generate_scenario('Client pushes an ultimatum: 30% off or they walk.', 'en',
+                                       context=untouched)
+    assert scenario.counterpart.style == 'tough'
+    assert scenario.difficulty == 5

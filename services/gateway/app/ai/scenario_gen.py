@@ -198,7 +198,8 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
     if context:
         # Поля ограничены схемой отдельно от описания: длинная ситуация не
         # должна молча отрезать выбранные организатором настройки.
-        user += "\nScenario settings (use these for the counterpart and context):\n" + context.model_dump_json()
+        user += ("\nScenario settings (use these for the counterpart and context):\n"
+                 + context.model_dump_json(exclude_none=True))
     deadline = time.perf_counter() + GEN_BUDGET_S
     d = None
     for _ in range(max(1, attempts)):
@@ -254,8 +255,11 @@ async def generate_scenario(situation: str, lang: str = "ru", attempts: int = 2,
     # Модель не вправе отменить явные настройки организатора. Меняются
     # входные данные сценария, не формула оценки и не правила движка.
     if context:
-        difficulty = context.difficulty
-        style = context.style
+        # Только то, что организатор ВЫБРАЛ: пустое — «по описанию».
+        if context.difficulty is not None:
+            difficulty = context.difficulty
+        if context.style is not None:
+            style = context.style
         if context.topic.strip():
             d["title"] = context.topic.strip()
         persona = [context.opponent_role.strip(), context.opponent_goal.strip(),

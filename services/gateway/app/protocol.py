@@ -42,14 +42,18 @@ class ScenarioContext(BaseModel):
     topic: str = Field(default="", max_length=120)
     opponent_role: str = Field(default="", max_length=120)
     opponent_goal: str = Field(default="", max_length=240)
-    difficulty: int = Field(default=3, ge=1, le=5, strict=True,
-                            description="Modes 1/3/5; legacy 2 and 4 map to 3 on read")
-    style: Literal["relationship", "tough", "analytical"] = "analytical"
+    #: None — «по описанию»: сложность и тон решает генератор. Раньше форма
+    #: всегда слала значения по умолчанию (3, «деловой»), и они перебивали
+    #: описание даже у того, кто панель не открывал: «Клиент давит
+    #: ультиматумом» давал делового оппонента (найдено после аудита 17.10).
+    difficulty: Optional[int] = Field(default=None, ge=1, le=5, strict=True,
+                                      description="Modes 1/3/5; legacy 2 and 4 map to 3 on read; null — from the description")
+    style: Optional[Literal["relationship", "tough", "analytical"]] = None
 
     @field_validator("difficulty")
     @classmethod
-    def migrate_difficulty(cls, value: int) -> int:
-        return normalize_difficulty(value)
+    def migrate_difficulty(cls, value: Optional[int]) -> Optional[int]:
+        return None if value is None else normalize_difficulty(value)
 
 
 #: РЕЖИМ НА ПРОВОДЕ — не то же самое, что режим экрана. Он говорит серверу, ЧТО

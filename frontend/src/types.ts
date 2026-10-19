@@ -334,8 +334,9 @@ export interface ScenarioContext {
   topic: string;
   opponent_role: string;
   opponent_goal: string;
-  difficulty: number;
-  style: "relationship" | "tough" | "analytical";
+  /** null — «по описанию»: решает генератор (сервер и офлайн-синтез). */
+  difficulty: number | null;
+  style: "relationship" | "tough" | "analytical" | null;
 }
 
 export type ClientMsg =

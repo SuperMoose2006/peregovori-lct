@@ -46,3 +46,22 @@ test("offline context changes the real scenario and stays playable", () => {
   assert.equal(session.status, "active");
   assert.ok(Number.isFinite(session.trust));
 });
+
+test("нетронутая панель ничего не решает: тон и сложность — по описанию", () => {
+  // Найдено после аудита 17.10: форма всегда слала 3 и «деловой», и они
+  // перебивали описание даже у того, кто панель не открывал.
+  assert.equal(DEFAULT_SCENARIO_CONTEXT.style, null);
+  assert.equal(DEFAULT_SCENARIO_CONTEXT.difficulty, null);
+  const def = synthCustomScenario("Клиент давит ультиматумом: скидка 30% или уходит.", "ru",
+    { ...DEFAULT_SCENARIO_CONTEXT });
+  assert.equal(def.cp.style, "tough");
+  for (const lang of ["ru", "en"] as const) {
+    const t = I18N[lang];
+    const html = renderToStaticMarkup(createElement(CustomSituation, {
+      t, lang, value: "Discuss the contract", error: null, onChange() {}, onGenerate() {},
+      context: { ...DEFAULT_SCENARIO_CONTEXT }, onContextChange() {},
+    }));
+    // Показано ровно то, что применится: «по описанию», а не выбор по умолчанию.
+    assert.equal((html.match(new RegExp(`<option value="" selected="">${t.custom.context.auto}</option>`, "g")) ?? []).length, 2);
+  }
+});

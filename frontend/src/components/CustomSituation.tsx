@@ -11,7 +11,7 @@
 import type { Lang, ScenarioContext } from "../types";
 import type { Strings } from "../i18n";
 import { Icon } from "./Icon";
-import { DifficultySelect } from "./DifficultySelect";
+import { AutoDifficultySelect } from "./DifficultySelect";
 
 interface Props {
   t: Strings;
@@ -86,13 +86,15 @@ export function CustomSituation({ t, lang, value, error, onChange, onGenerate,
                 ))}
               <label>
                 <span>{t.custom.context.difficulty}</span>
-                <DifficultySelect lang={lang} value={context.difficulty}
+                <AutoDifficultySelect lang={lang} value={context.difficulty} autoLabel={t.custom.context.auto}
                   onChange={(difficulty) => onContextChange({ ...context, difficulty })} />
               </label>
               <label>
                 <span>{t.custom.context.style}</span>
-                <select name="context-style" value={context.style}
-                  onChange={(e) => onContextChange({ ...context, style: e.target.value as ScenarioContext['style'] })}>
+                <select name="context-style" value={context.style ?? ""}
+                  onChange={(e) => onContextChange({ ...context,
+                    style: e.target.value === "" ? null : e.target.value as NonNullable<ScenarioContext['style']> })}>
+                  <option value="">{t.custom.context.auto}</option>
                   {(['analytical', 'relationship', 'tough'] as const).map((style) => (
                     <option key={style} value={style}>{t.custom.context.styles[style]}</option>
                   ))}

@@ -198,6 +198,8 @@ export interface Strings {
       head: string; help: string; sector: string; topic: string;
       opponent_role: string; opponent_goal: string; difficulty: string; style: string;
       styles: { analytical: string; relationship: string; tough: string };
+      /** Первый пункт сложности и тона: пусто — решает описание. */
+      auto: string;
     };
     head: string;
     // Описание слишком короткое для генерации (аудит 17.10, CE-05).
@@ -1050,6 +1052,7 @@ export const I18N: Record<Lang, Strings> = {
         sector: "Сфера", topic: "Тема переговоров", opponent_role: "Роль оппонента",
         opponent_goal: "Цель оппонента", difficulty: "Сложность", style: "Тон оппонента",
         styles: { analytical: "Деловой, по фактам", relationship: "Ориентирован на отношения", tough: "Жёсткий" },
+        auto: "По описанию",
       },
       head: "Опишите вашу ситуацию",
       tooShort: "Опишите чуть подробнее — хотя бы три слова: кто напротив, о чём договариваетесь, какие есть цифры.",
@@ -2055,6 +2058,7 @@ export const I18N: Record<Lang, Strings> = {
         sector: "Industry", topic: "Negotiation topic", opponent_role: "Counterpart role",
         opponent_goal: "Counterpart goal", difficulty: "Difficulty", style: "Counterpart tone",
         styles: { analytical: "Businesslike, fact-based", relationship: "Relationship-focused", tough: "Tough" },
+        auto: "From the description",
       },
       placeholder:
         "Describe your negotiation situation… e.g. “I'm a freelancer, a client wants a 20% discount on the project, but I can't go below my rate. I need to keep the contract without devaluing my work.”",
