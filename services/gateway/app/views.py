@@ -351,7 +351,7 @@ def coach_facts(sess: "engine.Session", lang: str) -> dict:
         "tension": s.tension,
         "info": s.info,
         "revealed_interests": revealed,
-        "transcript": _transcript(sess, lang),
+        "transcript": _transcript(sess, lang, for_opponent=False),
     }
 
 
@@ -370,7 +370,7 @@ def debrief_facts(sess: "engine.Session", deb: dict, lang: str) -> dict:
         "persona_name": sc.counterpart.name[lang],
         "persona_desc": sc.counterpart.persona[lang],
         "hidden_interests": list(sc.hidden_interests[lang]),
-        "transcript": _transcript(sess, lang, max_turns=14),
+        "transcript": _transcript(sess, lang, max_turns=14, for_opponent=False),
     }
     for k in ("grade", "overall", "economic", "relationship", "technique", "deal_text",
               "status", "interests_found", "interests_total", "objective_criteria",
@@ -380,12 +380,25 @@ def debrief_facts(sess: "engine.Session", deb: dict, lang: str) -> dict:
     return facts
 
 
-def _transcript(sess: "engine.Session", lang: str, max_turns: int = 6) -> str:
+def _transcript(sess: "engine.Session", lang: str, max_turns: int = 6, *,
+                for_opponent: bool = True) -> str:
     """Recent dialogue so the opponent has memory of its own concessions/words.
-    Excludes the current player line (that's passed separately as player_text)."""
-    you = "Ты" if lang == "ru" else "You"
-    them = "Игрок" if lang == "ru" else "Player"
-    prior = sess.log[:-1] if sess.log else []
+    Excludes the current player line (that's passed separately as player_text).
+
+    ДЛЯ ТРЕНЕРА И НАСТАВНИКА (`for_opponent=False`) — иначе. Там последняя
+    запись — уже ответ оппонента, а не текущая реплика игрока, и срезать её
+    значило писать подсказку, не видя его вопроса «что дадите взамен?», а
+    слово наставника — без его закрывающей реплики. И «Ты» там — игрок, а не
+    оппонент: под меткой «Ты» наставник мог вернуть игроку чужие слова
+    (найдено после аудита 17.10)."""
+    if for_opponent:
+        you = "Ты" if lang == "ru" else "You"
+        them = "Игрок" if lang == "ru" else "Player"
+        prior = sess.log[:-1] if sess.log else []
+    else:
+        you = "Оппонент" if lang == "ru" else "Counterpart"
+        them = "Игрок" if lang == "ru" else "Player"
+        prior = list(sess.log or [])
     recent = [e for e in prior if e.get("role") in ("opp", "player")][-max_turns:]
     return "\n".join(
         f"{you if e['role'] == 'opp' else them}: {(e.get('text') or '').strip()}"

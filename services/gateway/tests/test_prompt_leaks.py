@@ -213,3 +213,20 @@ def test_the_facts_dicts_carry_no_answers(lang: str) -> None:
         for key in keys:
             assert not any(bad in key.lower() for bad in FORBIDDEN), (
                 f"{who}: ключ «{key}» звучит как ответ, а не как факт")
+
+
+def test_coach_and_mentor_see_the_opponents_last_line_under_its_own_label():
+    """Найдено после аудита 17.10: `_transcript` срезал последнюю запись —
+    для оппонента это текущая реплика игрока, а для тренера и наставника —
+    уже ответ оппонента; и оппонент шёл под меткой «Ты»."""
+    from app import engine, views
+    s = engine.create_session("supplier", "ru")
+    s.log += [{"role": "player", "text": "Что для вас важно?"},
+              {"role": "opp", "text": "А что вы дадите взамен?"}]
+    for facts in (views.coach_facts(s, "ru"),
+                  views.debrief_facts(s, views.debrief_view(s).model_dump(), "ru")):
+        assert facts["transcript"].endswith("Оппонент: А что вы дадите взамен?"), facts["transcript"]
+        assert "Ты:" not in facts["transcript"]
+    # Оппоненту по-прежнему без текущей реплики игрока и с «Ты» про себя.
+    s.log.append({"role": "player", "text": "Годовой контракт."})
+    assert views._transcript(s, "ru").endswith("Ты: А что вы дадите взамен?")
