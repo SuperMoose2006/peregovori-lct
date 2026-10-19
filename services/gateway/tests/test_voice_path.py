@@ -692,3 +692,104 @@ async def test_a_late_transcription_is_not_glued_to_the_next_move():
     await asyncio.sleep(0.3)
     assert len(rig.turns) == 2
     assert "Первая" not in rig.turns[1], rig.turns
+
+
+# ---- классический конвейер: звук, пришедший пока ход в пути -----------------
+# Найдено после аудита 17.10, решение владельца 19.10 — перестроить: пока шли
+# распознавание, детектор и сам ход, новый конец речи отбрасывался, а
+# `_audio.clear()` стирал и записанное после снимка; в распознавание уходил
+# весь буфер с прошлого хода, включая тишину и эхо голоса оппонента.
+
+class _SeqASR:
+    """Отвечает по очереди; `during` срабатывает посреди распознавания — так в
+    живом пути приходит звук, пока мы ждём модель."""
+
+    def __init__(self, texts: list[str], during=None) -> None:
+        self.texts = list(texts)
+        self.during = during
+        self.sizes: list[int] = []
+
+    async def transcribe(self, pcm, _rate, _lang):
+        self.sizes.append(pcm.size)
+        if self.during:
+            hook, self.during = self.during, None
+            hook()
+        await asyncio.sleep(0)
+        return type("R", (), {"text": self.texts.pop(0)})()
+
+
+@pytest.mark.asyncio
+async def test_speech_recorded_while_the_turn_settles_is_kept_for_the_next_move():
+    chunk = np.full(SAMPLE_RATE // 2, 200, dtype=np.int16)
+    holder: dict = {}
+
+    def speak_meanwhile():
+        holder["pipe"]._speech_started()
+        holder["pipe"]._audio.append(chunk)
+
+    asr = _SeqASR(["Первая мысль."], during=speak_meanwhile)
+    pipe, turns, _ = _classic(asr, TurnDecision.FINISHED)
+    holder["pipe"] = pipe
+    pipe._speech_started()
+    pipe._audio.append(np.full(SAMPLE_RATE, 300, dtype=np.int16))
+    await pipe._settle_turn()
+    assert turns == ["Первая мысль."]
+    assert sum(a.size for a in pipe._audio) == chunk.size, "сказанное после снимка стёрто"
+
+
+@pytest.mark.asyncio
+async def test_a_thought_finished_during_the_turn_becomes_the_next_turn():
+    asr = _SeqASR(["Первая.", "Вторая."])
+    release = asyncio.Event()
+    turns: list[str] = []
+
+    async def on_turn(text: str) -> None:
+        turns.append(text)
+        if len(turns) == 1:
+            await release.wait()              # ход в пути: судья, движок, реплика
+
+    async def on_interrupt() -> None:
+        pass
+
+    pipe = VoicePipeline(asr=asr, lang="ru", on_turn=on_turn,
+                         on_interrupt=on_interrupt, publish=lambda _e: None)
+
+    async def _eval(_text, _lang="ru"):
+        return TurnDecision.FINISHED
+
+    pipe._turn_detector.eval = _eval
+    pipe._loop = asyncio.get_running_loop()
+    pipe._speech_started()
+    pipe._audio.append(np.full(SAMPLE_RATE, 300, dtype=np.int16))
+    pipe._speech_ended()
+    await asyncio.sleep(0.01)
+    assert turns == ["Первая."]
+    # Человек договорил вторую мысль, пока первый ход ещё в пути.
+    pipe._speech_started()
+    pipe._audio.append(np.full(SAMPLE_RATE, 400, dtype=np.int16))
+    pipe._speech_ended()
+    release.set()
+    for _ in range(50):
+        await asyncio.sleep(0.01)
+        if len(turns) == 2:
+            break
+    assert turns == ["Первая.", "Вторая."]
+    assert asr.sizes[1] == SAMPLE_RATE, "во второй ход уехал и звук первого"
+
+
+@pytest.mark.asyncio
+async def test_silence_and_echo_before_the_first_word_stay_out_of_recognition():
+    from types import SimpleNamespace
+    from app.perception.voice_pipeline import _PREROLL_MS
+
+    pipe, _, _ = _classic(_FakeASR(""), TurnDecision.FINISHED)
+    pipe._vad = SimpleNamespace(feed=lambda _pcm: None, speaking=False, available=True, reset=lambda: None)
+    block = np.zeros(1600, dtype=np.int16)            # 100 мс
+    for _ in range(50):                                # 5 с тишины и эха между ходами
+        pipe.feed(block)
+    kept = sum(a.size for a in pipe._audio)
+    assert kept <= _PREROLL_MS * SAMPLE_RATE // 1000 + block.size, kept
+    pipe._speech_started()
+    for _ in range(10):
+        pipe.feed(block)
+    assert sum(a.size for a in pipe._audio) >= kept + 10 * block.size, "речь не копится"

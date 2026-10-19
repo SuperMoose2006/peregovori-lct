@@ -52,6 +52,12 @@ _MAX_TURN_SECONDS = 60
 #: и настолько же вырастает задержка barge-in в самом неудобном случае.
 _ECHO_GUARD_MS = 180
 
+#: Сколько звука ДО первой речи хода держать. Начало слова VAD замечает с
+#: опозданием на свой префикс, поэтому совсем без запаса первый слог терялся
+#: бы; а всё, что раньше, — тишина и эхо голоса оппонента между ходами, и в
+#: распознавание оно не идёт (найдено после аудита 17.10).
+_PREROLL_MS = 400
+
 
 @dataclass
 class VoiceStats:
@@ -90,6 +96,18 @@ class VoicePipeline:
         #: «Я готов… (пауза) …но при одном условии» — это ОДИН ход, и
         #: распознавать его надо целиком, иначе теряется связь половин.
         self._audio: list[np.ndarray] = []
+        #: Была ли речь в звуке, который ещё не стал ходом. Пока нет — копится
+        #: только запас `_PREROLL_MS`, а не тишина и эхо между ходами.
+        self._heard = False
+        #: Сколько кусков `_audio` покрыто последней расшифровкой и сколько
+        #: сегментов речи было к тому моменту: ход уносит ровно свой снимок, а
+        #: сказанное позже остаётся следующему ходу.
+        self._snapshot = 0
+        self._snapshot_segments = 0
+        #: Конец речи пришёл, пока прежний снимок ещё в пути (распознавание,
+        #: детектор, сам ход): досчитать его сразу после.
+        self._settle_again = False
+        self._closed = False
         self._transcript = ""
         self._opponent_speaking = False
         #: Момент, когда VAD увидел речь поверх говорящего оппонента. Пока он
@@ -123,6 +141,8 @@ class VoicePipeline:
         self._cancel_ceiling()
         self._vad.reset()
         self._audio.clear()
+        self._heard = False
+        self._snapshot = 0
         self._transcript = ""
 
     # ------------------------------------------------------------------- вход
@@ -137,6 +157,8 @@ class VoicePipeline:
         if sum(a.size for a in self._audio) > _MAX_TURN_SECONDS * SAMPLE_RATE:
             self._audio = self._audio[-(_MAX_TURN_SECONDS * SAMPLE_RATE // len(pcm) or 1):]
         self._vad.feed(pcm)
+        if not self._heard:
+            self._trim_to_preroll()
 
         # Окно проверки перебивания: речь поверх говорящего оппонента должна
         # продержаться, а не мигнуть. Проверяем здесь, а не по таймеру, потому
@@ -163,6 +185,7 @@ class VoicePipeline:
         import time as _time
 
         self.stats.segments += 1
+        self._heard = True
         self._publish({"type": "user.speech.started"})
         # Человек продолжил — значит детектор был прав, и торопить его нечем.
         self._cancel_ceiling()
@@ -177,18 +200,60 @@ class VoicePipeline:
         """Звук кончился. Теперь вопрос — закончена ли мысль."""
         self._publish({"type": "user.speech.stopped"})
         self._guard_started_at = None
-        if self._loop and (self._pending is None or self._pending.done()):
+        if not self._loop:
+            return
+        if self._pending is None or self._pending.done():
             self._pending = self._loop.create_task(self._settle_turn())
+        else:
+            # Прежний снимок ещё в пути — этот конец речи не выбрасывается, а
+            # досчитывается следом (раньше он терялся молча).
+            self._settle_again = True
+
+    # ------------------------------------------------------------- снимки звука
+
+    def _trim_to_preroll(self) -> None:
+        """До первой речи хода — только запас перед словом."""
+        keep = _PREROLL_MS * SAMPLE_RATE // 1000
+        total = 0
+        for i in range(len(self._audio) - 1, -1, -1):
+            total += self._audio[i].size
+            if total >= keep:
+                if i > 0:
+                    del self._audio[:i]
+                return
+
+    def _drop_snapshot(self, chunks: int, segments: int) -> None:
+        """Ход унёс свой снимок: убрать ровно его куски, сказанное позже оставить.
+
+        `_audio.clear()` здесь стирал и звук, пришедший, пока шли распознавание
+        и детектор, — вторая реплика человека пропадала целиком."""
+        del self._audio[:chunks]
+        self._snapshot = 0
+        self._heard = self._vad.speaking or self.stats.segments > segments
+        if not self._heard:
+            self._trim_to_preroll()
 
     # ------------------------------------------------------------ конец хода
 
     async def _settle_turn(self) -> None:
-        """Расшифровать накопленное и решить: ход сделан или человек думает."""
+        """Расшифровать накопленное и решить: ход сделан или человек думает.
+
+        Конец речи, пришедший пока этот снимок в пути, досчитывается сразу
+        после — следующим снимком, со своим звуком."""
+        try:
+            await self._settle_snapshot()
+        finally:
+            if self._settle_again and not self._closed and self._loop:
+                self._settle_again = False
+                self._pending = self._loop.create_task(self._settle_turn())
+
+    async def _settle_snapshot(self) -> None:
         import time
 
         if not self._audio:
             return
-        pcm = np.concatenate(self._audio).astype(np.float32) / 32768.0
+        chunks, segments = len(self._audio), self.stats.segments
+        pcm = np.concatenate(self._audio[:chunks]).astype(np.float32) / 32768.0
         if pcm.size < SAMPLE_RATE // 4:  # короче 250 мс — кашель, не реплика
             return
 
@@ -198,7 +263,7 @@ class VoicePipeline:
         except Exception:
             # Do not commit stale partial text or change the audio recipient.
             self._cancel_ceiling()
-            self._audio.clear()
+            self._drop_snapshot(chunks, segments)
             self._transcript = ""
             self._publish({"type": "error", "error": {
                 "code": "asr_unavailable",
@@ -210,9 +275,12 @@ class VoicePipeline:
         self.stats.asr_ms = (time.perf_counter() - t0) * 1000
         text = (result.text or "").strip()
         if not text:
+            # Ни слова — шум или эхо: копить его к следующей реплике незачем.
+            self._drop_snapshot(chunks, segments)
             return
 
         self._transcript = text
+        self._snapshot, self._snapshot_segments = chunks, segments
         # ФИНАЛ — ТОЛЬКО КОГДА ХОД УХОДИТ. Финальная расшифровка публиковалась
         # ДО решения детектора конца реплики: «Я готов уступить…» признавалось
         # недоговорённым, а клиент уже ставил пузырь «вы» и занятость; договорив,
@@ -227,7 +295,7 @@ class VoicePipeline:
 
         if decision is TurnDecision.FINISHED:
             self._cancel_ceiling()
-            self._audio.clear()
+            self._drop_snapshot(chunks, segments)
             self._transcript = ""
             self._publish({"type": "user.transcript", "text": text, "final": True})
             await self._on_turn(text)
@@ -281,6 +349,7 @@ class VoicePipeline:
         каждый ход, — но незаконченная оценка конца реплики и её запрос к
         модели пережили бы сокет и досчитались бы в пустоту, уже за деньги.
         """
+        self._closed = True
         self._turn_detector.cancel()
         self._cancel_ceiling()
         if self._pending and not self._pending.done():
@@ -298,7 +367,8 @@ class VoicePipeline:
             return
         self.stats.forced += 1
         self._cancel_ceiling()
-        self._audio.clear()
+        # Ход уносит то, что расшифровано, — сказанное после остаётся.
+        self._drop_snapshot(self._snapshot or len(self._audio), self._snapshot_segments)
         self._transcript = ""
         self._publish({"type": "user.transcript", "text": text, "final": True})
         await self._on_turn(text)
