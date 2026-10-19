@@ -20,7 +20,9 @@ import {
   PAST_MAX_MOVES, PAST_MAX_TABLES, PAST_MOVE_CHARS, type PastRun,
 } from "../src/lib/progress";
 import { analyze, applyMove, newSession, stateView } from "../src/mock/engine";
-import { SCENARIO_MAP } from "../src/data/scenarios";
+import { SCENARIO_MAP, SCENARIOS } from "../src/data/scenarios";
+import { MIRRORS } from "../src/data/mirrors";
+import { MAX_INPUT } from "../src/lib/net";
 import type { StateView } from "../src/types";
 
 const MOVES = [
@@ -345,4 +347,44 @@ test("до первого хода колонка «тогда» не объяв
     assert.ok(start.includes(t.rematch.pastNotStarted), `${lang}: нет нейтрального старта`);
     assert.ok(!start.includes(t.rematch.pastEnded), `${lang}: ложный итог на нулевом ходу`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Найдено после аудита 17.10: переигровка расходилась с партией.
+// ---------------------------------------------------------------------------
+
+test("длинный ход переигрывается таким, каким был сыгран", () => {
+  // Хранение резало ход до 400 знаков при вводе до 2000: «вы тогда» считалось
+  // по обрезку, и ключевые слова в хвосте хода терялись.
+  assert.ok(PAST_MOVE_CHARS >= MAX_INPUT, "хранение не может резать то, что ввод пропускает");
+  const long = "Давайте опираться на рыночные данные. " + "a".repeat(1200)
+    + " Расскажите, что для вас важнее всего в этом контракте и почему?";
+  const r = compactRun(run({ moves: [long, ...MOVES.slice(1)] }));
+  assert.equal(r.moves[0], long);
+});
+
+test("партия под старый баланс не запирает стол", () => {
+  // Она не переигрывается (replayRun → null), но была лучшей по счёту и
+  // оставалась соперником навсегда: панели сравнения не было ни разу.
+  const legacy = run({ grade: "A", score: 95, opening: { trust: 40, tension: 25, maxTurns: 12 } });
+  assert.equal(replayRun(legacy), null);
+  const fresh = run({ grade: "C", score: 55, at: "2026-08-02T10:00:00.000Z" });
+  const kept = keepRun(fresh, legacy);
+  assert.equal(kept.at, fresh.at);
+  assert.ok(replayRun(kept), "на столе обязан остаться переигрываемый соперник");
+});
+
+test("каждый стол каталога и каждое зеркало помещаются в хранилище", () => {
+  // Было 12 при девяти столах и шести зеркалах: игрок, прошедший всё,
+  // терял соперника на самом старом столе.
+  assert.ok(PAST_MAX_TABLES >= SCENARIOS.length + MIRRORS.length);
+});
+
+test("капстоун курса соперником стола не становится", () => {
+  // Он идёт под экраном «практики», и предложение «переиграть» после него
+  // перезапускало капстоун, где панели сравнения нет.
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const guard = app.match(/if \(mode !== "practice"[^\n]*\) return;\n[^]*?savePastRun\(/);
+  assert.ok(guard, "запись соперника обязана стоять за проверкой режима");
+  assert.match(guard[0], /\|\| drill \|\|/);
 });

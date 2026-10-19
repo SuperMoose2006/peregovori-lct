@@ -451,8 +451,15 @@ export default function App() {
     const opening = openingRef.current;
     const grade = (["A", "B", "C", "D", "F"] as Grade[]).find((g) => g === d.grade);
     const known = !!SCENARIO_MAP[scenarioId] || isMirrorTable(scenarioId);
-    if (mode !== "practice" || !known || !opening || !grade) return;
-    const moves = nego.log.filter((e) => e.kind === "me").map((e) => e.text);
+    // Капстоун курса идёт под экраном «практики», но соперником стола не
+    // становится: предложение «переиграть» в нём перезапускало капстоун, где
+    // панели сравнения нет (найдено после аудита 17.10).
+    if (mode !== "practice" || drill || !known || !opening || !grade) return;
+    // Ходы — из хроники сервера, если она есть: голосом лента может нести
+    // лишнюю реплику, и переигровка разошлась бы с партией (как «А что если»).
+    const moves = d.turn_log?.length
+      ? d.turn_log.map((r) => r.text)
+      : nego.log.filter((e) => e.kind === "me").map((e) => e.text);
     if (moves.length === 0) return;
     recordedRun.current = d;
     const at = new Date().toISOString();
@@ -465,7 +472,7 @@ export default function App() {
     // время — соперник и есть только что сыгранная партия, и говорить о ней
     // надо иначе: «в прошлый раз» про сегодняшнюю партию было бы неправдой.
     setNextRival({ past: stored, isThisRun: stored.at === at });
-  }, [nego.debrief, nego.scenario, nego.log, currentScenario, mode, lang]);
+  }, [nego.debrief, nego.scenario, nego.log, currentScenario, mode, lang, drill]);
 
   // Custom mode: while generating, the scenario is designed server-side (or by
   // the mock synth). Drive the outcome through the gen state machine: a greeting

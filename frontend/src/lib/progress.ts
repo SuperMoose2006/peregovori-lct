@@ -1206,11 +1206,14 @@ const PAST_KEY = "dialog.pastruns.v1";
 /** Ходов в партии максимум двенадцать; двадцать четыре — тот же запас, что у
  *  «А что если…», и он же потолок для чужого (испорченного) блоба. */
 export const PAST_MAX_MOVES = 24;
-/** Композер и так режет ввод; здесь потолок против раздутого блоба. */
-export const PAST_MOVE_CHARS = 400;
-/** Столов девять, плюс запас на будущие. Больше — вытесняем самый старый:
- *  квота localStorage не резиновая, а нужен всегда ОДИН стол — текущий. */
-export const PAST_MAX_TABLES = 12;
+/** Потолок против раздутого блоба — РАВНЫЙ пределу ввода (lib/net MAX_INPUT):
+ *  было 400 при вводе до 2000, и длинный ход переигрывался обрезанным — «тогда»
+ *  показывало партию, которой не было (найдено после аудита 17.10). */
+export const PAST_MOVE_CHARS = 2000;
+/** Столов девять и шесть зеркальных, плюс запас. Больше — вытесняем самый
+ *  старый: квота localStorage не резиновая, а нужен всегда ОДИН стол —
+ *  текущий. Было 12 при пятнадцати столах. */
+export const PAST_MAX_TABLES = 16;
 
 /** Ужать партию до того, что и правда хранится. Чистая функция. */
 export function compactRun(run: PastRun): PastRun {
@@ -1283,6 +1286,10 @@ export function keepRun(next: PastRun, prev: PastRun | null): PastRun {
   if (!prev) return next;
   // Сменился язык — прошлая стенограмма для сравнения бесполезна (см. PastRun.lang).
   if (prev.lang !== next.lang) return next;
+  // Партия под другой баланс не переигрывается (replayRun вернёт null): лучшая
+  // по счёту, она запирала стол — предложение переигровки было, а панели
+  // сравнения не было никогда (найдено после аудита 17.10).
+  if (prev.opening.balanceVersion !== next.opening.balanceVersion) return next;
   return isBetter(next.grade, next.score, {
     bestGrade: prev.grade, bestScore: prev.score, attempts: 0, lastPlayed: prev.at,
   }) ? next : prev;
