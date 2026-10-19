@@ -261,3 +261,19 @@ test("откат за грубость остаётся на сетке шага
   assert.ok(Math.abs(s.offerOpp / step - Math.round(s.offerOpp / step)) < 1e-9, String(s.offerOpp));
   assert.equal(s.offerOpp, 94.5);
 });
+
+test("придержанное условие размена не засчитывается отданным (зеркало сервера)", async () => {
+  // Найдено после аудита 17.10: «Если мы НЕ дадим годовой контракт…».
+  const { analyze, applyMove, newSession } = await import("../src/mock/engine");
+  const { SCENARIO_MAP } = await import("../src/data/scenarios");
+  const { checkFreeform } = await import("../src/lib/courseCheck");
+  const { COURSE_BANK } = await import("../src/lib/course");
+  const line = "Если мы НЕ дадим годовой контракт с гарантией объёма, сможете подвинуться по цене?";
+  const s = newSession(SCENARIO_MAP.supplier, "ru");
+  s.turn = 1;
+  applyMove(s, analyze(line), line);
+  assert.ok(!s.termsConceded.includes("annual_contract"));
+  const ex = COURSE_BANK.find((x) => x.id === "lr-07")!;
+  assert.ok(!checkFreeform(ex, line, "ru").ok);
+  assert.ok(checkFreeform(ex, ex.reference!.ru, "ru").ok);
+});

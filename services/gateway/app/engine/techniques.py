@@ -130,6 +130,19 @@ def _has(t: str, arr: list[str]) -> bool:
     return any(_starts_at_word(t, w) for w in arr)
 
 
+def has_unnegated_in_clause(t: str, arr: list[str]) -> bool:
+    """`_has`, но совпадение под отрицанием В СВОЕЙ КЛАУЗЕ не считается.
+
+    Для условий размена: «Если мы НЕ дадим годовой контракт…» засчитывало
+    годовой контракт отданным — цена 100 → 89,5, реакция «collaborated» за
+    условие, которое игрок прямо придерживает (найдено после аудита 17.10)."""
+    for w in arr:
+        for at in _word_starts(t, w):
+            if not any(x in _NEGATORS for x in _clause_before(t, at)[-_NEGATION_WINDOW:]):
+                return True
+    return False
+
+
 def _has_tradeoff(t: str) -> bool:
     """`_has(LEX["tradeoff"])`, но условие под отрицанием — не размен.
 

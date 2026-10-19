@@ -5,7 +5,7 @@
 // behave like the real backend so the full UI works with no server running.
 import type { Lang, Mode } from "../types";
 import type { Analysis, Deltas, Debrief, HerSide, HerSideTurn, OtherSide, StateView, Status, Tag, TurnRecord, WhatIfBranch } from "../types";
-import { LEX, cnt, firstPriceAt, has, hasHostile, hasTradeoff, hasUnnegated, intentRightBefore, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
+import { LEX, cnt, firstPriceAt, has, hasHostile, hasTradeoff, hasUnnegated, hasUnnegatedInClause, intentRightBefore, isClose, isShortClose, norm, numberInQuestion, numberMentions, offerNumber } from "../lib/techniques";
 import type { NumberMention } from "../lib/techniques"; // has/norm reused for secondary-issue detection
 import { formatDeal, formatNumber } from "../lib/format";
 import { normalizeDifficulty } from "../lib/difficulty";
@@ -621,7 +621,8 @@ export function applyMove(s: Session, a: RawAnalysis, rawText = ""): MoveResult 
     // are the whole point. Detection is keyword-based here.
     for (const iss of sc.secondaryIssues ?? []) {
       if (s.termsConceded.includes(iss.id)) continue;
-      if (has(curNorm, iss.keywords[s.lang])) {
+      // Не под отрицанием: «если мы НЕ дадим годовой контракт» — придержано.
+      if (hasUnnegatedInClause(curNorm, iss.keywords[s.lang])) {
         s.termsConceded.push(iss.id);
         cf += 0.1 + 0.3 * iss.oppValue;
         events.push("term:" + iss.id);

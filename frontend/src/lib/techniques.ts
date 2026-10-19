@@ -68,6 +68,22 @@ export const startsAtWord = (text: string, word: string): boolean => {
 
 export const has = (t: string, arr: string[]): boolean => arr.some((w) => startsAtWord(t, w));
 
+/** `has`, но совпадение под отрицанием В СВОЕЙ КЛАУЗЕ не считается: «Если мы
+ *  НЕ дадим годовой контракт…» — условие придержано, а не отдано (найдено
+ *  после аудита 17.10). Зеркало techniques.py::has_unnegated_in_clause. */
+export const hasUnnegatedInClause = (t: string, arr: string[]): boolean => arr.some((w) => {
+  for (let at = t.indexOf(w); at >= 0; at = t.indexOf(w, at + 1)) {
+    const before = at === 0 ? " " : t[at - 1];
+    if (/\p{L}/u.test(before) || !tailOk(t, at, w)) continue;
+    const lead = t.slice(0, at);
+    let cut = -1;
+    for (const ch of CLAUSE_BREAKS) cut = Math.max(cut, lead.lastIndexOf(ch));
+    const head = lead.slice(cut + 1).split(/\s+/).filter(Boolean).slice(-NEGATION_WINDOW);
+    if (!head.some((x) => NEGATORS.has(x))) return true;
+  }
+  return false;
+});
+
 /** `has(LEX.hostile)`, но под отрицанием грубость — не грубость («Не хочу
  *  показаться некомпетентным, но…»); отрицание с усилителем («не просто») её
  *  не снимает. Зеркало techniques.py::_has_hostile. */

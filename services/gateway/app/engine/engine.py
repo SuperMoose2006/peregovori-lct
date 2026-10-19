@@ -26,7 +26,7 @@ from .techniques import Analysis, analyze as analyze, norm
 # `_has` — то же сравнение «основа с начала слова», по которому работают все
 # словари приёмов. Тема обязана засчитываться ровно так же, как ключевое
 # слово, иначе на одном столе будут два разных правила совпадения.
-from .techniques import _has
+from .techniques import _has, has_unnegated_in_clause
 
 
 def _js_round(x: float) -> int:
@@ -631,10 +631,12 @@ def _match_secondary_issues(sc: Scenario, cur_norm: str, lang: str,
     # С начала слова, как в офлайн-ядре (`has`): подстрока «годов» находилась
     # в «полугодовой контракт», и сервер засчитывал годовой контракт там, где
     # офлайн-ядро — нет (инвариант 8; найдено после аудита 17.10).
+    # И не под отрицанием: «Если мы НЕ дадим годовой контракт…» — условие
+    # придержано, а не отдано (найдено после аудита 17.10).
     out = []
     for iss in sc.secondary_issues:
         kws = iss.keywords.get(lang, [])
-        if _has(cur_norm, kws):
+        if has_unnegated_in_clause(cur_norm, kws):
             out.append(iss)
     return out
 

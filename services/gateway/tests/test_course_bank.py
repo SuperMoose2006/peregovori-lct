@@ -822,3 +822,27 @@ def test_cl03_checks_both_halves_of_the_close(lang, line, reason):
     item = next(x for x in BANK if x["id"] == "cl-03")
     assert reason in check_freeform(item, line, lang)["reasons"]
     assert check_freeform(item, item["reference"][lang], lang)["ok"]
+
+
+@pytest.mark.parametrize("exercise_id", ["lr-07", "lr-08", "pr-10", "st-07"])
+def test_a_withheld_term_is_not_a_conceded_term(exercise_id):
+    """Найдено после аудита 17.10: «Если мы НЕ дадим годовой контракт…»
+    засчитывалось разменом этого условия — и в упражнениях, и в игре (цена
+    100 → 89,5): отрицание при условии не смотрелось."""
+    item = next((x for x in BANK if x["id"] == exercise_id), None)
+    if item is None:
+        pytest.skip(f"{exercise_id} нет в банке")
+    line = {"ru": "Если мы НЕ дадим годовой контракт с гарантией объёма, сможете подвинуться по цене?",
+            "en": "If we do NOT give you an annual contract with a volume guarantee, can you move down on price?"}
+    assert not check_freeform(item, line["ru"], "ru")["ok"]
+    for lang in ("ru", "en"):
+        assert check_freeform(item, item["reference"][lang], lang)["ok"], lang
+
+
+def test_the_engine_does_not_concede_a_negated_term():
+    from app import engine
+    s = engine.create_session("supplier", "ru")
+    s.turn = 1
+    line = "Если мы НЕ дадим годовой контракт с гарантией объёма, сможете подвинуться по цене?"
+    engine.apply_move(s, engine.analyze(line), line)
+    assert "annual_contract" not in s.state.terms_conceded

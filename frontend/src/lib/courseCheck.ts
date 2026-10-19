@@ -15,7 +15,7 @@
 // Зеркало: services/gateway/app/course/check.py. Менять синхронно.
 import { SCENARIO_MAP } from "../data/scenarios";
 import { analyze, applyMove, newSession, pickOffer } from "../mock/engine";
-import { has, norm } from "./techniques";
+import { hasUnnegatedInClause, norm } from "./techniques";
 import type { Exercise } from "./courseTypes";
 import type { Lang, StateView } from "../types";
 import {
@@ -54,7 +54,8 @@ export function checkFreeform(ex: Exercise, text: string, lang: Lang): Verdict {
     // По нормализованной реплике и с начала слова — как движок (has): ключи
     // хранятся нормализованными («гарантию объем»), и сырое «объёма» не
     // совпадало, а «полугодовой» совпадал с «годов» (найдено после аудита 17.10).
-    const hit = !!issue && has(norm(text), issue.keywords[lang] ?? []);
+    // И не под отрицанием — как движок (`hasUnnegatedInClause`).
+    const hit = !!issue && hasUnnegatedInClause(norm(text), issue.keywords[lang] ?? []);
     if (!hit) reasons.push(`missing_term:${spec.require_secondary}`);
   }
 
