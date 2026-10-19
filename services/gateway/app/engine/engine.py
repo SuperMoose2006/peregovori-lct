@@ -602,6 +602,21 @@ def _topic_acronyms(label: str) -> list[str]:
     return [w for w in re.split(r"[^A-Za-zА-Яа-яЁё]+", label) if _ACRONYM_RE.match(w)]
 
 
+def _topic_short_words(label: str) -> list[str]:
+    """Тема из коротких слов без основы и без аббревиатуры ("Fee", «Сбор» — нет,
+    это четыре): её трёхбуквенные слова ищутся ЦЕЛЫМ словом (и с -s/-es), иначе
+    без судьи такой интерес не вскрыть. Основой они не становятся: «fee» ловил
+    бы «feel». Зеркало — mock/engine.ts::topicShortWords."""
+    if _topic_stems(label) or _topic_acronyms(label):
+        return []
+    return [w for w in norm(label).split(" ") if len(w) == 3 and w.isalpha()]
+
+
+def _names_short_word(cur_norm: str, words: list[str]) -> bool:
+    tokens = _tokens(cur_norm)
+    return any(w in tokens or w + "s" in tokens or w + "es" in tokens for w in words)
+
+
 def _names_acronym(raw: str, acronyms: list[str]) -> bool:
     return any(re.search(rf"(?<![A-Za-zА-Яа-яЁё]){a}(?![A-Za-zА-Яа-яЁё])", raw) for a in acronyms)
 
@@ -641,7 +656,8 @@ def _reveal_index_offline(sc: Scenario, cur_norm: str, lang: str,
         if i < len(kw) and _has(cur_norm, kw[i]):
             return i
         if i < len(topics) and (_has(cur_norm, _topic_stems(topics[i]))
-                                or _names_acronym(raw, _topic_acronyms(topics[i]))):
+                                or _names_acronym(raw, _topic_acronyms(topics[i]))
+                                or _names_short_word(cur_norm, _topic_short_words(topics[i]))):
             return i
     return None
 

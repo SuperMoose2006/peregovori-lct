@@ -264,6 +264,17 @@ export function topicStems(label: string): string[] {
 export function topicAcronyms(label: string): string[] {
   return label.split(/[^A-Za-zА-Яа-яЁё]+/).filter((w) => /^[A-ZА-ЯЁ]{2,4}$/.test(w));
 }
+/** Тема из коротких слов без основы и аббревиатуры ("Fee"): трёхбуквенные
+ *  слова ищутся ЦЕЛЫМ словом (и с -s/-es) — «fee» не ловит «feel».
+ *  Зеркало engine.py::_topic_short_words. */
+export function topicShortWords(label: string): string[] {
+  if (topicStems(label).length || topicAcronyms(label).length) return [];
+  return norm(label).split(" ").filter((w) => w.length === 3 && /^\p{L}+$/u.test(w));
+}
+function namesShortWord(curNorm: string, words: string[]): boolean {
+  const tokens = tokensOf(curNorm);
+  return words.some((w) => tokens.has(w) || tokens.has(w + "s") || tokens.has(w + "es"));
+}
 function namesAcronym(raw: string, acronyms: string[]): boolean {
   return acronyms.some((a) => new RegExp(`(?<![A-Za-zА-Яа-яЁё])${a}(?![A-Za-zА-Яа-яЁё])`).test(raw));
 }
@@ -276,7 +287,8 @@ function revealIndexOffline(sc: ScenarioDef, curNorm: string, lang: Lang, found:
   for (let i = 0; i < total; i++) {
     if (found.includes(i)) continue;
     if (i < kw.length && has(curNorm, kw[i])) return i;
-    if (i < topics.length && (has(curNorm, topicStems(topics[i])) || namesAcronym(raw, topicAcronyms(topics[i])))) return i;
+    if (i < topics.length && (has(curNorm, topicStems(topics[i])) || namesAcronym(raw, topicAcronyms(topics[i]))
+      || namesShortWord(curNorm, topicShortWords(topics[i])))) return i;
   }
   return null;
 }

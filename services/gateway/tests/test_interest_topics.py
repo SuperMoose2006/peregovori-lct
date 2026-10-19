@@ -121,6 +121,21 @@ def test_an_acronym_topic_can_be_asked_about(lang, line, idx):
     assert _reveal_index_offline(sc, norm(line), lang, [], line) == idx
 
 
+@pytest.mark.parametrize("line,idx", [
+    ("What matters to you about the fee?", 0),
+    ("What matters to you about your fees?", 0),
+    ("How do you feel about it, what matters to you?", None),
+])
+def test_a_short_word_topic_can_be_asked_about(line, idx):
+    """Тема из одного короткого слова ("Fee") не давала основ — без судьи интерес
+    было не вскрыть. Если у темы нет ни основы, ни аббревиатуры, её короткое
+    слово ищется ЦЕЛЫМ словом (и с -s): "feel" — не "fee"."""
+    from dataclasses import replace
+    sc = replace(engine.by_id("supplier"), id="custom_short_topic_test", hidden_interest_keywords={},
+                 interest_topics={"ru": ["Сбор", "Сроки", "Риски"], "en": ["Fee", "Deadlines", "Risks"]})
+    assert _reveal_index_offline(sc, norm(line), "en", [], line) == idx
+
+
 def test_topic_stems_keep_short_words_out():
     """Основа короче четырёх букв совпала бы с чем угодно; хвост в две буквы
     срезается ради морфологии — «оплата» обязана ловить «оплате»."""

@@ -147,3 +147,22 @@ test("тема-аббревиатура вскрывается вопросом 
     assert.deepEqual(s.interests, found, line);
   }
 });
+
+test("тема из короткого слова вскрывается целым словом (зеркало test_interest_topics)", () => {
+  const base = byId("supplier");
+  const def = {
+    ...base, id: "custom_short_topic_test", hiddenInterestKeywords: { ru: [], en: [] },
+    interestTopics: { ru: ["Сбор", "Сроки", "Риски"], en: ["Fee", "Deadlines", "Risks"] },
+  };
+  const cases: [string, number[]][] = [
+    ["What matters to you about the fee?", [0]],
+    ["What matters to you about your fees?", [0]],
+    ["How do you feel about it, what matters to you?", []],
+  ];
+  for (const [line, found] of cases) {
+    const s = newSession(def, "en");
+    s.turn += 1;
+    applyMove(s, analyze(line), line);
+    assert.deepEqual(s.interests, found, line);
+  }
+});
