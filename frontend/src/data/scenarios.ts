@@ -71,8 +71,8 @@ export const SCENARIOS: ScenarioDef[] = [
     id: "supplier", icon: "box", face: "person", diff: 3, dir: "low",
     title: { ru: "Контракт с поставщиком", en: "Supplier Contract" },
     role: {
-      ru: "Вы — менеджер по закупкам: снизить цену, не потеряв надёжного поставщика.",
-      en: "You are a buyer: cut the price without losing a reliable supplier.",
+      ru: "Вы — менеджер по закупкам. Вам нужно снизить цену, не потеряв надёжного поставщика.",
+      en: "You are a buyer. You need to cut the price without losing a reliable supplier.",
     },
     cp: {
       nm: { ru: "Ирина, глава продаж", en: "Irina, Head of Sales" },
@@ -134,8 +134,8 @@ export const SCENARIOS: ScenarioDef[] = [
     id: "salary", icon: "briefcase", face: "person", diff: 3, dir: "high",
     title: { ru: "Переговоры о зарплате", en: "Salary Negotiation" },
     role: {
-      ru: "У вас есть оффер: повысить компенсацию, не отпугнув работодателя.",
-      en: "You have an offer: raise the package without scaring off the employer.",
+      ru: "Ваша задача — договориться с работодателем о повышении зарплаты.",
+      en: "Your task: agree with the employer on a higher salary.",
     },
     cp: {
       nm: { ru: "Дмитрий, директор", en: "Dmitry, Hiring Director" },
@@ -270,8 +270,8 @@ export const SCENARIOS: ScenarioDef[] = [
     id: "investor", icon: "rocket", face: "person", diff: 5, dir: "low",
     title: { ru: "Раунд с инвестором", en: "Investor Term Sheet" },
     role: {
-      ru: "Вы — фаундер: инвестор хочет большую долю и жёсткие условия.",
-      en: "You are a founder: the investor wants a big stake and tough terms.",
+      ru: "Вы — фаундер. Ваша задача — договориться с инвестором, который хочет большую долю.",
+      en: "You are a founder. Your task: reach a deal with an investor who wants a big stake.",
     },
     cp: {
       nm: { ru: "Марина, партнёр фонда", en: "Marina, VC Partner" },
@@ -341,8 +341,8 @@ export const SCENARIOS: ScenarioDef[] = [
     id: "rent", icon: "house", face: "person", diff: 3, dir: "low",
     title: { ru: "Аренда квартиры", en: "Apartment Rent" },
     role: {
-      ru: "Вы — арендатор: снизить месячную плату, не потеряв удачную квартиру.",
-      en: "You are a tenant: lower the monthly rent without losing a great flat.",
+      ru: "Вы — арендатор. Вам нужно снизить месячную плату, не потеряв удачную квартиру.",
+      en: "You are a tenant. You need to lower the monthly rent without losing a great flat.",
     },
     cp: {
       nm: { ru: "Наталья, собственница", en: "Natalia, the Landlady" },
@@ -481,8 +481,8 @@ export const SCENARIOS: ScenarioDef[] = [
     id: "freelance_rate", icon: "laptop", face: "person", diff: 3, dir: "high",
     title: { ru: "Ставка фрилансера", en: "Freelance Rate" },
     role: {
-      ru: "Вы — независимый разработчик: поднять дневную ставку по проекту для стартапа.",
-      en: "You are an independent developer: raise your project day rate with a startup.",
+      ru: "Вы — независимый разработчик. Вам нужно поднять дневную ставку по проекту для стартапа.",
+      en: "You are an independent developer. You need to raise your day rate on a startup project.",
     },
     cp: {
       nm: { ru: "Павел, основатель стартапа", en: "Pavel, Startup Founder" },
@@ -619,8 +619,8 @@ export const SCENARIOS: ScenarioDef[] = [
     id: "candidate_offer", icon: "pen", face: "person", diff: 3, dir: "low",
     title: { ru: "Оффер сильному кандидату", en: "Making the Offer" },
     role: {
-      ru: "Вы нанимаете: бюджет с запасом, второго оффера у него нет. Пусть выйдет — и останется.",
-      en: "You are hiring: the budget has room, he has no rival offer. Make him join — and stay.",
+      ru: "Ваша задача — уговорить кандидата принять ваши условия по зарплате.",
+      en: "Your task: persuade the candidate to accept your salary terms.",
     },
     cp: {
       nm: { ru: "Тимур, кандидат", en: "Timur, the Candidate" },

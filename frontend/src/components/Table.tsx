@@ -527,7 +527,9 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
       onUseLine={inCall ? undefined : (text) => setPrefill({ text, nonce: prefillNonce.current++ })}
       useLineLabel={t.useLine}
       log={log}
-      metersShort={t.metersShort}
+      // Под репликой — полные названия шкал: «Рыч»/«Дов» читались как
+      // непонятные слова (замечание владельца 20.10).
+      metersShort={t.meters}
       metersFull={t.meters}
       deltaAria={t.a11y.delta}
       logLabel={t.a11y.chatLog}

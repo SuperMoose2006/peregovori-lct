@@ -20,8 +20,8 @@ import { DifficultyIndicator } from "./DifficultyIndicator";
 
 const BROWSE = {
   ru: {
-    title: "Договариваться — навык.", accent: "Тренируйте его здесь.",
-    subtitle: "Вы ведёте переговоры с собеседником, которого играет ИИ: у него своя цена, граница и скрытые интересы. Договоритесь выгодно и не испортите отношения — после партии получите разбор и оценку.",
+    title: "Договариваться\u00a0— это навык.", accent: "Тренируйте его здесь.",
+    subtitle: "Здесь вы тренируете навык переговоров с собеседником, у которого свои цели на разговор. Ваша задача — успешно выстроить диалог и прийти к договорённости. После каждой партии вы получаете подробный разбор и оценку.",
     search: "Найти ситуацию", placeholder: "Зарплата, аренда, сложный разговор…",
     all: "Все ситуации", career: "Карьера", business: "Бизнес", life: "Жизнь", topicLabel: "Сфера переговоров",
     level: "Режим уступок", allLevels: "Любой режим уступок",
@@ -31,8 +31,8 @@ const BROWSE = {
     examTitle: "Проверьте себя без подсказок", examBody: "Выберите знакомую или новую ситуацию. В конце — оценка ваших решений и сертификат за успешную партию.",
   },
   en: {
-    title: "Negotiation is a skill.", accent: "Make it yours.",
-    subtitle: "You negotiate with a counterpart played by AI: they have their own price, a limit and hidden interests. Reach a good deal without damaging the relationship — after the game you get a breakdown and a grade.",
+    title: "Negotiating is a skill.", accent: "Practise it here.",
+    subtitle: "Here you practise negotiating with a counterpart who has their own goals for the conversation. Your job is to build the dialogue well and reach an agreement. After every game you get a detailed breakdown and a grade.",
     search: "Find a situation", placeholder: "Salary, rent, a difficult conversation…",
     all: "All situations", career: "Career", business: "Business", life: "Everyday life", topicLabel: "Negotiation context",
     level: "Concession mode", allLevels: "Any concession mode",

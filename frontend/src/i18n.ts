@@ -1014,7 +1014,7 @@ export const I18N: Record<Lang, Strings> = {
           name: "Объективные критерии",
           idea: "Спор мнений выигрывает тот, кто громче. Спор по критерию — тот, кто прав.",
           example:
-            "«По рыночным данным справедливая ставка — X» → это законный рычаг: чип «Рыч» под репликой растёт, а уступка не выглядит капитуляцией.",
+            "«По рыночным данным справедливая ставка — X» → это законный рычаг: отметка «Рычаг» под репликой растёт, а уступка не выглядит капитуляцией.",
         },
         {
           tag: "Гарвард",
@@ -1024,11 +1024,11 @@ export const I18N: Record<Lang, Strings> = {
             "«Если подвинемся по срокам — сможете по цене?» → размен (логроллинг) двигает сделку там, где лобовой торг застревает.",
         },
         {
-          tag: "BATNA",
+          tag: "Гарвард",
           name: "Запасной вариант как рычаг",
           idea: "Ваша лучшая альтернатива — источник спокойствия, а не дубина.",
           example:
-            "Знаете свой запасной вариант — торгуетесь увереннее. Но угроза «уйду» в лоб бьёт по доверию: BATNA — рычаг, а не таран.",
+            "Знаете свой запасной вариант — торгуетесь увереннее. Но угроза «уйду» в лоб бьёт по доверию: запасной вариант — рычаг, а не таран.",
         },
       ],
       framing:
@@ -1054,7 +1054,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     flexMeter: {
       full: "Гибкость", short: "Гибк",
-      info: "Гибкость: насколько собеседник готов двигаться к вам. Складывается из доверия, того, что вы знаете о его интересах, и силы ваших доводов (рычаг, чип «Рыч»); напряжение её съедает.",
+      info: "Гибкость: насколько собеседник готов двигаться к вам. Складывается из доверия, того, что вы знаете о его интересах, и силы ваших доводов (рычаг); напряжение её съедает.",
     },
     tracker: {
       title: "Цена сделки",
@@ -1285,7 +1285,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "Цель на сегодня",
       count: "{done} из {target}",
       hint: "Сколько переговоров провести сегодня. Засчитывается любая законченная партия.",
-      rule: "Поднять цель можно сразу, опустить — только со следующего дня: обещание себе не отменяют посреди дня.",
+      rule: "Поднять цель можно сразу, опустить — только со следующего дня.",
       later: "Сегодня цель — {today}, с завтрашнего дня — {later}. Передумали — выберите {today} снова.",
       setNow: "{n} в день — с сегодняшнего дня",
       setLater: "{n} в день — с завтрашнего дня, сегодня цель не изменится",
@@ -1293,7 +1293,7 @@ export const I18N: Record<Lang, Strings> = {
     rank: {
       title: "Ваш ранг",
       toNext: "{n} XP до «{rank}»",
-      hint: "Растёт от опыта (XP). За законченную партию — столько XP, сколько баллов из 100 вы набрали, плюс бонус за сделку и за новый рекорд; задания курса тоже дают XP. На оценку партий ранг не влияет.",
+      hint: "Вы получаете столько XP, сколько баллов из 100 набрали за законченную партию, плюс бонус за сделку и за новый рекорд. Задания курса тоже дают XP. На оценку партии ранг не влияет.",
     },
     method: {
       title: "Четыре главных приёма",
@@ -1322,7 +1322,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     tours: {
       home: {
-        intro: { title: "Это тренажёр переговоров", body: "Вы ведёте переговоры с собеседником, которого играет ИИ: у него своя цена, граница, за которую он не пойдёт, и скрытые интересы. Задача — договориться выгодно и не испортить отношения. После партии — разбор ошибок и оценка от A до F." },
+        intro: { title: "Это тренажёр переговоров", body: "Вы ведёте переговоры с собеседником, которого играет ИИ. У него свои цели, границы, которые он не готов переходить, и скрытые интересы. Ваша задача — договориться выгодно, учитывая интересы обеих сторон. После каждой партии вы получаете подробный разбор и оценку." },
         start: { title: "Начните отсюда", body: "Мы подобрали первые переговоры — самые простые. Нажмите зелёную кнопку в этой карточке. Ошибиться не страшно: партию можно переиграть. За столом подсказывает ворон Карл — ваш тренер." },
         nav: { title: "Разделы", body: "Тренировка — любая ситуация из каталога. Кампания — серия переговоров, где репутация переходит дальше. Курс — короткие уроки с заданиями. Своя сделка — ИИ соберёт переговоры по вашему описанию. Экзамен — без подсказок, на оценку. Профиль — ваш прогресс и настройки, Редактор — для преподавателя. В каждом разделе — свои подсказки." },
         progress: { title: "Ваш прогресс", body: "Цель на сегодня, серия дней и ранг считаются по вашим партиям. На оценку конкретной партии они не влияют. Слон Тихон хранит ваши рекорды — вы встретите его в разборе после партии." },
@@ -2207,7 +2207,7 @@ export const I18N: Record<Lang, Strings> = {
           name: "Objective criteria",
           idea: "A clash of opinions is won by the loudest. A clash of criteria, by whoever's right.",
           example:
-            "“By market data, the fair rate is X” → that's legitimate leverage: the “Lev” chip under your line rises, and a concession doesn't read as surrender.",
+            "“By market data, the fair rate is X” → that's legitimate leverage: the “Leverage” mark under your line rises, and a concession doesn't read as surrender.",
         },
         {
           tag: "Harvard",
@@ -2217,11 +2217,11 @@ export const I18N: Record<Lang, Strings> = {
             "“If we move on timing, can you move on price?” → a trade-off (logrolling) advances the deal where head-on haggling stalls.",
         },
         {
-          tag: "BATNA",
+          tag: "Harvard",
           name: "Your fallback as leverage",
           idea: "Your best alternative is a source of calm, not a club.",
           example:
-            "Know your fallback and you bargain with confidence. But a blunt “I'll walk” hits trust: BATNA is leverage, not a battering ram.",
+            "Know your fallback and you bargain with confidence. But a blunt “I'll walk” hits trust: your fallback is leverage, not a battering ram.",
         },
       ],
       framing:
@@ -2247,7 +2247,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     flexMeter: {
       full: "Flexibility", short: "Flex",
-      info: "Flexibility: how ready the counterpart is to move toward you. Built from trust, what you know of their interests and the strength of your arguments (leverage, the “Lev” chip); tension eats it.",
+      info: "Flexibility: how ready the counterpart is to move toward you. Built from trust, what you know of their interests and the strength of your arguments (leverage); tension eats it.",
     },
     tracker: {
       title: "The price",
@@ -2471,7 +2471,7 @@ export const I18N: Record<Lang, Strings> = {
       title: "Today's goal",
       count: "{done} of {target}",
       hint: "How many negotiations to finish today. Any finished game counts.",
-      rule: "You can raise the goal right away; lowering it starts tomorrow — a promise to yourself isn't taken back halfway through the day.",
+      rule: "You can raise the goal right away; lowering it starts tomorrow.",
       later: "Today's goal is {today}; from tomorrow it's {later}. Changed your mind? Pick {today} again.",
       setNow: "{n} a day — starting today",
       setLater: "{n} a day — starting tomorrow; today's goal stays as it is",
@@ -2479,7 +2479,7 @@ export const I18N: Record<Lang, Strings> = {
     rank: {
       title: "Your rank",
       toNext: "{n} XP to \u00ab{rank}\u00bb",
-      hint: "Grows with experience (XP). A finished game earns as much XP as its score out of 100, plus a bonus for a deal and for a new record; course exercises earn XP too. Your rank never affects how games are scored.",
+      hint: "You earn as much XP as you scored out of 100 in a finished game, plus a bonus for a deal and for a new record. Course exercises earn XP too. Your rank never affects how a game is scored.",
     },
     method: {
       title: "The four core techniques",
@@ -2508,7 +2508,7 @@ export const I18N: Record<Lang, Strings> = {
     },
     tours: {
       home: {
-        intro: { title: "This is a negotiation trainer", body: "You negotiate with a counterpart played by AI: they have their own price, a limit they won't go past, and hidden interests. Your job is to reach a good deal without damaging the relationship. After each game you get a breakdown of your moves and a grade from A to F." },
+        intro: { title: "This is a negotiation trainer", body: "You negotiate with a counterpart played by AI. They have their own goals, limits they won't cross, and hidden interests. Your job is to reach a good deal that takes both sides' interests into account. After every game you get a detailed breakdown and a grade." },
         start: { title: "Start here", body: "We picked your first negotiation — the easiest one. Press the green button on this card. Mistakes are fine: you can replay any game. At the table, Karl the raven is your coach." },
         nav: { title: "Sections", body: "Training — any situation from the catalogue. Campaign — a series of negotiations where your reputation carries over. Course — short lessons with exercises. Your deal — AI builds a negotiation from your description. Exam — no hints, graded. Profile — your progress and settings; Editor — for educators. Every section has its own tips." },
         progress: { title: "Your progress", body: "Today's goal, your day streak and your rank are counted from your games. They never change how a game is scored. Tikhon the elephant keeps your records — you'll meet him in the breakdown after a game." },

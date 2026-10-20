@@ -12,7 +12,7 @@ test("catalog search preserves the authored order and never mutates the catalog"
 
 test("search matches all words across title and role, regardless of case or ё", () => {
   const rows = catalog("ru");
-  assert.deepEqual(filterCatalog(rows, "ЗАРПЛАТЕ оффер", "all", "all").map((r) => r.id), ["salary"]);
+  assert.deepEqual(filterCatalog(rows, "ЗАРПЛАТЕ работодателем", "all", "all").map((r) => r.id), ["salary"]);
   assert.equal(filterCatalog(rows, "зарплата аренда", "all", "all").length, 0);
   assert.equal(filterCatalog([{ id: "test", title: "Партнёр", role: "Совместный проект", difficulty: 2, icon: "" }], "ПАРТНЕР проект", "all", "all").length, 1);
 });

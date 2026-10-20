@@ -130,7 +130,7 @@ SCENARIOS: list[Scenario] = [
         difficulty=2,
         title={"ru": "Контракт с поставщиком", "en": "Supplier Contract"},
         role={
-            "ru": "Вы — менеджер по закупкам. Нужно снизить цену на комплектующие, не потеряв надёжного поставщика.",
+            "ru": "Вы — менеджер по закупкам. Вам нужно снизить цену на комплектующие, не потеряв надёжного поставщика.",
             "en": "You are a procurement manager. Drive the component price down without losing a reliable supplier.",
         },
         counterpart=Counterpart(
@@ -224,8 +224,8 @@ SCENARIOS: list[Scenario] = [
         difficulty=3,
         title={"ru": "Переговоры о зарплате", "en": "Salary Negotiation"},
         role={
-            "ru": "Вы получили оффер и хотите повысить компенсацию, не отпугнув работодателя.",
-            "en": "You have an offer and want to raise the package without scaring off the employer.",
+            "ru": "Вы получили оффер. Ваша задача — договориться с работодателем о повышении зарплаты.",
+            "en": "You have received an offer. Your task: agree with the employer on a higher salary.",
         },
         counterpart=Counterpart(
             name={"ru": "Дмитрий, директор", "en": "Dmitry, Hiring Director"},
@@ -415,8 +415,8 @@ SCENARIOS: list[Scenario] = [
         difficulty=5,
         title={"ru": "Раунд с инвестором", "en": "Investor Term Sheet"},
         role={
-            "ru": "Вы — фаундер. Инвестор предлагает деньги, но хочет большую долю и жёсткие условия.",
-            "en": "You are a founder. The investor offers money but wants a large stake and tough terms.",
+            "ru": "Вы — фаундер компании. Ваша задача — договориться с инвестором, который хочет большую долю компании и жёсткие условия.",
+            "en": "You are a company founder. Your task: reach a deal with an investor who wants a large stake in the company and tough terms.",
         },
         counterpart=Counterpart(
             name={"ru": "Марина, партнёр фонда", "en": "Marina, VC Partner"},
@@ -514,7 +514,7 @@ SCENARIOS: list[Scenario] = [
         difficulty=2,
         title={"ru": "Аренда квартиры", "en": "Apartment Rent"},
         role={
-            "ru": "Вы — арендатор. Хотите снизить месячную арендную плату, не потеряв удачную квартиру.",
+            "ru": "Вы — арендатор. Вам нужно снизить месячную плату, не потеряв удачную квартиру.",
             "en": "You are a tenant. You want to lower the monthly rent without losing a great flat.",
         },
         counterpart=Counterpart(
@@ -720,7 +720,7 @@ SCENARIOS: list[Scenario] = [
         difficulty=4,
         title={"ru": "Ставка фрилансера", "en": "Freelance Rate"},
         role={
-            "ru": "Вы — независимый разработчик. Хотите поднять дневную ставку по проекту для стартапа.",
+            "ru": "Вы — независимый разработчик. Вам нужно поднять дневную ставку по проекту для стартапа.",
             "en": "You are an independent developer. You want to raise your project day rate with a startup.",
         },
         counterpart=Counterpart(
@@ -927,8 +927,8 @@ SCENARIOS: list[Scenario] = [
         difficulty=2,
         title={"ru": "Оффер сильному кандидату", "en": "Making the Offer"},
         role={
-            "ru": "Вы — нанимающий руководитель. Бюджет утверждён с запасом, второго оффера у кандидата нет. Договоритесь так, чтобы он вышел — и остался.",
-            "en": "You are the hiring manager. The budget has room, the candidate has no rival offer. Close it so he joins — and stays.",
+            "ru": "Вы — нанимающий руководитель. Ваша задача — уговорить кандидата принять ваши условия по зарплате. Бюджет утверждён с запасом, второго оффера у кандидата нет.",
+            "en": "You are the hiring manager. Your task: persuade the candidate to accept your salary terms. The budget has room, and the candidate has no rival offer.",
         },
         counterpart=Counterpart(
             name={"ru": "Тимур, кандидат", "en": "Timur, the Candidate"},
