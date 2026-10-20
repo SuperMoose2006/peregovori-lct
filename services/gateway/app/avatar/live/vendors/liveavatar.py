@@ -18,6 +18,12 @@ lite-mode/events, lite-mode/lifecycle) и открытый код HeyGen
 * видео и НАШ звук, синхронный с видео, — в комнате LiveKit, участник
   `heygen`; сервер подключается туда `livekit_agent_token`;
 * `POST /v1/sessions/stop` — закрыть и перестать платить;
+* `GET /v1/sessions/{id}` — как кончилась сессия, которую закрыл сервис
+  (`end_reason`: предел длины, кредиты, простой);
+* `agent.start_listening` / `agent.stop_listening` — поза «слушает», пока
+  говорит игрок; `agent.state_updated` — состояние лица (idle / listening /
+  talking); `event_id` первого куска реплики возвращается как
+  `source_event_id` в `agent.speak_started|ended|interrupted` (с 08.09.2026);
 * `GET /v1/users/credits` — бесплатная проверка ключа и остатка кредитов;
 * `GET /v1/avatars/public` — стоковые лица без ключа; песочница
   (`is_sandbox: true`, лицо `dd73ea75-…`, около минуты, кредиты не списываются).
@@ -38,9 +44,12 @@ import asyncio
 import base64
 import contextlib
 import json
+import os
 import re
 import logging
 import time
+import uuid
+from pathlib import Path
 from typing import AsyncIterator, Optional
 
 import numpy as np
@@ -76,6 +85,12 @@ KEEPALIVE_S = 60.0
 #: сменяется заранее, по `max_session_duration` из ответа на start.
 ROTATE_MARGIN_S = 15.0
 CONNECT_WAIT_S = 10.0
+#: Сколько реплик помнить по `event_id`: события сервиса о реплике приходят
+#: позже её звука, но не на десяток реплик позже.
+UTTERANCES_KEPT = 8
+#: Записи в списке открытых сессий старше суток не трогаем, а выбрасываем:
+#: сервис закрывает брошенную сессию сам за минуты (замер 29.09 — 194–210 с).
+LEDGER_MAX_AGE_S = 24 * 3600
 #: Качество видео: `medium` = 480p. Лицо у нас — 320 px, больше не нужно,
 #: а декодирование на сервере и трафик от сервиса растут с каждой ступенью.
 QUALITY = "medium"
@@ -128,6 +143,17 @@ class LiveAvatarDriver(WebRtcDriver):
         self.session_limit_s: Optional[float] = None
         #: Когда пройден каждый этап подключения (монотонные часы) — для замера.
         self.marks: dict[str, float] = {}
+        #: Состояние лица по `agent.state_updated`: idle | listening | talking.
+        self._agent_state = "idle"
+        #: Игрок говорит — лицу место в позе «слушает» (`set_listening`).
+        self._want_listening = False
+        #: Реплики по `event_id` первого куска: когда ушёл звук, когда сервис
+        #: начал говорить. Для строки журнала на реплику.
+        self._utterance_id: Optional[str] = None
+        self._utterances: dict[str, dict] = {}
+        #: Сессию закрыл не наш `close()`, а сервис или сеть: при остановке
+        #: спросить у сервиса, почему (`_finish_session`).
+        self._ended_by_service = False
 
     def _mark(self, stage: str) -> None:
         self.marks.setdefault(stage, time.monotonic())
@@ -153,6 +179,11 @@ class LiveAvatarDriver(WebRtcDriver):
         except ValueError:
             pass
         return note + ("; песочница включена" if cfg.sandbox else "")
+
+    @staticmethod
+    async def sweep_orphans(cfg: LiveVideoConfig) -> int:
+        """При старте шлюза: добить сессии, брошенные упавшим процессом."""
+        return await _sweep_orphans(cfg.key)
 
     # -- сессия ------------------------------------------------------------------------
 
@@ -187,6 +218,8 @@ class LiveAvatarDriver(WebRtcDriver):
                 f"{API}/v1/sessions/token", headers={"X-API-KEY": self._cfg.key}, json=body))
             self._mark("token")
             self.session_id = token.get("session_id")
+            if self.session_id:
+                _ledger_note(str(self.session_id), opened=True)
             session_token = token.get("session_token")
             if not session_token:
                 raise DriverError("liveavatar: нет session_token в ответе", reason="protocol")
@@ -232,6 +265,7 @@ class LiveAvatarDriver(WebRtcDriver):
 
         def on_gone(*_args) -> None:
             if not self._closing:
+                self._ended_by_service = True
                 self.emit(Closed("liveavatar: комната LiveKit закрыта"))
 
         room.on(LK_TRACK_EVENT, on_track)
@@ -284,8 +318,17 @@ class LiveAvatarDriver(WebRtcDriver):
         if not self._buffer:
             return
         chunk, self._buffer = bytes(self._buffer), bytearray()
+        message = {"type": "agent.speak", "audio": base64.b64encode(chunk).decode("ascii")}
+        if self._sent_in_utterance == 0:
+            # Первый кусок открывает реплику, и его `event_id` сервис вернёт
+            # в каждом событии о ней: началась, отзвучала, перебита.
+            self._utterance_id = str(uuid.uuid4())
+            message["event_id"] = self._utterance_id
+            self._utterances[self._utterance_id] = {"sent": self._now()}
+            while len(self._utterances) > UTTERANCES_KEPT:
+                self._utterances.pop(next(iter(self._utterances)))
         self._sent_in_utterance += len(chunk)
-        await self._send({"type": "agent.speak", "audio": base64.b64encode(chunk).decode("ascii")})
+        await self._send(message)
         self._last_audio_send_at = self._now()
         self._last_chunk_audio_ms = len(chunk) / (24000 * 2) * 1000
         self._audio_chunks_sent += 1
@@ -327,6 +370,48 @@ class LiveAvatarDriver(WebRtcDriver):
         self._sent_in_utterance = 0
         await self._send({"type": "agent.interrupt"})
 
+    async def set_listening(self, on: bool) -> None:
+        """Поза «слушает», пока говорит игрок.
+
+        Команда переводит лицо из простоя; говорящее лицо её не ждёт — после
+        реплики (или перебивания) оно вернётся в простой, и тогда поза ставится
+        по `agent.state_updated`, если игрок всё ещё говорит."""
+        self._want_listening = on
+        if on and self._agent_state == "idle":
+            await self._send({"type": "agent.start_listening"})
+        elif not on and self._agent_state == "listening":
+            await self._send({"type": "agent.stop_listening"})
+
+    def _on_agent_state(self, state: str) -> None:
+        self._agent_state = state
+        if state == "idle" and self._want_listening and not self._closing:
+            task = asyncio.get_running_loop().create_task(self._send_quietly({"type": "agent.start_listening"}))
+            self._tasks.append(task)
+
+    async def _send_quietly(self, message: dict) -> None:
+        with contextlib.suppress(Exception):
+            await self._send(message)
+
+    def _on_utterance(self, kind: str, utterance_id: Optional[str]) -> None:
+        """Строка журнала на реплику: когда сервис начал её говорить и чем
+        кончилось. Сервис отстаёт от нашего звука на кадры (`AV_DELAY_MS`), и
+        здесь видно, насколько именно в этой реплике."""
+        info = self._utterances.get(utterance_id or "")
+        if info is None:
+            return
+        now = self._now()
+        if kind == "agent.speak_started":
+            info["started"] = now
+            return
+        started = info.get("started")
+        _log.info(json.dumps({
+            "event": "live_video_utterance", "provider": "liveavatar",
+            "outcome": "interrupted" if kind == "agent.speak_interrupted" else "ended",
+            "start_after_send_ms": round((started - info["sent"]) * 1000) if started is not None else None,
+            "spoke_ms": round((now - started) * 1000) if started is not None else None,
+        }, separators=(",", ":")))
+        self._utterances.pop(utterance_id or "", None)
+
     async def _rotate_before_limit(self, limit_s: float) -> None:
         await asyncio.sleep(max(5.0, limit_s - ROTATE_MARGIN_S))
         if not self._closing:
@@ -355,6 +440,10 @@ class LiveAvatarDriver(WebRtcDriver):
                     elif state == "disconnected":
                         reason = "liveavatar: сессия отключена сервисом"
                         break
+                elif kind == "agent.state_updated":
+                    self._on_agent_state(str(event.get("new_state") or ""))
+                elif kind in ("agent.speak_started", "agent.speak_ended", "agent.speak_interrupted"):
+                    self._on_utterance(kind, event.get("source_event_id"))
                 elif kind == "error":
                     err = event.get("error") or {}
                     _log.warning("живое видео: liveavatar ошибка %s: %s", err.get("type"), err.get("message"))
@@ -379,6 +468,7 @@ class LiveAvatarDriver(WebRtcDriver):
         except Exception as exc:
             reason = f"liveavatar: сокет команд оборвался ({type(exc).__name__})"
         if not self._closing:
+            self._ended_by_service = True
             self.emit(Closed(reason))
 
     def _request_stop(self) -> None:
@@ -392,7 +482,8 @@ class LiveAvatarDriver(WebRtcDriver):
         """
         if not self.session_id:
             return
-        keep_stop(asyncio.get_running_loop().create_task(_stop_session(self._cfg.key, self.session_id)))
+        keep_stop(asyncio.get_running_loop().create_task(
+            _finish_session(self._cfg.key, self.session_id, ask_reason=self._ended_by_service)))
         self.closed_session_id, self.session_id = self.session_id, None
 
     async def close(self) -> None:
@@ -430,13 +521,103 @@ def _tls(url: str):
         return ssl.create_default_context()
 
 
-async def _stop_session(key: str, session_id: str) -> None:
+async def _stop_session(key: str, session_id: str, *, reason: str = "USER_CLOSED") -> None:
     import httpx
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.post(f"{API}/v1/sessions/stop", headers={"X-API-KEY": key},
-                                         json={"session_id": session_id, "reason": "USER_CLOSED"})
+                                         json={"session_id": session_id, "reason": reason})
         if response.status_code >= 400:
             _log.warning("живое видео: liveavatar не остановил сессию %s: %s", session_id, response.status_code)
     except Exception as exc:
         _log.warning("живое видео: liveavatar — остановка сессии %s не удалась: %r", session_id, exc)
+        return
+    # Ответ есть — сервис о сессии знает: остановил или она уже кончилась.
+    # Без ответа запись остаётся, и следующий старт шлюза попробует снова.
+    _ledger_note(session_id, opened=False)
+
+
+async def _finish_session(key: str, session_id: str, *, ask_reason: bool = False) -> None:
+    """Остановить сессию; если её закрыли без нас — сначала спросить почему.
+
+    Замер 29.09: у предела длины сервис не шлёт ни ошибки, ни события — лицо
+    просто замолкает. Причину знает только сам сервис (`end_reason`: предел
+    длины, кредиты, простой), и без вопроса в журнале оставался бы безымянный
+    обрыв. Уже закрытую сессию останавливать незачем."""
+    if ask_reason:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(f"{API}/v1/sessions/{session_id}", headers={"X-API-KEY": key})
+            data = (response.json() or {}).get("data") or {} if response.status_code < 400 else {}
+        except Exception:
+            data = {}
+        if data.get("end_reason"):
+            _log.warning(json.dumps({
+                "event": "live_video_session_end", "provider": "liveavatar",
+                "end_reason": data.get("end_reason"), "duration_s": data.get("duration"),
+                "credits": data.get("credits_used", data.get("credits_consumed")),
+            }, separators=(",", ":")))
+            _ledger_note(session_id, opened=False)
+            return
+    await _stop_session(key, session_id)
+
+
+# ------------------------------------------------ брошенные сессии
+
+def _ledger_path() -> Optional[Path]:
+    """Список открытых сессий на постоянном диске службы.
+
+    ЗАЧЕМ. Сессия без явной остановки идёт и оплачивается, пока сервис не
+    закроет её сам — 194–210 с по замеру 29.09. Мягкая остановка шлюза свои
+    сессии закрывает (`driver.finish_stops`), а упавший или убитый процесс
+    оставлял их висеть. Записанное здесь при открытии и вычеркнутое при
+    остановке — ровно то, что следующий старт должен добить
+    (`LiveAvatarDriver.sweep_orphans`). Не чужие сессии того же ключа: список
+    своих, а не `GET /v1/sessions`, — тем же ключом может работать машина
+    разработчика. Каталог — `StateDirectory` юнита; без него (тесты, прибор,
+    локальный запуск) списка нет."""
+    state = os.getenv("STATE_DIRECTORY", "").split(":")[0].strip()
+    return Path(state) / "liveavatar-sessions.json" if state else None
+
+
+def _ledger_load(path: Path) -> dict[str, dict]:
+    try:
+        data = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _ledger_note(session_id: str, *, opened: bool) -> None:
+    path = _ledger_path()
+    if path is None:
+        return
+    try:
+        entries = _ledger_load(path)
+        if opened:
+            entries[session_id] = {"pid": os.getpid(), "at": time.time()}
+        elif entries.pop(session_id, None) is None:
+            return
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(entries))
+        tmp.replace(path)
+    except OSError as exc:
+        _log.warning("живое видео: список сессий liveavatar не записан: %r", exc)
+
+
+async def _sweep_orphans(key: str) -> int:
+    path = _ledger_path()
+    if path is None:
+        return 0
+    now, me = time.time(), os.getpid()
+    stopped = 0
+    for session_id, entry in _ledger_load(path).items():
+        if not isinstance(entry, dict) or entry.get("pid") == me:
+            continue                      # сессия этого процесса — живая партия
+        if now - float(entry.get("at") or 0) > LEDGER_MAX_AGE_S:
+            _ledger_note(session_id, opened=False)
+            continue
+        await _finish_session(key, session_id, ask_reason=True)
+        stopped += 1
+    return stopped

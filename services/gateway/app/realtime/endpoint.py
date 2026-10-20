@@ -309,9 +309,12 @@ def _voice_publisher(session: "RealtimeSession"):
     не принимал — занятость не снималась никогда (найдено после аудита 17.10).
     """
     def publish(event: dict) -> None:
-        if (str(event.get("type", "")).startswith("user.")
-                and session.engine_session.state.status != "active"):
+        kind = str(event.get("type", ""))
+        if kind.startswith("user.") and session.engine_session.state.status != "active":
             return
+        if kind in ("user.speech.started", "user.speech.stopped") and session.avatar_provider is not None:
+            # Живое лицо слушает, пока игрок говорит (`agent.start_listening`).
+            session.avatar_provider.user_speaking(kind == "user.speech.started")
         session.bus.publish(event)
     return publish
 

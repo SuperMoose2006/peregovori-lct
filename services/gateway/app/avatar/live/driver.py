@@ -191,6 +191,11 @@ class LiveVideoDriver(abc.ABC):
     async def close(self) -> None:
         """Закрыть сессию сервиса. Идемпотентно."""
 
+    async def set_listening(self, on: bool) -> None:
+        """Поза «слушает», пока говорит игрок. Необязательно: умеет не каждый
+        сервис, и без позы лицо просто ждёт в простое."""
+        return None
+
     async def set_mood(self, state: str, reaction: Optional[str]) -> None:
         """Реакция, уже посчитанная движком. Необязательно: не каждый сервис
         умеет эмоции, а у кого умеет — это подсказка игре лица, не решение."""

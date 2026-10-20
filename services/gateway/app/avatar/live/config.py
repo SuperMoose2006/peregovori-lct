@@ -454,6 +454,16 @@ async def startup_check(cfg: Optional[LiveVideoConfig] = None, *, timeout_s: flo
         return STATUS.checked
     STATUS.checked = f"{cfg.vendor}: ключ принят — {verdict}"
     _log.info("живое видео: %s", STATUS.checked)
+    # Ключ принят — добить сессии, брошенные прошлым процессом (упал, убит):
+    # они оплачиваются, пока сервис не закроет их сам.
+    sweep = getattr(driver_class(spec), "sweep_orphans", None)
+    if sweep is not None:
+        try:
+            stopped = await asyncio.wait_for(sweep(cfg), timeout=timeout_s)
+            if stopped:
+                _log.warning("живое видео: остановлено сессий, брошенных прошлым процессом: %d", stopped)
+        except Exception as exc:
+            _log.warning("живое видео: брошенные сессии не проверены: %r", exc)
     return STATUS.checked
 
 

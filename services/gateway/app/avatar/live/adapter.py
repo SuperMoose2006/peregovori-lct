@@ -84,6 +84,10 @@ TO_DRIVER_MAX = 400
 #: Режим `text`: первый звук сервиса по фразе ждём дольше порога сторожа —
 #: сервис сначала синтезирует речь, потом рисует.
 TEXT_FIRST_AUDIO_MS = 4000
+#: Сколько тишины после речи игрока лицо ещё держит позу «слушает», с.
+#: Длиннее паузы между фразами и окна конца хода (0.9–1.8 с,
+#: `perception/realtime_voice.py`), короче, чем думает собеседник.
+LISTEN_HOLD_S = 1.5
 
 
 @dataclass
@@ -190,6 +194,9 @@ class LiveVideoAvatar(AvatarProvider):
         self._wake: Optional[asyncio.Event] = None
         self._side_tasks: set[asyncio.Task] = set()
         self._closing_drivers: set[asyncio.Task] = set()
+        #: Поза «слушает» (`user_speaking`): поставлена ли и таймер её снятия.
+        self._listening = False
+        self._listen_off: Optional[asyncio.TimerHandle] = None
         self.stats = Stats()
 
     # ------------------------------------------------------------ жизненный цикл
@@ -213,9 +220,37 @@ class LiveVideoAvatar(AvatarProvider):
         if self._supervisor is None:
             self.start()
 
+    def user_speaking(self, speaking: bool) -> None:
+        """Игрок говорит — лицо слушает. Снимается не на первой паузе, а
+        через `LISTEN_HOLD_S` тишины: VAD рвёт речь на фразы, и поза дёргалась
+        бы туда-обратно на каждом вдохе. Это окно накрывает и ожидание конца
+        хода, так что к ответу лицо уже в простое."""
+        if self._listen_off is not None:
+            self._listen_off.cancel()
+            self._listen_off = None
+        if speaking:
+            self._set_listening(True)
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        self._listen_off = loop.call_later(LISTEN_HOLD_S, self._set_listening, False)
+
+    def _set_listening(self, on: bool) -> None:
+        if not on:
+            self._listen_off = None
+        if on == self._listening or self._closed:
+            return
+        self._listening = on
+        if self.mode == "video" and self.link == "ready" and self._driver is not None:
+            self._background(self._driver.set_listening(on))
+
     async def close(self) -> None:
         if self._closed:
             return
+        if self._listen_off is not None:
+            self._listen_off.cancel()
         # Сначала звук: всё придержанное — человеку, по порядку.
         self._flush_held()
         self._report_reply()

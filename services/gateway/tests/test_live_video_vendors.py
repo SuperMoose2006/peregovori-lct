@@ -591,6 +591,8 @@ def _fake_liveavatar(monkeypatch, *, credits="12.5", status_token=200):
             if url.endswith("/v1/avatars/public"):
                 return Response(200, {"results": [{"id": "img-1", "status": "ACTIVE", "type": "IMAGE"},
                                                   {"id": "vid-9", "status": "ACTIVE", "type": "VIDEO"}]})
+            if "/v1/sessions/" in url:
+                return Response(200, calls.get("session_info", {}))
             return Response(404, {})
 
         async def post(self, url, headers=None, json=None):
@@ -1027,3 +1029,122 @@ def test_liveavatar_session_is_stopped_only_if_the_exiting_process_waits_for_it(
     assert calls["stopped"] == [], "без ожидания остановка отменяется с выходом процесса"
     asyncio.run(run(True))
     assert calls["stopped"] == [{"session_id": "sess-1", "reason": "USER_CLOSED"}]
+
+
+# ---------------------------------------- поза «слушает», реплики, брошенные сессии
+
+@pytest.mark.asyncio
+async def test_liveavatar_listens_while_the_player_speaks(monkeypatch):
+    """Поза «слушает» ставится из простоя; говорящее лицо её не получает, но
+    встаёт в неё, вернувшись в простой, если игрок всё ещё говорит."""
+    from app.avatar.live.vendors import liveavatar
+    calls = _fake_liveavatar(monkeypatch)
+    driver = liveavatar.LiveAvatarDriver(_la_cfg(), Persona("supplier"))
+    await driver.connect()
+    sock = calls["socket"]
+
+    def state(new):
+        sock.inbox.put_nowait(json.dumps({"type": "agent.state_updated", "previous_state": "x", "new_state": new}))
+
+    await driver.set_listening(True)
+    assert calls["ws"][-1] == {"type": "agent.start_listening"}
+    state("listening")
+    await asyncio.sleep(0.02)
+    await driver.set_listening(False)
+    assert calls["ws"][-1] == {"type": "agent.stop_listening"}
+    state("talking")
+    await asyncio.sleep(0.02)
+    sent = len(calls["ws"])
+    await driver.set_listening(True)
+    assert len(calls["ws"]) == sent, "говорящему лицу поза не шлётся"
+    state("idle")                           # отзвучал или перебит — игрок ещё говорит
+    await asyncio.sleep(0.02)
+    assert calls["ws"][-1] == {"type": "agent.start_listening"}
+    await driver.close()
+
+
+@pytest.mark.asyncio
+async def test_liveavatar_reply_is_tagged_and_reported(monkeypatch, caplog):
+    """Первый кусок реплики несёт `event_id`; по нему сервис сообщает, когда
+    начал её говорить и чем кончилось, — строка журнала на реплику."""
+    import logging
+    from app.avatar.live.vendors import liveavatar
+    caplog.set_level(logging.INFO, logger="dialog.live_video")
+    calls = _fake_liveavatar(monkeypatch)
+    driver = liveavatar.LiveAvatarDriver(_la_cfg(), Persona("supplier"))
+    await driver.connect()
+    pcm = _tone(1600)
+    for i in range(0, len(pcm), 4 * 2400):
+        await driver.send_audio(pcm[i:i + 4 * 2400], "g1")
+    await driver.end_of_speech("g1")
+    speaks = [m for m in calls["ws"] if m["type"] == "agent.speak"]
+    assert speaks[0].get("event_id") and all("event_id" not in m for m in speaks[1:])
+    uid = speaks[0]["event_id"]
+    sock = calls["socket"]
+    for kind in ("agent.speak_started", "agent.speak_ended"):
+        sock.inbox.put_nowait(json.dumps({"type": kind, "source_event_id": uid}))
+    await asyncio.sleep(0.05)
+    lines = [json.loads(r.getMessage()) for r in caplog.records if "live_video_utterance" in r.getMessage()]
+    assert len(lines) == 1 and lines[0]["outcome"] == "ended"
+    assert lines[0]["start_after_send_ms"] is not None
+    await driver.close()
+
+
+@pytest.mark.asyncio
+async def test_liveavatar_sessions_left_by_a_dead_process_are_stopped_at_start(monkeypatch, tmp_path):
+    """Упавший процесс оставлял сессии оплачиваться до таймаута сервиса.
+    Свои открытые сессии записаны на диске; следующий старт их добивает, а
+    закрытую сервисом не останавливает, а спрашивает, почему она кончилась."""
+    import os
+    from app.avatar.live.vendors import liveavatar
+    monkeypatch.setenv("STATE_DIRECTORY", str(tmp_path))
+    calls = _fake_liveavatar(monkeypatch)
+    driver = liveavatar.LiveAvatarDriver(_la_cfg(), Persona("supplier"))
+    await driver.connect()
+    ledger = tmp_path / "liveavatar-sessions.json"
+    assert "sess-1" in json.loads(ledger.read_text())
+    await driver.close()
+    from app.avatar.live.driver import finish_stops
+    await finish_stops()
+    assert json.loads(ledger.read_text()) == {}, "остановленная сессия вычеркнута"
+
+    now = time.time()
+    ledger.write_text(json.dumps({
+        "dead-1": {"pid": os.getpid() + 1, "at": now},          # упавший процесс
+        "live-1": {"pid": os.getpid(), "at": now},              # партия этого процесса
+        "old-1": {"pid": os.getpid() + 1, "at": now - 3 * 86400},
+    }))
+    calls["stopped"].clear()
+    assert await liveavatar.LiveAvatarDriver.sweep_orphans(_la_cfg()) == 1
+    assert calls["stopped"] == [{"session_id": "dead-1", "reason": "USER_CLOSED"}]
+    assert set(json.loads(ledger.read_text())) == {"live-1"}
+
+    calls["session_info"] = {"end_reason": "MAX_DURATION_REACHED", "duration": 1200}
+    ledger.write_text(json.dumps({"dead-2": {"pid": os.getpid() + 1, "at": now}}))
+    calls["stopped"].clear()
+    await liveavatar.LiveAvatarDriver.sweep_orphans(_la_cfg())
+    assert calls["stopped"] == [], "кончившуюся сессию не останавливают"
+    assert json.loads(ledger.read_text()) == {}
+
+
+@pytest.mark.asyncio
+async def test_live_face_listening_pose_waits_out_pauses_between_phrases(monkeypatch):
+    from app.avatar.live import adapter as module
+    monkeypatch.setattr(module, "LISTEN_HOLD_S", 0.05)
+    seen: list[bool] = []
+
+    class Driver:
+        async def set_listening(self, on):
+            seen.append(on)
+
+    face = module.LiveVideoAvatar.__new__(module.LiveVideoAvatar)
+    face._listening, face._listen_off, face._closed = False, None, False
+    face.mode, face.link, face._driver = "video", "ready", Driver()
+    face._side_tasks = set()
+    face.user_speaking(True)
+    face.user_speaking(False)
+    await asyncio.sleep(0.02)
+    face.user_speaking(True)                # следующая фраза — поза не снималась
+    face.user_speaking(False)
+    await asyncio.sleep(0.12)
+    assert seen == [True, False]
