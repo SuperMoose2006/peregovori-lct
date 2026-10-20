@@ -13,9 +13,9 @@
 
 **Подзаголовок**
 - Было: «Вы ведёте переговоры с собеседником, которого играет ИИ: у него своя цена, граница и скрытые интересы. Договоритесь выгодно и не испортите отношения — после партии получите разбор и оценку.»
-- Стало: «Здесь вы тренируете навык переговоров с собеседником, у которого свои цели на разговор. Ваша задача — успешно выстроить диалог и прийти к договорённости. После каждой партии вы получаете подробный разбор и оценку.»
+- Стало: «Здесь вы тренируете навык переговоров с ИИ-собеседником, у которого свои цели на разговор. Ваша задача — успешно выстроить диалог и прийти к договорённости. После каждой партии вы получаете подробный разбор и оценку.»
 - EN было: «You negotiate with a counterpart played by AI: they have their own price, a limit and hidden interests. Reach a good deal without damaging the relationship — after the game you get a breakdown and a grade.»
-- EN стало: «Here you practise negotiating with a counterpart who has their own goals for the conversation. Your job is to build the dialogue well and reach an agreement. After every game you get a detailed breakdown and a grade.»
+- EN стало: «Here you practise negotiating with an AI counterpart who has their own goals for the conversation. Your job is to build the dialogue well and reach an agreement. After every game you get a detailed breakdown and a grade.»
 
 ## Карл, первый шаг тура (`i18n.ts`, `tours.home.intro.body`)
 

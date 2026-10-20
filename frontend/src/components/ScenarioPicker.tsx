@@ -21,7 +21,7 @@ import { DifficultyIndicator } from "./DifficultyIndicator";
 const BROWSE = {
   ru: {
     title: "Договариваться\u00a0— это навык.", accent: "Тренируйте его здесь.",
-    subtitle: "Здесь вы тренируете навык переговоров с собеседником, у которого свои цели на разговор. Ваша задача — успешно выстроить диалог и прийти к договорённости. После каждой партии вы получаете подробный разбор и оценку.",
+    subtitle: "Здесь вы тренируете навык переговоров с ИИ-собеседником, у которого свои цели на разговор. Ваша задача — успешно выстроить диалог и прийти к договорённости. После каждой партии вы получаете подробный разбор и оценку.",
     search: "Найти ситуацию", placeholder: "Зарплата, аренда, сложный разговор…",
     all: "Все ситуации", career: "Карьера", business: "Бизнес", life: "Жизнь", topicLabel: "Сфера переговоров",
     level: "Режим уступок", allLevels: "Любой режим уступок",
@@ -32,7 +32,7 @@ const BROWSE = {
   },
   en: {
     title: "Negotiating is a skill.", accent: "Practise it here.",
-    subtitle: "Here you practise negotiating with a counterpart who has their own goals for the conversation. Your job is to build the dialogue well and reach an agreement. After every game you get a detailed breakdown and a grade.",
+    subtitle: "Here you practise negotiating with an AI counterpart who has their own goals for the conversation. Your job is to build the dialogue well and reach an agreement. After every game you get a detailed breakdown and a grade.",
     search: "Find a situation", placeholder: "Salary, rent, a difficult conversation…",
     all: "All situations", career: "Career", business: "Business", life: "Everyday life", topicLabel: "Negotiation context",
     level: "Concession mode", allLevels: "Any concession mode",
