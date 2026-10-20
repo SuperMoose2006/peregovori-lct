@@ -38,10 +38,9 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import time
 from typing import Awaitable, Callable, Optional
 
-from app.providers.tts.base import OUTPUT_SAMPLE_RATE, TTSProvider, Voice
+from app.providers.tts.base import TTSProvider, Voice
 from app.observability import ProviderCall
 from app.realtime.events import output_delta, error
 
@@ -88,13 +87,6 @@ class TTSTaskManager:
         self._next_to_send = 0      # какая фраза сейчас имеет право звучать
         self._generation_id = ""
         self._turn_id = 0
-        #: До какого момента (монотонные часы) у клиента ещё звучит отданное:
-        #: клиент играет куски подряд, и конец звука — «сейчас или конец
-        #: прежнего» плюс длина нового. Нужен короткой реакции собеседника:
-        #: перебивать «угу» самого себя нельзя (`NegotiationOrchestrator.backchannel`).
-        self.playing_until = 0.0
-        #: Заранее синтезированные короткие фразы: текст → куски звука.
-        self._prepared: dict[str, list[bytes]] = {}
 
     # ------------------------------------------------------------------ вход
 
@@ -119,55 +111,6 @@ class TTSTaskManager:
         if self._sender is None or self._sender.done():
             self._sender = asyncio.create_task(self._send_in_order())
         _ = index  # порядок задаётся позицией в `self._queues`
-
-    async def prepare(self, text: str) -> bool:
-        """Синтезировать короткую фразу заранее и запомнить её звук.
-
-        Короткая реакция («Угу…») нужна СРАЗУ, как человек замолчал, — живой
-        синтез добавил бы к ней полсекунды до первого звука. Поэтому её голос
-        готовится в начале созвона, тем же голосом персонажа."""
-        if text in self._prepared or not self._provider.available():
-            return text in self._prepared
-        chunks: list[bytes] = []
-        try:
-            async with asyncio.timeout(SYNTHESIS_TIMEOUT_S):
-                async for chunk in self._provider.stream(text, self._voice):
-                    if chunk:
-                        chunks.append(chunk)
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            return False
-        if chunks:
-            self._prepared[text] = chunks
-        return bool(chunks)
-
-    def prepared(self) -> list[str]:
-        return list(self._prepared)
-
-    def speak_prepared(self, text: str, *, generation_id: str, turn_id: int) -> bool:
-        """Отдать заранее готовую фразу тем же путём, что и синтез: по порядку,
-        через лицо (губы) и с учётом перебивания. Ложь — такой фразы нет."""
-        chunks = self._prepared.get(text)
-        if not chunks:
-            return False
-        if generation_id != self._generation_id:
-            self.clear()
-            self._generation_id = generation_id
-            self._turn_id = turn_id
-        queue: asyncio.Queue[bytes] = asyncio.Queue()
-        for chunk in chunks:
-            queue.put_nowait(chunk)
-        queue.put_nowait(_EOP)
-        self._sequence += 1
-        self._queues.append(queue)
-        # Отправщик считает фразы законченными по задачам синтеза; у готовой
-        # фразы синтеза нет — ставим уже завершённую задачу, иначе он ждал бы
-        # продолжения вечно.
-        self._tasks.append(asyncio.create_task(asyncio.sleep(0)))
-        if self._sender is None or self._sender.done():
-            self._sender = asyncio.create_task(self._send_in_order())
-        return True
 
     # -------------------------------------------------------------- внутри
 
@@ -298,9 +241,6 @@ class TTSTaskManager:
                         turn_id=self._turn_id,
                         audio=base64.b64encode(chunk).decode("ascii"),
                     )
-                    # float32 PCM 24 кГц моно — формат провода (`providers/tts/base.py`).
-                    now = time.monotonic()
-                    self.playing_until = max(self.playing_until, now) + len(chunk) / 4 / OUTPUT_SAMPLE_RATE
                     if self.audio_out is not None:
                         self.audio_out(event)
                     else:
@@ -374,8 +314,6 @@ class TTSTaskManager:
         self._sender = None
         self._sequence = 0
         self._next_to_send = 0
-        # Перебили — клиент глушит звук сразу.
-        self.playing_until = min(self.playing_until, time.monotonic())
 
     async def wait_idle(self) -> None:
         """Дождаться, пока всё запрошенное озвучится (для тестов и разбора)."""

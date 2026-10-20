@@ -4295,6 +4295,32 @@ textarea:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .call[data-status="reconnecting"] .call-face,
 .call[data-status="lost"] .call-face { filter: grayscale(1) brightness(0.6); }
+/* Собеседник думает: три точки на кадре и мягко дышащая рамка. Секунды
+   расшифровки, судьи и мысли идут без звука, и без этого созвон выглядел
+   зависшим (владелец 19–20.10). Рамка — отдельным слоем, а не тенью самого
+   лица: у лица свои анимации, и чужое правило их бы перебило. */
+.call-face { position: relative; }
+.call-face::after { content: ""; position: absolute; inset: 0; border-radius: 22px; pointer-events: none;
+  box-shadow: 0 0 0 0 rgb(255 200 0 / 0%); transition: box-shadow 0.25s ease; }
+.call[data-status="thinking"] .call-face:not(.call-dial)::after { animation: cf-glow 1.6s ease-in-out infinite; }
+@keyframes cf-glow {
+  0%, 100% { box-shadow: 0 0 0 3px rgb(255 200 0 / 70%), 0 0 0 0 rgb(255 200 0 / 0%); }
+  50% { box-shadow: 0 0 0 3px rgb(255 200 0 / 95%), 0 0 28px 6px rgb(255 200 0 / 35%); }
+}
+.cf-think { position: absolute; left: 50%; bottom: 18px; z-index: 1; transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 999px;
+  background: rgb(0 0 0 / 62%); animation: pop 0.2s ease; }
+.cf-think i { width: 11px; height: 11px; border-radius: 50%; background: #fff; animation: cf-dot 1.2s ease-in-out infinite; }
+.cf-think i:nth-child(2) { animation-delay: 0.15s; }
+.cf-think i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes cf-dot { 0%, 60%, 100% { opacity: 0.35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-6px); } }
+.mt-status.thinking i { animation: mtpulse 1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .call[data-status="thinking"] .call-face:not(.call-dial)::after { animation: none;
+    box-shadow: 0 0 0 3px rgb(255 200 0 / 85%); }
+  .cf-think, .cf-think i, .mt-status.thinking i { animation: none; }
+  .cf-think i { opacity: 0.8; }
+}
 
 /* Имя собеседника и строка состояния — поверх сцены, по углам. */
 .mt-who { position: absolute; left: 16px; top: 14px; display: flex; flex-direction: column; align-items: flex-start;

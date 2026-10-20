@@ -164,17 +164,11 @@ class RealtimeVoicePipeline:
     def __init__(self, lang: str,
                  on_turn: Callable[[str], Awaitable[None]],
                  on_interrupt: Callable[[], Awaitable[None]],
-                 publish: Callable[[dict], None],
-                 on_turn_ending: Optional[Callable[[str], object]] = None) -> None:
+                 publish: Callable[[dict], None]) -> None:
         self._lang = lang
         self._on_turn = on_turn
         self._on_interrupt = on_interrupt
         self._publish = publish
-        #: «Похоже, человек договорил»: окно тишины вышло, ход вот-вот уйдёт.
-        #: Собеседник в эту секунду отзывается коротко («угу…»), а клиент
-        #: пишет «думает…» — иначе расшифровка, судья и мысль идут в тишине,
-        #: и кажется, что всё зависло (жалоба владельца 19.10).
-        self._on_turn_ending = on_turn_ending
 
         self._key = os.getenv("OPENAI_REALTIME_KEY", "").strip()
         self._ws = None
@@ -619,18 +613,13 @@ class RealtimeVoicePipeline:
         except asyncio.CancelledError:
             return
         if self._joined():
-            # «Похоже, договорил» — именно сейчас, когда ход уходит: раньше
-            # «угу…» и «думает…» звучали и на паузе посреди мысли.
-            self._turn_ending()
+            # «Похоже, договорил» — именно сейчас, когда ход уходит: клиент
+            # сразу показывает, что собеседник думает, иначе расшифровка, судья
+            # и мысль идут в тишине и кажется, что всё зависло (жалоба
+            # владельца 19.10). Звуком («угу…») это не заполняется — решение
+            # владельца 20.10: только видно, не слышно.
+            self._publish({"type": "user.turn.ending"})
         await self._commit(reason="quiet")
-
-    def _turn_ending(self) -> None:
-        self._publish({"type": "user.turn.ending"})
-        if self._on_turn_ending is not None:
-            try:
-                self._on_turn_ending(self._joined())
-            except Exception:
-                pass   # реакция — украшение: её сбой не трогает ход
 
     async def _commit(self, *, reason: str) -> None:
         text = self._joined()

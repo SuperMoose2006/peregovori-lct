@@ -221,6 +221,12 @@ export function CallView({
               label={scenario.counterpart_name}
               size={320}
             />
+            {/* Собеседник думает над ответом — видно на самом лице, как
+                «печатает…» в мессенджере. Звуком это не заполняется
+                (владелец 20.10); слово читает диктор из строки состояния. */}
+            {status === "thinking" && !finished ? (
+              <span className="cf-think" aria-hidden="true"><i /><i /><i /></span>
+            ) : null}
           </div>
           )}
           <div className="mt-who">

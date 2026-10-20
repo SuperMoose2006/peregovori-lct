@@ -216,9 +216,9 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
   let lastOppAt = -1;
   for (let i = log.length - 1; i >= 0; i--) if (log[i].kind === "opp") { lastOppAt = i; break; }
   const lastOpp = call && lastOppAt >= 0 ? log[lastOppAt] : undefined;
-  // Только ответ на ПОСЛЕДНИЙ ход: короткое «угу…» звучит до ответа, и
-  // субтитр показывал под ним прошлую реплику — та мелькала и гасла
-  // (владелец 19.10: «появляется — исчезает — появляется снова»).
+  // Только ответ на ПОСЛЕДНИЙ ход: иначе, пока ответа ещё нет, субтитр
+  // показывал прошлую реплику — та мелькала и гасла (владелец 19.10:
+  // «появляется — исчезает — появляется снова»).
   const subtitle = lastOpp && lastOpp.kind === "opp" && lastOppAt > lastMe
     && (oppSpeaking || lastOpp.streaming) ? lastOpp.text : null;
   // Пока собеседник думает, на экране остаётся сказанное, а не пустота.
