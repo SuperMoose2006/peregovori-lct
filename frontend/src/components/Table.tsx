@@ -501,7 +501,10 @@ export function Table({ chatScrollPosition, t, lang, mode, drillGoal = null, kin
   // Какая подсветка активна сейчас (или ни одной). Обе привязаны к настоящему
   // событию движка, поэтому объясняют то, что уже произошло на глазах.
   const o = t.onboarding;
-  const mark = { primaryLabel: o.gotIt, onPrimary: dismissTutMark, skipLabel: o.skip, onSkip: skipTutorial };
+  // Ведёт Карл (на экзамене подсветок нет вовсе): вскрытый интерес — событие,
+  // которому он рад, остальное он показывает.
+  const guide = { dir: "karl" as const, state: tutMark === "interest" ? "cheer" : "point", name: t.mascot.karl };
+  const mark = { primaryLabel: o.gotIt, onPrimary: dismissTutMark, skipLabel: o.skip, onSkip: skipTutorial, guide };
   let tutStep: CoachStep | null = null;
   if (tutMark === "interest") {
     tutStep = { stepKey: "m-interest", targetRef: interestsRef, title: o.interestTitle, body: o.interestBody, ...mark };

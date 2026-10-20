@@ -39,9 +39,11 @@ export function restoreScroll(mark: ScrollMark | null) {
   window.scrollTo({ top: mark.win, behavior: "auto" });
 }
 
-export function SectionTour({ t, section, optedOut, onOptOut, onDone }: {
+export function SectionTour({ t, section, exam = false, optedOut, onOptOut, onDone }: {
   t: Strings;
   section: TourSection;
+  /** Стол экзамена: Карла там нет вовсе (Mascot.tsx), тур ведёт Тихон. */
+  exam?: boolean;
   /** Раздел уже отключён галочкой — показывается, только если позвали кнопкой. */
   optedOut: boolean;
   onOptOut: (off: boolean) => void;
@@ -84,6 +86,11 @@ export function SectionTour({ t, section, optedOut, onOptOut, onDone }: {
   const copy = t.tours[section][step.id];
   if (!copy) return null;
   const finish = () => { restoreScroll(mark.current); onDone(); };
+  // Первый шаг — приветствие, дальше маскот показывает на подсвеченное.
+  // Экзамен (и его раздел, и стол) ведёт Тихон: правило и запись — его.
+  const guide = exam || section === "exam"
+    ? { dir: "tikhon" as const, state: at === 0 ? "exam" : "chart", name: t.mascot.tikhon }
+    : { dir: "karl" as const, state: at === 0 ? "wave" : "point", name: t.mascot.karl };
   return (
     <Onboarding
       stepKey={`tour-${section}-${step.id}`}
@@ -96,6 +103,7 @@ export function SectionTour({ t, section, optedOut, onOptOut, onDone }: {
       skipLabel={t.tour.skip}
       onSkip={finish}
       optOut={{ label: t.tour.dontShow, checked: optedOut, onChange: onOptOut }}
+      guide={guide}
     />
   );
 }

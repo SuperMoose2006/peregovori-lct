@@ -1583,6 +1583,15 @@ textarea:focus { outline: none; border-color: var(--sel-line); background: var(-
 .onb-opt { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--ink-dim); cursor: pointer; }
 .onb-opt input { width: 18px; height: 18px; margin: 0; accent-color: var(--brass); flex: 0 0 auto; cursor: pointer; }
 
+/* Маскот ведёт подсказку, как сова в Duolingo: фигура слева, текст — его
+   реплика. Новая поза на каждом шаге всплывает заново (key в Onboarding). */
+.onb-say { display: flex; align-items: flex-start; gap: 12px; }
+.onb-guide { flex: 0 0 auto; animation: onbguide 0.35s cubic-bezier(0.3, 1.5, 0.6, 1); }
+.onb-guide img { display: block; width: 72px; height: 72px; object-fit: contain; }
+.onb-text { flex: 1 1 auto; min-width: 0; }
+.onb-who { display: block; margin-bottom: 2px; font-size: 11px; font-weight: 900; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--brass-ink); }
+@keyframes onbguide { from { opacity: 0; transform: translateY(8px) scale(0.85); } to { opacity: 1; transform: none; } }
 .onb-title { font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; line-height: 1.3; }
 .onb-body { font-size: 13.5px; line-height: 1.52; color: var(--ink-dim); }
 
@@ -1598,6 +1607,7 @@ textarea:focus { outline: none; border-color: var(--sel-line); background: var(-
 
 @media (max-width: 640px) {
   .onb-tip { padding: 15px 15px 12px; }
+  .onb-guide img { width: 56px; height: 56px; }
   .onb-skip, .onb-next { min-height: 44px; }
 }
 

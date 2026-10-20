@@ -12,8 +12,13 @@
 // хозяин: за столом — Table, по событиям движка первой партии; в каждом разделе —
 // SectionTour, тур по его элементам (правила показа — lib/tours.ts). Состояния игры здесь не трогают, поэтому
 // детерминированный движок остаётся единственным источником правды.
+//
+// ПОДСКАЗКУ ВЕДЁТ МАСКОТ — как сову в Duolingo (владелец 20.10): фигура слева,
+// текст подсказки — его реплика, поза меняется с шагом. Своего текста маскот
+// не добавляет (правило Mascot.tsx): он даёт лицо той же подсказке.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { MascotImg } from "./Mascot";
 
 export interface CoachStep {
   stepKey: string; // NOT `key` — that's reserved by React and stripped on spread
@@ -30,6 +35,9 @@ export interface CoachStep {
   /** Галочка «Больше не показывать» — видимая, прямо в карточке. У туров
    *  разделов она есть, у одиночных подсветок за столом её нет. */
   optOut?: { label: string; checked: boolean; onChange: (checked: boolean) => void };
+  /** Кто ведёт подсказку и в какой позе. Карл — везде, кроме экзамена: там его
+   *  нет вовсе (Mascot.tsx), и правила объясняет Тихон. */
+  guide?: { dir: "karl" | "tikhon"; state: string; name: string };
 }
 
 const reduceMotion = () =>
@@ -98,7 +106,7 @@ export function placeTip(hole: Rect, vw: number, vh: number, tipW: number, tipH:
 }
 
 export function Onboarding(props: CoachStep) {
-  const { stepKey, targetRef, title, body, primaryLabel, onPrimary, skipLabel, onSkip, progress, optOut } = props;
+  const { stepKey, targetRef, title, body, primaryLabel, onPrimary, skipLabel, onSkip, progress, optOut, guide } = props;
   // Тур включается сам на первом заходе в раздел и перекрывает его, а кнопки
   // «Пропустить» стоят последними в документе: с клавиатуры до них надо было
   // пройти весь экран. Escape — как у любого всплывающего окна (найдено после
@@ -181,10 +189,12 @@ export function Onboarding(props: CoachStep) {
   // to the bottom of the window — whichever keeps every word on screen.
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const TIP_W = Math.min(320, vw - 24);
+  // С маскотом карточка шире: фигура занимает свою колонку, и текст в 320 px
+  // вытянулся бы в высокий узкий столбик.
+  const TIP_W = Math.min(guide ? 360 : 320, vw - 24);
   const place = placeTip(hole, vw, vh, TIP_W, tipH);
   const tipStyle = {
-    top: place.top, left: place.left, width: TIP_W,
+    top: place.top, left: place.left, width: TIP_W, maxWidth: TIP_W,
     "--onb-arrow-at": `${place.arrowAt}px`,
   } as React.CSSProperties;
   const arrow = place.arrow;
@@ -201,8 +211,16 @@ export function Onboarding(props: CoachStep) {
       {/* Шаг сменился — диктор слышит новый, а не молчит до Tab по всему экрану. */}
       <div className={`onb-tip a-${arrow}`} style={tipStyle} ref={tipRef} aria-live="polite">
         <span className="onb-arrow" aria-hidden="true" />
-        <div className="onb-title">{title}</div>
-        <div className="onb-body">{body}</div>
+        <div className="onb-say">
+          {/* key по шагу: новая поза всплывает заново, а не подменяется молча.
+              alt пустой — имя стоит рядом текстом, диктор не услышит его дважды. */}
+          {guide ? <MascotImg key={stepKey} dir={guide.dir} state={guide.state} alt="" size={72} className="onb-guide" /> : null}
+          <div className="onb-text">
+            {guide ? <span className="onb-who">{guide.name}</span> : null}
+            <div className="onb-title">{title}</div>
+            <div className="onb-body">{body}</div>
+          </div>
+        </div>
         {optOut ? (
           <label className="onb-opt">
             <input type="checkbox" name="tour-opt-out" checked={optOut.checked}

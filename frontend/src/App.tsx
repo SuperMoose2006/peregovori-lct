@@ -1834,6 +1834,7 @@ export default function App() {
           key={tour}
           t={t}
           section={tour}
+          exam={mode === "exam"}
           optedOut={tourPrefs.off.includes(tour)}
           onOptOut={(off) => updateTourPrefs(setSectionOff(tourPrefsRef.current, tour, off))}
           onDone={() => setTour(null)}
